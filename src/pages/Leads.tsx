@@ -79,7 +79,7 @@ const leadsData: Lead[] = [
     referredVia: "Social Media",
     lastFollowUpDate: "2024-01-17",
     nextFollowUpDate: "2024-01-25",
-    teammateAssigned: "Hermit"
+    teammateAssigned: "Herman Daza"
   }
 ];
 

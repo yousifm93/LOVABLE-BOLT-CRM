@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Settings, Database, Users, FileText, BarChart3, Shield, Plus, Edit, Trash2 } from "lucide-react";
+import UserManagement from "@/pages/UserManagement";
+import PasswordsVault from "@/pages/PasswordsVault";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -157,6 +159,7 @@ export default function Admin() {
         <TabsList>
           <TabsTrigger value="fields">Field Management</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="passwords">Passwords</TabsTrigger>
           <TabsTrigger value="system">System Settings</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
@@ -300,15 +303,11 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <p className="text-sm text-muted-foreground">Manage team members and permissions</p>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">User management interface will be implemented here.</p>
-            </CardContent>
-          </Card>
+          <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="passwords" className="space-y-4">
+          <PasswordsVault />
         </TabsContent>
 
         <TabsContent value="system" className="space-y-4">

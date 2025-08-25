@@ -16,7 +16,7 @@ import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import YousifTasks from "@/pages/tasks/YousifTasks";
 import SalmaTasks from "@/pages/tasks/SalmaTasks";
-import HermitTasks from "@/pages/tasks/HermitTasks";
+import HermanTasks from "@/pages/tasks/HermanTasks";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
@@ -43,7 +43,7 @@ function App() {
           <Route path="/contacts/lenders" element={<ApprovedLenders />} />
           <Route path="/tasks/yousif" element={<YousifTasks />} />
           <Route path="/tasks/salma" element={<SalmaTasks />} />
-          <Route path="/tasks/hermit" element={<HermitTasks />} />
+          <Route path="/tasks/hermit" element={<HermanTasks />} />
           <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
           <Route path="/resources/condolist" element={<Condolist />} />
           <Route path="/resources/preapproval" element={<PreapprovalLetter />} />

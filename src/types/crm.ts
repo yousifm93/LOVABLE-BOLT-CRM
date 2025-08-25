@@ -96,7 +96,7 @@ export interface CRMClient {
   referredVia?: 'Phone' | 'Email' | 'Social Media' | 'Personal' | string;
   lastFollowUpDate?: string;
   nextFollowUpDate?: string;
-  teammateAssigned?: 'Yousif' | 'Salma' | 'Hermit' | string;
+  teammateAssigned?: 'Yousif' | 'Salma' | 'Herman Daza' | string;
   buyersAgreement?: 'signed' | 'pending' | 'not_applicable';
 }
 
@@ -181,5 +181,5 @@ export const PIPELINE_STAGES = [
 export const TEAM_MEMBERS = [
   'Yousif',
   'Salma', 
-  'Hermit'
+  'Herman Daza'
 ] as const;

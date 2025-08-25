@@ -175,10 +175,10 @@ export default function PendingApp() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Pending Applications</h1>
-          <p className="text-muted-foreground">Applications currently being processed</p>
+          <h1 className="text-2xl font-bold text-foreground">Pending Applications</h1>
+          <p className="text-sm text-muted-foreground">Applications currently being processed</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4 mr-2" />
@@ -188,7 +188,9 @@ export default function PendingApp() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Application Processing</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Applications ({pendingData.length})</CardTitle>
+          </div>
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

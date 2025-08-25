@@ -50,7 +50,7 @@ const pipelineItems = [
 const taskItems = [
   { title: "Yousif Tasks", url: "/tasks/yousif", icon: CheckSquare },
   { title: "Salma Tasks", url: "/tasks/salma", icon: CheckSquare },
-  { title: "Hermit Tasks", url: "/tasks/hermit", icon: CheckSquare },
+  { title: "Herman Daza Tasks", url: "/tasks/hermit", icon: CheckSquare },
 ];
 
 const contactItems = [
@@ -122,6 +122,22 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
+        {/* Tasks */}
+        <CollapsibleSidebarGroup title="Tasks" className="mb-4">
+          <SidebarMenu>
+            {taskItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
+
         {/* Pipeline */}
         <CollapsibleSidebarGroup title="Pipeline" className="mb-4">
           <SidebarMenu>
@@ -138,21 +154,6 @@ export function AppSidebar() {
           </SidebarMenu>
         </CollapsibleSidebarGroup>
 
-        {/* Tasks */}
-        <CollapsibleSidebarGroup title="Tasks" className="mb-4">
-          <SidebarMenu>
-            {taskItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
 
         {/* Contacts */}
         <CollapsibleSidebarGroup title="Contacts" className="mb-4">
