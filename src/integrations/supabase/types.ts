@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      pipeline_stages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          order_index: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          order_index: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          order_index?: number
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          last_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +82,27 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      call_outcome: "No Answer" | "Left VM" | "Connected"
+      contact_type: "Agent" | "Realtor" | "Borrower" | "Other"
+      lead_source:
+        | "Website"
+        | "Referral"
+        | "Cold Call"
+        | "Social Media"
+        | "Email Campaign"
+        | "Walk-in"
+        | "Other"
+      lead_status:
+        | "Working on it"
+        | "Pending App"
+        | "Nurture"
+        | "Dead"
+        | "Needs Attention"
+      log_direction: "In" | "Out"
+      referred_via: "Phone" | "Email" | "Social" | "Personal"
+      task_priority: "Low" | "Medium" | "High" | "Critical"
+      task_status: "Open" | "Done" | "Deferred"
+      user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +229,30 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      call_outcome: ["No Answer", "Left VM", "Connected"],
+      contact_type: ["Agent", "Realtor", "Borrower", "Other"],
+      lead_source: [
+        "Website",
+        "Referral",
+        "Cold Call",
+        "Social Media",
+        "Email Campaign",
+        "Walk-in",
+        "Other",
+      ],
+      lead_status: [
+        "Working on it",
+        "Pending App",
+        "Nurture",
+        "Dead",
+        "Needs Attention",
+      ],
+      log_direction: ["In", "Out"],
+      referred_via: ["Phone", "Email", "Social", "Personal"],
+      task_priority: ["Low", "Medium", "High", "Critical"],
+      task_status: ["Open", "Done", "Deferred"],
+      user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
+    },
   },
 } as const
