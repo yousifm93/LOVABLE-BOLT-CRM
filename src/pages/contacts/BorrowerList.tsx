@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail, User, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Contact } from "@/types/crm";
+import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
 
 const borrowerData: Contact[] = [
   {
@@ -176,14 +179,45 @@ const columns: ColumnDef<Contact>[] = [
 
 export default function BorrowerList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { toast } = useToast();
 
-  const handleRowClick = (contact: Contact) => {
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  const loadContacts = async () => {
+    try {
+      const allContacts = await databaseService.getContacts();
+      const borrowerContacts = allContacts.filter(contact => contact.type === 'Borrower');
+      setContacts(borrowerContacts);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load contacts.",
+        variant: "destructive"
+      });
+      setContacts(borrowerData); // Fallback to mock data
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContactCreated = (newContact: any) => {
+    setContacts(prev => [...prev, newContact]);
+  };
+
+  const handleRowClick = (contact: any) => {
     console.log("View borrower details:", contact);
   };
 
-  const activeBorrowers = borrowerData.filter(contact => contact.status === "Active").length;
-  const totalDeals = borrowerData.reduce((sum, contact) => sum + (contact.deals || 0), 0);
-  const prospects = borrowerData.filter(contact => contact.status === "Prospect").length;
+  const displayData = contacts.length > 0 ? contacts : borrowerData;
+  const activeBorrowers = displayData.filter((contact: any) => contact.status === "Active").length;
+  const totalDeals = displayData.reduce((sum: number, contact: any) => sum + (contact.deals || 0), 0);
+  const prospects = displayData.filter((contact: any) => contact.status === "Prospect").length;
 
   return (
     <div className="space-y-6">
@@ -194,7 +228,10 @@ export default function BorrowerList() {
             {activeBorrowers} active borrowers • {totalDeals} total deals • {prospects} prospects
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
+        <Button 
+          className="bg-gradient-primary hover:opacity-90 transition-opacity"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Borrower
         </Button>
@@ -205,7 +242,7 @@ export default function BorrowerList() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{borrowerData.length}</p>
+                <p className="text-2xl font-bold">{displayData.length}</p>
                 <p className="text-sm text-muted-foreground">Total Borrowers</p>
               </div>
               <User className="h-8 w-8 text-primary" />
@@ -254,7 +291,11 @@ export default function BorrowerList() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Borrower Directory</span>
-            <Button size="sm" className="bg-primary hover:bg-primary/90">
+            <Button 
+              size="sm" 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => setShowCreateModal(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add
             </Button>
@@ -278,12 +319,19 @@ export default function BorrowerList() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={borrowerData}
+            data={displayData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>
+      
+      <CreateContactModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onContactCreated={handleContactCreated}
+        defaultType="borrower"
+      />
     </div>
   );
 }

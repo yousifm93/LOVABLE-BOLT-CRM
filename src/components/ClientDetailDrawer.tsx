@@ -13,6 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { CRMClient, PipelineStage, PIPELINE_STAGES, Activity, Task, Document } from "@/types/crm";
 import { cn } from "@/lib/utils";
+import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -24,6 +27,12 @@ interface ClientDetailDrawerProps {
 export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: ClientDetailDrawerProps) {
   const [newNote, setNewNote] = useState("");
   const [selectedTab, setSelectedTab] = useState("activity");
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [showCallLogModal, setShowCallLogModal] = useState(false);
+  const [showSmsLogModal, setShowSmsLogModal] = useState(false);
+  const [showEmailLogModal, setShowEmailLogModal] = useState(false);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const { toast } = useToast();
 
   if (!isOpen) return null;
 
@@ -174,23 +183,43 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 mt-4">
-            <Button size="sm" className="bg-primary hover:bg-primary/90">
+            <Button 
+              size="sm" 
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => setShowCallLogModal(true)}
+            >
               <Phone className="h-4 w-4 mr-2" />
               Call
             </Button>
-            <Button size="sm" variant="outline">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowSmsLogModal(true)}
+            >
               <MessageSquare className="h-4 w-4 mr-2" />
               SMS
             </Button>
-            <Button size="sm" variant="outline">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowEmailLogModal(true)}
+            >
               <Mail className="h-4 w-4 mr-2" />
               Email
             </Button>
-            <Button size="sm" variant="outline">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowAddNoteModal(true)}
+            >
               <FileText className="h-4 w-4 mr-2" />
               Add Note
             </Button>
-            <Button size="sm" variant="outline">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => setShowCreateTaskModal(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Task
             </Button>
@@ -464,6 +493,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateTaskModal
+        open={showCreateTaskModal}
+        onOpenChange={setShowCreateTaskModal}
+        onTaskCreated={() => {
+          toast({ title: "Success", description: "Task created successfully" });
+          // Refresh data logic here
+        }}
+      />
+
+      <CallLogModal
+        open={showCallLogModal}
+        onOpenChange={setShowCallLogModal}
+        leadId={client.person.id.toString()}
+        onActivityCreated={() => {
+          toast({ title: "Success", description: "Call logged successfully" });
+        }}
+      />
+
+      <SmsLogModal
+        open={showSmsLogModal}
+        onOpenChange={setShowSmsLogModal}
+        leadId={client.person.id.toString()}
+        onActivityCreated={() => {
+          toast({ title: "Success", description: "SMS logged successfully" });
+        }}
+      />
+
+      <EmailLogModal
+        open={showEmailLogModal}
+        onOpenChange={setShowEmailLogModal}
+        leadId={client.person.id.toString()}
+        onActivityCreated={() => {
+          toast({ title: "Success", description: "Email logged successfully" });
+        }}
+      />
+
+      <AddNoteModal
+        open={showAddNoteModal}
+        onOpenChange={setShowAddNoteModal}
+        leadId={client.person.id.toString()}
+        onActivityCreated={() => {
+          toast({ title: "Success", description: "Note added successfully" });
+        }}
+      />
     </div>
   );
 }

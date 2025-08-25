@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail, Building, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
 
 interface Lender {
   id: number;
@@ -143,8 +146,38 @@ const columns: ColumnDef<Lender>[] = [
 
 export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { toast } = useToast();
 
-  const handleRowClick = (lender: Lender) => {
+  useEffect(() => {
+    loadContacts();
+  }, []);
+
+  const loadContacts = async () => {
+    try {
+      const allContacts = await databaseService.getContacts();
+      const lenderContacts = allContacts.filter(contact => contact.type === 'Other');
+      setContacts(lenderContacts);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load contacts.",
+        variant: "destructive"
+      });
+      setContacts(lendersData); // Fallback to mock data
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContactCreated = (newContact: any) => {
+    setContacts(prev => [...prev, newContact]);
+  };
+
+  const handleRowClick = (lender: any) => {
     console.log("Selected lender:", lender);
   };
 
@@ -155,7 +188,10 @@ export default function ApprovedLenders() {
           <h1 className="text-3xl font-bold text-foreground">Approved Lenders</h1>
           <p className="text-muted-foreground">Manage your approved lending partners</p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
+        <Button 
+          className="bg-gradient-primary hover:opacity-90 transition-opacity"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Lender
         </Button>
@@ -183,12 +219,19 @@ export default function ApprovedLenders() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={lendersData}
+            data={contacts.length > 0 ? contacts : lendersData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>
+      
+      <CreateContactModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onContactCreated={handleContactCreated}
+        defaultType="lender"
+      />
     </div>
   );
 }
