@@ -88,9 +88,26 @@ export interface CRMClient {
   closingDate?: string;
   daysToClosing?: number;
   lastContact?: string;
+  
+  // Enhanced fields for all pipeline stages
+  leadOnDate?: string;
+  pendingAppOnDate?: string;
+  buyersAgent?: string;
+  referredVia?: string;
+  lastFollowUpDate?: string;
+  nextFollowUpDate?: string;
+  teammateAssigned?: string;
+  buyersAgreement?: 'signed' | 'pending' | 'not_applicable';
 }
 
 export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients';
+
+// Status dropdown options for each stage
+export type LeadStatus = "working_on_it" | "pending_app" | "nurture" | "dead" | "need_attention";
+export type PendingAppStatus = "new" | "pending_app" | "app_complete" | "on_hold" | "dna";
+export type ScreeningStatus = "just_applied" | "screening" | "pending_docs" | "pre_qualified" | "stand_by";
+export type PreQualifiedStatus = "new" | "shopping" | "offers_out" | "ready_for_preapproval";
+export type PreApprovedStatus = "new" | "shopping" | "offers_out" | "under_contract" | "ready_to_proceed";
 
 export interface Document {
   id: number;

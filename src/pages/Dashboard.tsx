@@ -4,7 +4,11 @@ import {
   FileText, 
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Target,
+  Calendar,
+  PieChart,
+  BarChart3
 } from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +67,124 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Three Dashboard Sections */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Closed/Pipeline Volume Dashboard */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Closed & Pipeline Volume
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <div className="text-2xl font-bold text-success">$24.8M</div>
+                  <div className="text-xs text-muted-foreground">Closed YTD</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <div className="text-2xl font-bold text-info">$18.2M</div>
+                  <div className="text-xs text-muted-foreground">Active Pipeline</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Units Closed: 42</span>
+                  <span className="text-success">+15%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Avg Loan Size: $590K</span>
+                  <span className="text-info">+8%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Monthly Goal: $3.2M</span>
+                  <span className="text-warning">78%</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Current Pipeline Activity Dashboard */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Current Pipeline Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                { stage: "Leads", count: 18, volume: "$9.2M", color: "text-muted-foreground" },
+                { stage: "Pending App", count: 12, volume: "$6.8M", color: "text-info" },
+                { stage: "Screening", count: 8, volume: "$4.5M", color: "text-warning" },
+                { stage: "Pre-Qualified", count: 6, volume: "$3.2M", color: "text-success" },
+                { stage: "Pre-Approved", count: 4, volume: "$2.1M", color: "text-primary" },
+                { stage: "Active", count: 3, volume: "$1.8M", color: "text-destructive" }
+              ].map((item, index) => (
+                <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-background/50">
+                  <div>
+                    <span className="text-sm font-medium">{item.stage}</span>
+                    <div className={`text-xs ${item.color}`}>{item.volume}</div>
+                  </div>
+                  <div className={`text-sm font-bold ${item.color}`}>
+                    {item.count}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lead/App Data Dashboard */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Lead & Application Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <div className="text-xl font-bold text-primary">47</div>
+                  <div className="text-xs text-muted-foreground">New Leads</div>
+                  <div className="text-xs text-success">+12 this week</div>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-background/50">
+                  <div className="text-xl font-bold text-info">23</div>
+                  <div className="text-xs text-muted-foreground">Applications</div>
+                  <div className="text-xs text-success">+5 this week</div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Conversion Rate</span>
+                  <span className="text-success font-medium">68%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Avg Response Time</span>
+                  <span className="text-info font-medium">1.2 hrs</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Lead Sources</span>
+                  <span className="text-muted-foreground">8 active</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Follow-up Rate</span>
+                  <span className="text-warning font-medium">92%</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity Section */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="bg-gradient-card shadow-soft">
           <CardHeader>

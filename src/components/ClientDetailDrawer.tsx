@@ -127,33 +127,47 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             </Button>
           </div>
 
-          {/* Stage Progress Bar */}
+          {/* Stage Progress Bar - Single Line with CAPS */}
           <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">Pipeline Progress</span>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-foreground uppercase tracking-wide">PIPELINE PROGRESS</span>
               <span className="text-sm text-muted-foreground">
                 Stage {currentStageIndex + 1} of {PIPELINE_STAGES.length}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               {PIPELINE_STAGES.map((stage, index) => (
-                <div key={stage.key} className="flex items-center">
-                  <button
-                    onClick={() => handleStageClick(stage.key)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80",
-                      index < currentStageIndex && "bg-secondary text-secondary-foreground",
-                      index === currentStageIndex && "bg-primary text-primary-foreground",
-                      index > currentStageIndex && "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    <span className="text-xs">{stage.number}</span>
-                    <span>{stage.label}</span>
-                  </button>
+                <>
+                  <div key={stage.key} className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleStageClick(stage.key)}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 hover:scale-105 mb-2",
+                        index < currentStageIndex && "bg-success text-success-foreground shadow-soft",
+                        index === currentStageIndex && "bg-primary text-primary-foreground shadow-medium ring-2 ring-primary/30",
+                        index > currentStageIndex && "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      {stage.number}
+                    </button>
+                    <span className={cn(
+                      "text-xs font-medium uppercase tracking-wide text-center",
+                      index === currentStageIndex && "text-primary font-bold",
+                      index < currentStageIndex && "text-success",
+                      index > currentStageIndex && "text-muted-foreground"
+                    )}>
+                      {stage.label}
+                    </span>
+                  </div>
                   {index < PIPELINE_STAGES.length - 1 && (
-                    <div className="w-8 h-0.5 bg-border mx-1" />
+                    <div className={cn(
+                      "h-1 flex-1 mx-3 rounded-full transition-all duration-300 mt-[-20px]",
+                      index < currentStageIndex && "bg-success shadow-soft",
+                      index === currentStageIndex - 1 && "bg-primary",
+                      index >= currentStageIndex && "bg-muted"
+                    )} />
                   )}
-                </div>
+                </>
               ))}
             </div>
           </div>

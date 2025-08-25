@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
 
 interface ActiveClient {
   id: number;
@@ -11,54 +13,56 @@ interface ActiveClient {
   email: string;
   phone: string;
   loanType: string;
-  status: string;
+  status: "under_contract" | "in_underwriting" | "conditions_pending" | "clear_to_close" | "docs_signing";
   loanAmount: string;
-  interestRate: number;
   creditScore: number;
   closingDate: string;
   processor: string;
   underwriter: string;
   progress: number;
-  daysToClosing: number;
-  currentStage: string;
+  lastUpdate: string;
 }
 
 const activeData: ActiveClient[] = [
   {
     id: 1,
-    name: "Michael Chen",
-    email: "michael.c@email.com",
-    phone: "(555) 777-8888",
+    name: "Sarah Mitchell",
+    email: "sarah.m@email.com",
+    phone: "(555) 890-1234",
     loanType: "Purchase",
-    status: "Active",
-    loanAmount: "$485,000",
-    interestRate: 6.50,
-    creditScore: 785,
+    status: "in_underwriting",
+    loanAmount: "$625,000",
+    creditScore: 780,
     closingDate: "2024-02-15",
-    processor: "Anna Wilson",
-    underwriter: "Mark Davis",
-    progress: 75,
-    daysToClosing: 25,
-    currentStage: "Underwriting"
+    processor: "Lisa Chen",
+    underwriter: "Michael Rodriguez",
+    progress: 65,
+    lastUpdate: "2024-01-22"
   },
   {
     id: 2,
-    name: "Jennifer Park",
-    email: "jennifer.p@email.com",
-    phone: "(555) 999-0000",
+    name: "James Patterson",
+    email: "james.p@email.com",
+    phone: "(555) 901-2345",
     loanType: "Refinance",
-    status: "Active",
-    loanAmount: "$375,000",
-    interestRate: 6.75,
-    creditScore: 760,
-    closingDate: "2024-02-20",
-    processor: "Kevin Lee",
-    underwriter: "Sandra Kim",
-    progress: 85,
-    daysToClosing: 30,
-    currentStage: "Clear to Close"
+    status: "clear_to_close",
+    loanAmount: "$380,000",
+    creditScore: 745,
+    closingDate: "2024-02-08",
+    processor: "Karen Wong",
+    underwriter: "David Kim",
+    progress: 95,
+    lastUpdate: "2024-01-21"
   }
 ];
+
+const statusOptions = {
+  under_contract: "Under Contract",
+  in_underwriting: "In Underwriting", 
+  conditions_pending: "Conditions Pending",
+  clear_to_close: "Clear to Close",
+  docs_signing: "Docs Signing"
+};
 
 const columns: ColumnDef<ActiveClient>[] = [
   {
@@ -83,30 +87,14 @@ const columns: ColumnDef<ActiveClient>[] = [
     ),
   },
   {
-    accessorKey: "loanType",
-    header: "Loan Type",
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge status={statusOptions[row.original.status]} />,
     sortable: true,
   },
   {
     accessorKey: "loanAmount",
     header: "Loan Amount",
-    sortable: true,
-    cell: ({ row }) => (
-      <div className="font-medium text-success">{row.original.loanAmount}</div>
-    ),
-  },
-  {
-    accessorKey: "interestRate",
-    header: "Rate",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.interestRate}%</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "currentStage",
-    header: "Current Stage",
-    cell: ({ row }) => <StatusBadge status={row.original.currentStage} />,
     sortable: true,
   },
   {
@@ -116,13 +104,14 @@ const columns: ColumnDef<ActiveClient>[] = [
       <div className="flex items-center gap-2">
         <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
           <div 
-            className="h-full bg-success transition-all duration-300"
+            className="h-full bg-primary transition-all duration-300"
             style={{ width: `${row.original.progress}%` }}
           />
         </div>
         <span className="text-sm text-muted-foreground">{row.original.progress}%</span>
       </div>
     ),
+    sortable: true,
   },
   {
     accessorKey: "closingDate",
@@ -130,30 +119,8 @@ const columns: ColumnDef<ActiveClient>[] = [
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
         <Calendar className="h-3 w-3 text-muted-foreground" />
-        <span className={`text-sm ${
-          row.original.daysToClosing <= 14 
-            ? 'text-warning font-medium' 
-            : 'text-muted-foreground'
-        }`}>
-          {row.original.closingDate}
-        </span>
+        <span className="text-sm">{row.original.closingDate}</span>
       </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "daysToClosing",
-    header: "Days to Close",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.daysToClosing <= 7 
-          ? 'text-destructive' 
-          : row.original.daysToClosing <= 14 
-          ? 'text-warning' 
-          : 'text-success'
-      }`}>
-        {row.original.daysToClosing} days
-      </span>
     ),
     sortable: true,
   },
@@ -162,13 +129,54 @@ const columns: ColumnDef<ActiveClient>[] = [
     header: "Processor",
     sortable: true,
   },
+  {
+    accessorKey: "underwriter",
+    header: "Underwriter",
+    sortable: true,
+  },
 ];
 
 export default function Active() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleRowClick = (client: ActiveClient) => {
-    console.log("View active loan details:", client);
+    // Convert ActiveClient to CRMClient for the drawer
+    const crmClient: CRMClient = {
+      person: {
+        id: client.id,
+        firstName: client.name.split(' ')[0],
+        lastName: client.name.split(' ').slice(1).join(' '),
+        email: client.email,
+        phoneMobile: client.phone
+      },
+      loan: {
+        loanAmount: client.loanAmount,
+        loanType: client.loanType,
+        prType: "Primary Residence"
+      },
+      ops: {
+        stage: "active",
+        status: statusOptions[client.status],
+        priority: "High"
+      },
+      dates: {
+        createdOn: client.lastUpdate,
+        appliedOn: client.lastUpdate
+      },
+      meta: {},
+      name: client.name,
+      creditScore: client.creditScore,
+      progress: client.progress
+    };
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -176,17 +184,17 @@ export default function Active() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Active Loans</h1>
-          <p className="text-muted-foreground">Loans currently in process to closing</p>
+          <p className="text-muted-foreground">Loans currently in process</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4 mr-2" />
-          Start New Loan
+          New Active Loan
         </Button>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Active Loan Pipeline</CardTitle>
+          <CardTitle>Active Loans</CardTitle>
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -212,6 +220,15 @@ export default function Active() {
           />
         </CardContent>
       </Card>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onStageChange={handleStageChange}
+        />
+      )}
     </div>
   );
 }

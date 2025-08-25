@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
 
 interface PreApprovedClient {
   id: number;
@@ -11,54 +13,68 @@ interface PreApprovedClient {
   email: string;
   phone: string;
   loanType: string;
-  status: string;
+  status: "new" | "shopping" | "offers_out" | "under_contract" | "ready_to_proceed";
   approvedAmount: string;
-  interestRate: number;
+  requestedAmount: string;
   creditScore: number;
   dti: number;
-  approvalDate: string;
+  approvedDate: string;
   expirationDate: string;
-  loanOfficer: string;
-  underwriter: string;
-  lockStatus: "Locked" | "Float" | "Expired";
+  buyersAgent: string;
+  lastFollowUpDate: string;
+  nextFollowUpDate: string;
+  teammateAssigned: string;
+  buyersAgreement: "signed" | "pending" | "not_applicable";
 }
 
 const preApprovedData: PreApprovedClient[] = [
   {
     id: 1,
-    name: "Sarah Mitchell",
-    email: "sarah.m@email.com",
-    phone: "(555) 111-2222",
+    name: "David Martinez",
+    email: "david.m@email.com",
+    phone: "(555) 234-5678",
     loanType: "Purchase",
-    status: "Pre-Approved",
+    status: "shopping",
     approvedAmount: "$525,000",
-    interestRate: 6.75,
+    requestedAmount: "$500,000",
     creditScore: 795,
     dti: 25,
-    approvalDate: "2023-12-28",
-    expirationDate: "2024-03-28",
-    loanOfficer: "Mike Johnson",
-    underwriter: "Linda Chen",
-    lockStatus: "Locked"
+    approvedDate: "2024-01-02",
+    expirationDate: "2024-05-02",
+    buyersAgent: "Jennifer Walsh",
+    lastFollowUpDate: "2024-01-20",
+    nextFollowUpDate: "2024-01-27",
+    teammateAssigned: "Sarah Wilson",
+    buyersAgreement: "signed"
   },
   {
     id: 2,
-    name: "James Rodriguez",
-    email: "james.r@email.com",
-    phone: "(555) 333-4444",
-    loanType: "Refinance",
-    status: "Pre-Approved",
-    approvedAmount: "$450,000",
-    interestRate: 6.95,
-    creditScore: 765,
+    name: "Amanda Foster",
+    email: "amanda.f@email.com",
+    phone: "(555) 345-6789",
+    loanType: "Purchase",
+    status: "offers_out",
+    approvedAmount: "$475,000",
+    requestedAmount: "$450,000",
+    creditScore: 762,
     dti: 30,
-    approvalDate: "2023-12-25",
-    expirationDate: "2024-03-25",
-    loanOfficer: "Jessica Lee",
-    underwriter: "Robert Kim",
-    lockStatus: "Float"
+    approvedDate: "2024-01-01",
+    expirationDate: "2024-05-01",
+    buyersAgent: "Robert Kim",
+    lastFollowUpDate: "2024-01-19",
+    nextFollowUpDate: "2024-01-26",
+    teammateAssigned: "Mark Johnson",
+    buyersAgreement: "signed"
   }
 ];
+
+const statusOptions = {
+  new: "New",
+  shopping: "Shopping",
+  offers_out: "Offers Out",
+  under_contract: "Under Contract",
+  ready_to_proceed: "Ready to Proceed"
+};
 
 const columns: ColumnDef<PreApprovedClient>[] = [
   {
@@ -83,8 +99,9 @@ const columns: ColumnDef<PreApprovedClient>[] = [
     ),
   },
   {
-    accessorKey: "loanType",
-    header: "Loan Type",
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge status={statusOptions[row.original.status]} />,
     sortable: true,
   },
   {
@@ -92,33 +109,11 @@ const columns: ColumnDef<PreApprovedClient>[] = [
     header: "Approved Amount",
     sortable: true,
     cell: ({ row }) => (
-      <div className="font-medium text-primary">{row.original.approvedAmount}</div>
-    ),
-  },
-  {
-    accessorKey: "interestRate",
-    header: "Interest Rate",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.interestRate}%</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "lockStatus",
-    header: "Rate Lock",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Shield className={`h-3 w-3 ${
-          row.original.lockStatus === "Locked" 
-            ? "text-success" 
-            : row.original.lockStatus === "Float"
-            ? "text-warning"
-            : "text-destructive"
-        }`} />
-        <StatusBadge status={row.original.lockStatus} />
+      <div>
+        <div className="font-medium text-success">{row.original.approvedAmount}</div>
+        <div className="text-xs text-muted-foreground">Requested: {row.original.requestedAmount}</div>
       </div>
     ),
-    sortable: true,
   },
   {
     accessorKey: "creditScore",
@@ -137,13 +132,24 @@ const columns: ColumnDef<PreApprovedClient>[] = [
     sortable: true,
   },
   {
-    accessorKey: "underwriter",
-    header: "Underwriter",
+    accessorKey: "buyersAgent",
+    header: "Buyer's Agent",
     sortable: true,
   },
   {
-    accessorKey: "approvalDate",
-    header: "Approval Date",
+    accessorKey: "buyersAgreement",
+    header: "Buyer's Agreement",
+    cell: ({ row }) => (
+      <StatusBadge 
+        status={row.original.buyersAgreement === "signed" ? "Signed" : 
+               row.original.buyersAgreement === "pending" ? "Pending" : "N/A"} 
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "teammateAssigned",
+    header: "Team Member",
     sortable: true,
   },
   {
@@ -155,9 +161,12 @@ const columns: ColumnDef<PreApprovedClient>[] = [
       const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
       return (
-        <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning font-medium' : 'text-muted-foreground'}`}>
-          {row.original.expirationDate}
-        </span>
+        <div className="flex items-center gap-1">
+          <Shield className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
+          <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
+            {row.original.expirationDate}
+          </span>
+        </div>
       );
     },
     sortable: true,
@@ -166,9 +175,49 @@ const columns: ColumnDef<PreApprovedClient>[] = [
 
 export default function PreApproved() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleRowClick = (client: PreApprovedClient) => {
-    console.log("View pre-approval details:", client);
+    // Convert PreApprovedClient to CRMClient for the drawer
+    const crmClient: CRMClient = {
+      person: {
+        id: client.id,
+        firstName: client.name.split(' ')[0],
+        lastName: client.name.split(' ').slice(1).join(' '),
+        email: client.email,
+        phoneMobile: client.phone
+      },
+      loan: {
+        loanAmount: client.approvedAmount,
+        loanType: client.loanType,
+        prType: "Primary Residence"
+      },
+      ops: {
+        stage: "pre-approved",
+        status: statusOptions[client.status],
+        priority: "High"
+      },
+      dates: {
+        createdOn: client.approvedDate,
+        appliedOn: client.approvedDate
+      },
+      meta: {},
+      name: client.name,
+      creditScore: client.creditScore,
+      buyersAgent: client.buyersAgent,
+      lastFollowUpDate: client.lastFollowUpDate,
+      nextFollowUpDate: client.nextFollowUpDate,
+      teammateAssigned: client.teammateAssigned,
+      buyersAgreement: client.buyersAgreement
+    };
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -176,7 +225,7 @@ export default function PreApproved() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Pre-Approved</h1>
-          <p className="text-muted-foreground">Clients with full underwriter approval</p>
+          <p className="text-muted-foreground">Clients with full loan pre-approval</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4 mr-2" />
@@ -212,6 +261,15 @@ export default function PreApproved() {
           />
         </CardContent>
       </Card>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onStageChange={handleStageChange}
+        />
+      )}
     </div>
   );
 }
