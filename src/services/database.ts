@@ -49,9 +49,17 @@ export const databaseService = {
   },
 
   async createLead(lead: LeadInsert) {
+    // Ensure required fields are set and handle empty strings
+    const leadData = {
+      ...lead,
+      // Convert empty strings to null for optional enum fields
+      source: lead.source || null,
+      referred_via: lead.referred_via || null,
+    };
+    
     const { data, error } = await supabase
       .from('leads')
-      .insert(lead)
+      .insert(leadData)
       .select(`
         *,
         pipeline_stage:pipeline_stages(*),
@@ -60,7 +68,10 @@ export const databaseService = {
       `)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Lead creation error:', error);
+      throw error;
+    }
     return data;
   },
 

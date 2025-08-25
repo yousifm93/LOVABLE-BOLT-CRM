@@ -1,7 +1,8 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
+  const { user, signOut } = useAuth();
+
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-6 shadow-soft">
       <div className="flex items-center gap-4">
@@ -35,8 +38,9 @@ export function Header() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
+            <Button variant="ghost" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              {user?.email}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -45,7 +49,10 @@ export function Header() {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={signOut} className="flex items-center gap-2">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

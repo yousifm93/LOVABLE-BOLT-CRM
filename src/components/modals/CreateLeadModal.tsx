@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type LeadInsert, type User, type Contact, type PipelineStage } from '@/services/database';
 
 interface CreateLeadModalProps {
@@ -16,6 +17,7 @@ interface CreateLeadModalProps {
 
 export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLeadModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -52,6 +54,14 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       setUsers(usersData);
       setContacts(contactsData.filter(c => c.type === 'Agent' || c.type === 'Realtor'));
       setPipelineStages(stagesData);
+      
+      // Set current user as default teammate if not already set
+      if (user && !formData.teammate_assigned) {
+        const currentUser = usersData.find(u => u.email === user.email);
+        if (currentUser) {
+          setFormData(prev => ({ ...prev, teammate_assigned: currentUser.id }));
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
