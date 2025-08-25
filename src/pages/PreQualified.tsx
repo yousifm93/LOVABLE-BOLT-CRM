@@ -1,0 +1,208 @@
+import { useState } from "react";
+import { Search, Plus, Filter, Phone, Mail, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+
+interface PreQualifiedClient {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  loanType: string;
+  status: string;
+  loanAmount: string;
+  qualifiedAmount: string;
+  creditScore: number;
+  dti: number;
+  qualifiedDate: string;
+  expirationDate: string;
+  loanOfficer: string;
+}
+
+const preQualifiedData: PreQualifiedClient[] = [
+  {
+    id: 1,
+    name: "Rachel Green",
+    email: "rachel.g@email.com",
+    phone: "(555) 654-3210",
+    loanType: "Purchase",
+    status: "Pre-Qualified",
+    loanAmount: "$500,000",
+    qualifiedAmount: "$475,000",
+    creditScore: 780,
+    dti: 28,
+    qualifiedDate: "2024-01-05",
+    expirationDate: "2024-04-05",
+    loanOfficer: "John Smith"
+  },
+  {
+    id: 2,
+    name: "Tom Wilson",
+    email: "tom.w@email.com",
+    phone: "(555) 765-4321",
+    loanType: "Purchase",
+    status: "Pre-Qualified",
+    loanAmount: "$425,000",
+    qualifiedAmount: "$400,000",
+    creditScore: 745,
+    dti: 32,
+    qualifiedDate: "2024-01-03",
+    expirationDate: "2024-04-03",
+    loanOfficer: "Emily Davis"
+  }
+];
+
+const columns: ColumnDef<PreQualifiedClient>[] = [
+  {
+    accessorKey: "name",
+    header: "Client Name",
+    sortable: true,
+  },
+  {
+    accessorKey: "contact",
+    header: "Contact",
+    cell: ({ row }) => (
+      <div className="space-y-1">
+        <div className="flex items-center text-sm">
+          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+          {row.original.email}
+        </div>
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Phone className="h-3 w-3 mr-1" />
+          {row.original.phone}
+        </div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "loanType",
+    header: "Loan Type",
+    sortable: true,
+  },
+  {
+    accessorKey: "qualifiedAmount",
+    header: "Qualified Amount",
+    sortable: true,
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium text-success">{row.original.qualifiedAmount}</div>
+        <div className="text-xs text-muted-foreground">Requested: {row.original.loanAmount}</div>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "creditScore",
+    header: "Credit Score",
+    cell: ({ row }) => (
+      <span className={`font-medium ${
+        row.original.creditScore >= 750 
+          ? 'text-success' 
+          : row.original.creditScore >= 700 
+          ? 'text-warning' 
+          : 'text-destructive'
+      }`}>
+        {row.original.creditScore}
+      </span>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "dti",
+    header: "DTI",
+    cell: ({ row }) => (
+      <span className={`font-medium ${
+        row.original.dti <= 30 
+          ? 'text-success' 
+          : row.original.dti <= 40 
+          ? 'text-warning' 
+          : 'text-destructive'
+      }`}>
+        {row.original.dti}%
+      </span>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "loanOfficer",
+    header: "Loan Officer",
+    sortable: true,
+  },
+  {
+    accessorKey: "qualifiedDate",
+    header: "Qualified Date",
+    sortable: true,
+  },
+  {
+    accessorKey: "expirationDate",
+    header: "Expires",
+    cell: ({ row }) => {
+      const expirationDate = new Date(row.original.expirationDate);
+      const today = new Date();
+      const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      return (
+        <div className="flex items-center gap-1">
+          <CheckCircle className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
+          <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
+            {row.original.expirationDate}
+          </span>
+        </div>
+      );
+    },
+    sortable: true,
+  },
+];
+
+export default function PreQualified() {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleRowClick = (client: PreQualifiedClient) => {
+    console.log("View pre-qualification details:", client);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Pre-Qualified</h1>
+          <p className="text-muted-foreground">Clients with preliminary loan approval</p>
+        </div>
+        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
+          <Plus className="h-4 w-4 mr-2" />
+          New Pre-Qualification
+        </Button>
+      </div>
+
+      <Card className="bg-gradient-card shadow-soft">
+        <CardHeader>
+          <CardTitle>Pre-Qualified Clients</CardTitle>
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search pre-qualified clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={preQualifiedData}
+            searchTerm={searchTerm}
+            onRowClick={handleRowClick}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

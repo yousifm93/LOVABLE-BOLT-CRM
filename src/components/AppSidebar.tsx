@@ -5,7 +5,8 @@ import {
   TrendingUp, 
   Calendar,
   Settings,
-  Building2
+  Building2,
+  CheckCircle
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -22,10 +23,13 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
-  { title: "Clients", url: "/clients", icon: Users },
-  { title: "Pipeline", url: "/pipeline", icon: TrendingUp },
-  { title: "Applications", url: "/applications", icon: FileText },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Leads", url: "/leads", icon: Users },
+  { title: "Pending App", url: "/pending-app", icon: FileText },
+  { title: "Screening", url: "/screening", icon: TrendingUp },
+  { title: "Pre-Qualified", url: "/pre-qualified", icon: CheckCircle },
+  { title: "Pre-Approved", url: "/pre-approved", icon: CheckCircle },
+  { title: "Active", url: "/active", icon: Calendar },
+  { title: "Past Clients", url: "/past-clients", icon: Users },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -57,8 +61,8 @@ export function AppSidebar() {
             </div>
             {!collapsed && (
               <div>
-                <h2 className="font-semibold text-foreground">MortgageCRM</h2>
-                <p className="text-xs text-muted-foreground">Professional Edition</p>
+                <h2 className="font-semibold text-foreground">Mortgage Bolt</h2>
+                <p className="text-xs text-muted-foreground">CRM</p>
               </div>
             )}
           </div>
