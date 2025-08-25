@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
+import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
+import { databaseService, type Lead as DatabaseLead } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
 
 interface Lead {
   id: number;
@@ -26,62 +29,25 @@ interface Lead {
   teammateAssigned?: string;
 }
 
-const leadsData: Lead[] = [
-  {
-    id: 1,
-    name: "Jennifer Martinez",
-    email: "jennifer.m@email.com",
-    phone: "(555) 123-4567",
-    source: "Website",
-    status: "working_on_it",
-    loanAmount: "$425,000",
-    creditScore: 745,
-    created: "2024-01-20",
-    lastContact: "2024-01-20",
-    leadOnDate: "2024-01-20",
-    buyersAgent: "Sarah Johnson",
-    referredVia: "Website",
-    lastFollowUpDate: "2024-01-19",
-    nextFollowUpDate: "2024-01-22",
-    teammateAssigned: "Yousif"
-  },
-  {
-    id: 2,
-    name: "Robert Kim",
-    email: "robert.k@email.com",
-    phone: "(555) 234-5678",
-    source: "Referral",
-    status: "pending_app",
-    loanAmount: "$380,000",
-    creditScore: 720,
-    created: "2024-01-19",
-    lastContact: "2024-01-19",
-    leadOnDate: "2024-01-19",
-    buyersAgent: "Mike Chen",
-    referredVia: "Personal",
-    lastFollowUpDate: "2024-01-18",
-    nextFollowUpDate: "2024-01-21",
-    teammateAssigned: "Salma"
-  },
-  {
-    id: 3,
-    name: "Amanda Chen",
-    email: "amanda.c@email.com",
-    phone: "(555) 345-6789",
-    source: "Social Media",
-    status: "nurture",
-    loanAmount: "$525,000",
-    creditScore: 780,
-    created: "2024-01-18",
-    lastContact: "2024-01-18",
-    leadOnDate: "2024-01-18",
-    buyersAgent: "Lisa Rodriguez",
-    referredVia: "Social Media",
-    lastFollowUpDate: "2024-01-17",
-    nextFollowUpDate: "2024-01-25",
-    teammateAssigned: "Herman Daza"
-  }
-];
+// Transform database lead to display format
+const transformLeadToDisplay = (dbLead: DatabaseLead & { teammate?: any, buyer_agent?: any }): Lead => ({
+  id: parseInt(dbLead.id),
+  name: `${dbLead.first_name} ${dbLead.last_name}`,
+  email: dbLead.email || '',
+  phone: dbLead.phone || '',
+  source: dbLead.source || 'Unknown',
+  status: dbLead.status || 'Working on it',
+  loanAmount: dbLead.loan_amount ? `$${dbLead.loan_amount.toLocaleString()}` : '$0',
+  creditScore: 750, // TODO: Add credit score to database
+  created: new Date(dbLead.created_at).toLocaleDateString(),
+  lastContact: new Date(dbLead.created_at).toLocaleDateString(),
+  leadOnDate: new Date(dbLead.lead_on_date).toLocaleDateString(),
+  buyersAgent: dbLead.buyer_agent ? `${dbLead.buyer_agent.first_name} ${dbLead.buyer_agent.last_name}` : '',
+  referredVia: dbLead.referred_via || '',
+  lastFollowUpDate: '', // TODO: Calculate from activities
+  nextFollowUpDate: '', // TODO: Calculate from tasks
+  teammateAssigned: dbLead.teammate ? `${dbLead.teammate.first_name} ${dbLead.teammate.last_name}` : ''
+});
 
 const columns: ColumnDef<Lead>[] = [
   {
@@ -177,9 +143,40 @@ const columns: ColumnDef<Lead>[] = [
 ];
 
 export default function Leads() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadLeads();
+  }, []);
+
+  const loadLeads = async () => {
+    try {
+      setLoading(true);
+      const dbLeads = await databaseService.getLeads();
+      const transformedLeads = dbLeads.map(transformLeadToDisplay);
+      setLeads(transformedLeads);
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load leads',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLeadCreated = (newLead: any) => {
+    const transformedLead = transformLeadToDisplay(newLead);
+    setLeads(prev => [transformedLead, ...prev]);
+  };
 
   const handleRowClick = (lead: Lead) => {
     // Convert Lead to CRMClient for the drawer
@@ -225,7 +222,10 @@ export default function Leads() {
           <h1 className="text-3xl font-bold text-foreground">Leads</h1>
           <p className="text-muted-foreground">Potential clients and prospects</p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
+        <Button 
+          className="bg-gradient-primary hover:opacity-90 transition-opacity"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Lead
         </Button>
@@ -253,12 +253,18 @@ export default function Leads() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={leadsData}
+            data={leads}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>
+
+      <CreateLeadModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onLeadCreated={handleLeadCreated}
+      />
 
       {selectedClient && (
         <ClientDetailDrawer
