@@ -13,6 +13,12 @@ import PreQualified from "./pages/PreQualified";
 import PreApproved from "./pages/PreApproved";
 import Active from "./pages/Active";
 import PastClients from "./pages/PastClients";
+import YousifTasks from "./pages/tasks/YousifTasks";
+import SalmaTasks from "./pages/tasks/SalmaTasks";
+import HermitTasks from "./pages/tasks/HermitTasks";
+import AgentList from "./pages/contacts/AgentList";
+import BorrowerList from "./pages/contacts/BorrowerList";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,8 +38,12 @@ const App = () => (
           <Route path="/pre-approved" element={<Layout><PreApproved /></Layout>} />
           <Route path="/active" element={<Layout><Active /></Layout>} />
           <Route path="/past-clients" element={<Layout><PastClients /></Layout>} />
-          <Route path="/settings" element={<Layout><div className="p-6"><h1 className="text-3xl font-bold">Settings</h1><p className="text-muted-foreground">Settings coming soon...</p></div></Layout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/tasks/yousif" element={<Layout><YousifTasks /></Layout>} />
+          <Route path="/tasks/salma" element={<Layout><SalmaTasks /></Layout>} />
+          <Route path="/tasks/hermit" element={<Layout><HermitTasks /></Layout>} />
+          <Route path="/contacts/agents" element={<Layout><AgentList /></Layout>} />
+          <Route path="/contacts/borrowers" element={<Layout><BorrowerList /></Layout>} />
+          <Route path="/admin" element={<Layout><Admin /></Layout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
