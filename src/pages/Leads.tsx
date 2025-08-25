@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
 
 interface Lead {
   id: number;
@@ -60,7 +62,7 @@ const leadsData: Lead[] = [
 const columns: ColumnDef<Lead>[] = [
   {
     accessorKey: "name",
-    header: "Name",
+    header: "Lead Name",
     sortable: true,
   },
   {
@@ -80,19 +82,16 @@ const columns: ColumnDef<Lead>[] = [
     ),
   },
   {
-    accessorKey: "source",
-    header: "Source",
+    accessorKey: "loanAmount",
+    header: "Loan Amount",
     sortable: true,
   },
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "loanAmount",
-    header: "Loan Amount",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status} />
+    ),
     sortable: true,
   },
   {
@@ -112,6 +111,11 @@ const columns: ColumnDef<Lead>[] = [
     sortable: true,
   },
   {
+    accessorKey: "source",
+    header: "Source",
+    sortable: true,
+  },
+  {
     accessorKey: "created",
     header: "Created",
     sortable: true,
@@ -125,9 +129,44 @@ const columns: ColumnDef<Lead>[] = [
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleRowClick = (lead: Lead) => {
-    console.log("View lead details:", lead);
+    // Convert Lead to CRMClient for the drawer
+    const crmClient: CRMClient = {
+      person: {
+        id: lead.id,
+        firstName: lead.name.split(' ')[0],
+        lastName: lead.name.split(' ').slice(1).join(' '),
+        email: lead.email,
+        phoneMobile: lead.phone
+      },
+      loan: {
+        loanAmount: lead.loanAmount,
+        loanType: "Purchase",
+        prType: "Primary Residence"
+      },
+      ops: {
+        stage: "leads",
+        status: lead.status,
+        priority: "Medium",
+        referralSource: lead.source
+      },
+      dates: {
+        createdOn: lead.created
+      },
+      meta: {},
+      name: lead.name,
+      creditScore: lead.creditScore
+    };
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -135,17 +174,17 @@ export default function Leads() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Leads</h1>
-          <p className="text-muted-foreground">New prospects and potential clients</p>
+          <p className="text-muted-foreground">Potential clients and prospects</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4 mr-2" />
-          Add Lead
+          New Lead
         </Button>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Lead Management</CardTitle>
+          <CardTitle>Lead Pipeline</CardTitle>
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -171,6 +210,15 @@ export default function Leads() {
           />
         </CardContent>
       </Card>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onStageChange={handleStageChange}
+        />
+      )}
     </div>
   );
 }

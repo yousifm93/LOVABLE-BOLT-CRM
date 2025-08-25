@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
 
 interface PendingApplication {
   id: number;
@@ -130,9 +132,45 @@ const columns: ColumnDef<PendingApplication>[] = [
 
 export default function PendingApp() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleRowClick = (application: PendingApplication) => {
-    console.log("View application details:", application);
+    // Convert PendingApplication to CRMClient for the drawer
+    const crmClient: CRMClient = {
+      person: {
+        id: application.id,
+        firstName: application.name.split(' ')[0],
+        lastName: application.name.split(' ').slice(1).join(' '),
+        email: application.email,
+        phoneMobile: application.phone
+      },
+      loan: {
+        loanAmount: application.loanAmount,
+        loanType: application.loanType,
+        prType: "Primary Residence"
+      },
+      ops: {
+        stage: "pending-app",
+        status: application.status,
+        priority: "Medium"
+      },
+      dates: {
+        createdOn: application.submitted,
+        appliedOn: application.submitted
+      },
+      meta: {},
+      name: application.name,
+      creditScore: application.creditScore,
+      progress: application.progress
+    };
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -176,6 +214,15 @@ export default function PendingApp() {
           />
         </CardContent>
       </Card>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onStageChange={handleStageChange}
+        />
+      )}
     </div>
   );
 }
