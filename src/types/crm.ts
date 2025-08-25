@@ -93,10 +93,10 @@ export interface CRMClient {
   leadOnDate?: string;
   pendingAppOnDate?: string;
   buyersAgent?: string;
-  referredVia?: string;
+  referredVia?: 'Phone' | 'Email' | 'Social Media' | 'Personal' | string;
   lastFollowUpDate?: string;
   nextFollowUpDate?: string;
-  teammateAssigned?: string;
+  teammateAssigned?: 'Yousif' | 'Salma' | 'Hermit' | string;
   buyersAgreement?: 'signed' | 'pending' | 'not_applicable';
 }
 

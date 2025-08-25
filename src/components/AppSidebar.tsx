@@ -1,198 +1,206 @@
-import { 
-  Home, 
-  Users, 
-  FileText, 
-  TrendingUp, 
-  Calendar,
+import { useState } from "react";
+import { useLocation, NavLink } from "react-router-dom";
+import {
+  Home,
+  Users,
+  FileText,
+  CheckSquare,
   Settings,
-  Building2,
-  CheckCircle,
-  BarChart3,
-  ClipboardList,
+  PieChart,
+  Calendar,
+  Phone,
   UserCheck,
-  Shield
+  ClipboardList,
+  Building,
+  Bot,
+  Search,
+  Calculator,
+  Megaphone,
+  BookOpen,
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 
+import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
+
 const dashboardItems = [
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Overview", url: "/", icon: Home },
 ];
 
 const pipelineItems = [
-  { title: "1. Leads", url: "/leads", icon: Users },
-  { title: "2. Pending App", url: "/pending-app", icon: FileText },
-  { title: "3. Screening", url: "/screening", icon: TrendingUp },
-  { title: "4. Pre-Qualified", url: "/pre-qualified", icon: CheckCircle },
-  { title: "5. Pre-Approved", url: "/pre-approved", icon: Shield },
-  { title: "6. Active", url: "/active", icon: Calendar },
-  { title: "7. Past Clients", url: "/past-clients", icon: Users },
+  { title: "Leads", url: "/leads", icon: Users },
+  { title: "Pending App", url: "/pending-app", icon: FileText },
+  { title: "Screening", url: "/screening", icon: ClipboardList },
+  { title: "Pre-Qualified", url: "/pre-qualified", icon: UserCheck },
+  { title: "Pre-Approved", url: "/pre-approved", icon: CheckSquare },
+  { title: "Active", url: "/active", icon: Calendar },
+  { title: "Past Clients", url: "/past-clients", icon: PieChart },
 ];
 
 const taskItems = [
-  { title: "Yousif's Tasks", url: "/tasks/yousif", icon: ClipboardList },
-  { title: "Salma's Tasks", url: "/tasks/salma", icon: ClipboardList },
-  { title: "Hermit's Tasks", url: "/tasks/hermit", icon: ClipboardList },
+  { title: "Yousif Tasks", url: "/tasks/yousif", icon: CheckSquare },
+  { title: "Salma Tasks", url: "/tasks/salma", icon: CheckSquare },
+  { title: "Hermit Tasks", url: "/tasks/hermit", icon: CheckSquare },
 ];
 
 const contactItems = [
-  { title: "Master Agent List", url: "/contacts/agents", icon: UserCheck },
+  { title: "Master Agent List", url: "/contacts/agents", icon: Phone },
   { title: "Master Borrower List", url: "/contacts/borrowers", icon: Users },
+  { title: "Approved Lenders", url: "/contacts/lenders", icon: Building },
+];
+
+const resourceItems = [
+  { title: "Guideline Chatbot", url: "/resources/chatbot", icon: Bot },
+  { title: "Condolist", url: "/resources/condolist", icon: Search },
+  { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
+  { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
+  { title: "Marketing", url: "/resources/marketing", icon: Megaphone },
 ];
 
 const adminItems = [
-  { title: "Admin Dashboard", url: "/admin", icon: Settings },
+  { title: "Settings", url: "/admin", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const currentPath = location.pathname;
 
   const isActive = (path: string) => {
     if (path === "/") {
-      return location.pathname === "/";
+      return currentPath === "/";
     }
-    return location.pathname.startsWith(path);
+    return currentPath.startsWith(path);
   };
 
-  const getNavClassName = (path: string) => {
-    return isActive(path) 
-      ? "bg-primary text-primary-foreground font-medium" 
-      : "hover:bg-accent hover:text-accent-foreground";
-  };
+  const getNavClassName = ({ isActive: isActiveLink }: { isActive: boolean }) =>
+    isActiveLink 
+      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+      : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar className={`${collapsed ? "w-16" : "w-64"} border-r bg-card shadow-soft`}>
-      <SidebarContent>
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            {!collapsed && (
-              <div>
-                <h2 className="font-semibold text-foreground">Mortgage Bolt</h2>
-                <p className="text-xs text-muted-foreground">CRM</p>
-              </div>
-            )}
+    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-3 p-4">
+          <div className="h-8 w-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <Building className="h-4 w-4 text-white" />
           </div>
+          {!collapsed && (
+            <div>
+              <h2 className="font-semibold text-sidebar-foreground">Mortgage Bolt</h2>
+              <p className="text-xs text-sidebar-foreground/70">CRM</p>
+            </div>
+          )}
         </div>
+      </SidebarHeader>
 
-        <SidebarGroup className="mt-4">
-          <SidebarGroupLabel>Dashboards</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {dashboardItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="transition-all duration-200">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+      <SidebarContent className="gap-0">
+        {/* Dashboard */}
+        <SidebarGroup className="mb-4">
+          <SidebarMenu>
+            {dashboardItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Pipeline</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {pipelineItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="transition-all duration-200">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Pipeline */}
+        <CollapsibleSidebarGroup title="Pipeline" className="mb-4">
+          <SidebarMenu>
+            {pipelineItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Tasks</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {taskItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="transition-all duration-200">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Tasks */}
+        <CollapsibleSidebarGroup title="Tasks" className="mb-4">
+          <SidebarMenu>
+            {taskItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Contacts</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {contactItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="transition-all duration-200">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Contacts */}
+        <CollapsibleSidebarGroup title="Contacts" className="mb-4">
+          <SidebarMenu>
+            {contactItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="transition-all duration-200">
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Resources */}
+        <CollapsibleSidebarGroup title="Resources" className="mb-4">
+          <SidebarMenu>
+            {resourceItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
+
+        {/* Admin */}
+        <CollapsibleSidebarGroup title="Admin">
+          <SidebarMenu>
+            {adminItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
       </SidebarContent>
     </Sidebar>
   );

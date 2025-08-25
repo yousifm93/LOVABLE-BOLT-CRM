@@ -18,6 +18,12 @@ interface Lead {
   creditScore: number;
   created: string;
   lastContact: string;
+  leadOnDate?: string;
+  buyersAgent?: string;
+  referredVia?: string;
+  lastFollowUpDate?: string;
+  nextFollowUpDate?: string;
+  teammateAssigned?: string;
 }
 
 const leadsData: Lead[] = [
@@ -27,11 +33,17 @@ const leadsData: Lead[] = [
     email: "jennifer.m@email.com",
     phone: "(555) 123-4567",
     source: "Website",
-    status: "Lead",
+    status: "working_on_it",
     loanAmount: "$425,000",
     creditScore: 745,
     created: "2024-01-20",
-    lastContact: "2024-01-20"
+    lastContact: "2024-01-20",
+    leadOnDate: "2024-01-20",
+    buyersAgent: "Sarah Johnson",
+    referredVia: "Website",
+    lastFollowUpDate: "2024-01-19",
+    nextFollowUpDate: "2024-01-22",
+    teammateAssigned: "Yousif"
   },
   {
     id: 2,
@@ -39,11 +51,17 @@ const leadsData: Lead[] = [
     email: "robert.k@email.com",
     phone: "(555) 234-5678",
     source: "Referral",
-    status: "Lead",
+    status: "pending_app",
     loanAmount: "$380,000",
     creditScore: 720,
     created: "2024-01-19",
-    lastContact: "2024-01-19"
+    lastContact: "2024-01-19",
+    leadOnDate: "2024-01-19",
+    buyersAgent: "Mike Chen",
+    referredVia: "Personal",
+    lastFollowUpDate: "2024-01-18",
+    nextFollowUpDate: "2024-01-21",
+    teammateAssigned: "Salma"
   },
   {
     id: 3,
@@ -51,11 +69,17 @@ const leadsData: Lead[] = [
     email: "amanda.c@email.com",
     phone: "(555) 345-6789",
     source: "Social Media",
-    status: "Lead",
+    status: "nurture",
     loanAmount: "$525,000",
     creditScore: 780,
     created: "2024-01-18",
-    lastContact: "2024-01-18"
+    lastContact: "2024-01-18",
+    leadOnDate: "2024-01-18",
+    buyersAgent: "Lisa Rodriguez",
+    referredVia: "Social Media",
+    lastFollowUpDate: "2024-01-17",
+    nextFollowUpDate: "2024-01-25",
+    teammateAssigned: "Hermit"
   }
 ];
 
@@ -82,6 +106,21 @@ const columns: ColumnDef<Lead>[] = [
     ),
   },
   {
+    accessorKey: "leadOnDate",
+    header: "Lead On Date",
+    sortable: true,
+  },
+  {
+    accessorKey: "buyersAgent",
+    header: "Buyer's Agent",
+    sortable: true,
+  },
+  {
+    accessorKey: "referredVia",
+    header: "Referred Via",
+    sortable: true,
+  },
+  {
     accessorKey: "loanAmount",
     header: "Loan Amount",
     sortable: true,
@@ -89,9 +128,34 @@ const columns: ColumnDef<Lead>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge status={row.original.status} />
-    ),
+    cell: ({ row }) => {
+      const getStatusLabel = (status: string) => {
+        switch (status) {
+          case "working_on_it": return "Working On It";
+          case "pending_app": return "Pending App";
+          case "nurture": return "Nurture";
+          case "dead": return "Dead";
+          case "need_attention": return "Need Attention";
+          default: return status;
+        }
+      };
+      return <StatusBadge status={getStatusLabel(row.original.status)} />;
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "lastFollowUpDate",
+    header: "Last Follow-Up",
+    sortable: true,
+  },
+  {
+    accessorKey: "nextFollowUpDate",
+    header: "Next Follow-Up",
+    sortable: true,
+  },
+  {
+    accessorKey: "teammateAssigned",
+    header: "Teammate",
     sortable: true,
   },
   {
@@ -108,21 +172,6 @@ const columns: ColumnDef<Lead>[] = [
         {row.original.creditScore}
       </span>
     ),
-    sortable: true,
-  },
-  {
-    accessorKey: "source",
-    header: "Source",
-    sortable: true,
-  },
-  {
-    accessorKey: "created",
-    header: "Created",
-    sortable: true,
-  },
-  {
-    accessorKey: "lastContact",
-    header: "Last Contact",
     sortable: true,
   },
 ];
