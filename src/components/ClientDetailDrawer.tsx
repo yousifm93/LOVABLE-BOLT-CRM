@@ -103,10 +103,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/5" onClick={onClose} />
       
       {/* Drawer */}
-      <div className="ml-auto h-full w-full max-w-5xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l">
+      <div className="ml-auto h-full w-full max-w-5xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-60">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b bg-white p-6">
           <div className="flex items-center justify-between">

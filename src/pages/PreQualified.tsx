@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
+import { transformPreQualifiedToClient } from "@/utils/clientTransform";
 
 interface PreQualifiedClient {
   id: number;
@@ -157,9 +160,18 @@ const columns: ColumnDef<PreQualifiedClient>[] = [
 
 export default function PreQualified() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleRowClick = (client: PreQualifiedClient) => {
-    console.log("View pre-qualification details:", client);
+    const crmClient = transformPreQualifiedToClient(client);
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Client ${clientId} moved to stage ${newStage}`);
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -203,6 +215,15 @@ export default function PreQualified() {
           />
         </CardContent>
       </Card>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onStageChange={handleStageChange}
+        />
+      )}
     </div>
   );
 }
