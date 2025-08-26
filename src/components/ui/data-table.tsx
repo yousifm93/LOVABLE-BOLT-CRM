@@ -84,7 +84,7 @@ export function DataTable<T extends Record<string, any>>({
               <TableHead
                 key={column.accessorKey}
                 className={cn(
-                  "h-12 text-left font-medium",
+                  "h-8 px-2 text-left font-medium",
                   column.sortable && "cursor-pointer hover:bg-muted/50"
                 )}
                 onClick={() => column.sortable && handleSort(column.accessorKey)}
@@ -99,18 +99,18 @@ export function DataTable<T extends Record<string, any>>({
                 </div>
               </TableHead>
             ))}
-            <TableHead className="w-[50px]">Actions</TableHead>
+            <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.map((row, index) => (
             <TableRow
               key={index}
-              className="hover:bg-muted/50 cursor-pointer transition-colors"
+              className="hover:bg-muted/50 cursor-pointer transition-colors h-10"
               onClick={() => onRowClick?.(row)}
             >
               {columns.map((column) => (
-                <TableCell key={column.accessorKey} className="p-4">
+                <TableCell key={column.accessorKey} className="py-2 px-2">
                   {column.cell ? (
                     column.cell({ row: { original: row } })
                   ) : (
@@ -118,7 +118,7 @@ export function DataTable<T extends Record<string, any>>({
                   )}
                 </TableCell>
               ))}
-              <TableCell className="p-4">
+              <TableCell className="py-2 px-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

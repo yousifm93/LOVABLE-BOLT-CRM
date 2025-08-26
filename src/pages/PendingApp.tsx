@@ -174,8 +174,8 @@ export default function PendingApp() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-3">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pending Applications</h1>
           <p className="text-sm text-muted-foreground">Applications currently being processed</p>
