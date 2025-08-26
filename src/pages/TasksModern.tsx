@@ -1,90 +1,141 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search, CheckCircle, Clock, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { StatsCard } from "@/components/ui/stats-card";
-import { InlineEditSelect } from "@/components/ui/inline-edit-select";
-import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
-import { databaseService, Task, Lead, User } from "@/services/database";
-import { useToast } from "@/hooks/use-toast";
-import { format, isPast } from "date-fns";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/components/ui/use-toast";
 
-interface ModernTask extends Task {
-  assignee?: User | null;
-  borrower?: Lead | null;
-  related_lead?: Lead | null;
+interface ModernTask {
+  id: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: string;
+  priority: string;
+  assignee_id?: string;
+  borrower_id?: string;
+  task_order: number;
+  assignee?: { first_name: string; last_name: string };
+  borrower?: { first_name: string; last_name: string };
 }
 
-const PRIORITY_OPTIONS = [
-  { value: 'High', label: 'High' },
-  { value: 'Medium', label: 'Medium' },
-  { value: 'Low', label: 'Low' },
+const columns: ColumnDef<ModernTask>[] = [
+  {
+    accessorKey: "status",
+    header: "",
+    cell: ({ row }) => (
+      <Checkbox checked={row.original.status === "Done"} />
+    ),
+  },
+  {
+    accessorKey: "title",
+    header: "Task",
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.original.title}</div>
+        {row.original.description && (
+          <div className="text-sm text-muted-foreground mt-1">{row.original.description}</div>
+        )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "borrower",
+    header: "Borrower",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.borrower 
+          ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
+          : "No borrower"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "priority",
+    header: "Priority",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.priority || "Medium"} />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "task_order",
+    header: "Order",
+    cell: ({ row }) => (
+      <div className="text-sm">{row.original.task_order}</div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "assignee",
+    header: "Assigned To",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.assignee 
+          ? `${row.original.assignee.first_name} ${row.original.assignee.last_name}`
+          : "Unassigned"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "due_date",
+    header: "Due Date",
+    cell: ({ row }) => {
+      if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
+      
+      const date = new Date(row.original.due_date);
+      const isOverdue = date < new Date() && row.original.status !== "Done";
+      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
+      
+      return (
+        <div className="flex items-center gap-2">
+          {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
+          {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
+          {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
+          <span className={isOverdue ? "text-destructive" : ""}>
+            {row.original.due_date}
+          </span>
+        </div>
+      );
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status || "To Do"} />
+    ),
+    sortable: true,
+  },
 ];
 
-const STATUS_OPTIONS = [
-  { value: 'To Do', label: 'To Do' },
-  { value: 'In Progress', label: 'In Progress' },
-  { value: 'Done', label: 'Done' },
-];
-
-const PIPELINE_OPTIONS = [
-  { value: 'Leads', label: 'Leads' },
-  { value: 'Pending App', label: 'Pending App' },
-  { value: 'Screening', label: 'Screening' },
-  { value: 'Pre-Qualified', label: 'Pre-Qualified' },
-  { value: 'Pre-Approved', label: 'Pre-Approved' },
-  { value: 'Active', label: 'Active' },
-  { value: 'Past Client', label: 'Past Client' },
-];
-
-export function TasksModern() {
-  const [tasks, setTasks] = useState<ModernTask[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+export default function TasksModern() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<FilterCondition[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tasks, setTasks] = useState<ModernTask[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const filterColumns = [
-    { value: 'due_date', label: 'Due Date', type: 'date' as const },
-    { value: 'priority', label: 'Priority', type: 'select' as const, options: PRIORITY_OPTIONS.map(o => o.label) },
-    { value: 'status', label: 'Task Status', type: 'select' as const, options: STATUS_OPTIONS.map(o => o.label) },
-    { value: 'pipeline_stage', label: 'Pipeline', type: 'select' as const, options: PIPELINE_OPTIONS.map(o => o.label) },
-    { value: 'title', label: 'Task Name', type: 'text' as const },
-  ];
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadTasks = async () => {
     try {
       setLoading(true);
-      const [tasksData, leadsData, usersData] = await Promise.all([
-        databaseService.getTasks(),
-        databaseService.getLeads(),
-        databaseService.getUsers(),
-      ]);
-      
-      setTasks((tasksData as unknown as ModernTask[]) || []);
-      setLeads((leadsData as unknown as Lead[]) || []);
-      setUsers(usersData || []);
+      const fetchedTasks = await databaseService.getTasks();
+      setTasks(fetchedTasks as ModernTask[]);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading tasks:", error);
       toast({
         title: "Error",
-        description: "Failed to load data",
+        description: "Failed to load tasks",
         variant: "destructive",
       });
     } finally {
@@ -92,232 +143,119 @@ export function TasksModern() {
     }
   };
 
-  const handleUpdateTask = async (taskId: string, field: string, value: any) => {
-    try {
-      const updateData: any = { [field]: value };
-      await databaseService.updateTask(taskId, updateData);
-      
-      // Update local state
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, [field]: value } : task
-      ));
-      
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      });
-    } catch (error) {
-      console.error('Error updating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
-    }
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const handleRowClick = (task: ModernTask) => {
+    console.log("View task details:", task);
   };
 
-  const filteredTasks = tasks.filter(task => {
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      if (!task.title?.toLowerCase().includes(searchLower) && 
-          !task.description?.toLowerCase().includes(searchLower)) {
-        return false;
-      }
-    }
-    
-    // Advanced filters (simplified for now)
-    return true;
-  }).sort((a, b) => {
-    // Default sort: Task Order ascending, then Due Date ascending
-    if (a.task_order !== b.task_order) {
-      return (a.task_order || 999) - (b.task_order || 999);
-    }
-    if (a.due_date && b.due_date) {
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    }
-    return a.due_date ? -1 : b.due_date ? 1 : 0;
-  });
+  const handleTaskCreated = () => {
+    loadTasks();
+    setIsCreateModalOpen(false);
+  };
 
-  const borrowerOptions = leads.map(lead => ({
-    value: lead.id,
-    label: `${lead.first_name} ${lead.last_name}`
-  }));
-
-  const assigneeOptions = users.map(user => ({
-    value: user.id,
-    label: `${user.first_name} ${user.last_name}`
-  }));
-
-  // Calculate task statistics
-  const activeTasks = tasks.filter(task => task.status === 'To Do' || task.status === 'In Progress').length;
-  const overdueTasks = tasks.filter(task => 
-    task.due_date && isPast(new Date(task.due_date)) && task.status !== 'Done'
-  ).length;
-  const completedTasks = tasks.filter(task => task.status === 'Done').length;
-
-  if (loading) {
-    return <div className="pl-4 pr-0 pt-2 pb-0">Loading...</div>;
-  }
+  const completedTasks = tasks.filter(task => task.status === "Done").length;
+  const overdueTasks = tasks.filter(task => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDate = new Date(task.due_date);
+    return dueDate < new Date();
+  }).length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      {/* Task Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatsCard
-          title="Active Tasks"
-          value={activeTasks}
-          icon={<Clock className="h-5 w-5" />}
-          changeType="neutral"
-        />
-        <StatsCard
-          title="Overdue Tasks"
-          value={overdueTasks}
-          icon={<XCircle className="h-5 w-5" />}
-          changeType={overdueTasks > 0 ? "negative" : "neutral"}
-        />
-        <StatsCard
-          title="Completed Tasks"
-          value={completedTasks}
-          icon={<CheckCircle className="h-5 w-5" />}
-          changeType="positive"
-        />
-      </div>
-      {/* Toolbar */}
-      <div className="flex items-center gap-4">
-        <Button onClick={() => setShowCreateModal(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Task
-        </Button>
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
-        >
-          <Filter className="h-4 w-4" />
-          Filters
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">All Tasks</h1>
+        <p className="text-xs italic text-muted-foreground/70">
+          {completedTasks} completed • {overdueTasks} overdue • {tasks.length - completedTasks} remaining
+        </p>
       </div>
 
-      {/* Advanced Filters */}
-      <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-        <CollapsibleContent>
-          <div className="bg-card p-4 rounded-lg border">
-            <FilterBuilder
-              filters={filters}
-              onFiltersChange={setFilters}
-              columns={filterColumns}
-            />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Modern Data Table */}
-      <div className="bg-card rounded-lg border shadow-soft overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/30 border-b">
-              <tr>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Task Name</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Borrower</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Priority</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Task Order</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Assigned To</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Due Date</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTasks.map((task) => (
-                <tr 
-                  key={task.id} 
-                  className="border-b hover:bg-muted/20 transition-colors"
-                >
-                  <td className="p-3">
-                    <div>
-                      <div className="font-medium text-sm">{task.title}</div>
-                      {task.description && (
-                        <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <InlineEditSelect
-                      value={task.borrower_id || ''}
-                      options={borrowerOptions}
-                      onValueChange={(value) => handleUpdateTask(task.id, 'borrower_id', value)}
-                      placeholder="Select borrower"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <InlineEditSelect
-                      value={task.priority || ''}
-                      options={PRIORITY_OPTIONS}
-                      onValueChange={(value) => handleUpdateTask(task.id, 'priority', value)}
-                      placeholder="Set priority"
-                      showAsStatusBadge
-                    />
-                  </td>
-                  <td className="p-3">
-                    <Input
-                      type="number"
-                      value={task.task_order || 1}
-                      onChange={(e) => handleUpdateTask(task.id, 'task_order', parseInt(e.target.value))}
-                      className="w-20 h-8"
-                      min="1"
-                    />
-                  </td>
-                   <td className="p-3">
-                     <InlineEditSelect
-                       value={task.assignee_id || ''}
-                       options={assigneeOptions}
-                       onValueChange={(value) => handleUpdateTask(task.id, 'assignee_id', value)}
-                       placeholder="Assign to"
-                     />
-                   </td>
-                  <td className="p-3">
-                    <InlineEditDate
-                      value={task.due_date}
-                      onValueChange={(date) => handleUpdateTask(task.id, 'due_date', date)}
-                      placeholder="Set due date"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <InlineEditSelect
-                      value={task.status || ''}
-                      options={STATUS_OPTIONS}
-                      onValueChange={(value) => handleUpdateTask(task.id, 'status', value)}
-                      placeholder="Set status"
-                      showAsStatusBadge
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">{tasks.length - completedTasks}</p>
+                <p className="text-sm text-muted-foreground">Active Tasks</p>
+              </div>
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
         
-        {filteredTasks.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            No tasks found matching your criteria
-          </div>
-        )}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-destructive">{overdueTasks}</p>
+                <p className="text-sm text-muted-foreground">Overdue</p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-success">{completedTasks}</p>
+                <p className="text-sm text-muted-foreground">Completed</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Modals */}
+      <Card className="bg-gradient-card shadow-soft">
+        <CardHeader>
+          <CardTitle>Task List</CardTitle>
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="text-muted-foreground">Loading tasks...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tasks}
+              searchTerm={searchTerm}
+              onRowClick={handleRowClick}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       <CreateTaskModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onTaskCreated={loadData}
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onTaskCreated={handleTaskCreated}
       />
     </div>
   );

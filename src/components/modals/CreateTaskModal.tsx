@@ -1,44 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { databaseService, TaskInsert, Lead, User } from '@/services/database';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CreateTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskCreated: () => void;
-  relatedLeadId?: string;
 }
 
-export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLeadId }: CreateTaskModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
+export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTaskModalProps) {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    due_date: '',
-    priority: 'Medium' as any,
-    status: 'To Do' as any,
-    assignee_id: '',
-    borrower_id: relatedLeadId || '',
+    title: "",
+    description: "",
+    due_date: "",
+    priority: "Medium",
+    status: "To Do",
+    assignee_id: "",
+    borrower_id: "",
+    task_order: 0,
   });
+  const [users, setUsers] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       loadData();
-      // Pre-fill related lead if provided
-      if (relatedLeadId) {
-        setFormData(prev => ({ ...prev, borrower_id: relatedLeadId }));
-      }
     }
-  }, [open, relatedLeadId]);
+  }, [open]);
 
   const loadData = async () => {
     try {
@@ -46,15 +42,10 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         databaseService.getUsers(),
         databaseService.getLeads(),
       ]);
-      setUsers(usersData || []);
-      setLeads((leadsData as unknown as Lead[]) || []);
+      setUsers(usersData);
+      setLeads(leadsData);
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load data",
-        variant: "destructive",
-      });
+      console.error("Error loading data:", error);
     }
   };
 
@@ -70,23 +61,19 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const taskData = {
-        title: formData.title.trim(),
-        description: formData.description?.trim() || null,
+      await databaseService.createTask({
+        title: formData.title,
+        description: formData.description || null,
+        due_date: formData.due_date || null,
+        priority: formData.priority as any,
+        status: formData.status as any,
         assignee_id: formData.assignee_id || null,
         borrower_id: formData.borrower_id || null,
-        due_date: formData.due_date || null,
-        priority: formData.priority,
-        status: formData.status,
-        task_order: 0,
-        created_by: null, // Will be set by the backend
+        task_order: formData.task_order,
         creation_log: [],
-      };
-
-      await databaseService.createTask(taskData);
+      });
 
       toast({
         title: "Success",
@@ -95,19 +82,20 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
 
       // Reset form
       setFormData({
-        title: '',
-        description: '',
-        due_date: '',
-        priority: 'Medium',
-        status: 'To Do',
-        assignee_id: '',
-        borrower_id: relatedLeadId || '',
+        title: "",
+        description: "",
+        due_date: "",
+        priority: "Medium",
+        status: "To Do",
+        assignee_id: "",
+        borrower_id: "",
+        task_order: 0,
       });
 
       onTaskCreated();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
       toast({
         title: "Error",
         description: "Failed to create task",
@@ -120,62 +108,80 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="title">Task Name *</Label>
+            <div>
+              <Label htmlFor="title">Task Title *</Label>
               <Input
                 id="title"
-                placeholder="Enter task name"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Enter task title"
                 required
               />
             </div>
-            
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter task description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="min-h-[80px]"
+            <div>
+              <Label htmlFor="task_order">Task Order</Label>
+              <Input
+                id="task_order"
+                type="number"
+                value={formData.task_order}
+                onChange={(e) => setFormData({ ...formData, task_order: parseInt(e.target.value) || 0 })}
+                placeholder="0"
               />
             </div>
-            
-            <div className="space-y-2">
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter task description"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <Label htmlFor="due_date">Due Date</Label>
               <Input
                 id="due_date"
                 type="date"
                 value={formData.due_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               />
             </div>
-            
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => setFormData({ ...formData, priority: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
                   <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -186,10 +192,12 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="assignee_id">Assignee</Label>
-              <Select value={formData.assignee_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assignee_id: value }))}>
+            <div>
+              <Label htmlFor="assignee">Assigned To</Label>
+              <Select
+                value={formData.assignee_id}
+                onValueChange={(value) => setFormData({ ...formData, assignee_id: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
@@ -202,30 +210,38 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="borrower_id">Borrower</Label>
-              <Select value={formData.borrower_id} onValueChange={(value) => setFormData(prev => ({ ...prev, borrower_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select borrower" />
-                </SelectTrigger>
-                <SelectContent>
-                  {leads.map((lead) => (
-                    <SelectItem key={lead.id} value={lead.id}>
-                      {lead.first_name} {lead.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="borrower">Borrower</Label>
+            <Select
+              value={formData.borrower_id}
+              onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select borrower" />
+              </SelectTrigger>
+              <SelectContent>
+                {leads.map((lead) => (
+                  <SelectItem key={lead.id} value={lead.id}>
+                    {lead.first_name} {lead.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Task'}
+              {loading ? "Creating..." : "Create Task"}
             </Button>
           </div>
         </form>

@@ -16,7 +16,7 @@ import NotFound from "@/pages/NotFound";
 import AgentList from "@/pages/contacts/AgentList";
 import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
-import { TasksModern } from "@/pages/TasksModern";
+import TasksModern from "@/pages/TasksModern";
 import SalmaTasks from "@/pages/tasks/SalmaTasks";
 import HermanTasks from "@/pages/tasks/HermanTasks";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
