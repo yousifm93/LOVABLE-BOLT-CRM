@@ -60,14 +60,14 @@ const columns: ColumnDef<PendingApplication>[] = [
     accessorKey: "contact",
     header: "Contact",
     cell: ({ row }) => (
-      <div className="space-y-1">
+      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
         <div className="flex items-center text-sm">
           <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          {row.original.email}
+          <span className="truncate">{row.original.email}</span>
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Phone className="h-3 w-3 mr-1" />
-          {row.original.phone}
+          <span className="truncate">{row.original.phone}</span>
         </div>
       </div>
     ),
@@ -178,12 +178,8 @@ export default function PendingApp() {
       <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pending Applications</h1>
-          <p className="text-sm text-muted-foreground">Applications currently being processed</p>
+          <p className="text-xs italic text-muted-foreground/70">Applications under review and processing</p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-          <Plus className="h-4 w-4 mr-2" />
-          New Application
-        </Button>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
@@ -191,8 +187,8 @@ export default function PendingApp() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Applications ({pendingData.length})</CardTitle>
           </div>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search applications..."

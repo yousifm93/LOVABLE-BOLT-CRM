@@ -101,8 +101,8 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="flex items-baseline">
-              <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
-              <span className="text-xl font-bold text-sidebar-foreground">CRM</span>
+              <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+              <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
             </div>
           )}
         </div>

@@ -76,19 +76,15 @@ export default function Clients() {
       <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-          <p className="text-sm text-muted-foreground">Manage your client relationships and loan applications</p>
+          <p className="text-xs italic text-muted-foreground/70">All client information and loan management</p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Client
-        </Button>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>Client Directory</CardTitle>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search clients..."
@@ -121,14 +117,14 @@ export default function Clients() {
                 <TableRow key={client.id} className="hover:bg-background/50 transition-colors">
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>
-                    <div className="space-y-1">
+                    <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
                       <div className="flex items-center text-sm">
                         <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-                        {client.email}
+                        <span className="truncate">{client.email}</span>
                       </div>
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Phone className="h-3 w-3 mr-1" />
-                        {client.phone}
+                        <span className="truncate">{client.phone}</span>
                       </div>
                     </div>
                   </TableCell>

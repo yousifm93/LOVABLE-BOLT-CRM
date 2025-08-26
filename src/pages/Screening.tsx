@@ -63,14 +63,14 @@ const columns: ColumnDef<ScreeningClient>[] = [
     accessorKey: "contact",
     header: "Contact",
     cell: ({ row }) => (
-      <div className="space-y-1">
+      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
         <div className="flex items-center text-sm">
           <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          {row.original.email}
+          <span className="truncate">{row.original.email}</span>
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <Phone className="h-3 w-3 mr-1" />
-          {row.original.phone}
+          <span className="truncate">{row.original.phone}</span>
         </div>
       </div>
     ),
@@ -178,16 +178,10 @@ export default function Screening() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Screening</h1>
-          <p className="text-sm text-muted-foreground">Initial application review and verification</p>
-        </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Screening
-        </Button>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
+      <div className="mb-2">
+        <h1 className="text-2xl font-bold text-foreground">Screening</h1>
+        <p className="text-xs italic text-muted-foreground/70">Initial application review and verification</p>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
@@ -195,8 +189,8 @@ export default function Screening() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Clients ({screeningData.length})</CardTitle>
           </div>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search screening clients..."
