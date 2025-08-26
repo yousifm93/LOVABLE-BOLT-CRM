@@ -459,62 +459,53 @@ export type Database = {
       }
       tasks: {
         Row: {
-          assigned_to: string | null
           assignee_id: string | null
           borrower_id: string | null
           created_at: string
           created_by: string | null
-          creation_log: Json | null
           description: string | null
           due_date: string | null
           id: string
-          name: string
           pipeline_stage: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           related_lead_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           tags: string[] | null
-          task_order: number
+          task_order: number | null
           title: string
           updated_at: string
         }
         Insert: {
-          assigned_to?: string | null
           assignee_id?: string | null
           borrower_id?: string | null
           created_at?: string
           created_by?: string | null
-          creation_log?: Json | null
           description?: string | null
           due_date?: string | null
           id?: string
-          name: string
           pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
-          task_order?: number
+          task_order?: number | null
           title: string
           updated_at?: string
         }
         Update: {
-          assigned_to?: string | null
           assignee_id?: string | null
           borrower_id?: string | null
           created_at?: string
           created_by?: string | null
-          creation_log?: Json | null
           description?: string | null
           due_date?: string | null
           id?: string
-          name?: string
           pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
-          task_order?: number
+          task_order?: number | null
           title?: string
           updated_at?: string
         }

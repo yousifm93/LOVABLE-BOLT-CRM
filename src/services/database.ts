@@ -112,138 +112,54 @@ export const databaseService = {
 
   // Task operations
   async getTasks() {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          assignee:users!tasks_assigned_to_fkey(*),
-          created_by_user:users!tasks_created_by_fkey(*),
-          borrower:leads!tasks_borrower_id_fkey(*)
-        `)
-        .order('task_order', { ascending: true })
-        .order('due_date', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching tasks:', error);
-        throw error;
-      }
-      
-      return data?.map(task => ({
-        ...task,
-        assignee: task.assignee || null,
-        created_by_user: task.created_by_user || null,
-        borrower: task.borrower || null
-      })) || [];
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
-      throw new Error('Failed to load tasks. Please try again.');
-    }
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        assignee:users(*),
+        created_by_user:users!tasks_created_by_fkey(*),
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
   },
 
   async createTask(task: TaskInsert) {
-    try {
-      // Add creation log entry
-      const creationLog = [{
-        at: new Date().toISOString(),
-        by: task.created_by || null,
-        event: 'created'
-      }];
-
-      const taskData = {
-        ...task,
-        creation_log: creationLog
-      };
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert(taskData)
-        .select(`
-          *,
-          assignee:users!tasks_assigned_to_fkey(*),
-          created_by_user:users!tasks_created_by_fkey(*),
-          borrower:leads!tasks_borrower_id_fkey(*)
-        `)
-        .single();
-      
-      if (error) {
-        console.error('Task creation error:', error);
-        throw error;
-      }
-      return data;
-    } catch (error) {
-      console.error('Failed to create task:', error);
-      throw new Error('Failed to create task. Please try again.');
-    }
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(task)
+      .select(`
+        *,
+        assignee:users(*),
+        created_by_user:users!tasks_created_by_fkey(*),
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return data;
   },
 
-  async updateTask(id: string, updates: TaskUpdate, originalTask?: any) {
-    try {
-      // Get current task if not provided
-      if (!originalTask) {
-        const { data: currentTask } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('id', id)
-          .single();
-        originalTask = currentTask;
-      }
-
-      // Build creation log entry for significant changes
-      const logEntry: any = {
-        at: new Date().toISOString(),
-        by: updates.created_by || null,
-      };
-
-      let shouldLog = false;
-      
-      if (updates.status && originalTask?.status !== updates.status) {
-        logEntry.event = 'status_changed';
-        logEntry.from = originalTask.status;
-        logEntry.to = updates.status;
-        shouldLog = true;
-      } else if (updates.priority && originalTask?.priority !== updates.priority) {
-        logEntry.event = 'priority_changed';
-        logEntry.from = originalTask.priority;
-        logEntry.to = updates.priority;
-        shouldLog = true;
-      } else if (updates.assigned_to && originalTask?.assigned_to !== updates.assigned_to) {
-        logEntry.event = 'reassigned';
-        logEntry.from = originalTask.assigned_to;
-        logEntry.to = updates.assigned_to;
-        shouldLog = true;
-      } else if (Object.keys(updates).length > 1) {
-        logEntry.event = 'updated';
-        shouldLog = true;
-      }
-
-      // Update creation log if needed
-      if (shouldLog && originalTask?.creation_log) {
-        const currentLog = Array.isArray(originalTask.creation_log) ? originalTask.creation_log : [];
-        updates.creation_log = [...currentLog, logEntry];
-      }
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          assignee:users!tasks_assigned_to_fkey(*),
-          created_by_user:users!tasks_created_by_fkey(*),
-          borrower:leads!tasks_borrower_id_fkey(*)
-        `)
-        .single();
-      
-      if (error) {
-        console.error('Task update error:', error);
-        throw error;
-      }
-      return data;
-    } catch (error) {
-      console.error('Failed to update task:', error);
-      throw new Error('Failed to update task. Please try again.');
-    }
+  async updateTask(id: string, updates: TaskUpdate) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .select(`
+        *,
+        assignee:users(*),
+        created_by_user:users!tasks_created_by_fkey(*),
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return data;
   },
 
   // Contact operations

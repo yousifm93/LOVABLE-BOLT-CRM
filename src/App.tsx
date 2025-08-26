@@ -19,7 +19,6 @@ import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import YousifTasks from "@/pages/tasks/YousifTasks";
 import SalmaTasks from "@/pages/tasks/SalmaTasks";
 import HermanTasks from "@/pages/tasks/HermanTasks";
-import TasksModernNew from "@/pages/TasksModernNew";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
@@ -78,8 +77,7 @@ function AppRoutes() {
         <Route path="/contacts/agents" element={<AgentList />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />
-        <Route path="/tasks" element={<TasksModernNew />} />
-        <Route path="/tasks/yousif" element={<TasksModernNew />} />
+        <Route path="/tasks/yousif" element={<YousifTasks />} />
         <Route path="/tasks/salma" element={<SalmaTasks />} />
         <Route path="/tasks/hermit" element={<HermanTasks />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
