@@ -153,7 +153,6 @@ export default function TasksModern() {
 
   const handleTaskCreated = () => {
     loadTasks();
-    setIsCreateModalOpen(false);
   };
 
   const completedTasks = tasks.filter(task => task.status === "Done").length;
