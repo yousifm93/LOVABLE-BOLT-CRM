@@ -143,11 +143,11 @@ export function TasksModern() {
   }));
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="pl-4 pr-0 pt-2 pb-0">Loading...</div>;
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>

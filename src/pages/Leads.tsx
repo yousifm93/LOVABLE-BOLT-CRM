@@ -216,8 +216,8 @@ export default function Leads() {
   };
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="pl-4 pr-0 pt-2 pb-0">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-sm text-muted-foreground">Potential clients and prospects</p>

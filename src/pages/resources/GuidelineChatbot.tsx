@@ -16,9 +16,9 @@ export default function GuidelineChatbot() {
             Mortgage Guidelines Assistant
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-96">
-          <div className="text-center space-y-4">
-            <MessageCircle className="h-16 w-16 mx-auto text-muted-foreground" />
+        <CardContent className="flex items-start justify-start h-96 pl-4 pt-4">
+          <div className="text-left space-y-4">
+            <MessageCircle className="h-16 w-16 text-muted-foreground" />
             <p className="text-lg font-medium text-foreground">Guideline Chatbot</p>
             <p className="text-muted-foreground">Coming soon - AI assistant for mortgage guidelines</p>
           </div>

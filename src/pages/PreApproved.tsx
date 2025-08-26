@@ -221,7 +221,7 @@ export default function PreApproved() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Pre-Approved</h1>

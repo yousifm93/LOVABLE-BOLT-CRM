@@ -30,13 +30,13 @@ const statusColors = {
 
 export default function Dashboard() {
   return (
-    <div className="p-4">
-      <div className="mb-4">
+    <div className="pl-4 pr-0 pt-2 pb-0">
+      <div className="mb-3">
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Welcome back! Here's your mortgage business overview.</p>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4 mb-4">
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4 mb-3">
         <StatsCard
           title="Total Clients"
           value="247"
@@ -68,7 +68,7 @@ export default function Dashboard() {
       </div>
 
       {/* Three Dashboard Sections */}
-      <div className="grid gap-2 lg:grid-cols-3 mb-4">
+      <div className="grid gap-2 lg:grid-cols-3 mb-3">
         {/* Closed/Pipeline Volume Dashboard */}
         <Card className="bg-gradient-card shadow-soft">
           <CardHeader>
