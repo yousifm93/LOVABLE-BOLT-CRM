@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface CreateTaskModalProps {
 }
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTaskModalProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -61,6 +63,15 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be signed in to create tasks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await databaseService.createTask({
@@ -72,6 +83,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
         assignee_id: formData.assignee_id || null,
         borrower_id: formData.borrower_id || null,
         task_order: formData.task_order,
+        created_by: user.id,
         creation_log: [],
       });
 
