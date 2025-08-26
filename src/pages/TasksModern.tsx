@@ -278,9 +278,9 @@ export function TasksModern() {
                   </td>
                    <td className="p-3">
                      <InlineEditSelect
-                       value={task.assigned_to || ''}
+                       value={task.assignee_id || ''}
                        options={assigneeOptions}
-                       onValueChange={(value) => handleUpdateTask(task.id, 'assigned_to', value)}
+                       onValueChange={(value) => handleUpdateTask(task.id, 'assignee_id', value)}
                        placeholder="Assign to"
                      />
                    </td>

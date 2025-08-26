@@ -459,7 +459,6 @@ export type Database = {
       }
       tasks: {
         Row: {
-          assigned_to: string | null
           assignee_id: string | null
           borrower_id: string | null
           created_at: string
@@ -468,18 +467,13 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
-          name: string
-          pipeline_stage: string | null
           priority: Database["public"]["Enums"]["task_priority"]
-          related_lead_id: string | null
           status: Database["public"]["Enums"]["task_status"]
-          tags: string[] | null
           task_order: number
           title: string
           updated_at: string
         }
         Insert: {
-          assigned_to?: string | null
           assignee_id?: string | null
           borrower_id?: string | null
           created_at?: string
@@ -488,18 +482,13 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          name: string
-          pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
-          related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
-          tags?: string[] | null
           task_order?: number
           title: string
           updated_at?: string
         }
         Update: {
-          assigned_to?: string | null
           assignee_id?: string | null
           borrower_id?: string | null
           created_at?: string
@@ -508,12 +497,8 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          name?: string
-          pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
-          related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
-          tags?: string[] | null
           task_order?: number
           title?: string
           updated_at?: string
@@ -538,13 +523,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_related_lead_id_fkey"
-            columns: ["related_lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]

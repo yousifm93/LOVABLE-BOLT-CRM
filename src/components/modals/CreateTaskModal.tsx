@@ -1,28 +1,24 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { databaseService, TaskInsert, Lead, User } from '@/services/database';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { databaseService, type TaskInsert, type User, type Lead } from '@/services/database';
 
 interface CreateTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTaskCreated: (task: any) => void;
+  onTaskCreated: () => void;
   relatedLeadId?: string;
 }
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLeadId }: CreateTaskModalProps) {
-  const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
-  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,15 +26,16 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
     priority: 'Medium' as any,
     status: 'To Do' as any,
     assignee_id: '',
-    related_lead_id: relatedLeadId || '',
-    tags: [] as string[],
+    borrower_id: relatedLeadId || '',
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       loadData();
+      // Pre-fill related lead if provided
       if (relatedLeadId) {
-        setFormData(prev => ({ ...prev, related_lead_id: relatedLeadId }));
+        setFormData(prev => ({ ...prev, borrower_id: relatedLeadId }));
       }
     }
   }, [open, relatedLeadId]);
@@ -49,15 +46,14 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         databaseService.getUsers(),
         databaseService.getLeads(),
       ]);
-      
-      setUsers(usersData);
-      setLeads(leadsData);
+      setUsers(usersData || []);
+      setLeads((leadsData as unknown as Lead[]) || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to load form data',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
       });
     }
   };
@@ -65,47 +61,38 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to create tasks',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     if (!formData.title.trim()) {
       toast({
-        title: 'Error',
-        description: 'Task title is required',
-        variant: 'destructive',
+        title: "Error",
+        description: "Task title is required",
+        variant: "destructive",
       });
       return;
     }
 
-    setLoading(true);
-
     try {
-      const taskData: TaskInsert = {
+      setLoading(true);
+
+      const taskData = {
         title: formData.title.trim(),
-        name: formData.title.trim(),
         description: formData.description?.trim() || null,
         assignee_id: formData.assignee_id || null,
-        related_lead_id: formData.related_lead_id || null,
+        borrower_id: formData.borrower_id || null,
         due_date: formData.due_date || null,
         priority: formData.priority,
         status: formData.status,
-        tags: formData.tags.length > 0 ? formData.tags : null,
-        created_by: user.id,
+        task_order: 0,
+        created_by: null, // Will be set by the backend
+        creation_log: [],
       };
 
-      console.log('Creating task with data:', taskData);
-      const newTask = await databaseService.createTask(taskData);
-      console.log('Task created successfully:', newTask);
-      
-      onTaskCreated(newTask);
-      onOpenChange(false);
-      
+      await databaseService.createTask(taskData);
+
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+
       // Reset form
       setFormData({
         title: '',
@@ -114,76 +101,53 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         priority: 'Medium',
         status: 'To Do',
         assignee_id: '',
-        related_lead_id: relatedLeadId || '',
-        tags: [],
+        borrower_id: relatedLeadId || '',
       });
 
-      toast({
-        title: 'Success',
-        description: 'Task created successfully',
-      });
+      onTaskCreated();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error creating task:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create task',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to create task",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-      e.preventDefault();
-      const newTag = e.currentTarget.value.trim();
-      if (!formData.tags.includes(newTag)) {
-        setFormData(prev => ({ 
-          ...prev, 
-          tags: [...prev.tags, newTag] 
-        }));
-      }
-      e.currentTarget.value = '';
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-            />
-          </div>
-
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="title">Task Name *</Label>
+              <Input
+                id="title"
+                placeholder="Enter task name"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                required
+              />
+            </div>
+            
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter task description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="min-h-[80px]"
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="due_date">Due Date</Label>
               <Input
@@ -208,9 +172,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+            
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
@@ -232,6 +194,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">No assignee</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.first_name} {user.last_name}
@@ -240,51 +203,26 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="related_lead_id">Related Lead</Label>
-            <Select value={formData.related_lead_id} onValueChange={(value) => setFormData(prev => ({ ...prev, related_lead_id: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select related lead (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {leads.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.first_name} {lead.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags</Label>
-            <Input
-              id="tags"
-              placeholder="Type a tag and press Enter"
-              onKeyDown={handleTagInput}
-            />
-            <div className="flex flex-wrap gap-1 mt-2">
-              {formData.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+            
+            <div className="space-y-2">
+              <Label htmlFor="borrower_id">Borrower</Label>
+              <Select value={formData.borrower_id} onValueChange={(value) => setFormData(prev => ({ ...prev, borrower_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select borrower" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No borrower</SelectItem>
+                  {leads.map((lead) => (
+                    <SelectItem key={lead.id} value={lead.id}>
+                      {lead.first_name} {lead.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

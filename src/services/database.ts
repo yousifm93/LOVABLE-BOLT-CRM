@@ -114,7 +114,6 @@ export const databaseService = {
         *,
         assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .order('task_order', { ascending: true });
@@ -131,7 +130,6 @@ export const databaseService = {
         *,
         assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
@@ -152,7 +150,6 @@ export const databaseService = {
         *,
         assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
