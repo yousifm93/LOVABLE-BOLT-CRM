@@ -211,8 +211,14 @@ export default function TasksModern() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Task List</CardTitle>
           <div className="flex gap-2 items-center">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -222,13 +228,6 @@ export default function TasksModern() {
                 className="pl-10"
               />
             </div>
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Task
-            </Button>
             <Button variant="outline">
               <Filter className="h-4 w-4 mr-2" />
               Filter

@@ -1,50 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Task } from "@/types/crm";
+import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/components/ui/use-toast";
 
-const salmaTasks: Task[] = [
-  {
-    id: 4,
-    title: "Process loan documentation for Michael Chen",
-    description: "Review and verify income documents",
-    dueDate: "2024-01-19",
-    completed: false,
-    assignee: "Salma",
-    priority: "High",
-    clientId: 3
-  },
-  {
-    id: 5,
-    title: "Coordinate underwriting review",
-    description: "Submit complete file to underwriter",
-    dueDate: "2024-01-21",
-    completed: false,
-    assignee: "Salma",
-    priority: "Medium",
-    clientId: 4
-  },
-  {
-    id: 6,
-    title: "Client education call completed",
-    description: "Explained loan process to first-time buyer",
-    dueDate: "2024-01-16",
-    completed: true,
-    assignee: "Salma",
-    priority: "Low"
-  }
-];
+interface ModernTask {
+  id: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: string;
+  priority: string;
+  assignee_id?: string;
+  borrower_id?: string;
+  task_order: number;
+  assignee?: { first_name: string; last_name: string };
+  borrower?: { first_name: string; last_name: string };
+}
 
-const columns: ColumnDef<Task>[] = [
+const columns: ColumnDef<ModernTask>[] = [
   {
-    accessorKey: "completed",
+    accessorKey: "status",
     header: "",
     cell: ({ row }) => (
-      <Checkbox checked={row.original.completed} />
+      <Checkbox checked={row.original.status === "Done"} />
     ),
   },
   {
@@ -61,6 +45,19 @@ const columns: ColumnDef<Task>[] = [
     sortable: true,
   },
   {
+    accessorKey: "borrower",
+    header: "Borrower",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.borrower 
+          ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
+          : "No borrower"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
@@ -69,39 +66,100 @@ const columns: ColumnDef<Task>[] = [
     sortable: true,
   },
   {
-    accessorKey: "dueDate",
+    accessorKey: "task_order",
+    header: "Order",
+    cell: ({ row }) => (
+      <div className="text-sm">{row.original.task_order}</div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "assignee",
+    header: "Assigned To",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.assignee 
+          ? `${row.original.assignee.first_name} ${row.original.assignee.last_name}`
+          : "Unassigned"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "due_date",
     header: "Due Date",
     cell: ({ row }) => {
-      const date = new Date(row.original.dueDate || '');
-      const isOverdue = date < new Date() && !row.original.completed;
-      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && !row.original.completed;
+      if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
+      
+      const date = new Date(row.original.due_date);
+      const isOverdue = date < new Date() && row.original.status !== "Done";
+      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
         <div className="flex items-center gap-2">
           {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
           {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
-          {row.original.completed && <CheckCircle className="h-4 w-4 text-success" />}
+          {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
           <span className={isOverdue ? "text-destructive" : ""}>
-            {row.original.dueDate}
+            {row.original.due_date}
           </span>
         </div>
       );
     },
     sortable: true,
   },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status || "To Do"} />
+    ),
+    sortable: true,
+  },
 ];
 
 export default function SalmaTasks() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [tasks, setTasks] = useState<ModernTask[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleRowClick = (task: Task) => {
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const fetchedTasks = await databaseService.getTasks();
+      setTasks(fetchedTasks as ModernTask[]);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const handleRowClick = (task: ModernTask) => {
     console.log("View task details:", task);
   };
 
-  const completedTasks = salmaTasks.filter(task => task.completed).length;
-  const overdueTasks = salmaTasks.filter(task => {
-    const dueDate = new Date(task.dueDate || '');
-    return dueDate < new Date() && !task.completed;
+  const handleTaskCreated = () => {
+    loadTasks();
+  };
+
+  const completedTasks = tasks.filter(task => task.status === "Done").length;
+  const overdueTasks = tasks.filter(task => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDate = new Date(task.due_date);
+    return dueDate < new Date();
   }).length;
 
   return (
@@ -109,7 +167,7 @@ export default function SalmaTasks() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Salma's Tasks</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {completedTasks} completed • {overdueTasks} overdue • {salmaTasks.length - completedTasks} remaining
+          {completedTasks} completed • {overdueTasks} overdue • {tasks.length - completedTasks} remaining
         </p>
       </div>
 
@@ -118,7 +176,7 @@ export default function SalmaTasks() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{salmaTasks.length - completedTasks}</p>
+                <p className="text-2xl font-bold">{tasks.length - completedTasks}</p>
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
@@ -153,8 +211,14 @@ export default function SalmaTasks() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Task List</CardTitle>
           <div className="flex gap-2 items-center">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -171,14 +235,26 @@ export default function SalmaTasks() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            columns={columns}
-            data={salmaTasks}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="text-muted-foreground">Loading tasks...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tasks}
+              searchTerm={searchTerm}
+              onRowClick={handleRowClick}
+            />
+          )}
         </CardContent>
       </Card>
+
+      <CreateTaskModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onTaskCreated={handleTaskCreated}
+      />
     </div>
   );
 }

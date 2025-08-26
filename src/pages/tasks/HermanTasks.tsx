@@ -1,52 +1,34 @@
-import { useState } from "react";
-import { Plus, Filter, Clock, CheckSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Task } from "@/types/crm";
+import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/components/ui/use-toast";
 
-const hermanTasks: Task[] = [
-  {
-    id: 7,
-    title: "Quality control review for Sarah Williams",
-    description: "Final loan package review before funding",
-    dueDate: "2024-01-17",
-    completed: false,
-    assignee: "Herman Daza",
-    priority: "High",
-    clientId: 5
-  },
-  {
-    id: 8,
-    title: "Process automation documentation",
-    description: "Document new workflow processes",
-    dueDate: "2024-01-25",
-    completed: false,
-    assignee: "Herman Daza",
-    priority: "Low"
-  },
-  {
-    id: 9,
-    title: "Client satisfaction survey analysis",
-    description: "Collected feedback from recent closings",
-    dueDate: "2024-01-14",
-    completed: true,
-    assignee: "Herman Daza",
-    priority: "Medium"
-  }
-];
+interface ModernTask {
+  id: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: string;
+  priority: string;
+  assignee_id?: string;
+  borrower_id?: string;
+  task_order: number;
+  assignee?: { first_name: string; last_name: string };
+  borrower?: { first_name: string; last_name: string };
+}
 
-const columns: ColumnDef<Task>[] = [
+const columns: ColumnDef<ModernTask>[] = [
   {
-    accessorKey: "completed",
+    accessorKey: "status",
     header: "",
     cell: ({ row }) => (
-      <Checkbox 
-        checked={row.original.completed}
-        className="h-4 w-4"
-      />
+      <Checkbox checked={row.original.status === "Done"} />
     ),
   },
   {
@@ -54,12 +36,23 @@ const columns: ColumnDef<Task>[] = [
     header: "Task",
     cell: ({ row }) => (
       <div>
-        <p className={`font-medium ${row.original.completed ? 'line-through text-muted-foreground' : ''}`}>
-          {row.original.title}
-        </p>
+        <div className="font-medium">{row.original.title}</div>
         {row.original.description && (
-          <p className="text-sm text-muted-foreground">{row.original.description}</p>
+          <div className="text-sm text-muted-foreground mt-1">{row.original.description}</div>
         )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "borrower",
+    header: "Borrower",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.borrower 
+          ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
+          : "No borrower"
+        }
       </div>
     ),
     sortable: true,
@@ -68,54 +61,113 @@ const columns: ColumnDef<Task>[] = [
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
-      <StatusBadge 
-        status={row.original.priority || "Medium"} 
-      />
+      <StatusBadge status={row.original.priority || "Medium"} />
     ),
     sortable: true,
   },
   {
-    accessorKey: "dueDate",
+    accessorKey: "task_order",
+    header: "Order",
+    cell: ({ row }) => (
+      <div className="text-sm">{row.original.task_order}</div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "assignee",
+    header: "Assigned To",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.assignee 
+          ? `${row.original.assignee.first_name} ${row.original.assignee.last_name}`
+          : "Unassigned"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "due_date",
     header: "Due Date",
     cell: ({ row }) => {
-      const dueDate = new Date(row.original.dueDate || '');
-      const today = new Date();
-      const isOverdue = dueDate < today && !row.original.completed;
-      const isDueSoon = dueDate <= new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000) && !row.original.completed;
+      if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
+      
+      const date = new Date(row.original.due_date);
+      const isOverdue = date < new Date() && row.original.status !== "Done";
+      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
-        <div className={`text-sm ${
-          row.original.completed ? 'text-muted-foreground' :
-          isOverdue ? 'text-destructive' :
-          isDueSoon ? 'text-warning' : 'text-foreground'
-        }`}>
-          {row.original.dueDate}
+        <div className="flex items-center gap-2">
+          {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
+          {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
+          {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
+          <span className={isOverdue ? "text-destructive" : ""}>
+            {row.original.due_date}
+          </span>
         </div>
       );
     },
+    sortable: true,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status || "To Do"} />
+    ),
     sortable: true,
   },
 ];
 
 export default function HermanTasks() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [tasks, setTasks] = useState<ModernTask[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleRowClick = (task: Task) => {
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const fetchedTasks = await databaseService.getTasks();
+      setTasks(fetchedTasks as ModernTask[]);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const handleRowClick = (task: ModernTask) => {
     console.log("View task details:", task);
   };
 
-  const completedTasks = hermanTasks.filter(task => task.completed).length;
-  const overdueTasks = hermanTasks.filter(task => {
-    const dueDate = new Date(task.dueDate || '');
-    return dueDate < new Date() && !task.completed;
+  const handleTaskCreated = () => {
+    loadTasks();
+  };
+
+  const completedTasks = tasks.filter(task => task.status === "Done").length;
+  const overdueTasks = tasks.filter(task => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDate = new Date(task.due_date);
+    return dueDate < new Date();
   }).length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Herman Daza's Tasks</h1>
+        <h1 className="text-2xl font-bold text-foreground">Herman Tasks</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {completedTasks} completed • {overdueTasks} overdue • {hermanTasks.length - completedTasks} remaining
+          {completedTasks} completed • {overdueTasks} overdue • {tasks.length - completedTasks} remaining
         </p>
       </div>
 
@@ -125,7 +177,7 @@ export default function HermanTasks() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{hermanTasks.length - completedTasks}</p>
+                <p className="text-2xl font-bold">{tasks.length - completedTasks}</p>
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
@@ -140,7 +192,7 @@ export default function HermanTasks() {
                 <p className="text-2xl font-bold text-destructive">{overdueTasks}</p>
                 <p className="text-sm text-muted-foreground">Overdue</p>
               </div>
-              <Clock className="h-8 w-8 text-destructive" />
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -152,7 +204,7 @@ export default function HermanTasks() {
                 <p className="text-2xl font-bold text-success">{completedTasks}</p>
                 <p className="text-sm text-muted-foreground">Completed</p>
               </div>
-              <CheckSquare className="h-8 w-8 text-success" />
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -160,13 +212,21 @@ export default function HermanTasks() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Task List</CardTitle>
           <div className="flex gap-2 items-center">
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Button>
             <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
             </div>
             <Button variant="outline">
@@ -176,14 +236,26 @@ export default function HermanTasks() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            columns={columns}
-            data={hermanTasks}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="text-muted-foreground">Loading tasks...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tasks}
+              searchTerm={searchTerm}
+              onRowClick={handleRowClick}
+            />
+          )}
         </CardContent>
       </Card>
+
+      <CreateTaskModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onTaskCreated={handleTaskCreated}
+      />
     </div>
   );
 }

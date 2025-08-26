@@ -53,7 +53,7 @@ const pipelineItems = [
 const taskItems = [
   { title: "Yousif Tasks", url: "/tasks/yousif", icon: CheckSquare },
   { title: "Salma Tasks", url: "/tasks/salma", icon: CheckSquare },
-  { title: "Herman Daza Tasks", url: "/tasks/hermit", icon: CheckSquare },
+  { title: "Herman Tasks", url: "/tasks/hermit", icon: CheckSquare },
 ];
 
 const contactItems = [
