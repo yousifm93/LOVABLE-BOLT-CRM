@@ -79,7 +79,7 @@ function AppRoutes() {
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />
         <Route path="/tasks" element={<TasksModernNew />} />
-        <Route path="/tasks/yousif" element={<YousifTasks />} />
+        <Route path="/tasks/yousif" element={<TasksModernNew />} />
         <Route path="/tasks/salma" element={<SalmaTasks />} />
         <Route path="/tasks/hermit" element={<HermanTasks />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
