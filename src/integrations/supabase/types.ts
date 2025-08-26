@@ -625,7 +625,7 @@ export type Database = {
         | "Miscellaneous"
       referred_via: "Phone" | "Email" | "Social" | "Personal"
       task_priority: "Low" | "Medium" | "High" | "Critical"
-      task_status: "Open" | "Done" | "Deferred"
+      task_status: "To Do" | "In Progress" | "Done"
       user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
     }
     CompositeTypes: {
@@ -790,7 +790,7 @@ export const Constants = {
       ],
       referred_via: ["Phone", "Email", "Social", "Personal"],
       task_priority: ["Low", "Medium", "High", "Critical"],
-      task_status: ["Open", "Done", "Deferred"],
+      task_status: ["To Do", "In Progress", "Done"],
       user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
     },
   },

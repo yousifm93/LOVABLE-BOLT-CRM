@@ -29,12 +29,9 @@ const PRIORITY_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'Done', label: 'Done' },
-  { value: 'Done for Now', label: 'Done for Now' },
+  { value: 'To Do', label: 'To Do' },
   { value: 'In Progress', label: 'In Progress' },
-  { value: 'Didn\'t Get to It', label: 'Didn\'t Get to It' },
-  { value: 'Need Help', label: 'Need Help' },
-  { value: 'Open', label: 'Open' },
+  { value: 'Done', label: 'Done' },
 ];
 
 const PIPELINE_OPTIONS = [
@@ -130,6 +127,15 @@ export function TasksModern() {
     
     // Advanced filters (simplified for now)
     return true;
+  }).sort((a, b) => {
+    // Default sort: Task Order ascending, then Due Date ascending
+    if (a.task_order !== b.task_order) {
+      return (a.task_order || 999) - (b.task_order || 999);
+    }
+    if (a.due_date && b.due_date) {
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    }
+    return a.due_date ? -1 : b.due_date ? 1 : 0;
   });
 
   const borrowerOptions = leads.map(lead => ({
@@ -148,17 +154,12 @@ export function TasksModern() {
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">Tasks</h1>
+      {/* Toolbar */}
+      <div className="flex items-center gap-4">
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           New Task
         </Button>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -201,10 +202,9 @@ export function TasksModern() {
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground">Borrower</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground">Priority</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground">Task Order</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Assign To</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Assigned To</th>
                 <th className="text-left p-3 text-sm font-medium text-muted-foreground">Due Date</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Task Status</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Pipeline</th>
+                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -269,14 +269,6 @@ export function TasksModern() {
                       onValueChange={(value) => handleUpdateTask(task.id, 'status', value)}
                       placeholder="Set status"
                       showAsStatusBadge
-                    />
-                  </td>
-                  <td className="p-3">
-                    <InlineEditSelect
-                      value={task.pipeline_stage || ''}
-                      options={PIPELINE_OPTIONS}
-                      onValueChange={(value) => handleUpdateTask(task.id, 'pipeline_stage', value)}
-                      placeholder="Set pipeline"
                     />
                   </td>
                 </tr>

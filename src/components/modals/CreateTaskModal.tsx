@@ -26,7 +26,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
     description: '',
     due_date: '',
     priority: 'Medium' as any,
-    status: 'Open' as any,
+    status: 'To Do' as any,
     assignee_id: '',
     related_lead_id: relatedLeadId || '',
     tags: [] as string[],
@@ -67,6 +67,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
     try {
       const taskData: TaskInsert = {
         ...formData,
+        name: formData.title, // Add required name field
         assignee_id: formData.assignee_id || null,
         related_lead_id: formData.related_lead_id || null,
         due_date: formData.due_date || null,
@@ -85,7 +86,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         description: '',
         due_date: '',
         priority: 'Medium',
-        status: 'Open',
+        status: 'To Do',
         assignee_id: '',
         related_lead_id: relatedLeadId || '',
         tags: [],
@@ -177,7 +178,6 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectItem value="Low">Low</SelectItem>
                   <SelectItem value="Medium">Medium</SelectItem>
                   <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -191,9 +191,9 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="To Do">To Do</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Done">Done</SelectItem>
-                  <SelectItem value="Deferred">Deferred</SelectItem>
                 </SelectContent>
               </Select>
             </div>
