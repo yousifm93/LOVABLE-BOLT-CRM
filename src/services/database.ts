@@ -30,6 +30,9 @@ export type EmailLogInsert = Database['public']['Tables']['email_logs']['Insert'
 export type Document = Database['public']['Tables']['documents']['Row'];
 export type DocumentInsert = Database['public']['Tables']['documents']['Insert'];
 
+export type BuyerAgent = Database['public']['Tables']['buyer_agents']['Row'];
+export type BuyerAgentInsert = Database['public']['Tables']['buyer_agents']['Insert'];
+
 // Database service functions
 export const databaseService = {
   // Lead operations
@@ -40,7 +43,7 @@ export const databaseService = {
         *,
         pipeline_stage:pipeline_stages(*),
         teammate:users(*),
-        buyer_agent:contacts(*)
+        buyer_agent:buyer_agents(*)
       `)
       .order('created_at', { ascending: false });
     
@@ -64,7 +67,7 @@ export const databaseService = {
         *,
         pipeline_stage:pipeline_stages(*),
         teammate:users(*),
-        buyer_agent:contacts(*)
+        buyer_agent:buyer_agents(*)
       `)
       .single();
     
@@ -84,7 +87,7 @@ export const databaseService = {
         *,
         pipeline_stage:pipeline_stages(*),
         teammate:users(*),
-        buyer_agent:contacts(*)
+        buyer_agent:buyer_agents(*)
       `)
       .single();
     
@@ -100,7 +103,8 @@ export const databaseService = {
         *,
         assignee:users(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*)
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .order('created_at', { ascending: false });
     
@@ -116,7 +120,8 @@ export const databaseService = {
         *,
         assignee:users(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*)
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
     
@@ -133,7 +138,8 @@ export const databaseService = {
         *,
         assignee:users(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*)
+        related_lead:leads(*),
+        borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
     
@@ -290,5 +296,27 @@ export const databaseService = {
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return activities;
+  },
+
+  // Buyer Agent operations
+  async getBuyerAgents() {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .select('*')
+      .order('first_name');
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async createBuyerAgent(agent: BuyerAgentInsert) {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .insert(agent)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 };
