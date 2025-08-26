@@ -43,8 +43,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users(*),
-          buyer_agent:buyer_agents(*)
+          teammate:users(*)
         `)
         .order('created_at', { ascending: false });
       
@@ -57,7 +56,6 @@ export const databaseService = {
       return data?.map(lead => ({
         ...lead,
         teammate: lead.teammate || null,
-        buyer_agent: lead.buyer_agent || null,
         pipeline_stage: lead.pipeline_stage || null
       })) || [];
     } catch (error) {
@@ -81,8 +79,7 @@ export const databaseService = {
       .select(`
         *,
         pipeline_stage:pipeline_stages(*),
-        teammate:users(*),
-        buyer_agent:buyer_agents(*)
+        teammate:users(*)
       `)
       .single();
     
@@ -101,8 +98,7 @@ export const databaseService = {
       .select(`
         *,
         pipeline_stage:pipeline_stages(*),
-        teammate:users(*),
-        buyer_agent:buyer_agents(*)
+        teammate:users(*)
       `)
       .single();
     
@@ -116,12 +112,12 @@ export const databaseService = {
       .from('tasks')
       .select(`
         *,
-        assignee:users(*),
+        assignee:users!tasks_assigned_to_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*),
+        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
-      .order('created_at', { ascending: false });
+      .order('task_order', { ascending: true });
     
     if (error) throw error;
     return data;
@@ -133,9 +129,9 @@ export const databaseService = {
       .insert(task)
       .select(`
         *,
-        assignee:users(*),
+        assignee:users!tasks_assigned_to_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*),
+        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
@@ -151,9 +147,9 @@ export const databaseService = {
       .eq('id', id)
       .select(`
         *,
-        assignee:users(*),
+        assignee:users!tasks_assigned_to_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
-        related_lead:leads(*),
+        related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();

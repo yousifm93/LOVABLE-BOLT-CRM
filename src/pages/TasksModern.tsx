@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search } from "lucide-react";
+import { Plus, Filter, Search, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { StatsCard } from "@/components/ui/stats-card";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { databaseService, Task, Lead, User } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
 import {
   Collapsible,
   CollapsibleContent,
@@ -148,12 +149,40 @@ export function TasksModern() {
     label: `${user.first_name} ${user.last_name}`
   }));
 
+  // Calculate task statistics
+  const activeTasks = tasks.filter(task => task.status === 'To Do' || task.status === 'In Progress').length;
+  const overdueTasks = tasks.filter(task => 
+    task.due_date && isPast(new Date(task.due_date)) && task.status !== 'Done'
+  ).length;
+  const completedTasks = tasks.filter(task => task.status === 'Done').length;
+
   if (loading) {
     return <div className="pl-4 pr-0 pt-2 pb-0">Loading...</div>;
   }
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+      {/* Task Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <StatsCard
+          title="Active Tasks"
+          value={activeTasks}
+          icon={<Clock className="h-5 w-5" />}
+          changeType="neutral"
+        />
+        <StatsCard
+          title="Overdue Tasks"
+          value={overdueTasks}
+          icon={<XCircle className="h-5 w-5" />}
+          changeType={overdueTasks > 0 ? "negative" : "neutral"}
+        />
+        <StatsCard
+          title="Completed Tasks"
+          value={completedTasks}
+          icon={<CheckCircle className="h-5 w-5" />}
+          changeType="positive"
+        />
+      </div>
       {/* Toolbar */}
       <div className="flex items-center gap-4">
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">
@@ -247,14 +276,14 @@ export function TasksModern() {
                       min="1"
                     />
                   </td>
-                  <td className="p-3">
-                    <InlineEditSelect
-                      value={task.assignee_id || ''}
-                      options={assigneeOptions}
-                      onValueChange={(value) => handleUpdateTask(task.id, 'assignee_id', value)}
-                      placeholder="Assign to"
-                    />
-                  </td>
+                   <td className="p-3">
+                     <InlineEditSelect
+                       value={task.assigned_to || ''}
+                       options={assigneeOptions}
+                       onValueChange={(value) => handleUpdateTask(task.id, 'assigned_to', value)}
+                       placeholder="Assign to"
+                     />
+                   </td>
                   <td className="p-3">
                     <InlineEditDate
                       value={task.due_date}

@@ -66,11 +66,15 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
 
     try {
       const taskData: TaskInsert = {
-        ...formData,
+        title: formData.title,
         name: formData.title, // Add required name field
-        assignee_id: formData.assignee_id || null,
+        description: formData.description || null,
+        assigned_to: formData.assignee_id || null,
         related_lead_id: formData.related_lead_id || null,
         due_date: formData.due_date || null,
+        priority: formData.priority,
+        status: formData.status,
+        tags: formData.tags.length > 0 ? formData.tags : null,
         // TODO: Get current user ID from auth context
         created_by: formData.assignee_id, // Temporary - should be current user
       };
