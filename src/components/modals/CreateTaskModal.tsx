@@ -66,10 +66,17 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
 
     try {
       const taskData: TaskInsert = {
-        ...formData,
+        name: formData.title, // Map title to name for new schema
+        title: formData.title,
+        description: formData.description,
+        assigned_to: formData.assignee_id || null,
         assignee_id: formData.assignee_id || null,
+        borrower_id: formData.related_lead_id || null,
         related_lead_id: formData.related_lead_id || null,
         due_date: formData.due_date || null,
+        priority: formData.priority,
+        status: formData.status,
+        tags: formData.tags,
         // TODO: Get current user ID from auth context
         created_by: formData.assignee_id, // Temporary - should be current user
       };
