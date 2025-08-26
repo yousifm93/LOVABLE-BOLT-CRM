@@ -18,6 +18,7 @@ import {
   Megaphone,
   BookOpen,
   Mail,
+  Zap,
 } from "lucide-react";
 
 import {
@@ -94,6 +95,17 @@ export function AppSidebar() {
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-3 p-4">
+          <div className="h-8 w-8 bg-yellow-400 rounded-lg flex items-center justify-center">
+            <Zap className="h-4 w-4 text-black" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h2 className="font-semibold text-sidebar-foreground">BOLT</h2>
+              <p className="text-xs text-sidebar-foreground/70">CRM</p>
+            </div>
+          )}
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
