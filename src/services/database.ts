@@ -112,7 +112,7 @@ export const databaseService = {
       .from('tasks')
       .select(`
         *,
-        assignee:users!tasks_assigned_to_fkey(*),
+        assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
         related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
@@ -129,14 +129,17 @@ export const databaseService = {
       .insert(task)
       .select(`
         *,
-        assignee:users!tasks_assigned_to_fkey(*),
+        assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
         related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)
       `)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Task creation error:', error);
+      throw error;
+    }
     return data;
   },
 
@@ -147,7 +150,7 @@ export const databaseService = {
       .eq('id', id)
       .select(`
         *,
-        assignee:users!tasks_assigned_to_fkey(*),
+        assignee:users!tasks_assignee_id_fkey(*),
         created_by_user:users!tasks_created_by_fkey(*),
         related_lead:leads!tasks_related_lead_id_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(*)

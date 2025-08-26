@@ -29,7 +29,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
     due_date: '',
     priority: 'Medium' as any,
     status: 'To Do' as any,
-    assigned_to: '',
+    assignee_id: '',
     related_lead_id: relatedLeadId || '',
     tags: [] as string[],
   });
@@ -90,7 +90,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         title: formData.title.trim(),
         name: formData.title.trim(),
         description: formData.description?.trim() || null,
-        assigned_to: formData.assigned_to || null,
+        assignee_id: formData.assignee_id || null,
         related_lead_id: formData.related_lead_id || null,
         due_date: formData.due_date || null,
         priority: formData.priority,
@@ -113,7 +113,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         due_date: '',
         priority: 'Medium',
         status: 'To Do',
-        assigned_to: '',
+        assignee_id: '',
         related_lead_id: relatedLeadId || '',
         tags: [],
       });
@@ -226,8 +226,8 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="assigned_to">Assignee</Label>
-              <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
+              <Label htmlFor="assignee_id">Assignee</Label>
+              <Select value={formData.assignee_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assignee_id: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
