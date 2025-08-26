@@ -178,10 +178,10 @@ export default function Screening() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Screening</h1>
+          <h1 className="text-xl font-bold text-foreground">Screening</h1>
           <p className="text-sm text-muted-foreground">Initial application review and verification</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">

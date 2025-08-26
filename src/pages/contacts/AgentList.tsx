@@ -209,10 +209,10 @@ export default function AgentList() {
   }, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Master Agent List</h1>
+          <h1 className="text-xl font-bold text-foreground">Master Agent List</h1>
           <p className="text-muted-foreground">
             {activeAgents} active agents • ${totalVolume.toFixed(1)}M total volume
           </p>
@@ -226,9 +226,9 @@ export default function AgentList() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">{displayData.length}</p>
@@ -240,7 +240,7 @@ export default function AgentList() {
         </Card>
         
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-success">{activeAgents}</p>
@@ -252,7 +252,7 @@ export default function AgentList() {
         </Card>
         
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">{displayData.reduce((sum: number, agent: any) => sum + (agent.activeDeals || 0), 0)}</p>
@@ -264,7 +264,7 @@ export default function AgentList() {
         </Card>
         
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">${totalVolume.toFixed(1)}M</p>

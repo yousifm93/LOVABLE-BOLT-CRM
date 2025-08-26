@@ -95,14 +95,14 @@ export function AppSidebar() {
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-1.5 p-4">
-          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-            <Zap className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="flex items-center gap-3 p-3">
+          <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
+            <Zap className="h-7 w-7 text-primary-foreground" />
           </div>
           {!collapsed && (
             <div className="flex items-baseline">
-              <span className="text-base font-light tracking-tight text-sidebar-foreground">BOLT</span>
-              <span className="text-base font-bold text-sidebar-foreground">CRM</span>
+              <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+              <span className="text-xl font-bold text-sidebar-foreground">CRM</span>
             </div>
           )}
         </div>

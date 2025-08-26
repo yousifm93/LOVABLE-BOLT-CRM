@@ -16,10 +16,10 @@ export function Header() {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="h-12 border-b bg-card flex items-center justify-between px-6 shadow-soft">
-      <div className="flex items-center gap-6">
+    <header className="h-10 border-b bg-card flex items-center justify-between px-4 shadow-soft">
+      <div className="flex items-center gap-3">
         <SidebarTrigger />
-        <div className="relative w-80">
+        <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search clients, loans, or documents..."
