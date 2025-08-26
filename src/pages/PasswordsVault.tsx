@@ -174,14 +174,14 @@ export default function PasswordsVault() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center">
             <Shield className="h-6 w-6 mr-2 text-primary" />
             Passwords Vault
           </h1>
-          <p className="text-sm text-muted-foreground">Secure credential management - Admin access only</p>
+          <p className="text-xs italic text-muted-foreground/70">Secure credential management - Admin access only</p>
         </div>
         <Dialog open={isAddPasswordOpen} onOpenChange={setIsAddPasswordOpen}>
           <DialogTrigger asChild>
@@ -271,8 +271,8 @@ export default function PasswordsVault() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex gap-2 items-center">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search credentials..."

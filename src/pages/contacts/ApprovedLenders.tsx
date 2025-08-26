@@ -86,13 +86,13 @@ const columns: ColumnDef<Lender>[] = [
     header: "Contact",
     cell: ({ row }) => (
       <div className="space-y-1">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          {row.original.email}
+        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{row.original.email}</span>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          {row.original.phone}
+        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+          <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">{row.original.phone}</span>
         </div>
       </div>
     ),
@@ -182,26 +182,17 @@ export default function ApprovedLenders() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Approved Lenders</h1>
-          <p className="text-muted-foreground">Manage your approved lending partners</p>
-        </div>
-        <Button 
-          className="bg-gradient-primary hover:opacity-90 transition-opacity"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Lender
-        </Button>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Approved Lenders</h1>
+        <p className="text-xs italic text-muted-foreground/70">Manage your approved lending partners</p>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>Lender Directory</CardTitle>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search lenders..."

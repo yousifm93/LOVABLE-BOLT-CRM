@@ -111,22 +111,16 @@ export default function HermanTasks() {
   }).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Herman Daza's Tasks</h1>
-          <p className="text-muted-foreground">
-            {completedTasks} completed • {overdueTasks} overdue • {hermanTasks.length - completedTasks} remaining
-          </p>
-        </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-          <Plus className="h-4 w-4 mr-2" />
-          New Task
-        </Button>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Herman Daza's Tasks</h1>
+        <p className="text-xs italic text-muted-foreground/70">
+          {completedTasks} completed • {overdueTasks} overdue • {hermanTasks.length - completedTasks} remaining
+        </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -167,8 +161,8 @@ export default function HermanTasks() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>Task List</CardTitle>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1 max-w-sm">
               <Input
                 placeholder="Search tasks..."
                 value={searchTerm}

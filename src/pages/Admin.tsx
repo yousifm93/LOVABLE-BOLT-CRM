@@ -125,20 +125,14 @@ export default function Admin() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground">System configuration and field management</p>
-        </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
-          <Shield className="h-4 w-4 mr-2" />
-          System Settings
-        </Button>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+        <p className="text-xs italic text-muted-foreground/70">System configuration and field management</p>
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {systemStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-4">

@@ -123,11 +123,11 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
-          <p className="text-sm text-muted-foreground">Manage user accounts, roles, and permissions</p>
+          <p className="text-xs italic text-muted-foreground/70">Manage user accounts, roles, and permissions</p>
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>

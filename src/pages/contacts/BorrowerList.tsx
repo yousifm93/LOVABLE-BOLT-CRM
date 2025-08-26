@@ -102,13 +102,13 @@ const columns: ColumnDef<Contact>[] = [
     header: "Contact",
     cell: ({ row }) => (
       <div className="space-y-1">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-2 text-muted-foreground" />
-          {row.original.person.email}
+        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+          <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{row.original.person.email}</span>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-2" />
-          {row.original.person.phoneMobile}
+        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+          <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
+          <span className="truncate">{row.original.person.phoneMobile}</span>
         </div>
       </div>
     ),
@@ -220,24 +220,15 @@ export default function BorrowerList() {
   const prospects = displayData.filter((contact: any) => contact.status === "Prospect").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Master Borrower List</h1>
-          <p className="text-muted-foreground">
-            {activeBorrowers} active borrowers • {totalDeals} total deals • {prospects} prospects
-          </p>
-        </div>
-        <Button 
-          className="bg-gradient-primary hover:opacity-90 transition-opacity"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Borrower
-        </Button>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Master Borrower List</h1>
+        <p className="text-xs italic text-muted-foreground/70">
+          {activeBorrowers} active borrowers • {totalDeals} total deals • {prospects} prospects
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -300,8 +291,8 @@ export default function BorrowerList() {
               Add
             </Button>
           </CardTitle>
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search borrowers..."
