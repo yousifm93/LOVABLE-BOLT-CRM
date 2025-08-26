@@ -216,11 +216,11 @@ export default function Leads() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Leads</h1>
-          <p className="text-muted-foreground">Potential clients and prospects</p>
+          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+          <p className="text-sm text-muted-foreground">Potential clients and prospects</p>
         </div>
         <Button 
           className="bg-gradient-primary hover:opacity-90 transition-opacity"

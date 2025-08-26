@@ -14,7 +14,7 @@ export function Layout({ children }: LayoutProps) {
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           <Header />
-          <main className="flex-1 p-2">
+          <main className="flex-1">
             {children}
           </main>
         </div>

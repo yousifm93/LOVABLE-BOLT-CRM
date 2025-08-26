@@ -72,11 +72,11 @@ export default function Clients() {
   );
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Clients</h1>
-          <p className="text-muted-foreground">Manage your client relationships and loan applications</p>
+          <h1 className="text-2xl font-bold text-foreground">Clients</h1>
+          <p className="text-sm text-muted-foreground">Manage your client relationships and loan applications</p>
         </div>
         <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
           <Plus className="h-4 w-4 mr-2" />
