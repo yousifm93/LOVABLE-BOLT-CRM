@@ -246,10 +246,9 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
             <Label htmlFor="related_lead_id">Related Lead</Label>
             <Select value={formData.related_lead_id} onValueChange={(value) => setFormData(prev => ({ ...prev, related_lead_id: value }))}>
               <SelectTrigger>
-                <SelectValue placeholder="Select related lead" />
+                <SelectValue placeholder="Select related lead (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No related lead</SelectItem>
                 {leads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.first_name} {lead.last_name}
