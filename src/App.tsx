@@ -24,6 +24,7 @@ import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Marketing from "@/pages/resources/Marketing";
+import Email from "@/pages/Email";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="/" element={<DashboardTabs />} />
+        <Route path="/email" element={<Email />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/pending-app" element={<PendingApp />} />
         <Route path="/screening" element={<Screening />} />
