@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type TaskInsert, type User, type Lead } from '@/services/database';
 
 interface CreateTaskModalProps {
@@ -17,6 +18,7 @@ interface CreateTaskModalProps {
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLeadId }: CreateTaskModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -27,7 +29,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
     due_date: '',
     priority: 'Medium' as any,
     status: 'To Do' as any,
-    assignee_id: '',
+    assigned_to: '',
     related_lead_id: relatedLeadId || '',
     tags: [] as string[],
   });
@@ -62,24 +64,44 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create tasks',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Task title is required',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const taskData: TaskInsert = {
-        title: formData.title,
-        name: formData.title, // Add required name field
-        description: formData.description || null,
-        assigned_to: formData.assignee_id || null,
+        title: formData.title.trim(),
+        name: formData.title.trim(),
+        description: formData.description?.trim() || null,
+        assigned_to: formData.assigned_to || null,
         related_lead_id: formData.related_lead_id || null,
         due_date: formData.due_date || null,
         priority: formData.priority,
         status: formData.status,
         tags: formData.tags.length > 0 ? formData.tags : null,
-        // TODO: Get current user ID from auth context
-        created_by: formData.assignee_id, // Temporary - should be current user
+        created_by: user.id,
       };
 
+      console.log('Creating task with data:', taskData);
       const newTask = await databaseService.createTask(taskData);
+      console.log('Task created successfully:', newTask);
       
       onTaskCreated(newTask);
       onOpenChange(false);
@@ -91,7 +113,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
         due_date: '',
         priority: 'Medium',
         status: 'To Do',
-        assignee_id: '',
+        assigned_to: '',
         related_lead_id: relatedLeadId || '',
         tags: [],
       });
@@ -104,7 +126,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
       console.error('Error creating task:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create task',
+        description: error instanceof Error ? error.message : 'Failed to create task',
         variant: 'destructive',
       });
     } finally {
@@ -182,6 +204,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectItem value="Low">Low</SelectItem>
                   <SelectItem value="Medium">Medium</SelectItem>
                   <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Critical">Critical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -203,8 +226,8 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="assignee_id">Assignee</Label>
-              <Select value={formData.assignee_id} onValueChange={(value) => setFormData(prev => ({ ...prev, assignee_id: value }))}>
+              <Label htmlFor="assigned_to">Assignee</Label>
+              <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
