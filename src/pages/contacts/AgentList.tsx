@@ -60,7 +60,7 @@ const columns: ColumnDef<Agent>[] = [
     header: "Agent",
     cell: ({ row }) => {
       const agent = row.original;
-      const initials = agent.name.split(' ').map(n => n[0]).join('');
+      const initials = agent.name ? agent.name.split(' ').map(n => n[0]).join('') : '??';
       
       return (
         <div className="flex items-center gap-3">
@@ -70,10 +70,10 @@ const columns: ColumnDef<Agent>[] = [
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{agent.name}</div>
+            <div className="font-medium">{agent.name || 'Unknown'}</div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Building2 className="h-3 w-3" />
-              {agent.company}
+              {agent.company || 'No company'}
             </div>
           </div>
         </div>
