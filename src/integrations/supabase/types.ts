@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      buyer_agents: {
+        Row: {
+          brokerage: string
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          license_number: string | null
+          phone: string | null
+          updated_at: string
+          years_experience: number | null
+        }
+        Insert: {
+          brokerage: string
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          license_number?: string | null
+          phone?: string | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Update: {
+          brokerage?: string
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          license_number?: string | null
+          phone?: string | null
+          updated_at?: string
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           created_at: string
@@ -206,6 +245,7 @@ export type Database = {
       leads: {
         Row: {
           buyer_agent_id: string | null
+          converted: Database["public"]["Enums"]["converted_status"] | null
           created_at: string
           email: string | null
           first_name: string
@@ -219,14 +259,17 @@ export type Database = {
           phone: string | null
           pipeline_stage_id: string | null
           property_type: string | null
+          referral_source: Database["public"]["Enums"]["referral_source"] | null
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           source: Database["public"]["Enums"]["lead_source"] | null
           status: Database["public"]["Enums"]["lead_status"]
+          task_eta: string | null
           teammate_assigned: string | null
           updated_at: string
         }
         Insert: {
           buyer_agent_id?: string | null
+          converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           email?: string | null
           first_name: string
@@ -240,14 +283,19 @@ export type Database = {
           phone?: string | null
           pipeline_stage_id?: string | null
           property_type?: string | null
+          referral_source?:
+            | Database["public"]["Enums"]["referral_source"]
+            | null
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           status?: Database["public"]["Enums"]["lead_status"]
+          task_eta?: string | null
           teammate_assigned?: string | null
           updated_at?: string
         }
         Update: {
           buyer_agent_id?: string | null
+          converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           email?: string | null
           first_name?: string
@@ -261,9 +309,13 @@ export type Database = {
           phone?: string | null
           pipeline_stage_id?: string | null
           property_type?: string | null
+          referral_source?:
+            | Database["public"]["Enums"]["referral_source"]
+            | null
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           status?: Database["public"]["Enums"]["lead_status"]
+          task_eta?: string | null
           teammate_assigned?: string | null
           updated_at?: string
         }
@@ -408,43 +460,52 @@ export type Database = {
       tasks: {
         Row: {
           assignee_id: string | null
+          borrower_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           due_date: string | null
           id: string
+          pipeline_stage: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           related_lead_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           tags: string[] | null
+          task_order: number | null
           title: string
           updated_at: string
         }
         Insert: {
           assignee_id?: string | null
+          borrower_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
+          task_order?: number | null
           title: string
           updated_at?: string
         }
         Update: {
           assignee_id?: string | null
+          borrower_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          pipeline_stage?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           related_lead_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           tags?: string[] | null
+          task_order?: number | null
           title?: string
           updated_at?: string
         }
@@ -454,6 +515,13 @@ export type Database = {
             columns: ["assignee_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -518,6 +586,12 @@ export type Database = {
     Enums: {
       call_outcome: "No Answer" | "Left VM" | "Connected"
       contact_type: "Agent" | "Realtor" | "Borrower" | "Other"
+      converted_status:
+        | "Working on it"
+        | "Pending App"
+        | "Nurture"
+        | "Dead"
+        | "Needs Attention"
       lead_source:
         | "Website"
         | "Referral"
@@ -533,6 +607,13 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       log_direction: "In" | "Out"
+      referral_source:
+        | "Agent"
+        | "New Agent"
+        | "Past Client"
+        | "Personal"
+        | "Social"
+        | "Miscellaneous"
       referred_via: "Phone" | "Email" | "Social" | "Personal"
       task_priority: "Low" | "Medium" | "High" | "Critical"
       task_status: "Open" | "Done" | "Deferred"
@@ -666,6 +747,13 @@ export const Constants = {
     Enums: {
       call_outcome: ["No Answer", "Left VM", "Connected"],
       contact_type: ["Agent", "Realtor", "Borrower", "Other"],
+      converted_status: [
+        "Working on it",
+        "Pending App",
+        "Nurture",
+        "Dead",
+        "Needs Attention",
+      ],
       lead_source: [
         "Website",
         "Referral",
@@ -683,6 +771,14 @@ export const Constants = {
         "Needs Attention",
       ],
       log_direction: ["In", "Out"],
+      referral_source: [
+        "Agent",
+        "New Agent",
+        "Past Client",
+        "Personal",
+        "Social",
+        "Miscellaneous",
+      ],
       referred_via: ["Phone", "Email", "Social", "Personal"],
       task_priority: ["Low", "Medium", "High", "Critical"],
       task_status: ["Open", "Done", "Deferred"],
