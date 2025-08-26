@@ -9,6 +9,8 @@ export default function Email() {
       <div className="w-full h-[calc(100vh-200px)] border border-border rounded-lg overflow-hidden bg-card">
         <iframe
           src="https://app.frontapp.com"
+          width="1000"
+          height="800"
           className="w-full h-full border-0"
           title="Front Email Client"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"

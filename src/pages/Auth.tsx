@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { Zap } from 'lucide-react';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,8 +55,15 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">Mortgage Bolt</h1>
-          <p className="text-muted-foreground mt-2">Welcome to your CRM dashboard</p>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
+              <Zap className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-light tracking-tight text-foreground">BOLT</span>
+              <span className="text-3xl font-bold text-foreground">CRM</span>
+            </div>
+          </div>
         </div>
 
         <Card className="shadow-lg">

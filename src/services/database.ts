@@ -37,18 +37,33 @@ export type BuyerAgentInsert = Database['public']['Tables']['buyer_agents']['Ins
 export const databaseService = {
   // Lead operations
   async getLeads() {
-    const { data, error } = await supabase
-      .from('leads')
-      .select(`
-        *,
-        pipeline_stage:pipeline_stages(*),
-        teammate:users(*),
-        buyer_agent:buyer_agents(*)
-      `)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          pipeline_stage:pipeline_stages(*),
+          teammate:users(*),
+          buyer_agent:buyer_agents(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching leads:', error);
+        throw error;
+      }
+      
+      // Handle null relations to prevent transformation errors
+      return data?.map(lead => ({
+        ...lead,
+        teammate: lead.teammate || null,
+        buyer_agent: lead.buyer_agent || null,
+        pipeline_stage: lead.pipeline_stage || null
+      })) || [];
+    } catch (error) {
+      console.error('Failed to load leads:', error);
+      throw new Error('Failed to load leads. Please try again.');
+    }
   },
 
   async createLead(lead: LeadInsert) {
