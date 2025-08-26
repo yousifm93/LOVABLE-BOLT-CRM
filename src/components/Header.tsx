@@ -19,16 +19,6 @@ export function Header() {
     <header className="h-12 border-b bg-card flex items-center justify-between px-6 shadow-soft">
       <div className="flex items-center gap-6">
         <SidebarTrigger />
-        {/* BOLTCRM Branding - exactly where "Mortgage Bolt CRM" was */}
-        <div className="flex items-center gap-1.5">
-          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-            <Zap className="h-3.5 w-3.5 text-primary-foreground" />
-          </div>
-          <div className="flex items-baseline">
-            <span className="text-base font-light tracking-tight text-foreground">BOLT</span>
-            <span className="text-base font-bold text-foreground">CRM</span>
-          </div>
-        </div>
         <div className="relative w-80">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
