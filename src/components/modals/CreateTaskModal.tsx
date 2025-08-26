@@ -194,7 +194,6 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No assignee</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.first_name} {user.last_name}
@@ -211,7 +210,6 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, relatedLead
                   <SelectValue placeholder="Select borrower" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No borrower</SelectItem>
                   {leads.map((lead) => (
                     <SelectItem key={lead.id} value={lead.id}>
                       {lead.first_name} {lead.last_name}
