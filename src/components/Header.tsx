@@ -1,4 +1,4 @@
-import { Bell, Search, User, LogOut } from "lucide-react";
+import { Bell, Search, User, LogOut, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -16,43 +16,41 @@ export function Header() {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="h-14 border-b bg-card flex items-center justify-between px-6 shadow-soft">
+    <header className="h-12 border-b bg-card flex items-center justify-between px-6 shadow-soft">
       <div className="flex items-center gap-6">
         <SidebarTrigger />
-        {/* BOLTCRM Branding */}
-        <div className="flex items-center gap-3">
-          <img 
-            src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/branding/yellow%20bolt%20logo.%20-%20bolt%20only.svg" 
-            alt="Bolt Logo" 
-            className="h-8 w-8"
-          />
+        {/* BOLTCRM Branding - exactly where "Mortgage Bolt CRM" was */}
+        <div className="flex items-center gap-1.5">
+          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
+            <Zap className="h-3.5 w-3.5 text-primary-foreground" />
+          </div>
           <div className="flex items-baseline">
-            <span className="text-xl font-light tracking-wide text-foreground">BOLT</span>
-            <span className="text-xl font-bold tracking-tight text-foreground">CRM</span>
+            <span className="text-base font-light tracking-tight text-foreground">BOLT</span>
+            <span className="text-base font-bold text-foreground">CRM</span>
           </div>
         </div>
         <div className="relative w-80">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search clients, loans, or documents..."
-            className="pl-10 h-9"
+            className="pl-10 h-8"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="sm" className="relative h-7 w-7 p-0">
+          <Bell className="h-4 w-4" />
+          <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
             3
           </span>
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {user?.email}
+            <Button variant="ghost" className="flex items-center gap-2 h-7 px-2">
+              <User className="h-3 w-3" />
+              <span className="text-xs">{user?.email}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

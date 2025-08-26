@@ -1,21 +1,10 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
+import { Input } from "@/components/ui/input";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText } from "lucide-react";
+import { ModernStatsCard } from "@/components/ui/modern-stats-card";
+import { CompactDataList } from "@/components/ui/compact-data-list";
+import { ModernChartCard } from "@/components/ui/modern-chart-card";
 
 // Mock data for charts
 const monthlyVolumeData = [
@@ -48,306 +37,231 @@ const rankingData = [
   { month: 'Dec', rank: 1 },
 ];
 
-// Mock recent leads and apps
+// Mock recent leads and apps with enhanced data
 const yesterdayLeads = [
-  { name: "Sarah Johnson", amount: "$450,000", source: "Website" },
-  { name: "Mike Chen", amount: "$380,000", source: "Referral" },
-  { name: "Lisa Rodriguez", amount: "$520,000", source: "Social Media" },
+  { name: "Sarah Johnson", amount: "$450,000", source: "Website", date: "Today" },
+  { name: "Mike Chen", amount: "$380,000", source: "Referral", date: "Today" },
+  { name: "Lisa Rodriguez", amount: "$520,000", source: "Social Media", date: "Today" },
 ];
 
 const yesterdayApps = [
-  { name: "Robert Kim", amount: "$320,000", status: "Submitted" },
-  { name: "Jennifer Martinez", amount: "$425,000", status: "Processing" },
+  { name: "Robert Kim", amount: "$320,000", status: "Submitted", date: "Today" },
+  { name: "Jennifer Martinez", amount: "$425,000", status: "Processing", date: "Today" },
 ];
 
 const thisMonthLeads = [
-  { name: "Amanda Wilson", amount: "$475,000", source: "Website" },
-  { name: "David Park", amount: "$395,000", source: "Referral" },
-  { name: "Maria Garcia", amount: "$510,000", source: "Email" },
-  { name: "James Thompson", amount: "$445,000", source: "Social Media" },
-  { name: "Emily Davis", amount: "$385,000", source: "Website" },
+  { name: "Amanda Wilson", amount: "$475,000", source: "Website", stage: "Qualified" },
+  { name: "David Park", amount: "$395,000", source: "Referral", stage: "Follow-up" },
+  { name: "Maria Garcia", amount: "$510,000", source: "Email", stage: "Interested" },
+  { name: "James Thompson", amount: "$445,000", source: "Social Media", stage: "Qualified" },
+  { name: "Emily Davis", amount: "$385,000", source: "Website", stage: "New" },
+  { name: "Chris Rodriguez", amount: "$525,000", source: "Referral", stage: "Hot Lead" },
+  { name: "Sophie Chen", amount: "$415,000", source: "Website", stage: "Qualified" },
+  { name: "Michael Torres", amount: "$465,000", source: "Social Media", stage: "Follow-up" },
+  { name: "Rachel Kim", amount: "$395,000", source: "Email", stage: "Interested" },
+  { name: "Daniel Lopez", amount: "$485,000", source: "Referral", stage: "Hot Lead" },
 ];
 
 const thisMonthApps = [
-  { name: "John Anderson", amount: "$415,000", status: "Approved" },
-  { name: "Susan Miller", amount: "$365,000", status: "Processing" },
-  { name: "Tom Wilson", amount: "$485,000", status: "Submitted" },
+  { name: "John Anderson", amount: "$415,000", status: "Approved", stage: "Closing" },
+  { name: "Susan Miller", amount: "$365,000", status: "Processing", stage: "Underwriting" },
+  { name: "Tom Wilson", amount: "$485,000", status: "Submitted", stage: "Review" },
+  { name: "Lisa Park", amount: "$445,000", status: "Approved", stage: "Closing" },
+  { name: "Mark Thompson", amount: "$385,000", status: "Processing", stage: "Underwriting" },
+  { name: "Jennifer Davis", amount: "$525,000", status: "Submitted", stage: "Review" },
+  { name: "Alex Rodriguez", amount: "$415,000", status: "Approved", stage: "Docs" },
+  { name: "Sarah Wilson", amount: "$465,000", status: "Processing", stage: "Underwriting" },
 ];
 
-const StatCard = ({ title, value, icon: Icon, trend, trendValue }: {
-  title: string;
-  value: string;
-  icon: any;
-  trend?: 'up' | 'down';
-  trendValue?: string;
-}) => (
-  <Card className="bg-gradient-card shadow-soft">
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <div className="text-2xl font-bold text-foreground">{value}</div>
-          {trend && trendValue && (
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              {trend === 'up' ? (
-                <TrendingUp className="h-3 w-3 text-success mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-destructive mr-1" />
-              )}
-              {trendValue} from last month
-            </p>
-          )}
-        </div>
-        <Icon className="h-8 w-8 text-primary" />
-      </div>
-    </CardContent>
-  </Card>
-);
+// Sparkline data for mini charts
+const leadSparklineData = [12, 15, 18, 14, 20, 17, 25];
+const appSparklineData = [8, 12, 10, 15, 18, 16, 22];
 
-const DataList = ({ title, data, type }: {
-  title: string;
-  data: any[];
-  type: 'leads' | 'apps';
-}) => (
-  <Card className="bg-gradient-card shadow-soft">
-    <CardHeader>
-      <CardTitle className="text-lg">{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-3">
-        {data.map((item, index) => (
-          <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-            <div>
-              <div className="font-medium text-foreground">{item.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {type === 'leads' ? item.source : item.status}
-              </div>
-            </div>
-            <div className="font-semibold text-primary">{item.amount}</div>
-          </div>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-);
 
 export default function DashboardTabs() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Comprehensive mortgage business analytics</p>
+    <div className="space-y-4">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Comprehensive mortgage business analytics</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Input 
+            placeholder="Search..." 
+            className="w-64 h-8" 
+          />
+        </div>
       </div>
 
-      <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="sales">Sales Dashboard</TabsTrigger>
-          <TabsTrigger value="active">Active Dashboard</TabsTrigger>
-          <TabsTrigger value="closed">Closed Dashboard</TabsTrigger>
+      <Tabs defaultValue="sales" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 h-9">
+          <TabsTrigger value="sales" className="text-sm">Sales</TabsTrigger>
+          <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
+          <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sales" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
+        <TabsContent value="sales" className="space-y-4">
+          {/* Top 4 Compact Widgets */}
+          <div className="grid grid-cols-4 gap-4">
+            <ModernStatsCard
               title="This Month's Leads"
               value="47"
-              icon={Users}
-              trend="up"
-              trendValue="+12%"
+              icon={<Target />}
+              progress={47} // 47 of 100 goal
+              size="compact"
             />
-            <StatCard
+            <ModernStatsCard
               title="Yesterday's Leads"
               value="3"
-              icon={TrendingUp}
+              icon={<TrendingUp />}
+              sparklineData={leadSparklineData}
+              size="compact"
             />
-            <StatCard
+            <ModernStatsCard
               title="This Month's Apps"
               value="23"
-              icon={BarChart3}
-              trend="up"
-              trendValue="+8%"
+              icon={<FileText />}
+              progress={77} // 23 of 30 goal
+              size="compact"
             />
-            <StatCard
+            <ModernStatsCard
               title="Yesterday's Apps"
               value="2"
-              icon={CalendarDays}
+              icon={<Activity />}
+              sparklineData={appSparklineData}
+              size="compact"
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <DataList title="Yesterday's Leads" data={yesterdayLeads} type="leads" />
-            <DataList title="Yesterday's Apps" data={yesterdayApps} type="apps" />
+          {/* Lists Section */}
+          <div className="grid grid-cols-2 gap-4">
+            <CompactDataList 
+              title="Yesterday's Leads" 
+              data={yesterdayLeads} 
+              type="leads"
+              maxRows={5}
+            />
+            <CompactDataList 
+              title="Yesterday's Apps" 
+              data={yesterdayApps} 
+              type="apps"
+              maxRows={5}
+            />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <DataList title="This Month's Leads" data={thisMonthLeads} type="leads" />
-            <DataList title="This Month's Apps" data={thisMonthApps} type="apps" />
+          <div className="grid grid-cols-2 gap-4">
+            <CompactDataList 
+              title="This Month's Leads" 
+              data={thisMonthLeads} 
+              type="leads"
+              maxRows={10}
+            />
+            <CompactDataList 
+              title="This Month's Apps" 
+              data={thisMonthApps} 
+              type="apps"
+              maxRows={10}
+            />
           </div>
         </TabsContent>
 
-        <TabsContent value="active" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
+        <TabsContent value="active" className="space-y-4">
+          {/* Even Grid of Cards - Monday.com Style */}
+          <div className="grid grid-cols-3 gap-4">
+            <ModernStatsCard
               title="Total Active Loans"
               value="$28.5M"
-              icon={DollarSign}
+              icon={<DollarSign />}
             />
-            <StatCard
+            <ModernStatsCard
               title="Active Units"
               value="142"
-              icon={Users}
+              icon={<Users />}
             />
-            <StatCard
+            <ModernStatsCard
               title="Current Month Pending"
-              value="$12.3M"
-              icon={TrendingUp}
+              value="$12.3M / 65"
+              icon={<CalendarDays />}
             />
-            <StatCard
+            <ModernStatsCard
               title="Next Month Pending"
-              value="$8.7M"
-              icon={CalendarDays}
+              value="$8.7M / 48"
+              icon={<Clock />}
             />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <StatCard
-              title="Current Month Units"
-              value="65"
-              icon={BarChart3}
+            <ModernStatsCard
+              title="Closing This Week"
+              value="$4.2M / 18"
+              icon={<TrendingUp />}
             />
-            <StatCard
-              title="Next Month Units"
-              value="48"
-              icon={Users}
-            />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <StatCard
-              title="Closing This Week ($)"
-              value="$4.2M"
-              icon={DollarSign}
-            />
-            <StatCard
-              title="Closing This Week (Units)"
-              value="18"
-              icon={TrendingUp}
+            <ModernStatsCard
+              title="Avg Processing Time"
+              value="23 days"
+              icon={<Activity />}
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="closed" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-3">
-            <StatCard
+        <TabsContent value="closed" className="space-y-4">
+          {/* YTD Summary Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <ModernStatsCard
               title="2025 YTD Volume"
               value="$42.8M"
-              icon={DollarSign}
-              trend="up"
-              trendValue="+23%"
+              icon={<DollarSign />}
             />
-            <StatCard
+            <ModernStatsCard
               title="2025 YTD Units"
               value="218"
-              icon={Users}
-              trend="up"
-              trendValue="+18%"
+              icon={<Users />}
             />
-            <StatCard
+            <ModernStatsCard
               title="Average Loan Amount"
               value="$385,000"
-              icon={BarChart3}
-              trend="up"
-              trendValue="+5%"
+              icon={<BarChart3 />}
             />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="bg-gradient-card shadow-soft">
-              <CardHeader>
-                <CardTitle>2025 Dollar Volume by Month</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={monthlyVolumeData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-muted-foreground" />
-                    <YAxis className="text-muted-foreground" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="volume" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={3}
-                      dot={{ fill: 'hsl(var(--primary))' }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-card shadow-soft">
-              <CardHeader>
-                <CardTitle>2025 Units by Month</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={monthlyVolumeData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-muted-foreground" />
-                    <YAxis className="text-muted-foreground" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Bar dataKey="units" fill="hsl(var(--accent))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          {/* Charts Section */}
+          <div className="grid grid-cols-2 gap-4">
+            <ModernChartCard
+              title="2025 Volume by Month"
+              data={monthlyVolumeData}
+              type="bar"
+              dataKey="volume"
+              height={200}
+              color="hsl(var(--primary))"
+            />
+            <ModernChartCard
+              title="2025 Units by Month"
+              data={monthlyVolumeData}
+              type="bar"
+              dataKey="units"
+              height={200}
+              color="hsl(var(--primary))"
+            />
           </div>
 
-          <Card className="bg-gradient-card shadow-soft">
-            <CardHeader>
-              <CardTitle>Monthly Volume Ranking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={rankingData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-muted-foreground" />
-                  <YAxis 
-                    domain={[1, 15]} 
-                    reversed 
-                    className="text-muted-foreground"
-                    label={{ value: 'Rank (Lower is Better)', angle: -90, position: 'insideLeft' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--background))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="rank" 
-                    stroke="hsl(var(--success))" 
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(var(--success))' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {/* Prior Year Comparisons */}
+          <div className="grid grid-cols-2 gap-4">
+            <ModernChartCard
+              title="2024 Volume Rank"
+              data={rankingData}
+              type="bar"
+              dataKey="rank"
+              height={180}
+              color="hsl(var(--accent))"
+            />
+            <ModernChartCard
+              title="2023 Units Rank"
+              data={rankingData}
+              type="line"
+              dataKey="rank"
+              height={180}
+              color="hsl(var(--success))"
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
