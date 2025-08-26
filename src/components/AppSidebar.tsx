@@ -61,7 +61,7 @@ const contactItems = [
 
 const resourceItems = [
   { title: "Guideline Chatbot", url: "/resources/chatbot", icon: Bot },
-  { title: "Condolist", url: "/resources/condolist", icon: Search },
+  { title: "Condo List", url: "/resources/condolist", icon: Search },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
   { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
   { title: "Marketing", url: "/resources/marketing", icon: Megaphone },
