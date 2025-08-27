@@ -137,6 +137,15 @@ export const databaseService = {
     return data;
   },
 
+  deleteLead: async (id: string) => {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   // Task operations
   async getTasks() {
     const { data, error } = await supabase

@@ -9,6 +9,18 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Lead {
   id: number;
@@ -28,48 +40,43 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string 
   name: `${dbLead.first_name} ${dbLead.last_name}`,
   email: dbLead.email || '',
   phone: dbLead.phone || '',
-  referredVia: dbLead.referred_via || 'Unknown',
-  referralSource: dbLead.referral_source || 'Unknown',
+  referredVia: dbLead.referred_via || 'Email',
+  referralSource: dbLead.referral_source || 'Agent',
   converted: dbLead.converted || 'Working on it',
   leadStrength: dbLead.lead_strength || 'Warm',
   dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
 });
 
-const columns: ColumnDef<Lead>[] = [
-  {
-    accessorKey: "name",
-    header: "Lead Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "referredVia",
-    header: "Referred Via",
-    cell: ({ row }) => <StatusBadge status={row.original.referredVia} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "referralSource",
-    header: "Referral Source",
-    cell: ({ row }) => <StatusBadge status={row.original.referralSource} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "converted",
-    header: "Converted",
-    cell: ({ row }) => <StatusBadge status={row.original.converted} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "leadStrength",
-    header: "Lead Strength",
-    cell: ({ row }) => <StatusBadge status={row.original.leadStrength} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "dueDate",
-    header: "Due Date",
-    sortable: true,
-  },
+// Option arrays for dropdowns
+const referredViaOptions = [
+  { value: "Email", label: "Email" },
+  { value: "Phone", label: "Phone" },
+  { value: "Social", label: "Social" },
+  { value: "Personal", label: "Personal" },
+];
+
+const referralSourceOptions = [
+  { value: "Agent", label: "Agent" },
+  { value: "New Agent", label: "New Agent" },
+  { value: "Past Client", label: "Past Client" },
+  { value: "Personal", label: "Personal" },
+  { value: "Social", label: "Social" },
+  { value: "Miscellaneous", label: "Miscellaneous" },
+];
+
+const convertedOptions = [
+  { value: "Working on it", label: "Working On It" },
+  { value: "Pending App", label: "Pending App" },
+  { value: "Nurture", label: "Nurture" },
+  { value: "Dead", label: "Dead" },
+  { value: "Needs Attention", label: "Needs Attention" },
+];
+
+const leadStrengthOptions = [
+  { value: "Hot", label: "Hot" },
+  { value: "Warm", label: "Warm" },
+  { value: "Cold", label: "Cold" },
+  { value: "Qualified", label: "Qualified" },
 ];
 
 export default function Leads() {
@@ -80,6 +87,173 @@ export default function Leads() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  // Field update handler
+  const handleFieldUpdate = async (leadId: number, field: string, value: string | Date | undefined) => {
+    try {
+      setIsUpdating(leadId.toString());
+      
+      // Find the original lead in the database
+      const originalLead = leads.find(l => l.id === leadId);
+      if (!originalLead) return;
+
+      let updateData: Partial<DatabaseLead> = {};
+      
+      // Map field names to database columns
+      switch (field) {
+        case 'referredVia':
+          updateData.referred_via = value as any;
+          break;
+        case 'referralSource':
+          updateData.referral_source = value as any;
+          break;
+        case 'converted':
+          updateData.converted = value as any;
+          break;
+        case 'leadStrength':
+          updateData.lead_strength = value as any;
+          break;
+        case 'dueDate':
+          // For due date, we need to update the task, not the lead
+          // This is a simplified approach - in a real app you'd need more complex logic
+          break;
+        default:
+          return;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await databaseService.updateLead(leadId.toString(), updateData);
+        
+        // Update local state
+        setLeads(prev => prev.map(lead => 
+          lead.id === leadId 
+            ? { ...lead, [field]: value }
+            : lead
+        ));
+
+        toast({
+          title: "Success",
+          description: "Lead updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update lead",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async (lead: Lead) => {
+    setDeleteLeadId(lead.id.toString());
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLeadId) return;
+    
+    try {
+      await databaseService.deleteLead(deleteLeadId);
+      setLeads(prev => prev.filter(lead => lead.id.toString() !== deleteLeadId));
+      toast({
+        title: "Success",
+        description: "Lead deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete lead",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLeadId(null);
+    }
+  };
+
+  // Columns definition with inline editing
+  const columns: ColumnDef<Lead>[] = [
+    {
+      accessorKey: "name",
+      header: "Lead Name",
+      sortable: true,
+    },
+    {
+      accessorKey: "referredVia",
+      header: "Referred Via",
+      cell: ({ row }) => (
+        <InlineEditSelect
+          value={row.original.referredVia}
+          options={referredViaOptions}
+          onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
+          showAsStatusBadge={true}
+          disabled={isUpdating === row.original.id.toString()}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "referralSource",
+      header: "Referral Source",
+      cell: ({ row }) => (
+        <InlineEditSelect
+          value={row.original.referralSource}
+          options={referralSourceOptions}
+          onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
+          showAsStatusBadge={true}
+          disabled={isUpdating === row.original.id.toString()}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "converted",
+      header: "Converted",
+      cell: ({ row }) => (
+        <InlineEditSelect
+          value={row.original.converted}
+          options={convertedOptions}
+          onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
+          showAsStatusBadge={true}
+          disabled={isUpdating === row.original.id.toString()}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "leadStrength",
+      header: "Lead Strength",
+      cell: ({ row }) => (
+        <InlineEditSelect
+          value={row.original.leadStrength}
+          options={leadStrengthOptions}
+          onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
+          showAsStatusBadge={true}
+          disabled={isUpdating === row.original.id.toString()}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      cell: ({ row }) => (
+        <InlineEditDate
+          value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
+          onValueChange={(date) => handleFieldUpdate(row.original.id, 'dueDate', date)}
+          placeholder="Set due date"
+          disabled={isUpdating === row.original.id.toString()}
+        />
+      ),
+      sortable: true,
+    },
+  ];
 
   useEffect(() => {
     loadLeads();
@@ -185,6 +359,9 @@ export default function Leads() {
             data={leads}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            onViewDetails={handleRowClick}
+            onEdit={handleRowClick}
+            onDelete={handleDelete}
           />
         </CardContent>
       </Card>
@@ -203,6 +380,26 @@ export default function Leads() {
           onStageChange={handleStageChange}
         />
       )}
+
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

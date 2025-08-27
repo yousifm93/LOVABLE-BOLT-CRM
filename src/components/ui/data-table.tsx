@@ -30,6 +30,9 @@ interface DataTableProps<T> {
   data: T[];
   searchTerm?: string;
   onRowClick?: (row: T) => void;
+  onViewDetails?: (row: T) => void;
+  onEdit?: (row: T) => void;
+  onDelete?: (row: T) => void;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -37,6 +40,9 @@ export function DataTable<T extends Record<string, any>>({
   data,
   searchTerm = "",
   onRowClick,
+  onViewDetails,
+  onEdit,
+  onDelete,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>("");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
@@ -121,14 +127,41 @@ export function DataTable<T extends Record<string, any>>({
               <TableCell className="py-2 px-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover border border-border">
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>Delete</DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails?.(row);
+                      }}
+                    >
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit?.(row);
+                      }}
+                    >
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(row);
+                      }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
