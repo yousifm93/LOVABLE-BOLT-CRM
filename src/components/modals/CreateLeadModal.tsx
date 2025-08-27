@@ -89,11 +89,11 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         // Set defaults for other fields
         pipeline_stage_id: leadsStage?.id || null,
         teammate_assigned: user ? users.find(u => u.email === user.email)?.id || null : null,
-        status: 'Working On It' as any,
+        status: 'Working on it' as any,
         referred_via: 'Email' as any,
         referral_source: 'Agent' as any,
         lead_strength: 'Warm' as any,
-        converted: 'Working On It' as any,
+        converted: 'Working on it' as any,
         lead_on_date: new Date().toISOString().split('T')[0],
       };
 

@@ -605,7 +605,15 @@ export type Database = {
         | "Personal"
         | "Social"
         | "Miscellaneous"
-      referred_via: "Phone" | "Email" | "Social" | "Personal"
+      referred_via:
+        | "Phone"
+        | "Email"
+        | "Social"
+        | "Personal"
+        | "Text"
+        | "Call"
+        | "Web"
+        | "In Person"
       task_priority: "Low" | "Medium" | "High" | "Critical"
       task_status: "To Do" | "In Progress" | "Done"
       user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
@@ -771,7 +779,16 @@ export const Constants = {
         "Social",
         "Miscellaneous",
       ],
-      referred_via: ["Phone", "Email", "Social", "Personal"],
+      referred_via: [
+        "Phone",
+        "Email",
+        "Social",
+        "Personal",
+        "Text",
+        "Call",
+        "Web",
+        "In Person",
+      ],
       task_priority: ["Low", "Medium", "High", "Critical"],
       task_status: ["To Do", "In Progress", "Done"],
       user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
