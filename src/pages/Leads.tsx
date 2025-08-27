@@ -44,7 +44,7 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string 
   phone: dbLead.phone || '',
   referredVia: dbLead.referred_via || 'Email',
   referralSource: dbLead.referral_source || 'Agent',
-  converted: dbLead.converted || 'Working On It',
+  converted: dbLead.converted || 'Working on it',
   leadStrength: dbLead.lead_strength || 'Warm',
   dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
 });
@@ -68,7 +68,7 @@ const referralSourceOptions = [
 ];
 
 const convertedOptions = [
-  { value: "Working On It", label: "Working On It" },
+  { value: "Working on it", label: "Working on it" },
   { value: "Pending App", label: "Pending App" },
   { value: "Nurture", label: "Nurture" },
   { value: "Dead", label: "Dead" },
@@ -166,7 +166,7 @@ export default function Leads() {
       setLeads(prev => prev.filter(lead => lead.id.toString() !== deleteLeadId));
       toast({
         title: "Success",
-        description: "Lead deleted successfully",
+        description: "Lead deleted.",
       });
     } catch (error) {
       console.error('Error deleting lead:', error);

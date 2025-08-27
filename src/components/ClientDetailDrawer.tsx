@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, MoreHorizontal, User, MapPin, Building2, Calendar, FileCheck, Clock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
   const [showSmsLogModal, setShowSmsLogModal] = useState(false);
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const { toast } = useToast();
 
   if (!isOpen) return null;
@@ -48,29 +50,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
   const handleAddNote = () => {
     if (newNote.trim()) {
-      // Add note logic here
+      const newActivity: Activity = {
+        id: Date.now(),
+        type: 'note',
+        title: 'Note added',
+        description: newNote.trim(),
+        timestamp: new Date().toISOString(),
+        user: 'Current User'
+      };
+      setActivities(prev => [newActivity, ...prev]);
       setNewNote("");
     }
   };
 
-  // Mock data for demonstration
-  const mockActivities: Activity[] = [
-    {
-      id: 1,
-      type: 'call',
-      title: 'Phone call completed',
-      description: 'Discussed loan terms and next steps',
-      timestamp: '2024-01-15T10:30:00Z',
-      user: 'Yousif'
-    },
-    {
-      id: 2,
-      type: 'email',
-      title: 'Pre-approval letter sent',
-      timestamp: '2024-01-14T15:45:00Z',
-      user: 'System'
+  const handleActivityCreated = (activityType: string) => {
+    const newActivity: Activity = {
+      id: Date.now(),
+      type: activityType as any,
+      title: `${activityType.charAt(0).toUpperCase() + activityType.slice(1)} logged`,
+      timestamp: new Date().toISOString(),
+      user: 'Current User'
+    };
+    setActivities(prev => [newActivity, ...prev]);
+  };
+
+  // Initialize with mock data
+  React.useEffect(() => {
+    if (activities.length === 0) {
+      setActivities([
+        {
+          id: 1,
+          type: 'call',
+          title: 'Phone call completed',
+          description: 'Discussed loan terms and next steps',
+          timestamp: '2024-01-15T10:30:00Z',
+          user: 'Yousif'
+        },
+        {
+          id: 2,
+          type: 'email',
+          title: 'Pre-approval letter sent',
+          timestamp: '2024-01-14T15:45:00Z',
+          user: 'System'
+        }
+      ]);
     }
-  ];
+  }, []);
 
   const mockTasks: Task[] = [
     {
@@ -128,7 +153,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               </Avatar>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">{fullName}</h2>
-                <p className="text-sm text-muted-foreground">{client.person.email}</p>
               </div>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
@@ -325,18 +349,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   <Separator />
                   
                   <div className="space-y-4">
-                    {mockActivities.map((activity) => (
+                    {activities.map((activity) => (
                       <div key={activity.id} className="flex gap-3 p-3 rounded-lg bg-muted/30">
                         <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                           {activity.type === 'call' && <Phone className="h-4 w-4 text-primary-foreground" />}
                           {activity.type === 'email' && <Mail className="h-4 w-4 text-primary-foreground" />}
+                          {activity.type === 'sms' && <MessageSquare className="h-4 w-4 text-primary-foreground" />}
                           {activity.type === 'note' && <FileText className="h-4 w-4 text-primary-foreground" />}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <h4 className="font-medium">{activity.title}</h4>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(activity.timestamp).toLocaleDateString()}
+                              {new Date(activity.timestamp).toLocaleDateString()} {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                           {activity.description && (
@@ -509,7 +534,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onOpenChange={setShowCallLogModal}
         leadId={client.person.id.toString()}
         onActivityCreated={() => {
-          toast({ title: "Success", description: "Call logged successfully" });
+          handleActivityCreated('call');
         }}
       />
 
@@ -518,7 +543,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onOpenChange={setShowSmsLogModal}
         leadId={client.person.id.toString()}
         onActivityCreated={() => {
-          toast({ title: "Success", description: "SMS logged successfully" });
+          handleActivityCreated('sms');
         }}
       />
 
@@ -527,7 +552,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onOpenChange={setShowEmailLogModal}
         leadId={client.person.id.toString()}
         onActivityCreated={() => {
-          toast({ title: "Success", description: "Email logged successfully" });
+          handleActivityCreated('email');
         }}
       />
 
@@ -536,7 +561,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onOpenChange={setShowAddNoteModal}
         leadId={client.person.id.toString()}
         onActivityCreated={() => {
-          toast({ title: "Success", description: "Note added successfully" });
+          handleActivityCreated('note');
         }}
       />
     </div>

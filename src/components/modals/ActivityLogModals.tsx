@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
 
 interface ActivityLogModalProps {
@@ -17,11 +18,10 @@ interface ActivityLogModalProps {
 
 export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
-    outcome: 'Connected' as any,
-    duration_seconds: '',
     notes: '',
   });
 
@@ -32,10 +32,10 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     try {
       const callLogData: CallLogInsert = {
         lead_id: leadId,
-        user_id: 'temp-user-id', // TODO: Get from auth context
+        user_id: user?.id || 'temp-user-id',
         timestamp: new Date(formData.timestamp).toISOString(),
-        outcome: formData.outcome,
-        duration_seconds: formData.duration_seconds ? parseInt(formData.duration_seconds) : null,
+        outcome: 'Connected' as any,
+        duration_seconds: null,
         notes: formData.notes || null,
       };
 
@@ -45,14 +45,12 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
       
       setFormData({
         timestamp: new Date().toISOString().slice(0, 16),
-        outcome: 'Connected',
-        duration_seconds: '',
         notes: '',
       });
 
       toast({
         title: 'Success',
-        description: 'Call log created successfully',
+        description: 'Call logged',
       });
     } catch (error) {
       console.error('Error creating call log:', error);
@@ -81,32 +79,8 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="outcome">Outcome</Label>
-            <Select value={formData.outcome} onValueChange={(value) => setFormData(prev => ({ ...prev, outcome: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="No Answer">No Answer</SelectItem>
-                <SelectItem value="Left VM">Left VM</SelectItem>
-                <SelectItem value="Connected">Connected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (seconds)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={formData.duration_seconds}
-              onChange={(e) => setFormData(prev => ({ ...prev, duration_seconds: e.target.value }))}
-              placeholder="Optional"
+              disabled
+              className="bg-muted"
             />
           </div>
 
@@ -116,7 +90,9 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={3}
+              rows={4}
+              placeholder="Enter call notes..."
+              required
             />
           </div>
 
@@ -125,7 +101,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Call Log'}
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>
@@ -136,13 +112,11 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
 export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
-    direction: 'Out' as any,
-    to_number: '',
-    from_number: '',
-    body: '',
+    notes: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,12 +126,12 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     try {
       const smsLogData: SmsLogInsert = {
         lead_id: leadId,
-        user_id: 'temp-user-id', // TODO: Get from auth context
+        user_id: user?.id || 'temp-user-id',
         timestamp: new Date(formData.timestamp).toISOString(),
-        direction: formData.direction,
-        to_number: formData.to_number,
-        from_number: formData.from_number,
-        body: formData.body,
+        direction: 'Out' as any,
+        to_number: 'client-number',
+        from_number: 'user-number',
+        body: formData.notes,
       };
 
       const newLog = await databaseService.createSmsLog(smsLogData);
@@ -166,15 +140,12 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
       
       setFormData({
         timestamp: new Date().toISOString().slice(0, 16),
-        direction: 'Out',
-        to_number: '',
-        from_number: '',
-        body: '',
+        notes: '',
       });
 
       toast({
         title: 'Success',
-        description: 'SMS log created successfully',
+        description: 'SMS logged',
       });
     } catch (error) {
       console.error('Error creating SMS log:', error);
@@ -203,52 +174,19 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              required
+              disabled
+              className="bg-muted"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="direction">Direction</Label>
-            <Select value={formData.direction} onValueChange={(value) => setFormData(prev => ({ ...prev, direction: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="In">Incoming</SelectItem>
-                <SelectItem value="Out">Outgoing</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="to_number">To Number</Label>
-              <Input
-                id="to_number"
-                value={formData.to_number}
-                onChange={(e) => setFormData(prev => ({ ...prev, to_number: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="from_number">From Number</Label>
-              <Input
-                id="from_number"
-                value={formData.from_number}
-                onChange={(e) => setFormData(prev => ({ ...prev, from_number: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="body">Message Body</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
-              id="body"
-              value={formData.body}
-              onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
-              rows={3}
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={4}
+              placeholder="Enter SMS notes..."
               required
             />
           </div>
@@ -258,7 +196,7 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save SMS Log'}
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>
@@ -269,14 +207,11 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
 
 export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
-    direction: 'Out' as any,
-    to_email: '',
-    from_email: '',
-    subject: '',
-    snippet: '',
+    notes: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -286,13 +221,13 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
     try {
       const emailLogData: EmailLogInsert = {
         lead_id: leadId,
-        user_id: 'temp-user-id', // TODO: Get from auth context
+        user_id: user?.id || 'temp-user-id',
         timestamp: new Date(formData.timestamp).toISOString(),
-        direction: formData.direction,
-        to_email: formData.to_email,
-        from_email: formData.from_email,
-        subject: formData.subject,
-        snippet: formData.snippet || null,
+        direction: 'Out' as any,
+        to_email: 'client@example.com',
+        from_email: 'user@example.com',
+        subject: 'Email Activity',
+        snippet: formData.notes || null,
       };
 
       const newLog = await databaseService.createEmailLog(emailLogData);
@@ -301,16 +236,12 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
       
       setFormData({
         timestamp: new Date().toISOString().slice(0, 16),
-        direction: 'Out',
-        to_email: '',
-        from_email: '',
-        subject: '',
-        snippet: '',
+        notes: '',
       });
 
       toast({
         title: 'Success',
-        description: 'Email log created successfully',
+        description: 'Email logged',
       });
     } catch (error) {
       console.error('Error creating email log:', error);
@@ -339,64 +270,20 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              required
+              disabled
+              className="bg-muted"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="direction">Direction</Label>
-            <Select value={formData.direction} onValueChange={(value) => setFormData(prev => ({ ...prev, direction: value }))}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="In">Incoming</SelectItem>
-                <SelectItem value="Out">Outgoing</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="to_email">To Email</Label>
-              <Input
-                id="to_email"
-                type="email"
-                value={formData.to_email}
-                onChange={(e) => setFormData(prev => ({ ...prev, to_email: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="from_email">From Email</Label>
-              <Input
-                id="from_email"
-                type="email"
-                value={formData.from_email}
-                onChange={(e) => setFormData(prev => ({ ...prev, from_email: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input
-              id="subject"
-              value={formData.subject}
-              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="snippet">Email Body/Snippet</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
-              id="snippet"
-              value={formData.snippet}
-              onChange={(e) => setFormData(prev => ({ ...prev, snippet: e.target.value }))}
-              rows={3}
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={4}
+              placeholder="Enter email notes..."
+              required
             />
           </div>
 
@@ -405,7 +292,7 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Email Log'}
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>
@@ -416,6 +303,7 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
 
 export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
 
@@ -428,7 +316,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     try {
       const noteData: NoteInsert = {
         lead_id: leadId,
-        author_id: 'temp-user-id', // TODO: Get from auth context
+        author_id: user?.id || 'temp-user-id',
         body: noteBody.trim(),
       };
 
@@ -439,7 +327,7 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
       toast({
         title: 'Success',
-        description: 'Note added successfully',
+        description: 'Note added',
       });
     } catch (error) {
       console.error('Error creating note:', error);
