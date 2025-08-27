@@ -15,38 +15,24 @@ interface Lead {
   name: string;
   email: string;
   phone: string;
-  source: string;
-  status: string;
-  loanAmount: string;
-  creditScore: number;
-  created: string;
-  lastContact: string;
-  leadOnDate?: string;
-  buyersAgent?: string;
-  referredVia?: string;
-  lastFollowUpDate?: string;
-  nextFollowUpDate?: string;
-  teammateAssigned?: string;
+  referredVia: string;
+  referralSource: string;
+  converted: string;
+  leadStrength: string;
+  dueDate?: string;
 }
 
 // Transform database lead to display format
-const transformLeadToDisplay = (dbLead: DatabaseLead & { teammate?: any, buyer_agent?: any }): Lead => ({
+const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => ({
   id: parseInt(dbLead.id),
   name: `${dbLead.first_name} ${dbLead.last_name}`,
   email: dbLead.email || '',
   phone: dbLead.phone || '',
-  source: dbLead.source || 'Unknown',
-  status: dbLead.status || 'Working on it',
-  loanAmount: dbLead.loan_amount ? `$${dbLead.loan_amount.toLocaleString()}` : '$0',
-  creditScore: 750, // TODO: Add credit score to database
-  created: new Date(dbLead.created_at).toLocaleDateString(),
-  lastContact: new Date(dbLead.created_at).toLocaleDateString(),
-  leadOnDate: dbLead.lead_on_date ? new Date(dbLead.lead_on_date).toLocaleDateString() : '',
-  buyersAgent: dbLead.buyer_agent ? `${dbLead.buyer_agent.first_name} ${dbLead.buyer_agent.last_name}` : '',
-  referredVia: dbLead.referred_via || '',
-  lastFollowUpDate: '', // TODO: Calculate from activities
-  nextFollowUpDate: '', // TODO: Calculate from tasks
-  teammateAssigned: dbLead.teammate ? `${dbLead.teammate.first_name} ${dbLead.teammate.last_name}` : ''
+  referredVia: dbLead.referred_via || 'Unknown',
+  referralSource: dbLead.referral_source || 'Unknown',
+  converted: dbLead.converted || 'Working on it',
+  leadStrength: dbLead.lead_strength || 'Warm',
+  dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
 });
 
 const columns: ColumnDef<Lead>[] = [
@@ -56,88 +42,32 @@ const columns: ColumnDef<Lead>[] = [
     sortable: true,
   },
   {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "leadOnDate",
-    header: "Lead On Date",
-    sortable: true,
-  },
-  {
-    accessorKey: "buyersAgent",
-    header: "Buyer's Agent",
-    sortable: true,
-  },
-  {
     accessorKey: "referredVia",
     header: "Referred Via",
+    cell: ({ row }) => <StatusBadge status={row.original.referredVia} />,
     sortable: true,
   },
   {
-    accessorKey: "loanAmount",
-    header: "Loan Amount",
+    accessorKey: "referralSource",
+    header: "Referral Source",
+    cell: ({ row }) => <StatusBadge status={row.original.referralSource} />,
     sortable: true,
   },
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const getStatusLabel = (status: string) => {
-        switch (status) {
-          case "working_on_it": return "Working On It";
-          case "pending_app": return "Pending App";
-          case "nurture": return "Nurture";
-          case "dead": return "Dead";
-          case "need_attention": return "Need Attention";
-          default: return status;
-        }
-      };
-      return <StatusBadge status={getStatusLabel(row.original.status)} />;
-    },
+    accessorKey: "converted",
+    header: "Converted",
+    cell: ({ row }) => <StatusBadge status={row.original.converted} />,
     sortable: true,
   },
   {
-    accessorKey: "lastFollowUpDate",
-    header: "Last Follow-Up",
+    accessorKey: "leadStrength",
+    header: "Lead Strength",
+    cell: ({ row }) => <StatusBadge status={row.original.leadStrength} />,
     sortable: true,
   },
   {
-    accessorKey: "nextFollowUpDate",
-    header: "Next Follow-Up",
-    sortable: true,
-  },
-  {
-    accessorKey: "teammateAssigned",
-    header: "Teammate",
-    sortable: true,
-  },
-  {
-    accessorKey: "creditScore",
-    header: "Credit Score",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.creditScore >= 750 
-          ? 'text-success' 
-          : row.original.creditScore >= 700 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.creditScore}
-      </span>
-    ),
+    accessorKey: "dueDate",
+    header: "Due Date",
     sortable: true,
   },
 ];
@@ -158,7 +88,7 @@ export default function Leads() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const dbLeads = await databaseService.getLeads();
+      const dbLeads = await databaseService.getLeadsWithTaskDueDates();
       const transformedLeads = dbLeads.map(transformLeadToDisplay);
       setLeads(transformedLeads);
     } catch (error) {
@@ -189,22 +119,22 @@ export default function Leads() {
         phoneMobile: lead.phone
       },
       loan: {
-        loanAmount: lead.loanAmount,
+        loanAmount: "$0",
         loanType: "Purchase",
         prType: "Primary Residence"
       },
       ops: {
         stage: "leads",
-        status: lead.status,
+        status: lead.converted,
         priority: "Medium",
-        referralSource: lead.source
+        referralSource: lead.referralSource
       },
       dates: {
-        createdOn: lead.created
+        createdOn: new Date().toISOString()
       },
       meta: {},
       name: lead.name,
-      creditScore: lead.creditScore
+      creditScore: 750
     };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
@@ -222,19 +152,18 @@ export default function Leads() {
           <h1 className="text-2xl font-bold text-foreground">Leads</h1>
           <p className="text-xs italic text-muted-foreground/70">Prospective clients and new business opportunities</p>
         </div>
-        <Button 
-          className="bg-gradient-primary hover:opacity-90 transition-opacity"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Lead
-        </Button>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Lead Pipeline</CardTitle>
           <div className="flex gap-2 items-center">
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 transition-opacity"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Lead
+            </Button>
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input

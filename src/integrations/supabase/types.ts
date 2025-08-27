@@ -252,6 +252,7 @@ export type Database = {
           id: string
           last_name: string
           lead_on_date: string
+          lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           loan_amount: number | null
           loan_type: string | null
           notes: string | null
@@ -276,6 +277,7 @@ export type Database = {
           id?: string
           last_name: string
           lead_on_date?: string
+          lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           loan_amount?: number | null
           loan_type?: string | null
           notes?: string | null
@@ -302,6 +304,7 @@ export type Database = {
           id?: string
           last_name?: string
           lead_on_date?: string
+          lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           loan_amount?: number | null
           loan_type?: string | null
           notes?: string | null
@@ -593,6 +596,7 @@ export type Database = {
         | "Nurture"
         | "Dead"
         | "Needs Attention"
+      lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
       log_direction: "In" | "Out"
       referral_source:
         | "Agent"
@@ -757,6 +761,7 @@ export const Constants = {
         "Dead",
         "Needs Attention",
       ],
+      lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
       log_direction: ["In", "Out"],
       referral_source: [
         "Agent",

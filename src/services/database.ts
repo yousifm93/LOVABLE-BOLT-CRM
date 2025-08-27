@@ -64,6 +64,37 @@ export const databaseService = {
     }
   },
 
+  async getLeadsWithTaskDueDates() {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          pipeline_stage:pipeline_stages(*),
+          teammate:users(*),
+          tasks!inner(due_date)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching leads with task due dates:', error);
+        throw error;
+      }
+      
+      // Handle task due dates and flatten the structure
+      return data?.map(lead => ({
+        ...lead,
+        teammate: lead.teammate || null,
+        pipeline_stage: lead.pipeline_stage || null,
+        task_due_date: lead.tasks?.[0]?.due_date || null
+      })) || [];
+    } catch (error) {
+      console.error('Failed to load leads with task due dates:', error);
+      // Fallback to regular leads if task join fails
+      return this.getLeads();
+    }
+  },
+
   async createLead(lead: LeadInsert) {
     // Ensure required fields are set and handle empty strings
     const leadData = {
