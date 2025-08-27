@@ -81,10 +81,20 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       const leadsStage = pipelineStages.find(stage => stage.name === 'Leads');
       
       const leadData: LeadInsert = {
-        ...formData,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone,
+        email: formData.email,
+        notes: formData.notes,
+        // Set defaults for other fields
         pipeline_stage_id: leadsStage?.id || null,
-        teammate_assigned: formData.teammate_assigned || null,
-        buyer_agent_id: formData.buyer_agent_id || null,
+        teammate_assigned: user ? users.find(u => u.email === user.email)?.id || null : null,
+        status: 'Working On It' as any,
+        referred_via: 'Email' as any,
+        referral_source: 'Agent' as any,
+        lead_strength: 'Warm' as any,
+        converted: 'Working On It' as any,
+        lead_on_date: new Date().toISOString().split('T')[0],
       };
 
       const newLead = await databaseService.createLead(leadData);
@@ -130,7 +140,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
           <DialogTitle>Create New Lead</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name *</Label>
@@ -172,103 +182,6 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="source">Source</Label>
-              <Select value={formData.source} onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Website">Website</SelectItem>
-                  <SelectItem value="Referral">Referral</SelectItem>
-                  <SelectItem value="Cold Call">Cold Call</SelectItem>
-                  <SelectItem value="Social Media">Social Media</SelectItem>
-                  <SelectItem value="Email Campaign">Email Campaign</SelectItem>
-                  <SelectItem value="Walk-in">Walk-in</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="referred_via">Referred Via</Label>
-              <Select value={formData.referred_via} onValueChange={(value) => setFormData(prev => ({ ...prev, referred_via: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Phone">Phone</SelectItem>
-                  <SelectItem value="Email">Email</SelectItem>
-                  <SelectItem value="Social">Social</SelectItem>
-                  <SelectItem value="Personal">Personal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="lead_on_date">Lead On Date</Label>
-              <Input
-                id="lead_on_date"
-                type="date"
-                value={formData.lead_on_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, lead_on_date: e.target.value }))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Working on it">Working on it</SelectItem>
-                  <SelectItem value="Pending App">Pending App</SelectItem>
-                  <SelectItem value="Nurture">Nurture</SelectItem>
-                  <SelectItem value="Dead">Dead</SelectItem>
-                  <SelectItem value="Needs Attention">Needs Attention</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="teammate_assigned">Teammate Assigned</Label>
-              <Select value={formData.teammate_assigned} onValueChange={(value) => setFormData(prev => ({ ...prev, teammate_assigned: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select teammate" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.first_name} {user.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="buyer_agent_id">Buyer's Agent</Label>
-              <Select value={formData.buyer_agent_id} onValueChange={(value) => setFormData(prev => ({ ...prev, buyer_agent_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id}>
-                      {contact.first_name} {contact.last_name} - {contact.company}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

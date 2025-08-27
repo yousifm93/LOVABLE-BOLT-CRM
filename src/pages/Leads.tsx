@@ -25,6 +25,7 @@ import {
 interface Lead {
   id: number;
   name: string;
+  creationDate: string;
   email: string;
   phone: string;
   referredVia: string;
@@ -38,11 +39,12 @@ interface Lead {
 const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => ({
   id: parseInt(dbLead.id),
   name: `${dbLead.first_name} ${dbLead.last_name}`,
+  creationDate: new Date(dbLead.created_at).toLocaleDateString(),
   email: dbLead.email || '',
   phone: dbLead.phone || '',
   referredVia: dbLead.referred_via || 'Email',
   referralSource: dbLead.referral_source || 'Agent',
-  converted: dbLead.converted || 'Working on it',
+  converted: dbLead.converted || 'Working On It',
   leadStrength: dbLead.lead_strength || 'Warm',
   dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
 });
@@ -50,9 +52,10 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string 
 // Option arrays for dropdowns
 const referredViaOptions = [
   { value: "Email", label: "Email" },
-  { value: "Phone", label: "Phone" },
-  { value: "Social", label: "Social" },
-  { value: "Personal", label: "Personal" },
+  { value: "Text", label: "Text" },
+  { value: "Call", label: "Call" },
+  { value: "Web", label: "Web" },
+  { value: "In Person", label: "In Person" },
 ];
 
 const referralSourceOptions = [
@@ -65,7 +68,7 @@ const referralSourceOptions = [
 ];
 
 const convertedOptions = [
-  { value: "Working on it", label: "Working On It" },
+  { value: "Working On It", label: "Working On It" },
   { value: "Pending App", label: "Pending App" },
   { value: "Nurture", label: "Nurture" },
   { value: "Dead", label: "Dead" },
@@ -183,18 +186,36 @@ export default function Leads() {
       accessorKey: "name",
       header: "Lead Name",
       sortable: true,
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row.original);
+          }}
+        >
+          {row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "creationDate",
+      header: "Creation Date",
+      sortable: true,
     },
     {
       accessorKey: "referredVia",
       header: "Referred Via",
       cell: ({ row }) => (
-        <InlineEditSelect
-          value={row.original.referredVia}
-          options={referredViaOptions}
-          onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
-          showAsStatusBadge={true}
-          disabled={isUpdating === row.original.id.toString()}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.referredVia}
+            options={referredViaOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id.toString()}
+          />
+        </div>
       ),
       sortable: true,
     },
@@ -202,13 +223,15 @@ export default function Leads() {
       accessorKey: "referralSource",
       header: "Referral Source",
       cell: ({ row }) => (
-        <InlineEditSelect
-          value={row.original.referralSource}
-          options={referralSourceOptions}
-          onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
-          showAsStatusBadge={true}
-          disabled={isUpdating === row.original.id.toString()}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.referralSource}
+            options={referralSourceOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id.toString()}
+          />
+        </div>
       ),
       sortable: true,
     },
@@ -216,13 +239,15 @@ export default function Leads() {
       accessorKey: "converted",
       header: "Converted",
       cell: ({ row }) => (
-        <InlineEditSelect
-          value={row.original.converted}
-          options={convertedOptions}
-          onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
-          showAsStatusBadge={true}
-          disabled={isUpdating === row.original.id.toString()}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.converted}
+            options={convertedOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id.toString()}
+          />
+        </div>
       ),
       sortable: true,
     },
@@ -230,13 +255,15 @@ export default function Leads() {
       accessorKey: "leadStrength",
       header: "Lead Strength",
       cell: ({ row }) => (
-        <InlineEditSelect
-          value={row.original.leadStrength}
-          options={leadStrengthOptions}
-          onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
-          showAsStatusBadge={true}
-          disabled={isUpdating === row.original.id.toString()}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.leadStrength}
+            options={leadStrengthOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id.toString()}
+          />
+        </div>
       ),
       sortable: true,
     },
@@ -244,12 +271,14 @@ export default function Leads() {
       accessorKey: "dueDate",
       header: "Due Date",
       cell: ({ row }) => (
-        <InlineEditDate
-          value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
-          onValueChange={(date) => handleFieldUpdate(row.original.id, 'dueDate', date)}
-          placeholder="Set due date"
-          disabled={isUpdating === row.original.id.toString()}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
+            onValueChange={(date) => handleFieldUpdate(row.original.id, 'dueDate', date)}
+            placeholder="Set due date"
+            disabled={isUpdating === row.original.id.toString()}
+          />
+        </div>
       ),
       sortable: true,
     },
@@ -358,7 +387,7 @@ export default function Leads() {
             columns={columns}
             data={leads}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={() => {}} // Disable generic row click
             onViewDetails={handleRowClick}
             onEdit={handleRowClick}
             onDelete={handleDelete}
@@ -386,7 +415,7 @@ export default function Leads() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this lead? This action cannot be undone.
+              Are you sure you want to delete this lead?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -395,7 +424,7 @@ export default function Leads() {
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Yes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
