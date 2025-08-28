@@ -105,7 +105,7 @@ export const databaseService = {
           *,
           pipeline_stage:pipeline_stages(*),
           teammate:users(*),
-          tasks!inner(due_date)
+          tasks(due_date)
         `)
         .eq('account_id', profile.account_id)
         .order('created_at', { ascending: false });

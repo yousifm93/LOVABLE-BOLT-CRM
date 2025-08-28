@@ -54,10 +54,6 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         status: 'Working on it',
       });
 
-      toast({
-        title: "Success",
-        description: "Lead created successfully",
-      });
 
       setFormData({
         first_name: "",
