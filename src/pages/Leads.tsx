@@ -11,6 +11,7 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -284,8 +285,30 @@ export default function Leads() {
     },
   ];
 
+  // Load leads on component mount with cleanup
   useEffect(() => {
-    loadLeads();
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      if (isMounted) {
+        await loadLeads();
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setIsDrawerOpen(false);
+      setSelectedClient(null);
+      setIsCreateModalOpen(false);
+    };
   }, []);
 
   const loadLeads = async () => {
@@ -306,16 +329,20 @@ export default function Leads() {
     }
   };
 
-  const handleLeadCreated = (newLead: any) => {
-    const transformedLead = transformLeadToDisplay(newLead);
-    setLeads(prev => [transformedLead, ...prev]);
+  const handleLeadCreated = async () => {
+    console.log('Lead created, refreshing data...');
+    await loadLeads();
+    toast({
+      title: "Success",
+      description: "Lead created and data refreshed",
+    });
   };
 
   const handleRowClick = (lead: Lead) => {
     // Convert Lead to CRMClient for the drawer
     const crmClient: CRMClient = {
       person: {
-        id: parseInt(lead.id) || 0,
+        id: Number(lead.id) || Date.now(),
         firstName: lead.name.split(' ')[0],
         lastName: lead.name.split(' ').slice(1).join(' '),
         email: lead.email,
@@ -343,19 +370,29 @@ export default function Leads() {
     setIsDrawerOpen(true);
   };
 
-  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+  const handleStageChange = async (clientId: number, newStage: PipelineStage) => {
     console.log(`Moving client ${clientId} to stage ${newStage}`);
     setIsDrawerOpen(false);
+    setSelectedClient(null);
+    // Refresh data after stage change
+    await loadLeads();
+  };
+
+  const handleDrawerClose = () => {
+    console.log('Closing drawer and cleaning up state');
+    setIsDrawerOpen(false);
+    setSelectedClient(null);
   };
 
   return (
-    <div className="pl-4 pr-0 pt-2 pb-0">
-      <div className="flex justify-between items-center mb-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-          <p className="text-xs italic text-muted-foreground/70">Prospective clients and new business opportunities</p>
+    <ErrorBoundary>
+      <div className="pl-4 pr-0 pt-2 pb-0">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+            <p className="text-xs italic text-muted-foreground/70">Prospective clients and new business opportunities</p>
+          </div>
         </div>
-      </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
@@ -405,7 +442,7 @@ export default function Leads() {
         <ClientDetailDrawer
           client={selectedClient}
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={handleDrawerClose}
           onStageChange={handleStageChange}
         />
       )}
@@ -428,7 +465,8 @@ export default function Leads() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        </AlertDialog>
+      </div>
+    </ErrorBoundary>
   );
 }

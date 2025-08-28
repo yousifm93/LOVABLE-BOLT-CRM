@@ -134,8 +134,22 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     }
   ];
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      console.log('Closing drawer via overlay click');
+      onClose();
+    }
+  };
+
+  const handleDrawerClose = () => {
+    console.log('Closing drawer via close button');
+    setSelectedTab("activity");
+    setNewNote("");
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
       {/* Drawer */}
       <div 
         className="ml-auto h-full w-full max-w-5xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
@@ -155,7 +169,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <h2 className="text-2xl font-bold text-foreground">{fullName}</h2>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
               <X className="h-5 w-5" />
             </Button>
           </div>
