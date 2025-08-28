@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface Lead {
-  id: number;
+  id: string;
   name: string;
   creationDate: string;
   email: string;
@@ -37,7 +37,7 @@ interface Lead {
 
 // Transform database lead to display format
 const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => ({
-  id: parseInt(dbLead.id),
+  id: dbLead.id,
   name: `${dbLead.first_name} ${dbLead.last_name}`,
   creationDate: new Date(dbLead.created_at).toLocaleDateString(),
   email: dbLead.email || '',
@@ -94,9 +94,9 @@ export default function Leads() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   // Field update handler
-  const handleFieldUpdate = async (leadId: number, field: string, value: string | Date | undefined) => {
+  const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined) => {
     try {
-      setIsUpdating(leadId.toString());
+      setIsUpdating(leadId);
       
       // Find the original lead in the database
       const originalLead = leads.find(l => l.id === leadId);
@@ -127,7 +127,7 @@ export default function Leads() {
       }
 
       if (Object.keys(updateData).length > 0) {
-        await databaseService.updateLead(leadId.toString(), updateData);
+        await databaseService.updateLead(leadId, updateData);
         
         // Update local state
         setLeads(prev => prev.map(lead => 
@@ -155,7 +155,7 @@ export default function Leads() {
 
   // Delete handler
   const handleDelete = async (lead: Lead) => {
-    setDeleteLeadId(lead.id.toString());
+    setDeleteLeadId(lead.id);
   };
 
   const confirmDelete = async () => {
@@ -163,7 +163,7 @@ export default function Leads() {
     
     try {
       await databaseService.deleteLead(deleteLeadId);
-      setLeads(prev => prev.filter(lead => lead.id.toString() !== deleteLeadId));
+      setLeads(prev => prev.filter(lead => lead.id !== deleteLeadId));
       toast({
         title: "Success",
         description: "Lead deleted.",
@@ -213,7 +213,7 @@ export default function Leads() {
             options={referredViaOptions}
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
             showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id.toString()}
+            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
@@ -229,7 +229,7 @@ export default function Leads() {
             options={referralSourceOptions}
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
             showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id.toString()}
+            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
@@ -245,7 +245,7 @@ export default function Leads() {
             options={convertedOptions}
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
             showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id.toString()}
+            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
@@ -261,7 +261,7 @@ export default function Leads() {
             options={leadStrengthOptions}
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
             showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id.toString()}
+            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
@@ -276,7 +276,7 @@ export default function Leads() {
             value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
             onValueChange={(date) => handleFieldUpdate(row.original.id, 'dueDate', date)}
             placeholder="Set due date"
-            disabled={isUpdating === row.original.id.toString()}
+            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
@@ -315,7 +315,7 @@ export default function Leads() {
     // Convert Lead to CRMClient for the drawer
     const crmClient: CRMClient = {
       person: {
-        id: lead.id,
+        id: parseInt(lead.id) || 0,
         firstName: lead.name.split(' ')[0],
         lastName: lead.name.split(' ').slice(1).join(' '),
         email: lead.email,
