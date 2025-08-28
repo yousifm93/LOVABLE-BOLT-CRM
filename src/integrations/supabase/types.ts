@@ -244,9 +244,11 @@ export type Database = {
       }
       leads: {
         Row: {
+          account_id: string
           buyer_agent_id: string | null
           converted: Database["public"]["Enums"]["converted_status"] | null
           created_at: string
+          created_by: string
           email: string | null
           first_name: string
           id: string
@@ -269,9 +271,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id: string
           buyer_agent_id?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
+          created_by: string
           email?: string | null
           first_name: string
           id?: string
@@ -296,9 +300,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string
           buyer_agent_id?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
+          created_by?: string
           email?: string | null
           first_name?: string
           id?: string
@@ -406,6 +412,36 @@ export type Database = {
           is_active?: boolean
           name?: string
           order_index?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          account_id: string
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -571,7 +607,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_account_id: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
     }
     Enums: {
       call_outcome: "No Answer" | "Left VM" | "Connected"

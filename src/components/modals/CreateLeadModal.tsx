@@ -77,10 +77,12 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     setLoading(true);
 
     try {
+      console.log('[DEBUG] Submitting lead creation with data:', formData);
+      
       // Find the "Leads" pipeline stage
       const leadsStage = pipelineStages.find(stage => stage.name === 'Leads');
       
-      const leadData: LeadInsert = {
+      const leadData = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone: formData.phone,
@@ -98,6 +100,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       };
 
       const newLead = await databaseService.createLead(leadData);
+      console.log('[DEBUG] Lead created successfully:', newLead);
       
       onLeadCreated(newLead);
       onOpenChange(false);
@@ -121,13 +124,35 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         title: 'Success',
         description: 'Lead created successfully',
       });
-    } catch (error) {
-      console.error('Error creating lead:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create lead',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      console.error('[DEBUG] Error creating lead:', error);
+      
+      // Enhanced error logging for development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[DEBUG] Full Supabase error details:', {
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          status: error?.status,
+        });
+        
+        // Show detailed error in dev mode
+        toast({
+          title: "Development Error Details",
+          description: `Code: ${error?.code || 'Unknown'} - ${error?.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
+      } else {
+        // Production error message
+        toast({
+          title: "Error",
+          description: "Failed to create lead. Please try again.",
+          variant: "destructive",
+        });
+      }
+      
+      // Keep modal open on failure to allow retry
     } finally {
       setLoading(false);
     }
@@ -200,7 +225,14 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Lead'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create Lead'
+              )}
             </Button>
           </div>
         </form>

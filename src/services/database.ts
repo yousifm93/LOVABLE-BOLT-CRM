@@ -38,6 +38,22 @@ export const databaseService = {
   // Lead operations
   async getLeads() {
     try {
+      // Get current user's session and profile
+      const { data: sessionData, error: authError } = await supabase.auth.getSession();
+      if (authError || !sessionData?.session?.user) {
+        throw new Error('No authenticated session found');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+      
+      if (profileError) {
+        throw new Error(`Failed to get user profile: ${profileError.message}`);
+      }
+
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -45,6 +61,7 @@ export const databaseService = {
           pipeline_stage:pipeline_stages(*),
           teammate:users(*)
         `)
+        .eq('account_id', profile.account_id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -66,6 +83,22 @@ export const databaseService = {
 
   async getLeadsWithTaskDueDates() {
     try {
+      // Get current user's session and profile
+      const { data: sessionData, error: authError } = await supabase.auth.getSession();
+      if (authError || !sessionData?.session?.user) {
+        throw new Error('No authenticated session found');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+      
+      if (profileError) {
+        throw new Error(`Failed to get user profile: ${profileError.message}`);
+      }
+
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -74,6 +107,7 @@ export const databaseService = {
           teammate:users(*),
           tasks!inner(due_date)
         `)
+        .eq('account_id', profile.account_id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -95,30 +129,82 @@ export const databaseService = {
     }
   },
 
-  async createLead(lead: LeadInsert) {
-    // Ensure required fields are set and handle empty strings
-    const leadData = {
-      ...lead,
-      // Convert empty strings to null for optional enum fields
-      source: lead.source || null,
-      referred_via: lead.referred_via || null,
-    };
-    
-    const { data, error } = await supabase
-      .from('leads')
-      .insert(leadData)
-      .select(`
-        *,
-        pipeline_stage:pipeline_stages(*),
-        teammate:users(*)
-      `)
-      .single();
-    
-    if (error) {
-      console.error('Lead creation error:', error);
+  async createLead(lead: Omit<LeadInsert, 'account_id' | 'created_by'>) {
+    try {
+      console.log('[DEBUG] Creating lead with data:', lead);
+      
+      // Get current user's session
+      const { data: sessionData, error: authError } = await supabase.auth.getSession();
+      if (authError) {
+        console.error('[DEBUG] Auth error:', authError);
+        throw new Error(`Authentication error: ${authError.message}`);
+      }
+      
+      if (!sessionData?.session?.user) {
+        console.error('[DEBUG] No authenticated user found');
+        throw new Error('No authenticated session found');
+      }
+
+      console.log('[DEBUG] Authenticated user:', sessionData.session.user.id);
+
+      // Get user's profile to get account_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('[DEBUG] Profile error:', profileError);
+        throw new Error(`Failed to get user profile: ${profileError.message}`);
+      }
+
+      if (!profile?.account_id) {
+        console.error('[DEBUG] No account_id found in profile:', profile);
+        throw new Error('User profile missing account_id');
+      }
+
+      console.log('[DEBUG] User account_id:', profile.account_id);
+
+      // Prepare lead data with account info
+      const leadDataWithAuth = {
+        ...lead,
+        // Convert empty strings to null for optional enum fields
+        source: lead.source || null,
+        referred_via: lead.referred_via || null,
+        created_by: sessionData.session.user.id,
+        account_id: profile.account_id,
+      };
+
+      console.log('[DEBUG] Lead data with auth:', leadDataWithAuth);
+
+      // Insert the lead
+      const { data, error } = await supabase
+        .from('leads')
+        .insert(leadDataWithAuth)
+        .select(`
+          *,
+          pipeline_stage:pipeline_stages(*),
+          teammate:users(*)
+        `)
+        .single();
+      
+      if (error) {
+        console.error('[DEBUG] Supabase insert error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
+      console.log('[DEBUG] Lead created successfully:', data);
+      return data;
+    } catch (error: any) {
+      console.error('[DEBUG] CreateLead function error:', error);
       throw error;
     }
-    return data;
   },
 
   async updateLead(id: string, updates: LeadUpdate) {
