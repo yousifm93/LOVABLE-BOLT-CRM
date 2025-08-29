@@ -579,5 +579,39 @@ export const databaseService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // Condo operations
+  async getCondos() {
+    const { data, error } = await supabase
+      .from('condos')
+      .select('*')
+      .order('condo_name');
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async createCondo(condo: any) {
+    const { data, error } = await supabase
+      .from('condos')
+      .insert([condo])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateCondo(id: string, updates: any) {
+    const { data, error } = await supabase
+      .from('condos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 };

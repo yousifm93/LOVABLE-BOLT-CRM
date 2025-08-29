@@ -1,10 +1,7 @@
-import { useState, useEffect } from "react";
-import { Search, Filter, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from "react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
+import { ColumnDef } from "@/components/ui/data-table";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -12,6 +9,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,6 +36,7 @@ interface ActiveLoan {
   lender_id: string | null;
   buyer_agent_id: string | null;
   listing_agent_id: string | null;
+  pipeline_section: string | null;
   buyer_agent?: any;
   lender?: any;
   listing_agent?: any;
@@ -124,7 +123,7 @@ const createColumns = (
     accessorKey: "borrower_name",
     header: "Borrower Name",
     cell: ({ row }) => (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 whitespace-nowrap">
         <span className="text-sm font-medium">
           {row.original.first_name} {row.original.last_name}
         </span>
@@ -192,6 +191,7 @@ const createColumns = (
           handleUpdate(row.original.id, "pr_type", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -248,6 +248,7 @@ const createColumns = (
           handleUpdate(row.original.id, "loan_status", value)
         }
         showAsStatusBadge
+        className="w-20"
       />
     ),
     sortable: true,
@@ -263,6 +264,7 @@ const createColumns = (
           handleUpdate(row.original.id, "appraisal_status", value)
         }
         showAsStatusBadge
+        className="w-24"
       />
     ),
     sortable: true,
@@ -278,6 +280,7 @@ const createColumns = (
           handleUpdate(row.original.id, "title_status", value)
         }
         showAsStatusBadge
+        className="w-20"
       />
     ),
     sortable: true,
@@ -495,14 +498,28 @@ export default function Active() {
 
   const columns = createColumns(users, lenders, agents, handleUpdate);
 
+  // Group loans by pipeline section
+  const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
+    const live = activeLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
+    const incoming = activeLoans.filter(loan => loan.pipeline_section === 'Incoming');
+    const onHold = activeLoans.filter(loan => loan.pipeline_section === 'On Hold');
+    
+    return {
+      liveLoans: live,
+      incomingLoans: incoming,
+      onHoldLoans: onHold
+    };
+  }, [activeLoans]);
+
   if (loading) {
     return (
       <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Active Pipeline</h1>
-            <p className="text-xs italic text-muted-foreground/70">Loading active loans...</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Active Pipeline</h1>
+          <p className="text-muted-foreground">Track and manage active loans</p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading active loans...</div>
         </div>
       </div>
     );
@@ -510,45 +527,46 @@ export default function Active() {
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Active Pipeline</h1>
-          <p className="text-xs italic text-muted-foreground/70">Active loans with full pipeline tracking</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Active Pipeline</h1>
+        <p className="text-muted-foreground">Track and manage active loans</p>
       </div>
 
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Pipeline Overview ({activeLoans.length} active loans)
-          </CardTitle>
-          <div className="flex gap-2 items-center">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search active loans..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <DataTable
-              columns={columns}
-              data={activeLoans}
-              searchTerm={searchTerm}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center space-x-2 mb-4">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search active loans..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-64"
+        />
+      </div>
+
+      <div className="space-y-4">
+        <CollapsiblePipelineSection
+          title="Live"
+          data={liveLoans}
+          columns={columns}
+          searchTerm={searchTerm}
+          defaultOpen={true}
+        />
+        
+        <CollapsiblePipelineSection
+          title="Incoming"
+          data={incomingLoans}
+          columns={columns}
+          searchTerm={searchTerm}
+          defaultOpen={false}
+        />
+        
+        <CollapsiblePipelineSection
+          title="On Hold"
+          data={onHoldLoans}
+          columns={columns}
+          searchTerm={searchTerm}
+          defaultOpen={false}
+        />
+      </div>
     </div>
   );
 }

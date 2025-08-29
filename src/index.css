@@ -143,3 +143,12 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Compact table styles for pipeline */
+.pipeline-table th,
+.pipeline-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.5rem 0.25rem !important;
+}

@@ -101,6 +101,72 @@ export type Database = {
           },
         ]
       }
+      condos: {
+        Row: {
+          approval_expiration_date: string | null
+          approval_source:
+            | Database["public"]["Enums"]["approval_source_type"]
+            | null
+          approval_type:
+            | Database["public"]["Enums"]["approval_type_type"]
+            | null
+          area: string | null
+          budget_file_url: string | null
+          city: string | null
+          condo_name: string
+          cq_file_url: string | null
+          created_at: string
+          id: string
+          mip_file_url: string | null
+          state: string | null
+          street_address: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          approval_expiration_date?: string | null
+          approval_source?:
+            | Database["public"]["Enums"]["approval_source_type"]
+            | null
+          approval_type?:
+            | Database["public"]["Enums"]["approval_type_type"]
+            | null
+          area?: string | null
+          budget_file_url?: string | null
+          city?: string | null
+          condo_name: string
+          cq_file_url?: string | null
+          created_at?: string
+          id?: string
+          mip_file_url?: string | null
+          state?: string | null
+          street_address?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          approval_expiration_date?: string | null
+          approval_source?:
+            | Database["public"]["Enums"]["approval_source_type"]
+            | null
+          approval_type?:
+            | Database["public"]["Enums"]["approval_type_type"]
+            | null
+          area?: string | null
+          budget_file_url?: string | null
+          city?: string | null
+          condo_name?: string
+          cq_file_url?: string | null
+          created_at?: string
+          id?: string
+          mip_file_url?: string | null
+          state?: string | null
+          street_address?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           company: string | null
@@ -284,6 +350,7 @@ export type Database = {
           occupancy: string | null
           package_status: Database["public"]["Enums"]["package_status"] | null
           phone: string | null
+          pipeline_section: string | null
           pipeline_stage_id: string | null
           pr_type: Database["public"]["Enums"]["pr_type"] | null
           property_type: string | null
@@ -331,6 +398,7 @@ export type Database = {
           occupancy?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
           phone?: string | null
+          pipeline_section?: string | null
           pipeline_stage_id?: string | null
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           property_type?: string | null
@@ -380,6 +448,7 @@ export type Database = {
           occupancy?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
           phone?: string | null
+          pipeline_section?: string | null
           pipeline_stage_id?: string | null
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           property_type?: string | null
@@ -751,6 +820,8 @@ export type Database = {
         | "Inspected"
         | "Received"
         | "Waiver"
+      approval_source_type: "PennyMac" | "A&D" | "UWM"
+      approval_type_type: "Full" | "Limited" | "Non-QM" | "Hard Money"
       ba_status: "Send" | "Sent" | "Signed"
       call_outcome: "No Answer" | "Left VM" | "Connected"
       cd_status: "Requested" | "Sent" | "Signed"
@@ -951,6 +1022,8 @@ export const Constants = {
         "Received",
         "Waiver",
       ],
+      approval_source_type: ["PennyMac", "A&D", "UWM"],
+      approval_type_type: ["Full", "Limited", "Non-QM", "Hard Money"],
       ba_status: ["Send", "Sent", "Signed"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
       cd_status: ["Requested", "Sent", "Signed"],
