@@ -223,6 +223,7 @@ export default function Active() {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           onStageChange={handleStageChange}
+          pipelineType="active"
         />
       )}
     </div>

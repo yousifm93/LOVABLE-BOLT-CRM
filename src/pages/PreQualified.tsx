@@ -232,6 +232,7 @@ export default function PreQualified() {
             setSelectedClient(null);
           }}
           onStageChange={handleStageChange}
+          pipelineType="leads"
         />
       )}
     </div>

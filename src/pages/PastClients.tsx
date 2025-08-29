@@ -218,6 +218,7 @@ export default function PastClients() {
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           onStageChange={handleStageChange}
+          pipelineType="past-clients"
         />
       )}
     </div>

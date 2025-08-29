@@ -444,6 +444,7 @@ export default function Leads() {
           isOpen={isDrawerOpen}
           onClose={handleDrawerClose}
           onStageChange={handleStageChange}
+          pipelineType="leads"
         />
       )}
 

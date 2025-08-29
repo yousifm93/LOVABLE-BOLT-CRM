@@ -313,6 +313,7 @@ export function LeadsModern() {
           isOpen={showDetailDrawer}
           onClose={() => setShowDetailDrawer(false)}
           onStageChange={() => {}}
+          pipelineType="leads"
         />
       )}
     </div>

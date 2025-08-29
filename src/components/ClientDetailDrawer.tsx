@@ -22,9 +22,10 @@ interface ClientDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onStageChange: (clientId: number, newStage: PipelineStage) => void;
+  pipelineType: 'leads' | 'active' | 'past-clients';
 }
 
-export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: ClientDetailDrawerProps) {
+export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pipelineType }: ClientDetailDrawerProps) {
   const [newNote, setNewNote] = useState("");
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);

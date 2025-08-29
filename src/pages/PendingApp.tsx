@@ -233,6 +233,7 @@ export default function PendingApp() {
             setSelectedClient(null);
           }}
           onStageChange={handleStageChange}
+          pipelineType="leads"
         />
       )}
     </div>

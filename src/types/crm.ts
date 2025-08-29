@@ -100,7 +100,7 @@ export interface CRMClient {
   buyersAgreement?: 'signed' | 'pending' | 'not_applicable';
 }
 
-export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients';
+export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients' | 'incoming' | 'rfp' | 'submitted' | 'awc' | 'ctc' | 'closing';
 
 // Status dropdown options for each stage
 export type LeadStatus = "working_on_it" | "pending_app" | "nurture" | "dead" | "need_attention";
@@ -108,6 +108,8 @@ export type PendingAppStatus = "new" | "pending_app" | "app_complete" | "on_hold
 export type ScreeningStatus = "just_applied" | "screening" | "pending_docs" | "pre_qualified" | "stand_by";
 export type PreQualifiedStatus = "new" | "shopping" | "offers_out" | "ready_for_preapproval";
 export type PreApprovedStatus = "new" | "shopping" | "offers_out" | "under_contract" | "ready_to_proceed";
+export type ActiveStatus = "incoming" | "rfp" | "submitted" | "awc" | "ctc" | "closing";
+export type PastClientStatus = "placeholder1" | "placeholder2" | "placeholder3" | "placeholder4";
 
 export interface Document {
   id: number;
@@ -177,6 +179,31 @@ export const PIPELINE_STAGES = [
   { key: 'active' as const, label: 'Active', number: 6, color: 'bg-accent' },
   { key: 'past-clients' as const, label: 'Past Clients', number: 7, color: 'bg-secondary' },
 ] as const;
+
+// Pipeline configurations for different stages
+export const PIPELINE_CONFIGS = {
+  leads: [
+    { key: 'leads', label: 'Lead', icon: '📞' },
+    { key: 'pending-app', label: 'Pending App', icon: '📄' },
+    { key: 'screening', label: 'Screening', icon: '🔍' },
+    { key: 'pre-qualified', label: 'Pre-Qualified', icon: '✅' },
+    { key: 'pre-approved', label: 'Pre-Approved', icon: '🎯' }
+  ],
+  active: [
+    { key: 'incoming', label: 'Incoming', icon: '📥' },
+    { key: 'rfp', label: 'RFP', icon: '🏃' },
+    { key: 'submitted', label: 'Submitted', icon: '📨' },
+    { key: 'awc', label: 'AWC', icon: '⚠️' },
+    { key: 'ctc', label: 'CTC', icon: '🔓' },
+    { key: 'closing', label: 'Closing Day', icon: '🏠' }
+  ],
+  pastClients: [
+    { key: 'placeholder1', label: 'Stage 1', icon: '📋' },
+    { key: 'placeholder2', label: 'Stage 2', icon: '📋' },
+    { key: 'placeholder3', label: 'Stage 3', icon: '📋' },
+    { key: 'placeholder4', label: 'Stage 4', icon: '📋' }
+  ]
+} as const;
 
 export const TEAM_MEMBERS = [
   'Yousif',

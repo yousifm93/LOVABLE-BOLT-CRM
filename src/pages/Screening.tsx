@@ -235,6 +235,7 @@ export default function Screening() {
             setSelectedClient(null);
           }}
           onStageChange={handleStageChange}
+          pipelineType="leads"
         />
       )}
     </div>
