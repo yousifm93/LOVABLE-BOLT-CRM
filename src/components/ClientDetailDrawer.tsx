@@ -366,7 +366,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     >
                       <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
                         <AvatarImage src={client.person.avatar} />
-                        <AvatarFallback className="bg-yellow-500 text-white font-semibold text-sm">
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
@@ -453,12 +453,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                             : "bg-white text-black hover:bg-gray-50",
                           index > 0 && "-ml-4"
                         )}
-                        style={{ 
-                          zIndex: zIndex,
-                          width: "150px",
-                          height: "48px",
-                          fontSize: "14px"
-                        }}
+                         style={{ 
+                           zIndex: zIndex,
+                           width: "120px",
+                           height: "48px",
+                           fontSize: "14px"
+                         }}
                       >
                         {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
                       </button>
@@ -474,8 +474,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             </Card>
 
             {/* Notes Section */}
-            <Card className="bg-gray-50">
-              <CardHeader className="pb-3">
+            <Card>
+              <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold">Notes</CardTitle>
                   <Button 
@@ -488,7 +488,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-gray-50">
                 <div className="max-h-[160px] overflow-y-auto space-y-3">
                   <div className="space-y-1">
                     <button className="text-primary hover:underline text-sm font-medium">
@@ -708,8 +708,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* Document Upload */}
 
             {/* Document Upload */}
-            <Card className="bg-gray-50">
-              <CardHeader className="pb-3">
+            <Card>
+              <CardHeader className="pb-3 bg-white">
                 <CardTitle className="text-lg flex items-center justify-between">
                   Documents
                   <label className="cursor-pointer">
@@ -729,7 +729,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                   </label>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-gray-50">
                 <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {documents.length > 0 ? (
                     documents.map((doc) => {
@@ -774,27 +774,26 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
             {/* Stage History */}
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 bg-white">
                 <CardTitle className="text-sm font-bold">Stage History</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto bg-gray-50">
                 {(() => {
                   const getStageHistory = () => {
                     if (pipelineType === 'active') {
                       return [
-                        { key: 'incoming', label: 'Incoming', date: '2024-01-08', daysAgo: 10 },
+                        { key: 'incoming', label: 'NEW', date: '2024-01-08', daysAgo: 10 },
                         { key: 'rfp', label: 'RFP', date: '2024-01-10', daysAgo: 8 },
-                        { key: 'submitted', label: 'Submitted', date: '2024-01-12', daysAgo: 6 },
+                        { key: 'submitted', label: 'SUB', date: '2024-01-12', daysAgo: 6 },
                         { key: 'awc', label: 'AWC', date: '2024-01-15', daysAgo: 3 },
-                        { key: 'ctc', label: 'CTC', date: '', daysAgo: null },
-                        { key: 'closing', label: 'Closing Day', date: '', daysAgo: null }
+                        { key: 'ctc', label: 'CTC', date: '', daysAgo: null }
                       ];
                     } else if (pipelineType === 'past-clients') {
                       return [
-                        { key: 'placeholder1', label: 'Stage 1', date: '2024-01-08', daysAgo: 10 },
-                        { key: 'placeholder2', label: 'Stage 2', date: '2024-01-10', daysAgo: 8 },
-                        { key: 'placeholder3', label: 'Stage 3', date: '2024-01-12', daysAgo: 6 },
-                        { key: 'placeholder4', label: 'Stage 4', date: '2024-01-15', daysAgo: 3 }
+                        { key: 'stage1', label: '', date: '', daysAgo: null },
+                        { key: 'stage2', label: '', date: '', daysAgo: null },
+                        { key: 'stage3', label: '', date: '', daysAgo: null },
+                        { key: 'stage4', label: '', date: '', daysAgo: null }
                       ];
                     } else {
                       return [

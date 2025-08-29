@@ -10,7 +10,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-subtle">
+      <div className="min-h-screen flex w-full bg-gradient-subtle pt-6">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           <Header />

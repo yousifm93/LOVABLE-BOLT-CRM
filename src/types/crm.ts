@@ -190,18 +190,17 @@ export const PIPELINE_CONFIGS = {
     { key: 'pre-approved', label: 'Pre-Approved', icon: '🎯' }
   ],
   active: [
-    { key: 'incoming', label: 'Incoming', icon: '📥' },
+    { key: 'incoming', label: 'NEW', icon: '📥' },
     { key: 'rfp', label: 'RFP', icon: '🏃' },
-    { key: 'submitted', label: 'Submitted', icon: '📨' },
+    { key: 'submitted', label: 'SUB', icon: '📨' },
     { key: 'awc', label: 'AWC', icon: '⚠️' },
-    { key: 'ctc', label: 'CTC', icon: '🔓' },
-    { key: 'closing', label: 'Closing Day', icon: '🏠' }
+    { key: 'ctc', label: 'CTC', icon: '🔓' }
   ],
-  pastClients: [
-    { key: 'placeholder1', label: 'Stage 1', icon: '📋' },
-    { key: 'placeholder2', label: 'Stage 2', icon: '📋' },
-    { key: 'placeholder3', label: 'Stage 3', icon: '📋' },
-    { key: 'placeholder4', label: 'Stage 4', icon: '📋' }
+  'past-clients': [
+    { key: 'stage1', label: '', icon: '' },
+    { key: 'stage2', label: '', icon: '' },
+    { key: 'stage3', label: '', icon: '' },
+    { key: 'stage4', label: '', icon: '' }
   ]
 } as const;
 

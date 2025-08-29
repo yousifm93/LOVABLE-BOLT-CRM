@@ -110,23 +110,23 @@ export function DataTable<T extends Record<string, any>>({
         </TableHeader>
         <TableBody>
           {filteredData.map((row, index) => (
-            <TableRow
-              key={index}
-              className={cn(
-                "hover:bg-yellow-100 transition-colors h-10",
-                onRowClick && "cursor-pointer"
-              )}
-              onClick={() => onRowClick?.(row)}
-            >
-              {columns.map((column) => (
-                <TableCell key={column.accessorKey} className="py-2 px-2">
-                  {column.cell ? (
-                    column.cell({ row: { original: row } })
-                  ) : (
-                    <span>{row[column.accessorKey]}</span>
-                  )}
-                </TableCell>
-              ))}
+             <TableRow
+               key={index}
+               className={cn(
+                 "transition-colors h-10",
+                 onRowClick && "cursor-pointer"
+               )}
+               onClick={() => onRowClick?.(row)}
+             >
+               {columns.map((column) => (
+                 <TableCell key={column.accessorKey} className="py-2 px-2">
+                   {column.cell ? (
+                     column.cell({ row: { original: row } })
+                   ) : (
+                     <span className="hover:bg-yellow-100 hover:rounded transition-colors px-1">{row[column.accessorKey]}</span>
+                   )}
+                 </TableCell>
+               ))}
               <TableCell className="py-2 px-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
