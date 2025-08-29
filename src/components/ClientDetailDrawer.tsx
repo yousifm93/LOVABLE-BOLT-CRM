@@ -354,7 +354,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         <div className="sticky top-0 z-10 bg-background p-4 pt-2">
 
           {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_5fr_1fr] gap-4 mb-3 mt-2">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 mb-3 mt-2">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
