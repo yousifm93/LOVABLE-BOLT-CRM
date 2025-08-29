@@ -340,62 +340,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   })}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="mt-4 grid grid-cols-6 gap-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowCallLogModal(true)}
-                    className="text-xs"
-                  >
-                    <Phone className="h-3 w-3 mr-1" />
-                    Call
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowSmsLogModal(true)}
-                    className="text-xs"
-                  >
-                    <MessageSquare className="h-3 w-3 mr-1" />
-                    SMS
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowEmailLogModal(true)}
-                    className="text-xs"
-                  >
-                    <Mail className="h-3 w-3 mr-1" />
-                    Email
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowAddNoteModal(true)}
-                    className="text-xs"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Add Note
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowCreateTaskModal(true)}
-                    className="text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Create Task
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => document.getElementById('document-upload')?.click()}
-                    className="text-xs"
-                  >
-                    <Upload className="h-3 w-3 mr-1" />
-                    Upload Doc
-                  </Button>
+                {/* Gray Placeholder Box */}
+                <div className="mt-4 p-4 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Critical Status Information
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 text-center mt-1">
+                    (Coming Soon)
+                  </p>
                 </div>
                 
                 <input
@@ -487,7 +439,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {mockTasks.slice(0, 6).map((task) => (
+                {mockTasks.slice(0, 3).map((task) => (
                   <div key={task.id} className="flex items-center gap-2 text-sm">
                     <button
                       onClick={() => handleTaskToggle(task.id)}
@@ -551,8 +503,75 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             <Card className="flex-1">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Activity Log</CardTitle>
+                
+                {/* Action Buttons */}
+                <div className="mt-3 grid grid-cols-6 gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowCallLogModal(true)}
+                    className="text-xs"
+                  >
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowSmsLogModal(true)}
+                    className="text-xs"
+                  >
+                    <MessageSquare className="h-3 w-3 mr-1" />
+                    SMS
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowEmailLogModal(true)}
+                    className="text-xs"
+                  >
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAddNoteModal(true)}
+                    className="text-xs"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Add Note
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Create Task
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('document-upload')?.click()}
+                    className="text-xs"
+                  >
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload Doc
+                  </Button>
+                </div>
+                
+                <input
+                  id="document-upload"
+                  type="file"
+                  multiple
+                  onChange={handleDocumentUpload}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                 {activities.length > 0 ? (
                   activities.map((activity) => (
                     <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-3">
@@ -602,7 +621,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-[120px] overflow-y-auto">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
                   {documents.length > 0 ? (
                     documents.map((doc) => (
                       <div key={doc.id} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
@@ -623,7 +642,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <CardTitle className="text-lg">Chat with Borrower</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="bg-muted p-3 rounded text-sm min-h-[200px] max-h-[200px] overflow-y-auto space-y-3">
+                <div className="bg-muted p-3 rounded text-sm min-h-[300px] max-h-[300px] overflow-y-auto space-y-3">
                   <div className="bg-white p-2 rounded-r-lg rounded-tl-lg ml-4">
                     <p className="text-sm">Hi! I had a question about the appraisal timeline.</p>
                     <span className="text-xs text-muted-foreground">10:30 AM</span>
