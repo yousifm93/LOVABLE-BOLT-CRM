@@ -8,7 +8,9 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  Cell,
+  LabelList
 } from "recharts";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +24,8 @@ interface ModernChartCardProps {
   height?: number;
   color?: string;
   showGrid?: boolean;
+  showValueLabels?: boolean;
+  formatValue?: (value: number) => string;
 }
 
 export function ModernChartCard({
@@ -33,7 +37,9 @@ export function ModernChartCard({
   className,
   height = 200,
   color = "hsl(var(--primary))",
-  showGrid = true
+  showGrid = true,
+  showValueLabels = false,
+  formatValue = (value: number) => value.toString()
 }: ModernChartCardProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -71,13 +77,24 @@ export function ModernChartCard({
                 tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
+                tickFormatter={(value) => dataKey === 'volume' ? `$${(value / 1000000).toFixed(1)}M` : value}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
                 dataKey={dataKey} 
                 fill={color}
                 radius={[2, 2, 0, 0]}
-              />
+              >
+                {showValueLabels && (
+                  <LabelList 
+                    dataKey={dataKey} 
+                    position="top" 
+                    formatter={formatValue}
+                    fontSize={11}
+                    fill="hsl(var(--muted-foreground))"
+                  />
+                )}
+              </Bar>
             </BarChart>
           ) : (
             <LineChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>

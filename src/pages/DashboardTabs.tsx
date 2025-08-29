@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
-import { CompactDataList } from "@/components/ui/compact-data-list";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
 
 // Mock data for charts
@@ -39,38 +39,34 @@ const rankingData = [
 
 // Mock recent leads and apps with enhanced data
 const yesterdayLeads = [
-  { name: "Sarah Johnson", amount: "$450,000", source: "Website", date: "Today" },
-  { name: "Mike Chen", amount: "$380,000", source: "Referral", date: "Today" },
-  { name: "Lisa Rodriguez", amount: "$520,000", source: "Social Media", date: "Today" },
+  { name: "Sarah Johnson", phone: "(555) 123-4567", email: "sarah@email.com", date: "2025-01-15" },
+  { name: "Mike Chen", phone: "(555) 234-5678", email: "mike@email.com", date: "2025-01-15" },
+  { name: "Lisa Rodriguez", phone: "(555) 345-6789", email: "lisa@email.com", date: "2025-01-15" },
 ];
 
 const yesterdayApps = [
-  { name: "Robert Kim", amount: "$320,000", status: "Submitted", date: "Today" },
-  { name: "Jennifer Martinez", amount: "$425,000", status: "Processing", date: "Today" },
+  { name: "Robert Kim", appliedOn: "2025-01-15" },
+  { name: "Jennifer Martinez", appliedOn: "2025-01-15" },
 ];
 
 const thisMonthLeads = [
-  { name: "Amanda Wilson", amount: "$475,000", source: "Website", stage: "Qualified" },
-  { name: "David Park", amount: "$395,000", source: "Referral", stage: "Follow-up" },
-  { name: "Maria Garcia", amount: "$510,000", source: "Email", stage: "Interested" },
-  { name: "James Thompson", amount: "$445,000", source: "Social Media", stage: "Qualified" },
-  { name: "Emily Davis", amount: "$385,000", source: "Website", stage: "New" },
-  { name: "Chris Rodriguez", amount: "$525,000", source: "Referral", stage: "Hot Lead" },
-  { name: "Sophie Chen", amount: "$415,000", source: "Website", stage: "Qualified" },
-  { name: "Michael Torres", amount: "$465,000", source: "Social Media", stage: "Follow-up" },
-  { name: "Rachel Kim", amount: "$395,000", source: "Email", stage: "Interested" },
-  { name: "Daniel Lopez", amount: "$485,000", source: "Referral", stage: "Hot Lead" },
+  { name: "Amanda Wilson", phone: "(555) 111-2222", email: "amanda@email.com", date: "2025-01-10" },
+  { name: "David Park", phone: "(555) 222-3333", email: "david@email.com", date: "2025-01-12" },
+  { name: "Maria Garcia", phone: "(555) 333-4444", email: "maria@email.com", date: "2025-01-08" },
+  { name: "James Thompson", phone: "(555) 444-5555", email: "james@email.com", date: "2025-01-14" },
+  { name: "Emily Davis", phone: "(555) 555-6666", email: "emily@email.com", date: "2025-01-11" },
+  { name: "Chris Rodriguez", phone: "(555) 666-7777", email: "chris@email.com", date: "2025-01-09" },
+  { name: "Sophie Chen", phone: "(555) 777-8888", email: "sophie@email.com", date: "2025-01-13" },
+  { name: "Michael Torres", phone: "(555) 888-9999", email: "michael@email.com", date: "2025-01-07" },
 ];
 
 const thisMonthApps = [
-  { name: "John Anderson", amount: "$415,000", status: "Approved", stage: "Closing" },
-  { name: "Susan Miller", amount: "$365,000", status: "Processing", stage: "Underwriting" },
-  { name: "Tom Wilson", amount: "$485,000", status: "Submitted", stage: "Review" },
-  { name: "Lisa Park", amount: "$445,000", status: "Approved", stage: "Closing" },
-  { name: "Mark Thompson", amount: "$385,000", status: "Processing", stage: "Underwriting" },
-  { name: "Jennifer Davis", amount: "$525,000", status: "Submitted", stage: "Review" },
-  { name: "Alex Rodriguez", amount: "$415,000", status: "Approved", stage: "Docs" },
-  { name: "Sarah Wilson", amount: "$465,000", status: "Processing", stage: "Underwriting" },
+  { name: "John Anderson", appliedOn: "2025-01-10" },
+  { name: "Susan Miller", appliedOn: "2025-01-12" },
+  { name: "Tom Wilson", appliedOn: "2025-01-08" },
+  { name: "Lisa Park", appliedOn: "2025-01-14" },
+  { name: "Mark Thompson", appliedOn: "2025-01-11" },
+  { name: "Jennifer Davis", appliedOn: "2025-01-09" },
 ];
 
 // Sparkline data for mini charts
@@ -102,164 +98,287 @@ export default function DashboardTabs() {
           <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sales" className="space-y-4">
-          {/* Top 4 Compact Widgets */}
+        <TabsContent value="sales" className="space-y-6">
+          {/* Top 4 Large Stats Cards */}
           <div className="grid grid-cols-4 gap-4">
             <ModernStatsCard
               title="This Month's Leads"
-              value="47"
+              value="67"
               icon={<Target />}
-              progress={47} // 47 of 100 goal
-              size="compact"
+              size="large"
             />
             <ModernStatsCard
               title="Yesterday's Leads"
               value="3"
               icon={<TrendingUp />}
-              sparklineData={leadSparklineData}
-              size="compact"
+              size="large"
             />
             <ModernStatsCard
               title="This Month's Apps"
-              value="23"
+              value="22"
               icon={<FileText />}
-              progress={77} // 23 of 30 goal
-              size="compact"
+              size="large"
             />
             <ModernStatsCard
               title="Yesterday's Apps"
-              value="2"
+              value="1"
               icon={<Activity />}
-              sparklineData={appSparklineData}
+              size="large"
+            />
+          </div>
+
+          {/* Collapsible Lists Section */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Side - Leads */}
+            <div className="space-y-4">
+              <CollapsibleSection 
+                title="This Month's Leads" 
+                count={thisMonthLeads.length}
+                data={thisMonthLeads}
+                renderItem={(lead, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{lead.name}</p>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {lead.phone}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {lead.email}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {lead.date}
+                    </div>
+                  </div>
+                )}
+              />
+              <CollapsibleSection 
+                title="Yesterday's Leads" 
+                count={yesterdayLeads.length}
+                data={yesterdayLeads}
+                renderItem={(lead, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{lead.name}</p>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {lead.phone}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {lead.email}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {lead.date}
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Right Side - Applications */}
+            <div className="space-y-4">
+              <CollapsibleSection 
+                title="This Month's Apps" 
+                count={thisMonthApps.length}
+                data={thisMonthApps}
+                renderItem={(app, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{app.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Applied: {app.appliedOn}
+                    </div>
+                  </div>
+                )}
+              />
+              <CollapsibleSection 
+                title="Yesterday's Apps" 
+                count={yesterdayApps.length}
+                data={yesterdayApps}
+                renderItem={(app, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{app.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Applied: {app.appliedOn}
+                    </div>
+                  </div>
+                )}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="active" className="space-y-6">
+          {/* Top Row */}
+          <div className="grid grid-cols-2 gap-6">
+            <ModernStatsCard
+              title="Total Active Volume"
+              value="$5,345,260"
+              icon={<DollarSign />}
+              size="large"
+            />
+            <ModernStatsCard
+              title="Total Active Units"
+              value="16"
+              icon={<Users />}
+              size="large"
+            />
+          </div>
+
+          {/* Second & Third Rows */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <ModernStatsCard
+                  title="Current Month Pending Volume"
+                  value="$0"
+                  icon={<CalendarDays />}
+                />
+                <ModernStatsCard
+                  title="Next Month Pending Volume"
+                  value="$3,615,510"
+                  icon={<CalendarDays />}
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <ModernStatsCard
+                  title="Current Month Pending Units"
+                  value="0"
+                  icon={<Users />}
+                />
+                <ModernStatsCard
+                  title="Next Month Pending Units"
+                  value="12"
+                  icon={<Users />}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row */}
+          <div className="grid grid-cols-2 gap-6">
+            <ModernStatsCard
+              title="Closing This Week (Volume)"
+              value="$0"
+              icon={<TrendingUp />}
+              size="large"
+            />
+            <ModernStatsCard
+              title="Closing This Week (Units)"
+              value="0"
+              icon={<TrendingUp />}
+              size="large"
+            />
+          </div>
+
+          {/* Extra Metrics */}
+          <div className="grid grid-cols-3 gap-4">
+            <ModernStatsCard
+              title="Average Processing Time"
+              value="23 days"
+              icon={<Clock />}
+              size="compact"
+            />
+            <ModernStatsCard
+              title="Average Time to Submission"
+              value="5 days"
+              icon={<Activity />}
+              size="compact"
+            />
+            <ModernStatsCard
+              title="Average Clear-to-Close Time"
+              value="18 days"
+              icon={<FileText />}
               size="compact"
             />
           </div>
-
-          {/* Lists Section */}
-          <div className="grid grid-cols-2 gap-4">
-            <CompactDataList 
-              title="Yesterday's Leads" 
-              data={yesterdayLeads} 
-              type="leads"
-              maxRows={5}
-            />
-            <CompactDataList 
-              title="Yesterday's Apps" 
-              data={yesterdayApps} 
-              type="apps"
-              maxRows={5}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <CompactDataList 
-              title="This Month's Leads" 
-              data={thisMonthLeads} 
-              type="leads"
-              maxRows={10}
-            />
-            <CompactDataList 
-              title="This Month's Apps" 
-              data={thisMonthApps} 
-              type="apps"
-              maxRows={10}
-            />
-          </div>
         </TabsContent>
 
-        <TabsContent value="active" className="space-y-4">
-          {/* Even Grid of Cards - Monday.com Style */}
-          <div className="grid grid-cols-3 gap-4">
-            <ModernStatsCard
-              title="Total Active Loans"
-              value="$28.5M"
-              icon={<DollarSign />}
-            />
-            <ModernStatsCard
-              title="Active Units"
-              value="142"
-              icon={<Users />}
-            />
-            <ModernStatsCard
-              title="Current Month Pending"
-              value="$12.3M / 65"
-              icon={<CalendarDays />}
-            />
-            <ModernStatsCard
-              title="Next Month Pending"
-              value="$8.7M / 48"
-              icon={<Clock />}
-            />
-            <ModernStatsCard
-              title="Closing This Week"
-              value="$4.2M / 18"
-              icon={<TrendingUp />}
-            />
-            <ModernStatsCard
-              title="Avg Processing Time"
-              value="23 days"
-              icon={<Activity />}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="closed" className="space-y-4">
-          {/* YTD Summary Cards */}
-          <div className="grid grid-cols-3 gap-4">
+        <TabsContent value="closed" className="space-y-6">
+          {/* Top Row */}
+          <div className="grid grid-cols-2 gap-6">
             <ModernStatsCard
               title="2025 YTD Volume"
-              value="$42.8M"
+              value="$19,323,335"
               icon={<DollarSign />}
+              size="large"
             />
             <ModernStatsCard
               title="2025 YTD Units"
-              value="218"
+              value="39"
               icon={<Users />}
-            />
-            <ModernStatsCard
-              title="Average Loan Amount"
-              value="$385,000"
-              icon={<BarChart3 />}
+              size="large"
             />
           </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Second Row - Charts */}
+          <div className="grid grid-cols-2 gap-6">
             <ModernChartCard
               title="2025 Volume by Month"
               data={monthlyVolumeData}
               type="bar"
               dataKey="volume"
-              height={200}
+              height={240}
               color="hsl(var(--primary))"
+              showValueLabels={true}
+              formatValue={(value) => `$${(value / 1000000).toFixed(1)}M`}
             />
             <ModernChartCard
               title="2025 Units by Month"
               data={monthlyVolumeData}
               type="bar"
               dataKey="units"
-              height={200}
+              height={240}
               color="hsl(var(--primary))"
+              showValueLabels={true}
             />
           </div>
 
-          {/* Prior Year Comparisons */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Third Row - Full Width */}
+          <div className="w-full">
+            <ModernStatsCard
+              title="Average Loan Amount"
+              value="$495,470.128"
+              icon={<BarChart3 />}
+              size="large"
+              className="w-full"
+            />
+          </div>
+
+          {/* Bottom Row - Ranking Charts */}
+          <div className="grid grid-cols-2 gap-6">
             <ModernChartCard
-              title="2024 Volume Rank"
+              title="2025 Volume Rank"
               data={rankingData}
               type="bar"
               dataKey="rank"
-              height={180}
+              height={200}
               color="hsl(var(--accent))"
             />
             <ModernChartCard
-              title="2023 Units Rank"
+              title="2025 Units Rank"
               data={rankingData}
-              type="line"
+              type="bar"
               dataKey="rank"
-              height={180}
-              color="hsl(var(--success))"
+              height={200}
+              color="hsl(var(--accent))"
             />
           </div>
         </TabsContent>

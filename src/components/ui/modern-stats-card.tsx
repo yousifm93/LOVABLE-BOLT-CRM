@@ -9,7 +9,7 @@ interface ModernStatsCardProps {
   progress?: number; // 0-100 for progress arc
   sparklineData?: number[]; // Array of numbers for sparkline
   className?: string;
-  size?: "default" | "compact";
+  size?: "default" | "compact" | "large";
 }
 
 export function ModernStatsCard({ 
@@ -21,10 +21,10 @@ export function ModernStatsCard({
   className,
   size = "default"
 }: ModernStatsCardProps) {
-  const cardHeight = size === "compact" ? "h-20" : "h-24";
-  const titleSize = size === "compact" ? "text-xs" : "text-sm";
-  const valueSize = size === "compact" ? "text-lg" : "text-2xl";
-  const iconSize = size === "compact" ? "h-4 w-4" : "h-5 w-5";
+  const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
+  const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
+  const valueSize = size === "compact" ? "text-lg" : size === "large" ? "text-4xl" : "text-2xl";
+  const iconSize = size === "compact" ? "h-4 w-4" : size === "large" ? "h-8 w-8" : "h-5 w-5";
 
   return (
     <Card className={cn(
