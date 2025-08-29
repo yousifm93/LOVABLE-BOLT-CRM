@@ -28,11 +28,7 @@ export function CollapsiblePipelineSection({
     <Card className={cn("bg-gradient-card shadow-soft", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {data.length} loan{data.length !== 1 ? 's' : ''}
-            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -45,7 +41,11 @@ export function CollapsiblePipelineSection({
                 <ChevronRight className="h-4 w-4" />
               )}
             </Button>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           </div>
+          <span className="text-sm text-muted-foreground">
+            {data.length} loan{data.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </CardHeader>
       

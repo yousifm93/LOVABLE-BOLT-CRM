@@ -25,6 +25,7 @@ interface InlineEditAssigneeProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  showNameText?: boolean;
 }
 
 export function InlineEditAssignee({
@@ -34,7 +35,8 @@ export function InlineEditAssignee({
   onValueChange,
   placeholder = "Assign to...",
   className,
-  disabled = false
+  disabled = false,
+  showNameText = true
 }: InlineEditAssigneeProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -84,7 +86,9 @@ export function InlineEditAssignee({
                 email={currentUser.email}
                 size="sm"
               />
-              <span className="text-sm">{currentUser.first_name} {currentUser.last_name}</span>
+              {showNameText && (
+                <span className="text-sm">{currentUser.first_name} {currentUser.last_name}</span>
+              )}
             </div>
           ) : (
             <span className="text-sm">{placeholder}</span>

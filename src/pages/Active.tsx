@@ -10,6 +10,7 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -124,9 +125,10 @@ const createColumns = (
     header: "Borrower",
     cell: ({ row }) => (
       <div 
-        className="text-sm font-medium text-primary hover:text-yellow-400 cursor-pointer transition-colors whitespace-nowrap borrower-hover"
+        className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors whitespace-nowrap"
         onClick={(e) => {
           e.stopPropagation();
+          // This will be connected to open ClientDetailDrawer
           console.log("Opening lead details for:", row.original);
         }}
       >
@@ -145,6 +147,7 @@ const createColumns = (
         onValueChange={(userId) => 
           handleUpdate(row.original.id, "teammate_assigned", userId)
         }
+        showNameText={false}
       />
     ),
     sortable: true,
@@ -171,7 +174,7 @@ const createColumns = (
   },
   {
     accessorKey: "arrive_loan_number",
-    header: "Arrive Loan",
+    header: "Loan #",
     cell: ({ row }) => (
       <span className="text-sm font-medium whitespace-nowrap">
         #{row.original.arrive_loan_number || '0'}
@@ -199,12 +202,14 @@ const createColumns = (
     accessorKey: "loan_amount",
     header: "Loan Amount",
     cell: ({ row }) => (
-      <InlineEditCurrency
-        value={row.original.loan_amount}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "loan_amount", value)
-        }
-      />
+      <div className="whitespace-nowrap">
+        <InlineEditCurrency
+          value={row.original.loan_amount}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "loan_amount", value)
+          }
+        />
+      </div>
     ),
     sortable: true,
   },

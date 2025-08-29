@@ -58,40 +58,37 @@ const createColumns = (
   },
   {
     accessorKey: "budget_file_url",
-    header: "Budget File",
+    header: "Budget",
     cell: ({ row }) => (
       <FileUpload
         value={row.original.budget_file_url}
         onValueChange={(url) => handleUpdate(row.original.id, "budget_file_url", url)}
         bucket="condo-documents"
-        placeholder="Upload Budget"
-        className="w-32"
+        compact={true}
       />
     ),
   },
   {
     accessorKey: "cq_file_url",
-    header: "CQ File",
+    header: "CQ",
     cell: ({ row }) => (
       <FileUpload
         value={row.original.cq_file_url}
         onValueChange={(url) => handleUpdate(row.original.id, "cq_file_url", url)}
         bucket="condo-documents"
-        placeholder="Upload CQ"
-        className="w-32"
+        compact={true}
       />
     ),
   },
   {
     accessorKey: "mip_file_url",
-    header: "MIP File",
+    header: "MIP",
     cell: ({ row }) => (
       <FileUpload
         value={row.original.mip_file_url}
         onValueChange={(url) => handleUpdate(row.original.id, "mip_file_url", url)}
         bucket="condo-documents"
-        placeholder="Upload MIP"
-        className="w-32"
+        compact={true}
       />
     ),
   },
