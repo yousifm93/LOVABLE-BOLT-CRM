@@ -179,8 +179,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
       {/* Drawer */}
       <div 
-        className="ml-auto h-full bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
-        style={{ width: 'calc(100vw - 240px)', left: '240px' }}
+        className="left-60 h-full bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] absolute pointer-events-auto" 
+        style={{ width: 'calc(100vw - 240px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
