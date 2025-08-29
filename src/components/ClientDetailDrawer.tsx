@@ -360,7 +360,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                     >
                       <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
                         <AvatarImage src={client.person.avatar} />
-                        <AvatarFallback className="bg-orange-500 text-white font-semibold text-sm">
+                        <AvatarFallback className="bg-yellow-500 text-white font-semibold text-sm">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
@@ -428,7 +428,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Status Tracker Pills */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Pipeline Status</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-center">
@@ -472,7 +471,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
+                  <CardTitle className="text-sm font-bold">Notes</CardTitle>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -532,7 +531,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Tasks */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                <CardTitle className="text-sm font-bold flex items-center justify-between">
                   Tasks
                   <Button 
                     variant="ghost" 
@@ -573,7 +572,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Chat with Borrower */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Chat with Borrower</CardTitle>
+                <CardTitle className="text-sm font-bold">Chat with Borrower</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
@@ -623,10 +622,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Activity Log */}
             <Card className="flex-1">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Activity Log</CardTitle>
+                <CardTitle className="text-lg font-bold">Activity Log</CardTitle>
                 
                 {/* Action Buttons */}
-                <div className="mt-3 grid grid-cols-6 gap-1">
+                <div className="mt-6 grid grid-cols-5 gap-2">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -672,18 +671,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                     <Plus className="h-3 w-3 mr-1" />
                     Create Task
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => document.getElementById('document-upload')?.click()}
-                    className="text-xs"
-                  >
-                    <Upload className="h-3 w-3 mr-1" />
-                    Upload Doc
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
+                <div className="mb-4"></div>
                 {activities.length > 0 ? (
                   activities.map((activity) => (
                     <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-3">
@@ -733,14 +724,41 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {documents.length > 0 ? (
-                    documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
-                        <Paperclip className="h-3 w-3" />
-                        <span className="flex-1 truncate">{doc.name}</span>
-                      </div>
-                    ))
+                    documents.map((doc) => {
+                      const formatFileSize = (bytes: number) => {
+                        if (bytes === 0) return '0 Bytes';
+                        const k = 1024;
+                        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                      };
+
+                      const formatDate = (dateString: string) => {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        });
+                      };
+
+                      const getFileExtension = (filename: string) => {
+                        return filename.split('.').pop()?.toUpperCase() || 'FILE';
+                      };
+
+                      return (
+                        <div key={doc.id} className="space-y-1">
+                          <button className="text-primary hover:underline text-sm font-medium text-left">
+                            {doc.name}
+                          </button>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDate(doc.uploadDate)} • {formatFileSize(doc.size)} • {getFileExtension(doc.name)}
+                          </div>
+                        </div>
+                      );
+                    })
                   ) : (
                     <p className="text-sm text-muted-foreground">No documents uploaded</p>
                   )}
@@ -751,36 +769,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Stage History */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Stage History</CardTitle>
+                <CardTitle className="text-sm font-bold">Stage History</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                    ✓
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Pre-Qualified</p>
-                    <p className="text-xs text-muted-foreground">Jan 10, 2024 - 2 days</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                    ✓
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Application Pending</p>
-                    <p className="text-xs text-muted-foreground">Jan 12, 2024 - 3 days</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                    •
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Pre-Approved</p>
-                    <p className="text-xs text-muted-foreground">Jan 15, 2024 - Current</p>
-                  </div>
-                </div>
+                {(() => {
+                  const stages = [
+                    { key: 'leads', label: 'Lead', date: '2024-01-08', daysAgo: 10 },
+                    { key: 'pending-app', label: 'Pending App', date: '2024-01-10', daysAgo: 8 },
+                    { key: 'screening', label: 'Screening', date: '2024-01-12', daysAgo: 6 },
+                    { key: 'pre-qualified', label: 'Pre-Qualified', date: '2024-01-15', daysAgo: 3 },
+                    { key: 'pre-approved', label: 'Pre-Approved', date: '', daysAgo: null }
+                  ];
+                  
+                  const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
+                  
+                  return stages.map((stage, index) => {
+                    const isCompleted = index <= currentStageIndex;
+                    const isCurrent = index === currentStageIndex;
+                    
+                    return (
+                      <div key={stage.key} className="flex items-center gap-3 text-sm">
+                        <div className={cn(
+                          "flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
+                          isCompleted 
+                            ? "bg-orange-100 text-orange-700" 
+                            : "bg-gray-100 text-gray-400"
+                        )}>
+                          {isCompleted ? "✓" : "•"}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{stage.label}</p>
+                          {stage.date ? (
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(stage.date).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              })} - {stage.daysAgo} days ago
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">-</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </CardContent>
             </Card>
           </div>
