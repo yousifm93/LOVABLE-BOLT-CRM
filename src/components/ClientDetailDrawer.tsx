@@ -268,7 +268,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
           </div>
 
           {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 mb-3">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
@@ -281,16 +281,28 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   </Avatar>
                   <h2 className="text-lg font-bold text-foreground">{fullName}</h2>
                 </div>
+                <Button variant="outline" size="sm" className="mb-2">
+                  Edit
+                </Button>
                 <CardTitle className="text-sm font-medium text-muted-foreground">Contact Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span>{client.person.phoneMobile}</span>
+                  <span>(352) 328-9828</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-3 w-3 text-muted-foreground" />
                   <span>{client.person.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Buyer's Agent</p>
+                    <button className="text-primary hover:underline text-sm">
+                      Sarah Johnson
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -318,7 +330,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                         style={{ 
                           zIndex: isActive ? 20 : 10 - index,
                           width: "150px",
-                          height: "64px",
+                          height: "48px",
                           fontSize: "14px"
                         }}
                       >
@@ -329,7 +341,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-6 gap-1">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -434,7 +446,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         </div>
 
         {/* Main Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 h-[calc(100vh-320px)] p-6 pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-320px)] p-6 pt-0">
           {/* Left Column - 3 Stacked Boxes (removed duplicate contact info) */}
           <div className="space-y-4 overflow-y-auto">
 

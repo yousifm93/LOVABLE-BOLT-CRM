@@ -169,7 +169,7 @@ export interface Contact {
 
 // Stage configuration
 export const PIPELINE_STAGES = [
-  { key: 'leads' as const, label: 'Leads', number: 1, color: 'bg-muted' },
+  { key: 'leads' as const, label: 'Lead', number: 1, color: 'bg-muted' },
   { key: 'pending-app' as const, label: 'Pending App', number: 2, color: 'bg-info' },
   { key: 'screening' as const, label: 'Screening', number: 3, color: 'bg-warning' },
   { key: 'pre-qualified' as const, label: 'Pre-Qualified', number: 4, color: 'bg-primary' },
