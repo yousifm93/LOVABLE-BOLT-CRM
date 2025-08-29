@@ -10,6 +10,7 @@ interface ModernStatsCardProps {
   sparklineData?: number[]; // Array of numbers for sparkline
   className?: string;
   size?: "default" | "compact" | "large";
+  centered?: boolean; // For centered text alignment
 }
 
 export function ModernStatsCard({ 
@@ -19,7 +20,8 @@ export function ModernStatsCard({
   progress,
   sparklineData,
   className,
-  size = "default"
+  size = "default",
+  centered = false
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -33,8 +35,8 @@ export function ModernStatsCard({
       className
     )}>
       <CardContent className="p-4 h-full flex flex-col justify-between">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
+        <div className={cn("flex items-start", centered ? "justify-center" : "justify-between")}>
+          <div className={cn("flex-1 min-w-0", centered && "text-center")}>
             <p className={cn("font-medium text-muted-foreground mb-1", titleSize)}>
               {title}
             </p>
@@ -42,9 +44,11 @@ export function ModernStatsCard({
               {value}
             </div>
           </div>
-          <div className={cn("text-primary flex-shrink-0", iconSize)}>
-            {icon}
-          </div>
+          {!centered && (
+            <div className={cn("text-primary flex-shrink-0", iconSize)}>
+              {icon}
+            </div>
+          )}
         </div>
         
         {/* Progress Arc */}

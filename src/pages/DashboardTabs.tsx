@@ -22,34 +22,27 @@ const monthlyVolumeData = [
   { month: 'Dec', volume: 4500000, units: 24 },
 ];
 
+// Sort ranking data by rank (best performance first)
 const rankingData = [
+  { month: 'Aug', rank: 1 },
+  { month: 'Oct', rank: 1 },
+  { month: 'Dec', rank: 1 },
+  { month: 'Jul', rank: 2 },
+  { month: 'Sep', rank: 2 },
+  { month: 'Jun', rank: 3 },
+  { month: 'Nov', rank: 3 },
+  { month: 'Apr', rank: 4 },
+  { month: 'Mar', rank: 6 },
+  { month: 'May', rank: 7 },
   { month: 'Jan', rank: 8 },
   { month: 'Feb', rank: 12 },
-  { month: 'Mar', rank: 6 },
-  { month: 'Apr', rank: 4 },
-  { month: 'May', rank: 7 },
-  { month: 'Jun', rank: 3 },
-  { month: 'Jul', rank: 2 },
-  { month: 'Aug', rank: 1 },
-  { month: 'Sep', rank: 2 },
-  { month: 'Oct', rank: 1 },
-  { month: 'Nov', rank: 3 },
-  { month: 'Dec', rank: 1 },
 ];
 
-// Mock recent leads and apps with enhanced data
-const yesterdayLeads = [
+// Mock all leads and applications
+const allLeads = [
   { name: "Sarah Johnson", phone: "(555) 123-4567", email: "sarah@email.com", date: "2025-01-15" },
   { name: "Mike Chen", phone: "(555) 234-5678", email: "mike@email.com", date: "2025-01-15" },
   { name: "Lisa Rodriguez", phone: "(555) 345-6789", email: "lisa@email.com", date: "2025-01-15" },
-];
-
-const yesterdayApps = [
-  { name: "Robert Kim", appliedOn: "2025-01-15" },
-  { name: "Jennifer Martinez", appliedOn: "2025-01-15" },
-];
-
-const thisMonthLeads = [
   { name: "Amanda Wilson", phone: "(555) 111-2222", email: "amanda@email.com", date: "2025-01-10" },
   { name: "David Park", phone: "(555) 222-3333", email: "david@email.com", date: "2025-01-12" },
   { name: "Maria Garcia", phone: "(555) 333-4444", email: "maria@email.com", date: "2025-01-08" },
@@ -58,15 +51,28 @@ const thisMonthLeads = [
   { name: "Chris Rodriguez", phone: "(555) 666-7777", email: "chris@email.com", date: "2025-01-09" },
   { name: "Sophie Chen", phone: "(555) 777-8888", email: "sophie@email.com", date: "2025-01-13" },
   { name: "Michael Torres", phone: "(555) 888-9999", email: "michael@email.com", date: "2025-01-07" },
+  { name: "Jennifer Wang", phone: "(555) 999-0000", email: "jennifer@email.com", date: "2025-01-05" },
+  { name: "Robert Brown", phone: "(555) 000-1111", email: "robert@email.com", date: "2025-01-03" },
+  { name: "Ashley Martinez", phone: "(555) 111-2222", email: "ashley@email.com", date: "2025-01-01" },
+  { name: "Kevin Lee", phone: "(555) 222-3333", email: "kevin@email.com", date: "2024-12-28" },
+  { name: "Nicole Taylor", phone: "(555) 333-4444", email: "nicole@email.com", date: "2024-12-25" },
 ];
 
-const thisMonthApps = [
+const allApplications = [
+  { name: "Robert Kim", appliedOn: "2025-01-15" },
+  { name: "Jennifer Martinez", appliedOn: "2025-01-15" },
   { name: "John Anderson", appliedOn: "2025-01-10" },
   { name: "Susan Miller", appliedOn: "2025-01-12" },
   { name: "Tom Wilson", appliedOn: "2025-01-08" },
   { name: "Lisa Park", appliedOn: "2025-01-14" },
   { name: "Mark Thompson", appliedOn: "2025-01-11" },
   { name: "Jennifer Davis", appliedOn: "2025-01-09" },
+  { name: "Carlos Rodriguez", appliedOn: "2025-01-06" },
+  { name: "Diana Chen", appliedOn: "2025-01-04" },
+  { name: "Frank Johnson", appliedOn: "2025-01-02" },
+  { name: "Grace Wilson", appliedOn: "2024-12-30" },
+  { name: "Henry Kim", appliedOn: "2024-12-27" },
+  { name: "Isabella Garcia", appliedOn: "2024-12-24" },
 ];
 
 // Sparkline data for mini charts
@@ -99,13 +105,14 @@ export default function DashboardTabs() {
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">
-          {/* Top 4 Large Stats Cards */}
+          {/* Top 4 Large Stats Cards with Progress */}
           <div className="grid grid-cols-4 gap-4">
             <ModernStatsCard
               title="This Month's Leads"
               value="67"
               icon={<Target />}
               size="large"
+              progress={67}
             />
             <ModernStatsCard
               title="Yesterday's Leads"
@@ -118,6 +125,7 @@ export default function DashboardTabs() {
               value="22"
               icon={<FileText />}
               size="large"
+              progress={73}
             />
             <ModernStatsCard
               title="Yesterday's Apps"
@@ -129,42 +137,16 @@ export default function DashboardTabs() {
 
           {/* Collapsible Lists Section */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Left Side - Leads */}
+            {/* Left Side - All Leads */}
             <div className="space-y-4">
               <CollapsibleSection 
-                title="This Month's Leads" 
-                count={thisMonthLeads.length}
-                data={thisMonthLeads}
+                title="All Leads" 
+                count={allLeads.length}
+                data={allLeads}
                 renderItem={(lead, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{lead.name}</p>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {lead.email}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {lead.date}
-                    </div>
-                  </div>
-                )}
-              />
-              <CollapsibleSection 
-                title="Yesterday's Leads" 
-                count={yesterdayLeads.length}
-                data={yesterdayLeads}
-                renderItem={(lead, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{lead.name}</p>
+                      <p className="font-medium text-foreground hover:text-warning transition-colors">{lead.name}</p>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Phone className="h-3 w-3" />
@@ -185,32 +167,16 @@ export default function DashboardTabs() {
               />
             </div>
 
-            {/* Right Side - Applications */}
+            {/* Right Side - All Applications */}
             <div className="space-y-4">
               <CollapsibleSection 
-                title="This Month's Apps" 
-                count={thisMonthApps.length}
-                data={thisMonthApps}
+                title="All Applications" 
+                count={allApplications.length}
+                data={allApplications}
                 renderItem={(app, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{app.name}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      Applied: {app.appliedOn}
-                    </div>
-                  </div>
-                )}
-              />
-              <CollapsibleSection 
-                title="Yesterday's Apps" 
-                count={yesterdayApps.length}
-                data={yesterdayApps}
-                renderItem={(app, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{app.name}</p>
+                      <p className="font-medium text-foreground hover:text-warning transition-colors">{app.name}</p>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
@@ -231,12 +197,14 @@ export default function DashboardTabs() {
               value="$5,345,260"
               icon={<DollarSign />}
               size="large"
+              centered={true}
             />
             <ModernStatsCard
               title="Total Active Units"
               value="16"
               icon={<Users />}
               size="large"
+              centered={true}
             />
           </div>
 
@@ -248,11 +216,13 @@ export default function DashboardTabs() {
                   title="Current Month Pending Volume"
                   value="$0"
                   icon={<CalendarDays />}
+                  centered={true}
                 />
                 <ModernStatsCard
                   title="Next Month Pending Volume"
                   value="$3,615,510"
                   icon={<CalendarDays />}
+                  centered={true}
                 />
               </div>
             </div>
@@ -262,11 +232,13 @@ export default function DashboardTabs() {
                   title="Current Month Pending Units"
                   value="0"
                   icon={<Users />}
+                  centered={true}
                 />
                 <ModernStatsCard
                   title="Next Month Pending Units"
                   value="12"
                   icon={<Users />}
+                  centered={true}
                 />
               </div>
             </div>
@@ -279,12 +251,14 @@ export default function DashboardTabs() {
               value="$0"
               icon={<TrendingUp />}
               size="large"
+              centered={true}
             />
             <ModernStatsCard
               title="Closing This Week (Units)"
               value="0"
               icon={<TrendingUp />}
               size="large"
+              centered={true}
             />
           </div>
 
@@ -295,18 +269,21 @@ export default function DashboardTabs() {
               value="23 days"
               icon={<Clock />}
               size="compact"
+              centered={true}
             />
             <ModernStatsCard
               title="Average Time to Submission"
               value="5 days"
               icon={<Activity />}
               size="compact"
+              centered={true}
             />
             <ModernStatsCard
               title="Average Clear-to-Close Time"
               value="18 days"
               icon={<FileText />}
               size="compact"
+              centered={true}
             />
           </div>
         </TabsContent>
@@ -319,12 +296,14 @@ export default function DashboardTabs() {
               value="$19,323,335"
               icon={<DollarSign />}
               size="large"
+              centered={true}
             />
             <ModernStatsCard
               title="2025 YTD Units"
               value="39"
               icon={<Users />}
               size="large"
+              centered={true}
             />
           </div>
 
@@ -359,6 +338,7 @@ export default function DashboardTabs() {
               icon={<BarChart3 />}
               size="large"
               className="w-full"
+              centered={true}
             />
           </div>
 
@@ -371,6 +351,8 @@ export default function DashboardTabs() {
               dataKey="rank"
               height={200}
               color="hsl(var(--accent))"
+              showValueLabels={true}
+              formatValue={(value) => `#${value}`}
             />
             <ModernChartCard
               title="2025 Units Rank"
@@ -379,6 +361,8 @@ export default function DashboardTabs() {
               dataKey="rank"
               height={200}
               color="hsl(var(--accent))"
+              showValueLabels={true}
+              formatValue={(value) => `#${value}`}
             />
           </div>
         </TabsContent>
