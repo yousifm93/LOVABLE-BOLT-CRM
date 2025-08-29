@@ -34,20 +34,26 @@ interface Lead {
 }
 
 interface ClientDetailDrawerProps {
-  lead: Lead | null;
-  open: boolean;
+  lead?: Lead | null;
+  client?: any;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  onStageChange?: (leadId: string, newStage: string) => void;
+  onStageChange?: (leadId: string | number, newStage: string) => void;
+  pipelineType?: string;
 }
 
-export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: ClientDetailDrawerProps) {
+export function ClientDetailDrawer({ lead, client, open, isOpen, onClose, onStageChange, pipelineType }: ClientDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [notes, setNotes] = useState("");
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [activityType, setActivityType] = useState<"call" | "sms" | "email">("call");
 
-  if (!open || !lead) return null;
+  const isVisible = open || isOpen;
+  const currentLead = lead || client;
+  
+  if (!isVisible || !currentLead) return null;
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -73,17 +79,17 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
           <div className="flex items-center justify-between p-6 border-b bg-gradient-card">
             <div className="flex items-center space-x-4">
               <UserAvatar
-                firstName={lead.first_name}
-                lastName={lead.last_name}
-                email={lead.email || ""}
+                firstName={currentLead.first_name}
+                lastName={currentLead.last_name}
+                email={currentLead.email || ""}
                 size="lg"
               />
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {lead.first_name} {lead.last_name}
+                  {currentLead.first_name} {currentLead.last_name}
                 </h2>
                 <Badge variant="secondary" className="mt-1">
-                  {lead.status || "Active"}
+                  {currentLead.status || "Active"}
                 </Badge>
               </div>
             </div>
@@ -132,11 +138,11 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center space-x-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{lead.email || "No email"}</span>
+                        <span className="text-sm">{currentLead.email || "No email"}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{lead.phone || "No phone"}</span>
+                        <span className="text-sm">{currentLead.phone || "No phone"}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -155,21 +161,21 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
                       <div>
                         <Label className="text-sm font-medium">Loan Amount</Label>
                         <p className="text-lg font-semibold">
-                          {lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "Not specified"}
+                          {currentLead.loan_amount ? `$${currentLead.loan_amount.toLocaleString()}` : "Not specified"}
                         </p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Property Type</Label>
-                        <p className="text-sm">{lead.property_type || "Not specified"}</p>
+                        <p className="text-sm">{currentLead.property_type || "Not specified"}</p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Loan Type</Label>
-                        <p className="text-sm">{lead.loan_type || "Not specified"}</p>
+                        <p className="text-sm">{currentLead.loan_type || "Not specified"}</p>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Lead Date</Label>
                         <p className="text-sm">
-                          {lead.lead_on_date ? format(new Date(lead.lead_on_date), "MMM d, yyyy") : "Not specified"}
+                          {currentLead.lead_on_date ? format(new Date(currentLead.lead_on_date), "MMM d, yyyy") : "Not specified"}
                         </p>
                       </div>
                     </div>
@@ -185,15 +191,15 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {lead.teammate ? (
+                    {currentLead.teammate ? (
                       <div className="flex items-center space-x-3">
                         <UserAvatar
-                          firstName={lead.teammate.first_name}
-                          lastName={lead.teammate.last_name}
-                          email={lead.teammate.email}
+                          firstName={currentLead.teammate.first_name}
+                          lastName={currentLead.teammate.last_name}
+                          email={currentLead.teammate.email}
                           size="sm"
                         />
-                        <span className="text-sm">{lead.teammate.first_name} {lead.teammate.last_name}</span>
+                        <span className="text-sm">{currentLead.teammate.first_name} {currentLead.teammate.last_name}</span>
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">No team member assigned</p>
@@ -220,13 +226,13 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
                   </Button>
                 </div>
                 
-                {lead.notes && (
+                {currentLead.notes && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Existing Notes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm">{lead.notes}</p>
+                      <p className="text-sm">{currentLead.notes}</p>
                     </CardContent>
                   </Card>
                 )}
@@ -337,7 +343,9 @@ export function ClientDetailDrawer({ lead, open, onClose, onStageChange }: Clien
       <CreateTaskModal
         open={showTaskModal}
         onOpenChange={setShowTaskModal}
-        borrowerId={lead.id}
+        onTaskCreated={() => {
+          setShowTaskModal(false);
+        }}
       />
     </div>
   );
