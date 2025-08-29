@@ -238,11 +238,11 @@ export const databaseService = {
       .from('tasks')
       .select(`
         *,
-        assignee:users!tasks_assignee_id_fkey(*),
+        assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         created_by_user:users!tasks_created_by_fkey(*),
-        borrower:leads!tasks_borrower_id_fkey(*)
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
-      .order('task_order', { ascending: true });
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data;
@@ -270,13 +270,16 @@ export const databaseService = {
   async updateTask(id: string, updates: TaskUpdate) {
     const { data, error } = await supabase
       .from('tasks')
-      .update(updates)
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select(`
         *,
-        assignee:users!tasks_assignee_id_fkey(*),
+        assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         created_by_user:users!tasks_created_by_fkey(*),
-        borrower:leads!tasks_borrower_id_fkey(*)
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
       .single();
     

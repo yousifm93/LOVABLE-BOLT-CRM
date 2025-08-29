@@ -6,8 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { formatDateModern } from "@/utils/dateUtils";
 
 interface ModernTask {
   id: string;
@@ -19,26 +25,39 @@ interface ModernTask {
   assignee_id?: string;
   borrower_id?: string;
   task_order: number;
-  assignee?: { first_name: string; last_name: string };
+  created_at: string;
+  updated_at: string;
+  assignee?: { first_name: string; last_name: string; email: string };
   borrower?: { first_name: string; last_name: string };
 }
 
-const columns: ColumnDef<ModernTask>[] = [
+const USERS = [
+  { id: "b06a12ea-00b9-4725-b368-e8a416d4028d", first_name: "Yousif", last_name: "Mohamed", email: "yousif@mortgagebolt.com" },
+  { id: "159376ae-30e9-4997-b61f-76ab8d7f224b", first_name: "Salma", last_name: "Mohamed", email: "salma@mortgagebolt.com" },
+  { id: "fa92a4c6-890d-4d69-99a8-c3adc6c904ee", first_name: "Herman", last_name: "Daza", email: "herman@mortgagebolt.com" }
+];
+
+const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[]): ColumnDef<ModernTask>[] => [
   {
     accessorKey: "status",
     header: "",
     cell: ({ row }) => (
-      <Checkbox checked={row.original.status === "Done"} />
+      <Checkbox 
+        checked={row.original.status === "Done"} 
+        onCheckedChange={(checked) => 
+          handleUpdate(row.original.id, "status", checked ? "Done" : "Working on it")
+        }
+      />
     ),
   },
   {
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.title}</div>
+      <div className="w-48">
+        <div className="font-medium truncate">{row.original.title}</div>
         {row.original.description && (
-          <div className="text-sm text-muted-foreground mt-1">{row.original.description}</div>
+          <div className="text-sm text-muted-foreground mt-1 truncate">{row.original.description}</div>
         )}
       </div>
     ),
@@ -48,11 +67,14 @@ const columns: ColumnDef<ModernTask>[] = [
     accessorKey: "borrower",
     header: "Borrower",
     cell: ({ row }) => (
-      <div className="text-sm">
-        {row.original.borrower 
-          ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
-          : "No borrower"
-        }
+      <div className="w-36">
+        {row.original.borrower ? (
+          <button className="text-sm text-primary hover:text-primary/80 hover:underline text-left">
+            {row.original.borrower.first_name} {row.original.borrower.last_name}
+          </button>
+        ) : (
+          <span className="text-sm text-muted-foreground">No borrower</span>
+        )}
       </div>
     ),
     sortable: true,
@@ -61,7 +83,16 @@ const columns: ColumnDef<ModernTask>[] = [
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
-      <StatusBadge status={row.original.priority || "Medium"} />
+      <InlineEditSelect
+        value={row.original.priority}
+        options={[
+          { value: "High", label: "High" },
+          { value: "Medium", label: "Medium" },
+          { value: "Low", label: "Low" }
+        ]}
+        onValueChange={(value) => handleUpdate(row.original.id, "priority", value)}
+        showAsStatusBadge
+      />
     ),
     sortable: true,
   },
@@ -69,41 +100,60 @@ const columns: ColumnDef<ModernTask>[] = [
     accessorKey: "task_order",
     header: "Order",
     cell: ({ row }) => (
-      <div className="text-sm">{row.original.task_order}</div>
+      <InlineEditNumber
+        value={row.original.task_order}
+        onValueChange={(value) => handleUpdate(row.original.id, "task_order", value)}
+        min={0}
+      />
     ),
     sortable: true,
   },
   {
     accessorKey: "assignee",
     header: "Assigned To",
-    cell: ({ row }) => (
-      <div className="text-sm">
-        {row.original.assignee 
-          ? `${row.original.assignee.first_name} ${row.original.assignee.last_name}`
-          : "Unassigned"
-        }
-      </div>
-    ),
+    cell: ({ row }) => {
+      if (!row.original.assignee) {
+        return <span className="text-sm text-muted-foreground">Unassigned</span>;
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <UserAvatar
+            firstName={row.original.assignee.first_name}
+            lastName={row.original.assignee.last_name}
+            email={row.original.assignee.email}
+            size="sm"
+            showTooltip
+          />
+          <span className="text-sm">
+            {row.original.assignee.first_name} {row.original.assignee.last_name}
+          </span>
+        </div>
+      );
+    },
     sortable: true,
   },
   {
     accessorKey: "due_date",
     header: "Due Date",
     cell: ({ row }) => {
-      if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
-      
-      const date = new Date(row.original.due_date);
-      const isOverdue = date < new Date() && row.original.status !== "Done";
-      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
+      const date = row.original.due_date ? new Date(row.original.due_date) : null;
+      const isOverdue = date && date < new Date() && row.original.status !== "Done";
+      const isDueSoon = date && date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
         <div className="flex items-center gap-2">
           {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
           {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
           {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
-          <span className={isOverdue ? "text-destructive" : ""}>
-            {row.original.due_date}
-          </span>
+          <InlineEditDate
+            value={row.original.due_date}
+            onValueChange={(date) => {
+              const dateStr = date ? date.toISOString().split('T')[0] : null;
+              handleUpdate(row.original.id, "due_date", dateStr);
+            }}
+            placeholder="No date"
+            className={isOverdue ? "text-destructive" : ""}
+          />
         </div>
       );
     },
@@ -113,7 +163,16 @@ const columns: ColumnDef<ModernTask>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <StatusBadge status={row.original.status || "To Do"} />
+      <InlineEditSelect
+        value={row.original.status}
+        options={[
+          { value: "Working on it", label: "Working on it" },
+          { value: "Done", label: "Done" },
+          { value: "Need help", label: "Need help" }
+        ]}
+        onValueChange={(value) => handleUpdate(row.original.id, "status", value)}
+        showAsStatusBadge
+      />
     ),
     sortable: true,
   },
@@ -123,14 +182,26 @@ export default function TasksModern() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tasks, setTasks] = useState<ModernTask[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ModernTask | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [userFilter, setUserFilter] = useState<string>("");
   const { toast } = useToast();
 
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const fetchedTasks = await databaseService.getTasks();
-      setTasks(fetchedTasks as ModernTask[]);
+      const [fetchedTasks, fetchedLeads] = await Promise.all([
+        databaseService.getTasks(),
+        databaseService.getLeads()
+      ]);
+      // Sort tasks so newest appear first
+      const sortedTasks = (fetchedTasks as ModernTask[]).sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setTasks(sortedTasks);
+      setLeads(fetchedLeads);
     } catch (error) {
       console.error("Error loading tasks:", error);
       toast({
@@ -148,15 +219,44 @@ export default function TasksModern() {
   }, []);
 
   const handleRowClick = (task: ModernTask) => {
-    console.log("View task details:", task);
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
   };
 
   const handleTaskCreated = () => {
     loadTasks();
   };
 
-  const completedTasks = tasks.filter(task => task.status === "Done").length;
-  const overdueTasks = tasks.filter(task => {
+  const handleUpdate = async (taskId: string, field: string, value: any) => {
+    try {
+      await databaseService.updateTask(taskId, { [field]: value });
+      
+      // Update local state
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, [field]: value } : task
+      ));
+      
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filter tasks by user if filter is active
+  const filteredTasks = userFilter 
+    ? tasks.filter(task => task.assignee_id === userFilter)
+    : tasks;
+
+  const completedTasks = filteredTasks.filter(task => task.status === "Done").length;
+  const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
     const dueDate = new Date(task.due_date);
     return dueDate < new Date();
@@ -167,7 +267,12 @@ export default function TasksModern() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">All Tasks</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {completedTasks} completed • {overdueTasks} overdue • {tasks.length - completedTasks} remaining
+          {completedTasks} completed • {overdueTasks} overdue • {filteredTasks.length - completedTasks} remaining
+          {userFilter && (
+            <span className="ml-2 text-primary">
+              • Filtered by {USERS.find(u => u.id === userFilter)?.first_name}
+            </span>
+          )}
         </p>
       </div>
 
@@ -176,7 +281,7 @@ export default function TasksModern() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{tasks.length - completedTasks}</p>
+                <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
@@ -228,6 +333,26 @@ export default function TasksModern() {
                 className="pl-10"
               />
             </div>
+            {/* User Filter Icons */}
+            <div className="flex items-center gap-2">
+              {USERS.map((user) => (
+                <Button
+                  key={user.id}
+                  variant={userFilter === user.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUserFilter(userFilter === user.id ? "" : user.id)}
+                  className="h-8 w-8 p-0"
+                >
+                  <UserAvatar
+                    firstName={user.first_name}
+                    lastName={user.last_name}
+                    email={user.email}
+                    size="sm"
+                  />
+                </Button>
+              ))}
+            </div>
+            
             <Button variant="outline">
               <Filter className="h-4 w-4 mr-2" />
               Filter
@@ -241,8 +366,8 @@ export default function TasksModern() {
             </div>
           ) : (
             <DataTable
-              columns={columns}
-              data={tasks}
+              columns={columns(handleUpdate, leads)}
+              data={filteredTasks}
               searchTerm={searchTerm}
               onRowClick={handleRowClick}
             />
@@ -254,6 +379,12 @@ export default function TasksModern() {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onTaskCreated={handleTaskCreated}
+      />
+
+      <TaskDetailModal
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        task={selectedTask}
       />
     </div>
   );

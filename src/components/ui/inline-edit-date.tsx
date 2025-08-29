@@ -1,5 +1,4 @@
 import * as React from "react";
-import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { formatDateModern } from "@/utils/dateUtils";
 
 interface InlineEditDateProps {
   value?: Date | string | null;
@@ -28,7 +28,7 @@ export function InlineEditDate({
   const [open, setOpen] = React.useState(false);
   
   const dateValue = value ? (typeof value === 'string' ? new Date(value) : value) : undefined;
-  const displayValue = dateValue ? format(dateValue, "PPP") : placeholder;
+  const displayValue = dateValue ? formatDateModern(dateValue) : placeholder;
 
   const handleSelect = (date: Date | undefined) => {
     onValueChange(date);
@@ -64,7 +64,7 @@ export function InlineEditDate({
           selected={dateValue}
           onSelect={handleSelect}
           initialFocus
-          className="pointer-events-auto"
+          className="p-3 pointer-events-auto"
         />
       </PopoverContent>
     </Popover>

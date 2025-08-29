@@ -20,12 +20,9 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    due_date: "",
-    priority: "Medium",
-    status: "To Do",
+    due_date: new Date().toISOString().split('T')[0], // Default to today
     assignee_id: "",
     borrower_id: "",
-    task_order: 0,
   });
   const [users, setUsers] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
@@ -78,11 +75,11 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
         title: formData.title,
         description: formData.description || null,
         due_date: formData.due_date || null,
-        priority: formData.priority as any,
-        status: formData.status as any,
+        priority: "Medium" as any,
+        status: "Working on it" as any,
         assignee_id: formData.assignee_id || null,
         borrower_id: formData.borrower_id || null,
-        task_order: formData.task_order,
+        task_order: 0,
         created_by: user.id,
         creation_log: [],
       });
@@ -96,12 +93,9 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
       setFormData({
         title: "",
         description: "",
-        due_date: "",
-        priority: "Medium",
-        status: "To Do",
+        due_date: new Date().toISOString().split('T')[0],
         assignee_id: "",
         borrower_id: "",
-        task_order: 0,
       });
 
       onTaskCreated();
@@ -125,27 +119,34 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="title">Task Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter task title"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="task_order">Task Order</Label>
-              <Input
-                id="task_order"
-                type="number"
-                value={formData.task_order}
-                onChange={(e) => setFormData({ ...formData, task_order: parseInt(e.target.value) || 0 })}
-                placeholder="0"
-              />
-            </div>
+          <div>
+            <Label htmlFor="title">Task Title *</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Enter task title"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="borrower">Borrower</Label>
+            <Select
+              value={formData.borrower_id}
+              onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select borrower" />
+              </SelectTrigger>
+              <SelectContent>
+                {leads.map((lead) => (
+                  <SelectItem key={lead.id} value={lead.id}>
+                    {lead.first_name} {lead.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -170,41 +171,6 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
               />
             </div>
             <div>
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="To Do">To Do</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Done">Done</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label htmlFor="assignee">Assigned To</Label>
               <Select
                 value={formData.assignee_id}
@@ -222,25 +188,6 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="borrower">Borrower</Label>
-            <Select
-              value={formData.borrower_id}
-              onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select borrower" />
-              </SelectTrigger>
-              <SelectContent>
-                {leads.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.first_name} {lead.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

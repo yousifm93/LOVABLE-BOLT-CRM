@@ -607,6 +607,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      format_date_modern: {
+        Args: { input_date: string }
+        Returns: string
+      }
       get_user_account_id: {
         Args: { user_uuid: string }
         Returns: string
@@ -654,7 +658,12 @@ export type Database = {
         | "Web"
         | "In Person"
       task_priority: "Low" | "Medium" | "High" | "Critical"
-      task_status: "To Do" | "In Progress" | "Done"
+      task_status:
+        | "To Do"
+        | "In Progress"
+        | "Done"
+        | "Working on it"
+        | "Need help"
       user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
     }
     CompositeTypes: {
@@ -829,7 +838,13 @@ export const Constants = {
         "In Person",
       ],
       task_priority: ["Low", "Medium", "High", "Critical"],
-      task_status: ["To Do", "In Progress", "Done"],
+      task_status: [
+        "To Do",
+        "In Progress",
+        "Done",
+        "Working on it",
+        "Need help",
+      ],
       user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
     },
   },
