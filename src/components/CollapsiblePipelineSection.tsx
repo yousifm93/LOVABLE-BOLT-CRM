@@ -55,6 +55,7 @@ export function CollapsiblePipelineSection({
             columns={columns}
             data={data}
             searchTerm={searchTerm}
+            onRowClick={(row) => console.log("Row clicked:", row)}
           />
         </CardContent>
       )}

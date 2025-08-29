@@ -191,9 +191,9 @@ export default function AgentList() {
       const allContacts = await databaseService.getContacts();
       console.log("Got contacts from database:", allContacts);
       
-      // Safer array operations
+      // Safer array operations - handle all agent-related types
       const agentContacts = Array.isArray(allContacts) 
-        ? allContacts.filter(contact => contact && contact.type === 'Agent')
+        ? allContacts.filter(contact => contact && (contact.type === 'Real Estate Agent' || contact.type === 'Realtor'))
         : [];
       console.log("Filtered agent contacts:", agentContacts);
       setContacts(agentContacts);
@@ -204,7 +204,7 @@ export default function AgentList() {
       try {
         toast({
           title: "Error", 
-          description: "Failed to load contacts.",
+          description: "Failed to load contacts. Using sample data.",
           variant: "destructive"
         });
       } catch (toastError) {

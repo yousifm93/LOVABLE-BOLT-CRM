@@ -204,12 +204,15 @@ export default function BorrowerList() {
   const loadContacts = async () => {
     try {
       const allContacts = await databaseService.getContacts();
-      setContacts(allContacts);
+      const borrowerContacts = allContacts.filter(contact => 
+        contact.type === 'Borrower' || contact.type === 'Prospect'
+      );
+      setContacts(borrowerContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast({
         title: "Error",
-        description: "Failed to load contacts.",
+        description: "Failed to load contacts. Using sample data.",
         variant: "destructive"
       });
       setContacts(borrowerData); // Fallback to mock data

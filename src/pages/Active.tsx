@@ -121,12 +121,16 @@ const createColumns = (
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
-    header: "Borrower Name",
+    header: "Borrower",
     cell: ({ row }) => (
-      <div className="flex items-center gap-1 whitespace-nowrap">
-        <span className="text-sm font-medium">
-          {row.original.first_name} {row.original.last_name}
-        </span>
+      <div 
+        className="text-sm font-medium text-primary hover:text-yellow-400 cursor-pointer transition-colors whitespace-nowrap borrower-hover"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log("Opening lead details for:", row.original);
+        }}
+      >
+        {`${row.original.first_name} ${row.original.last_name}`}
       </div>
     ),
     sortable: true,
@@ -167,16 +171,11 @@ const createColumns = (
   },
   {
     accessorKey: "arrive_loan_number",
-    header: "Arrive Loan #",
+    header: "Arrive Loan",
     cell: ({ row }) => (
-      <InlineEditNumber
-        value={row.original.arrive_loan_number || 0}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "arrive_loan_number", value)
-        }
-        placeholder="0"
-        className="w-20"
-      />
+      <span className="text-sm font-medium whitespace-nowrap">
+        #{row.original.arrive_loan_number || '0'}
+      </span>
     ),
     sortable: true,
   },
