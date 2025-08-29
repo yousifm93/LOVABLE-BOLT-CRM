@@ -109,8 +109,10 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          lead_created_date: string | null
           notes: string | null
           phone: string | null
+          tags: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at: string
         }
@@ -121,8 +123,10 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          lead_created_date?: string | null
           notes?: string | null
           phone?: string | null
+          tags?: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
         }
@@ -133,8 +137,10 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          lead_created_date?: string | null
           notes?: string | null
           phone?: string | null
+          tags?: string[] | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
         }
@@ -426,6 +432,48 @@ export type Database = {
           },
         ]
       }
+      lenders: {
+        Row: {
+          account_executive: string | null
+          account_executive_email: string | null
+          account_executive_phone: string | null
+          broker_portal_url: string | null
+          created_at: string
+          id: string
+          lender_name: string
+          lender_type: Database["public"]["Enums"]["lender_type"]
+          notes: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_executive?: string | null
+          account_executive_email?: string | null
+          account_executive_phone?: string | null
+          broker_portal_url?: string | null
+          created_at?: string
+          id?: string
+          lender_name: string
+          lender_type?: Database["public"]["Enums"]["lender_type"]
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_executive?: string | null
+          account_executive_email?: string | null
+          account_executive_phone?: string | null
+          broker_portal_url?: string | null
+          created_at?: string
+          id?: string
+          lender_name?: string
+          lender_type?: Database["public"]["Enums"]["lender_type"]
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           author_id: string
@@ -707,7 +755,14 @@ export type Database = {
       call_outcome: "No Answer" | "Left VM" | "Connected"
       cd_status: "Requested" | "Sent" | "Signed"
       condo_status: "Ordered" | "Received" | "Approved"
-      contact_type: "Agent" | "Realtor" | "Borrower" | "Other"
+      contact_type:
+        | "Agent"
+        | "Realtor"
+        | "Borrower"
+        | "Other"
+        | "Real Estate Agent"
+        | "Prospect"
+        | "Third Party"
       converted_status:
         | "Working on it"
         | "Pending App"
@@ -732,6 +787,7 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
+      lender_type: "Conventional" | "Non-QM" | "Private"
       loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
       log_direction: "In" | "Out"
       package_status: "Initial" | "Final"
@@ -899,7 +955,15 @@ export const Constants = {
       call_outcome: ["No Answer", "Left VM", "Connected"],
       cd_status: ["Requested", "Sent", "Signed"],
       condo_status: ["Ordered", "Received", "Approved"],
-      contact_type: ["Agent", "Realtor", "Borrower", "Other"],
+      contact_type: [
+        "Agent",
+        "Realtor",
+        "Borrower",
+        "Other",
+        "Real Estate Agent",
+        "Prospect",
+        "Third Party",
+      ],
       converted_status: [
         "Working on it",
         "Pending App",
@@ -927,6 +991,7 @@ export const Constants = {
         "Needs Attention",
       ],
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
+      lender_type: ["Conventional", "Non-QM", "Private"],
       loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC"],
       log_direction: ["In", "Out"],
       package_status: ["Initial", "Final"],

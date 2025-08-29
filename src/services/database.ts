@@ -540,10 +540,32 @@ export const databaseService = {
 
   async getLenders() {
     const { data, error } = await supabase
-      .from('contacts')
+      .from('lenders')
       .select('*')
-      .eq('type', 'Other')
-      .order('first_name');
+      .order('lender_name');
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createLender(lender: any) {
+    const { data, error } = await supabase
+      .from('lenders')
+      .insert(lender)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateLender(id: string, updates: any) {
+    const { data, error } = await supabase
+      .from('lenders')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
 
     if (error) throw error;
     return data;

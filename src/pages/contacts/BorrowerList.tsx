@@ -71,26 +71,30 @@ const borrowerData: Contact[] = [
   }
 ];
 
-const columns: ColumnDef<Contact>[] = [
+const columns: ColumnDef<any>[] = [
   {
     accessorKey: "name",
-    header: "Borrower",
+    header: "Contact Name",
     cell: ({ row }) => {
       const contact = row.original;
-      const fullName = `${contact.person.firstName} ${contact.person.lastName}`;
-      const initials = `${contact.person.firstName[0]}${contact.person.lastName[0]}`;
+      const fullName = contact.person ? 
+        `${contact.person.firstName} ${contact.person.lastName}` : 
+        `${contact.first_name} ${contact.last_name}`;
+      const initials = contact.person ? 
+        `${contact.person.firstName[0]}${contact.person.lastName[0]}` :
+        `${contact.first_name[0]}${contact.last_name[0]}`;
       
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={contact.person.avatar} />
+            <AvatarImage src={contact.person?.avatar} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="font-medium">{fullName}</div>
-            <div className="text-sm text-muted-foreground">{contact.relationship}</div>
+            <div className="text-sm text-muted-foreground">{contact.type}</div>
           </div>
         </div>
       );
@@ -100,35 +104,31 @@ const columns: ColumnDef<Contact>[] = [
   {
     accessorKey: "contact",
     header: "Contact",
-    cell: ({ row }) => (
-      <div className="space-y-1">
-        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-          <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{row.original.person.email}</span>
+    cell: ({ row }) => {
+      const contact = row.original;
+      const email = contact.person?.email || contact.email;
+      const phone = contact.person?.phoneMobile || contact.phone;
+      
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{email || "—"}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+            <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
+            <span className="truncate">{phone || "—"}</span>
+          </div>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-          <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-          <span className="truncate">{row.original.person.phoneMobile}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "company",
-    header: "Company",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1 text-sm">
-        <User className="h-3 w-3 text-muted-foreground" />
-        <span>{row.original.person.company || "—"}</span>
-      </div>
-    ),
+      );
+    },
   },
   {
     accessorKey: "tags",
     header: "Tags",
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
-        {row.original.tags?.slice(0, 2).map((tag, index) => (
+        {row.original.tags?.slice(0, 2).map((tag: string, index: number) => (
           <span
             key={index}
             className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-accent/20 text-accent-foreground"
@@ -143,6 +143,19 @@ const columns: ColumnDef<Contact>[] = [
         )}
       </div>
     ),
+  },
+  {
+    accessorKey: "lead_created_date",
+    header: "Lead Created Date",
+    cell: ({ row }) => {
+      const date = row.original.lead_created_date;
+      return (
+        <span className="text-sm">
+          {date ? new Date(date).toLocaleDateString() : "—"}
+        </span>
+      );
+    },
+    sortable: true,
   },
   {
     accessorKey: "source",
@@ -191,8 +204,7 @@ export default function BorrowerList() {
   const loadContacts = async () => {
     try {
       const allContacts = await databaseService.getContacts();
-      const borrowerContacts = allContacts.filter(contact => contact.type === 'Borrower');
-      setContacts(borrowerContacts);
+      setContacts(allContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast({
@@ -222,9 +234,9 @@ export default function BorrowerList() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">All Contacts</h1>
+        <h1 className="text-2xl font-bold text-foreground">Master Contact List</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {activeBorrowers} active borrowers • {totalDeals} total deals • {prospects} prospects
+          {displayData.length} total contacts • {activeBorrowers} active • {prospects} prospects
         </p>
       </div>
 
@@ -280,22 +292,20 @@ export default function BorrowerList() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Borrower Directory</span>
+          <CardTitle>All Contacts</CardTitle>
+          <div className="flex gap-2 items-center">
             <Button 
               size="sm" 
               className="bg-primary hover:bg-primary/90"
               onClick={() => setShowCreateModal(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add
+              Add Contacts
             </Button>
-          </CardTitle>
-          <div className="flex gap-2 items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search borrowers..."
+                placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -317,11 +327,10 @@ export default function BorrowerList() {
         </CardContent>
       </Card>
       
-      <CreateContactModal
+        <CreateContactModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onContactCreated={handleContactCreated}
-        defaultType="borrower"
       />
     </div>
   );

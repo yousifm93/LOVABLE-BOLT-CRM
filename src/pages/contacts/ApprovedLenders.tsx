@@ -1,185 +1,218 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building, Star } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Building, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
+import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 interface Lender {
-  id: number;
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  licenseNumber: string;
-  rating: number;
-  programs: string[];
-  status: "Active" | "Inactive";
-  lastContact: string;
-  volume: string;
+  id: string;
+  lender_name: string;
+  lender_type: "Conventional" | "Non-QM" | "Private";
+  account_executive?: string;
+  account_executive_email?: string;
+  account_executive_phone?: string;
+  broker_portal_url?: string;
+  status: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const lendersData: Lender[] = [
+const fallbackLendersData: Lender[] = [
   {
-    id: 1,
-    name: "Michael Johnson",
-    company: "First National Bank",
-    email: "michael.j@firstnational.com",
-    phone: "(555) 123-4567",
-    licenseNumber: "LIC123456",
-    rating: 4.8,
-    programs: ["Conventional", "FHA", "VA"],
+    id: "1",
+    lender_name: "Angel Oak Mortgage",
+    lender_type: "Non-QM",
+    account_executive: "Michael Johnson",
+    account_executive_email: "michael.j@angeloak.com",
+    account_executive_phone: "(555) 123-4567",
+    broker_portal_url: "https://portal.angeloak.com",
     status: "Active",
-    lastContact: "2024-01-15",
-    volume: "$25.2M"
+    created_at: "2024-01-15",
+    updated_at: "2024-01-15"
   },
   {
-    id: 2,
-    name: "Sarah Williams",
-    company: "Community Credit Union",
-    email: "sarah.w@communitycu.com",
-    phone: "(555) 234-5678",
-    licenseNumber: "LIC789012",
-    rating: 4.6,
-    programs: ["Conventional", "USDA", "Jumbo"],
+    id: "2",
+    lender_name: "Champions Mortgage",
+    lender_type: "Conventional",
+    account_executive: "Sarah Williams",
+    account_executive_email: "sarah.w@champions.com",
+    account_executive_phone: "(555) 234-5678",
+    broker_portal_url: "https://broker.champions.com",
     status: "Active",
-    lastContact: "2024-01-18",
-    volume: "$18.7M"
+    created_at: "2024-01-18",
+    updated_at: "2024-01-18"
   },
   {
-    id: 3,
-    name: "David Chen",
-    company: "Metro Mortgage Solutions",
-    email: "david.c@metromortgage.com",
-    phone: "(555) 345-6789",
-    licenseNumber: "LIC345678",
-    rating: 4.9,
-    programs: ["FHA", "VA", "Conventional"],
+    id: "3",
+    lender_name: "Fund Loans",
+    lender_type: "Private",
+    account_executive: "David Chin",
+    account_executive_email: "david.c@fundloans.com",
+    account_executive_phone: "(555) 345-6789",
+    broker_portal_url: "https://portal.fundloans.com",
     status: "Active",
-    lastContact: "2024-01-20",
-    volume: "$31.4M"
+    created_at: "2024-01-20",
+    updated_at: "2024-01-20"
   }
-];
-
-const columns: ColumnDef<Lender>[] = [
-  {
-    accessorKey: "name",
-    header: "Lender Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "company",
-    header: "Company",
-    cell: ({ row }) => (
-      <div className="flex items-center">
-        <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-        {row.original.company}
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="space-y-1">
-        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-          <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "licenseNumber",
-    header: "License #",
-    sortable: true,
-  },
-  {
-    accessorKey: "rating",
-    header: "Rating",
-    cell: ({ row }) => (
-      <div className="flex items-center">
-        <Star className="h-4 w-4 mr-1 text-warning fill-current" />
-        <span className="font-medium">{row.original.rating}</span>
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "programs",
-    header: "Programs",
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.programs.map((program) => (
-          <span key={program} className="px-2 py-1 text-xs bg-muted rounded-md">
-            {program}
-          </span>
-        ))}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "volume",
-    header: "Volume",
-    cell: ({ row }) => (
-      <span className="font-semibold text-success">{row.original.volume}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge status={row.original.status} />
-    ),
-    sortable: true,
-  },
 ];
 
 export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadContacts();
+    loadLenders();
   }, []);
 
-  const loadContacts = async () => {
+  const loadLenders = async () => {
     try {
-      const allContacts = await databaseService.getContacts();
-      const lenderContacts = allContacts.filter(contact => contact.type === 'Other');
-      setContacts(lenderContacts);
+      const lenderData = await databaseService.getLenders();
+      setLenders(lenderData);
     } catch (error) {
-      console.error('Error loading contacts:', error);
+      console.error('Error loading lenders:', error);
       toast({
         title: "Error",
-        description: "Failed to load contacts.",
+        description: "Failed to load lenders.",
         variant: "destructive"
       });
-      setContacts(lendersData); // Fallback to mock data
+      setLenders(fallbackLendersData); // Fallback to mock data
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleContactCreated = (newContact: any) => {
-    setContacts(prev => [...prev, newContact]);
+  const handleUpdateLender = async (id: string, updates: Partial<Lender>) => {
+    try {
+      await databaseService.updateLender(id, updates);
+      setLenders(prev => prev.map(lender => 
+        lender.id === id ? { ...lender, ...updates } : lender
+      ));
+      toast({
+        title: "Success",
+        description: "Lender updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating lender:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update lender.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRowClick = (lender: any) => {
+  const handleSendEmail = (lender: Lender) => {
+    if (lender.account_executive_email) {
+      const subject = `Inquiry from ${lender.lender_name}`;
+      const body = `Hello ${lender.account_executive},\n\nI wanted to reach out regarding potential loan opportunities.\n\nBest regards`;
+      const mailto = `mailto:${lender.account_executive_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailto);
+    }
+  };
+
+  const handleContactCreated = (newContact: any) => {
+    loadLenders(); // Reload lenders after creation
+  };
+
+  const handleRowClick = (lender: Lender) => {
     console.log("Selected lender:", lender);
   };
+
+  const columns: ColumnDef<Lender>[] = [
+    {
+      accessorKey: "lender_name",
+      header: "Lender Name",
+      cell: ({ row }) => (
+        <div className="flex items-center">
+          <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+          <span className="font-medium">{row.original.lender_name}</span>
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "lender_type",
+      header: "Lender Type",
+      cell: ({ row }) => (
+        <InlineEditLenderType
+          value={row.original.lender_type}
+          onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" })}
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "account_executive",
+      header: "Account Executive",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.account_executive || "—"}</span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "contact",
+      header: "Account Executive Contact",
+      cell: ({ row }) => (
+        <div className="space-y-1">
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{row.original.account_executive_email || "—"}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+            <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span className="truncate">{row.original.account_executive_phone || "—"}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "broker_portal_url",
+      header: "Broker Portal",
+      cell: ({ row }) => (
+        <InlineEditLink
+          value={row.original.broker_portal_url}
+          onValueChange={(value) => handleUpdateLender(row.original.id, { broker_portal_url: value })}
+          placeholder="Portal URL"
+        />
+      ),
+    },
+    {
+      accessorKey: "send_email",
+      header: "Send Email",
+      cell: ({ row }) => (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSendEmail(row.original);
+          }}
+          disabled={!row.original.account_executive_email}
+        >
+          <Mail className="h-3 w-3 mr-1" />
+          Email
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <StatusBadge status={row.original.status} />
+      ),
+      sortable: true,
+    },
+  ];
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
@@ -210,7 +243,7 @@ export default function ApprovedLenders() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={contacts.length > 0 ? contacts : lendersData}
+            data={lenders}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
           />

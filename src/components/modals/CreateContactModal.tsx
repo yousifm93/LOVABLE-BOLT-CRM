@@ -110,6 +110,9 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
               <SelectContent>
                 <SelectItem value="Borrower">Borrower</SelectItem>
                 <SelectItem value="Agent">Agent</SelectItem>
+                <SelectItem value="Real Estate Agent">Real Estate Agent</SelectItem>
+                <SelectItem value="Prospect">Prospect</SelectItem>
+                <SelectItem value="Third Party">Third Party</SelectItem>
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
