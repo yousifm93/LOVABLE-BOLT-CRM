@@ -11,6 +11,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -118,7 +119,8 @@ const createColumns = (
   users: any[], 
   lenders: any[], 
   agents: any[], 
-  handleUpdate: (id: string, field: string, value: any) => void
+  handleUpdate: (id: string, field: string, value: any) => void,
+  handleRowClick: (loan: ActiveLoan) => void
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
@@ -128,8 +130,7 @@ const createColumns = (
         className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors whitespace-nowrap"
         onClick={(e) => {
           e.stopPropagation();
-          // This will be connected to open ClientDetailDrawer
-          console.log("Opening lead details for:", row.original);
+          handleRowClick(row.original);
         }}
       >
         {`${row.original.first_name} ${row.original.last_name}`}
@@ -443,6 +444,8 @@ export default function Active() {
   const [lenders, setLenders] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -500,7 +503,51 @@ export default function Active() {
     }
   };
 
-  const columns = createColumns(users, lenders, agents, handleUpdate);
+  const handleRowClick = (loan: ActiveLoan) => {
+    // Convert ActiveLoan to CRMClient for the drawer
+    const crmClient: CRMClient = {
+      person: {
+        id: parseInt(loan.id),
+        firstName: loan.first_name,
+        lastName: loan.last_name,
+        email: "", // ActiveLoan doesn't have email, will be empty
+        phoneMobile: "" // ActiveLoan doesn't have phone, will be empty
+      },
+      loan: {
+        loanAmount: loan.loan_amount ? `$${loan.loan_amount.toLocaleString()}` : "",
+        loanType: loan.pr_type || "Purchase",
+        prType: loan.pr_type || "",
+        closeDate: loan.close_date,
+        disclosureStatus: loan.disclosure_status
+      },
+      ops: {
+        stage: "active",
+        status: loan.loan_status || "NEW",
+        priority: "High"
+      },
+      dates: {
+        createdOn: new Date().toISOString(), // ActiveLoan doesn't have creation date
+        appliedOn: new Date().toISOString()
+      },
+      meta: {},
+      name: `${loan.first_name} ${loan.last_name}`,
+      teammateAssigned: loan.teammate?.first_name && loan.teammate?.last_name 
+        ? `${loan.teammate.first_name} ${loan.teammate.last_name}` 
+        : undefined,
+      buyersAgent: loan.buyer_agent?.first_name && loan.buyer_agent?.last_name
+        ? `${loan.buyer_agent.first_name} ${loan.buyer_agent.last_name}`
+        : undefined
+    };
+    setSelectedClient(crmClient);
+    setIsDrawerOpen(true);
+  };
+
+  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
+    setIsDrawerOpen(false);
+  };
+
+  const columns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
 
   // Group loans by pipeline section
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
@@ -571,6 +618,19 @@ export default function Active() {
           defaultOpen={false}
         />
       </div>
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          client={selectedClient}
+          isOpen={isDrawerOpen}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
+          onStageChange={handleStageChange}
+          pipelineType="active"
+        />
+      )}
     </div>
   );
 }
