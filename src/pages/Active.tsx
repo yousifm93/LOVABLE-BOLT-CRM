@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ColumnDef } from "@/components/ui/data-table";
+import { ColumnDef } from "@/components/ui/resizable-data-table";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -137,6 +137,8 @@ const createColumns = (
       </div>
     ),
     sortable: true,
+    defaultWidth: 12,
+    minWidth: 8,
   },
   {
     accessorKey: "team",
@@ -152,6 +154,8 @@ const createColumns = (
       />
     ),
     sortable: true,
+    defaultWidth: 8,
+    minWidth: 6,
   },
   {
     accessorKey: "lender",
@@ -172,6 +176,8 @@ const createColumns = (
       />
     ),
     sortable: true,
+    defaultWidth: 10,
+    minWidth: 8,
   },
   {
     accessorKey: "arrive_loan_number",
@@ -600,6 +606,7 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={true}
+          useResizableTable={true}
         />
         
         <CollapsiblePipelineSection
@@ -608,6 +615,7 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={false}
+          useResizableTable={true}
         />
         
         <CollapsiblePipelineSection
@@ -616,6 +624,7 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={false}
+          useResizableTable={true}
         />
       </div>
 

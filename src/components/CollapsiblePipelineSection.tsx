@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { ResizableDataTable } from "@/components/ui/resizable-data-table";
 import { cn } from "@/lib/utils";
 
 interface CollapsiblePipelineSectionProps {
@@ -12,6 +13,7 @@ interface CollapsiblePipelineSectionProps {
   searchTerm: string;
   defaultOpen?: boolean;
   className?: string;
+  useResizableTable?: boolean;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -20,7 +22,8 @@ export function CollapsiblePipelineSection({
   columns, 
   searchTerm, 
   defaultOpen = true,
-  className 
+  className,
+  useResizableTable = false 
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -51,12 +54,21 @@ export function CollapsiblePipelineSection({
       
       {isOpen && (
         <CardContent className="pt-0">
-          <DataTable
-            columns={columns}
-            data={data}
-            searchTerm={searchTerm}
-            onRowClick={(row) => console.log("Row clicked:", row)}
-          />
+          {useResizableTable ? (
+            <ResizableDataTable
+              columns={columns}
+              data={data}
+              searchTerm={searchTerm}
+              onRowClick={(row) => console.log("Row clicked:", row)}
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={data}
+              searchTerm={searchTerm}
+              onRowClick={(row) => console.log("Row clicked:", row)}
+            />
+          )}
         </CardContent>
       )}
     </Card>
