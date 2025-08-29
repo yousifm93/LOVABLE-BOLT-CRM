@@ -36,7 +36,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     "Initial loan consultation completed. Client is interested in a 30-year fixed rate mortgage.",
     "Credit score pulled - 720. Good standing for preferred rates.",
     "Client prefers closing in March to align with lease expiration.",
-    "Discussed down payment options and PMI requirements."
+    "Discussed down payment options and PMI requirements.",
+    "Property inspection scheduled for next Tuesday. Client confirmed availability."
   ]);
   const [documents, setDocuments] = useState<any[]>([
     { id: 1, name: "W2_2023.pdf", size: 245760, uploadDate: "2024-01-10", type: "application/pdf" },
@@ -353,19 +354,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
+                    <button 
+                      onClick={handleDrawerClose}
+                      className="flex items-center justify-center"
+                    >
+                      <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                        <AvatarImage src={client.person.avatar} />
+                        <AvatarFallback className="bg-orange-500 text-white font-semibold text-sm">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
                     <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
                   </div>
-                  <button 
-                    onClick={handleDrawerClose}
-                    className="flex items-center justify-center"
-                  >
-                    <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                      <AvatarImage src={client.person.avatar} />
-                      <AvatarFallback className="bg-orange-500 text-white font-semibold text-sm">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
                 </div>
                 <div className="flex gap-2 mb-3">
                   <Button variant="outline" size="default" className="px-4 py-2">
@@ -381,29 +382,26 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   {/* Left Column - Contact Info */}
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Contact Information</p>
+                      <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-3 w-3 text-muted-foreground" />
                         <span>(352) 328-9828</span>
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
+                      <p className="text-xs text-muted-foreground mb-1">Email</p>
                       <div className="flex items-center gap-2 text-sm">
                         <Mail className="h-3 w-3 text-muted-foreground" />
                         <span>{client.person.email}</span>
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Email</p>
+                      <p className="text-xs text-muted-foreground mb-1">Buyer's Agent</p>
                       <div className="flex items-center gap-2 text-sm">
                         <User className="h-3 w-3 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">Buyer's Agent</p>
-                          <button className="text-primary hover:underline text-sm">
-                            Sarah Johnson
-                          </button>
-                        </div>
+                        <button className="text-primary hover:underline text-sm">
+                          Sarah Johnson
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -755,7 +753,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Stage History</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[300px] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
                 <div className="flex items-center gap-3 text-sm">
                   <div className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold">
                     ✓
