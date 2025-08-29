@@ -7,6 +7,9 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -180,7 +183,36 @@ export default function TasksModern() {
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<any[]>([]);
   const [userFilter, setUserFilter] = useState<string>("");
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { toast } = useToast();
+
+  // Filter columns definition for the filter builder
+  const filterColumns = [
+    { 
+      value: 'priority', 
+      label: 'Priority', 
+      type: 'select' as const, 
+      options: ['High', 'Medium', 'Low'] 
+    },
+    { 
+      value: 'status', 
+      label: 'Status', 
+      type: 'select' as const, 
+      options: ['Working on it', 'Done', 'Need help'] 
+    },
+    { 
+      value: 'assignee_id', 
+      label: 'Assigned To', 
+      type: 'select' as const, 
+      options: USERS.map(u => u.first_name)
+    },
+    { 
+      value: 'due_date', 
+      label: 'Due Date', 
+      type: 'date' as const
+    }
+  ];
 
   const loadTasks = async () => {
     try {
@@ -240,26 +272,70 @@ export default function TasksModern() {
     }
   };
 
-  // Filter tasks by search term and user filter
-  const filteredTasks = tasks.filter(task => {
-    // Search term filter
+  // Apply advanced filters
+  const applyAdvancedFilters = (tasks: ModernTask[], filters: FilterCondition[]) => {
+    return tasks.filter(task => {
+      return filters.every(filter => {
+        let taskValue: any;
+        
+        switch (filter.column) {
+          case 'priority':
+            taskValue = task.priority;
+            break;
+          case 'status':
+            taskValue = task.status;
+            break;
+          case 'assignee_id':
+            const assignee = USERS.find(u => u.id === task.assignee_id);
+            taskValue = assignee?.first_name || '';
+            break;
+          case 'due_date':
+            taskValue = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '';
+            break;
+          default:
+            return true;
+        }
+
+        switch (filter.operator) {
+          case 'is':
+            return taskValue === filter.value;
+          case 'is_not':
+            return taskValue !== filter.value;
+          case 'contains':
+            return taskValue?.toString().toLowerCase().includes(filter.value.toString().toLowerCase());
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  // Filter tasks by search term, user filter, and advanced filters
+  const filteredTasks = (() => {
+    let result = tasks;
+
+    // Apply search term filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
+      result = result.filter(task => 
         task.title.toLowerCase().includes(searchLower) ||
         task.description?.toLowerCase().includes(searchLower) ||
-        (task.borrower?.first_name && `${task.borrower.first_name} ${task.borrower.last_name}`.toLowerCase().includes(searchLower));
-      
-      if (!matchesSearch) return false;
+        (task.borrower?.first_name && `${task.borrower.first_name} ${task.borrower.last_name}`.toLowerCase().includes(searchLower))
+      );
     }
     
-    // User filter
+    // Apply user filter
     if (userFilter) {
-      return task.assignee_id === userFilter;
+      result = result.filter(task => task.assignee_id === userFilter);
     }
     
-    return true;
-  });
+    // Apply advanced filters
+    if (filters.length > 0) {
+      result = applyAdvancedFilters(result, filters);
+    }
+    
+    return result;
+  })();
 
   // Action handlers for DataTable
   const handleViewDetails = (task: ModernTask) => {
@@ -292,6 +368,12 @@ export default function TasksModern() {
     }
   };
 
+  const clearAllFilters = () => {
+    setFilters([]);
+    setUserFilter("");
+    setSearchTerm("");
+  };
+
   const completedTasks = filteredTasks.filter(task => task.status === "Done").length;
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
@@ -308,6 +390,11 @@ export default function TasksModern() {
           {userFilter && (
             <span className="ml-2 text-primary">
               • Filtered by {USERS.find(u => u.id === userFilter)?.first_name}
+            </span>
+          )}
+          {filters.length > 0 && (
+            <span className="ml-2 text-primary">
+              • {filters.length} filter{filters.length > 1 ? 's' : ''} active
             </span>
           )}
         </p>
@@ -390,10 +477,41 @@ export default function TasksModern() {
               ))}
             </div>
             
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {filters.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                      {filters.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filter Tasks</h4>
+                    {(filters.length > 0 || userFilter || searchTerm) && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearAllFilters}
+                        className="text-xs"
+                      >
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <FilterBuilder
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    columns={filterColumns}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>

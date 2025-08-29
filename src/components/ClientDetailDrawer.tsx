@@ -447,17 +447,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         key={stage.key}
                         onClick={() => handleStageClick(stage.key)}
                         className={cn(
-                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-4",
+                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-3",
                           isActive 
                             ? "bg-yellow-400 text-black" 
                             : "bg-white text-black hover:bg-gray-50",
-                          index > 0 && "-ml-4"
+                          index > 0 && "-ml-2"
                         )}
                          style={{ 
                            zIndex: zIndex,
-                           width: "120px",
+                           width: "100px",
                            height: "48px",
-                           fontSize: "14px"
+                           fontSize: "12px"
                          }}
                       >
                         {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
