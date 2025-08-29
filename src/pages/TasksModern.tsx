@@ -56,10 +56,12 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-      <div className="w-64">
-        <div className="font-medium truncate">{row.original.title}</div>
+      <div className="w-80 min-w-80 flex-shrink-0">
+        <div className="font-medium text-sm">{row.original.title}</div>
         {row.original.description && (
-          <div className="text-sm text-muted-foreground mt-1 truncate">{row.original.description}</div>
+          <div className="text-xs text-muted-foreground mt-1 leading-relaxed break-words">
+            {row.original.description}
+          </div>
         )}
       </div>
     ),

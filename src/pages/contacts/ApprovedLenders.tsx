@@ -184,7 +184,7 @@ export default function ApprovedLenders() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Approved Lenders</h1>
+        <h1 className="text-2xl font-bold text-foreground">Lenders</h1>
         <p className="text-xs italic text-muted-foreground/70">Manage your approved lending partners</p>
       </div>
 

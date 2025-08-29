@@ -222,7 +222,7 @@ export default function BorrowerList() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Master Borrower List</h1>
+        <h1 className="text-2xl font-bold text-foreground">All Contacts</h1>
         <p className="text-xs italic text-muted-foreground/70">
           {activeBorrowers} active borrowers • {totalDeals} total deals • {prospects} prospects
         </p>

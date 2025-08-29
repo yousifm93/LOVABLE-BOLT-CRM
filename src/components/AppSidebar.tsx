@@ -57,9 +57,9 @@ const taskItems = [
 ];
 
 const contactItems = [
-  { title: "Master Agent List", url: "/contacts/agents", icon: Phone },
-  { title: "Master Borrower List", url: "/contacts/borrowers", icon: Users },
-  { title: "Approved Lenders", url: "/contacts/lenders", icon: Building },
+  { title: "Real Estate Agents", url: "/contacts/agents", icon: Phone },
+  { title: "All Contacts", url: "/contacts/borrowers", icon: Users },
+  { title: "Lenders", url: "/contacts/lenders", icon: Building },
 ];
 
 const resourceItems = [
