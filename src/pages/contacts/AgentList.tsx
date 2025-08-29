@@ -162,6 +162,7 @@ const columns: ColumnDef<Agent>[] = [
 ];
 
 export default function AgentList() {
+  console.log("AgentList component is mounting...");
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,14 +175,19 @@ export default function AgentList() {
   }, []);
 
   const loadContacts = async () => {
+    console.log("loadContacts called...");
     try {
       setError(null);
+      console.log("About to call databaseService.getContacts()...");
       const allContacts = await databaseService.getContacts();
+      console.log("Got contacts from database:", allContacts);
       const agentContacts = allContacts.filter(contact => contact.type === 'Agent');
+      console.log("Filtered agent contacts:", agentContacts);
       setContacts(agentContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       setError(`Failed to load contacts: ${error}`);
+      console.log("Setting fallback data...");
       toast({
         title: "Error", 
         description: "Failed to load contacts.",
@@ -189,6 +195,7 @@ export default function AgentList() {
       });
       setContacts(agentData); // Fallback to mock data
     } finally {
+      console.log("loadContacts finished");
       setIsLoading(false);
     }
   };

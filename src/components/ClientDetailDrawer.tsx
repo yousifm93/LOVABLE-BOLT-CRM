@@ -451,7 +451,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                           isActive 
                             ? "bg-yellow-400 text-black" 
                             : "bg-white text-black hover:bg-gray-50",
-                          index > 0 && "-ml-2"
+                          index > 0 && "-ml-1"
                         )}
                          style={{ 
                            zIndex: zIndex,
