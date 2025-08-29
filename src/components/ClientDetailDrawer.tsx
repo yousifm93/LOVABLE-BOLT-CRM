@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { CRMClient, PipelineStage, PIPELINE_STAGES, Activity, Task, Document } from "@/types/crm";
+import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, Task, Document } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
@@ -334,6 +334,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
   const handleDrawerClose = () => {
     setNewNote("");
+    setShowCreateTaskModal(false);
+    setShowCallLogModal(false);
+    setShowSmsLogModal(false);
+    setShowEmailLogModal(false);
+    setShowAddNoteModal(false);
     onClose();
   };
 
@@ -432,9 +437,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-center">
-                  {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
+                  {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
                     const isActive = client.ops.stage === stage.key;
-                    const currentStageIndex = PIPELINE_STAGES.findIndex(s => s.key === client.ops.stage);
+                    const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
                     // Z-index: higher for stages to the left, active gets highest
                     const zIndex = isActive ? 25 : 20 - index;
                     return (
@@ -469,7 +474,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             </Card>
 
             {/* Notes Section */}
-            <Card>
+            <Card className="bg-gray-50">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold">Notes</CardTitle>
@@ -703,7 +708,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* Document Upload */}
 
             {/* Document Upload */}
-            <Card>
+            <Card className="bg-gray-50">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   Documents
@@ -774,13 +779,34 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardHeader>
               <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
                 {(() => {
-                  const stages = [
-                    { key: 'leads', label: 'Lead', date: '2024-01-08', daysAgo: 10 },
-                    { key: 'pending-app', label: 'Pending App', date: '2024-01-10', daysAgo: 8 },
-                    { key: 'screening', label: 'Screening', date: '2024-01-12', daysAgo: 6 },
-                    { key: 'pre-qualified', label: 'Pre-Qualified', date: '2024-01-15', daysAgo: 3 },
-                    { key: 'pre-approved', label: 'Pre-Approved', date: '', daysAgo: null }
-                  ];
+                  const getStageHistory = () => {
+                    if (pipelineType === 'active') {
+                      return [
+                        { key: 'incoming', label: 'Incoming', date: '2024-01-08', daysAgo: 10 },
+                        { key: 'rfp', label: 'RFP', date: '2024-01-10', daysAgo: 8 },
+                        { key: 'submitted', label: 'Submitted', date: '2024-01-12', daysAgo: 6 },
+                        { key: 'awc', label: 'AWC', date: '2024-01-15', daysAgo: 3 },
+                        { key: 'ctc', label: 'CTC', date: '', daysAgo: null },
+                        { key: 'closing', label: 'Closing Day', date: '', daysAgo: null }
+                      ];
+                    } else if (pipelineType === 'past-clients') {
+                      return [
+                        { key: 'placeholder1', label: 'Stage 1', date: '2024-01-08', daysAgo: 10 },
+                        { key: 'placeholder2', label: 'Stage 2', date: '2024-01-10', daysAgo: 8 },
+                        { key: 'placeholder3', label: 'Stage 3', date: '2024-01-12', daysAgo: 6 },
+                        { key: 'placeholder4', label: 'Stage 4', date: '2024-01-15', daysAgo: 3 }
+                      ];
+                    } else {
+                      return [
+                        { key: 'leads', label: 'Lead', date: '2024-01-08', daysAgo: 10 },
+                        { key: 'pending-app', label: 'Pending App', date: '2024-01-10', daysAgo: 8 },
+                        { key: 'screening', label: 'Screening', date: '2024-01-12', daysAgo: 6 },
+                        { key: 'pre-qualified', label: 'Pre-Qualified', date: '2024-01-15', daysAgo: 3 },
+                        { key: 'pre-approved', label: 'Pre-Approved', date: '', daysAgo: null }
+                      ];
+                    }
+                  };
+                  const stages = getStageHistory();
                   
                   const currentStageIndex = stages.findIndex(stage => stage.key === client.ops.stage);
                   
