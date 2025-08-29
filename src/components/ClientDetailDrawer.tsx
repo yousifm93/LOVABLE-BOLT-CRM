@@ -193,7 +193,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
           </div>
 
           {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 mb-6">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
