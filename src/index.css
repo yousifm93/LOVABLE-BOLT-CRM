@@ -144,6 +144,37 @@ All colors MUST be HSL.
   }
 }
 
+/* Compact table styling */
+.table-compact td {
+  padding: 6px 8px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.875rem;
+}
+
+.table-compact th {
+  padding: 6px 8px !important;
+  font-size: 0.875rem;
+}
+
+/* Column width constraints */
+.w-narrow {
+  width: 70px;
+  max-width: 70px;
+}
+
+.w-medium {
+  width: 100px;
+  max-width: 100px;
+}
+
+/* Hover effects */
+.borrower-hover:hover {
+  color: hsl(var(--warning)) !important;
+  transition: color 0.2s ease-in-out;
+}
+
 /* Compact table styles for pipeline */
 .pipeline-table th,
 .pipeline-table td {
