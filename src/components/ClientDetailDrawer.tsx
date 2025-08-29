@@ -56,66 +56,78 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     switch (stage) {
       case 'leads':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Lead Status</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Lead Status</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Lead qualification: {client.ops.status || 'Working on it'}</div>
               <div>• Priority level: {client.ops.priority || 'Medium'}</div>
               <div>• Referral source: {client.ops.referralSource || 'N/A'}</div>
+              <div>• Contact preference: Phone/Email</div>
+              <div>• Follow-up required: Yes</div>
             </div>
           </div>
         );
       case 'pending-app':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Application Review</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Application Review</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Review progress: {(client as any).progress || 0}%</div>
               <div>• Status: {client.ops.status || 'Pending'}</div>
               <div>• Missing documents: Credit report, Income verification</div>
+              <div>• Estimated completion: 3-5 business days</div>
+              <div>• Assigned processor: Team Lead</div>
             </div>
           </div>
         );
       case 'screening':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Initial Verification</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Income type: {(client as any).incomeType || 'W2'}</div>
               <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
               <div>• Verification status: In progress</div>
+              <div>• Credit score range: 720-750</div>
+              <div>• Documentation complete: 75%</div>
             </div>
           </div>
         );
       case 'pre-qualified':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Pre-Qualification Details</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
               <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
               <div>• Expires: {(client as any).expirationDate || 'N/A'}</div>
+              <div>• Interest rate range: 6.5% - 7.0%</div>
+              <div>• Next step: Pre-approval documentation</div>
             </div>
           </div>
         );
       case 'pre-approved':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Pre-Approval Status</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Shopping status: {client.ops.status || 'New'}</div>
               <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
               <div>• Agreement: {(client as any).buyersAgreement || 'Pending'}</div>
+              <div>• House hunting active: Yes</div>
+              <div>• Rate lock available: 60 days</div>
             </div>
           </div>
         );
       default:
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
-            <h4 className="font-medium text-sm mb-2">Status Information</h4>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/50 min-h-[120px]">
+            <h4 className="font-medium text-sm mb-3">Status Information</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Current status: {client.ops.status || 'Active'}</div>
               <div>• Priority: {client.ops.priority || 'Medium'}</div>
+              <div>• Last updated: Today</div>
+              <div>• Assigned team: Primary</div>
             </div>
           </div>
         );
@@ -332,57 +344,66 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-white p-6">
-          <div className="flex items-center justify-between mb-6">
-            
-            <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+        <div className="sticky top-0 z-10 bg-white p-4 pt-2">
 
           {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 mb-3">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 mb-3 mt-2">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={client.person.avatar} />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h2 className="text-lg font-bold text-foreground">{fullName}</h2>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
+                  </div>
+                  <button 
+                    onClick={handleDrawerClose}
+                    className="flex items-center justify-center"
+                  >
+                    <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarImage src={client.person.avatar} />
+                      <AvatarFallback className="bg-orange-500 text-white font-semibold text-sm">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
                 </div>
-                <div className="flex gap-2 mb-2">
-                  <Button variant="outline" size="sm">
+                <div className="flex gap-2 mb-3">
+                  <Button variant="outline" size="default" className="px-4 py-2">
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="default" className="px-4 py-2">
                     Delete
                   </Button>
                 </div>
-                <CardTitle className="text-sm font-medium text-muted-foreground">Contact Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   {/* Left Column - Contact Info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-3 w-3 text-muted-foreground" />
-                      <span>(352) 328-9828</span>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Contact Information</p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span>(352) 328-9828</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-3 w-3 text-muted-foreground" />
-                      <span>{client.person.email}</span>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span>{client.person.email}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Buyer's Agent</p>
-                        <button className="text-primary hover:underline text-sm">
-                          Sarah Johnson
-                        </button>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Email</p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Buyer's Agent</p>
+                          <button className="text-primary hover:underline text-sm">
+                            Sarah Johnson
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -415,6 +436,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <div className="flex items-center justify-center">
                   {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
                     const isActive = client.ops.stage === stage.key;
+                    const currentStageIndex = PIPELINE_STAGES.findIndex(s => s.key === client.ops.stage);
+                    // Z-index: higher for stages to the left, active gets highest
+                    const zIndex = isActive ? 25 : 20 - index;
                     return (
                       <button
                         key={stage.key}
@@ -422,12 +446,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                         className={cn(
                           "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-4",
                           isActive 
-                            ? "bg-yellow-400 text-black z-20" 
+                            ? "bg-yellow-400 text-black" 
                             : "bg-white text-black hover:bg-gray-50",
                           index > 0 && "-ml-4"
                         )}
                         style={{ 
-                          zIndex: isActive ? 20 : 10 - index,
+                          zIndex: zIndex,
                           width: "150px",
                           height: "48px",
                           fontSize: "14px"
@@ -443,15 +467,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <div className="mt-4">
                   {renderCriticalStatusInfo()}
                 </div>
-                
-                <input
-                  id="document-upload"
-                  type="file"
-                  multiple
-                  onChange={handleDocumentUpload}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                />
               </CardContent>
             </Card>
 
@@ -471,7 +486,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="max-h-40 overflow-y-auto space-y-3">
+                <div className="max-h-[160px] overflow-y-auto space-y-3">
                   <div className="space-y-1">
                     <button className="text-primary hover:underline text-sm font-medium">
                       Initial loan consultation
@@ -512,7 +527,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         </div>
 
         {/* Main Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-320px)] p-6 pt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-280px)] p-4 pt-0">
           {/* Left Column - Tasks and Chat */}
           <div className="space-y-4 overflow-y-auto">
 
@@ -669,17 +684,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                     Upload Doc
                   </Button>
                 </div>
-                
-                <input
-                  id="document-upload"
-                  type="file"
-                  multiple
-                  onChange={handleDocumentUpload}
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                />
               </CardHeader>
-              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+              <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
                 {activities.length > 0 ? (
                   activities.map((activity) => (
                     <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-3">
