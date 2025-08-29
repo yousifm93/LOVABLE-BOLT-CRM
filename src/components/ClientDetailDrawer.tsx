@@ -32,8 +32,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [notes, setNotes] = useState<string[]>([
+    "Initial loan consultation completed. Client is interested in a 30-year fixed rate mortgage.",
+    "Credit score pulled - 720. Good standing for preferred rates.",
+    "Client prefers closing in March to align with lease expiration.",
+    "Discussed down payment options and PMI requirements."
+  ]);
+  const [documents, setDocuments] = useState<any[]>([
+    { id: 1, name: "W2_2023.pdf", size: 245760, uploadDate: "2024-01-10", type: "application/pdf" },
+    { id: 2, name: "Pay_Stub_Dec_2023.pdf", size: 156342, uploadDate: "2024-01-12", type: "application/pdf" },
+    { id: 3, name: "Bank_Statement_Nov.pdf", size: 423187, uploadDate: "2024-01-15", type: "application/pdf" },
+    { id: 4, name: "Property_Photos.jpg", size: 2847563, uploadDate: "2024-01-16", type: "image/jpeg" },
+    { id: 5, name: "Purchase_Agreement.docx", size: 87432, uploadDate: "2024-01-18", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
+  ]);
   const [chatMessage, setChatMessage] = useState('');
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
@@ -125,15 +136,56 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
           type: 'call',
           title: 'Phone call completed',
           description: 'Discussed loan terms and next steps',
-          timestamp: '2024-01-15T10:30:00Z',
+          timestamp: '2024-01-18T10:30:00Z',
           user: 'Yousif'
         },
         {
           id: 2,
           type: 'email',
           title: 'Pre-approval letter sent',
-          timestamp: '2024-01-14T15:45:00Z',
+          description: 'Sent conditional pre-approval letter with terms',
+          timestamp: '2024-01-17T15:45:00Z',
           user: 'System'
+        },
+        {
+          id: 3,
+          type: 'note',
+          title: 'Document review completed',
+          description: 'Reviewed all submitted financial documents. Everything looks good.',
+          timestamp: '2024-01-16T14:20:00Z',
+          user: 'Salma'
+        },
+        {
+          id: 4,
+          type: 'sms',
+          title: 'SMS reminder sent',
+          description: 'Reminded client about upcoming appraisal appointment',
+          timestamp: '2024-01-15T09:15:00Z',
+          user: 'Herman Daza'
+        },
+        {
+          id: 5,
+          type: 'call',
+          title: 'Follow-up call',
+          description: 'Checked in on client questions about closing costs',
+          timestamp: '2024-01-14T16:30:00Z',
+          user: 'Yousif'
+        },
+        {
+          id: 6,
+          type: 'email',
+          title: 'Rate lock confirmation',
+          description: 'Confirmed 30-day rate lock at 6.875%',
+          timestamp: '2024-01-12T11:00:00Z',
+          user: 'System'
+        },
+        {
+          id: 7,
+          type: 'note',
+          title: 'Initial consultation',
+          description: 'Met with client to discuss loan options and timeline',
+          timestamp: '2024-01-10T13:45:00Z',
+          user: 'Yousif'
         }
       ]);
     }
@@ -152,7 +204,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       id: 2,
       title: 'Schedule property appraisal',
       dueDate: '2024-01-18',
-      completed: false,
+      completed: true,
       assignee: 'Herman Daza'
     },
     {
@@ -161,6 +213,29 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       dueDate: '2024-01-22',
       completed: false,
       assignee: 'Yousif'
+    },
+    {
+      id: 4,
+      title: 'Verify employment status',
+      dueDate: '2024-01-25',
+      completed: false,
+      assignee: 'Salma',
+      priority: 'Medium'
+    },
+    {
+      id: 5,
+      title: 'Review insurance quotes',
+      dueDate: '2024-01-28',
+      completed: false,
+      assignee: 'Herman Daza'
+    },
+    {
+      id: 6,
+      title: 'Final loan package review',
+      dueDate: '2024-02-01',
+      completed: false,
+      assignee: 'Yousif',
+      priority: 'High'
     }
   ];
 
@@ -184,7 +259,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b bg-white p-6">
+        <div className="sticky top-0 z-10 bg-white p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-semibold">Lead Details</h1>
             <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
@@ -234,16 +309,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                         key={stage.key}
                         onClick={() => handleStageClick(stage.key)}
                         className={cn(
-                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
+                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-4",
                           isActive 
                             ? "bg-yellow-400 text-black z-20" 
                             : "bg-white text-black hover:bg-gray-50",
-                          index > 0 && "-ml-3"
+                          index > 0 && "-ml-4"
                         )}
                         style={{ 
                           zIndex: isActive ? 20 : 10 - index,
-                          width: "100px",
-                          height: "32px"
+                          width: "150px",
+                          height: "64px",
+                          fontSize: "10px"
                         }}
                       >
                         {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
@@ -332,7 +408,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {mockTasks.slice(0, 4).map((task) => (
+                {mockTasks.slice(0, 6).map((task) => (
                   <div key={task.id} className="flex items-center gap-2 text-sm">
                     <button
                       onClick={() => handleTaskToggle(task.id)}
@@ -365,14 +441,24 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span>Lead Created</span>
-                    <span className="text-muted-foreground">
-                      {client.dates.createdOn ? new Date(client.dates.createdOn).toLocaleDateString() : 'N/A'}
-                    </span>
+                    <span>Lead</span>
+                    <span className="text-muted-foreground">Jan 10, 2024</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span>Current Stage</span>
-                    <span className="text-muted-foreground capitalize">{client.ops.stage}</span>
+                    <span>Pending App</span>
+                    <span className="text-muted-foreground">Jan 12, 2024</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Screening</span>
+                    <span className="text-muted-foreground">Jan 15, 2024</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Pre-Qualified</span>
+                    <span className="text-muted-foreground">Jan 18, 2024</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Pre-Approved</span>
+                    <span className="text-muted-foreground">Jan 22, 2024</span>
                   </div>
                 </div>
               </CardContent>
@@ -514,8 +600,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <CardTitle className="text-lg">Chat with Borrower</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="bg-muted p-3 rounded text-sm min-h-[100px]">
-                  <p className="text-muted-foreground">Chat functionality coming soon...</p>
+                <div className="bg-muted p-3 rounded text-sm min-h-[200px] max-h-[200px] overflow-y-auto space-y-3">
+                  <div className="bg-white p-2 rounded-r-lg rounded-tl-lg ml-4">
+                    <p className="text-sm">Hi! I had a question about the appraisal timeline.</p>
+                    <span className="text-xs text-muted-foreground">10:30 AM</span>
+                  </div>
+                  <div className="bg-primary text-primary-foreground p-2 rounded-l-lg rounded-tr-lg mr-4">
+                    <p className="text-sm">The appraisal is scheduled for next Tuesday. I'll send you the details shortly.</p>
+                    <span className="text-xs opacity-80">10:45 AM</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-r-lg rounded-tl-lg ml-4">
+                    <p className="text-sm">Perfect, thank you!</p>
+                    <span className="text-xs text-muted-foreground">10:46 AM</span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Input
