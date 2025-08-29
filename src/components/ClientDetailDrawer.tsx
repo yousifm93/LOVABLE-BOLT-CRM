@@ -157,7 +157,15 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       >
         {/* Header */}
         <div className="sticky top-0 z-10 border-b bg-white p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
+            <Button variant="ghost" size="icon" onClick={handleDrawerClose} className="ml-auto">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Top Row: Name | Contact Info | Tasks */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* Lead Name */}
             <div className="flex items-center gap-4">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={client.person.avatar} />
@@ -169,52 +177,80 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 <h2 className="text-2xl font-bold text-foreground">{fullName}</h2>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
-              <X className="h-5 w-5" />
-            </Button>
+
+            {/* Contact Information */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{client.person.phoneMobile}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span>{client.person.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>Team: {client.ops.team || 'Unassigned'}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tasks */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  Tasks
+                  <Badge variant="secondary">{mockTasks.filter(t => !t.completed).length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {mockTasks.slice(0, 2).map((task) => (
+                  <div key={task.id} className="flex items-start gap-2">
+                    <Checkbox 
+                      checked={task.completed}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("text-sm", task.completed && "line-through text-muted-foreground")}>
+                        {task.title}
+                      </p>
+                      {task.dueDate && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{task.dueDate}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Stage Progress Bar - Single Line with CAPS */}
-          <div className="mt-6">
+          {/* Pill-Based Status Tracker */}
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-foreground uppercase tracking-wide">PIPELINE PROGRESS</span>
-              <span className="text-sm text-muted-foreground">
-                Stage {currentStageIndex + 1} of {PIPELINE_STAGES.length}
-              </span>
             </div>
-            <div className="flex items-center">
-              {PIPELINE_STAGES.map((stage, index) => (
-                <>
-                  <div key={stage.key} className="flex flex-col items-center">
-                    <button
-                      onClick={() => handleStageClick(stage.key)}
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 hover:scale-105 mb-2",
-                        index < currentStageIndex && "bg-success text-success-foreground shadow-soft",
-                        index === currentStageIndex && "bg-primary text-primary-foreground shadow-medium ring-2 ring-primary/30",
-                        index > currentStageIndex && "bg-muted text-muted-foreground hover:bg-muted/80"
-                      )}
-                    >
-                      {stage.number}
-                    </button>
-                    <span className={cn(
-                      "text-xs font-medium uppercase tracking-wide text-center",
-                      index === currentStageIndex && "text-primary font-bold",
-                      index < currentStageIndex && "text-success",
-                      index > currentStageIndex && "text-muted-foreground"
-                    )}>
-                      {stage.label}
-                    </span>
-                  </div>
-                  {index < PIPELINE_STAGES.length - 1 && (
-                    <div className={cn(
-                      "h-1 flex-1 mx-3 rounded-full transition-all duration-300 mt-[-20px]",
-                      index < currentStageIndex && "bg-success shadow-soft",
-                      index === currentStageIndex - 1 && "bg-primary",
-                      index >= currentStageIndex && "bg-muted"
-                    )} />
+            <div className="flex items-center justify-center">
+              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => (
+                <button
+                  key={stage.key}
+                  onClick={() => handleStageClick(stage.key)}
+                  className={cn(
+                    "relative px-6 py-2 rounded-full border-2 border-black font-bold text-xs uppercase tracking-wide transition-all duration-200 hover:scale-105",
+                    index > 0 && "-ml-4 z-10",
+                    index === currentStageIndex && "bg-yellow-400 text-black z-20",
+                    index !== currentStageIndex && "bg-white text-black hover:bg-gray-50"
                   )}
-                </>
+                  style={{ zIndex: index === currentStageIndex ? 20 : 10 - index }}
+                >
+                  {stage.label}
+                </button>
               ))}
             </div>
           </div>
@@ -275,37 +311,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         <div className="flex h-[calc(100vh-240px)]">
           {/* Left: Highlights Panel */}
           <div className="w-80 border-r p-6 space-y-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{client.person.phoneMobile}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{client.person.email}</span>
-                </div>
-                {client.loan.salesPrice && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>Property Address</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span>Team: {client.ops.team || 'Unassigned'}</span>
-                </div>
-                {client.loan.loanNumber && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>Loan #: {client.loan.loanNumber}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             <Card>
               <CardHeader className="pb-3">
@@ -372,9 +377,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                           {activity.type === 'note' && <FileText className="h-4 w-4 text-primary-foreground" />}
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium">{activity.title}</h4>
-                            <span className="text-xs text-muted-foreground">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-medium truncate" title={activity.title}>{activity.title}</h4>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {new Date(activity.timestamp).toLocaleDateString()} {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
