@@ -179,7 +179,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
       {/* Drawer */}
       <div 
-        className="ml-auto h-full w-full max-w-7xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
+        className="ml-auto h-full bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
+        style={{ width: 'calc(100vw - 4rem)', left: '4rem' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -191,40 +192,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             </Button>
           </div>
 
-          {/* Status Tracker Pills at Top Center */}
-          <div className="flex justify-center mb-6">
-            <div className="flex items-center">
-              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
-                const isActive = client.ops.stage === stage.key;
-                return (
-                  <button
-                    key={stage.key}
-                    onClick={() => handleStageClick(stage.key)}
-                    className={cn(
-                      "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
-                      isActive 
-                        ? "bg-yellow-400 text-black z-20" 
-                        : "bg-white text-black hover:bg-gray-50",
-                      index > 0 && "-ml-3"
-                    )}
-                    style={{ 
-                      zIndex: isActive ? 20 : 10 - index,
-                      width: "128px",
-                      height: "40px"
-                    }}
-                  >
-                    {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6 h-[calc(100vh-180px)] p-6">
-          {/* Left Column - 4 Stacked Boxes */}
-          <div className="space-y-4 overflow-y-auto">
+          {/* Top Row: Contact Info, Status Pills, Notes */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
@@ -250,6 +219,81 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </div>
               </CardContent>
             </Card>
+
+            {/* Status Tracker Pills */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pipeline Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center">
+                  {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
+                    const isActive = client.ops.stage === stage.key;
+                    return (
+                      <button
+                        key={stage.key}
+                        onClick={() => handleStageClick(stage.key)}
+                        className={cn(
+                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
+                          isActive 
+                            ? "bg-yellow-400 text-black z-20" 
+                            : "bg-white text-black hover:bg-gray-50",
+                          index > 0 && "-ml-3"
+                        )}
+                        style={{ 
+                          zIndex: isActive ? 20 : 10 - index,
+                          width: "100px",
+                          height: "32px"
+                        }}
+                      >
+                        {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Add a note..."
+                    className="flex-1 min-h-[60px]"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleAddNote}
+                    disabled={!newNote.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-[80px] overflow-y-auto">
+                  {notes.map((note, index) => (
+                    <div key={index} className="p-2 bg-muted rounded text-sm">
+                      {note}
+                    </div>
+                  ))}
+                  {notes.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No notes yet</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Main Three Column Layout */}
+        <div className="grid grid-cols-3 gap-6 h-[calc(100vh-320px)] p-6">
+          {/* Left Column - 3 Stacked Boxes (removed duplicate contact info) */}
+          <div className="space-y-4 overflow-y-auto">
 
             {/* Loan Details */}
             <Card>
@@ -337,66 +381,62 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
           {/* Center Column - Action Buttons and Activity Log */}
           <div className="space-y-4 overflow-y-auto">
-            {/* Action Buttons */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCallLogModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="h-4 w-4" />
-                    Call
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSmsLogModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    SMS
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowEmailLogModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddNoteModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Add Note
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCreateTaskModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create Task
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Upload Doc
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Action Buttons - Single Horizontal Line */}
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCallLogModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Phone className="h-4 w-4" />
+                Call
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSmsLogModal(true)}
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                SMS
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEmailLogModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddNoteModal(true)}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Add Note
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateTaskModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create Task
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Doc
+              </Button>
+            </div>
 
             {/* Activity Log */}
             <Card className="flex-1">
@@ -428,36 +468,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
           {/* Right Column - Notes, Documents, Chat */}
           <div className="space-y-4 overflow-y-auto">
-            {/* Notes Section */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a note..."
-                    className="flex-1 min-h-[60px]"
-                  />
-                  <Button 
-                    size="sm" 
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-[120px] overflow-y-auto">
-                  {notes.map((note, index) => (
-                    <div key={index} className="p-2 bg-muted rounded text-sm">
-                      {note}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Document Upload */}
 
             {/* Document Upload */}
             <Card>
