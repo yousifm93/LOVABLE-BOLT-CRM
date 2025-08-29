@@ -141,6 +141,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     }
   };
 
+  const handleTaskToggle = (taskIndex: number) => {
+    // Update the task completion status
+    console.log(`Task ${taskIndex} toggled`);
+    // In a real app, this would update the task in the backend
+  };
+
+  const handleDueDateChange = (date: Date | undefined) => {
+    // Update the due date
+    console.log('Due date changed to:', date);
+    // In a real app, this would update the due date in the backend
+  };
+
   const handleDrawerClose = () => {
     console.log('Closing drawer via close button');
     setSelectedTab("activity");
@@ -163,38 +175,51 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             </Button>
           </div>
 
-          {/* Top Row: Name | Contact Info | Tasks */}
+          {/* Top Row - Three Equal Boxes */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            {/* Lead Name */}
-            <div className="flex items-center gap-4">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={client.person.avatar} />
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">{fullName}</h2>
-              </div>
-            </div>
-
-            {/* Contact Information */}
+            {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Contact Information</CardTitle>
+                <div className="flex items-center gap-3 mb-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={client.person.avatar} />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="text-lg font-bold text-foreground">{fullName}</h2>
+                </div>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Contact Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Phone className="h-3 w-3 text-muted-foreground" />
                   <span>{client.person.phoneMobile}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Mail className="h-3 w-3 text-muted-foreground" />
                   <span>{client.person.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span>Team: {client.ops.team || 'Unassigned'}</span>
+              </CardContent>
+            </Card>
+
+            {/* Loan Details */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Loan Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-medium">{client.loan.loanAmount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Type:</span>
+                  <span className="font-medium">{client.loan.loanType}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Property:</span>
+                  <span className="font-medium">{client.loan.prType}</span>
                 </div>
               </CardContent>
             </Card>
@@ -202,56 +227,64 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Tasks */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                   Tasks
-                  <Badge variant="secondary">{mockTasks.filter(t => !t.completed).length}</Badge>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {mockTasks.slice(0, 2).map((task) => (
-                  <div key={task.id} className="flex items-start gap-2">
+              <CardContent className="space-y-2">
+                {mockTasks.slice(0, 3).map((task, index) => (
+                  <div key={task.id} className="flex items-center gap-2 text-sm">
                     <Checkbox 
                       checked={task.completed}
-                      className="mt-1"
+                      onChange={() => handleTaskToggle(index)}
+                      className="h-3 w-3"
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm", task.completed && "line-through text-muted-foreground")}>
-                        {task.title}
-                      </p>
-                      {task.dueDate && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{task.dueDate}</span>
-                        </div>
-                      )}
-                    </div>
+                    <span className={task.completed ? "line-through text-muted-foreground" : ""}>
+                      {task.title}
+                    </span>
                   </div>
                 ))}
+                {mockTasks.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No tasks yet</p>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Pill-Based Status Tracker */}
+          {/* Status Tracker - 5 Pills */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-foreground uppercase tracking-wide">PIPELINE PROGRESS</span>
-            </div>
             <div className="flex items-center justify-center">
-              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => (
-                <button
-                  key={stage.key}
-                  onClick={() => handleStageClick(stage.key)}
-                  className={cn(
-                    "relative px-6 py-2 rounded-full border-2 border-black font-bold text-xs uppercase tracking-wide transition-all duration-200 hover:scale-105",
-                    index > 0 && "-ml-4 z-10",
-                    index === currentStageIndex && "bg-yellow-400 text-black z-20",
-                    index !== currentStageIndex && "bg-white text-black hover:bg-gray-50"
-                  )}
-                  style={{ zIndex: index === currentStageIndex ? 20 : 10 - index }}
-                >
-                  {stage.label}
-                </button>
-              ))}
+              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
+                const isActive = client.ops.stage === stage.key;
+                return (
+                  <button
+                    key={stage.key}
+                    onClick={() => handleStageClick(stage.key)}
+                    className={cn(
+                      "relative flex items-center justify-center px-4 py-2 rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
+                      isActive 
+                        ? "bg-yellow-400 text-black z-10" 
+                        : "bg-white text-black hover:bg-gray-50",
+                      index > 0 && "-ml-3"
+                    )}
+                    style={{ 
+                      zIndex: isActive ? 10 : 5 - index,
+                      width: "128px",
+                      height: "40px"
+                    }}
+                  >
+                    {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -309,32 +342,46 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
         {/* Content */}
         <div className="flex h-[calc(100vh-240px)]">
-          {/* Left: Highlights Panel */}
+          {/* Left: Documents and Stage History */}
           <div className="w-80 border-r p-6 space-y-6">
-
+            {/* Documents */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Loan Details</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Documents</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Amount:</span>
-                  <span className="text-sm font-medium">{client.loan.loanAmount}</span>
+              <CardContent>
+                <div className="space-y-2">
+                  {mockDocuments.map((doc) => (
+                    <div key={doc.id} className="flex items-center space-x-2 text-sm">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span>{doc.name}</span>
+                    </div>
+                  ))}
+                  {mockDocuments.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No documents yet</p>
+                  )}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Type:</span>
-                  <span className="text-sm font-medium">{client.loan.loanType}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">P/R:</span>
-                  <span className="text-sm font-medium">{client.loan.prType}</span>
-                </div>
-                {client.creditScore && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">FICO:</span>
-                    <span className="text-sm font-medium">{client.creditScore}</span>
+              </CardContent>
+            </Card>
+
+            {/* Stage History */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Stage History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Lead Created</span>
+                    <span className="text-muted-foreground">
+                      {client.dates.createdOn ? new Date(client.dates.createdOn).toLocaleDateString() : 'N/A'}
+                    </span>
                   </div>
-                )}
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Current Stage</span>
+                    <span className="text-muted-foreground capitalize">{client.ops.stage}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -378,14 +425,16 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <h4 className="font-medium truncate" title={activity.title}>{activity.title}</h4>
+                            <h4 
+                              className="font-medium text-sm truncate flex-1 mr-2" 
+                              title={`${activity.title}${activity.description ? ' - ' + activity.description : ''}`}
+                            >
+                              {activity.title}{activity.description ? ' - ' + activity.description : ''}
+                            </h4>
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {new Date(activity.timestamp).toLocaleDateString()} {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          {activity.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
-                          )}
                           {activity.user && (
                             <p className="text-xs text-muted-foreground mt-1">by {activity.user}</p>
                           )}
@@ -460,80 +509,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             </Tabs>
           </div>
 
-          {/* Right: Related Items */}
+          {/* Right: Minimal space for future features */}
           <div className="w-80 border-l p-6 space-y-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  Tasks
-                  <Badge variant="secondary">{mockTasks.filter(t => !t.completed).length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {mockTasks.map((task) => (
-                  <div key={task.id} className="flex items-start gap-2">
-                    <Checkbox 
-                      checked={task.completed}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm", task.completed && "line-through text-muted-foreground")}>
-                        {task.title}
-                      </p>
-                      {task.dueDate && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{task.dueDate}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Documents</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {mockDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted/50">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.size}</p>
-                    </div>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" className="w-full">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Stage History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                    <span className="text-sm">Moved to {PIPELINE_STAGES[currentStageIndex]?.label}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground ml-4">Jan 15, 2024</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-muted rounded-full" />
-                    <span className="text-sm">Lead created</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground ml-4">Jan 10, 2024</span>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Additional space for future features */}
           </div>
         </div>
       </div>

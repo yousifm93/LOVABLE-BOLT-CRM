@@ -53,7 +53,7 @@ export function InlineEditSelect({
         <Button
           variant="ghost"
           className={cn(
-            "h-auto p-1 justify-start font-normal hover:bg-muted/50",
+            "h-auto p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
             !value && "text-muted-foreground",
             className
           )}
@@ -66,7 +66,7 @@ export function InlineEditSelect({
           <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48 max-h-60 overflow-y-auto bg-popover border z-50">
+      <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto bg-popover border z-50">
         {options.map((option) => (
           <DropdownMenuItem
             key={option.value}

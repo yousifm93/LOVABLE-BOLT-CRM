@@ -401,7 +401,7 @@ export default function Leads() {
               className="bg-gradient-primary hover:opacity-90 transition-opacity"
               onClick={() => setIsCreateModalOpen(true)}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-1" />
               New Lead
             </Button>
             <div className="relative max-w-sm">
