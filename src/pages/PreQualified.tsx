@@ -57,107 +57,6 @@ const preQualifiedData: PreQualifiedClient[] = [
   }
 ];
 
-const columns: ColumnDef<PreQualifiedClient>[] = [
-  {
-    accessorKey: "name",
-    header: "Client Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "loanType",
-    header: "Loan Type",
-    sortable: true,
-  },
-  {
-    accessorKey: "qualifiedAmount",
-    header: "Qualified Amount",
-    sortable: true,
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium text-success">{row.original.qualifiedAmount}</div>
-        <div className="text-xs text-muted-foreground">Requested: {row.original.loanAmount}</div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "creditScore",
-    header: "Credit Score",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.creditScore >= 750 
-          ? 'text-success' 
-          : row.original.creditScore >= 700 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.creditScore}
-      </span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "dti",
-    header: "DTI",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.dti <= 30 
-          ? 'text-success' 
-          : row.original.dti <= 40 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.dti}%
-      </span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "loanOfficer",
-    header: "Loan Officer",
-    sortable: true,
-  },
-  {
-    accessorKey: "qualifiedDate",
-    header: "Qualified Date",
-    sortable: true,
-  },
-  {
-    accessorKey: "expirationDate",
-    header: "Expires",
-    cell: ({ row }) => {
-      const expirationDate = new Date(row.original.expirationDate);
-      const today = new Date();
-      const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      
-      return (
-        <div className="flex items-center gap-1">
-          <CheckCircle className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
-          <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
-            {row.original.expirationDate}
-          </span>
-        </div>
-      );
-    },
-    sortable: true,
-  },
-];
-
 export default function PreQualified() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
@@ -173,6 +72,118 @@ export default function PreQualified() {
     console.log(`Client ${clientId} moved to stage ${newStage}`);
     setIsDrawerOpen(false);
   };
+
+  const columns: ColumnDef<PreQualifiedClient>[] = [
+    {
+      accessorKey: "name",
+      header: "Client Name",
+      sortable: true,
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row.original);
+          }}
+        >
+          {row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "contact",
+      header: "Contact",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="flex items-center text-sm">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+            <span className="truncate">{row.original.email}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-3 w-3 mr-1" />
+            <span className="truncate">{row.original.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      sortable: true,
+    },
+    {
+      accessorKey: "qualifiedAmount",
+      header: "Qualified Amount",
+      sortable: true,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-success">{row.original.qualifiedAmount}</div>
+          <div className="text-xs text-muted-foreground">Requested: {row.original.loanAmount}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "creditScore",
+      header: "Credit Score",
+      cell: ({ row }) => (
+        <span className={`font-medium ${
+          row.original.creditScore >= 750 
+            ? 'text-success' 
+            : row.original.creditScore >= 700 
+            ? 'text-warning' 
+            : 'text-destructive'
+        }`}>
+          {row.original.creditScore}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "dti",
+      header: "DTI",
+      cell: ({ row }) => (
+        <span className={`font-medium ${
+          row.original.dti <= 30 
+            ? 'text-success' 
+            : row.original.dti <= 40 
+            ? 'text-warning' 
+            : 'text-destructive'
+        }`}>
+          {row.original.dti}%
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "loanOfficer",
+      header: "Loan Officer",
+      sortable: true,
+    },
+    {
+      accessorKey: "qualifiedDate",
+      header: "Qualified Date",
+      sortable: true,
+    },
+    {
+      accessorKey: "expirationDate",
+      header: "Expires",
+      cell: ({ row }) => {
+        const expirationDate = new Date(row.original.expirationDate);
+        const today = new Date();
+        const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return (
+          <div className="flex items-center gap-1">
+            <CheckCircle className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
+            <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
+              {row.original.expirationDate}
+            </span>
+          </div>
+        );
+      },
+      sortable: true,
+    },
+  ];
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -207,7 +218,7 @@ export default function PreQualified() {
             columns={columns}
             data={preQualifiedData}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={() => {}} // Disable generic row click
           />
         </CardContent>
       </Card>

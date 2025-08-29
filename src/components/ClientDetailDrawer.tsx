@@ -49,6 +49,79 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
 
+  // Critical status information based on pipeline stage
+  const renderCriticalStatusInfo = () => {
+    const stage = client.ops.stage;
+    
+    switch (stage) {
+      case 'leads':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Lead Status</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Lead qualification: {client.ops.status || 'Working on it'}</div>
+              <div>• Priority level: {client.ops.priority || 'Medium'}</div>
+              <div>• Referral source: {client.ops.referralSource || 'N/A'}</div>
+            </div>
+          </div>
+        );
+      case 'pending-app':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Application Review</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Review progress: {(client as any).progress || 0}%</div>
+              <div>• Status: {client.ops.status || 'Pending'}</div>
+              <div>• Missing documents: Credit report, Income verification</div>
+            </div>
+          </div>
+        );
+      case 'screening':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Initial Verification</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Income type: {(client as any).incomeType || 'W2'}</div>
+              <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
+              <div>• Verification status: In progress</div>
+            </div>
+          </div>
+        );
+      case 'pre-qualified':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Pre-Qualification Details</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
+              <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
+              <div>• Expires: {(client as any).expirationDate || 'N/A'}</div>
+            </div>
+          </div>
+        );
+      case 'pre-approved':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Pre-Approval Status</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Shopping status: {client.ops.status || 'New'}</div>
+              <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
+              <div>• Agreement: {(client as any).buyersAgreement || 'Pending'}</div>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/50">
+            <h4 className="font-medium text-sm mb-2">Status Information</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div>• Current status: {client.ops.status || 'Active'}</div>
+              <div>• Priority: {client.ops.priority || 'Medium'}</div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   if (!isOpen) return null;
 
   const currentStageIndex = PIPELINE_STAGES.findIndex(stage => stage.key === client.ops.stage);
@@ -361,14 +434,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   })}
                 </div>
 
-                {/* Gray Placeholder Box */}
-                <div className="mt-4 p-4 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Critical Status Information
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 text-center mt-1">
-                    (Coming Soon)
-                  </p>
+                {/* Critical Status Information - Dynamic based on stage */}
+                <div className="mt-4">
+                  {renderCriticalStatusInfo()}
                 </div>
                 
                 <input

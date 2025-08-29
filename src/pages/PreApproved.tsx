@@ -76,103 +76,6 @@ const statusOptions = {
   ready_to_proceed: "Ready to Proceed"
 };
 
-const columns: ColumnDef<PreApprovedClient>[] = [
-  {
-    accessorKey: "name",
-    header: "Client Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={statusOptions[row.original.status]} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "approvedAmount",
-    header: "Approved Amount",
-    sortable: true,
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium text-success">{row.original.approvedAmount}</div>
-        <div className="text-xs text-muted-foreground">Requested: {row.original.requestedAmount}</div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "creditScore",
-    header: "Credit Score",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.creditScore >= 750 
-          ? 'text-success' 
-          : row.original.creditScore >= 700 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.creditScore}
-      </span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "buyersAgent",
-    header: "Buyer's Agent",
-    sortable: true,
-  },
-  {
-    accessorKey: "buyersAgreement",
-    header: "Buyer's Agreement",
-    cell: ({ row }) => (
-      <StatusBadge 
-        status={row.original.buyersAgreement === "signed" ? "Signed" : 
-               row.original.buyersAgreement === "pending" ? "Pending" : "N/A"} 
-      />
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "teammateAssigned",
-    header: "Team Member",
-    sortable: true,
-  },
-  {
-    accessorKey: "expirationDate",
-    header: "Expires",
-    cell: ({ row }) => {
-      const expirationDate = new Date(row.original.expirationDate);
-      const today = new Date();
-      const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      
-      return (
-        <div className="flex items-center gap-1">
-          <Shield className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
-          <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
-            {row.original.expirationDate}
-          </span>
-        </div>
-      );
-    },
-    sortable: true,
-  },
-];
-
 export default function PreApproved() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
@@ -220,6 +123,114 @@ export default function PreApproved() {
     setIsDrawerOpen(false);
   };
 
+  const columns: ColumnDef<PreApprovedClient>[] = [
+    {
+      accessorKey: "name",
+      header: "Client Name",
+      sortable: true,
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row.original);
+          }}
+        >
+          {row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "contact",
+      header: "Contact",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="flex items-center text-sm">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+            <span className="truncate">{row.original.email}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-3 w-3 mr-1" />
+            <span className="truncate">{row.original.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={statusOptions[row.original.status]} />,
+      sortable: true,
+    },
+    {
+      accessorKey: "approvedAmount",
+      header: "Approved Amount",
+      sortable: true,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-success">{row.original.approvedAmount}</div>
+          <div className="text-xs text-muted-foreground">Requested: {row.original.requestedAmount}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "creditScore",
+      header: "Credit Score",
+      cell: ({ row }) => (
+        <span className={`font-medium ${
+          row.original.creditScore >= 750 
+            ? 'text-success' 
+            : row.original.creditScore >= 700 
+            ? 'text-warning' 
+            : 'text-destructive'
+        }`}>
+          {row.original.creditScore}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "buyersAgent",
+      header: "Buyer's Agent",
+      sortable: true,
+    },
+    {
+      accessorKey: "buyersAgreement",
+      header: "Buyer's Agreement",
+      cell: ({ row }) => (
+        <StatusBadge 
+          status={row.original.buyersAgreement === "signed" ? "Signed" : 
+                 row.original.buyersAgreement === "pending" ? "Pending" : "N/A"} 
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "teammateAssigned",
+      header: "Team Member",
+      sortable: true,
+    },
+    {
+      accessorKey: "expirationDate",
+      header: "Expires",
+      cell: ({ row }) => {
+        const expirationDate = new Date(row.original.expirationDate);
+        const today = new Date();
+        const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return (
+          <div className="flex items-center gap-1">
+            <Shield className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
+            <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
+              {row.original.expirationDate}
+            </span>
+          </div>
+        );
+      },
+      sortable: true,
+    },
+  ];
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
@@ -253,7 +264,7 @@ export default function PreApproved() {
             columns={columns}
             data={preApprovedData}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={() => {}} // Disable generic row click
           />
         </CardContent>
       </Card>

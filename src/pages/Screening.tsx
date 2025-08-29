@@ -53,86 +53,6 @@ const screeningData: ScreeningClient[] = [
   }
 ];
 
-const columns: ColumnDef<ScreeningClient>[] = [
-  {
-    accessorKey: "name",
-    header: "Client Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "loanType",
-    header: "Loan Type",
-    sortable: true,
-  },
-  {
-    accessorKey: "loanAmount",
-    header: "Loan Amount",
-    sortable: true,
-  },
-  {
-    accessorKey: "incomeType",
-    header: "Income Type",
-    sortable: true,
-  },
-  {
-    accessorKey: "creditScore",
-    header: "Credit Score",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.creditScore >= 750 
-          ? 'text-success' 
-          : row.original.creditScore >= 700 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.creditScore}
-      </span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "priority",
-    header: "Priority",
-    cell: ({ row }) => (
-      <StatusBadge 
-        status={row.original.priority} 
-      />
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "nextStep",
-    header: "Next Step",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <Clock className="h-3 w-3 text-muted-foreground" />
-        <span className="text-sm">{row.original.nextStep}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "screeningDate",
-    header: "Screening Date",
-    sortable: true,
-  },
-];
-
 export default function Screening() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
@@ -177,6 +97,97 @@ export default function Screening() {
     setIsDrawerOpen(false);
   };
 
+  const columns: ColumnDef<ScreeningClient>[] = [
+    {
+      accessorKey: "name",
+      header: "Client Name",
+      sortable: true,
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row.original);
+          }}
+        >
+          {row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "contact",
+      header: "Contact",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="flex items-center text-sm">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+            <span className="truncate">{row.original.email}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-3 w-3 mr-1" />
+            <span className="truncate">{row.original.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      sortable: true,
+    },
+    {
+      accessorKey: "loanAmount",
+      header: "Loan Amount",
+      sortable: true,
+    },
+    {
+      accessorKey: "incomeType",
+      header: "Income Type",
+      sortable: true,
+    },
+    {
+      accessorKey: "creditScore",
+      header: "Credit Score",
+      cell: ({ row }) => (
+        <span className={`font-medium ${
+          row.original.creditScore >= 750 
+            ? 'text-success' 
+            : row.original.creditScore >= 700 
+            ? 'text-warning' 
+            : 'text-destructive'
+        }`}>
+          {row.original.creditScore}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ row }) => (
+        <StatusBadge 
+          status={row.original.priority} 
+        />
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "nextStep",
+      header: "Next Step",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Clock className="h-3 w-3 text-muted-foreground" />
+          <span className="text-sm">{row.original.nextStep}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "screeningDate",
+      header: "Screening Date",
+      sortable: true,
+    },
+  ];
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div className="mb-2">
@@ -210,7 +221,7 @@ export default function Screening() {
             columns={columns}
             data={screeningData}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={() => {}} // Disable generic row click
           />
         </CardContent>
       </Card>

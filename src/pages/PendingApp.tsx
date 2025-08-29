@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,86 +50,6 @@ const pendingData: PendingApplication[] = [
   }
 ];
 
-const columns: ColumnDef<PendingApplication>[] = [
-  {
-    accessorKey: "name",
-    header: "Applicant",
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "loanType",
-    header: "Loan Type",
-    sortable: true,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-  {
-    accessorKey: "loanAmount",
-    header: "Loan Amount",
-    sortable: true,
-  },
-  {
-    accessorKey: "creditScore",
-    header: "Credit Score",
-    cell: ({ row }) => (
-      <span className={`font-medium ${
-        row.original.creditScore >= 750 
-          ? 'text-success' 
-          : row.original.creditScore >= 700 
-          ? 'text-warning' 
-          : 'text-destructive'
-      }`}>
-        {row.original.creditScore}
-      </span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "progress",
-    header: "Progress",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${row.original.progress}%` }}
-          />
-        </div>
-        <span className="text-sm text-muted-foreground">{row.original.progress}%</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "processor",
-    header: "Processor",
-    sortable: true,
-  },
-  {
-    accessorKey: "submitted",
-    header: "Submitted",
-    sortable: true,
-  },
-];
-
 export default function PendingApp() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
@@ -173,6 +93,97 @@ export default function PendingApp() {
     setIsDrawerOpen(false);
   };
 
+  const columns: ColumnDef<PendingApplication>[] = [
+    {
+      accessorKey: "name",
+      header: "Applicant",
+      sortable: true,
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRowClick(row.original);
+          }}
+        >
+          {row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "contact",
+      header: "Contact",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="flex items-center text-sm">
+            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+            <span className="truncate">{row.original.email}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Phone className="h-3 w-3 mr-1" />
+            <span className="truncate">{row.original.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      sortable: true,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      accessorKey: "loanAmount",
+      header: "Loan Amount",
+      sortable: true,
+    },
+    {
+      accessorKey: "creditScore",
+      header: "Credit Score",
+      cell: ({ row }) => (
+        <span className={`font-medium ${
+          row.original.creditScore >= 750 
+            ? 'text-success' 
+            : row.original.creditScore >= 700 
+            ? 'text-warning' 
+            : 'text-destructive'
+        }`}>
+          {row.original.creditScore}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "progress",
+      header: "Progress",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${row.original.progress}%` }}
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">{row.original.progress}%</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "processor",
+      header: "Processor",
+      sortable: true,
+    },
+    {
+      accessorKey: "submitted",
+      header: "Submitted",
+      sortable: true,
+    },
+  ];
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
@@ -208,7 +219,7 @@ export default function PendingApp() {
             columns={columns}
             data={pendingData}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={() => {}} // Disable generic row click
           />
         </CardContent>
       </Card>
