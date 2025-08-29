@@ -180,7 +180,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       {/* Drawer */}
       <div 
         className="ml-auto h-full bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
-        style={{ width: 'calc(100vw - 4rem)', left: '4rem' }}
+        style={{ width: 'calc(100vw - 240px)', left: '240px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -291,7 +291,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         </div>
 
         {/* Main Three Column Layout */}
-        <div className="grid grid-cols-3 gap-6 h-[calc(100vh-320px)] p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 h-[calc(100vh-320px)] p-6">
           {/* Left Column - 3 Stacked Boxes (removed duplicate contact info) */}
           <div className="space-y-4 overflow-y-auto">
 
