@@ -319,7 +319,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                           zIndex: isActive ? 20 : 10 - index,
                           width: "150px",
                           height: "64px",
-                          fontSize: "10px"
+                          fontSize: "14px"
                         }}
                       >
                         {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
@@ -327,6 +327,73 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                     );
                   })}
                 </div>
+
+                {/* Action Buttons */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowCallLogModal(true)}
+                    className="text-xs"
+                  >
+                    <Phone className="h-3 w-3 mr-1" />
+                    Call
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowSmsLogModal(true)}
+                    className="text-xs"
+                  >
+                    <MessageSquare className="h-3 w-3 mr-1" />
+                    SMS
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowEmailLogModal(true)}
+                    className="text-xs"
+                  >
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAddNoteModal(true)}
+                    className="text-xs"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Add Note
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Create Task
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('document-upload')?.click()}
+                    className="text-xs"
+                  >
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload Doc
+                  </Button>
+                </div>
+                
+                <input
+                  id="document-upload"
+                  type="file"
+                  multiple
+                  onChange={handleDocumentUpload}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
               </CardContent>
             </Card>
 
@@ -367,7 +434,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         </div>
 
         {/* Main Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 h-[calc(100vh-320px)] p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-6 h-[calc(100vh-320px)] p-6 pt-0">
           {/* Left Column - 3 Stacked Boxes (removed duplicate contact info) */}
           <div className="space-y-4 overflow-y-auto">
 
@@ -467,62 +534,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
           {/* Center Column - Action Buttons and Activity Log */}
           <div className="space-y-4 overflow-y-auto">
-            {/* Action Buttons - Single Horizontal Line */}
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCallLogModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Phone className="h-4 w-4" />
-                Call
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSmsLogModal(true)}
-                className="flex items-center gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                SMS
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEmailLogModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                Email
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddNoteModal(true)}
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Add Note
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCreateTaskModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create Task
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Doc
-              </Button>
-            </div>
 
             {/* Activity Log */}
             <Card className="flex-1">
