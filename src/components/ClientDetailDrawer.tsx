@@ -1,10 +1,9 @@
 import { useState } from "react";
 import * as React from "react";
-import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, MoreHorizontal, User, MapPin, Building2, Calendar, FileCheck, Clock, Check } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -27,13 +26,16 @@ interface ClientDetailDrawerProps {
 
 export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: ClientDetailDrawerProps) {
   const [newNote, setNewNote] = useState("");
-  const [selectedTab, setSelectedTab] = useState("activity");
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);
   const [showSmsLogModal, setShowSmsLogModal] = useState(false);
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [chatMessage, setChatMessage] = useState('');
+  const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
 
   if (!isOpen) return null;
@@ -50,16 +52,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
   const handleAddNote = () => {
     if (newNote.trim()) {
+      setNotes(prev => [newNote, ...prev]);
+      setNewNote('');
+      
       const newActivity: Activity = {
         id: Date.now(),
         type: 'note',
-        title: 'Note added',
+        title: 'Note Added',
         description: newNote.trim(),
         timestamp: new Date().toISOString(),
         user: 'Current User'
       };
       setActivities(prev => [newActivity, ...prev]);
-      setNewNote("");
     }
   };
 
@@ -72,6 +76,44 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       user: 'Current User'
     };
     setActivities(prev => [newActivity, ...prev]);
+  };
+
+  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const newDoc = {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          size: file.size,
+          uploadDate: new Date().toISOString(),
+          type: file.type
+        };
+        setDocuments(prev => [newDoc, ...prev]);
+      });
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (chatMessage.trim()) {
+      const newActivity: Activity = {
+        id: Date.now(),
+        type: 'note',
+        title: 'Message Sent',
+        description: chatMessage,
+        timestamp: new Date().toISOString(),
+        user: 'Current User'
+      };
+      setActivities(prev => [newActivity, ...prev]);
+      setChatMessage('');
+    }
+  };
+
+  const handleTaskToggle = (taskId: number) => {
+    setCompletedTasks(prev => ({
+      ...prev,
+      [taskId]: !prev[taskId]
+    }));
   };
 
   // Initialize with mock data
@@ -110,52 +152,25 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
       id: 2,
       title: 'Schedule property appraisal',
       dueDate: '2024-01-18',
-      completed: true,
+      completed: false,
       assignee: 'Herman Daza'
-    }
-  ];
-
-  const mockDocuments: Document[] = [
-    {
-      id: 1,
-      name: 'Loan Application.pdf',
-      type: 'application',
-      uploadDate: '2024-01-10',
-      url: '#',
-      size: '2.3 MB'
     },
     {
-      id: 2,
-      name: 'Credit Report.pdf',
-      type: 'credit',
-      uploadDate: '2024-01-12',
-      url: '#',
-      size: '1.1 MB'
+      id: 3,
+      title: 'Credit report review',
+      dueDate: '2024-01-22',
+      completed: false,
+      assignee: 'Yousif'
     }
   ];
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      console.log('Closing drawer via overlay click');
       onClose();
     }
   };
 
-  const handleTaskToggle = (taskIndex: number) => {
-    // Update the task completion status
-    console.log(`Task ${taskIndex} toggled`);
-    // In a real app, this would update the task in the backend
-  };
-
-  const handleDueDateChange = (date: Date | undefined) => {
-    // Update the due date
-    console.log('Due date changed to:', date);
-    // In a real app, this would update the due date in the backend
-  };
-
   const handleDrawerClose = () => {
-    console.log('Closing drawer via close button');
-    setSelectedTab("activity");
     setNewNote("");
     onClose();
   };
@@ -164,19 +179,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
     <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
       {/* Drawer */}
       <div 
-        className="ml-auto h-full w-full max-w-5xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
+        className="ml-auto h-full w-full max-w-7xl bg-white shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] relative pointer-events-auto" 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 border-b bg-white p-6">
           <div className="flex items-center justify-between mb-6">
-            <Button variant="ghost" size="icon" onClick={handleDrawerClose} className="ml-auto">
+            <h1 className="text-xl font-semibold">Lead Details</h1>
+            <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Top Row - Three Equal Boxes */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Status Tracker Pills at Top Center */}
+          <div className="flex justify-center mb-6">
+            <div className="flex items-center">
+              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
+                const isActive = client.ops.stage === stage.key;
+                return (
+                  <button
+                    key={stage.key}
+                    onClick={() => handleStageClick(stage.key)}
+                    className={cn(
+                      "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
+                      isActive 
+                        ? "bg-yellow-400 text-black z-20" 
+                        : "bg-white text-black hover:bg-gray-50",
+                      index > 0 && "-ml-3"
+                    )}
+                    style={{ 
+                      zIndex: isActive ? 20 : 10 - index,
+                      width: "128px",
+                      height: "40px"
+                    }}
+                  >
+                    {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Three Column Layout */}
+        <div className="grid grid-cols-3 gap-6 h-[calc(100vh-180px)] p-6">
+          {/* Left Column - 4 Stacked Boxes */}
+          <div className="space-y-4 overflow-y-auto">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
@@ -240,14 +288,21 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {mockTasks.slice(0, 3).map((task, index) => (
+                {mockTasks.slice(0, 4).map((task) => (
                   <div key={task.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox 
-                      checked={task.completed}
-                      onChange={() => handleTaskToggle(index)}
-                      className="h-3 w-3"
-                    />
-                    <span className={task.completed ? "line-through text-muted-foreground" : ""}>
+                    <button
+                      onClick={() => handleTaskToggle(task.id)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {completedTasks[task.id] ? 
+                        <CheckCircle className="h-4 w-4" /> : 
+                        <Circle className="h-4 w-4" />
+                      }
+                    </button>
+                    <span className={cn(
+                      "flex-1",
+                      completedTasks[task.id] && "line-through text-muted-foreground"
+                    )}>
                       {task.title}
                     </span>
                   </div>
@@ -255,112 +310,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 {mockTasks.length === 0 && (
                   <p className="text-xs text-muted-foreground">No tasks yet</p>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Status Tracker - 5 Pills */}
-          <div className="mb-6">
-            <div className="flex items-center justify-center">
-              {PIPELINE_STAGES.slice(0, 5).map((stage, index) => {
-                const isActive = client.ops.stage === stage.key;
-                return (
-                  <button
-                    key={stage.key}
-                    onClick={() => handleStageClick(stage.key)}
-                    className={cn(
-                      "relative flex items-center justify-center px-4 py-2 rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg",
-                      isActive 
-                        ? "bg-yellow-400 text-black z-10" 
-                        : "bg-white text-black hover:bg-gray-50",
-                      index > 0 && "-ml-3"
-                    )}
-                    style={{ 
-                      zIndex: isActive ? 10 : 5 - index,
-                      width: "128px",
-                      height: "40px"
-                    }}
-                  >
-                    {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 mt-4">
-            <Button 
-              size="sm" 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => setShowCallLogModal(true)}
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Call
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowSmsLogModal(true)}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              SMS
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowEmailLogModal(true)}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowAddNoteModal(true)}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Add Note
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowCreateTaskModal(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
-            <Button size="sm" variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Doc
-            </Button>
-            <Button size="sm" variant="ghost">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex h-[calc(100vh-240px)]">
-          {/* Left: Documents and Stage History */}
-          <div className="w-80 border-r p-6 space-y-6">
-            {/* Documents */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {mockDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center space-x-2 text-sm">
-                      <FileText className="h-3 w-3 text-muted-foreground" />
-                      <span>{doc.name}</span>
-                    </div>
-                  ))}
-                  {mockDocuments.length === 0 && (
-                    <p className="text-xs text-muted-foreground">No documents yet</p>
-                  )}
-                </div>
               </CardContent>
             </Card>
 
@@ -384,134 +333,201 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </div>
               </CardContent>
             </Card>
-
-            <Button className="w-full bg-primary hover:bg-primary/90">
-              <FileCheck className="h-4 w-4 mr-2" />
-              Generate Pre-Approval Letter
-            </Button>
           </div>
 
-          {/* Center: Tabs */}
-          <div className="flex-1 p-6">
-            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="notes">Chatter/Notes</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="activity" className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Textarea
-                      placeholder="Add a note or log an activity..."
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAddNote}>Add</Button>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    {activities.map((activity) => (
-                      <div key={activity.id} className="flex gap-3 p-3 rounded-lg bg-muted/30">
-                        <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                          {activity.type === 'call' && <Phone className="h-4 w-4 text-primary-foreground" />}
-                          {activity.type === 'email' && <Mail className="h-4 w-4 text-primary-foreground" />}
-                          {activity.type === 'sms' && <MessageSquare className="h-4 w-4 text-primary-foreground" />}
-                          {activity.type === 'note' && <FileText className="h-4 w-4 text-primary-foreground" />}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h4 
-                              className="font-medium text-sm truncate flex-1 mr-2" 
-                              title={`${activity.title}${activity.description ? ' - ' + activity.description : ''}`}
-                            >
-                              {activity.title}{activity.description ? ' - ' + activity.description : ''}
-                            </h4>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {new Date(activity.timestamp).toLocaleDateString()} {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          {activity.user && (
-                            <p className="text-xs text-muted-foreground mt-1">by {activity.user}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          {/* Center Column - Action Buttons and Activity Log */}
+          <div className="space-y-4 overflow-y-auto">
+            {/* Action Buttons */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCallLogModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSmsLogModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    SMS
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEmailLogModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddNoteModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Add Note
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Task
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Doc
+                  </Button>
                 </div>
-              </TabsContent>
+              </CardContent>
+            </Card>
 
-              <TabsContent value="details" className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input value={client.person.firstName} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input value={client.person.lastName} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={client.person.email} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input value={client.person.phoneMobile} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Loan Amount</Label>
-                    <Input value={client.loan.loanAmount} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Loan Type</Label>
-                    <Select value={client.loan.loanType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Purchase">Purchase</SelectItem>
-                        <SelectItem value="Refinance">Refinance</SelectItem>
-                        <SelectItem value="Cash-out Refinance">Cash-out Refinance</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="notes" className="space-y-4">
-                <div className="space-y-4">
-                  <Textarea
-                    placeholder="Add a note..."
-                    className="min-h-[100px]"
-                  />
-                  <Button>Save Note</Button>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">Initial consultation completed</span>
-                        <span className="text-xs text-muted-foreground">Jan 15, 2024</span>
+            {/* Activity Log */}
+            <Card className="flex-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Activity Log</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 max-h-[400px] overflow-y-auto">
+                {activities.length > 0 ? (
+                  activities.map((activity) => (
+                    <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">{activity.title}</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Client expressed interest in $450K purchase loan. Good credit profile, stable employment.
-                      </p>
+                      {activity.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">by {activity.user}</p>
                     </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No activities recorded yet.</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right: Minimal space for future features */}
-          <div className="w-80 border-l p-6 space-y-6">
-            {/* Additional space for future features */}
+          {/* Right Column - Notes, Documents, Chat */}
+          <div className="space-y-4 overflow-y-auto">
+            {/* Notes Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Add a note..."
+                    className="flex-1 min-h-[60px]"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleAddNote}
+                    disabled={!newNote.trim()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-[120px] overflow-y-auto">
+                  {notes.map((note, index) => (
+                    <div key={index} className="p-2 bg-muted rounded text-sm">
+                      {note}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Document Upload */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  Documents
+                  <label className="cursor-pointer">
+                    <Button size="sm" variant="outline" asChild>
+                      <span>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload
+                      </span>
+                    </Button>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleDocumentUpload}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                  </label>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-[120px] overflow-y-auto">
+                  {documents.length > 0 ? (
+                    documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
+                        <Paperclip className="h-3 w-3" />
+                        <span className="flex-1 truncate">{doc.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Chat Box */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Chat with Borrower</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="bg-muted p-3 rounded text-sm min-h-[100px]">
+                  <p className="text-muted-foreground">Chat functionality coming soon...</p>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleSendMessage}
+                    disabled={!chatMessage.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -521,8 +537,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         open={showCreateTaskModal}
         onOpenChange={setShowCreateTaskModal}
         onTaskCreated={() => {
-          toast({ title: "Success", description: "Task created successfully" });
-          // Refresh data logic here
+          setShowCreateTaskModal(false);
+          // Handle task creation
         }}
       />
 
@@ -530,8 +546,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         open={showCallLogModal}
         onOpenChange={setShowCallLogModal}
         leadId={client.person.id.toString()}
-        onActivityCreated={() => {
+        onActivityCreated={(activity) => {
           handleActivityCreated('call');
+          setShowCallLogModal(false);
         }}
       />
 
@@ -539,8 +556,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         open={showSmsLogModal}
         onOpenChange={setShowSmsLogModal}
         leadId={client.person.id.toString()}
-        onActivityCreated={() => {
+        onActivityCreated={(activity) => {
           handleActivityCreated('sms');
+          setShowSmsLogModal(false);
         }}
       />
 
@@ -548,8 +566,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         open={showEmailLogModal}
         onOpenChange={setShowEmailLogModal}
         leadId={client.person.id.toString()}
-        onActivityCreated={() => {
+        onActivityCreated={(activity) => {
           handleActivityCreated('email');
+          setShowEmailLogModal(false);
         }}
       />
 
@@ -557,8 +576,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         open={showAddNoteModal}
         onOpenChange={setShowAddNoteModal}
         leadId={client.person.id.toString()}
-        onActivityCreated={() => {
+        onActivityCreated={(activity) => {
           handleActivityCreated('note');
+          setShowAddNoteModal(false);
         }}
       />
     </div>
