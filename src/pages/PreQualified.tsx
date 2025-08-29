@@ -227,7 +227,10 @@ export default function PreQualified() {
         <ClientDetailDrawer
           client={selectedClient}
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
           onStageChange={handleStageChange}
         />
       )}

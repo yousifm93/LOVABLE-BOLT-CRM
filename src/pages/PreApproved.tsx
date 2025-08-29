@@ -273,7 +273,10 @@ export default function PreApproved() {
         <ClientDetailDrawer
           client={selectedClient}
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
           onStageChange={handleStageChange}
         />
       )}

@@ -230,7 +230,10 @@ export default function Screening() {
         <ClientDetailDrawer
           client={selectedClient}
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
           onStageChange={handleStageChange}
         />
       )}

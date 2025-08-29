@@ -228,7 +228,10 @@ export default function PendingApp() {
         <ClientDetailDrawer
           client={selectedClient}
           isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
           onStageChange={handleStageChange}
         />
       )}

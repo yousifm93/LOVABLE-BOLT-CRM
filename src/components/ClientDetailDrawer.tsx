@@ -334,7 +334,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-semibold">Lead Details</h1>
+            
             <Button variant="ghost" size="icon" onClick={handleDrawerClose}>
               <X className="h-5 w-5" />
             </Button>
@@ -354,9 +354,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   </Avatar>
                   <h2 className="text-lg font-bold text-foreground">{fullName}</h2>
                 </div>
-                <Button variant="outline" size="sm" className="mb-2">
-                  Edit
-                </Button>
+                <div className="flex gap-2 mb-2">
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Delete
+                  </Button>
+                </div>
                 <CardTitle className="text-sm font-medium text-muted-foreground">Contact Information</CardTitle>
               </CardHeader>
               <CardContent>
@@ -383,18 +388,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                   </div>
                   
                   {/* Right Column - Loan Details */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Loan Amount:</span>
-                      <span className="font-medium text-xs">{client.loan.loanAmount}</span>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Loan Amount</p>
+                      <span className="font-medium text-sm">{client.loan.loanAmount}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Loan Type:</span>
-                      <span className="font-medium text-xs">{client.loan.loanType}</span>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Loan Type</p>
+                      <span className="font-medium text-sm">{client.loan.loanType}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Property Type:</span>
-                      <span className="font-medium text-xs">{client.loan.prType}</span>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Property Type</p>
+                      <span className="font-medium text-sm">Single Family Home</span>
                     </div>
                   </div>
                 </div>
@@ -453,33 +458,53 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
             {/* Notes Section */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Add a note..."
-                    className="flex-1 min-h-[60px]"
-                  />
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Notes</CardTitle>
                   <Button 
-                    size="sm" 
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={() => setShowAddNoteModal(true)}
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="space-y-2 max-h-[80px] overflow-y-auto">
-                  {notes.map((note, index) => (
-                    <div key={index} className="p-2 bg-muted rounded text-sm">
-                      {note}
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-40 overflow-y-auto space-y-3">
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Initial loan consultation
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 18, 2024 at 2:30 PM • by <button className="text-primary hover:underline">Yousif</button>
                     </div>
-                  ))}
-                  {notes.length === 0 && (
-                    <p className="text-xs text-muted-foreground">No notes yet</p>
-                  )}
+                    <p className="text-xs text-muted-foreground">
+                      Client interested in 30-year fixed rate mortgage. Discussed timeline and documentation requirements.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Credit score review
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 17, 2024 at 10:15 AM • by <button className="text-primary hover:underline">Salma</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pulled credit report - score of 720. Good standing for preferred rates.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Documentation checklist
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 16, 2024 at 4:45 PM • by <button className="text-primary hover:underline">Herman Daza</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Provided client with required document list. W2s and pay stubs are priority.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
