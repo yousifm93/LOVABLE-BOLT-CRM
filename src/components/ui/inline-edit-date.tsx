@@ -55,7 +55,7 @@ export function InlineEditDate({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <CalendarIcon className="mr-2 h-3 w-3" />
+          <CalendarIcon className="mr-1 h-3 w-3" />
           <span className="text-sm">{displayValue}</span>
         </Button>
       </PopoverTrigger>

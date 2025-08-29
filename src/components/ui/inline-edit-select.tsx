@@ -55,7 +55,8 @@ export function InlineEditSelect({
         <Button
           variant="ghost"
           className={cn(
-            "h-auto p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
+            "h-auto p-1 justify-start font-normal hover:bg-muted/50",
+            showAsStatusBadge ? "min-w-[120px]" : "min-w-[100px]",
             !value && "text-muted-foreground",
             className
           )}

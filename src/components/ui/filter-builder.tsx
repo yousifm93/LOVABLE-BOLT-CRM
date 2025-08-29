@@ -97,7 +97,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
           value={filter.value as string}
           onValueChange={(value) => updateFilter(filter.id, 'value', value)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Select value" />
           </SelectTrigger>
           <SelectContent>
@@ -117,7 +117,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
           value={filter.value as string}
           onValueChange={(value) => updateFilter(filter.id, 'value', value)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Select date" />
           </SelectTrigger>
           <SelectContent>
@@ -136,7 +136,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
         placeholder="Enter value"
         value={filter.value as string}
         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-        className="w-40"
+        className="w-48"
       />
     );
   };
@@ -150,7 +150,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
             value={filter.column}
             onValueChange={(value) => updateFilter(filter.id, 'column', value)}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-52">
               <SelectValue placeholder="Select column" />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +167,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
             value={filter.operator}
             onValueChange={(value) => updateFilter(filter.id, 'operator', value)}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

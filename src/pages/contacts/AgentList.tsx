@@ -168,7 +168,16 @@ export default function AgentList() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  
+  // Add safer hook usage with error handling
+  let toast;
+  try {
+    toast = useToast().toast;
+    console.log("useToast hook loaded successfully");
+  } catch (hookError) {
+    console.error("Failed to load useToast hook:", hookError);
+    toast = () => console.log("Toast fallback");
+  }
 
   useEffect(() => {
     loadContacts();
@@ -181,18 +190,26 @@ export default function AgentList() {
       console.log("About to call databaseService.getContacts()...");
       const allContacts = await databaseService.getContacts();
       console.log("Got contacts from database:", allContacts);
-      const agentContacts = allContacts.filter(contact => contact.type === 'Agent');
+      
+      // Safer array operations
+      const agentContacts = Array.isArray(allContacts) 
+        ? allContacts.filter(contact => contact && contact.type === 'Agent')
+        : [];
       console.log("Filtered agent contacts:", agentContacts);
       setContacts(agentContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       setError(`Failed to load contacts: ${error}`);
       console.log("Setting fallback data...");
-      toast({
-        title: "Error", 
-        description: "Failed to load contacts.",
-        variant: "destructive"
-      });
+      try {
+        toast({
+          title: "Error", 
+          description: "Failed to load contacts.",
+          variant: "destructive"
+        });
+      } catch (toastError) {
+        console.error("Toast error:", toastError);
+      }
       setContacts(agentData); // Fallback to mock data
     } finally {
       console.log("loadContacts finished");
@@ -208,12 +225,17 @@ export default function AgentList() {
     console.log("View agent details:", agent);
   };
 
-  const displayData = contacts.length > 0 ? contacts : agentData;
-  const activeAgents = displayData.filter((agent: any) => agent.status === "Active").length;
+  // Safer data processing
+  const displayData = Array.isArray(contacts) && contacts.length > 0 ? contacts : agentData;
+  const activeAgents = displayData.filter((agent: any) => agent && agent.status === "Active").length;
   const totalVolume = displayData.reduce((sum: number, agent: any) => {
-    if (agent.totalVolume) {
-      const volume = parseFloat(agent.totalVolume.replace(/[$M]/g, ''));
-      return sum + volume;
+    try {
+      if (agent && agent.totalVolume && typeof agent.totalVolume === 'string') {
+        const volume = parseFloat(agent.totalVolume.replace(/[$M]/g, ''));
+        return sum + (isNaN(volume) ? 0 : volume);
+      }
+    } catch (volumeError) {
+      console.error("Error processing volume for agent:", agent, volumeError);
     }
     return sum;
   }, 0);

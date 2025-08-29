@@ -43,6 +43,7 @@ const getStatusColor = (status: string): string => {
 export function StatusBadge({ status, variant = "square", className, onClick, forceGray = false }: StatusBadgeProps) {
   const colorClass = forceGray ? 'bg-muted text-muted-foreground' : getStatusColor(status);
   const isGrayPriority = ['high', 'medium', 'low'].includes(status.toLowerCase());
+  const isTaskStatus = ['working on it', 'done', 'need help'].includes(status.toLowerCase());
   
   return (
     <span
@@ -50,6 +51,7 @@ export function StatusBadge({ status, variant = "square", className, onClick, fo
         "inline-flex items-center px-2 py-1 text-xs font-medium transition-colors",
         variant === "square" ? "rounded" : "rounded-full",
         isGrayPriority ? "w-16 justify-center" : "", // Consistent width for priorities
+        isTaskStatus ? "w-28 justify-center" : "", // Consistent width for task statuses
         colorClass,
         onClick && "cursor-pointer hover:opacity-80",
         className

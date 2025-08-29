@@ -13,7 +13,7 @@ import Active from "@/pages/Active";
 import PastClients from "@/pages/PastClients";
 import Admin from "@/pages/Admin";
 import NotFound from "@/pages/NotFound";
-import AgentList from "@/pages/contacts/AgentList";
+import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
@@ -74,7 +74,7 @@ function AppRoutes() {
         <Route path="/active" element={<Active />} />
         <Route path="/past-clients" element={<PastClients />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/contacts/agents" element={<AgentList />} />
+        <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />
         <Route path="/tasks/yousif" element={<TasksModern />} />

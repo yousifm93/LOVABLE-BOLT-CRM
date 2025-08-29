@@ -62,7 +62,7 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
       <div className="w-80 min-w-80 flex-shrink-0">
         <div className="font-medium text-sm">{row.original.title}</div>
         {row.original.description && (
-          <div className="text-xs text-muted-foreground mt-1 leading-relaxed break-words">
+          <div className="text-xs text-muted-foreground mt-1 leading-relaxed truncate whitespace-nowrap overflow-hidden" title={row.original.description}>
             {row.original.description}
           </div>
         )}
@@ -137,10 +137,7 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
       const isDueSoon = date && date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
-        <div className="flex items-center gap-2">
-          {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
-          {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
-          {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
+        <div className={isOverdue ? "text-destructive" : ""}>
           <InlineEditDate
             value={row.original.due_date}
             onValueChange={(date) => {
@@ -148,7 +145,6 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
               handleUpdate(row.original.id, "due_date", dateStr);
             }}
             placeholder="No date"
-            className={isOverdue ? "text-destructive" : ""}
           />
         </div>
       );
