@@ -13,6 +13,7 @@ interface FileUploadProps {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  compact?: boolean;
 }
 
 export function FileUpload({
@@ -22,7 +23,8 @@ export function FileUpload({
   accept = ".pdf,.xlsx,.xls",
   className,
   disabled = false,
-  placeholder = "Upload file"
+  placeholder = "Upload file",
+  compact = false
 }: FileUploadProps) {
   const [uploading, setUploading] = React.useState(false);
   const [dragActive, setDragActive] = React.useState(false);
@@ -116,6 +118,34 @@ export function FileUpload({
         >
           <X className="h-3 w-3" />
         </Button>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "relative border-2 border-dashed rounded-lg p-2 hover:bg-muted/50 transition-colors w-8 h-8 flex items-center justify-center",
+          dragActive && "border-primary bg-muted/50",
+          uploading && "opacity-50 pointer-events-none",
+          className
+        )}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onDragEnter={() => setDragActive(true)}
+        onDragLeave={() => setDragActive(false)}
+        title={placeholder}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          onChange={handleInputChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          disabled={disabled || uploading}
+        />
+        <Upload className="h-4 w-4 text-muted-foreground" />
       </div>
     );
   }
