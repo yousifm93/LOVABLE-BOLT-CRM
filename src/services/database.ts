@@ -458,5 +458,14 @@ export const databaseService = {
     
     if (error) throw error;
     return data;
+  },
+
+  async deleteTask(taskId: string) {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) throw error;
   }
 };

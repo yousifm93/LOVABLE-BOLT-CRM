@@ -53,6 +53,7 @@ export function InlineEditDate({
             !dateValue && "text-muted-foreground",
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           <CalendarIcon className="mr-2 h-3 w-3" />
           <span className="text-sm">{displayValue}</span>

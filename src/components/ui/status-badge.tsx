@@ -25,10 +25,10 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'web') return 'bg-indigo-500 text-white';
   if (statusLower === 'in-person') return 'bg-orange-500 text-white';
   
-  // Priority colors
-  if (statusLower === 'high') return 'bg-destructive text-destructive-foreground';
-  if (statusLower === 'medium') return 'bg-warning text-warning-foreground';
-  if (statusLower === 'low') return 'bg-success text-success-foreground';
+  // Priority colors - all gray for consistency
+  if (statusLower === 'high') return 'bg-muted text-muted-foreground';
+  if (statusLower === 'medium') return 'bg-muted text-muted-foreground';
+  if (statusLower === 'low') return 'bg-muted text-muted-foreground';
   
   // Task status colors
   if (statusLower === 'done') return 'bg-success text-success-foreground';
@@ -41,12 +41,14 @@ const getStatusColor = (status: string): string => {
 
 export function StatusBadge({ status, variant = "square", className, onClick }: StatusBadgeProps) {
   const colorClass = getStatusColor(status);
+  const isGrayPriority = ['high', 'medium', 'low'].includes(status.toLowerCase());
   
   return (
     <span
       className={cn(
         "inline-flex items-center px-2 py-1 text-xs font-medium transition-colors",
         variant === "square" ? "rounded" : "rounded-full",
+        isGrayPriority ? "w-16 justify-center" : "", // Consistent width for priorities
         colorClass,
         onClick && "cursor-pointer hover:opacity-80",
         className

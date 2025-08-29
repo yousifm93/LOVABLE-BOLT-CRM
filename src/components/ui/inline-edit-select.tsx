@@ -57,6 +57,7 @@ export function InlineEditSelect({
             !value && "text-muted-foreground",
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {showAsStatusBadge && value ? (
             <StatusBadge status={displayValue} />

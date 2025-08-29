@@ -13,6 +13,8 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { formatDateModern } from "@/utils/dateUtils";
 
 interface ModernTask {
@@ -37,7 +39,7 @@ const USERS = [
   { id: "fa92a4c6-890d-4d69-99a8-c3adc6c904ee", first_name: "Herman", last_name: "Daza", email: "herman@mortgagebolt.com" }
 ];
 
-const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[]): ColumnDef<ModernTask>[] => [
+const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[], users: any[]): ColumnDef<ModernTask>[] => [
   {
     accessorKey: "status",
     header: "",
@@ -54,7 +56,7 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-      <div className="w-48">
+      <div className="w-64">
         <div className="font-medium truncate">{row.original.title}</div>
         {row.original.description && (
           <div className="text-sm text-muted-foreground mt-1 truncate">{row.original.description}</div>
@@ -67,15 +69,15 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     accessorKey: "borrower",
     header: "Borrower",
     cell: ({ row }) => (
-      <div className="w-36">
-        {row.original.borrower ? (
-          <button className="text-sm text-primary hover:text-primary/80 hover:underline text-left">
-            {row.original.borrower.first_name} {row.original.borrower.last_name}
-          </button>
-        ) : (
-          <span className="text-sm text-muted-foreground">No borrower</span>
-        )}
-      </div>
+      <InlineEditBorrower
+        value={row.original.borrower ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}` : undefined}
+        borrowerId={row.original.borrower_id}
+        leads={leads}
+        onValueChange={(leadId, leadName) => {
+          handleUpdate(row.original.id, 'borrower_id', leadId);
+        }}
+        className="w-32"
+      />
     ),
     sortable: true,
   },
@@ -111,25 +113,14 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
   {
     accessorKey: "assignee",
     header: "Assigned To",
-    cell: ({ row }) => {
-      if (!row.original.assignee) {
-        return <span className="text-sm text-muted-foreground">Unassigned</span>;
-      }
-      return (
-        <div className="flex items-center gap-2">
-          <UserAvatar
-            firstName={row.original.assignee.first_name}
-            lastName={row.original.assignee.last_name}
-            email={row.original.assignee.email}
-            size="sm"
-            showTooltip
-          />
-          <span className="text-sm">
-            {row.original.assignee.first_name} {row.original.assignee.last_name}
-          </span>
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <InlineEditAssignee
+        assigneeId={row.original.assignee_id}
+        users={users}
+        onValueChange={(userId) => handleUpdate(row.original.id, 'assignee_id', userId)}
+        className="w-32"
+      />
+    ),
     sortable: true,
   },
   {
@@ -236,10 +227,7 @@ export default function TasksModern() {
         task.id === taskId ? { ...task, [field]: value } : task
       ));
       
-      toast({
-        title: "Success",
-        description: "Task updated successfully",
-      });
+      // No toast for inline edits - they're too frequent and distracting
     } catch (error) {
       console.error("Error updating task:", error);
       toast({
@@ -250,10 +238,57 @@ export default function TasksModern() {
     }
   };
 
-  // Filter tasks by user if filter is active
-  const filteredTasks = userFilter 
-    ? tasks.filter(task => task.assignee_id === userFilter)
-    : tasks;
+  // Filter tasks by search term and user filter
+  const filteredTasks = tasks.filter(task => {
+    // Search term filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        task.title.toLowerCase().includes(searchLower) ||
+        task.description?.toLowerCase().includes(searchLower) ||
+        (task.borrower?.first_name && `${task.borrower.first_name} ${task.borrower.last_name}`.toLowerCase().includes(searchLower));
+      
+      if (!matchesSearch) return false;
+    }
+    
+    // User filter
+    if (userFilter) {
+      return task.assignee_id === userFilter;
+    }
+    
+    return true;
+  });
+
+  // Action handlers for DataTable
+  const handleViewDetails = (task: ModernTask) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleEdit = (task: ModernTask) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDelete = async (task: ModernTask) => {
+    if (window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      try {
+        await databaseService.deleteTask(task.id);
+        setTasks(prev => prev.filter(t => t.id !== task.id));
+        toast({
+          title: "Task deleted successfully",
+          duration: 2000,
+        });
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        toast({
+          title: "Error deleting task",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const completedTasks = filteredTasks.filter(task => task.status === "Done").length;
   const overdueTasks = filteredTasks.filter(task => {
@@ -366,10 +401,12 @@ export default function TasksModern() {
             </div>
           ) : (
             <DataTable
-              columns={columns(handleUpdate, leads)}
+              columns={columns(handleUpdate, leads, USERS)}
               data={filteredTasks}
               searchTerm={searchTerm}
-              onRowClick={handleRowClick}
+              onViewDetails={handleViewDetails}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           )}
         </CardContent>

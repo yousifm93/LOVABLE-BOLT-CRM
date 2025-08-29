@@ -71,7 +71,10 @@ export function InlineEditNumber({
 
   return (
     <button
-      onClick={() => setIsEditing(true)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsEditing(true);
+      }}
       className={cn(
         "text-sm p-1 rounded hover:bg-muted/50 text-left",
         className
