@@ -286,22 +286,43 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
                 </Button>
                 <CardTitle className="text-sm font-medium text-muted-foreground">Contact Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span>(352) 328-9828</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-3 w-3 text-muted-foreground" />
-                  <span>{client.person.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Buyer's Agent</p>
-                    <button className="text-primary hover:underline text-sm">
-                      Sarah Johnson
-                    </button>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column - Contact Info */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-3 w-3 text-muted-foreground" />
+                      <span>(352) 328-9828</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-3 w-3 text-muted-foreground" />
+                      <span>{client.person.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Buyer's Agent</p>
+                        <button className="text-primary hover:underline text-sm">
+                          Sarah Johnson
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Right Column - Loan Details */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Loan Amount:</span>
+                      <span className="font-medium text-xs">{client.loan.loanAmount}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Loan Type:</span>
+                      <span className="font-medium text-xs">{client.loan.loanType}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Property Type:</span>
+                      <span className="font-medium text-xs">{client.loan.prType}</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -399,29 +420,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
 
         {/* Main Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-320px)] p-6 pt-0">
-          {/* Left Column - 3 Stacked Boxes (removed duplicate contact info) */}
+          {/* Left Column - Tasks and Chat */}
           <div className="space-y-4 overflow-y-auto">
-
-            {/* Loan Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Loan Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-medium">{client.loan.loanAmount}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Type:</span>
-                  <span className="font-medium">{client.loan.loanType}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Property:</span>
-                  <span className="font-medium">{client.loan.prType}</span>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Tasks */}
             <Card>
@@ -464,33 +464,48 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               </CardContent>
             </Card>
 
-            {/* Stage History */}
+            {/* Chat with Borrower */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Stage History</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Chat with Borrower</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Lead</span>
-                    <span className="text-muted-foreground">Jan 10, 2024</span>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
+                  <div className="flex justify-end">
+                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                      <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
+                      <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Pending App</span>
-                    <span className="text-muted-foreground">Jan 12, 2024</span>
+                  <div className="flex justify-start">
+                    <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
+                      <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Screening</span>
-                    <span className="text-muted-foreground">Jan 15, 2024</span>
+                  <div className="flex justify-end">
+                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                      <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
+                      <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Pre-Qualified</span>
-                    <span className="text-muted-foreground">Jan 18, 2024</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span>Pre-Approved</span>
-                    <span className="text-muted-foreground">Jan 22, 2024</span>
-                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <Button size="sm" onClick={handleSendMessage}>
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -636,45 +651,38 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange }: C
               </CardContent>
             </Card>
 
-            {/* Chat Box */}
+            {/* Stage History */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Chat with Borrower</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Stage History</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="bg-muted p-3 rounded text-sm min-h-[300px] max-h-[300px] overflow-y-auto space-y-3">
-                  <div className="bg-white p-2 rounded-r-lg rounded-tl-lg ml-4">
-                    <p className="text-sm">Hi! I had a question about the appraisal timeline.</p>
-                    <span className="text-xs text-muted-foreground">10:30 AM</span>
+              <CardContent className="space-y-3 max-h-[300px] overflow-y-auto">
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                    ✓
                   </div>
-                  <div className="bg-primary text-primary-foreground p-2 rounded-l-lg rounded-tr-lg mr-4">
-                    <p className="text-sm">The appraisal is scheduled for next Tuesday. I'll send you the details shortly.</p>
-                    <span className="text-xs opacity-80">10:45 AM</span>
-                  </div>
-                  <div className="bg-white p-2 rounded-r-lg rounded-tl-lg ml-4">
-                    <p className="text-sm">Perfect, thank you!</p>
-                    <span className="text-xs text-muted-foreground">10:46 AM</span>
+                  <div className="flex-1">
+                    <p className="font-medium">Pre-Qualified</p>
+                    <p className="text-xs text-muted-foreground">Jan 10, 2024 - 2 days</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleSendMessage();
-                      }
-                    }}
-                  />
-                  <Button 
-                    size="sm" 
-                    onClick={handleSendMessage}
-                    disabled={!chatMessage.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center justify-center w-6 h-6 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                    ✓
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Application Pending</p>
+                    <p className="text-xs text-muted-foreground">Jan 12, 2024 - 3 days</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                    •
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Pre-Approved</p>
+                    <p className="text-xs text-muted-foreground">Jan 15, 2024 - Current</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
