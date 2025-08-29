@@ -6,6 +6,7 @@ interface StatusBadgeProps {
   variant?: "default" | "square";
   className?: string;
   onClick?: () => void;
+  forceGray?: boolean;
 }
 
 const getStatusColor = (status: string): string => {
@@ -39,8 +40,8 @@ const getStatusColor = (status: string): string => {
   return 'bg-muted text-muted-foreground';
 };
 
-export function StatusBadge({ status, variant = "square", className, onClick }: StatusBadgeProps) {
-  const colorClass = getStatusColor(status);
+export function StatusBadge({ status, variant = "square", className, onClick, forceGray = false }: StatusBadgeProps) {
+  const colorClass = forceGray ? 'bg-muted text-muted-foreground' : getStatusColor(status);
   const isGrayPriority = ['high', 'medium', 'low'].includes(status.toLowerCase());
   
   return (

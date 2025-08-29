@@ -18,6 +18,7 @@ interface InlineEditSelectProps {
   className?: string;
   showAsStatusBadge?: boolean;
   disabled?: boolean;
+  forceGrayBadge?: boolean;
 }
 
 export function InlineEditSelect({
@@ -27,7 +28,8 @@ export function InlineEditSelect({
   placeholder = "Select...",
   className,
   showAsStatusBadge = false,
-  disabled = false
+  disabled = false,
+  forceGrayBadge = false
 }: InlineEditSelectProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -41,7 +43,7 @@ export function InlineEditSelect({
 
   if (disabled) {
     return showAsStatusBadge ? (
-      <StatusBadge status={displayValue} />
+      <StatusBadge status={displayValue} forceGray={forceGrayBadge} />
     ) : (
       <span className={cn("text-sm", className)}>{displayValue}</span>
     );
@@ -60,7 +62,7 @@ export function InlineEditSelect({
           onClick={(e) => e.stopPropagation()}
         >
           {showAsStatusBadge && value ? (
-            <StatusBadge status={displayValue} />
+            <StatusBadge status={displayValue} forceGray={forceGrayBadge} />
           ) : (
             <span className="text-sm">{displayValue}</span>
           )}

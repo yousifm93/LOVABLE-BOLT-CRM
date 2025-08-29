@@ -123,7 +123,7 @@ export function DataTable<T extends Record<string, any>>({
                    {column.cell ? (
                      column.cell({ row: { original: row } })
                    ) : (
-                     <span className="hover:bg-yellow-100 hover:rounded transition-colors px-1">{row[column.accessorKey]}</span>
+                     <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
                    )}
                  </TableCell>
                ))}

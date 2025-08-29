@@ -166,6 +166,7 @@ export default function AgentList() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -174,13 +175,15 @@ export default function AgentList() {
 
   const loadContacts = async () => {
     try {
+      setError(null);
       const allContacts = await databaseService.getContacts();
       const agentContacts = allContacts.filter(contact => contact.type === 'Agent');
       setContacts(agentContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
+      setError(`Failed to load contacts: ${error}`);
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Failed to load contacts.",
         variant: "destructive"
       });
@@ -208,8 +211,23 @@ export default function AgentList() {
     return sum;
   }, 0);
 
-  return (
-    <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
+  if (isLoading) {
+    return <div className="p-4">Loading Real Estate Agents...</div>;
+  }
+
+  if (error) {
+    console.error('AgentList render error:', error);
+    return (
+      <div className="p-4">
+        <p>Error loading agent data</p>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  try {
+    return (
+      <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Real Estate Agents</h1>
         <p className="text-xs italic text-muted-foreground/70">
@@ -312,6 +330,15 @@ export default function AgentList() {
         onContactCreated={handleContactCreated}
         defaultType="agent"
       />
-    </div>
-  );
+      </div>
+    );
+  } catch (renderError) {
+    console.error('AgentList render error:', renderError);
+    return (
+      <div className="p-4">
+        <p>Error rendering agent list</p>
+        <p className="text-sm text-muted-foreground">{String(renderError)}</p>
+      </div>
+    );
+  }
 }

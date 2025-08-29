@@ -246,15 +246,16 @@ export function LeadsModern() {
                       placeholder="Select agent"
                     />
                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditSelect
-                      value={lead.referred_via || ''}
-                      options={REFERRED_VIA_OPTIONS}
-                      onValueChange={(value) => handleUpdateLead(lead.id, 'referred_via', value)}
-                      placeholder="Select method"
-                      showAsStatusBadge
-                    />
-                  </td>
+                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                     <InlineEditSelect
+                       value={lead.referred_via || ''}
+                       options={REFERRED_VIA_OPTIONS}
+                       onValueChange={(value) => handleUpdateLead(lead.id, 'referred_via', value)}
+                       placeholder="Select method"
+                       showAsStatusBadge
+                       forceGrayBadge
+                     />
+                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
                     <InlineEditSelect
                       value={lead.referral_source || ''}
@@ -263,15 +264,16 @@ export function LeadsModern() {
                       placeholder="Select source"
                     />
                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditSelect
-                      value={lead.converted || ''}
-                      options={CONVERTED_OPTIONS}
-                      onValueChange={(value) => handleUpdateLead(lead.id, 'converted', value)}
-                      placeholder="Select status"
-                      showAsStatusBadge
-                    />
-                  </td>
+                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                     <InlineEditSelect
+                       value={lead.converted || ''}
+                       options={CONVERTED_OPTIONS}
+                       onValueChange={(value) => handleUpdateLead(lead.id, 'converted', value)}
+                       placeholder="Select status"
+                       showAsStatusBadge
+                       forceGrayBadge
+                     />
+                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
                     <InlineEditDate
                       value={lead.task_eta}

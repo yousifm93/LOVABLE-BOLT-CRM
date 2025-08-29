@@ -58,7 +58,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     switch (stage) {
       case 'leads':
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
             <h4 className="font-medium text-sm mb-3">Lead Status</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Lead qualification: {client.ops.status || 'Working on it'}</div>
@@ -71,8 +71,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pending-app':
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Application Review</h4>
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
+             <h4 className="font-medium text-sm mb-3">Application Review</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Review progress: {(client as any).progress || 0}%</div>
               <div>• Status: {client.ops.status || 'Pending'}</div>
@@ -84,8 +84,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'screening':
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
+             <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Income type: {(client as any).incomeType || 'W2'}</div>
               <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
@@ -97,8 +97,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pre-qualified':
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
+             <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
               <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
@@ -110,8 +110,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pre-approved':
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
+             <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Shopping status: {client.ops.status || 'New'}</div>
               <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
@@ -123,8 +123,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       default:
         return (
-          <div className="p-6 bg-muted/50 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Status Information</h4>
+           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
+             <h4 className="font-medium text-sm mb-3">Status Information</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div>• Current status: {client.ops.status || 'Active'}</div>
               <div>• Priority: {client.ops.priority || 'Medium'}</div>
@@ -346,15 +346,15 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
       {/* Drawer */}
       <div 
-        className="left-60 h-full bg-muted/20 shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] absolute pointer-events-auto" 
+        className="left-60 h-full bg-background shadow-strong animate-in slide-in-from-right duration-300 border-l z-[60] absolute pointer-events-auto" 
         style={{ width: 'calc(100vw - 240px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-muted/20 p-4 pt-2">
+        <div className="sticky top-0 z-10 bg-background p-4 pt-2">
 
           {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr_1fr] gap-4 mb-3 mt-2">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_5fr_1fr] gap-4 mb-3 mt-2">
             {/* Contact Information + Lead Name */}
             <Card>
               <CardHeader className="pb-3">
