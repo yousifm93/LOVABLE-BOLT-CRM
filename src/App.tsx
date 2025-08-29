@@ -17,8 +17,7 @@ import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
-import SalmaTasks from "@/pages/tasks/SalmaTasks";
-import HermanTasks from "@/pages/tasks/HermanTasks";
+import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
@@ -77,9 +76,8 @@ function AppRoutes() {
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />
-        <Route path="/tasks/yousif" element={<TasksModern />} />
-        <Route path="/tasks/salma" element={<SalmaTasks />} />
-        <Route path="/tasks/hermit" element={<HermanTasks />} />
+        <Route path="/tasks" element={<TasksModern />} />
+        <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<PreapprovalLetter />} />

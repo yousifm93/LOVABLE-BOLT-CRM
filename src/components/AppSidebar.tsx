@@ -38,6 +38,7 @@ import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
   { title: "Email", url: "/email", icon: Mail },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare },
 ];
 
 const pipelineItems = [
@@ -50,11 +51,7 @@ const pipelineItems = [
   { title: "Past Clients", url: "/past-clients", icon: PieChart },
 ];
 
-const taskItems = [
-  { title: "Yousif Tasks", url: "/tasks/yousif", icon: CheckSquare },
-  { title: "Salma Tasks", url: "/tasks/salma", icon: CheckSquare },
-  { title: "Herman Tasks", url: "/tasks/hermit", icon: CheckSquare },
-];
+// Removed individual task items - consolidated into single "Tasks" item in dashboard
 
 const contactItems = [
   { title: "Real Estate Agents", url: "/contacts/agents", icon: Phone },
@@ -72,6 +69,7 @@ const resourceItems = [
 
 const adminItems = [
   { title: "Settings", url: "/admin", icon: Settings },
+  { title: "Deleted Items", url: "/admin/deleted-tasks", icon: CheckSquare },
 ];
 
 export function AppSidebar() {
@@ -125,21 +123,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Tasks */}
-        <CollapsibleSidebarGroup title="Tasks" className="mb-4">
-          <SidebarMenu>
-            {taskItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
+        {/* Removed Tasks collapsible group - Tasks is now in dashboard items */}
 
         {/* Pipeline */}
         <CollapsibleSidebarGroup title="Pipeline" className="mb-4">

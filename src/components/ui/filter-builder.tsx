@@ -97,9 +97,9 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
           value={filter.value as string}
           onValueChange={(value) => updateFilter(filter.id, 'value', value)}
         >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select value" />
-          </SelectTrigger>
+        <SelectTrigger className="w-44">
+          <SelectValue placeholder="Select value" />
+        </SelectTrigger>
           <SelectContent>
             {options.map((option) => (
               <SelectItem key={option} value={option}>
@@ -117,9 +117,9 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
           value={filter.value as string}
           onValueChange={(value) => updateFilter(filter.id, 'value', value)}
         >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select date" />
-          </SelectTrigger>
+        <SelectTrigger className="w-44">
+          <SelectValue placeholder="Select date" />
+        </SelectTrigger>
           <SelectContent>
             {dateValues.map((dateValue) => (
               <SelectItem key={dateValue.value} value={dateValue.value}>
@@ -136,7 +136,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
         placeholder="Enter value"
         value={filter.value as string}
         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-        className="w-48"
+        className="w-44"
       />
     );
   };
@@ -150,9 +150,9 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
             value={filter.column}
             onValueChange={(value) => updateFilter(filter.id, 'column', value)}
           >
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Select column" />
-            </SelectTrigger>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Select column" />
+          </SelectTrigger>
             <SelectContent>
               {columns.map((column) => (
                 <SelectItem key={column.value} value={column.value}>
@@ -167,9 +167,9 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
             value={filter.operator}
             onValueChange={(value) => updateFilter(filter.id, 'operator', value)}
           >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
+          <SelectTrigger className="w-56">
+            <SelectValue />
+          </SelectTrigger>
             <SelectContent>
               {operators.map((operator) => (
                 <SelectItem key={operator.value} value={operator.value}>

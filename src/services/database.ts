@@ -242,7 +242,25 @@ export const databaseService = {
         created_by_user:users!tasks_created_by_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async getDeletedTasks() {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
+        created_by_user:users!tasks_created_by_fkey(*),
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name),
+        deleted_by_user:users!tasks_deleted_by_fkey(id, first_name, last_name, email)
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
     
     if (error) throw error;
     return data;
@@ -461,6 +479,37 @@ export const databaseService = {
   },
 
   async deleteTask(taskId: string) {
+    // Get current user
+    const { data: sessionData, error: authError } = await supabase.auth.getSession();
+    if (authError || !sessionData?.session?.user) {
+      throw new Error('No authenticated session found');
+    }
+
+    // Soft delete by setting deleted_at and deleted_by
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: sessionData.session.user.id
+      })
+      .eq('id', taskId);
+
+    if (error) throw error;
+  },
+
+  async restoreTask(taskId: string) {
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        deleted_at: null,
+        deleted_by: null
+      })
+      .eq('id', taskId);
+
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteTask(taskId: string) {
     const { error } = await supabase
       .from('tasks')
       .delete()

@@ -59,13 +59,13 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-      <div className="w-80 min-w-80 flex-shrink-0">
-        <div className="font-medium text-sm">{row.original.title}</div>
-        {row.original.description && (
-          <div className="text-xs text-muted-foreground mt-1 leading-relaxed truncate whitespace-nowrap overflow-hidden" title={row.original.description}>
-            {row.original.description}
-          </div>
-        )}
+    <div className="w-96 min-w-96 flex-shrink-0">
+      <div className="font-medium text-sm">{row.original.title}</div>
+      {row.original.description && (
+        <div className="text-xs text-muted-foreground mt-1 leading-relaxed truncate whitespace-nowrap overflow-hidden" title={row.original.description}>
+          {row.original.description}
+        </div>
+      )}
       </div>
     ),
     sortable: true,
@@ -107,11 +107,13 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     accessorKey: "task_order",
     header: "Order",
     cell: ({ row }) => (
+    <div className="w-16">
       <InlineEditNumber
         value={row.original.task_order}
         onValueChange={(value) => handleUpdate(row.original.id, "task_order", value)}
         min={0}
       />
+    </div>
     ),
     sortable: true,
   },
@@ -485,7 +487,7 @@ export default function TasksModern() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-96" align="end">
+              <PopoverContent className="w-[32rem]" align="end">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Filter Tasks</h4>
