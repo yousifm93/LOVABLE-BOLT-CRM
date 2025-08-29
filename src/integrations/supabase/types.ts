@@ -245,22 +245,41 @@ export type Database = {
       leads: {
         Row: {
           account_id: string
+          appraisal_status:
+            | Database["public"]["Enums"]["appraisal_status"]
+            | null
+          arrive_loan_number: number | null
+          ba_status: Database["public"]["Enums"]["ba_status"] | null
           buyer_agent_id: string | null
+          cd_status: Database["public"]["Enums"]["cd_status"] | null
+          close_date: string | null
+          condo_status: Database["public"]["Enums"]["condo_status"] | null
           converted: Database["public"]["Enums"]["converted_status"] | null
           created_at: string
           created_by: string
+          disclosure_status:
+            | Database["public"]["Enums"]["disclosure_status"]
+            | null
           email: string | null
+          epo_status: Database["public"]["Enums"]["epo_status"] | null
           first_name: string
+          hoi_status: Database["public"]["Enums"]["hoi_status"] | null
           id: string
           last_name: string
           lead_on_date: string
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
+          lender_id: string | null
+          listing_agent_id: string | null
           loan_amount: number | null
+          loan_status: Database["public"]["Enums"]["loan_status"] | null
           loan_type: string | null
+          lock_expiration_date: string | null
           notes: string | null
           occupancy: string | null
+          package_status: Database["public"]["Enums"]["package_status"] | null
           phone: string | null
           pipeline_stage_id: string | null
+          pr_type: Database["public"]["Enums"]["pr_type"] | null
           property_type: string | null
           referral_source: Database["public"]["Enums"]["referral_source"] | null
           referred_via: Database["public"]["Enums"]["referred_via"] | null
@@ -268,26 +287,46 @@ export type Database = {
           status: Database["public"]["Enums"]["lead_status"]
           task_eta: string | null
           teammate_assigned: string | null
+          title_status: Database["public"]["Enums"]["title_status"] | null
           updated_at: string
         }
         Insert: {
           account_id: string
+          appraisal_status?:
+            | Database["public"]["Enums"]["appraisal_status"]
+            | null
+          arrive_loan_number?: number | null
+          ba_status?: Database["public"]["Enums"]["ba_status"] | null
           buyer_agent_id?: string | null
+          cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          close_date?: string | null
+          condo_status?: Database["public"]["Enums"]["condo_status"] | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by: string
+          disclosure_status?:
+            | Database["public"]["Enums"]["disclosure_status"]
+            | null
           email?: string | null
+          epo_status?: Database["public"]["Enums"]["epo_status"] | null
           first_name: string
+          hoi_status?: Database["public"]["Enums"]["hoi_status"] | null
           id?: string
           last_name: string
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
+          lender_id?: string | null
+          listing_agent_id?: string | null
           loan_amount?: number | null
+          loan_status?: Database["public"]["Enums"]["loan_status"] | null
           loan_type?: string | null
+          lock_expiration_date?: string | null
           notes?: string | null
           occupancy?: string | null
+          package_status?: Database["public"]["Enums"]["package_status"] | null
           phone?: string | null
           pipeline_stage_id?: string | null
+          pr_type?: Database["public"]["Enums"]["pr_type"] | null
           property_type?: string | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
@@ -297,26 +336,46 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           task_eta?: string | null
           teammate_assigned?: string | null
+          title_status?: Database["public"]["Enums"]["title_status"] | null
           updated_at?: string
         }
         Update: {
           account_id?: string
+          appraisal_status?:
+            | Database["public"]["Enums"]["appraisal_status"]
+            | null
+          arrive_loan_number?: number | null
+          ba_status?: Database["public"]["Enums"]["ba_status"] | null
           buyer_agent_id?: string | null
+          cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          close_date?: string | null
+          condo_status?: Database["public"]["Enums"]["condo_status"] | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by?: string
+          disclosure_status?:
+            | Database["public"]["Enums"]["disclosure_status"]
+            | null
           email?: string | null
+          epo_status?: Database["public"]["Enums"]["epo_status"] | null
           first_name?: string
+          hoi_status?: Database["public"]["Enums"]["hoi_status"] | null
           id?: string
           last_name?: string
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
+          lender_id?: string | null
+          listing_agent_id?: string | null
           loan_amount?: number | null
+          loan_status?: Database["public"]["Enums"]["loan_status"] | null
           loan_type?: string | null
+          lock_expiration_date?: string | null
           notes?: string | null
           occupancy?: string | null
+          package_status?: Database["public"]["Enums"]["package_status"] | null
           phone?: string | null
           pipeline_stage_id?: string | null
+          pr_type?: Database["public"]["Enums"]["pr_type"] | null
           property_type?: string | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
@@ -326,9 +385,24 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           task_eta?: string | null
           teammate_assigned?: string | null
+          title_status?: Database["public"]["Enums"]["title_status"] | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_leads_lender"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_leads_listing_agent"
+            columns: ["listing_agent_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_buyer_agent_id_fkey"
             columns: ["buyer_agent_id"]
@@ -623,7 +697,16 @@ export type Database = {
       }
     }
     Enums: {
+      appraisal_status:
+        | "Ordered"
+        | "Scheduled"
+        | "Inspected"
+        | "Received"
+        | "Waiver"
+      ba_status: "Send" | "Sent" | "Signed"
       call_outcome: "No Answer" | "Left VM" | "Connected"
+      cd_status: "Requested" | "Sent" | "Signed"
+      condo_status: "Ordered" | "Received" | "Approved"
       contact_type: "Agent" | "Realtor" | "Borrower" | "Other"
       converted_status:
         | "Working on it"
@@ -631,6 +714,9 @@ export type Database = {
         | "Nurture"
         | "Dead"
         | "Needs Attention"
+      disclosure_status: "Ordered" | "Sent" | "Signed" | "Need Signature"
+      epo_status: "Send" | "Sent" | "Signed"
+      hoi_status: "Quoted" | "Ordered" | "Received"
       lead_source:
         | "Website"
         | "Referral"
@@ -646,7 +732,10 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
+      loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
       log_direction: "In" | "Out"
+      package_status: "Initial" | "Final"
+      pr_type: "P" | "R" | "HELOC"
       referral_source:
         | "Agent"
         | "New Agent"
@@ -670,6 +759,7 @@ export type Database = {
         | "Done"
         | "Working on it"
         | "Need help"
+      title_status: "Requested" | "Received"
       user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
     }
     CompositeTypes: {
@@ -798,7 +888,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      appraisal_status: [
+        "Ordered",
+        "Scheduled",
+        "Inspected",
+        "Received",
+        "Waiver",
+      ],
+      ba_status: ["Send", "Sent", "Signed"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
+      cd_status: ["Requested", "Sent", "Signed"],
+      condo_status: ["Ordered", "Received", "Approved"],
       contact_type: ["Agent", "Realtor", "Borrower", "Other"],
       converted_status: [
         "Working on it",
@@ -807,6 +907,9 @@ export const Constants = {
         "Dead",
         "Needs Attention",
       ],
+      disclosure_status: ["Ordered", "Sent", "Signed", "Need Signature"],
+      epo_status: ["Send", "Sent", "Signed"],
+      hoi_status: ["Quoted", "Ordered", "Received"],
       lead_source: [
         "Website",
         "Referral",
@@ -824,7 +927,10 @@ export const Constants = {
         "Needs Attention",
       ],
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
+      loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC"],
       log_direction: ["In", "Out"],
+      package_status: ["Initial", "Final"],
+      pr_type: ["P", "R", "HELOC"],
       referral_source: [
         "Agent",
         "New Agent",
@@ -851,6 +957,7 @@ export const Constants = {
         "Working on it",
         "Need help",
       ],
+      title_status: ["Requested", "Received"],
       user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
     },
   },

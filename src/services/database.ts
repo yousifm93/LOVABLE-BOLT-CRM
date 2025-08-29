@@ -516,5 +516,46 @@ export const databaseService = {
       .eq('id', taskId);
 
     if (error) throw error;
+  },
+
+  async getActiveLoans() {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session?.user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        buyer_agent:buyer_agents(*),
+        lender:contacts!lender_id(*),
+        listing_agent:buyer_agents!listing_agent_id(*),
+        teammate:users!teammate_assigned(*)
+      `)
+      .not('loan_status', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getLenders() {
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .eq('type', 'Other')
+      .order('first_name');
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAgents() {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .select('*')
+      .order('first_name');
+
+    if (error) throw error;
+    return data;
   }
 };

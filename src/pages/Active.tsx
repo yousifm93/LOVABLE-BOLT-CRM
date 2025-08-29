@@ -1,196 +1,528 @@
-import { useState } from "react";
-import { Search, Plus, Filter, Phone, Mail, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
-import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
-import { CRMClient, PipelineStage } from "@/types/crm";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditLender } from "@/components/ui/inline-edit-lender";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
 
-interface ActiveClient {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  loanType: string;
-  status: "under_contract" | "in_underwriting" | "conditions_pending" | "clear_to_close" | "docs_signing";
-  loanAmount: string;
-  creditScore: number;
-  closingDate: string;
-  processor: string;
-  underwriter: string;
-  progress: number;
-  lastUpdate: string;
+interface ActiveLoan {
+  id: string;
+  first_name: string;
+  last_name: string;
+  loan_amount: number | null;
+  arrive_loan_number: number | null;
+  pr_type: string | null;
+  disclosure_status: string | null;
+  close_date: string | null;
+  loan_status: string | null;
+  appraisal_status: string | null;
+  title_status: string | null;
+  hoi_status: string | null;
+  condo_status: string | null;
+  cd_status: string | null;
+  package_status: string | null;
+  lock_expiration_date: string | null;
+  ba_status: string | null;
+  epo_status: string | null;
+  teammate_assigned: string | null;
+  lender_id: string | null;
+  buyer_agent_id: string | null;
+  listing_agent_id: string | null;
+  buyer_agent?: any;
+  lender?: any;
+  listing_agent?: any;
+  teammate?: any;
 }
 
-const activeData: ActiveClient[] = [
-  {
-    id: 1,
-    name: "Sarah Mitchell",
-    email: "sarah.m@email.com",
-    phone: "(555) 890-1234",
-    loanType: "Purchase",
-    status: "in_underwriting",
-    loanAmount: "$625,000",
-    creditScore: 780,
-    closingDate: "2024-02-15",
-    processor: "Lisa Chen",
-    underwriter: "Michael Rodriguez",
-    progress: 65,
-    lastUpdate: "2024-01-22"
-  },
-  {
-    id: 2,
-    name: "James Patterson",
-    email: "james.p@email.com",
-    phone: "(555) 901-2345",
-    loanType: "Refinance",
-    status: "clear_to_close",
-    loanAmount: "$380,000",
-    creditScore: 745,
-    closingDate: "2024-02-08",
-    processor: "Karen Wong",
-    underwriter: "David Kim",
-    progress: 95,
-    lastUpdate: "2024-01-21"
-  }
+// Status options for dropdowns
+const prTypeOptions = [
+  { value: "P", label: "P" },
+  { value: "R", label: "R" },
+  { value: "HELOC", label: "HELOC" }
 ];
 
-const statusOptions = {
-  under_contract: "Under Contract",
-  in_underwriting: "In Underwriting", 
-  conditions_pending: "Conditions Pending",
-  clear_to_close: "Clear to Close",
-  docs_signing: "Docs Signing"
-};
+const disclosureStatusOptions = [
+  { value: "Ordered", label: "Ordered" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" },
+  { value: "Need Signature", label: "Need Signature" }
+];
 
-const columns: ColumnDef<ActiveClient>[] = [
+const loanStatusOptions = [
+  { value: "NEW", label: "NEW" },
+  { value: "RFP", label: "RFP" },
+  { value: "SUV", label: "SUV" },
+  { value: "AWC", label: "AWC" },
+  { value: "CTC", label: "CTC" }
+];
+
+const appraisalStatusOptions = [
+  { value: "Ordered", label: "Ordered" },
+  { value: "Scheduled", label: "Scheduled" },
+  { value: "Inspected", label: "Inspected" },
+  { value: "Received", label: "Received" },
+  { value: "Waiver", label: "Waiver" }
+];
+
+const titleStatusOptions = [
+  { value: "Requested", label: "Requested" },
+  { value: "Received", label: "Received" }
+];
+
+const hoiStatusOptions = [
+  { value: "Quoted", label: "Quoted" },
+  { value: "Ordered", label: "Ordered" },
+  { value: "Received", label: "Received" }
+];
+
+const condoStatusOptions = [
+  { value: "Ordered", label: "Ordered" },
+  { value: "Received", label: "Received" },
+  { value: "Approved", label: "Approved" }
+];
+
+const cdStatusOptions = [
+  { value: "Requested", label: "Requested" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" }
+];
+
+const packageStatusOptions = [
+  { value: "Initial", label: "Initial" },
+  { value: "Final", label: "Final" }
+];
+
+const baStatusOptions = [
+  { value: "Send", label: "Send" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" }
+];
+
+const epoStatusOptions = [
+  { value: "Send", label: "Send" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" }
+];
+
+const createColumns = (
+  users: any[], 
+  lenders: any[], 
+  agents: any[], 
+  handleUpdate: (id: string, field: string, value: any) => void
+): ColumnDef<ActiveLoan>[] => [
   {
-    accessorKey: "name",
-    header: "Client Name",
-    sortable: true,
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate">{row.original.email}</span>
-        </div>
-        <div className="flex items-center text-sm text-muted-foreground">
-          <Phone className="h-3 w-3 mr-1" />
-          <span className="truncate">{row.original.phone}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={statusOptions[row.original.status]} />,
-    sortable: true,
-  },
-  {
-    accessorKey: "loanAmount",
-    header: "Loan Amount",
-    sortable: true,
-  },
-  {
-    accessorKey: "progress",
-    header: "Progress",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${row.original.progress}%` }}
-          />
-        </div>
-        <span className="text-sm text-muted-foreground">{row.original.progress}%</span>
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "closingDate",
-    header: "Closing Date",
+    accessorKey: "borrower_name",
+    header: "Borrower Name",
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <Calendar className="h-3 w-3 text-muted-foreground" />
-        <span className="text-sm">{row.original.closingDate}</span>
+        <span className="text-sm font-medium">
+          {row.original.first_name} {row.original.last_name}
+        </span>
       </div>
     ),
     sortable: true,
   },
   {
-    accessorKey: "processor",
-    header: "Processor",
+    accessorKey: "team",
+    header: "Team",
+    cell: ({ row }) => (
+      <InlineEditAssignee
+        assigneeId={row.original.teammate_assigned}
+        users={users}
+        onValueChange={(userId) => 
+          handleUpdate(row.original.id, "teammate_assigned", userId)
+        }
+      />
+    ),
     sortable: true,
   },
   {
-    accessorKey: "underwriter",
-    header: "Underwriter",
+    accessorKey: "lender",
+    header: "Lender",
+    cell: ({ row }) => (
+      <InlineEditLender
+        value={row.original.lender ? {
+          id: row.original.lender.id,
+          first_name: row.original.lender.first_name,
+          last_name: row.original.lender.last_name,
+          company: row.original.lender.company,
+          email: row.original.lender.email
+        } : null}
+        lenders={lenders}
+        onValueChange={(lender) => 
+          handleUpdate(row.original.id, "lender_id", lender?.id || null)
+        }
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "arrive_loan_number",
+    header: "Arrive Loan #",
+    cell: ({ row }) => (
+      <InlineEditNumber
+        value={row.original.arrive_loan_number || 0}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "arrive_loan_number", value)
+        }
+        placeholder="0"
+        className="w-20"
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "pr_type",
+    header: "P/R",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.pr_type}
+        options={prTypeOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "pr_type", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "loan_amount",
+    header: "Loan Amount",
+    cell: ({ row }) => (
+      <InlineEditCurrency
+        value={row.original.loan_amount}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "loan_amount", value)
+        }
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "disclosure_status",
+    header: "DISC",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.disclosure_status}
+        options={disclosureStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "disclosure_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "close_date",
+    header: "Close Date",
+    cell: ({ row }) => (
+      <InlineEditDate
+        value={row.original.close_date}
+        onValueChange={(date) => 
+          handleUpdate(row.original.id, "close_date", date?.toISOString().split('T')[0] || null)
+        }
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "loan_status",
+    header: "Loan Status",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.loan_status}
+        options={loanStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "loan_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "appraisal_status",
+    header: "Appraisal",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.appraisal_status}
+        options={appraisalStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "appraisal_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "title_status",
+    header: "Title",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.title_status}
+        options={titleStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "title_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "hoi_status",
+    header: "HOI",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.hoi_status}
+        options={hoiStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "hoi_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "condo_status",
+    header: "Condo",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.condo_status}
+        options={condoStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "condo_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "cd_status",
+    header: "CD",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.cd_status}
+        options={cdStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "cd_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "package_status",
+    header: "Package",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.package_status}
+        options={packageStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "package_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "lock_expiration_date",
+    header: "LOC EXP",
+    cell: ({ row }) => (
+      <InlineEditDate
+        value={row.original.lock_expiration_date}
+        onValueChange={(date) => 
+          handleUpdate(row.original.id, "lock_expiration_date", date?.toISOString().split('T')[0] || null)
+        }
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "ba_status",
+    header: "BA",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.ba_status}
+        options={baStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "ba_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "epo_status",
+    header: "EPO",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.epo_status}
+        options={epoStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "epo_status", value)
+        }
+        showAsStatusBadge
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "buyer_agent",
+    header: "Buyer's Agent",
+    cell: ({ row }) => (
+      <InlineEditAgent
+        value={row.original.buyer_agent ? {
+          id: row.original.buyer_agent.id,
+          first_name: row.original.buyer_agent.first_name,
+          last_name: row.original.buyer_agent.last_name,
+          brokerage: row.original.buyer_agent.brokerage,
+          email: row.original.buyer_agent.email
+        } : null}
+        agents={agents}
+        onValueChange={(agent) => 
+          handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+        }
+        type="buyer"
+      />
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "listing_agent",
+    header: "Listing Agent",
+    cell: ({ row }) => (
+      <InlineEditAgent
+        value={row.original.listing_agent ? {
+          id: row.original.listing_agent.id,
+          first_name: row.original.listing_agent.first_name,
+          last_name: row.original.listing_agent.last_name,
+          brokerage: row.original.listing_agent.brokerage,
+          email: row.original.listing_agent.email
+        } : null}
+        agents={agents}
+        onValueChange={(agent) => 
+          handleUpdate(row.original.id, "listing_agent_id", agent?.id || null)
+        }
+        type="listing"
+      />
+    ),
     sortable: true,
   },
 ];
 
 export default function Active() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
+  const [users, setUsers] = useState([]);
+  const [lenders, setLenders] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleRowClick = (client: ActiveClient) => {
-    // Convert ActiveClient to CRMClient for the drawer
-    const crmClient: CRMClient = {
-      person: {
-        id: client.id,
-        firstName: client.name.split(' ')[0],
-        lastName: client.name.split(' ').slice(1).join(' '),
-        email: client.email,
-        phoneMobile: client.phone
-      },
-      loan: {
-        loanAmount: client.loanAmount,
-        loanType: client.loanType,
-        prType: "Primary Residence"
-      },
-      ops: {
-        stage: "active",
-        status: statusOptions[client.status],
-        priority: "High"
-      },
-      dates: {
-        createdOn: client.lastUpdate,
-        appliedOn: client.lastUpdate
-      },
-      meta: {},
-      name: client.name,
-      creditScore: client.creditScore,
-      progress: client.progress
-    };
-    setSelectedClient(crmClient);
-    setIsDrawerOpen(true);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [loansData, usersData, lendersData, agentsData] = await Promise.all([
+        databaseService.getActiveLoans(),
+        databaseService.getUsers(),
+        databaseService.getLenders(),
+        databaseService.getAgents()
+      ]);
+      
+      setActiveLoans(loansData || []);
+      setUsers(usersData || []);
+      setLenders(lendersData || []);
+      setAgents(agentsData || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load active loans data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleStageChange = (clientId: number, newStage: PipelineStage) => {
-    console.log(`Moving client ${clientId} to stage ${newStage}`);
-    setIsDrawerOpen(false);
+  const handleUpdate = async (id: string, field: string, value: any) => {
+    try {
+      await databaseService.updateLead(id, { [field]: value });
+      
+      // Update local state optimistically
+      setActiveLoans(prev => prev.map(loan => 
+        loan.id === id ? { ...loan, [field]: value } : loan
+      ));
+
+      toast({
+        title: "Updated",
+        description: "Field updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating field:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to update field",
+        variant: "destructive"
+      });
+      // Reload data to revert optimistic update
+      loadData();
+    }
   };
+
+  const columns = createColumns(users, lenders, agents, handleUpdate);
+
+  if (loading) {
+    return (
+      <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Active Pipeline</h1>
+            <p className="text-xs italic text-muted-foreground/70">Loading active loans...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Active Loans</h1>
-          <p className="text-xs italic text-muted-foreground/70">Currently active loans and their status</p>
+          <h1 className="text-2xl font-bold text-foreground">Active Pipeline</h1>
+          <p className="text-xs italic text-muted-foreground/70">Active loans with full pipeline tracking</p>
         </div>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Active Loans</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Pipeline Overview ({activeLoans.length} active loans)
+          </CardTitle>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -207,25 +539,16 @@ export default function Active() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={activeData}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-          />
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <DataTable
+              columns={columns}
+              data={activeLoans}
+              searchTerm={searchTerm}
+            />
+          </div>
         </CardContent>
       </Card>
-
-      {selectedClient && (
-        <ClientDetailDrawer
-          client={selectedClient}
-          isOpen={isDrawerOpen}
-          onClose={() => setIsDrawerOpen(false)}
-          onStageChange={handleStageChange}
-          pipelineType="active"
-        />
-      )}
     </div>
   );
 }
