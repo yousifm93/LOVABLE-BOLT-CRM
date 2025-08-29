@@ -200,15 +200,10 @@ All colors MUST be HSL.
   max-width: 100px;
 }
 
-/* Hover effects for borrower names */
-.borrower-name {
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  transition: color 0.2s ease-in-out;
-}
-
-.borrower-name:hover {
+/* Hover effects */
+.borrower-hover:hover {
   color: hsl(var(--warning)) !important;
+  transition: color 0.2s ease-in-out;
 }
 
 /* Compact table styles for pipeline */

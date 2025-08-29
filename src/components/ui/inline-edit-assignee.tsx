@@ -25,7 +25,6 @@ interface InlineEditAssigneeProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  compact?: boolean;
 }
 
 export function InlineEditAssignee({
@@ -35,8 +34,7 @@ export function InlineEditAssignee({
   onValueChange,
   placeholder = "Assign to...",
   className,
-  disabled = false,
-  compact = false
+  disabled = false
 }: InlineEditAssigneeProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -60,57 +58,9 @@ export function InlineEditAssignee({
         email={currentUser.email}
         size="sm"
         className={className}
-        showTooltip={compact}
       />
     ) : (
       <span className={cn("text-sm", className)}>{placeholder}</span>
-    );
-  }
-
-  if (compact && currentUser) {
-    return (
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className={cn("h-auto p-1 hover:bg-muted/50", className)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <UserAvatar
-              firstName={currentUser.first_name}
-              lastName={currentUser.last_name}
-              email={currentUser.email}
-              size="sm"
-              showTooltip={true}
-            />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-60 bg-popover border z-50">
-          <DropdownMenuItem
-            onClick={handleClear}
-            className="cursor-pointer text-muted-foreground"
-          >
-            Clear assignment
-          </DropdownMenuItem>
-          {users.map((user) => (
-            <DropdownMenuItem
-              key={user.id}
-              onClick={() => handleSelect(user)}
-              className="cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <UserAvatar
-                  firstName={user.first_name}
-                  lastName={user.last_name}
-                  email={user.email}
-                  size="sm"
-                />
-                <span>{user.first_name} {user.last_name}</span>
-              </div>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
     );
   }
 
@@ -134,7 +84,7 @@ export function InlineEditAssignee({
                 email={currentUser.email}
                 size="sm"
               />
-              {!compact && <span className="text-sm">{currentUser.first_name} {currentUser.last_name}</span>}
+              <span className="text-sm">{currentUser.first_name} {currentUser.last_name}</span>
             </div>
           ) : (
             <span className="text-sm">{placeholder}</span>

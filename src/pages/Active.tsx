@@ -10,7 +10,6 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
-import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -118,37 +117,38 @@ const createColumns = (
   users: any[], 
   lenders: any[], 
   agents: any[], 
-  handleUpdate: (id: string, field: string, value: any) => void,
-  onRowClick: (lead: ActiveLoan) => void
+  handleUpdate: (id: string, field: string, value: any) => void
 ): ColumnDef<ActiveLoan>[] => [
-    {
-      accessorKey: "borrower_name",
-      header: "Borrower",
-      cell: ({ row }) => (
-        <button
-          onClick={() => onRowClick(row.original)}
-          className="text-left hover:text-warning transition-colors duration-200"
-        >
-          {`${row.original.first_name} ${row.original.last_name}`}
-        </button>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: "team",
-      header: "Team",
-      cell: ({ row }) => (
-        <InlineEditAssignee
-          assigneeId={row.original.teammate_assigned}
-          users={users}
-          onValueChange={(userId) => 
-            handleUpdate(row.original.id, "teammate_assigned", userId)
-          }
-          compact={true}
-        />
-      ),
-      sortable: true,
-    },
+  {
+    accessorKey: "borrower_name",
+    header: "Borrower",
+    cell: ({ row }) => (
+      <div 
+        className="text-sm font-medium text-primary hover:text-yellow-400 cursor-pointer transition-colors whitespace-nowrap borrower-hover"
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log("Opening lead details for:", row.original);
+        }}
+      >
+        {`${row.original.first_name} ${row.original.last_name}`}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "team",
+    header: "Team",
+    cell: ({ row }) => (
+      <InlineEditAssignee
+        assigneeId={row.original.teammate_assigned}
+        users={users}
+        onValueChange={(userId) => 
+          handleUpdate(row.original.id, "teammate_assigned", userId)
+        }
+      />
+    ),
+    sortable: true,
+  },
   {
     accessorKey: "lender",
     header: "Lender",
@@ -169,17 +169,16 @@ const createColumns = (
     ),
     sortable: true,
   },
-    {
-      accessorKey: "arrive_loan_number",
-      header: "Loan #",
-      cell: ({ row }) => (
-        <InlineEditNumber
-          value={row.original.arrive_loan_number}
-          onValueChange={(value) => handleUpdate(row.original.id, "arrive_loan_number", value)}
-        />
-      ),
-      sortable: true,
-    },
+  {
+    accessorKey: "arrive_loan_number",
+    header: "Arrive Loan",
+    cell: ({ row }) => (
+      <span className="text-sm font-medium whitespace-nowrap">
+        #{row.original.arrive_loan_number || '0'}
+      </span>
+    ),
+    sortable: true,
+  },
   {
     accessorKey: "pr_type",
     header: "P/R",
@@ -196,21 +195,19 @@ const createColumns = (
     ),
     sortable: true,
   },
-    {
-      accessorKey: "loan_amount",
-      header: "Loan Amount",
-      cell: ({ row }) => (
-        <div className="whitespace-nowrap">
-          <InlineEditCurrency
-            value={row.original.loan_amount}
-            onValueChange={(value) => 
-              handleUpdate(row.original.id, "loan_amount", value)
-            }
-          />
-        </div>
-      ),
-      sortable: true,
-    },
+  {
+    accessorKey: "loan_amount",
+    header: "Loan Amount",
+    cell: ({ row }) => (
+      <InlineEditCurrency
+        value={row.original.loan_amount}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "loan_amount", value)
+        }
+      />
+    ),
+    sortable: true,
+  },
   {
     accessorKey: "disclosure_status",
     header: "DISC",
@@ -441,8 +438,6 @@ export default function Active() {
   const [lenders, setLenders] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLead, setSelectedLead] = useState<ActiveLoan | null>(null);
-  const [showDetailDrawer, setShowDetailDrawer] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -500,12 +495,7 @@ export default function Active() {
     }
   };
 
-  const handleRowClick = (lead: ActiveLoan) => {
-    setSelectedLead(lead);
-    setShowDetailDrawer(true);
-  };
-
-  const columns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
+  const columns = createColumns(users, lenders, agents, handleUpdate);
 
   // Group loans by pipeline section
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
@@ -558,7 +548,6 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={true}
-          onRowClick={handleRowClick}
         />
         
         <CollapsiblePipelineSection
@@ -566,8 +555,7 @@ export default function Active() {
           data={incomingLoans}
           columns={columns}
           searchTerm={searchTerm}
-          defaultOpen={true}
-          onRowClick={handleRowClick}
+          defaultOpen={false}
         />
         
         <CollapsiblePipelineSection
@@ -576,16 +564,6 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={false}
-          onRowClick={handleRowClick}
-        />
-
-        <ClientDetailDrawer
-          lead={selectedLead}
-          open={showDetailDrawer}
-          onClose={() => {
-            setShowDetailDrawer(false);
-            setSelectedLead(null);
-          }}
         />
       </div>
     </div>

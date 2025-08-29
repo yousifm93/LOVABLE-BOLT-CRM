@@ -65,7 +65,7 @@ const createColumns = (
         onValueChange={(url) => handleUpdate(row.original.id, "budget_file_url", url)}
         bucket="condo-documents"
         placeholder="Upload Budget"
-        compact={true}
+        className="w-32"
       />
     ),
   },
@@ -78,7 +78,7 @@ const createColumns = (
         onValueChange={(url) => handleUpdate(row.original.id, "cq_file_url", url)}
         bucket="condo-documents"
         placeholder="Upload CQ"
-        compact={true}
+        className="w-32"
       />
     ),
   },
@@ -91,7 +91,7 @@ const createColumns = (
         onValueChange={(url) => handleUpdate(row.original.id, "mip_file_url", url)}
         bucket="condo-documents"
         placeholder="Upload MIP"
-        compact={true}
+        className="w-32"
       />
     ),
   },
