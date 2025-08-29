@@ -112,7 +112,11 @@ export function DataTable<T extends Record<string, any>>({
           {filteredData.map((row, index) => (
             <TableRow
               key={index}
-              className="hover:bg-muted/50 transition-colors h-10"
+              className={cn(
+                "hover:bg-muted/50 transition-colors h-10",
+                onRowClick && "cursor-pointer"
+              )}
+              onClick={() => onRowClick?.(row)}
             >
               {columns.map((column) => (
                 <TableCell key={column.accessorKey} className="py-2 px-2">
