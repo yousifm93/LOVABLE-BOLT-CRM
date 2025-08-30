@@ -37,7 +37,6 @@ import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
-  { title: "Email", url: "/email", icon: Mail },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
 ];
 
@@ -60,11 +59,10 @@ const contactItems = [
 ];
 
 const resourceItems = [
-  { title: "Guideline Chatbot", url: "/resources/chatbot", icon: Bot },
+  { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
   { title: "Condo List", url: "/resources/condolist", icon: Search },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
   { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
-  { title: "Marketing", url: "/resources/marketing", icon: Megaphone },
 ];
 
 const adminItems = [

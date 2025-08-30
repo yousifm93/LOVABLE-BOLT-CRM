@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ColumnDef } from "@/components/ui/data-table";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -446,6 +448,30 @@ const createColumns = (
   },
 ];
 
+// Define initial column configuration
+const initialColumns = [
+  { id: "borrower_name", label: "Borrower", visible: true },
+  { id: "team", label: "Team", visible: true },
+  { id: "lender", label: "Lender", visible: true },
+  { id: "arrive_loan_number", label: "Loan #", visible: true },
+  { id: "pr_type", label: "P/R", visible: true },
+  { id: "loan_amount", label: "Loan Amount", visible: true },
+  { id: "disclosure_status", label: "DISC", visible: true },
+  { id: "close_date", label: "Close Date", visible: true },
+  { id: "loan_status", label: "Loan Status", visible: true },
+  { id: "appraisal_status", label: "Appraisal", visible: true },
+  { id: "title_status", label: "Title", visible: true },
+  { id: "hoi_status", label: "HOI", visible: true },
+  { id: "condo_status", label: "Condo", visible: true },
+  { id: "cd_status", label: "CD", visible: true },
+  { id: "package_status", label: "Package", visible: true },
+  { id: "lock_expiration_date", label: "LOC EXP", visible: true },
+  { id: "ba_status", label: "BA", visible: true },
+  { id: "epo_status", label: "EPO", visible: true },
+  { id: "buyer_agent", label: "Buyer's Agent", visible: true },
+  { id: "listing_agent", label: "Listing Agent", visible: true },
+];
+
 export default function Active() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
@@ -456,6 +482,15 @@ export default function Active() {
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { toast } = useToast();
+
+  // Column visibility management
+  const {
+    columns: columnVisibility,
+    visibleColumns,
+    toggleColumn,
+    toggleAll,
+    saveView
+  } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
 
   useEffect(() => {
     loadData();
@@ -556,7 +591,11 @@ export default function Active() {
     setIsDrawerOpen(false);
   };
 
-  const columns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
+  const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
+  
+  // Filter columns based on visibility settings
+  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
+  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
 
   // Group loans by pipeline section
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
@@ -592,13 +631,22 @@ export default function Active() {
         <p className="text-muted-foreground">Track and manage active loans</p>
       </div>
 
-      <div className="flex items-center space-x-2 mb-4">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search active loans..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-64"
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search active loans..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-64"
+          />
+        </div>
+        
+        <ColumnVisibilityButton
+          columns={columnVisibility}
+          onColumnToggle={toggleColumn}
+          onToggleAll={toggleAll}
+          onSaveView={saveView}
         />
       </div>
 

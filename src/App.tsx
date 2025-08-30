@@ -22,7 +22,6 @@ import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
-import Marketing from "@/pages/resources/Marketing";
 import Email from "@/pages/Email";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
@@ -82,7 +81,6 @@ function AppRoutes() {
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<PreapprovalLetter />} />
         <Route path="/resources/estimate" element={<LoanEstimate />} />
-        <Route path="/resources/marketing" element={<Marketing />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
