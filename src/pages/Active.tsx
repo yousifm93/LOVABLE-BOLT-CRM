@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
@@ -58,7 +59,7 @@ const disclosureStatusOptions = [
   { value: "Ordered", label: "Ordered" },
   { value: "Sent", label: "Sent" },
   { value: "Signed", label: "Signed" },
-  { value: "Need Signature", label: "Need Signature" }
+  { value: "Need SIG", label: "Need SIG" }
 ];
 
 const loanStatusOptions = [
@@ -229,7 +230,7 @@ const createColumns = (
           handleUpdate(row.original.id, "disclosure_status", value)
         }
         showAsStatusBadge
-        className="w-20"
+        className="w-16"
       />
     ),
     sortable: true,
@@ -258,7 +259,7 @@ const createColumns = (
           handleUpdate(row.original.id, "loan_status", value)
         }
         showAsStatusBadge
-        className="w-16"
+        className="w-14"
       />
     ),
     sortable: true,
@@ -274,7 +275,7 @@ const createColumns = (
           handleUpdate(row.original.id, "appraisal_status", value)
         }
         showAsStatusBadge
-        className="w-20"
+        className="w-18"
       />
     ),
     sortable: true,
@@ -290,7 +291,7 @@ const createColumns = (
           handleUpdate(row.original.id, "title_status", value)
         }
         showAsStatusBadge
-        className="w-16"
+        className="w-20"
       />
     ),
     sortable: true,
@@ -306,7 +307,7 @@ const createColumns = (
           handleUpdate(row.original.id, "hoi_status", value)
         }
         showAsStatusBadge
-        className="w-16"
+        className="w-14"
       />
     ),
     sortable: true,
@@ -354,7 +355,7 @@ const createColumns = (
           handleUpdate(row.original.id, "package_status", value)
         }
         showAsStatusBadge
-        className="w-16"
+        className="w-12"
       />
     ),
     sortable: true,
@@ -486,10 +487,14 @@ export default function Active() {
   // Column visibility management
   const {
     columns: columnVisibility,
+    views,
     visibleColumns,
+    activeView,
     toggleColumn,
     toggleAll,
-    saveView
+    saveView,
+    loadView,
+    deleteView
   } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
 
   useEffect(() => {
@@ -615,7 +620,6 @@ export default function Active() {
       <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Active Pipeline</h1>
-          <p className="text-muted-foreground">Track and manage active loans</p>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading active loans...</div>
@@ -628,25 +632,29 @@ export default function Active() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Active Pipeline</h1>
-        <p className="text-muted-foreground">Track and manage active loans</p>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search active loans..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
-        </div>
+      <div className="flex items-center gap-2 mb-4">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search active loans..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-64"
+        />
         
         <ColumnVisibilityButton
           columns={columnVisibility}
           onColumnToggle={toggleColumn}
           onToggleAll={toggleAll}
           onSaveView={saveView}
+        />
+        
+        <ViewPills
+          views={views}
+          activeView={activeView}
+          onLoadView={loadView}
+          onDeleteView={deleteView}
         />
       </div>
 

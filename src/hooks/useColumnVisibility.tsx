@@ -14,6 +14,7 @@ interface View {
 export function useColumnVisibility(initialColumns: Column[], storageKey: string = 'columnVisibility') {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [views, setViews] = useState<View[]>([]);
+  const [activeView, setActiveView] = useState<string | null>(null);
 
   // Load saved state from localStorage
   useEffect(() => {
@@ -82,6 +83,16 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
         ...col,
         visible: view.columns[col.id] !== undefined ? view.columns[col.id] : col.visible
       })));
+      setActiveView(viewName);
+    }
+  };
+
+  const deleteView = (viewName: string) => {
+    const updatedViews = views.filter(v => v.name !== viewName);
+    setViews(updatedViews);
+    localStorage.setItem(`${storageKey}_views`, JSON.stringify(updatedViews));
+    if (activeView === viewName) {
+      setActiveView(null);
     }
   };
 
@@ -91,9 +102,11 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
     columns,
     views,
     visibleColumns,
+    activeView,
     toggleColumn,
     toggleAll,
     saveView,
-    loadView
+    loadView,
+    deleteView
   };
 }
