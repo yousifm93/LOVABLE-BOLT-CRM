@@ -67,7 +67,6 @@ export function InlineEditSelect({
           ) : (
             <span className="text-sm">{displayValue}</span>
           )}
-          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto bg-popover border z-50">
@@ -77,12 +76,7 @@ export function InlineEditSelect({
             onClick={() => handleSelect(option.value)}
             className="cursor-pointer"
           >
-            <div className="flex items-center justify-between w-full">
-              <span>{option.label}</span>
-              {value === option.value && (
-                <Check className="h-4 w-4" />
-              )}
-            </div>
+            <span>{option.label}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

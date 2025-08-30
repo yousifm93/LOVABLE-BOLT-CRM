@@ -127,7 +127,7 @@ const createColumns = (
     header: "Borrower",
     cell: ({ row }) => (
       <div 
-        className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors whitespace-nowrap"
+        className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors whitespace-nowrap w-32"
         onClick={(e) => {
           e.stopPropagation();
           handleRowClick(row.original);
@@ -142,14 +142,16 @@ const createColumns = (
     accessorKey: "team",
     header: "Team",
     cell: ({ row }) => (
-      <InlineEditAssignee
-        assigneeId={row.original.teammate_assigned}
-        users={users}
-        onValueChange={(userId) => 
-          handleUpdate(row.original.id, "teammate_assigned", userId)
-        }
-        showNameText={false}
-      />
+      <div className="w-12">
+        <InlineEditAssignee
+          assigneeId={row.original.teammate_assigned}
+          users={users}
+          onValueChange={(userId) => 
+            handleUpdate(row.original.id, "teammate_assigned", userId)
+          }
+          showNameText={false}
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -194,7 +196,7 @@ const createColumns = (
           handleUpdate(row.original.id, "pr_type", value)
         }
         showAsStatusBadge
-        className="w-16"
+        className="w-12"
       />
     ),
     sortable: true,
@@ -225,6 +227,7 @@ const createColumns = (
           handleUpdate(row.original.id, "disclosure_status", value)
         }
         showAsStatusBadge
+        className="w-20"
       />
     ),
     sortable: true,
@@ -253,7 +256,7 @@ const createColumns = (
           handleUpdate(row.original.id, "loan_status", value)
         }
         showAsStatusBadge
-        className="w-20"
+        className="w-16"
       />
     ),
     sortable: true,
@@ -269,7 +272,7 @@ const createColumns = (
           handleUpdate(row.original.id, "appraisal_status", value)
         }
         showAsStatusBadge
-        className="w-24"
+        className="w-20"
       />
     ),
     sortable: true,
@@ -285,7 +288,7 @@ const createColumns = (
           handleUpdate(row.original.id, "title_status", value)
         }
         showAsStatusBadge
-        className="w-20"
+        className="w-16"
       />
     ),
     sortable: true,
@@ -301,6 +304,7 @@ const createColumns = (
           handleUpdate(row.original.id, "hoi_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -316,6 +320,7 @@ const createColumns = (
           handleUpdate(row.original.id, "condo_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -331,6 +336,7 @@ const createColumns = (
           handleUpdate(row.original.id, "cd_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -346,6 +352,7 @@ const createColumns = (
           handleUpdate(row.original.id, "package_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -374,6 +381,7 @@ const createColumns = (
           handleUpdate(row.original.id, "ba_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
@@ -389,6 +397,7 @@ const createColumns = (
           handleUpdate(row.original.id, "epo_status", value)
         }
         showAsStatusBadge
+        className="w-16"
       />
     ),
     sortable: true,
