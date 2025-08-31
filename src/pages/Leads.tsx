@@ -41,18 +41,41 @@ interface Lead {
 }
 
 // Transform database lead to display format  
-const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => ({
-  id: dbLead.id,
-  name: `${dbLead.first_name} ${dbLead.last_name}`,
-  creationDate: formatDateModern(new Date(dbLead.created_at)),
-  email: dbLead.email || '',
-  phone: dbLead.phone || '',
-  referredVia: dbLead.referred_via || 'Email',
-  referralSource: dbLead.referral_source || 'Agent',
-  converted: dbLead.converted || 'Working On It',
-  leadStrength: dbLead.lead_strength || 'Medium',
-  dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
-});
+const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => {
+  // Migrate old lead strength values to new ones
+  const migrateLeadStrength = (oldValue: string): string => {
+    switch (oldValue?.toLowerCase()) {
+      case 'hot': return 'High';
+      case 'warm': return 'Medium';
+      case 'cold': return 'Low';
+      case 'qualified': return 'High';
+      default: return ['High', 'Medium', 'Low'].includes(oldValue) ? oldValue : 'Medium';
+    }
+  };
+
+  // Migrate old converted values to new ones
+  const migrateConverted = (oldValue: string): string => {
+    switch (oldValue) {
+      case 'Working On It': return 'Working on it';
+      case 'Pending App': return 'Working on it';
+      case 'Needs Attention': return 'Working on it';
+      default: return ['Working on it', 'Converted', 'Nurture', 'Dead'].includes(oldValue) ? oldValue : 'Working on it';
+    }
+  };
+
+  return {
+    id: dbLead.id,
+    name: `${dbLead.first_name} ${dbLead.last_name}`,
+    creationDate: formatDateModern(new Date(dbLead.created_at)),
+    email: dbLead.email || '',
+    phone: dbLead.phone || '',
+    referredVia: dbLead.referred_via || 'Email',
+    referralSource: dbLead.referral_source || 'Agent',
+    converted: migrateConverted(dbLead.converted || 'Working on it'),
+    leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
+    dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
+  };
+};
 
 // Option arrays for dropdowns
 const referredViaOptions = [
@@ -150,10 +173,6 @@ export default function Leads() {
     try {
       setIsUpdating(leadId);
       
-      // Find the original lead in the database
-      const originalLead = leads.find(l => l.id === leadId);
-      if (!originalLead) return;
-
       let updateData: Partial<DatabaseLead> = {};
       
       // Map field names to database columns
@@ -171,47 +190,35 @@ export default function Leads() {
           updateData.lead_strength = value as any;
           break;
         case 'dueDate':
-          // Handle due date updates by creating/updating tasks
+          // Handle due date updates - don't update local state immediately to prevent flickering
           if (value) {
             const dateStr = value instanceof Date ? value.toISOString().split('T')[0] : value;
-            // In a real implementation, you'd create/update a task associated with the lead
-            // For now, we'll just update the local state and show success
-            setLeads(prev => prev.map(lead => 
-              lead.id === leadId 
-                ? { ...lead, dueDate: new Date(dateStr).toLocaleDateString() }
-                : lead
-            ));
+            // For now, we'll just show success and let the next data refresh handle the display
             toast({
               title: "Due date updated",
               description: "Task deadline has been set",
             });
+            setIsUpdating(null);
             return;
           } else {
-            // Clear due date
-            setLeads(prev => prev.map(lead => 
-              lead.id === leadId 
-                ? { ...lead, dueDate: '' }
-                : lead
-            ));
             toast({
-              title: "Due date cleared",
+              title: "Due date cleared", 
               description: "Task deadline has been removed",
             });
+            setIsUpdating(null);
             return;
           }
         default:
+          setIsUpdating(null);
           return;
       }
 
       if (Object.keys(updateData).length > 0) {
+        // Update database first
         await databaseService.updateLead(leadId, updateData);
         
-        // Update local state
-        setLeads(prev => prev.map(lead => 
-          lead.id === leadId 
-            ? { ...lead, [field]: value }
-            : lead
-        ));
+        // Then refresh data to ensure consistency
+        await loadLeads();
 
         toast({
           title: "Lead updated",
