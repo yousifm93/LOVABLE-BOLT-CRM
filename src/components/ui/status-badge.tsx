@@ -13,11 +13,15 @@ const getStatusColor = (status: string): string => {
   const statusLower = status.toLowerCase();
   
   // Converted status colors
-  if (statusLower.includes('working')) return 'bg-info text-info-foreground';
-  if (statusLower.includes('pending')) return 'bg-warning text-warning-foreground';
-  if (statusLower.includes('nurture')) return 'bg-accent text-accent-foreground';
-  if (statusLower.includes('dead')) return 'bg-muted text-muted-foreground';
-  if (statusLower.includes('attention')) return 'bg-destructive text-destructive-foreground';
+  if (statusLower === 'working on it') return 'bg-light-success text-foreground';
+  if (statusLower === 'nurture') return 'bg-warning text-foreground';
+  if (statusLower === 'converted') return 'bg-success text-foreground';
+  if (statusLower === 'dead') return 'bg-destructive text-foreground';
+  
+  // Lead strength colors  
+  if (statusLower === 'high') return 'bg-success text-foreground';
+  if (statusLower === 'medium') return 'bg-warning text-foreground';
+  if (statusLower === 'low') return 'bg-light-destructive text-foreground';
   
   // Referred via colors - now unified to avoid per-option color changes
   if (statusLower === 'email' || statusLower === 'text' || statusLower === 'call' || statusLower === 'web' || statusLower === 'in person') {

@@ -15,6 +15,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDateModern } from "@/utils/dateUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,17 +40,17 @@ interface Lead {
   dueDate?: string;
 }
 
-// Transform database lead to display format
+// Transform database lead to display format  
 const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => ({
   id: dbLead.id,
   name: `${dbLead.first_name} ${dbLead.last_name}`,
-  creationDate: new Date(dbLead.created_at).toLocaleDateString(),
+  creationDate: formatDateModern(new Date(dbLead.created_at)),
   email: dbLead.email || '',
   phone: dbLead.phone || '',
   referredVia: dbLead.referred_via || 'Email',
   referralSource: dbLead.referral_source || 'Agent',
-  converted: dbLead.converted || 'Working on it',
-  leadStrength: dbLead.lead_strength || 'Warm',
+  converted: dbLead.converted || 'Working On It',
+  leadStrength: dbLead.lead_strength || 'Medium',
   dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
 });
 
@@ -72,18 +73,16 @@ const referralSourceOptions = [
 ];
 
 const convertedOptions = [
-  { value: "Working on it", label: "Working on it" },
-  { value: "Pending App", label: "Pending App" },
+  { value: "Working On It", label: "Working On It" },
   { value: "Nurture", label: "Nurture" },
+  { value: "Converted", label: "Converted" },
   { value: "Dead", label: "Dead" },
-  { value: "Needs Attention", label: "Needs Attention" },
 ];
 
 const leadStrengthOptions = [
-  { value: "Hot", label: "Hot" },
-  { value: "Warm", label: "Warm" },
-  { value: "Cold", label: "Cold" },
-  { value: "Qualified", label: "Qualified" },
+  { value: "High", label: "High" },
+  { value: "Medium", label: "Medium" },
+  { value: "Low", label: "Low" },
 ];
 
 export default function Leads() {
@@ -356,6 +355,23 @@ export default function Leads() {
       sortable: true,
     },
     {
+      accessorKey: "leadStrength",
+      header: "Lead Strength",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.leadStrength}
+            options={leadStrengthOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id}
+            fixedWidth="w-20"
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
       accessorKey: "referredVia",
       header: "Referred Via",
       cell: ({ row }) => (
@@ -402,23 +418,6 @@ export default function Leads() {
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
             fixedWidth="w-36"
-          />
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: "leadStrength",
-      header: "Lead Strength",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditSelect
-            value={row.original.leadStrength}
-            options={leadStrengthOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
-            fixedWidth="w-24"
           />
         </div>
       ),

@@ -21,6 +21,9 @@ export function Header() {
         <div className="flex items-center h-10">
           <SidebarTrigger />
         </div>
+      </div>
+
+      <div className="flex items-center gap-3 h-full">
         <div className="relative w-80 flex items-center h-10">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -28,9 +31,6 @@ export function Header() {
             className="pl-10 h-8 text-sm"
           />
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 h-full">
         <div className="flex items-center h-10">
           <Button variant="ghost" size="sm" className="relative h-8 w-8 p-0">
             <Bell className="h-4 w-4" />

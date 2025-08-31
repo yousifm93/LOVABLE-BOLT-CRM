@@ -40,11 +40,17 @@ All colors MUST be HSL.
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     
+    --light-success: 142 69% 58%;
+    --light-success-foreground: 0 0% 0%;
+    
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+    
+    --light-destructive: 350 89% 85%;
+    --light-destructive-foreground: 0 0% 0%;
 
     /* Mortgage Bolt gradients */
     --gradient-primary: linear-gradient(135deg, hsl(45 96% 53%), hsl(45 96% 63%));
@@ -108,11 +114,17 @@ All colors MUST be HSL.
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     
+    --light-success: 142 69% 58%;
+    --light-success-foreground: 0 0% 0%;
+    
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+    
+    --light-destructive: 350 89% 85%;
+    --light-destructive-foreground: 0 0% 0%;
 
     /* Mortgage Bolt dark gradients */
     --gradient-primary: linear-gradient(135deg, hsl(45 96% 53%), hsl(45 96% 63%));
