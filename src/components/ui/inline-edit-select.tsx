@@ -19,6 +19,7 @@ interface InlineEditSelectProps {
   showAsStatusBadge?: boolean;
   disabled?: boolean;
   forceGrayBadge?: boolean;
+  fixedWidth?: string;
 }
 
 export function InlineEditSelect({
@@ -29,7 +30,8 @@ export function InlineEditSelect({
   className,
   showAsStatusBadge = false,
   disabled = false,
-  forceGrayBadge = false
+  forceGrayBadge = false,
+  fixedWidth
 }: InlineEditSelectProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -43,9 +45,46 @@ export function InlineEditSelect({
 
   if (disabled) {
     return showAsStatusBadge ? (
-      <StatusBadge status={displayValue} forceGray={forceGrayBadge} />
+      <StatusBadge 
+        status={displayValue} 
+        forceGray={forceGrayBadge} 
+        className={cn(fixedWidth, "justify-center", className)}
+      />
     ) : (
       <span className={cn("text-sm", className)}>{displayValue}</span>
+    );
+  }
+
+  if (showAsStatusBadge) {
+    return (
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <div className="cursor-pointer" onClick={(e) => e.stopPropagation()}>
+            <StatusBadge 
+              status={displayValue} 
+              forceGray={forceGrayBadge}
+              className={cn(fixedWidth, "justify-center", className)}
+            />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="start" 
+          className={cn("bg-background border border-border shadow-lg z-50", fixedWidth)}
+        >
+          {options.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                "cursor-pointer text-center justify-center h-8 text-sm hover:bg-accent hover:text-accent-foreground",
+                fixedWidth
+              )}
+            >
+              {option.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
@@ -56,17 +95,13 @@ export function InlineEditSelect({
           variant="ghost"
           className={cn(
             "h-auto p-1 justify-start font-normal hover:bg-muted/50",
-            showAsStatusBadge ? "min-w-[120px]" : "min-w-[100px]",
+            fixedWidth || "min-w-[100px]",
             !value && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {showAsStatusBadge && value ? (
-            <StatusBadge status={displayValue} forceGray={forceGrayBadge} />
-          ) : (
-            <span className="text-sm">{displayValue}</span>
-          )}
+          <span className="text-sm">{displayValue}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[120px] max-h-60 overflow-y-auto bg-popover border z-50">

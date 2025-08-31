@@ -19,12 +19,10 @@ const getStatusColor = (status: string): string => {
   if (statusLower.includes('dead')) return 'bg-muted text-muted-foreground';
   if (statusLower.includes('attention')) return 'bg-destructive text-destructive-foreground';
   
-  // Referred via colors
-  if (statusLower === 'email') return 'bg-blue-500 text-white';
-  if (statusLower === 'text') return 'bg-green-500 text-white';
-  if (statusLower === 'call') return 'bg-purple-500 text-white';
-  if (statusLower === 'web') return 'bg-indigo-500 text-white';
-  if (statusLower === 'in-person') return 'bg-orange-500 text-white';
+  // Referred via colors - now unified to avoid per-option color changes
+  if (statusLower === 'email' || statusLower === 'text' || statusLower === 'call' || statusLower === 'web' || statusLower === 'in person') {
+    return 'bg-muted text-muted-foreground';
+  }
   
   // Priority colors - all gray for consistency
   if (statusLower === 'high') return 'bg-muted text-muted-foreground';

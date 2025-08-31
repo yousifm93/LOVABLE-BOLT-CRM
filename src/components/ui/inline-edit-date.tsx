@@ -28,7 +28,10 @@ export function InlineEditDate({
   const [open, setOpen] = React.useState(false);
   
   const dateValue = value ? (typeof value === 'string' ? new Date(value) : value) : undefined;
-  const displayValue = dateValue ? formatDateModern(dateValue) : placeholder;
+  const displayValue = dateValue ? dateValue.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric' 
+  }).toUpperCase() : placeholder;
 
   const handleSelect = (date: Date | undefined) => {
     onValueChange(date);

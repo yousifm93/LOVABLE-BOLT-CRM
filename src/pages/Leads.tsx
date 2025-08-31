@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
@@ -12,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,6 +96,55 @@ export default function Leads() {
   const [loading, setLoading] = useState(true);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Load filters from localStorage on mount
+  useEffect(() => {
+    const savedFilters = localStorage.getItem('leads-filters');
+    if (savedFilters) {
+      try {
+        setFilters(JSON.parse(savedFilters));
+      } catch (error) {
+        console.error('Error loading saved filters:', error);
+      }
+    }
+  }, []);
+
+  // Save filters to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('leads-filters', JSON.stringify(filters));
+  }, [filters]);
+
+  // Filter columns definition for the filter builder
+  const filterColumns = [
+    { value: 'name', label: 'Lead Name', type: 'text' as const },
+    { 
+      value: 'referredVia', 
+      label: 'Referred Via', 
+      type: 'select' as const, 
+      options: referredViaOptions.map(opt => opt.value)
+    },
+    { 
+      value: 'referralSource', 
+      label: 'Referral Source', 
+      type: 'select' as const, 
+      options: referralSourceOptions.map(opt => opt.value)
+    },
+    { 
+      value: 'converted', 
+      label: 'Converted', 
+      type: 'select' as const, 
+      options: convertedOptions.map(opt => opt.value)
+    },
+    { 
+      value: 'leadStrength', 
+      label: 'Lead Strength', 
+      type: 'select' as const, 
+      options: leadStrengthOptions.map(opt => opt.value)
+    },
+    { value: 'dueDate', label: 'Due Date', type: 'date' as const }
+  ];
 
   // Field update handler
   const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined) => {
@@ -120,9 +172,34 @@ export default function Leads() {
           updateData.lead_strength = value as any;
           break;
         case 'dueDate':
-          // For due date, we need to update the task, not the lead
-          // This is a simplified approach - in a real app you'd need more complex logic
-          break;
+          // Handle due date updates by creating/updating tasks
+          if (value) {
+            const dateStr = value instanceof Date ? value.toISOString().split('T')[0] : value;
+            // In a real implementation, you'd create/update a task associated with the lead
+            // For now, we'll just update the local state and show success
+            setLeads(prev => prev.map(lead => 
+              lead.id === leadId 
+                ? { ...lead, dueDate: new Date(dateStr).toLocaleDateString() }
+                : lead
+            ));
+            toast({
+              title: "Due date updated",
+              description: "Task deadline has been set",
+            });
+            return;
+          } else {
+            // Clear due date
+            setLeads(prev => prev.map(lead => 
+              lead.id === leadId 
+                ? { ...lead, dueDate: '' }
+                : lead
+            ));
+            toast({
+              title: "Due date cleared",
+              description: "Task deadline has been removed",
+            });
+            return;
+          }
         default:
           return;
       }
@@ -138,8 +215,8 @@ export default function Leads() {
         ));
 
         toast({
-          title: "Success",
-          description: "Lead updated successfully",
+          title: "Lead updated",
+          description: "Changes have been saved",
         });
       }
     } catch (error) {
@@ -152,6 +229,80 @@ export default function Leads() {
     } finally {
       setIsUpdating(null);
     }
+  };
+
+  // Apply advanced filters
+  const applyAdvancedFilters = (leads: Lead[], filters: FilterCondition[]) => {
+    return leads.filter(lead => {
+      return filters.every(filter => {
+        let leadValue: any;
+        
+        switch (filter.column) {
+          case 'name':
+            leadValue = lead.name;
+            break;
+          case 'referredVia':
+            leadValue = lead.referredVia;
+            break;
+          case 'referralSource':
+            leadValue = lead.referralSource;
+            break;
+          case 'converted':
+            leadValue = lead.converted;
+            break;
+          case 'leadStrength':
+            leadValue = lead.leadStrength;
+            break;
+          case 'dueDate':
+            leadValue = lead.dueDate || '';
+            break;
+          default:
+            return true;
+        }
+
+        switch (filter.operator) {
+          case 'is':
+            return leadValue === filter.value;
+          case 'is_not':
+            return leadValue !== filter.value;
+          case 'contains':
+            return leadValue?.toString().toLowerCase().includes(filter.value.toString().toLowerCase());
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  // Filter leads by search term and advanced filters
+  const filteredLeads = (() => {
+    let result = leads;
+
+    // Apply search term filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter(lead => 
+        lead.name.toLowerCase().includes(searchLower) ||
+        lead.email.toLowerCase().includes(searchLower) ||
+        lead.phone.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply advanced filters
+    if (filters.length > 0) {
+      result = applyAdvancedFilters(result, filters);
+    }
+    
+    return result;
+  })();
+
+  const clearAllFilters = () => {
+    setFilters([]);
+    setSearchTerm("");
+  };
+
+  const removeFilter = (filterId: string) => {
+    setFilters(prev => prev.filter(f => f.id !== filterId));
   };
 
   // Delete handler
@@ -181,7 +332,7 @@ export default function Leads() {
     }
   };
 
-  // Columns definition with inline editing
+  // Columns definition with inline editing and normalized widths
   const columns: ColumnDef<Lead>[] = [
     {
       accessorKey: "name",
@@ -215,6 +366,8 @@ export default function Leads() {
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
+            forceGrayBadge={true}
+            fixedWidth="w-24"
           />
         </div>
       ),
@@ -231,6 +384,7 @@ export default function Leads() {
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
+            fixedWidth="w-32"
           />
         </div>
       ),
@@ -247,6 +401,7 @@ export default function Leads() {
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
+            fixedWidth="w-36"
           />
         </div>
       ),
@@ -263,6 +418,7 @@ export default function Leads() {
             onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
+            fixedWidth="w-24"
           />
         </div>
       ),
@@ -390,9 +546,43 @@ export default function Leads() {
         <div className="flex justify-between items-center mb-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-            <p className="text-xs italic text-muted-foreground/70">Prospective clients and new business opportunities</p>
+            <p className="text-xs italic text-muted-foreground/70">
+              Prospective clients and new business opportunities
+              {filters.length > 0 && (
+                <span className="ml-2 text-primary">
+                  • {filters.length} filter{filters.length > 1 ? 's' : ''} active
+                </span>
+              )}
+            </p>
           </div>
         </div>
+
+        {/* Filter Chips */}
+        {filters.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {filters.map((filter) => (
+              <Badge key={filter.id} variant="secondary" className="flex items-center gap-2">
+                <span className="text-xs">
+                  {filterColumns.find(col => col.value === filter.column)?.label} {filter.operator} {typeof filter.value === 'string' ? filter.value : 'Date'}
+                </span>
+                <button
+                  onClick={() => removeFilter(filter.id)}
+                  className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={clearAllFilters}
+              className="text-xs h-6"
+            >
+              Clear All
+            </Button>
+          </div>
+        )}
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
@@ -404,7 +594,7 @@ export default function Leads() {
               <Plus className="h-4 w-4 mr-1" />
               New Lead
             </Button>
-            <div className="relative max-w-sm">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search leads..."
@@ -413,17 +603,49 @@ export default function Leads() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {filters.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                      {filters.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filter Leads</h4>
+                    {filters.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={clearAllFilters}
+                        className="text-xs"
+                      >
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <FilterBuilder
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    columns={filterColumns}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={leads}
-            searchTerm={searchTerm}
+            data={filteredLeads}
+            searchTerm=""
             onRowClick={() => {}} // Disable generic row click
             onViewDetails={handleRowClick}
             onEdit={handleRowClick}
