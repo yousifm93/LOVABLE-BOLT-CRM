@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
@@ -108,6 +111,17 @@ const leadStrengthOptions = [
   { value: "Low", label: "Low" },
 ];
 
+// Define initial column configuration
+const initialColumns = [
+  { id: "name", label: "Lead Name", visible: true },
+  { id: "creationDate", label: "Created", visible: true },
+  { id: "referredVia", label: "Referred Via", visible: true },
+  { id: "referralSource", label: "Referral Source", visible: true },
+  { id: "converted", label: "Status", visible: true },
+  { id: "leadStrength", label: "Lead Strength", visible: true },
+  { id: "dueDate", label: "Due Date", visible: true },
+];
+
 export default function Leads() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,6 +134,19 @@ export default function Leads() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Column visibility management
+  const {
+    columns: columnVisibility,
+    views,
+    visibleColumns,
+    activeView,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    loadView,
+    deleteView
+  } = useColumnVisibility(initialColumns, 'leads-columns');
 
   // Load filters from localStorage on mount
   useEffect(() => {
@@ -339,7 +366,7 @@ export default function Leads() {
   };
 
   // Columns definition with inline editing and normalized widths
-  const columns: ColumnDef<Lead>[] = [
+  const allColumns: ColumnDef<Lead>[] = [
     {
       accessorKey: "name",
       header: "Lead Name",
@@ -446,6 +473,10 @@ export default function Leads() {
       sortable: true,
     },
   ];
+
+  // Filter columns based on visibility settings
+  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
+  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
 
   // Load leads on component mount with cleanup
   useEffect(() => {
@@ -645,6 +676,20 @@ export default function Leads() {
                 </div>
               </PopoverContent>
             </Popover>
+            
+            <ColumnVisibilityButton
+              columns={columnVisibility}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+            />
+            
+            <ViewPills
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onDeleteView={deleteView}
+            />
           </div>
         </CardHeader>
         <CardContent>

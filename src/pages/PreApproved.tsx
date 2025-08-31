@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 
@@ -76,10 +79,36 @@ const statusOptions = {
   ready_to_proceed: "Ready to Proceed"
 };
 
+// Define initial column configuration
+const initialColumns = [
+  { id: "name", label: "Client Name", visible: true },
+  { id: "contact", label: "Contact", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "approvedAmount", label: "Approved Amount", visible: true },
+  { id: "creditScore", label: "Credit Score", visible: true },
+  { id: "buyersAgent", label: "Buyer's Agent", visible: true },
+  { id: "buyersAgreement", label: "Buyer's Agreement", visible: true },
+  { id: "teammateAssigned", label: "Team Member", visible: true },
+  { id: "expirationDate", label: "Expires", visible: true },
+];
+
 export default function PreApproved() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Column visibility management
+  const {
+    columns: columnVisibility,
+    views,
+    visibleColumns,
+    activeView,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    loadView,
+    deleteView
+  } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
   const handleRowClick = (client: PreApprovedClient) => {
     // Convert PreApprovedClient to CRMClient for the drawer
@@ -123,7 +152,7 @@ export default function PreApproved() {
     setIsDrawerOpen(false);
   };
 
-  const columns: ColumnDef<PreApprovedClient>[] = [
+  const allColumns: ColumnDef<PreApprovedClient>[] = [
     {
       accessorKey: "name",
       header: "Client Name",
@@ -231,6 +260,10 @@ export default function PreApproved() {
     },
   ];
 
+  // Filter columns based on visibility settings
+  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
+  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
@@ -257,6 +290,20 @@ export default function PreApproved() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
+            
+            <ColumnVisibilityButton
+              columns={columnVisibility}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+            />
+            
+            <ViewPills
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onDeleteView={deleteView}
+            />
           </div>
         </CardHeader>
         <CardContent>

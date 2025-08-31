@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 
@@ -48,12 +51,38 @@ const pendingData: PendingApplication[] = [
     processor: "Mark Johnson",
     progress: 45
   }
+  ];
+
+// Define initial column configuration
+const initialColumns = [
+  { id: "name", label: "Applicant", visible: true },
+  { id: "contact", label: "Contact", visible: true },
+  { id: "loanType", label: "Loan Type", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "loanAmount", label: "Loan Amount", visible: true },
+  { id: "creditScore", label: "Credit Score", visible: true },
+  { id: "progress", label: "Progress", visible: true },
+  { id: "processor", label: "Processor", visible: true },
+  { id: "submitted", label: "Submitted", visible: true },
 ];
 
 export default function PendingApp() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Column visibility management
+  const {
+    columns: columnVisibility,
+    views,
+    visibleColumns,
+    activeView,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    loadView,
+    deleteView
+  } = useColumnVisibility(initialColumns, 'pending-app-columns');
 
   const handleRowClick = (application: PendingApplication) => {
     // Convert PendingApplication to CRMClient for the drawer
@@ -93,7 +122,7 @@ export default function PendingApp() {
     setIsDrawerOpen(false);
   };
 
-  const columns: ColumnDef<PendingApplication>[] = [
+  const allColumns: ColumnDef<PendingApplication>[] = [
     {
       accessorKey: "name",
       header: "Applicant",
@@ -184,6 +213,10 @@ export default function PendingApp() {
     },
   ];
 
+  // Filter columns based on visibility settings
+  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
+  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
@@ -212,6 +245,20 @@ export default function PendingApp() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
+            
+            <ColumnVisibilityButton
+              columns={columnVisibility}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+            />
+            
+            <ViewPills
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onDeleteView={deleteView}
+            />
           </div>
         </CardHeader>
         <CardContent>

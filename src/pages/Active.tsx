@@ -1,9 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
@@ -482,6 +486,8 @@ export default function Active() {
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { toast } = useToast();
 
   // Column visibility management
@@ -496,6 +502,34 @@ export default function Active() {
     loadView,
     deleteView
   } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
+
+  // Filter configuration
+  const filterColumns = [
+    { value: 'borrower_name', label: 'Borrower', type: 'text' as const },
+    { value: 'lender', label: 'Lender', type: 'text' as const },
+    { value: 'pr_type', label: 'P/R', type: 'select' as const, options: prTypeOptions.map(opt => opt.value) },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'text' as const },
+    { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(opt => opt.value) },
+    { value: 'close_date', label: 'Close Date', type: 'date' as const },
+    { value: 'disclosure_status', label: 'Disclosure Status', type: 'select' as const, options: disclosureStatusOptions.map(opt => opt.value) },
+    { value: 'appraisal_status', label: 'Appraisal Status', type: 'select' as const, options: appraisalStatusOptions.map(opt => opt.value) },
+  ];
+
+  // Load and save filters to localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('active-pipeline-filters');
+    if (saved) {
+      try {
+        setFilters(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to parse saved filters:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('active-pipeline-filters', JSON.stringify(filters));
+  }, [filters]);
 
   useEffect(() => {
     loadData();
@@ -596,24 +630,84 @@ export default function Active() {
     setIsDrawerOpen(false);
   };
 
+  // Advanced filter functionality
+  const applyAdvancedFilters = (loans: ActiveLoan[]) => {
+    if (filters.length === 0) return loans;
+
+    return loans.filter(loan => {
+      return filters.every(filter => {
+        if (!filter.column || !filter.operator || filter.value === undefined) return true;
+
+        let fieldValue: any;
+        switch (filter.column) {
+          case 'borrower_name':
+            fieldValue = `${loan.first_name} ${loan.last_name}`.toLowerCase();
+            break;
+          case 'lender':
+            fieldValue = loan.lender ? `${loan.lender.first_name} ${loan.lender.last_name}`.toLowerCase() : '';
+            break;
+          case 'loan_amount':
+            fieldValue = loan.loan_amount || 0;
+            break;
+          case 'close_date':
+            fieldValue = loan.close_date;
+            break;
+          default:
+            fieldValue = loan[filter.column as keyof ActiveLoan];
+        }
+
+        const filterValue = filter.value;
+
+        switch (filter.operator) {
+          case 'equals':
+            return fieldValue === filterValue;
+          case 'contains':
+            return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
+          case 'not_equals':
+            return fieldValue !== filterValue;
+          case 'greater_than':
+            return Number(fieldValue) > Number(filterValue);
+          case 'less_than':
+            return Number(fieldValue) < Number(filterValue);
+          case 'is_after':
+            return fieldValue && new Date(fieldValue) > new Date(filterValue);
+          case 'is_before':
+            return fieldValue && new Date(fieldValue) < new Date(filterValue);
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  const clearAllFilters = () => {
+    setFilters([]);
+  };
+
+  const removeFilter = (filterId: string) => {
+    setFilters(prev => prev.filter(f => f.id !== filterId));
+  };
+
   const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
   
   // Filter columns based on visibility settings
   const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
   const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
 
-  // Group loans by pipeline section
+  // Group loans by pipeline section and apply filters
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
-    const live = activeLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
-    const incoming = activeLoans.filter(loan => loan.pipeline_section === 'Incoming');
-    const onHold = activeLoans.filter(loan => loan.pipeline_section === 'On Hold');
+    const filteredLoans = applyAdvancedFilters(activeLoans);
+    
+    const live = filteredLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
+    const incoming = filteredLoans.filter(loan => loan.pipeline_section === 'Incoming');
+    const onHold = filteredLoans.filter(loan => loan.pipeline_section === 'On Hold');
     
     return {
       liveLoans: live,
       incomingLoans: incoming,
       onHoldLoans: onHold
     };
-  }, [activeLoans]);
+  }, [activeLoans, filters]);
 
   if (loading) {
     return (
@@ -643,6 +737,32 @@ export default function Active() {
           className="w-64"
         />
         
+        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter {filters.length > 0 && `(${filters.length})`}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0" align="start">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium">Filter Active Loans</h4>
+                {filters.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                    Clear All
+                  </Button>
+                )}
+              </div>
+              <FilterBuilder
+                filters={filters}
+                columns={filterColumns}
+                onFiltersChange={setFilters}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+        
         <ColumnVisibilityButton
           columns={columnVisibility}
           onColumnToggle={toggleColumn}
@@ -657,6 +777,27 @@ export default function Active() {
           onDeleteView={deleteView}
         />
       </div>
+
+      {/* Filter chips */}
+      {filters.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {filters.map((filter) => (
+            <Badge key={filter.id} variant="secondary" className="gap-1">
+              <span className="text-xs">
+                {filterColumns.find(col => col.value === filter.column)?.label}: {filter.operator} {String(filter.value)}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 ml-1"
+                onClick={() => removeFilter(filter.id)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-4">
         <CollapsiblePipelineSection
