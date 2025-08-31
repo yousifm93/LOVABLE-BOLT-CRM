@@ -73,16 +73,18 @@ const referralSourceOptions = [
 ];
 
 const convertedOptions = [
-  { value: "Working On It", label: "Working On It" },
+  { value: "Working on it", label: "Working on it" },
+  { value: "Pending App", label: "Pending App" },
   { value: "Nurture", label: "Nurture" },
-  { value: "Converted", label: "Converted" },
   { value: "Dead", label: "Dead" },
+  { value: "Needs Attention", label: "Needs Attention" },
 ];
 
 const leadStrengthOptions = [
-  { value: "High", label: "High" },
-  { value: "Medium", label: "Medium" },
-  { value: "Low", label: "Low" },
+  { value: "Hot", label: "Hot" },
+  { value: "Warm", label: "Warm" },
+  { value: "Cold", label: "Cold" },
+  { value: "Qualified", label: "Qualified" },
 ];
 
 export default function Leads() {
@@ -355,23 +357,6 @@ export default function Leads() {
       sortable: true,
     },
     {
-      accessorKey: "leadStrength",
-      header: "Lead Strength",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditSelect
-            value={row.original.leadStrength}
-            options={leadStrengthOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
-            fixedWidth="w-20"
-          />
-        </div>
-      ),
-      sortable: true,
-    },
-    {
       accessorKey: "referredVia",
       header: "Referred Via",
       cell: ({ row }) => (
@@ -418,6 +403,23 @@ export default function Leads() {
             showAsStatusBadge={true}
             disabled={isUpdating === row.original.id}
             fixedWidth="w-36"
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "leadStrength",
+      header: "Lead Strength",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.leadStrength}
+            options={leadStrengthOptions}
+            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
+            showAsStatusBadge={true}
+            disabled={isUpdating === row.original.id}
+            fixedWidth="w-20"
           />
         </div>
       ),

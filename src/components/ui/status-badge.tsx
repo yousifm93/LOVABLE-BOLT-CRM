@@ -19,9 +19,10 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'dead') return 'bg-destructive text-foreground';
   
   // Lead strength colors  
-  if (statusLower === 'high') return 'bg-success text-foreground';
-  if (statusLower === 'medium') return 'bg-warning text-foreground';
-  if (statusLower === 'low') return 'bg-light-destructive text-foreground';
+  if (statusLower === 'hot') return 'bg-destructive text-destructive-foreground';
+  if (statusLower === 'warm') return 'bg-warning text-warning-foreground';
+  if (statusLower === 'cold') return 'bg-info text-info-foreground';
+  if (statusLower === 'qualified') return 'bg-success text-success-foreground';
   
   // Referred via colors - now unified to avoid per-option color changes
   if (statusLower === 'email' || statusLower === 'text' || statusLower === 'call' || statusLower === 'web' || statusLower === 'in person') {
