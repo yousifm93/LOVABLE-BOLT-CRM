@@ -23,24 +23,24 @@ export function ModernStatsCard({
   size = "default",
   centered = false
 }: ModernStatsCardProps) {
-  const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-36" : "h-28";
+  const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
-  const valueSize = size === "compact" ? "text-xl font-extrabold" : size === "large" ? "text-5xl font-black" : "text-3xl font-black";
-  const iconSize = size === "compact" ? "h-4 w-4" : size === "large" ? "h-8 w-8" : "h-6 w-6";
+  const valueSize = size === "compact" ? "text-lg" : size === "large" ? "text-4xl" : "text-2xl";
+  const iconSize = size === "compact" ? "h-4 w-4" : size === "large" ? "h-8 w-8" : "h-5 w-5";
 
   return (
     <Card className={cn(
-      "bg-card border-0 rounded-2xl shadow-elegant hover:shadow-glow transition-all duration-300 hover:scale-[1.02]",
+      "bg-gradient-card shadow-soft border-0 hover:shadow-medium transition-all duration-200",
       cardHeight,
       className
     )}>
-      <CardContent className="p-6 h-full flex flex-col justify-between">
+      <CardContent className="p-4 h-full flex flex-col justify-between">
         <div className={cn("flex items-start", centered ? "justify-center" : "justify-between")}>
           <div className={cn("flex-1 min-w-0", centered && "text-center")}>
-            <p className={cn("font-semibold text-muted-foreground mb-2", titleSize)}>
+            <p className={cn("font-medium text-muted-foreground mb-1", titleSize)}>
               {title}
             </p>
-            <div className={cn("text-foreground tracking-tight", valueSize)}>
+            <div className={cn("font-bold text-foreground", valueSize)}>
               {value}
             </div>
           </div>
@@ -53,15 +53,15 @@ export function ModernStatsCard({
         
         {/* Progress Arc */}
         {progress !== undefined && (
-          <div className="mt-4">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+          <div className="mt-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </div>
-              <span className="text-sm text-primary font-bold min-w-[42px]">
+              <span className="text-xs text-muted-foreground font-medium">
                 {progress}%
               </span>
             </div>
@@ -70,19 +70,19 @@ export function ModernStatsCard({
 
         {/* Sparkline */}
         {sparklineData && sparklineData.length > 0 && (
-          <div className="mt-3 h-8">
-            <svg width="100%" height="32" className="overflow-visible">
+          <div className="mt-2 h-6">
+            <svg width="100%" height="24" className="overflow-visible">
               <polyline
                 fill="none"
                 stroke="hsl(var(--primary))"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 points={sparklineData.map((value, index) => {
                   const x = (index / (sparklineData.length - 1)) * 100;
                   const max = Math.max(...sparklineData);
                   const min = Math.min(...sparklineData);
-                  const y = 26 - ((value - min) / (max - min)) * 20;
+                  const y = 20 - ((value - min) / (max - min)) * 16;
                   return `${x},${y}`;
                 }).join(' ')}
               />
