@@ -44,9 +44,9 @@ export function ModernChartCard({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background border border-border rounded-lg shadow-medium p-3">
-          <p className="text-sm font-medium text-foreground">{label}</p>
-          <p className="text-sm text-primary">
+        <div className="bg-card border border-border rounded-xl shadow-glow p-4">
+          <p className="text-sm font-semibold text-foreground mb-1">{label}</p>
+          <p className="text-sm text-primary font-medium">
             {`${payload[0].name}: ${typeof payload[0].value === 'number' && payload[0].value > 1000 
               ? `$${(payload[0].value / 1000000).toFixed(1)}M`
               : payload[0].value}`}
@@ -58,23 +58,23 @@ export function ModernChartCard({
   };
 
   return (
-    <Card className={cn("bg-gradient-card shadow-soft border-0", className)}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">{title}</CardTitle>
+    <Card className={cn("bg-card border-0 rounded-2xl shadow-elegant", className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-bold text-foreground">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 pb-6">
         <ResponsiveContainer width="100%" height={height}>
           {type === 'bar' ? (
-            <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />}
+            <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              {showGrid && <CartesianGrid strokeDasharray="2 2" stroke="hsl(var(--muted))" strokeOpacity={0.3} />}
               <XAxis 
                 dataKey={xAxisKey} 
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis 
-                tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => dataKey === 'volume' ? `$${(value / 1000000).toFixed(1)}M` : value}
@@ -83,14 +83,14 @@ export function ModernChartCard({
               <Bar 
                 dataKey={dataKey} 
                 fill={color}
-                radius={[2, 2, 0, 0]}
+                radius={[8, 8, 0, 0]}
               >
                 {showValueLabels && (
                   <LabelList 
                     dataKey={dataKey} 
                     position="top" 
                     formatter={formatValue}
-                    fontSize={11}
+                    fontSize={12}
                     fill="hsl(var(--muted-foreground))"
                   />
                 )}
