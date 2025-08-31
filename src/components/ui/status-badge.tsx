@@ -12,17 +12,16 @@ interface StatusBadgeProps {
 const getStatusColor = (status: string): string => {
   const statusLower = status.toLowerCase();
   
-  // Converted status colors
-  if (statusLower === 'working on it') return 'bg-light-success text-foreground';
-  if (statusLower === 'nurture') return 'bg-warning text-foreground';
-  if (statusLower === 'converted') return 'bg-success text-foreground';
-  if (statusLower === 'dead') return 'bg-destructive text-foreground';
+  // Converted status colors (green/yellow/red scheme)
+  if (statusLower === 'working on it') return 'bg-success/20 text-success';
+  if (statusLower === 'converted') return 'bg-success text-success-foreground';
+  if (statusLower === 'nurture') return 'bg-warning text-warning-foreground';
+  if (statusLower === 'dead') return 'bg-destructive text-destructive-foreground';
   
-  // Lead strength colors  
-  if (statusLower === 'hot') return 'bg-destructive text-destructive-foreground';
-  if (statusLower === 'warm') return 'bg-warning text-warning-foreground';
-  if (statusLower === 'cold') return 'bg-info text-info-foreground';
-  if (statusLower === 'qualified') return 'bg-success text-success-foreground';
+  // Lead strength colors (High=green, Medium=yellow, Low=red)
+  if (statusLower === 'high') return 'bg-success text-success-foreground';
+  if (statusLower === 'medium') return 'bg-warning text-warning-foreground';
+  if (statusLower === 'low') return 'bg-destructive text-destructive-foreground';
   
   // Referred via colors - now unified to avoid per-option color changes
   if (statusLower === 'email' || statusLower === 'text' || statusLower === 'call' || statusLower === 'web' || statusLower === 'in person') {

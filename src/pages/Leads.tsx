@@ -74,17 +74,15 @@ const referralSourceOptions = [
 
 const convertedOptions = [
   { value: "Working on it", label: "Working on it" },
-  { value: "Pending App", label: "Pending App" },
+  { value: "Converted", label: "Converted" },
   { value: "Nurture", label: "Nurture" },
   { value: "Dead", label: "Dead" },
-  { value: "Needs Attention", label: "Needs Attention" },
 ];
 
 const leadStrengthOptions = [
-  { value: "Hot", label: "Hot" },
-  { value: "Warm", label: "Warm" },
-  { value: "Cold", label: "Cold" },
-  { value: "Qualified", label: "Qualified" },
+  { value: "High", label: "High" },
+  { value: "Medium", label: "Medium" },
+  { value: "Low", label: "Low" },
 ];
 
 export default function Leads() {
