@@ -538,6 +538,56 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardContent>
             </Card>
 
+            {/* Send Email Templates */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Send Email Templates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 bg-gray-50">
+                <div>
+                  <Label htmlFor="email-template" className="text-xs font-medium">
+                    Email Template
+                  </Label>
+                  <Select>
+                    <SelectTrigger id="email-template" className="mt-1 h-8">
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="appraisal-received">Appraisal Received</SelectItem>
+                      <SelectItem value="appraisal-scheduled">Appraisal Scheduled</SelectItem>
+                      <SelectItem value="following-up">Following Up</SelectItem>
+                      <SelectItem value="document-request">Document Request</SelectItem>
+                      <SelectItem value="loan-update">Loan Update</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-medium">Recipients</Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="borrower" />
+                      <Label htmlFor="borrower" className="text-xs">Borrower</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="agent" />
+                      <Label htmlFor="agent" className="text-xs">Agent</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="third-party" />
+                      <Label htmlFor="third-party" className="text-xs">Third Party</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <Button size="sm" className="w-full h-8">
+                  Send Email
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Tasks - moved from left column */}
             <Card>

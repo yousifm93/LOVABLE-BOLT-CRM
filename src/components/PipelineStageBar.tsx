@@ -22,7 +22,7 @@ export function PipelineStageBar({
       : 'h-12 text-[clamp(12px,1.2vw,16px)]';
 
   return (
-    <div className={cn('w-full overflow-x-auto md:overflow-visible', className)}>
+    <div className={cn('w-full overflow-x-auto md:overflow-visible mx-8', className)}>
       <div className="flex w-full isolate">
         {stages.map((label, idx) => {
           const first = idx === 0;
@@ -35,8 +35,7 @@ export function PipelineStageBar({
               className={cn(
                 'flex-1 flex items-center justify-center',
                 'border border-black',
-                first ? 'rounded-l-full' : 'border-l-0',
-                last ? 'rounded-r-full' : 'rounded-none',
+                first ? '' : 'border-l-0',
                 sizeClasses,
                 'px-5 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
                 active ? 'bg-[#F5C400]' : 'bg-white'
