@@ -355,114 +355,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background p-4 pt-2">
-          {/* Top Row: Borrower Header (left), Status Tracker (center), Notes (right) */}
-          <div className="grid grid-cols-3 gap-4 mb-3 mt-2">
-            {/* Contact Info Card - Top Left */}
-            <ContactInfoCard client={client} onClose={handleDrawerClose} />
-            
-            {/* Status Tracker Pills - Center */}
-            {/* Status Tracker Pills */}
-            <Card>
-              <CardHeader className="pb-3">
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center">
-                  {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
-                    const isActive = client.ops.stage === stage.key;
-                    const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
-                    // Z-index: higher for stages to the left, active gets highest
-                    const zIndex = isActive ? 25 : 20 - index;
-                    return (
-                      <button
-                        key={stage.key}
-                        onClick={() => handleStageClick(stage.key)}
-                        className={cn(
-                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-3",
-                          isActive 
-                            ? "bg-yellow-400 text-black" 
-                            : "bg-white text-black hover:bg-gray-50",
-                          index > 0 && "-ml-1"
-                        )}
-                         style={{ 
-                           zIndex: zIndex,
-                           width: "100px",
-                           height: "48px",
-                           fontSize: "12px"
-                         }}
-                      >
-                        {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Critical Status Information - Dynamic based on stage */}
-                <div className="mt-4">
-                  {renderCriticalStatusInfo()}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notes Section */}
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">Notes</CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6"
-                    onClick={() => setShowAddNoteModal(true)}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="bg-gray-50">
-                <div className="max-h-[160px] overflow-y-auto space-y-3">
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Initial loan consultation
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 18, 2024 at 2:30 PM • by <button className="text-primary hover:underline">Yousif</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Client interested in 30-year fixed rate mortgage. Discussed timeline and documentation requirements.
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Credit score review
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 17, 2024 at 10:15 AM • by <button className="text-primary hover:underline">Salma</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Pulled credit report - score of 720. Good standing for preferred rates.
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Documentation checklist
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 16, 2024 at 4:45 PM • by <button className="text-primary hover:underline">Herman Daza</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Provided client with required document list. W2s and pay stubs are priority.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Main Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-280px)] p-4 pt-0">
-          {/* Left Column - Team & Contacts, Tasks, Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
+          {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
           <div className="space-y-4 overflow-y-auto">
+            {/* Contact Info Card - Moved from top row */}
+            <ContactInfoCard client={client} onClose={handleDrawerClose} />
 
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
@@ -555,8 +455,51 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             </Card>
           </div>
 
-          {/* Center Column - Tabbed Activity/Details/Documents */}
+          {/* Center Column - Status Tracker & Lead Information */}
           <div className="space-y-4 overflow-y-auto">
+            {/* Status Tracker Pills - Moved from top row */}
+            <Card>
+              <CardHeader className="pb-3">
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center">
+                  {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
+                    const isActive = client.ops.stage === stage.key;
+                    const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
+                    // Z-index: higher for stages to the left, active gets highest
+                    const zIndex = isActive ? 25 : 20 - index;
+                    return (
+                      <button
+                        key={stage.key}
+                        onClick={() => handleStageClick(stage.key)}
+                        className={cn(
+                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-3",
+                          isActive 
+                            ? "bg-yellow-400 text-black" 
+                            : "bg-white text-black hover:bg-gray-50",
+                          index > 0 && "-ml-1"
+                        )}
+                         style={{ 
+                           zIndex: zIndex,
+                           width: "100px",
+                           height: "48px",
+                           fontSize: "12px"
+                         }}
+                      >
+                        {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Critical Status Information - Dynamic based on stage */}
+                <div className="mt-4">
+                  {renderCriticalStatusInfo()}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Information Tabs */}
             <LeadCenterTabs 
               leadId={client.person.id.toString()}
               activities={activities}
@@ -570,9 +513,61 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             />
           </div>
 
-          {/* Right Column - Notes, Documents, Chat */}
+          {/* Right Column - Notes, Documents, Stage History */}
           <div className="space-y-4 overflow-y-auto">
-            {/* Document Upload */}
+            {/* Notes Section - Moved from top row */}
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">Notes</CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={() => setShowAddNoteModal(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                <div className="max-h-[160px] overflow-y-auto space-y-3">
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Initial loan consultation
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 18, 2024 at 2:30 PM • by <button className="text-primary hover:underline">Yousif</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Client interested in 30-year fixed rate mortgage. Discussed timeline and documentation requirements.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Credit score review
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 17, 2024 at 10:15 AM • by <button className="text-primary hover:underline">Salma</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pulled credit report - score of 720. Good standing for preferred rates.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <button className="text-primary hover:underline text-sm font-medium">
+                      Documentation checklist
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      Jan 16, 2024 at 4:45 PM • by <button className="text-primary hover:underline">Herman Daza</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Provided client with required document list. W2s and pay stubs are priority.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Document Upload */}
             <Card>
