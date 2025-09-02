@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.income-export-pdf]
 verify_jwt = true
+
+[functions.avm-estimate]
+verify_jwt = false

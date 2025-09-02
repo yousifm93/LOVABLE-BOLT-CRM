@@ -1144,6 +1144,47 @@ export type Database = {
         }
         Relationships: []
       }
+      property_valuations: {
+        Row: {
+          cached_until: string | null
+          confidence: number | null
+          estimate: number | null
+          high: number | null
+          id: string
+          low: number | null
+          provider_payload: Json | null
+          request_id: string
+        }
+        Insert: {
+          cached_until?: string | null
+          confidence?: number | null
+          estimate?: number | null
+          high?: number | null
+          id?: string
+          low?: number | null
+          provider_payload?: Json | null
+          request_id: string
+        }
+        Update: {
+          cached_until?: string | null
+          confidence?: number | null
+          estimate?: number | null
+          high?: number | null
+          id?: string
+          low?: number | null
+          provider_payload?: Json | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_valuations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "valuation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_configs: {
         Row: {
           config_key: string
@@ -1355,6 +1396,119 @@ export type Database = {
           last_name?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      valuation_comparables: {
+        Row: {
+          address: string
+          baths: number | null
+          beds: number | null
+          distance_miles: number | null
+          id: string
+          lot_sqft: number | null
+          photo_url: string | null
+          sale_date: string | null
+          sale_price: number | null
+          sqft: number | null
+          valuation_id: string
+          year_built: number | null
+        }
+        Insert: {
+          address: string
+          baths?: number | null
+          beds?: number | null
+          distance_miles?: number | null
+          id?: string
+          lot_sqft?: number | null
+          photo_url?: string | null
+          sale_date?: string | null
+          sale_price?: number | null
+          sqft?: number | null
+          valuation_id: string
+          year_built?: number | null
+        }
+        Update: {
+          address?: string
+          baths?: number | null
+          beds?: number | null
+          distance_miles?: number | null
+          id?: string
+          lot_sqft?: number | null
+          photo_url?: string | null
+          sale_date?: string | null
+          sale_price?: number | null
+          sqft?: number | null
+          valuation_id?: string
+          year_built?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valuation_comparables_valuation_id_fkey"
+            columns: ["valuation_id"]
+            isOneToOne: false
+            referencedRelation: "property_valuations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      valuation_requests: {
+        Row: {
+          address: string
+          baths: number | null
+          beds: number | null
+          city: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          mode: string
+          provider_primary: string | null
+          provider_used: string | null
+          requester_type: string
+          sqft: number | null
+          state: string | null
+          status: string
+          unit: string | null
+          zip: string | null
+        }
+        Insert: {
+          address: string
+          baths?: number | null
+          beds?: number | null
+          city?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          mode: string
+          provider_primary?: string | null
+          provider_used?: string | null
+          requester_type: string
+          sqft?: number | null
+          state?: string | null
+          status: string
+          unit?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string
+          baths?: number | null
+          beds?: number | null
+          city?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          mode?: string
+          provider_primary?: string | null
+          provider_used?: string | null
+          requester_type?: string
+          sqft?: number | null
+          state?: string | null
+          status?: string
+          unit?: string | null
+          zip?: string | null
         }
         Relationships: []
       }

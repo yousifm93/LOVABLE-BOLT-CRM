@@ -18,6 +18,8 @@ import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
 import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
+import PropertyValue from "./pages/resources/PropertyValue"
+import PropertyValuePublic from "./pages/resources/PropertyValuePublic"
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import Condolist from "@/pages/resources/Condolist";
@@ -54,6 +56,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/auth" element={<Auth />} />
+        <Route path="/home-value" element={<PropertyValuePublic />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
@@ -79,6 +82,7 @@ function AppRoutes() {
         <Route path="/tasks" element={<TasksModern />} />
         <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
+        <Route path="/resources/property-value" element={<PropertyValue />} />
         <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<PreapprovalLetter />} />
