@@ -18,11 +18,11 @@ export function PipelineStageBar({
 }: PipelineStageBarProps) {
   const sizeClasses =
     size === 'lg'
-      ? 'h-12 text-[clamp(14px,1.6vw,18px)]'
-      : 'h-12 text-[clamp(12px,1.2vw,16px)]';
+      ? 'h-10 text-[clamp(12px,1.4vw,16px)]'
+      : 'h-10 text-[clamp(10px,1vw,14px)]';
 
   return (
-    <div className={cn('w-full overflow-x-auto md:overflow-visible mx-8', className)}>
+    <div className={cn('w-full overflow-x-auto md:overflow-visible mx-auto max-w-4xl', className)}>
       <div className="flex w-full isolate">
         {stages.map((label, idx) => {
           const first = idx === 0;
@@ -37,7 +37,7 @@ export function PipelineStageBar({
                 'border border-black',
                 first ? '' : 'border-l-0',
                 sizeClasses,
-                'px-5 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
+                'px-2 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
                 active ? 'bg-[#F5C400]' : 'bg-white'
               )}
               aria-current={active ? 'step' : undefined}
