@@ -62,7 +62,7 @@ function AppRoutes() {
     <Layout>
       <Routes>
         <Route path="/auth" element={<Navigate to="/" replace />} />
-        <Route path="/" element={<DashboardTabs />} />
+        <Route path="/" element={<Index />} />
         <Route path="/email" element={<Email />} />
         <Route path="/leads" element={<Leads />} />
         <Route path="/pending-app" element={<PendingApp />} />
