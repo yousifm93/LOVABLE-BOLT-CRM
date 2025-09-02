@@ -479,6 +479,296 @@ export type Database = {
           },
         ]
       }
+      email_campaign_sends: {
+        Row: {
+          campaign_id: string
+          contact_id: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["send_status"] | null
+        }
+        Insert: {
+          campaign_id: string
+          contact_id: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["send_status"] | null
+        }
+        Update: {
+          campaign_id?: string
+          contact_id?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["send_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_sends_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "email_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          from_sender_id: string
+          id: string
+          list_id: string
+          name: string
+          preview_text: string | null
+          scheduled_at: string | null
+          segment_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          subject: string
+          template_id: string
+          totals_json: Json | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          from_sender_id: string
+          id?: string
+          list_id: string
+          name: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          subject: string
+          template_id: string
+          totals_json?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          from_sender_id?: string
+          id?: string
+          list_id?: string
+          name?: string
+          preview_text?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          subject?: string
+          template_id?: string
+          totals_json?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_from_sender_id_fkey"
+            columns: ["from_sender_id"]
+            isOneToOne: false
+            referencedRelation: "email_senders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "email_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "email_segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_contacts: {
+        Row: {
+          city: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          object_id: string | null
+          object_type: string | null
+          phone: string | null
+          state: string | null
+          tags: string[] | null
+          unsubscribed: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          object_id?: string | null
+          object_type?: string | null
+          phone?: string | null
+          state?: string | null
+          tags?: string[] | null
+          unsubscribed?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          object_id?: string | null
+          object_type?: string | null
+          phone?: string | null
+          state?: string | null
+          tags?: string[] | null
+          unsubscribed?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_events: {
+        Row: {
+          campaign_id: string
+          contact_id: string
+          id: string
+          meta: Json | null
+          occurred_at: string
+          type: Database["public"]["Enums"]["email_event_type"]
+        }
+        Insert: {
+          campaign_id: string
+          contact_id: string
+          id?: string
+          meta?: Json | null
+          occurred_at?: string
+          type: Database["public"]["Enums"]["email_event_type"]
+        }
+        Update: {
+          campaign_id?: string
+          contact_id?: string
+          id?: string
+          meta?: Json | null
+          occurred_at?: string
+          type?: Database["public"]["Enums"]["email_event_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "email_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_list_memberships: {
+        Row: {
+          contact_id: string
+          id: string
+          list_id: string
+          source: string | null
+          subscribed: boolean | null
+          subscribed_at: string | null
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          list_id: string
+          source?: string | null
+          subscribed?: boolean | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          list_id?: string
+          source?: string | null
+          subscribed?: boolean | null
+          subscribed_at?: string | null
+          unsubscribed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_list_memberships_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "email_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_list_memberships_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "email_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           created_at: string
@@ -532,6 +822,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_segments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          rules_json: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          rules_json?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          rules_json?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_senders: {
+        Row: {
+          created_at: string
+          dkim_status: string | null
+          domain: string
+          from_email: string
+          from_name: string
+          id: string
+          is_default: boolean | null
+          spf_status: string | null
+          tracking_domain: string | null
+        }
+        Insert: {
+          created_at?: string
+          dkim_status?: string | null
+          domain: string
+          from_email: string
+          from_name: string
+          id?: string
+          is_default?: boolean | null
+          spf_status?: string | null
+          tracking_domain?: string | null
+        }
+        Update: {
+          created_at?: string
+          dkim_status?: string | null
+          domain?: string
+          from_email?: string
+          from_name?: string
+          id?: string
+          is_default?: boolean | null
+          spf_status?: string | null
+          tracking_domain?: string | null
+        }
+        Relationships: []
+      }
+      email_suppressions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          html: string
+          id: string
+          is_archived: boolean | null
+          json_blocks: Json | null
+          name: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          created_at?: string
+          html: string
+          id?: string
+          is_archived?: boolean | null
+          json_blocks?: Json | null
+          name: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          created_at?: string
+          html?: string
+          id?: string
+          is_archived?: boolean | null
+          json_blocks?: Json | null
+          name?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: []
       }
       income_audit_events: {
         Row: {
@@ -1236,6 +1643,38 @@ export type Database = {
         }
         Relationships: []
       }
+      short_links: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          id: string
+          slug: string
+          url: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          slug: string
+          url: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          slug?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "short_links_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_logs: {
         Row: {
           body: string
@@ -1675,6 +2114,13 @@ export type Database = {
         | "export"
       ba_status: "Send" | "Sent" | "Signed"
       call_outcome: "No Answer" | "Left VM" | "Connected"
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "paused"
+        | "sent"
+        | "failed"
       cd_status: "Requested" | "Sent" | "Signed"
       change_action: "insert" | "update" | "delete"
       component_type:
@@ -1715,6 +2161,13 @@ export type Database = {
         | "form_1120s"
         | "voe"
       document_status: "pending" | "processing" | "completed" | "failed"
+      email_event_type:
+        | "open"
+        | "click"
+        | "bounce"
+        | "spam"
+        | "unsubscribe"
+        | "delivered"
       epo_status: "Send" | "Sent" | "Signed"
       hoi_status: "Quoted" | "Ordered" | "Received"
       ingestion_status: "pending" | "processing" | "completed" | "failed"
@@ -1757,6 +2210,7 @@ export type Database = {
         | "Call"
         | "Web"
         | "In Person"
+      send_status: "queued" | "sent" | "delivered" | "failed"
       task_priority: "Low" | "Medium" | "High" | "Critical"
       task_status:
         | "To Do"
@@ -1914,6 +2368,14 @@ export const Constants = {
       ],
       ba_status: ["Send", "Sent", "Signed"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
+      campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "paused",
+        "sent",
+        "failed",
+      ],
       cd_status: ["Requested", "Sent", "Signed"],
       change_action: ["insert", "update", "delete"],
       component_type: [
@@ -1958,6 +2420,14 @@ export const Constants = {
         "voe",
       ],
       document_status: ["pending", "processing", "completed", "failed"],
+      email_event_type: [
+        "open",
+        "click",
+        "bounce",
+        "spam",
+        "unsubscribe",
+        "delivered",
+      ],
       epo_status: ["Send", "Sent", "Signed"],
       hoi_status: ["Quoted", "Ordered", "Received"],
       ingestion_status: ["pending", "processing", "completed", "failed"],
@@ -2004,6 +2474,7 @@ export const Constants = {
         "Web",
         "In Person",
       ],
+      send_status: ["queued", "sent", "delivered", "failed"],
       task_priority: ["Low", "Medium", "High", "Critical"],
       task_status: [
         "To Do",

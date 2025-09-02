@@ -26,6 +26,7 @@ import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Email from "@/pages/Email";
+import EmailMarketing from "@/pages/resources/EmailMarketing";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -84,6 +85,7 @@ function AppRoutes() {
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
         <Route path="/resources/property-value" element={<PropertyValue />} />
         <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
+        <Route path="/resources/email-marketing/*" element={<EmailMarketing />} />
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<PreapprovalLetter />} />
         <Route path="/resources/estimate" element={<LoanEstimate />} />

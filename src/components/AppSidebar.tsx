@@ -62,6 +62,7 @@ const resourceItems = [
   { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
   { title: "Property Value", url: "/resources/property-value", icon: Home },
   { title: "Income Calculator", url: "/resources/income-calculator", icon: Calculator },
+  { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail },
   { title: "Condo List", url: "/resources/condolist", icon: Search },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
   { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
