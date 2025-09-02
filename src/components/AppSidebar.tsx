@@ -59,15 +59,18 @@ const contactItems = [
   { title: "Approved Lenders", url: "/contacts/lenders", icon: Building },
 ];
 
-const resourceItems = [
+const calculatorItems = [
   { title: "Loan Pricer", url: "/resources/loan-pricer", icon: DollarSign },
-  { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
   { title: "Property Value", url: "/resources/property-value", icon: Home },
   { title: "Income Calculator", url: "/resources/income-calculator", icon: Calculator },
+  { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
+];
+
+const resourceItems = [
+  { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
   { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail },
   { title: "Condo List", url: "/resources/condolist", icon: Search },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
-  { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
 ];
 
 const adminItems = [
@@ -165,6 +168,22 @@ export function AppSidebar() {
         <CollapsibleSidebarGroup title="Resources" className="mb-4">
           <SidebarMenu>
             {resourceItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink to={item.url} className={getNavClassName}>
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>{item.title}</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleSidebarGroup>
+
+        {/* Calculators */}
+        <CollapsibleSidebarGroup title="Calculators" className="mb-4">
+          <SidebarMenu>
+            {calculatorItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
                   <NavLink to={item.url} className={getNavClassName}>
