@@ -52,6 +52,42 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: Database["public"]["Enums"]["change_action"]
+          after_data: Json | null
+          before_data: Json | null
+          category: string
+          changed_at: string
+          changed_by: string | null
+          id: number
+          item_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["change_action"]
+          after_data?: Json | null
+          before_data?: Json | null
+          category: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: number
+          item_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["change_action"]
+          after_data?: Json | null
+          before_data?: Json | null
+          category?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: number
+          item_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       buyer_agents: {
         Row: {
           brokerage: string
@@ -1050,6 +1086,34 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      dashboard_activity: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          action: string
+          category: string
+          cnt: number
+        }[]
+      }
+      dashboard_activity_latest: {
+        Args: { _category: string; _from: string; _to: string }
+        Returns: {
+          action: string
+          changed_at: string
+          item_id: string
+          table_name: string
+        }[]
+      }
+      dashboard_conversions: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          conversion_pct: number
+          converted: number
+          dead: number
+          nurtured: number
+          stage: string
+          total: number
+        }[]
+      }
       format_date_modern: {
         Args: { input_date: string }
         Returns: string
@@ -1168,6 +1232,7 @@ export type Database = {
       ba_status: "Send" | "Sent" | "Signed"
       call_outcome: "No Answer" | "Left VM" | "Connected"
       cd_status: "Requested" | "Sent" | "Signed"
+      change_action: "insert" | "update" | "delete"
       condo_status: "Ordered" | "Received" | "Approved"
       contact_type:
         | "Agent"
@@ -1373,6 +1438,7 @@ export const Constants = {
       ba_status: ["Send", "Sent", "Signed"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
       cd_status: ["Requested", "Sent", "Signed"],
+      change_action: ["insert", "update", "delete"],
       condo_status: ["Ordered", "Received", "Approved"],
       contact_type: [
         "Agent",

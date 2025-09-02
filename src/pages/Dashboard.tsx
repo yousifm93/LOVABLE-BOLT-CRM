@@ -13,6 +13,8 @@ import {
 import { StatsCard } from "@/components/ui/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
+import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 
 const recentClients = [
   { name: "Sarah Johnson", status: "Pre-approval", amount: "$450,000", date: "2 hours ago" },
@@ -241,6 +243,12 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* New Dashboard Enhancements */}
+      <div className="grid gap-4 mb-3">
+        <ActivityMonitor />
+        <ConversionAnalytics />
       </div>
     </div>
   );
