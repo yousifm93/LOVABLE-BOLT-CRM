@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
 import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
+import { PipelineStageBar } from "@/components/PipelineStageBar";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -367,46 +368,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
 
-            {/* Tasks */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-bold flex items-center justify-between">
-                  Tasks
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowCreateTaskModal(true)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {mockTasks.slice(0, 3).map((task) => (
-                  <div key={task.id} className="flex items-center gap-2 text-sm">
-                    <button
-                      onClick={() => handleTaskToggle(task.id)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {completedTasks[task.id] ? 
-                        <CheckCircle className="h-4 w-4" /> : 
-                        <Circle className="h-4 w-4" />
-                      }
-                    </button>
-                    <span className={cn(
-                      "flex-1",
-                      completedTasks[task.id] && "line-through text-muted-foreground"
-                    )}>
-                      {task.title}
-                    </span>
-                  </div>
-                ))}
-                {mockTasks.length === 0 && (
-                  <p className="text-xs text-muted-foreground">No tasks yet</p>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Chat with Borrower */}
             <Card>
@@ -462,35 +423,43 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <CardHeader className="pb-3">
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-center">
-                  {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
-                    const isActive = client.ops.stage === stage.key;
-                    const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
-                    // Z-index: higher for stages to the left, active gets highest
-                    const zIndex = isActive ? 25 : 20 - index;
-                    return (
-                      <button
-                        key={stage.key}
-                        onClick={() => handleStageClick(stage.key)}
-                        className={cn(
-                          "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-3",
-                          isActive 
-                            ? "bg-yellow-400 text-black" 
-                            : "bg-white text-black hover:bg-gray-50",
-                          index > 0 && "-ml-1"
-                        )}
-                         style={{ 
-                           zIndex: zIndex,
-                           width: "100px",
-                           height: "48px",
-                           fontSize: "18px"
-                         }}
-                      >
-                        {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
-                      </button>
-                    );
-                  })}
-                </div>
+{pipelineType === 'leads' ? (
+                  <PipelineStageBar
+                    stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
+                    currentStage={PIPELINE_CONFIGS[pipelineType]?.find(stage => stage.key === client.ops.stage)?.label.replace(/([a-z])([A-Z])/g, '$1 $2') || ''}
+                    size="md"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center">
+                    {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
+                      const isActive = client.ops.stage === stage.key;
+                      const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
+                      // Z-index: higher for stages to the left, active gets highest
+                      const zIndex = isActive ? 25 : 20 - index;
+                      return (
+                        <button
+                          key={stage.key}
+                          onClick={() => handleStageClick(stage.key)}
+                          className={cn(
+                            "relative flex items-center justify-center rounded-full border-2 border-black font-bold text-xs uppercase transition-all duration-200 hover:shadow-lg whitespace-nowrap px-3",
+                            isActive 
+                              ? "bg-yellow-400 text-black" 
+                              : "bg-white text-black hover:bg-gray-50",
+                            index > 0 && "-ml-1"
+                          )}
+                           style={{ 
+                             zIndex: zIndex,
+                             width: "100px",
+                             height: "48px",
+                             fontSize: "18px"
+                           }}
+                        >
+                          {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Critical Status Information - Dynamic based on stage */}
                 <div className="mt-4">
@@ -569,70 +538,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardContent>
             </Card>
 
-            {/* Document Upload */}
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  Documents
-                  <label className="cursor-pointer">
-                    <Button size="sm" variant="outline" asChild>
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload
-                      </span>
-                    </Button>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleDocumentUpload}
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    />
-                  </label>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="bg-gray-50">
-                <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                  {documents.length > 0 ? (
-                    documents.map((doc) => {
-                      const formatFileSize = (bytes: number) => {
-                        if (bytes === 0) return '0 Bytes';
-                        const k = 1024;
-                        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                        const i = Math.floor(Math.log(bytes) / Math.log(k));
-                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                      };
-
-                      const formatDate = (dateString: string) => {
-                        const date = new Date(dateString);
-                        return date.toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        });
-                      };
-
-                      const getFileExtension = (filename: string) => {
-                        return filename.split('.').pop()?.toUpperCase() || 'FILE';
-                      };
-
-                      return (
-                        <div key={doc.id} className="space-y-1">
-                          <button className="text-primary hover:underline text-sm font-medium text-left">
-                            {doc.name}
-                          </button>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDate(doc.uploadDate)} • {formatFileSize(doc.size)} • {getFileExtension(doc.name)}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No documents uploaded</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Tasks - moved from left column */}
             <Card>
