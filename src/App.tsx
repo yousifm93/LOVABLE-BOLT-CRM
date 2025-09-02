@@ -22,6 +22,7 @@ import PropertyValue from "./pages/resources/PropertyValue"
 import PropertyValuePublic from "./pages/resources/PropertyValuePublic"
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
+import { LoanPricer } from "@/pages/resources/LoanPricer";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
@@ -82,6 +83,7 @@ function AppRoutes() {
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />
         <Route path="/tasks" element={<TasksModern />} />
         <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
+        <Route path="/resources/loan-pricer" element={<LoanPricer />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
         <Route path="/resources/property-value" element={<PropertyValue />} />
         <Route path="/resources/income-calculator" element={<IncomeCalculator />} />

@@ -410,6 +410,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_profiles: {
+        Row: {
+          created_at: string
+          effective_date: string
+          id: string
+          is_active: boolean
+          lender_fees: number
+          mi_rules: Json | null
+          name: string
+          prepaids_rule: Json | null
+          recording_fees: number
+          third_party_fees: number
+          title_fees: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          is_active?: boolean
+          lender_fees?: number
+          mi_rules?: Json | null
+          name: string
+          prepaids_rule?: Json | null
+          recording_fees?: number
+          third_party_fees?: number
+          title_fees?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          is_active?: boolean
+          lender_fees?: number
+          mi_rules?: Json | null
+          name?: string
+          prepaids_rule?: Json | null
+          recording_fees?: number
+          third_party_fees?: number
+          title_fees?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           created_at: string
@@ -1521,6 +1566,230 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_artifacts: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size_bytes: number | null
+          id: string
+          provider_id: string
+          storage_path: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size_bytes?: number | null
+          id?: string
+          provider_id: string
+          storage_path: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size_bytes?: number | null
+          id?: string
+          provider_id?: string
+          storage_path?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_artifacts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_run_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_credentials: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          mfa_type: string | null
+          provider: string
+          secret_ref: string
+          totp_secret_ref: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mfa_type?: string | null
+          provider: string
+          secret_ref: string
+          totp_secret_ref?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mfa_type?: string | null
+          provider?: string
+          secret_ref?: string
+          totp_secret_ref?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      pricing_offers: {
+        Row: {
+          apr: number | null
+          assumptions: Json | null
+          cash_to_close_delta: number | null
+          created_at: string
+          eligibility_flags: Json | null
+          id: string
+          lender: string
+          lock_days: number
+          normalized_json: Json
+          payment_est: number | null
+          points: number
+          price: number
+          program_name: string
+          provider_id: string
+          rank: number | null
+          rate: number
+        }
+        Insert: {
+          apr?: number | null
+          assumptions?: Json | null
+          cash_to_close_delta?: number | null
+          created_at?: string
+          eligibility_flags?: Json | null
+          id?: string
+          lender: string
+          lock_days: number
+          normalized_json?: Json
+          payment_est?: number | null
+          points?: number
+          price: number
+          program_name: string
+          provider_id: string
+          rank?: number | null
+          rate: number
+        }
+        Update: {
+          apr?: number | null
+          assumptions?: Json | null
+          cash_to_close_delta?: number | null
+          created_at?: string
+          eligibility_flags?: Json | null
+          id?: string
+          lender?: string
+          lock_days?: number
+          normalized_json?: Json
+          payment_est?: number | null
+          points?: number
+          price?: number
+          program_name?: string
+          provider_id?: string
+          rank?: number | null
+          rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_offers_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_run_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_run_providers: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          provider: string
+          run_id: string
+          started_at: string | null
+          status: string
+          warnings: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider: string
+          run_id: string
+          started_at?: string | null
+          status?: string
+          warnings?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          provider?: string
+          run_id?: string
+          started_at?: string | null
+          status?: string
+          warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_run_providers_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          scenario_json: Json
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          scenario_json?: Json
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          scenario_json?: Json
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_runs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_id: string
@@ -1642,6 +1911,211 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      rate_profiles: {
+        Row: {
+          base_rate: number
+          created_at: string
+          effective_date: string
+          fico_max: number
+          fico_min: number
+          id: string
+          is_active: boolean
+          ltv_max: number
+          ltv_min: number
+          name: string
+          points: number | null
+          product: Database["public"]["Enums"]["loan_product"]
+          term_months: number
+          updated_at: string
+        }
+        Insert: {
+          base_rate: number
+          created_at?: string
+          effective_date?: string
+          fico_max?: number
+          fico_min?: number
+          id?: string
+          is_active?: boolean
+          ltv_max?: number
+          ltv_min?: number
+          name: string
+          points?: number | null
+          product: Database["public"]["Enums"]["loan_product"]
+          term_months: number
+          updated_at?: string
+        }
+        Update: {
+          base_rate?: number
+          created_at?: string
+          effective_date?: string
+          fico_max?: number
+          fico_min?: number
+          id?: string
+          is_active?: boolean
+          ltv_max?: number
+          ltv_min?: number
+          name?: string
+          points?: number | null
+          product?: Database["public"]["Enums"]["loan_product"]
+          term_months?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      refi_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          ocr_status: Database["public"]["Enums"]["ocr_status"]
+          ocr_text: Json | null
+          page_count: number | null
+          parse_confidence: number | null
+          parsed_json: Json | null
+          request_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          ocr_status?: Database["public"]["Enums"]["ocr_status"]
+          ocr_text?: Json | null
+          page_count?: number | null
+          parse_confidence?: number | null
+          parsed_json?: Json | null
+          request_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          ocr_status?: Database["public"]["Enums"]["ocr_status"]
+          ocr_text?: Json | null
+          page_count?: number | null
+          parse_confidence?: number | null
+          parsed_json?: Json | null
+          request_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refi_documents_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "refi_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refi_requests: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          mode: string
+          property_address: string | null
+          status: Database["public"]["Enums"]["refi_status"]
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          mode: string
+          property_address?: string | null
+          status?: Database["public"]["Enums"]["refi_status"]
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          mode?: string
+          property_address?: string | null
+          status?: Database["public"]["Enums"]["refi_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refi_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refi_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refi_results: {
+        Row: {
+          assumptions_json: Json
+          break_even_months: number | null
+          created_at: string
+          estimated_apr: number | null
+          id: string
+          inputs_json: Json
+          monthly_savings: number | null
+          new_payment_total: number | null
+          old_payment_total: number | null
+          request_id: string
+        }
+        Insert: {
+          assumptions_json?: Json
+          break_even_months?: number | null
+          created_at?: string
+          estimated_apr?: number | null
+          id?: string
+          inputs_json?: Json
+          monthly_savings?: number | null
+          new_payment_total?: number | null
+          old_payment_total?: number | null
+          request_id: string
+        }
+        Update: {
+          assumptions_json?: Json
+          break_even_months?: number | null
+          created_at?: string
+          estimated_apr?: number | null
+          id?: string
+          inputs_json?: Json
+          monthly_savings?: number | null
+          new_payment_total?: number | null
+          old_payment_total?: number | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refi_results_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "refi_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       short_links: {
         Row: {
@@ -2187,6 +2661,7 @@ export type Database = {
         | "Needs Attention"
       lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
       lender_type: "Conventional" | "Non-QM" | "Private"
+      loan_product: "conv" | "fha" | "va" | "usda"
       loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
       log_direction: "In" | "Out"
       ocr_status: "pending" | "processing" | "success" | "failed"
@@ -2210,6 +2685,7 @@ export type Database = {
         | "Call"
         | "Web"
         | "In Person"
+      refi_status: "uploaded" | "ocr" | "parsed" | "computed" | "error"
       send_status: "queued" | "sent" | "delivered" | "failed"
       task_priority: "Low" | "Medium" | "High" | "Critical"
       task_status:
@@ -2449,6 +2925,7 @@ export const Constants = {
       ],
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
       lender_type: ["Conventional", "Non-QM", "Private"],
+      loan_product: ["conv", "fha", "va", "usda"],
       loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC"],
       log_direction: ["In", "Out"],
       ocr_status: ["pending", "processing", "success", "failed"],
@@ -2474,6 +2951,7 @@ export const Constants = {
         "Web",
         "In Person",
       ],
+      refi_status: ["uploaded", "ocr", "parsed", "computed", "error"],
       send_status: ["queued", "sent", "delivered", "failed"],
       task_priority: ["Low", "Medium", "High", "Critical"],
       task_status: [

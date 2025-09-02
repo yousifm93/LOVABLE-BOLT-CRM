@@ -19,6 +19,7 @@ import {
   BookOpen,
   Mail,
   Zap,
+  DollarSign,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,7 @@ const contactItems = [
 ];
 
 const resourceItems = [
+  { title: "Loan Pricer", url: "/resources/loan-pricer", icon: DollarSign },
   { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
   { title: "Property Value", url: "/resources/property-value", icon: Home },
   { title: "Income Calculator", url: "/resources/income-calculator", icon: Calculator },
