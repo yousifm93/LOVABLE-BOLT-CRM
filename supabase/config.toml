@@ -1,1 +1,10 @@
 project_id = "zpsvatonxakysnbqnfcc"
+
+[functions.income-ocr]
+verify_jwt = true
+
+[functions.income-calculate] 
+verify_jwt = true
+
+[functions.income-export-pdf]
+verify_jwt = true

@@ -35,7 +35,7 @@ serve(async (req) => {
       .from('provider_configs')
       .select('config_value')
       .eq('config_key', 'rules_agency_v1')
-      .single();
+      .maybeSingle();
 
     const agencyRules = configData?.config_value?.[agency] || {};
     

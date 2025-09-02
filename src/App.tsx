@@ -19,6 +19,7 @@ import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
 import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
+import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import Condolist from "@/pages/resources/Condolist";
 import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
@@ -78,6 +79,7 @@ function AppRoutes() {
         <Route path="/tasks" element={<TasksModern />} />
         <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
         <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
+        <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<PreapprovalLetter />} />
         <Route path="/resources/estimate" element={<LoanEstimate />} />

@@ -1,0 +1,175 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { calculation_id } = await req.json();
+    
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get calculation with borrower info
+    const { data: calculation } = await supabaseClient
+      .from('income_calculations')
+      .select(`
+        *,
+        borrower:borrowers(*)
+      `)
+      .eq('id', calculation_id)
+      .maybeSingle();
+
+    if (!calculation) {
+      throw new Error('Calculation not found');
+    }
+
+    // Get income components
+    const { data: components } = await supabaseClient
+      .from('income_components')
+      .select('*')
+      .eq('calculation_id', calculation_id)
+      .order('monthly_amount', { ascending: false });
+
+    // Get documents used
+    const { data: documents } = await supabaseClient
+      .from('income_documents')
+      .select('*')
+      .eq('borrower_id', calculation.borrower_id);
+
+    // Generate PDF content (HTML for now, could be enhanced with PDF library)
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Income Worksheet - ${calculation.borrower.first_name} ${calculation.borrower.last_name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+          .section { margin-bottom: 25px; }
+          .component { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #ccc; }
+          .total { font-weight: bold; font-size: 1.2em; background: #f5f5f5; padding: 10px; margin-top: 20px; }
+          .document-list { margin-top: 20px; }
+          .document { margin: 5px 0; }
+          .agency-badge { background: #e0e0e0; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Monthly Qualifying Income Worksheet</h1>
+          <h2>${calculation.borrower.first_name} ${calculation.borrower.last_name}</h2>
+          <p>
+            Calculation Date: ${new Date(calculation.created_at).toLocaleDateString()} | 
+            Agency: <span class="agency-badge">${calculation.agency.toUpperCase()}</span> |
+            Confidence: ${Math.round((calculation.confidence || 0) * 100)}%
+          </p>
+        </div>
+
+        <div class="section">
+          <h3>Income Components</h3>
+          ${components?.map(comp => `
+            <div class="component">
+              <div>
+                <strong>${comp.component_type.replace('_', ' ')}</strong>
+                ${comp.calculation_method ? `<br><small>${comp.calculation_method}</small>` : ''}
+                ${comp.months_considered ? `<br><small>Based on ${comp.months_considered} months</small>` : ''}
+              </div>
+              <div>$${comp.monthly_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}/mo</div>
+            </div>
+          `).join('') || '<p>No components calculated</p>'}
+          
+          <div class="total">
+            Total Monthly Qualifying Income: $${(calculation.result_monthly_income || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Documents Reviewed</h3>
+          <div class="document-list">
+            ${documents?.map(doc => `
+              <div class="document">
+                • ${doc.file_name} (${doc.doc_type.replace('_', ' ')})
+                ${doc.doc_period_start ? ` - Period: ${new Date(doc.doc_period_start).toLocaleDateString()}` : ''}
+                ${doc.doc_period_end ? ` to ${new Date(doc.doc_period_end).toLocaleDateString()}` : ''}
+              </div>
+            `).join('') || '<p>No documents found</p>'}
+          </div>
+        </div>
+
+        ${calculation.warnings && calculation.warnings.length > 0 ? `
+        <div class="section">
+          <h3>Warnings & Notes</h3>
+          ${calculation.warnings.map((warning: any) => `
+            <div style="color: #d32f2f; margin: 5px 0;">⚠ ${warning}</div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <div class="section" style="border-top: 2px solid #333; padding-top: 20px; margin-top: 40px;">
+          <p><small>
+            This worksheet is for underwriting support only. Final income determination 
+            is subject to agency and lender guidelines. Generated by MortgageBolt Income Calculator.
+          </small></p>
+          <p><small>
+            Loan Officer: __________________ Date: __________________ Signature: __________________
+          </small></p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Store the HTML file (in a real implementation, you'd convert to PDF)
+    const fileName = `income-worksheet-${calculation.borrower_id}-${Date.now()}.html`;
+    
+    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+      .from('income-docs')
+      .upload(`exports/${fileName}`, new Blob([htmlContent], { type: 'text/html' }));
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: urlData } = supabaseClient.storage
+      .from('income-docs')
+      .getPublicUrl(`exports/${fileName}`);
+
+    // Log audit event
+    await supabaseClient
+      .from('income_audit_events')
+      .insert({
+        calculation_id: calculation.id,
+        step: 'export',
+        payload: {
+          format: 'html',
+          file_path: `exports/${fileName}`,
+          components_count: components?.length || 0
+        }
+      });
+
+    return new Response(JSON.stringify({
+      success: true,
+      export_url: urlData.publicUrl,
+      file_name: fileName
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Export Error:', error);
+    
+    return new Response(JSON.stringify({
+      error: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
