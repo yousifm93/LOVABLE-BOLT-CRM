@@ -22,7 +22,7 @@ export function PipelineStageBar({
       : 'h-12 text-[clamp(12px,1.2vw,16px)]';
 
   return (
-    <div className={cn('w-full overflow-x-auto md:overflow-visible mx-24', className)}>
+    <div className={cn('w-full overflow-x-auto md:overflow-visible mx-8', className)}>
       <div className="flex w-full isolate">
         {stages.map((label, idx) => {
           const first = idx === 0;
@@ -37,7 +37,7 @@ export function PipelineStageBar({
                 'border border-black',
                 first ? '' : 'border-l-0',
                 sizeClasses,
-                'px-2 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
+                'px-5 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
                 active ? 'bg-[#F5C400]' : 'bg-white'
               )}
               aria-current={active ? 'step' : undefined}
