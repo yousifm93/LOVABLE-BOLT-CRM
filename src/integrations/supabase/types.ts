@@ -88,6 +88,53 @@ export type Database = {
         }
         Relationships: []
       }
+      borrowers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          lead_id: string | null
+          phone: string | null
+          ssn_last4: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          lead_id?: string | null
+          phone?: string | null
+          ssn_last4?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          lead_id?: string | null
+          phone?: string | null
+          ssn_last4?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrowers_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyer_agents: {
         Row: {
           brokerage: string
@@ -482,6 +529,216 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_audit_events: {
+        Row: {
+          actor_id: string | null
+          calculation_id: string | null
+          created_at: string
+          document_id: string | null
+          id: string
+          payload: Json | null
+          step: Database["public"]["Enums"]["audit_step"]
+        }
+        Insert: {
+          actor_id?: string | null
+          calculation_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          payload?: Json | null
+          step: Database["public"]["Enums"]["audit_step"]
+        }
+        Update: {
+          actor_id?: string | null
+          calculation_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          id?: string
+          payload?: Json | null
+          step?: Database["public"]["Enums"]["audit_step"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_audit_events_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "income_calculations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_audit_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "income_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_calculations: {
+        Row: {
+          agency: Database["public"]["Enums"]["agency_type"]
+          borrower_id: string
+          calc_date: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inputs_version: string | null
+          overrides: Json | null
+          result_monthly_income: number | null
+          updated_at: string
+          warnings: Json | null
+        }
+        Insert: {
+          agency: Database["public"]["Enums"]["agency_type"]
+          borrower_id: string
+          calc_date?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs_version?: string | null
+          overrides?: Json | null
+          result_monthly_income?: number | null
+          updated_at?: string
+          warnings?: Json | null
+        }
+        Update: {
+          agency?: Database["public"]["Enums"]["agency_type"]
+          borrower_id?: string
+          calc_date?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inputs_version?: string | null
+          overrides?: Json | null
+          result_monthly_income?: number | null
+          updated_at?: string
+          warnings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_calculations_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_components: {
+        Row: {
+          calculation_id: string
+          calculation_method: string | null
+          component_type: Database["public"]["Enums"]["component_type"]
+          created_at: string
+          id: string
+          monthly_amount: number
+          months_considered: number | null
+          notes: string | null
+          source_documents: Json | null
+        }
+        Insert: {
+          calculation_id: string
+          calculation_method?: string | null
+          component_type: Database["public"]["Enums"]["component_type"]
+          created_at?: string
+          id?: string
+          monthly_amount: number
+          months_considered?: number | null
+          notes?: string | null
+          source_documents?: Json | null
+        }
+        Update: {
+          calculation_id?: string
+          calculation_method?: string | null
+          component_type?: Database["public"]["Enums"]["component_type"]
+          created_at?: string
+          id?: string
+          monthly_amount?: number
+          months_considered?: number | null
+          notes?: string | null
+          source_documents?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_components_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "income_calculations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_documents: {
+        Row: {
+          borrower_id: string
+          created_at: string
+          created_by: string | null
+          doc_period_end: string | null
+          doc_period_start: string | null
+          doc_type: Database["public"]["Enums"]["doc_type"]
+          file_name: string
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          ocr_status: Database["public"]["Enums"]["ocr_status"]
+          page_count: number | null
+          parse_confidence: number | null
+          parsed_json: Json | null
+          storage_path: string
+          updated_at: string
+          ytd_flag: boolean | null
+        }
+        Insert: {
+          borrower_id: string
+          created_at?: string
+          created_by?: string | null
+          doc_period_end?: string | null
+          doc_period_start?: string | null
+          doc_type: Database["public"]["Enums"]["doc_type"]
+          file_name: string
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          ocr_status?: Database["public"]["Enums"]["ocr_status"]
+          page_count?: number | null
+          parse_confidence?: number | null
+          parsed_json?: Json | null
+          storage_path: string
+          updated_at?: string
+          ytd_flag?: boolean | null
+        }
+        Update: {
+          borrower_id?: string
+          created_at?: string
+          created_by?: string | null
+          doc_period_end?: string | null
+          doc_period_start?: string | null
+          doc_type?: Database["public"]["Enums"]["doc_type"]
+          file_name?: string
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          ocr_status?: Database["public"]["Enums"]["ocr_status"]
+          page_count?: number | null
+          parse_confidence?: number | null
+          parsed_json?: Json | null
+          storage_path?: string
+          updated_at?: string
+          ytd_flag?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_documents_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
             referencedColumns: ["id"]
           },
         ]
@@ -887,6 +1144,30 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_configs: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       queries: {
         Row: {
           created_at: string | null
@@ -1221,6 +1502,7 @@ export type Database = {
       }
     }
     Enums: {
+      agency_type: "fannie" | "freddie" | "fha" | "va" | "usda" | "nonqm"
       appraisal_status:
         | "Ordered"
         | "Scheduled"
@@ -1229,10 +1511,27 @@ export type Database = {
         | "Waiver"
       approval_source_type: "PennyMac" | "A&D" | "UWM"
       approval_type_type: "Full" | "Limited" | "Non-QM" | "Hard Money"
+      audit_step:
+        | "upload"
+        | "ocr"
+        | "classify"
+        | "parse"
+        | "validate"
+        | "calculate"
+        | "export"
       ba_status: "Send" | "Sent" | "Signed"
       call_outcome: "No Answer" | "Left VM" | "Connected"
       cd_status: "Requested" | "Sent" | "Signed"
       change_action: "insert" | "update" | "delete"
+      component_type:
+        | "base_hourly"
+        | "base_salary"
+        | "overtime"
+        | "bonus"
+        | "commission"
+        | "self_employed"
+        | "rental"
+        | "other"
       condo_status: "Ordered" | "Received" | "Approved"
       contact_type:
         | "Agent"
@@ -1249,6 +1548,18 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       disclosure_status: "Ordered" | "Sent" | "Signed" | "Need Signature"
+      doc_type:
+        | "pay_stub"
+        | "w2"
+        | "form_1099"
+        | "form_1040"
+        | "schedule_c"
+        | "schedule_e"
+        | "schedule_f"
+        | "k1"
+        | "form_1065"
+        | "form_1120s"
+        | "voe"
       document_status: "pending" | "processing" | "completed" | "failed"
       epo_status: "Send" | "Sent" | "Signed"
       hoi_status: "Quoted" | "Ordered" | "Received"
@@ -1271,7 +1582,9 @@ export type Database = {
       lender_type: "Conventional" | "Non-QM" | "Private"
       loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
       log_direction: "In" | "Out"
+      ocr_status: "pending" | "processing" | "success" | "failed"
       package_status: "Initial" | "Final"
+      pay_frequency: "weekly" | "biweekly" | "semimonthly" | "monthly"
       pr_type: "P" | "R" | "HELOC"
       query_status: "pending" | "processing" | "completed" | "failed"
       referral_source:
@@ -1426,6 +1739,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agency_type: ["fannie", "freddie", "fha", "va", "usda", "nonqm"],
       appraisal_status: [
         "Ordered",
         "Scheduled",
@@ -1435,10 +1749,29 @@ export const Constants = {
       ],
       approval_source_type: ["PennyMac", "A&D", "UWM"],
       approval_type_type: ["Full", "Limited", "Non-QM", "Hard Money"],
+      audit_step: [
+        "upload",
+        "ocr",
+        "classify",
+        "parse",
+        "validate",
+        "calculate",
+        "export",
+      ],
       ba_status: ["Send", "Sent", "Signed"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
       cd_status: ["Requested", "Sent", "Signed"],
       change_action: ["insert", "update", "delete"],
+      component_type: [
+        "base_hourly",
+        "base_salary",
+        "overtime",
+        "bonus",
+        "commission",
+        "self_employed",
+        "rental",
+        "other",
+      ],
       condo_status: ["Ordered", "Received", "Approved"],
       contact_type: [
         "Agent",
@@ -1457,6 +1790,19 @@ export const Constants = {
         "Needs Attention",
       ],
       disclosure_status: ["Ordered", "Sent", "Signed", "Need Signature"],
+      doc_type: [
+        "pay_stub",
+        "w2",
+        "form_1099",
+        "form_1040",
+        "schedule_c",
+        "schedule_e",
+        "schedule_f",
+        "k1",
+        "form_1065",
+        "form_1120s",
+        "voe",
+      ],
       document_status: ["pending", "processing", "completed", "failed"],
       epo_status: ["Send", "Sent", "Signed"],
       hoi_status: ["Quoted", "Ordered", "Received"],
@@ -1481,7 +1827,9 @@ export const Constants = {
       lender_type: ["Conventional", "Non-QM", "Private"],
       loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC"],
       log_direction: ["In", "Out"],
+      ocr_status: ["pending", "processing", "success", "failed"],
       package_status: ["Initial", "Final"],
+      pay_frequency: ["weekly", "biweekly", "semimonthly", "monthly"],
       pr_type: ["P", "R", "HELOC"],
       query_status: ["pending", "processing", "completed", "failed"],
       referral_source: [
