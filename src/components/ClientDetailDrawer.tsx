@@ -483,7 +483,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                            zIndex: zIndex,
                            width: "100px",
                            height: "48px",
-                           fontSize: "12px"
+                           fontSize: "18px"
                          }}
                       >
                         {stage.label.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase()}
@@ -631,6 +631,44 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     <p className="text-sm text-muted-foreground">No documents uploaded</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Tasks - moved from left column */}
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <CardTitle className="text-sm font-bold flex items-center justify-between">
+                  Tasks
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Task
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 bg-gray-50">
+                {/* Mock task data */}
+                {mockTasks.map((task, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={task.completed}
+                      onCheckedChange={() => handleTaskToggle(index)}
+                    />
+                    <span className={cn(
+                      "text-xs flex-1",
+                      task.completed && "line-through text-muted-foreground"
+                    )}>
+                      {task.title}
+                    </span>
+                  </div>
+                ))}
+                {mockTasks.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No tasks yet</p>
+                )}
               </CardContent>
             </Card>
 

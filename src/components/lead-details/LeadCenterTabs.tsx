@@ -1,9 +1,11 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, FileText, User } from "lucide-react";
+import { Activity, FileText, User, DollarSign, Users } from "lucide-react";
 import { ActivityTab } from "./ActivityTab";
 import { DetailsTab } from "./DetailsTab";
+import { BorrowerInfoTab } from "./BorrowerInfoTab";
+import { FinancialInfoTab } from "./FinancialInfoTab";
 import { DocumentsTab } from "./DocumentsTab";
 
 interface LeadCenterTabsProps {
@@ -26,14 +28,22 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onCallCl
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
         <Tabs defaultValue="activity" className="w-full h-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
               Activity
             </TabsTrigger>
-            <TabsTrigger value="details" className="text-xs flex items-center gap-1">
+            <TabsTrigger value="loan-property" className="text-xs flex items-center gap-1">
               <User className="h-3 w-3" />
-              Details
+              Loan & Property
+            </TabsTrigger>
+            <TabsTrigger value="borrower" className="text-xs flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              Borrower Info
+            </TabsTrigger>
+            <TabsTrigger value="financial" className="text-xs flex items-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              Financial Info
             </TabsTrigger>
             <TabsTrigger value="documents" className="text-xs flex items-center gap-1">
               <FileText className="h-3 w-3" />
@@ -52,8 +62,16 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onCallCl
             />
           </TabsContent>
           
-          <TabsContent value="details" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+          <TabsContent value="loan-property" className="mt-0 h-[calc(100%-56px)] overflow-auto">
             <DetailsTab client={client} />
+          </TabsContent>
+          
+          <TabsContent value="borrower" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+            <BorrowerInfoTab client={client} />
+          </TabsContent>
+          
+          <TabsContent value="financial" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+            <FinancialInfoTab client={client} />
           </TabsContent>
           
           <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">
