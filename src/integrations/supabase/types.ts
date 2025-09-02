@@ -52,6 +52,106 @@ export type Database = {
           },
         ]
       }
+      assistant_audit_log: {
+        Row: {
+          created_at: string | null
+          data_accessed: Json | null
+          id: string
+          query_text: string
+          response_summary: string | null
+          session_id: string | null
+          tools_called: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_accessed?: Json | null
+          id?: string
+          query_text: string
+          response_summary?: string | null
+          session_id?: string | null
+          tools_called?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_accessed?: Json | null
+          id?: string
+          query_text?: string
+          response_summary?: string | null
+          session_id?: string | null
+          tools_called?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_audit_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_chat_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assistant_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          role: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          role: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: Database["public"]["Enums"]["change_action"]

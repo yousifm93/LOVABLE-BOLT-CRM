@@ -12,6 +12,7 @@ import PreApproved from "@/pages/PreApproved";
 import Active from "@/pages/Active";
 import PastClients from "@/pages/PastClients";
 import Admin from "@/pages/Admin";
+import AdminAssistant from "@/pages/AdminAssistant";
 import NotFound from "@/pages/NotFound";
 import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route path="/pre-approved" element={<PreApproved />} />
         <Route path="/active" element={<Active />} />
         <Route path="/past-clients" element={<PastClients />} />
+        <Route path="/admin/assistant" element={<AdminAssistant />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />

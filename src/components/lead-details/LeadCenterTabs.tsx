@@ -20,12 +20,12 @@ interface LeadCenterTabsProps {
 
 export function LeadCenterTabs({ leadId, activities, documents, client, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
   return (
-    <Card className="min-h-[calc(100vh-360px)]">
+    <Card className="mb-4 h-[600px]">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">Lead Information</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="activity" className="w-full">
+      <CardContent className="h-[calc(100%-80px)]">
+        <Tabs defaultValue="activity" className="w-full h-full">
           <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
@@ -41,7 +41,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onCallCl
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="activity" className="mt-0">
+          <TabsContent value="activity" className="mt-0 h-[calc(100%-56px)] overflow-hidden">
             <ActivityTab 
               activities={activities}
               onCallClick={onCallClick}
@@ -52,11 +52,11 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onCallCl
             />
           </TabsContent>
           
-          <TabsContent value="details" className="mt-0">
+          <TabsContent value="details" className="mt-0 h-[calc(100%-56px)] overflow-auto">
             <DetailsTab client={client} />
           </TabsContent>
           
-          <TabsContent value="documents" className="mt-0">
+          <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">
             <DocumentsTab documents={documents} />
           </TabsContent>
         </Tabs>

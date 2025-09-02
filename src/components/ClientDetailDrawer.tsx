@@ -355,9 +355,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background p-4 pt-2">
-
-          {/* Top Row: Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-3 mt-2">
+          {/* Top Row: Borrower Header (left), Status Tracker (center), Notes (right) */}
+          <div className="grid grid-cols-3 gap-4 mb-3 mt-2">
+            {/* Contact Info Card - Top Left */}
+            <ContactInfoCard client={client} onClose={handleDrawerClose} />
+            
+            {/* Status Tracker Pills - Center */}
             {/* Status Tracker Pills */}
             <Card>
               <CardHeader className="pb-3">
@@ -458,11 +461,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
         {/* Main Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-280px)] p-4 pt-0">
-          {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
+          {/* Left Column - Team & Contacts, Tasks, Chat */}
           <div className="space-y-4 overflow-y-auto">
-
-            {/* Contact Information */}
-            <ContactInfoCard client={client} onClose={handleDrawerClose} />
 
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
