@@ -55,89 +55,87 @@ function ContactRow({ type, label, icon: Icon, assignment, contacts, onAssign, o
   );
 
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="py-3 border-b last:border-0">
+      <div className="flex items-center gap-2 mb-2">
         <Icon className="h-3 w-3 text-muted-foreground shrink-0" />
-        <span className="text-sm font-medium min-w-0 truncate">{label}</span>
-      </div>
-      
-      <div className="flex items-center gap-2 shrink-0">
-        {assignment ? (
-          <>
-            <div className="text-right">
-              <div className="text-sm">
-                {selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name}` : 'Unknown Contact'}
-              </div>
-              {selectedContact?.company && (
-                <div className="text-xs text-muted-foreground">{selectedContact.company}</div>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRemove(type)}
-              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </>
-        ) : (
-          <div className="flex items-center gap-1">
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-[120px] justify-between text-xs h-7"
-                >
-                  Select contact...
-                  <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[250px] p-0" align="end">
-                <Command>
-                  <CommandInput placeholder="Search contacts..." className="h-8" />
-                  <CommandList>
-                    <CommandEmpty>No contacts found.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredContacts.map((contact) => (
-                        <CommandItem
-                          key={contact.id}
-                          value={`${contact.first_name} ${contact.last_name} ${contact.company || ''}`}
-                          onSelect={() => {
-                            onAssign(type, contact.id);
-                            setOpen(false);
-                          }}
-                        >
-                          <Check className={cn("mr-2 h-3 w-3 opacity-0")} />
-                          <div className="flex flex-col">
-                            <span className="text-sm">{contact.first_name} {contact.last_name}</span>
-                            {contact.company && (
-                              <span className="text-xs text-muted-foreground">{contact.company}</span>
-                            )}
-                            {contact.email && (
-                              <span className="text-xs text-muted-foreground">{contact.email}</span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onAddNew(type)}
-              className="h-7 w-7 p-0"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
+        <span className="text-sm font-medium">{label}</span>
+        {assignment && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(type)}
+            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive ml-auto"
+          >
+            <X className="h-3 w-3" />
+          </Button>
         )}
       </div>
+      
+      {assignment ? (
+        <div className="text-sm text-muted-foreground pl-5">
+          <div>
+            {selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name}` : 'Unknown Contact'}
+          </div>
+          {selectedContact?.company && (
+            <div className="text-xs">{selectedContact.company}</div>
+          )}
+        </div>
+      ) : (
+        <div className="pl-5 flex items-center gap-1">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="flex-1 justify-between text-xs h-8"
+              >
+                Select contact...
+                <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search contacts..." className="h-8" />
+                <CommandList>
+                  <CommandEmpty>No contacts found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredContacts.map((contact) => (
+                      <CommandItem
+                        key={contact.id}
+                        value={`${contact.first_name} ${contact.last_name} ${contact.company || ''}`}
+                        onSelect={() => {
+                          onAssign(type, contact.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-3 w-3 opacity-0")} />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{contact.first_name} {contact.last_name}</span>
+                          {contact.company && (
+                            <span className="text-xs text-muted-foreground">{contact.company}</span>
+                          )}
+                          {contact.email && (
+                            <span className="text-xs text-muted-foreground">{contact.email}</span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAddNew(type)}
+            className="h-8 w-8 p-0"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

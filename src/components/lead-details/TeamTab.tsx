@@ -25,7 +25,6 @@ interface TeamTabProps {
 }
 
 const TEAM_ROLES = [
-  { key: 'loan_officer', label: 'Loan Officer' },
   { key: 'pre_approval_expert', label: 'Pre-Approval Expert' },
   { key: 'processor', label: 'Processor' },
   { key: 'lender', label: 'Lender' },
@@ -46,41 +45,41 @@ function TeamRoleRow({ role, label, assignment, users, onAssign, onRemove }: {
   const selectedUser = users.find(user => user.id === value);
 
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="py-3 border-b last:border-0">
+      <div className="flex items-center gap-2 mb-2">
         <User className="h-3 w-3 text-muted-foreground shrink-0" />
-        <span className="text-sm font-medium min-w-0 truncate">{label}</span>
+        <span className="text-sm font-medium">{label}</span>
+        {assignment && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(role)}
+            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive ml-auto"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
       </div>
       
-      <div className="flex items-center gap-2 shrink-0">
-        {assignment ? (
-          <>
-            <span className="text-sm text-muted-foreground">
-              {selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : 'Unknown User'}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRemove(role)}
-              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </>
-        ) : (
+      {assignment ? (
+        <div className="text-sm text-muted-foreground pl-5">
+          {selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : 'Unknown User'}
+        </div>
+      ) : (
+        <div className="pl-5">
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className="w-[150px] justify-between text-xs h-7"
+                className="w-full justify-between text-xs h-8"
               >
                 {selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : "Select user..."}
                 <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="end">
+            <PopoverContent className="w-[200px] p-0" align="start">
               <Command>
                 <CommandInput placeholder="Search users..." className="h-8" />
                 <CommandList>
@@ -113,8 +112,8 @@ function TeamRoleRow({ role, label, assignment, users, onAssign, onRemove }: {
               </Command>
             </PopoverContent>
           </Popover>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -131,6 +130,14 @@ export function TeamTab({ leadId }: TeamTabProps) {
 
   const loadAssignments = async () => {
     try {
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(leadId)) {
+        console.warn('Invalid UUID format for leadId:', leadId);
+        setAssignments([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('team_assignments')
         .select(`

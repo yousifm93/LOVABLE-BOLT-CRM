@@ -13,6 +13,7 @@ interface SendEmailTemplatesCardProps {
 
 export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [selectedSender, setSelectedSender] = useState<string>("");
   const [recipients, setRecipients] = useState({
     borrower: false,
     agent: false,
@@ -23,6 +24,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     agent: "",
     thirdParty: ""
   });
+  const [showThirdPartyEmail, setShowThirdPartyEmail] = useState(false);
 
   const emailTemplates = [
     "Appraisal Received",
@@ -32,11 +34,21 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     "Loan Update"
   ];
 
+  const senders = [
+    "Yusuf Mohammed",
+    "Salam Mohammed", 
+    "Herman Daza"
+  ];
+
   const handleRecipientChange = (recipient: keyof typeof recipients, checked: boolean) => {
     setRecipients(prev => ({
       ...prev,
       [recipient]: checked
     }));
+    
+    if (recipient === 'thirdParty') {
+      setShowThirdPartyEmail(checked);
+    }
   };
 
   const handleEmailChange = (recipient: keyof typeof emails, email: string) => {
@@ -79,6 +91,24 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
+          <Label htmlFor="from-sender" className="text-sm font-medium">
+            From
+          </Label>
+          <Select value={selectedSender} onValueChange={setSelectedSender}>
+            <SelectTrigger id="from-sender" className="mt-1">
+              <SelectValue placeholder="Select sender" />
+            </SelectTrigger>
+            <SelectContent>
+              {senders.map((sender) => (
+                <SelectItem key={sender} value={sender}>
+                  {sender}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
           <Label htmlFor="email-template" className="text-sm font-medium">
             Email Template
           </Label>
@@ -98,57 +128,46 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
 
         <div>
           <Label className="text-sm font-medium">Recipients</Label>
-          <div className="mt-2 space-y-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="borrower"
-                checked={recipients.borrower}
-                onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
-              />
-              <Label htmlFor="borrower" className="text-sm">Borrower</Label>
-              {recipients.borrower && (
-                <Input
-                  placeholder="borrower@email.com"
-                  value={emails.borrower}
-                  onChange={(e) => handleEmailChange("borrower", e.target.value)}
-                  className="flex-1"
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="borrower"
+                  checked={recipients.borrower}
+                  onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
                 />
-              )}
+                <Label htmlFor="borrower" className="text-sm">Borrower</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="agent"
+                  checked={recipients.agent}
+                  onCheckedChange={(checked) => handleRecipientChange("agent", checked as boolean)}
+                />
+                <Label htmlFor="agent" className="text-sm">Agent</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="third-party"
+                  checked={recipients.thirdParty}
+                  onCheckedChange={(checked) => handleRecipientChange("thirdParty", checked as boolean)}
+                />
+                <Label htmlFor="third-party" className="text-sm">Third Party</Label>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="agent"
-                checked={recipients.agent}
-                onCheckedChange={(checked) => handleRecipientChange("agent", checked as boolean)}
-              />
-              <Label htmlFor="agent" className="text-sm">Agent</Label>
-              {recipients.agent && (
+            {showThirdPartyEmail && (
+              <div className="mt-2">
                 <Input
-                  placeholder="agent@email.com"
-                  value={emails.agent}
-                  onChange={(e) => handleEmailChange("agent", e.target.value)}
-                  className="flex-1"
-                />
-              )}
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="third-party"
-                checked={recipients.thirdParty}
-                onCheckedChange={(checked) => handleRecipientChange("thirdParty", checked as boolean)}
-              />
-              <Label htmlFor="third-party" className="text-sm">Third Party</Label>
-              {recipients.thirdParty && (
-                <Input
-                  placeholder="thirdparty@email.com"
+                  placeholder="Enter third party email address"
                   value={emails.thirdParty}
                   onChange={(e) => handleEmailChange("thirdParty", e.target.value)}
-                  className="flex-1"
+                  className="w-full"
                 />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
