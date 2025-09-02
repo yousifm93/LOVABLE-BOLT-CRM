@@ -5,6 +5,8 @@ import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, T
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
+import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
+import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 
 // Mock data for charts
 const monthlyVolumeData = [
@@ -367,6 +369,12 @@ export default function DashboardTabs() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Additional Analytics Components */}
+      <div className="space-y-6 mt-8">
+        <ActivityMonitor />
+        <ConversionAnalytics />
+      </div>
     </div>
   );
 }
