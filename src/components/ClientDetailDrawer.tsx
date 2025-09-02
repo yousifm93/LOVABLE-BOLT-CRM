@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
 import { useToast } from "@/hooks/use-toast";
+import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
+import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -575,6 +577,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardContent>
             </Card>
 
+            {/* Team / Contacts / Dates */}
+            <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
+
             {/* Chat with Borrower */}
             <Card>
               <CardHeader className="pb-3">
@@ -622,85 +627,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             </Card>
           </div>
 
-          {/* Center Column - Action Buttons and Activity Log */}
+          {/* Center Column - Tabbed Activity/Details/Documents */}
           <div className="space-y-4 overflow-y-auto">
-
-            {/* Activity Log */}
-            <Card className="flex-1">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-bold">Activity Log</CardTitle>
-                
-                {/* Action Buttons */}
-                <div className="mt-6 grid grid-cols-5 gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowCallLogModal(true)}
-                    className="text-xs"
-                  >
-                    <Phone className="h-3 w-3 mr-1" />
-                    Call
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowSmsLogModal(true)}
-                    className="text-xs"
-                  >
-                    <MessageSquare className="h-3 w-3 mr-1" />
-                    SMS
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowEmailLogModal(true)}
-                    className="text-xs"
-                  >
-                    <Mail className="h-3 w-3 mr-1" />
-                    Email
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowAddNoteModal(true)}
-                    className="text-xs"
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Add Note
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowCreateTaskModal(true)}
-                    className="text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Create Task
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto">
-                <div className="mb-4"></div>
-                {activities.length > 0 ? (
-                  activities.map((activity) => (
-                    <div key={activity.id} className="border-l-2 border-primary/20 pl-4 pb-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{activity.title}</h4>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      {activity.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">by {activity.user}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No activities recorded yet.</p>
-                )}
-              </CardContent>
-            </Card>
+            <LeadCenterTabs 
+              leadId={client.person.id.toString()}
+              activities={activities}
+              documents={documents}
+              client={client}
+            />
           </div>
 
           {/* Right Column - Notes, Documents, Chat */}

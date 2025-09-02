@@ -33,6 +33,15 @@ export type DocumentInsert = Database['public']['Tables']['documents']['Insert']
 export type BuyerAgent = Database['public']['Tables']['buyer_agents']['Row'];
 export type BuyerAgentInsert = Database['public']['Tables']['buyer_agents']['Insert'];
 
+export type TeamAssignment = Database['public']['Tables']['team_assignments']['Row'];
+export type TeamAssignmentInsert = Database['public']['Tables']['team_assignments']['Insert'];
+
+export type LeadExternalContact = Database['public']['Tables']['lead_external_contacts']['Row'];
+export type LeadExternalContactInsert = Database['public']['Tables']['lead_external_contacts']['Insert'];
+
+export type LeadDate = Database['public']['Tables']['lead_dates']['Row'];
+export type LeadDateInsert = Database['public']['Tables']['lead_dates']['Insert'];
+
 // Database service functions
 export const databaseService = {
   // Lead operations
@@ -471,6 +480,119 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('buyer_agents')
       .insert(agent)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Team assignment operations
+  async getTeamAssignments(leadId: string) {
+    const { data, error } = await supabase
+      .from('team_assignments')
+      .select(`
+        *,
+        user:users(id, first_name, last_name, email)
+      `)
+      .eq('lead_id', leadId);
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async assignTeamMember(assignment: TeamAssignmentInsert) {
+    const { data, error } = await supabase
+      .from('team_assignments')
+      .upsert(assignment, { onConflict: 'lead_id,role' })
+      .select(`
+        *,
+        user:users(id, first_name, last_name, email)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async removeTeamMember(leadId: string, role: string) {
+    const { error } = await supabase
+      .from('team_assignments')
+      .delete()
+      .eq('lead_id', leadId)
+      .eq('role', role);
+    
+    if (error) throw error;
+  },
+
+  // External contact operations
+  async getLeadExternalContacts(leadId: string) {
+    const { data, error } = await supabase
+      .from('lead_external_contacts')
+      .select(`
+        *,
+        contact:contacts(id, first_name, last_name, email, phone, company, type)
+      `)
+      .eq('lead_id', leadId);
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async linkExternalContact(contact: LeadExternalContactInsert) {
+    const { data, error } = await supabase
+      .from('lead_external_contacts')
+      .upsert(contact, { onConflict: 'lead_id,type' })
+      .select(`
+        *,
+        contact:contacts(id, first_name, last_name, email, phone, company, type)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async unlinkExternalContact(leadId: string, type: string) {
+    const { error } = await supabase
+      .from('lead_external_contacts')
+      .delete()
+      .eq('lead_id', leadId)
+      .eq('type', type);
+    
+    if (error) throw error;
+  },
+
+  // Lead dates operations
+  async getLeadDates(leadId: string) {
+    const { data, error } = await supabase
+      .from('lead_dates')
+      .select('*')
+      .eq('lead_id', leadId);
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async setLeadDate(leadId: string, key: string, date: Date | null) {
+    if (date === null) {
+      const { error } = await supabase
+        .from('lead_dates')
+        .delete()
+        .eq('lead_id', leadId)
+        .eq('key', key);
+      
+      if (error) throw error;
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('lead_dates')
+      .upsert({
+        lead_id: leadId,
+        key,
+        value_date: date.toISOString().split('T')[0]
+      }, { onConflict: 'lead_id,key' })
       .select('*')
       .single();
     

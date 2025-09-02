@@ -1239,6 +1239,100 @@ export type Database = {
           },
         ]
       }
+      lead_dates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          key: string | null
+          lead_id: string | null
+          updated_at: string | null
+          value_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          key?: string | null
+          lead_id?: string | null
+          updated_at?: string | null
+          value_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          key?: string | null
+          lead_id?: string | null
+          updated_at?: string | null
+          value_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_dates_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_external_contacts: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          type: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          type?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_external_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_external_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_external_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           account_id: string
@@ -2270,6 +2364,55 @@ export type Database = {
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_assignments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_assignments_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
