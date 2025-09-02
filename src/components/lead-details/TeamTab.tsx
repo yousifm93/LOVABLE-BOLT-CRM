@@ -26,10 +26,10 @@ interface TeamTabProps {
 
 const TEAM_ROLES = [
   { key: 'loan_officer', label: 'Loan Officer' },
-  { key: 'loa1', label: 'LOA 1' },
-  { key: 'loa2', label: 'LOA 2' },
+  { key: 'pre_approval_expert', label: 'Pre-Approval Expert' },
   { key: 'processor', label: 'Processor' },
-  { key: 'underwriting1', label: 'Underwriting 1' },
+  { key: 'lender', label: 'Lender' },
+  { key: 'account_executive', label: 'Account Executive' },
 ];
 
 function TeamRoleRow({ role, label, assignment, users, onAssign, onRemove }: {

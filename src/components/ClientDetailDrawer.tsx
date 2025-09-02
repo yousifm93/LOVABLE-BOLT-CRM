@@ -18,6 +18,7 @@ import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/compon
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
+import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -355,84 +356,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         {/* Header */}
         <div className="sticky top-0 z-10 bg-background p-4 pt-2">
 
-          {/* Top Row: Contact Info, Status Pills, Notes */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 mb-3 mt-2">
-            {/* Contact Information + Lead Name */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={handleDrawerClose}
-                      className="flex items-center justify-center"
-                    >
-                      <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                        <AvatarImage src={client.person.avatar} />
-                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                    </button>
-                    <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
-                  </div>
-                </div>
-                <div className="flex gap-2 mb-3">
-                  <Button variant="outline" size="default" className="px-4 py-2">
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="default" className="px-4 py-2">
-                    Delete
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Left Column - Contact Info */}
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>(352) 328-9828</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Email</p>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span>{client.person.email}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Buyer's Agent</p>
-                      <div className="flex items-center gap-2 text-sm">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        <button className="text-primary hover:underline text-sm">
-                          Sarah Johnson
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Right Column - Loan Details */}
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Loan Amount</p>
-                      <span className="font-medium text-sm">{client.loan.loanAmount}</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Loan Type</p>
-                      <span className="font-medium text-sm">{client.loan.loanType}</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Property Type</p>
-                      <span className="font-medium text-sm">Single Family Home</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+          {/* Top Row: Status Pills, Notes */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-3 mt-2">
             {/* Status Tracker Pills */}
             <Card>
               <CardHeader className="pb-3">
@@ -533,8 +458,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
         {/* Main Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-280px)] p-4 pt-0">
-          {/* Left Column - Tasks and Chat */}
+          {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
           <div className="space-y-4 overflow-y-auto">
+
+            {/* Contact Information */}
+            <ContactInfoCard client={client} onClose={handleDrawerClose} />
+
+            {/* Team / Contacts / Dates */}
+            <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
 
             {/* Tasks */}
             <Card>
@@ -576,9 +507,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 )}
               </CardContent>
             </Card>
-
-            {/* Team / Contacts / Dates */}
-            <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
 
             {/* Chat with Borrower */}
             <Card>
@@ -634,6 +562,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               activities={activities}
               documents={documents}
               client={client}
+              onCallClick={() => setShowCallLogModal(true)}
+              onSmsClick={() => setShowSmsLogModal(true)}
+              onEmailClick={() => setShowEmailLogModal(true)}
+              onNoteClick={() => setShowAddNoteModal(true)}
+              onTaskClick={() => setShowCreateTaskModal(true)}
             />
           </div>
 

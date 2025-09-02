@@ -11,11 +11,16 @@ interface LeadCenterTabsProps {
   activities: any[];
   documents: any[];
   client: any;
+  onCallClick?: () => void;
+  onSmsClick?: () => void;
+  onEmailClick?: () => void;
+  onNoteClick?: () => void;
+  onTaskClick?: () => void;
 }
 
-export function LeadCenterTabs({ leadId, activities, documents, client }: LeadCenterTabsProps) {
+export function LeadCenterTabs({ leadId, activities, documents, client, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
   return (
-    <Card>
+    <Card className="min-h-[calc(100vh-360px)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">Lead Information</CardTitle>
       </CardHeader>
@@ -37,7 +42,14 @@ export function LeadCenterTabs({ leadId, activities, documents, client }: LeadCe
           </TabsList>
           
           <TabsContent value="activity" className="mt-0">
-            <ActivityTab activities={activities} />
+            <ActivityTab 
+              activities={activities}
+              onCallClick={onCallClick}
+              onSmsClick={onSmsClick}
+              onEmailClick={onEmailClick}
+              onNoteClick={onNoteClick}
+              onTaskClick={onTaskClick}
+            />
           </TabsContent>
           
           <TabsContent value="details" className="mt-0">
