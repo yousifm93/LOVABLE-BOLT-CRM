@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      answers: {
+        Row: {
+          answer: string
+          citations: Json | null
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          model_name: string | null
+          query_id: string
+        }
+        Insert: {
+          answer: string
+          citations?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          model_name?: string | null
+          query_id: string
+        }
+        Update: {
+          answer?: string
+          citations?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          model_name?: string | null
+          query_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_query_id_fkey"
+            columns: ["query_id"]
+            isOneToOne: false
+            referencedRelation: "queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyer_agents: {
         Row: {
           brokerage: string
@@ -97,6 +135,83 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chunk_embeddings: {
+        Row: {
+          chunk_id: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          model_name: string | null
+        }
+        Insert: {
+          chunk_id: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          model_name?: string | null
+        }
+        Update: {
+          chunk_id?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          model_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chunk_embeddings_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "chunks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string | null
+          document_id: string
+          id: string
+          page_id: string
+          token_count: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string | null
+          document_id: string
+          id?: string
+          page_id: string
+          token_count?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          page_id?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chunks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
             referencedColumns: ["id"]
           },
         ]
@@ -215,33 +330,54 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          effective_date: string | null
           file_name: string
           file_url: string
           id: string
-          lead_id: string
+          lead_id: string | null
+          lender_name: string | null
           mime_type: string
+          notes: string | null
           size_bytes: number
+          status: string | null
+          title: string | null
+          updated_at: string | null
           uploaded_by: string
+          version_tag: string | null
         }
         Insert: {
           created_at?: string
+          effective_date?: string | null
           file_name: string
           file_url: string
           id?: string
-          lead_id: string
+          lead_id?: string | null
+          lender_name?: string | null
           mime_type: string
+          notes?: string | null
           size_bytes: number
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
           uploaded_by: string
+          version_tag?: string | null
         }
         Update: {
           created_at?: string
+          effective_date?: string | null
           file_name?: string
           file_url?: string
           id?: string
-          lead_id?: string
+          lead_id?: string | null
+          lender_name?: string | null
           mime_type?: string
+          notes?: string | null
           size_bytes?: number
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
           uploaded_by?: string
+          version_tag?: string | null
         }
         Relationships: [
           {
@@ -255,8 +391,8 @@ export type Database = {
             foreignKeyName: "documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -310,6 +446,50 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_runs: {
+        Row: {
+          chunks_created: number | null
+          completed_at: string | null
+          document_id: string
+          embeddings_created: number | null
+          error_message: string | null
+          id: string
+          pages_processed: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["ingestion_status"] | null
+        }
+        Insert: {
+          chunks_created?: number | null
+          completed_at?: string | null
+          document_id: string
+          embeddings_created?: number | null
+          error_message?: string | null
+          id?: string
+          pages_processed?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ingestion_status"] | null
+        }
+        Update: {
+          chunks_created?: number | null
+          completed_at?: string | null
+          document_id?: string
+          embeddings_created?: number | null
+          error_message?: string | null
+          id?: string
+          pages_processed?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ingestion_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_runs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
         ]
@@ -582,6 +762,41 @@ export type Database = {
           },
         ]
       }
+      pages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          document_id: string
+          id: string
+          ocr_confidence: number | null
+          page_number: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          document_id: string
+          id?: string
+          ocr_confidence?: number | null
+          page_number: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          ocr_confidence?: number | null
+          page_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_stages: {
         Row: {
           created_at: string
@@ -633,6 +848,33 @@ export type Database = {
           last_name?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      queries: {
+        Row: {
+          created_at: string | null
+          filters: Json | null
+          id: string
+          question: string
+          status: Database["public"]["Enums"]["query_status"] | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filters?: Json | null
+          id?: string
+          question: string
+          status?: Database["public"]["Enums"]["query_status"] | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json | null
+          id?: string
+          question?: string
+          status?: Database["public"]["Enums"]["query_status"] | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -804,6 +1046,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
       format_date_modern: {
         Args: { input_date: string }
         Returns: string
@@ -811,6 +1057,103 @@ export type Database = {
       get_user_account_id: {
         Args: { user_uuid: string }
         Returns: string
+      }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: unknown
+      }
+      simple_search_chunks: {
+        Args: { match_limit?: number; query_text: string }
+        Returns: {
+          chunk_id: string
+          content: string
+          document_name: string
+          similarity: number
+        }[]
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
       }
     }
     Enums: {
@@ -841,8 +1184,10 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       disclosure_status: "Ordered" | "Sent" | "Signed" | "Need Signature"
+      document_status: "pending" | "processing" | "completed" | "failed"
       epo_status: "Send" | "Sent" | "Signed"
       hoi_status: "Quoted" | "Ordered" | "Received"
+      ingestion_status: "pending" | "processing" | "completed" | "failed"
       lead_source:
         | "Website"
         | "Referral"
@@ -863,6 +1208,7 @@ export type Database = {
       log_direction: "In" | "Out"
       package_status: "Initial" | "Final"
       pr_type: "P" | "R" | "HELOC"
+      query_status: "pending" | "processing" | "completed" | "failed"
       referral_source:
         | "Agent"
         | "New Agent"
@@ -1045,8 +1391,10 @@ export const Constants = {
         "Needs Attention",
       ],
       disclosure_status: ["Ordered", "Sent", "Signed", "Need Signature"],
+      document_status: ["pending", "processing", "completed", "failed"],
       epo_status: ["Send", "Sent", "Signed"],
       hoi_status: ["Quoted", "Ordered", "Received"],
+      ingestion_status: ["pending", "processing", "completed", "failed"],
       lead_source: [
         "Website",
         "Referral",
@@ -1069,6 +1417,7 @@ export const Constants = {
       log_direction: ["In", "Out"],
       package_status: ["Initial", "Final"],
       pr_type: ["P", "R", "HELOC"],
+      query_status: ["pending", "processing", "completed", "failed"],
       referral_source: [
         "Agent",
         "New Agent",
