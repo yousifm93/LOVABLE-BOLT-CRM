@@ -43,7 +43,7 @@ export function ContactInfoCard({ client, onClose }: ContactInfoCardProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-6">
-          {/* Left Column - Contact Info */}
+          {/* Left Column */}
           <div className="space-y-3">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Phone Number</p>
@@ -68,21 +68,29 @@ export function ContactInfoCard({ client, onClose }: ContactInfoCardProps) {
                 </button>
               </div>
             </div>
-          </div>
-          
-          {/* Right Column - Loan Details */}
-          <div className="space-y-3">
             <div>
               <p className="text-xs text-muted-foreground">Loan Amount</p>
               <span className="font-medium text-sm">{client.loan.loanAmount}</span>
             </div>
+          </div>
+          
+          {/* Right Column */}
+          <div className="space-y-3">
             <div>
-              <p className="text-xs text-muted-foreground">Loan Type</p>
+              <p className="text-xs text-muted-foreground">Sales Price</p>
+              <span className="font-medium text-sm">$425,000</span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Transaction Type</p>
               <span className="font-medium text-sm">{client.loan.loanType}</span>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Property Type</p>
               <span className="font-medium text-sm">Single Family Home</span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Loan Program</p>
+              <span className="font-medium text-sm">Conventional</span>
             </div>
           </div>
         </div>

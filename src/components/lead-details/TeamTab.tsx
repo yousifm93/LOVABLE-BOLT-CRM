@@ -263,11 +263,6 @@ export function TeamTab({ leadId }: TeamTabProps) {
         );
       })}
       
-      {assignments.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No team members assigned
-        </p>
-      )}
     </div>
   );
 }

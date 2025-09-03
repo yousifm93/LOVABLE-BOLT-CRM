@@ -63,7 +63,7 @@ function DateRow({ dateKey, label, currentDate, onDateChange, onDateClear }: {
               <Button
                 variant="outline"
                 className={cn(
-                  "w-[120px] justify-start text-left font-normal text-xs h-7",
+                  "w-full justify-start text-left font-normal text-xs h-7",
                   !currentDate && "text-muted-foreground"
                 )}
               >
