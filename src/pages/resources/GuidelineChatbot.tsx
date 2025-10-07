@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, Bot, User, ExternalLink } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MessageCircle, Send, Bot, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ChatMessage {
   id: string;
@@ -38,17 +39,34 @@ export default function GuidelineChatbot() {
     setInputMessage("");
     setIsLoading(true);
 
-    // Simulate API call to chatbase.co
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('guideline-chat', {
+        body: { message: inputMessage }
+      });
+
+      if (error) throw error;
+
       const botResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: 'I apologize, but the chatbase.co integration is not yet configured. This feature will be available once the API integration is set up. Please provide your chatbase.co API credentials to enable this functionality.',
+        content: data.response || 'I apologize, but I could not generate a response.',
         sender: 'bot',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('Error calling guideline chat:', error);
+      toast.error('Failed to get response from guideline assistant');
+      
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: 'I apologize, but I encountered an error. Please try again.',
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -65,12 +83,6 @@ export default function GuidelineChatbot() {
         <p className="text-muted-foreground">Get instant answers to mortgage guideline questions</p>
       </div>
 
-      <Alert>
-        <ExternalLink className="h-4 w-4" />
-        <AlertDescription>
-          This chatbot will be powered by chatbase.co. Please configure your API credentials to enable the AI assistant functionality.
-        </AlertDescription>
-      </Alert>
 
       <Card className="bg-gradient-card shadow-soft h-[600px] flex flex-col">
         <CardHeader>
@@ -182,31 +194,6 @@ export default function GuidelineChatbot() {
         </CardContent>
       </Card>
 
-      {/* Configuration Notice */}
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <CardTitle>API Integration Setup</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-muted-foreground">
-              To enable the AI chatbot functionality, you'll need to:
-            </p>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>Create an account at <a href="https://chatbase.co" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">chatbase.co</a></li>
-              <li>Train your chatbot with mortgage guidelines and documentation</li>
-              <li>Obtain your API credentials</li>
-              <li>Configure the integration in your project settings</li>
-            </ol>
-            <Button variant="outline" asChild>
-              <a href="https://chatbase.co" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Visit Chatbase.co
-              </a>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

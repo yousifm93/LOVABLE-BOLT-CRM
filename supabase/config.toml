@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.avm-estimate]
 verify_jwt = false
+
+[functions.guideline-chat]
+verify_jwt = true
