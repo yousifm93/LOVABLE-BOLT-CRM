@@ -590,12 +590,13 @@ export default function Active() {
     // Convert ActiveLoan to CRMClient for the drawer
     const crmClient: CRMClient = {
       person: {
-        id: parseInt(loan.id),
+        id: Date.now(), // Placeholder numeric ID for legacy compatibility
         firstName: loan.first_name,
         lastName: loan.last_name,
         email: "", // ActiveLoan doesn't have email, will be empty
         phoneMobile: "" // ActiveLoan doesn't have phone, will be empty
       },
+      databaseId: loan.id, // Real UUID from database
       loan: {
         loanAmount: loan.loan_amount ? `$${loan.loan_amount.toLocaleString()}` : "",
         loanType: loan.pr_type || "Purchase",

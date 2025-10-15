@@ -388,7 +388,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             <ContactInfoCard client={client} onClose={handleDrawerClose} />
 
             {/* Team / Contacts / Dates */}
-            <LeadTeamContactsDatesCard leadId={client.person.id.toString()} />
+            <LeadTeamContactsDatesCard leadId={leadId || ""} />
 
 
             {/* Chat with Borrower */}
@@ -547,7 +547,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           {/* Right Column - Notes, Documents, Stage History */}
           <div className="space-y-4 overflow-y-auto">
             {/* Send Email Templates */}
-            <SendEmailTemplatesCard leadId={client.person.id.toString()} />
+            <SendEmailTemplatesCard leadId={leadId || ""} />
 
             {/* Notes Section */}
             <Card>

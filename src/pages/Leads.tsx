@@ -535,12 +535,13 @@ export default function Leads() {
     // Convert Lead to CRMClient for the drawer
     const crmClient: CRMClient = {
       person: {
-        id: Number(lead.id) || Date.now(),
+        id: Date.now(), // Placeholder numeric ID for legacy compatibility
         firstName: lead.name.split(' ')[0],
         lastName: lead.name.split(' ').slice(1).join(' '),
         email: lead.email,
         phoneMobile: lead.phone
       },
+      databaseId: lead.id, // Real UUID from database
       loan: {
         loanAmount: "$0",
         loanType: "Purchase",
