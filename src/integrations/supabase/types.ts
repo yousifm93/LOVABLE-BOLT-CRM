@@ -188,6 +188,137 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_authors: {
+        Row: {
+          bio_long: string | null
+          bio_short: string | null
+          created_at: string
+          email: string | null
+          expertise_areas: string[] | null
+          headshot_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          socials_json: Json | null
+          team_member_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio_long?: string | null
+          bio_short?: string | null
+          created_at?: string
+          email?: string | null
+          expertise_areas?: string[] | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          socials_json?: Json | null
+          team_member_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio_long?: string | null
+          bio_short?: string | null
+          created_at?: string
+          email?: string | null
+          expertise_areas?: string[] | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          socials_json?: Json | null
+          team_member_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          author_id: string
+          body_mdx: string | null
+          canonical_url: string | null
+          category: Database["public"]["Enums"]["blog_category"]
+          cover_url: string | null
+          created_at: string
+          dek: string | null
+          engagement_score: number | null
+          excerpt: string | null
+          id: string
+          is_featured: boolean | null
+          og_image_url: string | null
+          published_at: string | null
+          read_time_minutes: number | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          author_id: string
+          body_mdx?: string | null
+          canonical_url?: string | null
+          category: Database["public"]["Enums"]["blog_category"]
+          cover_url?: string | null
+          created_at?: string
+          dek?: string | null
+          engagement_score?: number | null
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean | null
+          og_image_url?: string | null
+          published_at?: string | null
+          read_time_minutes?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["blog_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          body_mdx?: string | null
+          canonical_url?: string | null
+          category?: Database["public"]["Enums"]["blog_category"]
+          cover_url?: string | null
+          created_at?: string
+          dek?: string | null
+          engagement_score?: number | null
+          excerpt?: string | null
+          id?: string
+          is_featured?: boolean | null
+          og_image_url?: string | null
+          published_at?: string | null
+          read_time_minutes?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["blog_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "blog_authors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       borrowers: {
         Row: {
           created_at: string
@@ -1085,6 +1216,39 @@ export type Database = {
         }
         Relationships: []
       }
+      faqs: {
+        Row: {
+          answer_md: string
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          order_index: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer_md: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer_md?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_index?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       income_audit_events: {
         Row: {
           actor_id: string | null
@@ -1620,6 +1784,69 @@ export type Database = {
           },
         ]
       }
+      lender_partnerships: {
+        Row: {
+          competitive_advantages: string[] | null
+          created_at: string | null
+          customer_rating: number | null
+          display_name: string
+          display_order: number | null
+          geographic_coverage: string[] | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          logo_url: string | null
+          name: string
+          partnership_level: string | null
+          review_count: number | null
+          specializations: string[] | null
+          supported_loan_types: string[] | null
+          trust_badges: string[] | null
+          updated_at: string | null
+          website_url: string | null
+        }
+        Insert: {
+          competitive_advantages?: string[] | null
+          created_at?: string | null
+          customer_rating?: number | null
+          display_name: string
+          display_order?: number | null
+          geographic_coverage?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          logo_url?: string | null
+          name: string
+          partnership_level?: string | null
+          review_count?: number | null
+          specializations?: string[] | null
+          supported_loan_types?: string[] | null
+          trust_badges?: string[] | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          competitive_advantages?: string[] | null
+          created_at?: string | null
+          customer_rating?: number | null
+          display_name?: string
+          display_order?: number | null
+          geographic_coverage?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          logo_url?: string | null
+          name?: string
+          partnership_level?: string | null
+          review_count?: number | null
+          specializations?: string[] | null
+          supported_loan_types?: string[] | null
+          trust_badges?: string[] | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       lenders: {
         Row: {
           account_executive: string | null
@@ -1658,6 +1885,200 @@ export type Database = {
           lender_type?: Database["public"]["Enums"]["lender_type"]
           notes?: string | null
           status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loan_features: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          feature_type: string
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          program_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_type: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          program_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          feature_type?: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          program_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_features_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loan_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_process_steps: {
+        Row: {
+          borrower_actions: string[]
+          created_at: string
+          cta_primary: string
+          cta_secondary: string
+          id: number
+          is_active: boolean
+          micro_proof: string | null
+          order_index: number
+          promise: string
+          sla_label: string
+          team_actions: string[]
+          tech_notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          borrower_actions?: string[]
+          created_at?: string
+          cta_primary?: string
+          cta_secondary?: string
+          id: number
+          is_active?: boolean
+          micro_proof?: string | null
+          order_index?: number
+          promise: string
+          sla_label: string
+          team_actions?: string[]
+          tech_notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          borrower_actions?: string[]
+          created_at?: string
+          cta_primary?: string
+          cta_secondary?: string
+          id?: number
+          is_active?: boolean
+          micro_proof?: string | null
+          order_index?: number
+          promise?: string
+          sla_label?: string
+          team_actions?: string[]
+          tech_notes?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loan_programs: {
+        Row: {
+          available_lenders: string[] | null
+          benefits: string[] | null
+          category: string
+          color_theme: string | null
+          content_highlights: string[] | null
+          created_at: string
+          detailed_description: string | null
+          features: Json | null
+          icon_name: string | null
+          id: string
+          ideal_for: string[] | null
+          is_active: boolean
+          is_featured: boolean | null
+          is_recommended: boolean | null
+          loan_type: string
+          max_loan_amount: number | null
+          max_ltv_percent: number
+          min_credit_score: number | null
+          min_down_payment_percent: number
+          min_loan_amount: number | null
+          name: string
+          priority_order: number | null
+          qualification_tips: string[] | null
+          rate_profile_ids: string[] | null
+          requirements: string[] | null
+          seo_description: string | null
+          seo_title: string | null
+          short_description: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          available_lenders?: string[] | null
+          benefits?: string[] | null
+          category: string
+          color_theme?: string | null
+          content_highlights?: string[] | null
+          created_at?: string
+          detailed_description?: string | null
+          features?: Json | null
+          icon_name?: string | null
+          id?: string
+          ideal_for?: string[] | null
+          is_active?: boolean
+          is_featured?: boolean | null
+          is_recommended?: boolean | null
+          loan_type: string
+          max_loan_amount?: number | null
+          max_ltv_percent?: number
+          min_credit_score?: number | null
+          min_down_payment_percent?: number
+          min_loan_amount?: number | null
+          name: string
+          priority_order?: number | null
+          qualification_tips?: string[] | null
+          rate_profile_ids?: string[] | null
+          requirements?: string[] | null
+          seo_description?: string | null
+          seo_title?: string | null
+          short_description: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          available_lenders?: string[] | null
+          benefits?: string[] | null
+          category?: string
+          color_theme?: string | null
+          content_highlights?: string[] | null
+          created_at?: string
+          detailed_description?: string | null
+          features?: Json | null
+          icon_name?: string | null
+          id?: string
+          ideal_for?: string[] | null
+          is_active?: boolean
+          is_featured?: boolean | null
+          is_recommended?: boolean | null
+          loan_type?: string
+          max_loan_amount?: number | null
+          max_ltv_percent?: number
+          min_credit_score?: number | null
+          min_down_payment_percent?: number
+          min_loan_amount?: number | null
+          name?: string
+          priority_order?: number | null
+          qualification_tips?: string[] | null
+          rate_profile_ids?: string[] | null
+          requirements?: string[] | null
+          seo_description?: string | null
+          seo_title?: string | null
+          short_description?: string
+          slug?: string
           updated_at?: string
         }
         Relationships: []
@@ -1757,6 +2178,244 @@ export type Database = {
           is_active?: boolean
           name?: string
           order_index?: number
+        }
+        Relationships: []
+      }
+      podcast_analytics: {
+        Row: {
+          episode_id: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          referrer: string | null
+          timestamp: string
+          user_agent: string | null
+          user_id: string | null
+          user_session: string | null
+        }
+        Insert: {
+          episode_id: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string | null
+          user_session?: string | null
+        }
+        Update: {
+          episode_id?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          referrer?: string | null
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string | null
+          user_session?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_analytics_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "podcast_episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcast_episodes: {
+        Row: {
+          apple_url: string | null
+          completion_rate: number | null
+          created_at: string
+          duration_seconds: number
+          featured_order: number | null
+          guest_id: string | null
+          guest_name: string | null
+          id: string
+          is_active: boolean
+          is_clip: boolean | null
+          is_featured: boolean | null
+          key_highlights: string[] | null
+          like_count: number | null
+          og_image_url: string | null
+          play_count: number | null
+          publish_date: string
+          seo_description: string | null
+          seo_title: string | null
+          share_count: number | null
+          show_notes_md: string | null
+          slug: string
+          spotify_url: string | null
+          summary: string
+          thumbnail_url: string
+          title: string
+          topics: string[]
+          transcript_text: string | null
+          transcript_url: string | null
+          updated_at: string
+          view_count: number | null
+          youtube_id: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          apple_url?: string | null
+          completion_rate?: number | null
+          created_at?: string
+          duration_seconds: number
+          featured_order?: number | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_clip?: boolean | null
+          is_featured?: boolean | null
+          key_highlights?: string[] | null
+          like_count?: number | null
+          og_image_url?: string | null
+          play_count?: number | null
+          publish_date: string
+          seo_description?: string | null
+          seo_title?: string | null
+          share_count?: number | null
+          show_notes_md?: string | null
+          slug: string
+          spotify_url?: string | null
+          summary: string
+          thumbnail_url: string
+          title: string
+          topics?: string[]
+          transcript_text?: string | null
+          transcript_url?: string | null
+          updated_at?: string
+          view_count?: number | null
+          youtube_id?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          apple_url?: string | null
+          completion_rate?: number | null
+          created_at?: string
+          duration_seconds?: number
+          featured_order?: number | null
+          guest_id?: string | null
+          guest_name?: string | null
+          id?: string
+          is_active?: boolean
+          is_clip?: boolean | null
+          is_featured?: boolean | null
+          key_highlights?: string[] | null
+          like_count?: number | null
+          og_image_url?: string | null
+          play_count?: number | null
+          publish_date?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          share_count?: number | null
+          show_notes_md?: string | null
+          slug?: string
+          spotify_url?: string | null
+          summary?: string
+          thumbnail_url?: string
+          title?: string
+          topics?: string[]
+          transcript_text?: string | null
+          transcript_url?: string | null
+          updated_at?: string
+          view_count?: number | null
+          youtube_id?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_episodes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "podcast_guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcast_guests: {
+        Row: {
+          bio: string | null
+          company: string | null
+          created_at: string
+          credentials: string | null
+          headshot_url: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          social_links: Json | null
+          title: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          bio?: string | null
+          company?: string | null
+          created_at?: string
+          credentials?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          social_links?: Json | null
+          title?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          bio?: string | null
+          company?: string | null
+          created_at?: string
+          credentials?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          social_links?: Json | null
+          title?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      podcast_topics: {
+        Row: {
+          color_class: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color_class?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color_class?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2079,6 +2738,77 @@ export type Database = {
         }
         Relationships: []
       }
+      qualification_scenarios: {
+        Row: {
+          created_at: string | null
+          employment_types: string[] | null
+          first_time_buyer_only: boolean | null
+          geographic_restrictions: Json | null
+          id: string
+          income_documentation_required: string[] | null
+          is_active: boolean | null
+          max_credit_score: number | null
+          max_debt_to_income_percent: number | null
+          min_credit_score: number | null
+          min_down_payment_percent: number | null
+          min_income_amount: number | null
+          occupancy_types: string[] | null
+          program_id: string
+          property_types: string[] | null
+          qualification_probability_weight: number | null
+          scenario_name: string
+          special_programs: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          employment_types?: string[] | null
+          first_time_buyer_only?: boolean | null
+          geographic_restrictions?: Json | null
+          id?: string
+          income_documentation_required?: string[] | null
+          is_active?: boolean | null
+          max_credit_score?: number | null
+          max_debt_to_income_percent?: number | null
+          min_credit_score?: number | null
+          min_down_payment_percent?: number | null
+          min_income_amount?: number | null
+          occupancy_types?: string[] | null
+          program_id: string
+          property_types?: string[] | null
+          qualification_probability_weight?: number | null
+          scenario_name: string
+          special_programs?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          employment_types?: string[] | null
+          first_time_buyer_only?: boolean | null
+          geographic_restrictions?: Json | null
+          id?: string
+          income_documentation_required?: string[] | null
+          is_active?: boolean | null
+          max_credit_score?: number | null
+          max_debt_to_income_percent?: number | null
+          min_credit_score?: number | null
+          min_down_payment_percent?: number | null
+          min_income_amount?: number | null
+          occupancy_types?: string[] | null
+          program_id?: string
+          property_types?: string[] | null
+          qualification_probability_weight?: number | null
+          scenario_name?: string
+          special_programs?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualification_scenarios_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loan_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       queries: {
         Row: {
           created_at: string | null
@@ -2343,6 +3073,39 @@ export type Database = {
           },
         ]
       }
+      site_stats: {
+        Row: {
+          created_at: string
+          display_value: string | null
+          id: string
+          is_active: boolean
+          key: string
+          tooltip_text: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          display_value?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          tooltip_text?: string | null
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          display_value?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          tooltip_text?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       sms_logs: {
         Row: {
           body: string
@@ -2519,6 +3282,173 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          bio_long: string | null
+          bio_short: string | null
+          calendly_url: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          headshot_url: string | null
+          id: string
+          is_active: boolean | null
+          is_pet: boolean | null
+          languages: string[] | null
+          location_city: string | null
+          name: string
+          nmls_id: string | null
+          order_index: number | null
+          phone: string | null
+          specialties: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio_long?: string | null
+          bio_short?: string | null
+          calendly_url?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pet?: boolean | null
+          languages?: string[] | null
+          location_city?: string | null
+          name: string
+          nmls_id?: string | null
+          order_index?: number | null
+          phone?: string | null
+          specialties?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio_long?: string | null
+          bio_short?: string | null
+          calendly_url?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          headshot_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pet?: boolean | null
+          languages?: string[] | null
+          location_city?: string | null
+          name?: string
+          nmls_id?: string | null
+          order_index?: number | null
+          phone?: string | null
+          specialties?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          author_name: string
+          author_role: string | null
+          created_at: string
+          id: string
+          quote: string
+          rating_int: number | null
+          team_member_id: string
+        }
+        Insert: {
+          author_name: string
+          author_role?: string | null
+          created_at?: string
+          id?: string
+          quote: string
+          rating_int?: number | null
+          team_member_id: string
+        }
+        Update: {
+          author_name?: string
+          author_role?: string | null
+          created_at?: string
+          id?: string
+          quote?: string
+          rating_int?: number | null
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_loan_interests: {
+        Row: {
+          calculators_used: string[] | null
+          comparison_count: number | null
+          created_at: string | null
+          credit_score_range: string | null
+          down_payment_range: string | null
+          filters_applied: Json | null
+          first_time_buyer: boolean | null
+          id: string
+          last_activity: string | null
+          loan_purpose: string | null
+          occupancy_type: string | null
+          programs_viewed: string[] | null
+          property_type: string | null
+          scroll_depth_percent: number | null
+          search_queries: string[] | null
+          session_id: string
+          time_on_page: number | null
+          user_id: string | null
+        }
+        Insert: {
+          calculators_used?: string[] | null
+          comparison_count?: number | null
+          created_at?: string | null
+          credit_score_range?: string | null
+          down_payment_range?: string | null
+          filters_applied?: Json | null
+          first_time_buyer?: boolean | null
+          id?: string
+          last_activity?: string | null
+          loan_purpose?: string | null
+          occupancy_type?: string | null
+          programs_viewed?: string[] | null
+          property_type?: string | null
+          scroll_depth_percent?: number | null
+          search_queries?: string[] | null
+          session_id: string
+          time_on_page?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          calculators_used?: string[] | null
+          comparison_count?: number | null
+          created_at?: string | null
+          credit_score_range?: string | null
+          down_payment_range?: string | null
+          filters_applied?: Json | null
+          first_time_buyer?: boolean | null
+          id?: string
+          last_activity?: string | null
+          loan_purpose?: string | null
+          occupancy_type?: string | null
+          programs_viewed?: string[] | null
+          property_type?: string | null
+          scroll_depth_percent?: number | null
+          search_queries?: string[] | null
+          session_id?: string
+          time_on_page?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string
@@ -2677,6 +3607,17 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      calculate_qualification_probability: {
+        Args: {
+          credit_score: number
+          debt_to_income_percent: number
+          down_payment_percent: number
+          occupancy_type?: string
+          program_slug: string
+          property_type?: string
+        }
+        Returns: number
+      }
       dashboard_activity: {
         Args: { _from: string; _to: string }
         Returns: {
@@ -2765,6 +3706,33 @@ export type Database = {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
       }
+      search_blog_posts: {
+        Args: { search_query: string }
+        Returns: {
+          author_id: string
+          body_mdx: string | null
+          canonical_url: string | null
+          category: Database["public"]["Enums"]["blog_category"]
+          cover_url: string | null
+          created_at: string
+          dek: string | null
+          engagement_score: number | null
+          excerpt: string | null
+          id: string
+          is_featured: boolean | null
+          og_image_url: string | null
+          published_at: string | null
+          read_time_minutes: number | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number | null
+        }[]
+      }
       simple_search_chunks: {
         Args: { match_limit?: number; query_text: string }
         Returns: {
@@ -2830,6 +3798,14 @@ export type Database = {
         | "calculate"
         | "export"
       ba_status: "Send" | "Sent" | "Signed"
+      blog_category:
+        | "guides"
+        | "market-updates"
+        | "loan-programs"
+        | "miami-condo-101"
+        | "success-stories"
+        | "company-news"
+      blog_status: "draft" | "scheduled" | "published" | "archived"
       call_outcome: "No Answer" | "Left VM" | "Connected"
       campaign_status:
         | "draft"
@@ -3086,6 +4062,15 @@ export const Constants = {
         "export",
       ],
       ba_status: ["Send", "Sent", "Signed"],
+      blog_category: [
+        "guides",
+        "market-updates",
+        "loan-programs",
+        "miami-condo-101",
+        "success-stories",
+        "company-news",
+      ],
+      blog_status: ["draft", "scheduled", "published", "archived"],
       call_outcome: ["No Answer", "Left VM", "Connected"],
       campaign_status: [
         "draft",
