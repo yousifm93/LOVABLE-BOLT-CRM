@@ -67,6 +67,8 @@ export interface CRMClient {
   ops: Operations;
   dates: Dates;
   meta: MetaData;
+  // Database ID (UUID) from Supabase
+  databaseId?: string;
   // Legacy fields for compatibility
   name: string;
   creditScore?: number;

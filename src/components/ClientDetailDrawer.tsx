@@ -31,6 +31,27 @@ interface ClientDetailDrawerProps {
 }
 
 export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pipelineType }: ClientDetailDrawerProps) {
+  // Extract lead UUID - handle both CRMClient and database Lead objects
+  const getLeadId = (): string | null => {
+    // Check if it's a database Lead object (has UUID id directly)
+    if ((client as any).id && typeof (client as any).id === 'string') {
+      const uuid = (client as any).id;
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(uuid)) {
+        return uuid;
+      }
+    }
+    // Check if it's a CRMClient with databaseId
+    if (client.databaseId) {
+      return client.databaseId;
+    }
+    // No valid UUID found
+    return null;
+  };
+
+  const leadId = getLeadId();
+
   const [newNote, setNewNote] = useState("");
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);
@@ -471,14 +492,54 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
             {/* Lead Information Tabs */}
             <LeadCenterTabs 
-              leadId={client.person.id.toString()}
+              leadId={leadId || ""}
               activities={activities}
               documents={documents}
               client={client}
-              onCallClick={() => setShowCallLogModal(true)}
-              onSmsClick={() => setShowSmsLogModal(true)}
-              onEmailClick={() => setShowEmailLogModal(true)}
-              onNoteClick={() => setShowAddNoteModal(true)}
+              onCallClick={() => {
+                if (!leadId) {
+                  toast({
+                    title: "Error",
+                    description: "Unable to log activity: Invalid lead ID",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setShowCallLogModal(true);
+              }}
+              onSmsClick={() => {
+                if (!leadId) {
+                  toast({
+                    title: "Error",
+                    description: "Unable to log activity: Invalid lead ID",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setShowSmsLogModal(true);
+              }}
+              onEmailClick={() => {
+                if (!leadId) {
+                  toast({
+                    title: "Error",
+                    description: "Unable to log activity: Invalid lead ID",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setShowEmailLogModal(true);
+              }}
+              onNoteClick={() => {
+                if (!leadId) {
+                  toast({
+                    title: "Error",
+                    description: "Unable to log activity: Invalid lead ID",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setShowAddNoteModal(true);
+              }}
               onTaskClick={() => setShowCreateTaskModal(true)}
             />
           </div>
@@ -672,45 +733,49 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         }}
       />
 
-      <CallLogModal
-        open={showCallLogModal}
-        onOpenChange={setShowCallLogModal}
-        leadId={client.person.id.toString()}
-        onActivityCreated={(activity) => {
-          handleActivityCreated('call');
-          setShowCallLogModal(false);
-        }}
-      />
+      {leadId && (
+        <>
+          <CallLogModal
+            open={showCallLogModal}
+            onOpenChange={setShowCallLogModal}
+            leadId={leadId}
+            onActivityCreated={(activity) => {
+              handleActivityCreated('call');
+              setShowCallLogModal(false);
+            }}
+          />
 
-      <SmsLogModal
-        open={showSmsLogModal}
-        onOpenChange={setShowSmsLogModal}
-        leadId={client.person.id.toString()}
-        onActivityCreated={(activity) => {
-          handleActivityCreated('sms');
-          setShowSmsLogModal(false);
-        }}
-      />
+          <SmsLogModal
+            open={showSmsLogModal}
+            onOpenChange={setShowSmsLogModal}
+            leadId={leadId}
+            onActivityCreated={(activity) => {
+              handleActivityCreated('sms');
+              setShowSmsLogModal(false);
+            }}
+          />
 
-      <EmailLogModal
-        open={showEmailLogModal}
-        onOpenChange={setShowEmailLogModal}
-        leadId={client.person.id.toString()}
-        onActivityCreated={(activity) => {
-          handleActivityCreated('email');
-          setShowEmailLogModal(false);
-        }}
-      />
+          <EmailLogModal
+            open={showEmailLogModal}
+            onOpenChange={setShowEmailLogModal}
+            leadId={leadId}
+            onActivityCreated={(activity) => {
+              handleActivityCreated('email');
+              setShowEmailLogModal(false);
+            }}
+          />
 
-      <AddNoteModal
-        open={showAddNoteModal}
-        onOpenChange={setShowAddNoteModal}
-        leadId={client.person.id.toString()}
-        onActivityCreated={(activity) => {
-          handleActivityCreated('note');
-          setShowAddNoteModal(false);
-        }}
-      />
+          <AddNoteModal
+            open={showAddNoteModal}
+            onOpenChange={setShowAddNoteModal}
+            leadId={leadId}
+            onActivityCreated={(activity) => {
+              handleActivityCreated('note');
+              setShowAddNoteModal(false);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

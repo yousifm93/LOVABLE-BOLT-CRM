@@ -25,8 +25,25 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     notes: '',
   });
 
+  // UUID validation helper
+  const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate UUID before attempting to save
+    if (!isValidUUID(leadId)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid lead ID format. Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -119,8 +136,25 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     notes: '',
   });
 
+  // UUID validation helper
+  const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate UUID before attempting to save
+    if (!isValidUUID(leadId)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid lead ID format. Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -214,8 +248,25 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
     notes: '',
   });
 
+  // UUID validation helper
+  const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate UUID before attempting to save
+    if (!isValidUUID(leadId)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid lead ID format. Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -307,9 +358,25 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
 
+  // UUID validation helper
+  const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteBody.trim()) return;
+    
+    // Validate UUID before attempting to save
+    if (!isValidUUID(leadId)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid lead ID format. Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     setLoading(true);
 
