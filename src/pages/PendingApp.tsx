@@ -12,6 +12,16 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Display type for table rows
 type DisplayLead = {
@@ -48,6 +58,7 @@ export default function PendingApp() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [leads, setLeads] = useState<DatabaseLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 
   // Column visibility management
   const {
@@ -125,6 +136,42 @@ export default function PendingApp() {
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
     console.log(`Moving client ${clientId} to stage ${newStage}`);
     setIsDrawerOpen(false);
+  };
+
+  const handleDelete = async (row: DisplayLead) => {
+    setDeleteLeadId(row.id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLeadId) return;
+    
+    try {
+      await databaseService.deleteLead(deleteLeadId);
+      toast({
+        title: "Success",
+        description: "Lead deleted successfully.",
+      });
+      await fetchLeads();
+    } catch (error: any) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete lead.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLeadId(null);
+    }
+  };
+
+  const handleViewDetails = (row: DisplayLead) => {
+    const lead = leads.find(l => l.id === row.id);
+    if (lead) handleRowClick(lead);
+  };
+
+  const handleEdit = (row: DisplayLead) => {
+    const lead = leads.find(l => l.id === row.id);
+    if (lead) handleRowClick(lead);
   };
 
   // Transform leads to display format
@@ -291,6 +338,9 @@ export default function PendingApp() {
               const lead = leads.find(l => l.id === row.id);
               if (lead) handleRowClick(lead);
             }}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         </CardContent>
       </Card>
@@ -308,6 +358,26 @@ export default function PendingApp() {
           onLeadUpdated={fetchLeads}
         />
       )}
+
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

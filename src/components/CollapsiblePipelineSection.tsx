@@ -12,6 +12,10 @@ interface CollapsiblePipelineSectionProps {
   searchTerm: string;
   defaultOpen?: boolean;
   className?: string;
+  onViewDetails?: (row: any) => void;
+  onEdit?: (row: any) => void;
+  onDelete?: (row: any) => void;
+  onRowClick?: (row: any) => void;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -20,7 +24,11 @@ export function CollapsiblePipelineSection({
   columns, 
   searchTerm, 
   defaultOpen = true,
-  className 
+  className,
+  onViewDetails,
+  onEdit,
+  onDelete,
+  onRowClick
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -55,7 +63,10 @@ export function CollapsiblePipelineSection({
             columns={columns}
             data={data}
             searchTerm={searchTerm}
-            onRowClick={(row) => console.log("Row clicked:", row)}
+            onRowClick={onRowClick}
+            onViewDetails={onViewDetails}
+            onEdit={onEdit}
+            onDelete={onDelete}
           />
         </CardContent>
       )}

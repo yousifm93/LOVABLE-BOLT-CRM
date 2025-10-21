@@ -9,9 +9,19 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
-import { type Lead as DatabaseLead } from "@/services/database";
+import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type DisplayLead = {
   id: string;
@@ -38,6 +48,7 @@ export default function PreApproved() {
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [leads, setLeads] = useState<DatabaseLead[]>([]);
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 
   const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
@@ -54,6 +65,42 @@ export default function PreApproved() {
   const handleRowClick = (lead: DatabaseLead) => {
     setSelectedClient({ person: { id: Date.now(), firstName: lead.first_name, lastName: lead.last_name, email: lead.email || '', phoneMobile: lead.phone || '' }, databaseId: lead.id, loan: { loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0", loanType: lead.loan_type || "Purchase", prType: "Primary Residence" }, ops: { status: lead.status || "Pre-Approved", stage: "pre-approved", priority: "Medium", referralSource: lead.referral_source || "N/A" }, dates: { createdOn: new Date(lead.created_at).toLocaleDateString() }, meta: {}, name: `${lead.first_name} ${lead.last_name}` });
     setIsDrawerOpen(true);
+  };
+
+  const handleDelete = async (row: DisplayLead) => {
+    setDeleteLeadId(row.id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLeadId) return;
+    
+    try {
+      await databaseService.deleteLead(deleteLeadId);
+      toast({
+        title: "Success",
+        description: "Lead deleted successfully.",
+      });
+      await fetchLeads();
+    } catch (error: any) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete lead.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLeadId(null);
+    }
+  };
+
+  const handleViewDetails = (row: DisplayLead) => {
+    const lead = leads.find(l => l.id === row.id);
+    if (lead) handleRowClick(lead);
+  };
+
+  const handleEdit = (row: DisplayLead) => {
+    const lead = leads.find(l => l.id === row.id);
+    if (lead) handleRowClick(lead);
   };
 
   const displayData: DisplayLead[] = leads.map(lead => ({ id: lead.id, name: `${lead.first_name} ${lead.last_name}`, email: lead.email || '', phone: lead.phone || '', loanType: lead.loan_type || 'Purchase', status: lead.status || 'Pre-Approved', approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', creditScore: 770 }));
@@ -76,10 +123,38 @@ export default function PreApproved() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={displayData} searchTerm={searchTerm} onRowClick={(row) => { const lead = leads.find(l => l.id === row.id); if (lead) handleRowClick(lead); }} />
+          <DataTable 
+            columns={columns} 
+            data={displayData} 
+            searchTerm={searchTerm} 
+            onRowClick={(row) => { const lead = leads.find(l => l.id === row.id); if (lead) handleRowClick(lead); }} 
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </CardContent>
       </Card>
       {selectedClient && <ClientDetailDrawer client={selectedClient} isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); setSelectedClient(null); }} onStageChange={() => setIsDrawerOpen(false)} pipelineType="leads" onLeadUpdated={fetchLeads} />}
+      
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

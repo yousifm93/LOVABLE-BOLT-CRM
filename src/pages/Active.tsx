@@ -22,6 +22,16 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ActiveLoan {
   id: string;
@@ -489,6 +499,7 @@ export default function Active() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -631,6 +642,40 @@ export default function Active() {
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
     console.log(`Moving client ${clientId} to stage ${newStage}`);
     setIsDrawerOpen(false);
+  };
+
+  const handleDelete = async (loan: ActiveLoan) => {
+    setDeleteLeadId(loan.id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLeadId) return;
+    
+    try {
+      await databaseService.deleteLead(deleteLeadId);
+      toast({
+        title: "Success",
+        description: "Lead deleted successfully.",
+      });
+      await loadData();
+    } catch (error: any) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete lead.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLeadId(null);
+    }
+  };
+
+  const handleViewDetails = (loan: ActiveLoan) => {
+    handleRowClick(loan);
+  };
+
+  const handleEdit = (loan: ActiveLoan) => {
+    handleRowClick(loan);
   };
 
   // Advanced filter functionality
@@ -809,6 +854,10 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={true}
+          onRowClick={handleRowClick}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
         
         <CollapsiblePipelineSection
@@ -817,6 +866,10 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={false}
+          onRowClick={handleRowClick}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
         
         <CollapsiblePipelineSection
@@ -825,6 +878,10 @@ export default function Active() {
           columns={columns}
           searchTerm={searchTerm}
           defaultOpen={false}
+          onRowClick={handleRowClick}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </div>
 
@@ -841,6 +898,26 @@ export default function Active() {
           pipelineType="active"
         />
       )}
+
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
