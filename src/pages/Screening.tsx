@@ -12,6 +12,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone } from "@/utils/formatters";
 
 // Display type for table rows
 type DisplayLead = {
@@ -198,107 +199,150 @@ export default function Screening() {
     setIsDrawerOpen(false);
   };
 
-  // Transform leads to display format
-  const displayData: DisplayLead[] = leads.map(lead => ({
-    id: lead.id,
-    name: `${lead.first_name} ${lead.last_name}`,
-    email: lead.email || '',
-    phone: lead.phone || '',
-    loanType: lead.loan_type || 'Purchase',
-    status: lead.status || 'Screening',
-    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
-    creditScore: 725,
-    incomeType: 'W2',
-    screeningDate: new Date(lead.created_at).toLocaleDateString(),
-    nextStep: 'Income Verification',
-    priority: 'Medium' as const
-  }));
-
-  const allColumns: ColumnDef<DisplayLead>[] = [
+  // Transform leads to use directly with inline editing (no DisplayLead needed)
+  const allColumns: ColumnDef<DatabaseLead>[] = [
     {
-      accessorKey: "name",
-      header: "Client Name",
+      accessorKey: "first_name",
+      header: "First Name",
       sortable: true,
       cell: ({ row }) => (
         <span 
-          className="cursor-pointer hover:text-primary transition-colors"
+          className="cursor-pointer hover:text-primary transition-colors font-medium"
           onClick={(e) => {
             e.stopPropagation();
-            const lead = leads.find(l => l.id === row.original.id);
-            if (lead) handleRowClick(lead);
+            handleRowClick(row.original);
           }}
         >
-          {row.original.name}
+          {row.original.first_name} {row.original.last_name}
         </span>
       ),
     },
     {
-      accessorKey: "contact",
-      header: "Contact",
+      accessorKey: "phone",
+      header: "Phone",
       cell: ({ row }) => (
-        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-          <div className="flex items-center text-sm">
-            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-            <span className="truncate">{row.original.email}</span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="h-3 w-3 mr-1" />
-            <span className="truncate">{row.original.phone}</span>
-          </div>
+        <div className="flex items-center text-sm">
+          <Phone className="h-3 w-3 mr-1 text-muted-foreground" />
+          {formatPhone(row.original.phone)}
         </div>
       ),
     },
     {
-      accessorKey: "loanType",
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <div className="flex items-center text-sm truncate max-w-[200px]">
+          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{row.original.email || '—'}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "loan_type",
       header: "Loan Type",
       sortable: true,
+      cell: ({ row }) => row.original.loan_type || '—',
     },
     {
-      accessorKey: "loanAmount",
-      header: "Loan Amount",
-      sortable: true,
-    },
-    {
-      accessorKey: "incomeType",
+      accessorKey: "income_type",
       header: "Income Type",
-      sortable: true,
+      cell: ({ row }) => row.original.income_type || '—',
     },
     {
-      accessorKey: "creditScore",
-      header: "Credit Score",
+      accessorKey: "property_type",
+      header: "Property Type",
+      cell: ({ row }) => row.original.property_type || '—',
+    },
+    {
+      accessorKey: "estimated_fico",
+      header: "FICO",
+      sortable: true,
       cell: ({ row }) => (
         <span className={`font-medium ${
-          row.original.creditScore >= 750 
-            ? 'text-success' 
-            : row.original.creditScore >= 700 
-            ? 'text-warning' 
-            : 'text-destructive'
+          (row.original.estimated_fico || 0) >= 740 ? 'text-success' : 
+          (row.original.estimated_fico || 0) >= 670 ? 'text-warning' : 'text-destructive'
         }`}>
-          {row.original.creditScore}
+          {row.original.estimated_fico || '—'}
         </span>
       ),
-      sortable: true,
     },
     {
-      accessorKey: "priority",
-      header: "Priority",
-      cell: ({ row }) => <StatusBadge status={row.original.priority} />,
+      accessorKey: "loan_amount",
+      header: "Loan Amount",
       sortable: true,
+      cell: ({ row }) => formatCurrency(row.original.loan_amount),
     },
     {
-      accessorKey: "nextStep",
-      header: "Next Step",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Clock className="h-3 w-3 text-muted-foreground" />
-          <span className="text-sm">{row.original.nextStep}</span>
-        </div>
-      ),
+      accessorKey: "dti",
+      header: "DTI",
+      sortable: true,
+      cell: ({ row }) => formatPercentage(row.original.dti),
+    },
+    // Additional fields available but hidden by default (shown via column visibility)
+    {
+      accessorKey: "middle_name",
+      header: "Middle Name",
+      cell: ({ row }) => row.original.middle_name || '—',
     },
     {
-      accessorKey: "screeningDate",
-      header: "Screening Date",
-      sortable: true,
+      accessorKey: "monthly_pmt_goal",
+      header: "Monthly Pmt Goal",
+      cell: ({ row }) => formatCurrency(row.original.monthly_pmt_goal),
+    },
+    {
+      accessorKey: "cash_to_close_goal",
+      header: "Cash to Close Goal",
+      cell: ({ row }) => formatCurrency(row.original.cash_to_close_goal),
+    },
+    {
+      accessorKey: "reo",
+      header: "REO",
+      cell: ({ row }) => formatBoolean(row.original.reo),
+    },
+    {
+      accessorKey: "sales_price",
+      header: "Sales Price",
+      cell: ({ row }) => formatCurrency(row.original.sales_price),
+    },
+    {
+      accessorKey: "down_pmt",
+      header: "Down Payment",
+      cell: ({ row }) => row.original.down_pmt || '—',
+    },
+    {
+      accessorKey: "term",
+      header: "Term",
+      cell: ({ row }) => row.original.term ? `${row.original.term} yrs` : '—',
+    },
+    {
+      accessorKey: "monthly_liabilities",
+      header: "Liabilities",
+      cell: ({ row }) => formatCurrency(row.original.monthly_liabilities),
+    },
+    {
+      accessorKey: "assets",
+      header: "Assets",
+      cell: ({ row }) => formatCurrency(row.original.assets),
+    },
+    {
+      accessorKey: "dob",
+      header: "DOB",
+      cell: ({ row }) => formatDate(row.original.dob),
+    },
+    {
+      accessorKey: "interest_rate",
+      header: "Rate",
+      cell: ({ row }) => formatPercentage(row.original.interest_rate),
+    },
+    {
+      accessorKey: "piti",
+      header: "PITI",
+      cell: ({ row }) => formatCurrency(row.original.piti),
+    },
+    {
+      accessorKey: "close_date",
+      header: "Close Date",
+      cell: ({ row }) => formatDate(row.original.close_date),
     },
   ];
 
@@ -353,12 +397,9 @@ export default function Screening() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={displayData}
+            data={leads}
             searchTerm={searchTerm}
-            onRowClick={(row) => {
-              const lead = leads.find(l => l.id === row.id);
-              if (lead) handleRowClick(lead);
-            }}
+            onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>

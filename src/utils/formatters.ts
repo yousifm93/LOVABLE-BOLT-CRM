@@ -77,3 +77,55 @@ export const formatAmortizationTerm = (months: number | null | undefined): strin
   if (remainingMonths === 0) return `${years} years`;
   return `${years} years, ${remainingMonths} months`;
 };
+
+// DateTime formatter
+export const formatDateTime = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  try {
+    const date = new Date(value);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return "—";
+  }
+};
+
+// Boolean formatter
+export const formatBoolean = (value: boolean | null | undefined): string => {
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
+  return "—";
+};
+
+// Phone formatter
+export const formatPhone = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  // Remove all non-numeric characters
+  const cleaned = value.replace(/\D/g, '');
+  
+  // Format as (XXX) XXX-XXXX
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  
+  return value;
+};
+
+// File name formatter (extract filename from path)
+export const formatFileName = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  const parts = value.split('/');
+  return parts[parts.length - 1] || value;
+};
+
+// Number formatter with commas
+export const formatNumber = (value: number | null | undefined): string => {
+  if (!value && value !== 0) return "—";
+  return value.toLocaleString('en-US');
+};
