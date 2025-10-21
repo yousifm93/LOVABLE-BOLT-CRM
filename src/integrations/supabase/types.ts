@@ -1904,6 +1904,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_leads_buyer_agent_id"
+            columns: ["buyer_agent_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_leads_lender"
             columns: ["lender_id"]
             isOneToOne: false
@@ -1915,6 +1922,13 @@ export type Database = {
             columns: ["listing_agent_id"]
             isOneToOne: false
             referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_leads_teammate_assigned"
+            columns: ["teammate_assigned"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
