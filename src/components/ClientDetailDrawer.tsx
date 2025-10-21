@@ -223,9 +223,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   };
 
-  const handleStageClick = (stageKey: PipelineStage) => {
+  const handleActiveLoanStatusClick = async (statusLabel: string) => {
+    const leadId = getLeadId();
+    if (!leadId) {
+      console.error('Cannot update loan status: missing leadId');
+      return;
+    }
+    
+    // Map label to database value (SUB -> SUV)
+    const labelToDbValue: Record<string, string> = {
+      'NEW': 'NEW',
+      'RFP': 'RFP',
+      'SUB': 'SUV',
+      'AWC': 'AWC',
+      'CTC': 'CTC'
+    };
+    
+    const dbValue = labelToDbValue[statusLabel] || statusLabel;
+    
+    try {
+      await databaseService.updateLead(leadId, { 
+        loan_status: dbValue as "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
+      });
+      
+      toast({ 
+        title: `Loan status updated to ${statusLabel}`,
+        description: "Status updated successfully"
+      });
+      
+      // Refresh parent page data
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+      
+    } catch (error) {
+      console.error('Error updating loan status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update loan status",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleStageClick = (stageKey: string) => {
     if (stageKey !== client.ops.stage) {
-      onStageChange(client.person.id, stageKey);
+      onStageChange(client.person.id, stageKey as PipelineStage);
     }
   };
 
@@ -500,19 +543,27 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <CardHeader className="pb-3">
               </CardHeader>
               <CardContent>
-{pipelineType === 'leads' ? (
+{pipelineType === 'leads' || pipelineType === 'active' ? (
                   <PipelineStageBar
                     stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
-                    currentStage={PIPELINE_CONFIGS[pipelineType]?.find(stage => stage.key === client.ops.stage)?.label.replace(/([a-z])([A-Z])/g, '$1 $2') || ''}
+                    currentStage={
+                      pipelineType === 'active' 
+                        ? (client.ops.status === 'SUV' ? 'SUB' : client.ops.status || '')
+                        : PIPELINE_CONFIGS[pipelineType]?.find(stage => stage.key === client.ops.stage)?.label.replace(/([a-z])([A-Z])/g, '$1 $2') || ''
+                    }
                     size="md"
                     clickable={true}
-                    onStageClick={handlePipelineStageClick}
+                    onStageClick={
+                      pipelineType === 'active'
+                        ? handleActiveLoanStatusClick
+                        : handlePipelineStageClick
+                    }
                   />
                 ) : (
                   <div className="flex items-center justify-center">
                     {PIPELINE_CONFIGS[pipelineType]?.map((stage, index) => {
-                      const isActive = client.ops.stage === stage.key;
-                      const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === client.ops.stage) ?? -1;
+                      const isActive = (client.ops.stage as string) === stage.key;
+                      const currentStageIndex = PIPELINE_CONFIGS[pipelineType]?.findIndex(s => s.key === (client.ops.stage as string)) ?? -1;
                       // Z-index: higher for stages to the left, active gets highest
                       const zIndex = isActive ? 25 : 20 - index;
                       return (

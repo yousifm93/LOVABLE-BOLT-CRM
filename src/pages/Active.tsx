@@ -3,6 +3,7 @@ import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
@@ -18,7 +19,8 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
-import { CRMClient, PipelineStage } from "@/types/crm";
+import { PipelineStageBar } from "@/components/PipelineStageBar";
+import { CRMClient, PipelineStage, PIPELINE_CONFIGS } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -488,6 +490,7 @@ export default function Active() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Column visibility management
@@ -697,7 +700,21 @@ export default function Active() {
 
   // Group loans by pipeline section and apply filters
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
-    const filteredLoans = applyAdvancedFilters(activeLoans);
+    let filteredLoans = applyAdvancedFilters(activeLoans);
+    
+    // Filter by selected status if set
+    if (selectedStatus) {
+      // Map label to database value (SUB -> SUV)
+      const labelToDbValue: Record<string, string> = {
+        'NEW': 'NEW',
+        'RFP': 'RFP',
+        'SUB': 'SUV',
+        'AWC': 'AWC',
+        'CTC': 'CTC'
+      };
+      const dbValue = labelToDbValue[selectedStatus] || selectedStatus;
+      filteredLoans = filteredLoans.filter(loan => loan.loan_status === dbValue);
+    }
     
     const live = filteredLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
     const incoming = filteredLoans.filter(loan => loan.pipeline_section === 'Incoming');
@@ -708,7 +725,7 @@ export default function Active() {
       incomingLoans: incoming,
       onHoldLoans: onHold
     };
-  }, [activeLoans, filters]);
+  }, [activeLoans, filters, selectedStatus]);
 
   if (loading) {
     return (
@@ -728,6 +745,21 @@ export default function Active() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Active Pipeline</h1>
       </div>
+
+      {/* Active Pipeline Status Bar */}
+      <Card className="bg-gradient-card shadow-soft">
+        <CardContent className="py-4">
+          <PipelineStageBar
+            stages={PIPELINE_CONFIGS.active.map(stage => stage.label)}
+            currentStage={selectedStatus || ''}
+            size="md"
+            clickable={true}
+            onStageClick={(stageLabel) => {
+              setSelectedStatus(selectedStatus === stageLabel ? null : stageLabel);
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <div className="flex items-center gap-2 mb-4">
         <Search className="h-4 w-4 text-muted-foreground" />
