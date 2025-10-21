@@ -837,6 +837,7 @@ export default function Active() {
             setSelectedClient(null);
           }}
           onStageChange={handleStageChange}
+          onLeadUpdated={loadData}
           pipelineType="active"
         />
       )}
