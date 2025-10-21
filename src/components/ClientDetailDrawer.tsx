@@ -181,9 +181,54 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   };
 
   const handlePipelineStageClick = async (stageLabel: string) => {
-    const stageId = STAGE_NAME_TO_ID[stageLabel];
-    if (!stageId || !leadId) {
-      console.error('Cannot update pipeline stage: missing stageId or leadId', { stageLabel, stageId, leadId });
+    if (!leadId) {
+      console.error('Cannot update pipeline stage: missing leadId');
+      toast({
+        title: "Error",
+        description: "Unable to update stage: Invalid lead ID",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Normalize the label for lookup (trim, consistent spacing)
+    const normalizedLabel = stageLabel.trim();
+    
+    // Direct lookup
+    let stageId = STAGE_NAME_TO_ID[normalizedLabel];
+    
+    // If direct lookup fails, try to find by key in PIPELINE_CONFIGS
+    if (!stageId) {
+      const pipelineStage = PIPELINE_CONFIGS[pipelineType]?.find(
+        stage => stage.label === normalizedLabel || stage.key === normalizedLabel.toLowerCase().replace(/\s+/g, '-')
+      );
+      
+      if (pipelineStage) {
+        // Map the key to the stage ID
+        const keyToIdMapping: Record<string, string> = {
+          'leads': 'c54f417b-3f67-43de-80f5-954cf260d571',
+          'pending-app': '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945',
+          'screening': 'a4e162e0-5421-4d17-8ad5-4b1195bbc995',
+          'pre-qualified': '09162eec-d2b2-48e5-86d0-9e66ee8b2af7',
+          'pre-approved': '3cbf38ff-752e-4163-a9a3-1757499b4945',
+          'active': '76eb2e82-e1d9-4f2d-a57d-2120a25696db'
+        };
+        stageId = keyToIdMapping[pipelineStage.key];
+      }
+    }
+    
+    if (!stageId) {
+      console.error('Cannot update pipeline stage: stage not found', { 
+        stageLabel, 
+        normalizedLabel,
+        availableStages: Object.keys(STAGE_NAME_TO_ID),
+        pipelineType
+      });
+      toast({
+        title: "Error",
+        description: `Unable to move lead to "${stageLabel}". Stage not recognized.`,
+        variant: "destructive"
+      });
       return;
     }
     
@@ -193,15 +238,15 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       };
       
       // If moving to Active, also update the pipeline_section to Incoming
-      if (stageLabel === 'Active') {
+      if (normalizedLabel === 'Active') {
         updateData.pipeline_section = 'Incoming';
       }
       
       await databaseService.updateLead(leadId, updateData);
       
       toast({ 
-        title: `Lead moved to ${stageLabel}`,
-        description: stageLabel === 'Active' 
+        title: `Lead moved to ${normalizedLabel}`,
+        description: normalizedLabel === 'Active' 
           ? "Lead converted to Active deal successfully!" 
           : "Pipeline stage updated successfully"
       });
@@ -217,7 +262,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       console.error('Error updating pipeline stage:', error);
       toast({
         title: "Error",
-        description: "Failed to update pipeline stage",
+        description: "Failed to update pipeline stage. Please try again.",
         variant: "destructive"
       });
     }
