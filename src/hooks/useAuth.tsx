@@ -45,9 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
+    // Listen for storage events to sync auth across contexts (preview/expanded view)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes('supabase.auth.token')) {
+        console.log('Storage change detected, refreshing session');
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!mounted) return;
+          setSession(session);
+          setUser(session?.user ?? null);
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
