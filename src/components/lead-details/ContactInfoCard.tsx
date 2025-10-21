@@ -2,14 +2,16 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Mail, User } from "lucide-react";
+import { Phone, Mail, User, ArrowRight } from "lucide-react";
 
 interface ContactInfoCardProps {
   client: any;
   onClose: () => void;
+  onConvert?: () => void;
+  showConvertButton?: boolean;
 }
 
-export function ContactInfoCard({ client, onClose }: ContactInfoCardProps) {
+export function ContactInfoCard({ client, onClose, onConvert, showConvertButton = false }: ContactInfoCardProps) {
   const fullName = `${client.person.firstName} ${client.person.lastName}`;
   const initials = `${client.person.firstName[0]}${client.person.lastName[0]}`;
 
@@ -36,6 +38,17 @@ export function ContactInfoCard({ client, onClose }: ContactInfoCardProps) {
           <Button variant="outline" size="default" className="px-4 py-2">
             Edit
           </Button>
+          {showConvertButton && (
+            <Button 
+              variant="default" 
+              size="default" 
+              className="px-4 py-2 bg-primary hover:bg-primary/90"
+              onClick={onConvert}
+            >
+              <ArrowRight className="h-4 w-4 mr-1" />
+              Convert
+            </Button>
+          )}
           <Button variant="outline" size="default" className="px-4 py-2">
             Delete
           </Button>

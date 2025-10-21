@@ -176,7 +176,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     'Pending App': '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945',
     'Screening': 'a4e162e0-5421-4d17-8ad5-4b1195bbc995',
     'Pre-Qualified': '09162eec-d2b2-48e5-86d0-9e66ee8b2af7',
-    'Pre-Approved': '3cbf38ff-752e-4163-a9a3-1757499b4945'
+    'Pre-Approved': '3cbf38ff-752e-4163-a9a3-1757499b4945',
+    'Active': 'e8f5a8c1-7c39-4b26-9d7e-1f4a2b3c4d5e',
+    'Past Clients': 'f9a6b9d2-8d4a-5c37-ae8f-2e5b3c4d5e6f'
   };
 
   const handlePipelineStageClick = async (stageLabel: string) => {
@@ -216,6 +218,47 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const handleStageClick = (stageKey: PipelineStage) => {
     if (stageKey !== client.ops.stage) {
       onStageChange(client.person.id, stageKey);
+    }
+  };
+
+  const handleConvert = async () => {
+    if (!leadId) {
+      toast({
+        title: "Error",
+        description: "Unable to convert lead: Invalid lead ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Get Active stage ID
+      const activeStageId = STAGE_NAME_TO_ID['Active'];
+      
+      await databaseService.updateLead(leadId, {
+        pipeline_stage_id: activeStageId,
+        pipeline_section: 'Active'
+      });
+
+      toast({
+        title: "Lead Converted",
+        description: "Successfully converted lead to Active status"
+      });
+
+      // Refresh parent data
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+
+      // Close drawer
+      handleDrawerClose();
+    } catch (error) {
+      console.error('Error converting lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to convert lead to Active",
+        variant: "destructive"
+      });
     }
   };
 
@@ -430,7 +473,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
           <div className="space-y-4 overflow-y-auto">
             {/* Contact Info Card - Moved from top row */}
-            <ContactInfoCard client={client} onClose={handleDrawerClose} />
+            <ContactInfoCard 
+              client={client} 
+              onClose={handleDrawerClose}
+              onConvert={handleConvert}
+              showConvertButton={client.ops.stage === 'pre-approved'}
+            />
 
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={leadId || ""} />
@@ -492,11 +540,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <CardContent>
 {pipelineType === 'leads' ? (
                   <PipelineStageBar
-                    stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
-                    currentStage={PIPELINE_CONFIGS[pipelineType]?.find(stage => stage.key === client.ops.stage)?.label.replace(/([a-z])([A-Z])/g, '$1 $2') || ''}
+                    stages={PIPELINE_STAGES.map(stage => stage.label)}
+                    currentStage={PIPELINE_STAGES.find(stage => stage.key === client.ops.stage)?.label || ''}
                     size="md"
                     clickable={true}
                     onStageClick={handlePipelineStageClick}
+                    separatorAfterIndex={4}
                   />
                 ) : (
                   <div className="flex items-center justify-center">
