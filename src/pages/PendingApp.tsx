@@ -38,18 +38,16 @@ type DisplayLead = {
   progress: number;
 };
 
-// LEAD Stage columns - Only 10 fields from Excel (same as Leads page)
+// Pending App columns - IDs must match allColumns accessorKey values
 const initialColumns = [
-  { id: "first_name", label: "First Name", visible: true },
-  { id: "middle_name", label: "Middle Name", visible: false },
-  { id: "last_name", label: "Last Name", visible: true },
-  { id: "phone", label: "Phone", visible: true },
-  { id: "email", label: "Email", visible: true },
-  { id: "referred_via", label: "Referral Method", visible: true },
-  { id: "referral_source", label: "Referral Source", visible: false },
-  { id: "converted", label: "Lead Status", visible: false },
-  { id: "monthly_pmt_goal", label: "Monthly Pmt Goal", visible: false },
-  { id: "cash_to_close_goal", label: "Cash to Close Goal", visible: false },
+  { id: "name", label: "Applicant", visible: true },
+  { id: "contact", label: "Contact", visible: true },
+  { id: "loanType", label: "Loan Type", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "loanAmount", label: "Loan Amount", visible: true },
+  { id: "creditScore", label: "Credit Score", visible: true },
+  { id: "processor", label: "Processor", visible: false },
+  { id: "submitted", label: "Submitted", visible: true },
 ];
 
 export default function PendingApp() {
