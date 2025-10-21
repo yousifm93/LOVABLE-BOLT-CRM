@@ -72,11 +72,11 @@ function DraggableTableHead<T>({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "h-8 px-2 text-left font-medium relative group",
+        "h-8 px-2 text-center font-medium relative group",
         column.sortable && "cursor-pointer hover:bg-muted/50"
       )}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
         {/* Drag Handle */}
         <div
           {...attributes}
@@ -89,7 +89,7 @@ function DraggableTableHead<T>({
         
         {/* Column Header Text */}
         <div 
-          className="flex items-center gap-1 flex-1"
+          className="flex items-center justify-center gap-1 flex-1"
           onClick={() => column.sortable && onSort(column.accessorKey)}
         >
           {column.header}
@@ -209,14 +209,16 @@ export function DataTable<T extends Record<string, any>>({
                onClick={() => onRowClick?.(row)}
              >
                {columns.map((column) => (
-                 <TableCell key={column.accessorKey} className="py-2 px-2">
-                   {column.cell ? (
-                     column.cell({ row: { original: row } })
-                   ) : (
-                     <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
-                   )}
-                 </TableCell>
-               ))}
+                  <TableCell key={column.accessorKey} className="py-2 px-2 text-center">
+                    {column.cell ? (
+                      <div className="flex justify-center">
+                        {column.cell({ row: { original: row } })}
+                      </div>
+                    ) : (
+                      <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
+                    )}
+                  </TableCell>
+                ))}
               <TableCell className="py-2 px-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

@@ -11,10 +11,13 @@ import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
-import { databaseService, type Lead as DatabaseLead } from "@/services/database";
+import { databaseService, type Lead as DatabaseLead, type User, type BuyerAgent } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
@@ -150,6 +153,8 @@ export default function Leads() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [agents, setAgents] = useState<BuyerAgent[]>([]);
 
   // Column visibility management
   const {
@@ -229,7 +234,7 @@ export default function Leads() {
   ];
 
   // Field update handler
-  const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined) => {
+  const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined | null) => {
     try {
       setIsUpdating(leadId);
       
@@ -237,6 +242,18 @@ export default function Leads() {
       
       // Map field names to database columns
       switch (field) {
+        case 'phone':
+          updateData.phone = value as string;
+          break;
+        case 'email':
+          updateData.email = value as string;
+          break;
+        case 'teammate_assigned':
+          updateData.teammate_assigned = value as string;
+          break;
+        case 'buyer_agent_id':
+          updateData.buyer_agent_id = value as string;
+          break;
         case 'referredVia':
           updateData.referred_via = value as any;
           break;
@@ -253,35 +270,21 @@ export default function Leads() {
         case 'leadStrength':
           updateData.lead_strength = value as any;
           break;
-        case 'dueDate':
-          // Handle due date updates - don't update local state immediately to prevent flickering
-          if (value) {
-            const dateStr = value instanceof Date ? value.toISOString().split('T')[0] : value;
-            // For now, we'll just show success and let the next data refresh handle the display
-            toast({
-              title: "Due date updated",
-              description: "Task deadline has been set",
-            });
-            setIsUpdating(null);
-            return;
-          } else {
-            toast({
-              title: "Due date cleared", 
-              description: "Task deadline has been removed",
-            });
-            setIsUpdating(null);
-            return;
-          }
+        case 'due_date':
+          // Due dates are handled via tasks, not directly on leads
+          toast({
+            title: "Due date update",
+            description: "Due date management coming soon",
+          });
+          setIsUpdating(null);
+          return;
         default:
           setIsUpdating(null);
           return;
       }
 
       if (Object.keys(updateData).length > 0) {
-        // Update database first
         await databaseService.updateLead(leadId, updateData);
-        
-        // Then refresh data to ensure consistency
         await loadLeads();
 
         toast({
@@ -428,19 +431,51 @@ export default function Leads() {
     {
       accessorKey: "phone",
       header: "Lead Phone",
-      cell: ({ row }) => row.original.phone || '—',
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.phone}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "phone", value)
+            }
+            placeholder="Enter phone"
+          />
+        </div>
+      ),
       sortable: true,
     },
     {
       accessorKey: "email",
       header: "Lead Email",
-      cell: ({ row }) => row.original.email || '—',
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.email}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "email", value)
+            }
+            placeholder="Enter email"
+          />
+        </div>
+      ),
       sortable: true,
     },
     {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
-      cell: ({ row }) => row.original.realEstateAgent || '—',
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={null}
+            agents={agents}
+            onValueChange={(agent) =>
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+            }
+            type="buyer"
+            placeholder="Select agent"
+          />
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -464,7 +499,18 @@ export default function Leads() {
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }) => row.original.user || '—',
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAssignee
+            assigneeId={null}
+            users={users}
+            onValueChange={(userId) =>
+              handleFieldUpdate(row.original.id, "teammate_assigned", userId)
+            }
+            showNameText={true}
+          />
+        </div>
+      ),
       sortable: true,
     },
     // Additional columns (hidden by default)
@@ -531,7 +577,7 @@ export default function Leads() {
           <InlineEditDate
             value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
             onValueChange={(date) =>
-              handleFieldUpdate(row.original.id, "dueDate", date)
+              handleFieldUpdate(row.original.id, "due_date", date)
             }
             placeholder="Set due date"
           />
@@ -558,13 +604,15 @@ export default function Leads() {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<Lead> => col !== undefined);
 
-  // Load leads on component mount with cleanup
+  // Load leads and users/agents on component mount with cleanup
   useEffect(() => {
     let isMounted = true;
     
     const fetchData = async () => {
       if (isMounted) {
         await loadLeads();
+        await loadUsers();
+        await loadAgents();
       }
     };
     
@@ -574,6 +622,24 @@ export default function Leads() {
       isMounted = false;
     };
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await databaseService.getUsers();
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  const loadAgents = async () => {
+    try {
+      const data = await databaseService.getAgents();
+      setAgents(data || []);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {

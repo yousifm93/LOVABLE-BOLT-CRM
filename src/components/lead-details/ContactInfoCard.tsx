@@ -225,9 +225,9 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         <CardContent>
           <div className="grid grid-cols-2 gap-6">
             {/* Left Column */}
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1">Phone Number</Label>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Phone Number</Label>
                 {isEditing ? (
                   <Input
                     type="tel"
@@ -242,8 +242,8 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1">Email</Label>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Email</Label>
                 {isEditing ? (
                   <Input
                     type="email"
@@ -258,14 +258,14 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1">Buyer's Agent</Label>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Buyer's Agent</Label>
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-3 w-3 text-muted-foreground" />
                   <span>—</span>
                 </div>
               </div>
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Amount</Label>
                 {isEditing ? (
                   <Input
@@ -281,8 +281,8 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
             </div>
             
             {/* Right Column */}
-            <div className="space-y-3">
-              <div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Sales Price</Label>
                 {isEditing ? (
                   <Input
@@ -295,7 +295,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <span className="font-medium text-sm">$425,000</span>
                 )}
               </div>
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Transaction Type</Label>
                 {isEditing ? (
                   <Select
@@ -315,7 +315,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <span className="font-medium text-sm">{client.loan?.loanType || "—"}</span>
                 )}
               </div>
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Property Type</Label>
                 {isEditing ? (
                   <Select
@@ -336,7 +336,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <span className="font-medium text-sm">Single Family Home</span>
                 )}
               </div>
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Program</Label>
                 {isEditing ? (
                   <Select
