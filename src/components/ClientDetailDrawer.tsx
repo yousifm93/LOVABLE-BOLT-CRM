@@ -251,20 +251,23 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         description: "Status updated successfully"
       });
       
-      // Refresh parent page data
-      if (onLeadUpdated) {
-        await onLeadUpdated();
-      }
-      
-    } catch (error) {
-      console.error('Error updating loan status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update loan status",
-        variant: "destructive"
-      });
+    // Refresh parent page data
+    if (onLeadUpdated) {
+      await onLeadUpdated();
     }
-  };
+    
+    // Close drawer to show updated status in table
+    onClose();
+    
+  } catch (error) {
+    console.error('Error updating loan status:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update loan status",
+      variant: "destructive"
+    });
+  }
+};
 
   const handleStageClick = (stageKey: string) => {
     if (stageKey !== client.ops.stage) {
