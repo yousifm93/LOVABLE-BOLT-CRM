@@ -234,12 +234,47 @@ export const databaseService = {
   },
 
   deleteLead: async (id: string) => {
-    const { error } = await supabase
-      .from('leads')
-      .delete()
-      .eq('id', id);
+    try {
+      // Get the user's account_id from their profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    if (error) throw error;
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      console.log('[DEBUG] Delete lead:', {
+        leadId: id,
+        userId: user.id,
+        accountId: profile.account_id
+      });
+
+      // Delete the lead with explicit account_id check
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', id)
+        .eq('account_id', profile.account_id);
+
+      if (error) {
+        console.error('[DEBUG] Delete lead error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
+      console.log('[DEBUG] Lead deleted successfully');
+    } catch (error: any) {
+      console.error('[DEBUG] DeleteLead function error:', error);
+      throw error;
+    }
   },
 
   // Task operations

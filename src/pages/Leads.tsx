@@ -357,11 +357,11 @@ export default function Leads() {
         title: "Success",
         description: "Lead deleted.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting lead:', error);
       toast({
         title: "Error",
-        description: "Failed to delete lead",
+        description: error?.message || "Failed to delete lead. Please check console for details.",
         variant: "destructive",
       });
     } finally {
