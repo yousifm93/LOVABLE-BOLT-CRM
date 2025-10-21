@@ -145,7 +145,7 @@ const createColumns = (
     header: "Borrower",
     cell: ({ row }) => (
       <div 
-        className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors truncate max-w-[160px]"
+        className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors truncate max-w-[160px] text-left"
         title={`${row.original.first_name} ${row.original.last_name}`}
         onClick={(e) => {
           e.stopPropagation();

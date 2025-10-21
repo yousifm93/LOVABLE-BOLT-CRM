@@ -422,7 +422,7 @@ export default function Leads() {
       header: "Full Name",
       cell: ({ row }) => (
         <div
-          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors font-medium"
+          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors font-medium text-left"
           onClick={(e) => {
             e.stopPropagation();
             handleRowClick(row.original);

@@ -740,6 +740,7 @@ export const databaseService = {
         listing_agent:buyer_agents!listing_agent_id(*),
         teammate:users!teammate_assigned(*)
       `)
+      .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
       .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
       .order('created_at', { ascending: false });
 
