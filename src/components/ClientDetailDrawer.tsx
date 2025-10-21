@@ -172,11 +172,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
   // Pipeline stage UUID mapping
   const STAGE_NAME_TO_ID: Record<string, string> = {
-    'Lead': 'c54f417b-3f67-43de-80f5-954cf260d571',
+    'New': 'c54f417b-3f67-43de-80f5-954cf260d571',
     'Pending App': '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945',
     'Screening': 'a4e162e0-5421-4d17-8ad5-4b1195bbc995',
     'Pre-Qualified': '09162eec-d2b2-48e5-86d0-9e66ee8b2af7',
-    'Pre-Approved': '3cbf38ff-752e-4163-a9a3-1757499b4945'
+    'Pre-Approved': '3cbf38ff-752e-4163-a9a3-1757499b4945',
+    'Active': '76eb2e82-e1d9-4f2d-a57d-2120a25696db'
   };
 
   const handlePipelineStageClick = async (stageLabel: string) => {
@@ -187,13 +188,22 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
     
     try {
-      await databaseService.updateLead(leadId, { 
+      const updateData: any = { 
         pipeline_stage_id: stageId 
-      });
+      };
+      
+      // If moving to Active, also update the pipeline_section
+      if (stageLabel === 'Active') {
+        updateData.pipeline_section = 'Active';
+      }
+      
+      await databaseService.updateLead(leadId, updateData);
       
       toast({ 
         title: `Lead moved to ${stageLabel}`,
-        description: "Pipeline stage updated successfully"
+        description: stageLabel === 'Active' 
+          ? "Lead converted to Active deal successfully!" 
+          : "Pipeline stage updated successfully"
       });
       
       // Refresh parent page data before closing
