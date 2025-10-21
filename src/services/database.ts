@@ -117,6 +117,7 @@ export const databaseService = {
           tasks(due_date)
         `)
         .eq('account_id', profile.account_id)
+        .eq('pipeline_stage_id', 'c54f417b-3f67-43de-80f5-954cf260d571')
         .order('created_at', { ascending: false });
       
       if (error) {

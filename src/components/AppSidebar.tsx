@@ -42,7 +42,7 @@ const dashboardItems = [
 ];
 
 const pipelineItems = [
-  { title: "Leads", url: "/leads", icon: Users },
+  { title: "New", url: "/leads", icon: Users },
   { title: "Pending App", url: "/pending-app", icon: FileText },
   { title: "Screening", url: "/screening", icon: ClipboardList },
   { title: "Pre-Qualified", url: "/pre-qualified", icon: UserCheck },

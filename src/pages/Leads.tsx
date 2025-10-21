@@ -587,9 +587,9 @@ export default function Leads() {
       <div className="pl-4 pr-0 pt-2 pb-0">
         <div className="flex justify-between items-center mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+            <h1 className="text-2xl font-bold text-foreground">New</h1>
             <p className="text-xs italic text-muted-foreground/70">
-              Prospective clients and new business opportunities
+              New leads entering the pipeline
               {filters.length > 0 && (
                 <span className="ml-2 text-primary">
                   • {filters.length} filter{filters.length > 1 ? 's' : ''} active
@@ -639,7 +639,7 @@ export default function Leads() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search leads..."
+                placeholder="Search new leads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
