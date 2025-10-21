@@ -161,7 +161,8 @@ export default function Leads() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'leads-columns');
 
   // Load filters from localStorage on mount
@@ -745,6 +746,7 @@ export default function Leads() {
               onColumnToggle={toggleColumn}
               onToggleAll={toggleAll}
               onSaveView={saveView}
+              onReorderColumns={reorderColumns}
             />
             
             <ViewPills

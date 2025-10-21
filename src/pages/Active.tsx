@@ -513,7 +513,8 @@ export default function Active() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
 
   // Filter configuration
@@ -816,6 +817,7 @@ export default function Active() {
           onColumnToggle={toggleColumn}
           onToggleAll={toggleAll}
           onSaveView={saveView}
+          onReorderColumns={reorderColumns}
         />
         
         <ViewPills

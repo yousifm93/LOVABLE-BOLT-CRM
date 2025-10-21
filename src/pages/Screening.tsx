@@ -70,7 +70,8 @@ export default function Screening() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'screening-columns');
 
   // Load leads from database filtered by Screening pipeline stage
@@ -283,6 +284,7 @@ export default function Screening() {
               onColumnToggle={toggleColumn}
               onToggleAll={toggleAll}
               onSaveView={saveView}
+              onReorderColumns={reorderColumns}
             />
             
             <ViewPills

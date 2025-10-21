@@ -78,7 +78,8 @@ export default function PreQualified() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'pre-qualified-columns');
 
   // Load leads from database filtered by Pre-Qualified pipeline stage
@@ -336,6 +337,7 @@ export default function PreQualified() {
               onColumnToggle={toggleColumn}
               onToggleAll={toggleAll}
               onSaveView={saveView}
+              onReorderColumns={reorderColumns}
             />
             
             <ViewPills

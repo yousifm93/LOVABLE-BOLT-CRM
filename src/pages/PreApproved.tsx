@@ -126,7 +126,7 @@ export default function PreApproved() {
   const [leads, setLeads] = useState<DatabaseLead[]>([]);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
 
-  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView } = useColumnVisibility(initialColumns, 'pre-approved-columns');
+  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
   const fetchLeads = async () => {
     const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
@@ -194,7 +194,7 @@ export default function PreApproved() {
           <CardTitle>Pre-Approved Clients ({leads.length})</CardTitle>
           <div className="flex gap-2">
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
-            <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} />
+            <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} />
             <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />
           </div>
         </CardHeader>

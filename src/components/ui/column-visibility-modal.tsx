@@ -1,10 +1,28 @@
-import { useState, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { useState } from "react";
+import { Search, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from "@/lib/utils";
 
 interface Column {
   id: string;
@@ -19,6 +37,58 @@ interface ColumnVisibilityModalProps {
   onColumnToggle: (columnId: string) => void;
   onToggleAll: (visible: boolean) => void;
   onSaveView: (viewName: string) => void;
+  onReorderColumns: (oldIndex: number, newIndex: number) => void;
+}
+
+interface SortableColumnItemProps {
+  column: Column;
+  onToggle: (columnId: string) => void;
+}
+
+function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center space-x-2 p-2 rounded-md bg-background",
+        isDragging && "opacity-50 shadow-lg z-50"
+      )}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing touch-none"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <Checkbox
+        id={column.id}
+        checked={column.visible}
+        onCheckedChange={() => onToggle(column.id)}
+      />
+      <label
+        htmlFor={column.id}
+        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+      >
+        {column.label}
+      </label>
+    </div>
+  );
 }
 
 export function ColumnVisibilityModal({
@@ -27,10 +97,18 @@ export function ColumnVisibilityModal({
   columns,
   onColumnToggle,
   onToggleAll,
-  onSaveView
+  onSaveView,
+  onReorderColumns
 }: ColumnVisibilityModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewName, setViewName] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const filteredColumns = columns.filter(column =>
     column.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -43,6 +121,16 @@ export function ColumnVisibilityModal({
     if (viewName.trim()) {
       onSaveView(viewName.trim());
       setViewName("");
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = columns.findIndex((col) => col.id === active.id);
+      const newIndex = columns.findIndex((col) => col.id === over.id);
+      onReorderColumns(oldIndex, newIndex);
     }
   };
 
@@ -82,23 +170,28 @@ export function ColumnVisibilityModal({
 
           <Separator />
 
-          {/* Column List */}
-          <div className="max-h-64 overflow-y-auto space-y-2">
-            {filteredColumns.map((column) => (
-              <div key={column.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={column.id}
-                  checked={column.visible}
-                  onCheckedChange={() => onColumnToggle(column.id)}
-                />
-                <label
-                  htmlFor={column.id}
-                  className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {column.label}
-                </label>
-              </div>
-            ))}
+          {/* Column List with Drag and Drop */}
+          <div className="max-h-64 overflow-y-auto">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={filteredColumns.map(col => col.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-1">
+                  {filteredColumns.map((column) => (
+                    <SortableColumnItem
+                      key={column.id}
+                      column={column}
+                      onToggle={onColumnToggle}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           <Separator />

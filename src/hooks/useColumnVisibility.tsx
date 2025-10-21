@@ -20,11 +20,27 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     const savedViews = localStorage.getItem(`${storageKey}_views`);
+    const savedOrder = localStorage.getItem(`${storageKey}_order`);
     
     if (saved) {
       try {
         const savedState = JSON.parse(saved);
-        setColumns(prev => prev.map(col => ({
+        let orderedColumns = [...initialColumns];
+        
+        // Apply saved order if available
+        if (savedOrder) {
+          const orderArray = JSON.parse(savedOrder) as string[];
+          orderedColumns = orderArray
+            .map(id => initialColumns.find(col => col.id === id))
+            .filter((col): col is Column => col !== undefined);
+          
+          // Add any new columns that weren't in the saved order
+          const existingIds = new Set(orderArray);
+          const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
+          orderedColumns = [...orderedColumns, ...newColumns];
+        }
+        
+        setColumns(orderedColumns.map(col => ({
           ...col,
           visible: savedState[col.id] !== undefined ? savedState[col.id] : col.visible
         })));
@@ -49,7 +65,10 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
       return acc;
     }, {} as Record<string, boolean>);
     
+    const order = columns.map(col => col.id);
+    
     localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem(`${storageKey}_order`, JSON.stringify(order));
   }, [columns, storageKey]);
 
   const toggleColumn = (columnId: string) => {
@@ -96,6 +115,15 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
     }
   };
 
+  const reorderColumns = (oldIndex: number, newIndex: number) => {
+    setColumns(prev => {
+      const newColumns = [...prev];
+      const [movedColumn] = newColumns.splice(oldIndex, 1);
+      newColumns.splice(newIndex, 0, movedColumn);
+      return newColumns;
+    });
+  };
+
   const visibleColumns = columns.filter(col => col.visible);
 
   return {
@@ -107,6 +135,7 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   };
 }

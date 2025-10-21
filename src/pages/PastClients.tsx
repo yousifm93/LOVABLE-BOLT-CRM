@@ -260,7 +260,8 @@ export default function PastClients() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'past-clients-columns');
 
   const handleRowClick = (client: PastClient) => {
@@ -310,6 +311,7 @@ export default function PastClients() {
               onColumnToggle={toggleColumn}
               onToggleAll={toggleAll}
               onSaveView={saveView}
+              onReorderColumns={reorderColumns}
             />
             
             <ViewPills

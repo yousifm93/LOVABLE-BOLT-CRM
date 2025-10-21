@@ -73,7 +73,8 @@ export default function PendingApp() {
     toggleAll,
     saveView,
     loadView,
-    deleteView
+    deleteView,
+    reorderColumns
   } = useColumnVisibility(initialColumns, 'pending-app-columns');
 
   // Load leads from database filtered by Pending App pipeline stage
@@ -304,6 +305,7 @@ export default function PendingApp() {
               onColumnToggle={toggleColumn}
               onToggleAll={toggleAll}
               onSaveView={saveView}
+              onReorderColumns={reorderColumns}
             />
             
             <ViewPills
