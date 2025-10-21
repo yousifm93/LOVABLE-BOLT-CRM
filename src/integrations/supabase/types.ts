@@ -1600,6 +1600,7 @@ export type Database = {
       leads: {
         Row: {
           account_id: string
+          app_complete_at: string | null
           appr_date_time: string | null
           appr_eta: string | null
           appraisal_file: string | null
@@ -1663,11 +1664,14 @@ export type Database = {
           occupancy: string | null
           own_rent_current_address: string | null
           package_status: Database["public"]["Enums"]["package_status"] | null
+          pending_app_at: string | null
           phone: string | null
           pipeline_section: string | null
           pipeline_stage_id: string | null
           piti: number | null
           pr_type: Database["public"]["Enums"]["pr_type"] | null
+          pre_approved_at: string | null
+          pre_qualified_at: string | null
           principal_interest: number | null
           program: string | null
           property_taxes: number | null
@@ -1696,6 +1700,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null
           appraisal_file?: string | null
@@ -1759,11 +1764,14 @@ export type Database = {
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
+          pending_app_at?: string | null
           phone?: string | null
           pipeline_section?: string | null
           pipeline_stage_id?: string | null
           piti?: number | null
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
+          pre_approved_at?: string | null
+          pre_qualified_at?: string | null
           principal_interest?: number | null
           program?: string | null
           property_taxes?: number | null
@@ -1794,6 +1802,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null
           appraisal_file?: string | null
@@ -1857,11 +1866,14 @@ export type Database = {
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
+          pending_app_at?: string | null
           phone?: string | null
           pipeline_section?: string | null
           pipeline_stage_id?: string | null
           piti?: number | null
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
+          pre_approved_at?: string | null
+          pre_qualified_at?: string | null
           principal_interest?: number | null
           program?: string | null
           property_taxes?: number | null

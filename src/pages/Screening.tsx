@@ -12,106 +12,44 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone } from "@/utils/formatters";
+import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone, formatDateTime } from "@/utils/formatters";
 
 // Display type for table rows
 type DisplayLead = {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  loanType: string;
+  appCompleteOn: string;
+  loanNumber: string;
+  realEstateAgent: string;
   status: string;
-  loanAmount: string;
+  user: string;
+  phone: string;
+  email: string;
+  loanType: string;
   creditScore: number;
+  loanAmount: number | null;
+  dti: number | null;
   incomeType: string;
   screeningDate: string;
   nextStep: string;
   priority: "High" | "Medium" | "Low";
 };
 
-// ALL 71 Fields - Screening stage shows all fields
+// SCREENING columns - 6 columns from Excel
 const initialColumns = [
-  // LEAD Fields (1-10)
-  { id: "first_name", label: "First Name", visible: true },
-  { id: "middle_name", label: "Middle Name", visible: false },
-  { id: "last_name", label: "Last Name", visible: true },
-  { id: "phone", label: "Phone", visible: true },
-  { id: "email", label: "Email", visible: true },
-  { id: "referred_via", label: "Referral Method", visible: false },
-  { id: "referral_source", label: "Referral Source", visible: false },
-  { id: "converted", label: "Lead Status", visible: false },
-  { id: "monthly_pmt_goal", label: "Monthly Pmt Goal", visible: false },
-  { id: "cash_to_close_goal", label: "Cash to Close Goal", visible: false },
-  
-  // APP COMPLETE Fields (11-34)
-  { id: "loan_type", label: "Loan Type", visible: true },
-  { id: "income_type", label: "Income Type", visible: true },
-  { id: "reo", label: "REO", visible: false },
-  { id: "property_type", label: "Property Type", visible: true },
-  { id: "occupancy", label: "Occupancy", visible: false },
-  { id: "borrower_current_address", label: "Current Address", visible: false },
-  { id: "own_rent_current_address", label: "Own/Rent", visible: false },
-  { id: "time_at_current_address_years", label: "Years at Address", visible: false },
-  { id: "time_at_current_address_months", label: "Months at Address", visible: false },
-  { id: "military_veteran", label: "Military/Veteran", visible: false },
-  { id: "dob", label: "Date of Birth", visible: false },
-  { id: "estimated_fico", label: "Estimated FICO", visible: true },
-  { id: "loan_amount", label: "Loan Amount", visible: true },
-  { id: "sales_price", label: "Sales Price", visible: false },
-  { id: "down_pmt", label: "Down Payment", visible: false },
-  { id: "term", label: "Term", visible: false },
-  { id: "monthly_liabilities", label: "Liabilities", visible: false },
-  { id: "assets", label: "Assets", visible: false },
-  { id: "subject_address_1", label: "Subject Addr 1", visible: false },
-  { id: "subject_address_2", label: "Subject Addr 2", visible: false },
-  { id: "subject_city", label: "Subject City", visible: false },
-  { id: "subject_state", label: "Subject State", visible: false },
-  { id: "subject_zip", label: "Subject Zip", visible: false },
-  { id: "arrive_loan_number", label: "Loan #", visible: false },
-  
-  // APP REVIEW Fields (35-45)
-  { id: "interest_rate", label: "Interest Rate", visible: false },
-  { id: "piti", label: "PITI", visible: false },
-  { id: "program", label: "Program", visible: false },
-  { id: "total_monthly_income", label: "Monthly Income", visible: false },
-  { id: "escrows", label: "Escrows", visible: false },
-  { id: "dti", label: "DTI", visible: true },
-  { id: "close_date", label: "Close Date", visible: false },
-  { id: "principal_interest", label: "P&I", visible: false },
-  { id: "property_taxes", label: "Taxes", visible: false },
-  { id: "homeowners_insurance", label: "HOI", visible: false },
-  { id: "mortgage_insurance", label: "MI", visible: false },
-  { id: "hoa_dues", label: "HOA", visible: false },
-  
-  // ACTIVE Fields (46-73)
-  { id: "disclosure_status", label: "Disclosures", visible: false },
-  { id: "loan_status", label: "Loan Status", visible: false },
-  { id: "appraisal_status", label: "Appraisal", visible: false },
-  { id: "title_status", label: "Title", visible: false },
-  { id: "hoi_status", label: "HOI Status", visible: false },
-  { id: "mi_status", label: "MI Status", visible: false },
-  { id: "condo_status", label: "Condo", visible: false },
-  { id: "cd_status", label: "CD", visible: false },
-  { id: "package_status", label: "Package", visible: false },
-  { id: "lock_expiration_date", label: "Lock Exp", visible: false },
-  { id: "ba_status", label: "BA", visible: false },
-  { id: "epo_status", label: "EPO", visible: false },
-  { id: "lender_id", label: "Lender", visible: false },
-  { id: "title_eta", label: "Title ETA", visible: false },
-  { id: "appr_date_time", label: "Appr Date/Time", visible: false },
-  { id: "appr_eta", label: "Appr ETA", visible: false },
-  { id: "appraisal_value", label: "Appr Value", visible: false },
-  { id: "fin_cont", label: "Fin Contingency", visible: false },
-  { id: "les_file", label: "LES File", visible: false },
-  { id: "contract_file", label: "Contract", visible: false },
-  { id: "initial_approval_file", label: "Initial Approval", visible: false },
-  { id: "disc_file", label: "Disc File", visible: false },
-  { id: "appraisal_file", label: "Appr File", visible: false },
-  { id: "insurance_file", label: "Insurance", visible: false },
-  { id: "icd_file", label: "ICD", visible: false },
-  { id: "fcp_file", label: "FCP", visible: false },
-  { id: "search_stage", label: "Search Stage", visible: false },
+  { id: "name", label: "Full Name", visible: true },
+  { id: "appCompleteOn", label: "App Complete On", visible: true },
+  { id: "loanNumber", label: "Loan Number", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "user", label: "User", visible: true },
+  // Additional fields available
+  { id: "phone", label: "Lead Phone", visible: false },
+  { id: "email", label: "Lead Email", visible: false },
+  { id: "loanType", label: "Loan Type", visible: false },
+  { id: "creditScore", label: "FICO", visible: false },
+  { id: "loanAmount", label: "Loan Amount", visible: false },
+  { id: "dti", label: "DTI", visible: false },
 ];
 
 export default function Screening() {
@@ -199,150 +137,111 @@ export default function Screening() {
     setIsDrawerOpen(false);
   };
 
-  // Transform leads to use directly with inline editing (no DisplayLead needed)
-  const allColumns: ColumnDef<DatabaseLead>[] = [
+  // Transform leads to DisplayLead format
+  const displayData: DisplayLead[] = leads.map(lead => ({
+    id: lead.id,
+    name: `${lead.first_name} ${lead.last_name}`,
+    appCompleteOn: lead.app_complete_at || lead.created_at,
+    loanNumber: lead.arrive_loan_number?.toString() || '—',
+    realEstateAgent: '—', // TODO: JOIN with contacts
+    status: lead.status || 'Screening',
+    user: '—', // TODO: JOIN with users
+    phone: lead.phone || '',
+    email: lead.email || '',
+    loanType: lead.loan_type || '',
+    creditScore: lead.estimated_fico || 0,
+    loanAmount: lead.loan_amount || 0,
+    dti: lead.dti || 0,
+    incomeType: lead.income_type || '',
+    screeningDate: lead.created_at,
+    nextStep: 'Review',
+    priority: 'Medium' as const,
+  }));
+
+  const allColumns: ColumnDef<DisplayLead>[] = [
     {
-      accessorKey: "first_name",
-      header: "First Name",
+      accessorKey: "name",
+      header: "Full Name",
       sortable: true,
       cell: ({ row }) => (
         <span 
           className="cursor-pointer hover:text-primary transition-colors font-medium"
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(row.original);
+            const lead = leads.find(l => l.id === row.original.id);
+            if (lead) handleRowClick(lead);
           }}
         >
-          {row.original.first_name} {row.original.last_name}
+          {row.original.name}
         </span>
       ),
     },
     {
+      accessorKey: "appCompleteOn",
+      header: "App Complete On",
+      cell: ({ row }) => formatDateTime(row.original.appCompleteOn),
+      sortable: true,
+    },
+    {
+      accessorKey: "loanNumber",
+      header: "Loan Number",
+      cell: ({ row }) => row.original.loanNumber,
+      sortable: true,
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      cell: ({ row }) => row.original.realEstateAgent,
+      sortable: true,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      sortable: true,
+    },
+    {
+      accessorKey: "user",
+      header: "User",
+      cell: ({ row }) => row.original.user,
+      sortable: true,
+    },
+    // Additional columns
+    {
       accessorKey: "phone",
-      header: "Phone",
-      cell: ({ row }) => (
-        <div className="flex items-center text-sm">
-          <Phone className="h-3 w-3 mr-1 text-muted-foreground" />
-          {formatPhone(row.original.phone)}
-        </div>
-      ),
+      header: "Lead Phone",
+      cell: ({ row }) => row.original.phone || '—',
+      sortable: true,
     },
     {
       accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => (
-        <div className="flex items-center text-sm truncate max-w-[200px]">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{row.original.email || '—'}</span>
-        </div>
-      ),
+      header: "Lead Email",
+      cell: ({ row }) => row.original.email || '—',
+      sortable: true,
     },
     {
-      accessorKey: "loan_type",
+      accessorKey: "loanType",
       header: "Loan Type",
+      cell: ({ row }) => row.original.loanType || '—',
       sortable: true,
-      cell: ({ row }) => row.original.loan_type || '—',
     },
     {
-      accessorKey: "income_type",
-      header: "Income Type",
-      cell: ({ row }) => row.original.income_type || '—',
-    },
-    {
-      accessorKey: "property_type",
-      header: "Property Type",
-      cell: ({ row }) => row.original.property_type || '—',
-    },
-    {
-      accessorKey: "estimated_fico",
+      accessorKey: "creditScore",
       header: "FICO",
+      cell: ({ row }) => row.original.creditScore || '—',
       sortable: true,
-      cell: ({ row }) => (
-        <span className={`font-medium ${
-          (row.original.estimated_fico || 0) >= 740 ? 'text-success' : 
-          (row.original.estimated_fico || 0) >= 670 ? 'text-warning' : 'text-destructive'
-        }`}>
-          {row.original.estimated_fico || '—'}
-        </span>
-      ),
     },
     {
-      accessorKey: "loan_amount",
+      accessorKey: "loanAmount",
       header: "Loan Amount",
+      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
-      cell: ({ row }) => formatCurrency(row.original.loan_amount),
     },
     {
       accessorKey: "dti",
       header: "DTI",
-      sortable: true,
       cell: ({ row }) => formatPercentage(row.original.dti),
-    },
-    // Additional fields available but hidden by default (shown via column visibility)
-    {
-      accessorKey: "middle_name",
-      header: "Middle Name",
-      cell: ({ row }) => row.original.middle_name || '—',
-    },
-    {
-      accessorKey: "monthly_pmt_goal",
-      header: "Monthly Pmt Goal",
-      cell: ({ row }) => formatCurrency(row.original.monthly_pmt_goal),
-    },
-    {
-      accessorKey: "cash_to_close_goal",
-      header: "Cash to Close Goal",
-      cell: ({ row }) => formatCurrency(row.original.cash_to_close_goal),
-    },
-    {
-      accessorKey: "reo",
-      header: "REO",
-      cell: ({ row }) => formatBoolean(row.original.reo),
-    },
-    {
-      accessorKey: "sales_price",
-      header: "Sales Price",
-      cell: ({ row }) => formatCurrency(row.original.sales_price),
-    },
-    {
-      accessorKey: "down_pmt",
-      header: "Down Payment",
-      cell: ({ row }) => row.original.down_pmt || '—',
-    },
-    {
-      accessorKey: "term",
-      header: "Term",
-      cell: ({ row }) => row.original.term ? `${row.original.term} yrs` : '—',
-    },
-    {
-      accessorKey: "monthly_liabilities",
-      header: "Liabilities",
-      cell: ({ row }) => formatCurrency(row.original.monthly_liabilities),
-    },
-    {
-      accessorKey: "assets",
-      header: "Assets",
-      cell: ({ row }) => formatCurrency(row.original.assets),
-    },
-    {
-      accessorKey: "dob",
-      header: "DOB",
-      cell: ({ row }) => formatDate(row.original.dob),
-    },
-    {
-      accessorKey: "interest_rate",
-      header: "Rate",
-      cell: ({ row }) => formatPercentage(row.original.interest_rate),
-    },
-    {
-      accessorKey: "piti",
-      header: "PITI",
-      cell: ({ row }) => formatCurrency(row.original.piti),
-    },
-    {
-      accessorKey: "close_date",
-      header: "Close Date",
-      cell: ({ row }) => formatDate(row.original.close_date),
+      sortable: true,
     },
   ];
 
@@ -397,9 +296,12 @@ export default function Screening() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={leads}
+            data={displayData}
             searchTerm={searchTerm}
-            onRowClick={handleRowClick}
+            onRowClick={(row) => {
+              const lead = leads.find(l => l.id === row.id);
+              if (lead) handleRowClick(lead);
+            }}
           />
         </CardContent>
       </Card>

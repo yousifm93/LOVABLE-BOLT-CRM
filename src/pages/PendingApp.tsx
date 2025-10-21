@@ -12,6 +12,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone, formatDateTime } from "@/utils/formatters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,27 +28,30 @@ import {
 type DisplayLead = {
   id: string;
   name: string;
-  email: string;
+  pendingAppOn: string;
   phone: string;
-  loanType: string;
+  email: string;
+  realEstateAgent: string;
   status: string;
-  loanAmount: string;
+  user: string;
+  loanType: string;
+  loanAmount: number | null;
   creditScore: number;
-  submitted: string;
-  processor: string;
-  progress: number;
 };
 
-// Pending App columns - IDs must match allColumns accessorKey values
+// PENDING APP columns - 7 columns from Excel
 const initialColumns = [
-  { id: "name", label: "Applicant", visible: true },
-  { id: "contact", label: "Contact", visible: true },
-  { id: "loanType", label: "Loan Type", visible: true },
+  { id: "name", label: "Full Name", visible: true },
+  { id: "pendingAppOn", label: "Pending App On", visible: true },
+  { id: "phone", label: "Lead Phone", visible: true },
+  { id: "email", label: "Lead Email", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
   { id: "status", label: "Status", visible: true },
-  { id: "loanAmount", label: "Loan Amount", visible: true },
-  { id: "creditScore", label: "Credit Score", visible: true },
-  { id: "processor", label: "Processor", visible: false },
-  { id: "submitted", label: "Submitted", visible: true },
+  { id: "user", label: "User", visible: true },
+  // Additional fields available
+  { id: "loanType", label: "Loan Type", visible: false },
+  { id: "loanAmount", label: "Loan Amount", visible: false },
+  { id: "creditScore", label: "Credit Score", visible: false },
 ];
 
 export default function PendingApp() {
@@ -177,29 +181,28 @@ export default function PendingApp() {
   const displayData: DisplayLead[] = leads.map(lead => ({
     id: lead.id,
     name: `${lead.first_name} ${lead.last_name}`,
-    email: lead.email || '',
+    pendingAppOn: lead.pending_app_at || lead.created_at,
     phone: lead.phone || '',
-    loanType: lead.loan_type || 'Purchase',
-    status: lead.status || 'Pending',
-    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
-    creditScore: 720, // Placeholder - would come from lead data if available
-    submitted: new Date(lead.created_at).toLocaleDateString(),
-    processor: 'Team',
-    progress: 25
+    email: lead.email || '',
+    realEstateAgent: '—', // TODO: JOIN with contacts
+    status: lead.status || 'Pending App',
+    user: '—', // TODO: JOIN with users
+    loanType: lead.loan_type || '',
+    loanAmount: lead.loan_amount || null,
+    creditScore: lead.estimated_fico || 0,
   }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
-      header: "Applicant",
+      header: "Full Name",
       sortable: true,
       cell: ({ row }) => (
         <span 
-          className="cursor-pointer hover:text-primary transition-colors"
+          className="cursor-pointer hover:text-primary transition-colors font-medium"
           onClick={(e) => {
             e.stopPropagation();
-            const lead = leads.find(l => l.id === row.original.id);
-            if (lead) handleRowClick(lead);
+            handleRowClick(leads.find(l => l.id === row.original.id)!);
           }}
         >
           {row.original.name}
@@ -207,75 +210,58 @@ export default function PendingApp() {
       ),
     },
     {
-      accessorKey: "contact",
-      header: "Contact",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-          <div className="flex items-center text-sm">
-            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-            <span className="truncate">{row.original.email}</span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="h-3 w-3 mr-1" />
-            <span className="truncate">{row.original.phone}</span>
-          </div>
-        </div>
-      ),
+      accessorKey: "pendingAppOn",
+      header: "Pending App On",
+      cell: ({ row }) => formatDateTime(row.original.pendingAppOn),
+      sortable: true,
     },
     {
-      accessorKey: "loanType",
-      header: "Loan Type",
+      accessorKey: "phone",
+      header: "Lead Phone",
+      cell: ({ row }) => row.original.phone || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "email",
+      header: "Lead Email",
+      cell: ({ row }) => row.original.email || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      cell: ({ row }) => row.original.realEstateAgent || '—',
       sortable: true,
     },
     {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      sortable: true,
+    },
+    {
+      accessorKey: "user",
+      header: "User",
+      cell: ({ row }) => row.original.user || '—',
+      sortable: true,
+    },
+    // Additional columns
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      cell: ({ row }) => row.original.loanType || '—',
+      sortable: true,
     },
     {
       accessorKey: "loanAmount",
       header: "Loan Amount",
+      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
     },
     {
       accessorKey: "creditScore",
       header: "Credit Score",
-      cell: ({ row }) => (
-        <span className={`font-medium ${
-          row.original.creditScore >= 750 
-            ? 'text-success' 
-            : row.original.creditScore >= 700 
-            ? 'text-warning' 
-            : 'text-destructive'
-        }`}>
-          {row.original.creditScore}
-        </span>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: "progress",
-      header: "Progress",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${row.original.progress}%` }}
-            />
-          </div>
-          <span className="text-sm text-muted-foreground">{row.original.progress}%</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "processor",
-      header: "Processor",
-      sortable: true,
-    },
-    {
-      accessorKey: "submitted",
-      header: "Submitted",
+      cell: ({ row }) => row.original.creditScore || '—',
       sortable: true,
     },
   ];

@@ -11,7 +11,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency, formatPercentage, formatDateTime } from "@/utils/formatters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,105 +23,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Display type for table rows
 type DisplayLead = {
   id: string;
   name: string;
-  email: string;
+  preQualifiedOn: string;
   phone: string;
-  loanType: string;
+  email: string;
+  realEstateAgent: string;
   status: string;
-  loanAmount: string;
-  qualifiedAmount: string;
-  creditScore: number;
-  dti: number;
-  qualifiedDate: string;
-  expirationDate: string;
-  loanOfficer: string;
+  loanNumber: string;
+  fico: number;
+  dti: number | null;
+  loanAmount: number | null;
+  salesPrice: number | null;
+  user: string;
+  loanType: string;
 };
 
-// ALL 71 Fields - PreQualified shows all fields
+// PRE-QUALIFIED columns - 12 columns from Excel
 const initialColumns = [
-  // LEAD Fields (1-10)
-  { id: "first_name", label: "First Name", visible: true },
-  { id: "middle_name", label: "Middle Name", visible: false },
-  { id: "last_name", label: "Last Name", visible: true },
-  { id: "phone", label: "Phone", visible: true },
-  { id: "email", label: "Email", visible: true },
-  { id: "referred_via", label: "Referral Method", visible: false },
-  { id: "referral_source", label: "Referral Source", visible: false },
-  { id: "converted", label: "Lead Status", visible: false },
-  { id: "monthly_pmt_goal", label: "Monthly Pmt Goal", visible: false },
-  { id: "cash_to_close_goal", label: "Cash to Close Goal", visible: false },
-  
-  // APP COMPLETE Fields (11-34)
-  { id: "loan_type", label: "Loan Type", visible: true },
-  { id: "income_type", label: "Income Type", visible: false },
-  { id: "reo", label: "REO", visible: false },
-  { id: "property_type", label: "Property Type", visible: false },
-  { id: "occupancy", label: "Occupancy", visible: false },
-  { id: "borrower_current_address", label: "Current Address", visible: false },
-  { id: "own_rent_current_address", label: "Own/Rent", visible: false },
-  { id: "time_at_current_address_years", label: "Years at Address", visible: false },
-  { id: "time_at_current_address_months", label: "Months at Address", visible: false },
-  { id: "military_veteran", label: "Military/Veteran", visible: false },
-  { id: "dob", label: "Date of Birth", visible: false },
-  { id: "estimated_fico", label: "Credit Score", visible: true },
-  { id: "loan_amount", label: "Qualified Amount", visible: true },
-  { id: "sales_price", label: "Sales Price", visible: false },
-  { id: "down_pmt", label: "Down Payment", visible: false },
-  { id: "term", label: "Term", visible: false },
-  { id: "monthly_liabilities", label: "Liabilities", visible: false },
-  { id: "assets", label: "Assets", visible: false },
-  { id: "subject_address_1", label: "Subject Addr 1", visible: false },
-  { id: "subject_address_2", label: "Subject Addr 2", visible: false },
-  { id: "subject_city", label: "Subject City", visible: false },
-  { id: "subject_state", label: "Subject State", visible: false },
-  { id: "subject_zip", label: "Subject Zip", visible: false },
-  { id: "arrive_loan_number", label: "Loan #", visible: false },
-  
-  // APP REVIEW Fields (35-45)
-  { id: "interest_rate", label: "Interest Rate", visible: false },
-  { id: "piti", label: "PITI", visible: false },
-  { id: "program", label: "Program", visible: false },
-  { id: "total_monthly_income", label: "Monthly Income", visible: false },
-  { id: "escrows", label: "Escrows", visible: false },
+  { id: "name", label: "Full Name", visible: true },
+  { id: "preQualifiedOn", label: "Pre-Qualified On", visible: true },
+  { id: "phone", label: "Lead Phone", visible: true },
+  { id: "email", label: "Lead Email", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "loanNumber", label: "Loan Number", visible: true },
+  { id: "fico", label: "FICO", visible: true },
   { id: "dti", label: "DTI", visible: true },
-  { id: "close_date", label: "Close Date", visible: false },
-  { id: "principal_interest", label: "P&I", visible: false },
-  { id: "property_taxes", label: "Taxes", visible: false },
-  { id: "homeowners_insurance", label: "HOI", visible: false },
-  { id: "mortgage_insurance", label: "MI", visible: false },
-  { id: "hoa_dues", label: "HOA", visible: false },
-  
-  // ACTIVE Fields (46-73)
-  { id: "disclosure_status", label: "Disclosures", visible: false },
-  { id: "loan_status", label: "Loan Status", visible: false },
-  { id: "appraisal_status", label: "Appraisal", visible: false },
-  { id: "title_status", label: "Title", visible: false },
-  { id: "hoi_status", label: "HOI Status", visible: false },
-  { id: "mi_status", label: "MI Status", visible: false },
-  { id: "condo_status", label: "Condo", visible: false },
-  { id: "cd_status", label: "CD", visible: false },
-  { id: "package_status", label: "Package", visible: false },
-  { id: "lock_expiration_date", label: "Lock Exp", visible: false },
-  { id: "ba_status", label: "BA", visible: false },
-  { id: "epo_status", label: "EPO", visible: false },
-  { id: "lender_id", label: "Lender", visible: false },
-  { id: "title_eta", label: "Title ETA", visible: false },
-  { id: "appr_date_time", label: "Appr Date/Time", visible: false },
-  { id: "appr_eta", label: "Appr ETA", visible: false },
-  { id: "appraisal_value", label: "Appr Value", visible: false },
-  { id: "fin_cont", label: "Fin Contingency", visible: false },
-  { id: "les_file", label: "LES File", visible: false },
-  { id: "contract_file", label: "Contract", visible: false },
-  { id: "initial_approval_file", label: "Initial Approval", visible: false },
-  { id: "disc_file", label: "Disc File", visible: false },
-  { id: "appraisal_file", label: "Appr File", visible: false },
-  { id: "insurance_file", label: "Insurance", visible: false },
-  { id: "icd_file", label: "ICD", visible: false },
-  { id: "fcp_file", label: "FCP", visible: false },
-  { id: "search_stage", label: "Search Stage", visible: true },
+  { id: "loanAmount", label: "Loan Amount", visible: true },
+  { id: "salesPrice", label: "Sales Price", visible: true },
+  { id: "user", label: "User", visible: true },
+  // Additional fields available
+  { id: "loanType", label: "Loan Type", visible: false },
 ];
 
 export default function PreQualified() {
@@ -250,27 +184,28 @@ export default function PreQualified() {
   const displayData: DisplayLead[] = leads.map(lead => ({
     id: lead.id,
     name: `${lead.first_name} ${lead.last_name}`,
-    email: lead.email || '',
+    preQualifiedOn: lead.pre_qualified_at || lead.created_at,
     phone: lead.phone || '',
-    loanType: lead.loan_type || 'Purchase',
+    email: lead.email || '',
+    realEstateAgent: '—', // TODO: JOIN
     status: lead.status || 'Pre-Qualified',
-    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
-    qualifiedAmount: lead.loan_amount ? `$${(lead.loan_amount * 0.95).toLocaleString()}` : '$0',
-    creditScore: 750,
-    dti: 30,
-    qualifiedDate: new Date(lead.created_at).toLocaleDateString(),
-    expirationDate: new Date(new Date(lead.created_at).setMonth(new Date(lead.created_at).getMonth() + 3)).toLocaleDateString(),
-    loanOfficer: 'Team'
+    loanNumber: lead.arrive_loan_number?.toString() || '—',
+    fico: lead.estimated_fico || 0,
+    dti: lead.dti || 0,
+    loanAmount: lead.loan_amount || 0,
+    salesPrice: lead.sales_price || 0,
+    user: '—', // TODO: JOIN
+    loanType: lead.loan_type || '',
   }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
-      header: "Client Name",
+      header: "Full Name",
       sortable: true,
       cell: ({ row }) => (
         <span 
-          className="cursor-pointer hover:text-primary transition-colors"
+          className="cursor-pointer hover:text-primary transition-colors font-medium"
           onClick={(e) => {
             e.stopPropagation();
             const lead = leads.find(l => l.id === row.original.id);
@@ -282,48 +217,50 @@ export default function PreQualified() {
       ),
     },
     {
-      accessorKey: "contact",
-      header: "Contact",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3 whitespace-nowrap overflow-hidden text-ellipsis">
-          <div className="flex items-center text-sm">
-            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-            <span className="truncate">{row.original.email}</span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="h-3 w-3 mr-1" />
-            <span className="truncate">{row.original.phone}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "loanType",
-      header: "Loan Type",
+      accessorKey: "preQualifiedOn",
+      header: "Pre-Qualified On",
+      cell: ({ row }) => formatDateTime(row.original.preQualifiedOn),
       sortable: true,
     },
     {
-      accessorKey: "qualifiedAmount",
-      header: "Qualified Amount",
-      cell: ({ row }) => (
-        <span className="font-medium text-success">
-          {row.original.qualifiedAmount}
-        </span>
-      ),
+      accessorKey: "phone",
+      header: "Lead Phone",
+      cell: ({ row }) => row.original.phone || '—',
       sortable: true,
     },
     {
-      accessorKey: "creditScore",
-      header: "Credit Score",
+      accessorKey: "email",
+      header: "Lead Email",
+      cell: ({ row }) => row.original.email || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      cell: ({ row }) => row.original.realEstateAgent,
+      sortable: true,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      sortable: true,
+    },
+    {
+      accessorKey: "loanNumber",
+      header: "Loan Number",
+      cell: ({ row }) => row.original.loanNumber,
+      sortable: true,
+    },
+    {
+      accessorKey: "fico",
+      header: "FICO",
       cell: ({ row }) => (
         <span className={`font-medium ${
-          row.original.creditScore >= 750 
-            ? 'text-success' 
-            : row.original.creditScore >= 700 
-            ? 'text-warning' 
-            : 'text-destructive'
+          row.original.fico >= 750 ? 'text-success' : 
+          row.original.fico >= 700 ? 'text-warning' : 'text-destructive'
         }`}>
-          {row.original.creditScore}
+          {row.original.fico || '—'}
         </span>
       ),
       sortable: true,
@@ -331,50 +268,31 @@ export default function PreQualified() {
     {
       accessorKey: "dti",
       header: "DTI",
-      cell: ({ row }) => (
-        <span className={`font-medium ${
-          row.original.dti <= 36 
-            ? 'text-success' 
-            : row.original.dti <= 43 
-            ? 'text-warning' 
-            : 'text-destructive'
-        }`}>
-          {row.original.dti}%
-        </span>
-      ),
+      cell: ({ row }) => formatPercentage(row.original.dti),
       sortable: true,
     },
     {
-      accessorKey: "loanOfficer",
-      header: "Loan Officer",
+      accessorKey: "loanAmount",
+      header: "Loan Amount",
+      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
     },
     {
-      accessorKey: "qualifiedDate",
-      header: "Qualified Date",
+      accessorKey: "salesPrice",
+      header: "Sales Price",
+      cell: ({ row }) => formatCurrency(row.original.salesPrice),
       sortable: true,
     },
     {
-      accessorKey: "expirationDate",
-      header: "Expires",
-      cell: ({ row }) => {
-        const expDate = new Date(row.original.expirationDate);
-        const daysUntilExpiry = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-        const isExpired = daysUntilExpiry <= 0;
-        
-        return (
-          <span className={`text-sm ${
-            isExpired ? 'text-destructive font-medium' : 
-            isExpiringSoon ? 'text-warning font-medium' : 
-            'text-muted-foreground'
-          }`}>
-            {row.original.expirationDate}
-            {isExpiringSoon && ` (${daysUntilExpiry}d)`}
-            {isExpired && ' (Expired)'}
-          </span>
-        );
-      },
+      accessorKey: "user",
+      header: "User",
+      cell: ({ row }) => row.original.user,
+      sortable: true,
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      cell: ({ row }) => row.original.loanType || '—',
       sortable: true,
     },
   ];

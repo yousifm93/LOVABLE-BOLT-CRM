@@ -15,6 +15,7 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { formatCurrency, formatDateTime } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -111,17 +112,22 @@ const leadStrengthOptions = [
   { value: "Low", label: "Low" },
 ];
 
-// Define initial column configuration
-// LEAD Stage columns - IDs must match allColumns accessorKey values
+// Define initial column configuration - NEW LEADS (7 columns from Excel)
 const initialColumns = [
-  { id: "name", label: "Name", visible: true },
-  { id: "email", label: "Email", visible: true },
-  { id: "phone", label: "Phone", visible: true },
-  { id: "referredVia", label: "Referral Method", visible: true },
-  { id: "referralSource", label: "Referral Source", visible: true },
-  { id: "converted", label: "Lead Status", visible: true },
-  { id: "leadStrength", label: "Lead Strength", visible: true },
-  { id: "dueDate", label: "Due Date", visible: true },
+  { id: "name", label: "Full Name", visible: true },
+  { id: "createdOn", label: "Lead Created On", visible: true },
+  { id: "phone", label: "Lead Phone", visible: true },
+  { id: "email", label: "Lead Email", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "user", label: "User", visible: true },
+  // Additional fields available in Hide/Show but hidden by default
+  { id: "referredVia", label: "Referral Method", visible: false },
+  { id: "referralSource", label: "Referral Source", visible: false },
+  { id: "leadStrength", label: "Lead Strength", visible: false },
+  { id: "dueDate", label: "Due Date", visible: false },
+  { id: "loanType", label: "Loan Type", visible: false },
+  { id: "loanAmount", label: "Loan Amount", visible: false },
 ];
 
 export default function Leads() {
@@ -371,40 +377,84 @@ export default function Leads() {
     }
   };
 
-  // Columns definition with inline editing and normalized widths
   const allColumns: ColumnDef<Lead>[] = [
     {
       accessorKey: "name",
-      header: "Lead Name",
-      sortable: true,
+      header: "Full Name",
       cell: ({ row }) => (
-        <span 
-          className="cursor-pointer hover:text-primary transition-colors"
+        <div
+          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors font-medium"
           onClick={(e) => {
             e.stopPropagation();
             handleRowClick(row.original);
           }}
         >
           {row.original.name}
-        </span>
+        </div>
       ),
-    },
-    {
-      accessorKey: "creationDate",
-      header: "Creation Date",
       sortable: true,
     },
     {
+      accessorKey: "createdOn",
+      header: "Lead Created On",
+      cell: ({ row }) => formatDateTime(row.original.createdOn),
+      sortable: true,
+    },
+    {
+      accessorKey: "phone",
+      header: "Lead Phone",
+      cell: ({ row }) => row.original.phone || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "email",
+      header: "Lead Email",
+      cell: ({ row }) => row.original.email || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      cell: ({ row }) => row.original.realEstateAgent || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.converted}
+            options={convertedOptions}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "converted", value)
+            }
+            showAsStatusBadge
+            fixedWidth="w-36"
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "user",
+      header: "User",
+      cell: ({ row }) => row.original.user || '—',
+      sortable: true,
+    },
+    // Additional columns (hidden by default)
+    {
       accessorKey: "referredVia",
-      header: "Referred Via",
+      header: "Referral Method",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditSelect
             value={row.original.referredVia}
             options={referredViaOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'referredVia', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "referred_via", value)
+            }
+            showAsStatusBadge
             forceGrayBadge={true}
             fixedWidth="w-24"
           />
@@ -420,27 +470,11 @@ export default function Leads() {
           <InlineEditSelect
             value={row.original.referralSource}
             options={referralSourceOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'referralSource', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "referralSource", value)
+            }
+            showAsStatusBadge
             fixedWidth="w-32"
-          />
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: "converted",
-      header: "Converted",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditSelect
-            value={row.original.converted}
-            options={convertedOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'converted', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
-            fixedWidth="w-36"
           />
         </div>
       ),
@@ -454,9 +488,10 @@ export default function Leads() {
           <InlineEditSelect
             value={row.original.leadStrength}
             options={leadStrengthOptions}
-            onValueChange={(value) => handleFieldUpdate(row.original.id, 'leadStrength', value)}
-            showAsStatusBadge={true}
-            disabled={isUpdating === row.original.id}
+            onValueChange={(value) =>
+              handleFieldUpdate(row.original.id, "leadStrength", value)
+            }
+            showAsStatusBadge
             fixedWidth="w-20"
           />
         </div>
@@ -470,12 +505,25 @@ export default function Leads() {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditDate
             value={row.original.dueDate ? new Date(row.original.dueDate) : undefined}
-            onValueChange={(date) => handleFieldUpdate(row.original.id, 'dueDate', date)}
+            onValueChange={(date) =>
+              handleFieldUpdate(row.original.id, "dueDate", date)
+            }
             placeholder="Set due date"
-            disabled={isUpdating === row.original.id}
           />
         </div>
       ),
+      sortable: true,
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      cell: ({ row }) => row.original.loanType || '—',
+      sortable: true,
+    },
+    {
+      accessorKey: "loanAmount",
+      header: "Loan Amount",
+      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
     },
   ];
