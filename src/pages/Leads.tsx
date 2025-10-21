@@ -173,6 +173,14 @@ export default function Leads() {
     loadView(viewName);
   };
 
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    reorderColumns(oldIndex, newIndex);
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   // Load filters from localStorage on mount
   useEffect(() => {
     const savedFilters = localStorage.getItem('leads-filters');
@@ -776,6 +784,7 @@ export default function Leads() {
             onViewDetails={handleRowClick}
             onEdit={handleRowClick}
             onDelete={handleDelete}
+            onColumnReorder={handleColumnReorder}
           />
         </CardContent>
       </Card>

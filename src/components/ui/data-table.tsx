@@ -1,6 +1,9 @@
 import * as React from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +36,72 @@ interface DataTableProps<T> {
   onViewDetails?: (row: T) => void;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  onColumnReorder?: (oldIndex: number, newIndex: number) => void;
+}
+
+interface DraggableTableHeadProps<T> {
+  column: ColumnDef<T>;
+  sortColumn: string;
+  sortDirection: "asc" | "desc";
+  onSort: (key: string) => void;
+}
+
+function DraggableTableHead<T>({ 
+  column, 
+  sortColumn, 
+  sortDirection, 
+  onSort 
+}: DraggableTableHeadProps<T>) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.accessorKey });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableHead
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "h-8 px-2 text-left font-medium relative group",
+        column.sortable && "cursor-pointer hover:bg-muted/50"
+      )}
+    >
+      <div className="flex items-center gap-1">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3 text-muted-foreground" />
+        </div>
+        
+        {/* Column Header Text */}
+        <div 
+          className="flex items-center gap-1 flex-1"
+          onClick={() => column.sortable && onSort(column.accessorKey)}
+        >
+          {column.header}
+          {column.sortable && sortColumn === column.accessorKey && (
+            <span className="text-xs">
+              {sortDirection === "asc" ? "↑" : "↓"}
+            </span>
+          )}
+        </div>
+      </div>
+    </TableHead>
+  );
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -43,9 +112,29 @@ export function DataTable<T extends Record<string, any>>({
   onViewDetails,
   onEdit,
   onDelete,
+  onColumnReorder,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>("");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = columns.findIndex(col => col.accessorKey === active.id);
+      const newIndex = columns.findIndex(col => col.accessorKey === over.id);
+      
+      onColumnReorder?.(oldIndex, newIndex);
+    }
+  };
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -84,30 +173,31 @@ export function DataTable<T extends Record<string, any>>({
   return (
     <div className="rounded-md border bg-card shadow-soft">
       <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHead
-                key={column.accessorKey}
-                className={cn(
-                  "h-8 px-2 text-left font-medium",
-                  column.sortable && "cursor-pointer hover:bg-muted/50"
-                )}
-                onClick={() => column.sortable && handleSort(column.accessorKey)}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <TableHeader>
+            <TableRow>
+              <SortableContext
+                items={columns.map(col => col.accessorKey)}
+                strategy={horizontalListSortingStrategy}
               >
-                <div className="flex items-center gap-2">
-                  {column.header}
-                  {column.sortable && sortColumn === column.accessorKey && (
-                    <span className="text-xs">
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </div>
-              </TableHead>
-            ))}
-            <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
+                {columns.map((column) => (
+                  <DraggableTableHead
+                    key={column.accessorKey}
+                    column={column}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
+                ))}
+              </SortableContext>
+              <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+        </DndContext>
         <TableBody>
           {filteredData.map((row, index) => (
              <TableRow
