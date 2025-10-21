@@ -664,18 +664,37 @@ export default function Leads() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const { data: dbLeads, error } = await supabase
+      
+      // Fetch all leads
+      const { data: dbLeads, error: leadsError } = await supabase
         .from('leads')
-        .select(`
-          *,
-          teammate:users!teammate_assigned(id, first_name, last_name, email),
-          buyer_agent:buyer_agents!buyer_agent_id(id, first_name, last_name, brokerage, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (leadsError) throw leadsError;
       
-      const transformedLeads = (dbLeads || []).map(transformLeadToDisplay);
+      // Fetch all users
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email');
+      
+      // Fetch all buyer agents
+      const { data: agentsData } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email');
+      
+      // Create lookup maps for efficient matching
+      const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+      const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
+      
+      // Enrich leads with related user and agent data
+      const enrichedLeads = (dbLeads || []).map(lead => ({
+        ...lead,
+        teammate: lead.teammate_assigned ? usersMap.get(lead.teammate_assigned) : null,
+        buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null,
+      }));
+      
+      const transformedLeads = enrichedLeads.map(transformLeadToDisplay);
       setLeads(transformedLeads);
     } catch (error) {
       console.error('Error loading leads:', error);
