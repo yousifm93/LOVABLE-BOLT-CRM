@@ -12,6 +12,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
 import { databaseService, type Lead as DatabaseLead, type User, type BuyerAgent } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
@@ -41,7 +42,9 @@ interface Lead {
   phone: string;
   email: string;
   realEstateAgent: string;
+  realEstateAgentData?: any;
   user: string;
+  userData?: any;
   referredVia: string;
   referralSource: string;
   converted: string;
@@ -52,7 +55,13 @@ interface Lead {
 }
 
 // Transform database lead to display format  
-const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string }): Lead => {
+const transformLeadToDisplay = (
+  dbLead: DatabaseLead & { 
+    task_due_date?: string;
+    teammate?: any;
+    buyer_agent?: any;
+  }
+): Lead => {
   // Migrate old lead strength values to new ones
   const migrateLeadStrength = (oldValue: string): string => {
     switch (oldValue?.toLowerCase()) {
@@ -80,8 +89,10 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string 
     createdOn: dbLead.created_at,
     phone: dbLead.phone || '',
     email: dbLead.email || '',
-    realEstateAgent: '—',
-    user: '—',
+    realEstateAgent: dbLead.buyer_agent_id || '',
+    realEstateAgentData: dbLead.buyer_agent || null,
+    user: dbLead.teammate_assigned || '',
+    userData: dbLead.teammate || null,
     referredVia: dbLead.referred_via || 'Email',
     referralSource: dbLead.referral_source || 'Agent',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
@@ -466,7 +477,7 @@ export default function Leads() {
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditAgent
-            value={null}
+            value={row.original.realEstateAgentData}
             agents={agents}
             onValueChange={(agent) =>
               handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
@@ -502,7 +513,7 @@ export default function Leads() {
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditAssignee
-            assigneeId={null}
+            assigneeId={row.original.user}
             users={users}
             onValueChange={(userId) =>
               handleFieldUpdate(row.original.id, "teammate_assigned", userId)
@@ -523,7 +534,7 @@ export default function Leads() {
             value={row.original.referredVia}
             options={referredViaOptions}
             onValueChange={(value) =>
-              handleFieldUpdate(row.original.id, "referred_via", value)
+              handleFieldUpdate(row.original.id, "referredVia", value)
             }
             showAsStatusBadge
             forceGrayBadge={true}
@@ -653,8 +664,18 @@ export default function Leads() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const dbLeads = await databaseService.getLeadsWithTaskDueDates();
-      const transformedLeads = dbLeads.map(transformLeadToDisplay);
+      const { data: dbLeads, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          teammate:users!teammate_assigned(id, first_name, last_name, email),
+          buyer_agent:buyer_agents!buyer_agent_id(id, first_name, last_name, brokerage, email)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const transformedLeads = (dbLeads || []).map(transformLeadToDisplay);
       setLeads(transformedLeads);
     } catch (error) {
       console.error('Error loading leads:', error);
