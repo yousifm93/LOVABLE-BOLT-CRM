@@ -192,9 +192,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         pipeline_stage_id: stageId 
       };
       
-      // If moving to Active, also update the pipeline_section
+      // If moving to Active, also update the pipeline_section to Incoming
       if (stageLabel === 'Active') {
-        updateData.pipeline_section = 'Active';
+        updateData.pipeline_section = 'Incoming';
       }
       
       await databaseService.updateLead(leadId, updateData);

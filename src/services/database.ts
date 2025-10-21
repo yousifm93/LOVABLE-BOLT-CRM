@@ -689,7 +689,7 @@ export const databaseService = {
         listing_agent:buyer_agents!listing_agent_id(*),
         teammate:users!teammate_assigned(*)
       `)
-      .not('loan_status', 'is', null)
+      .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
       .order('created_at', { ascending: false });
 
     if (error) throw error;
