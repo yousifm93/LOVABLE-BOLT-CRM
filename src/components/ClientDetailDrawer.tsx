@@ -21,6 +21,7 @@ import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
 import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
 import { PipelineStageBar } from "@/components/PipelineStageBar";
+import { databaseService } from "@/services/database";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -167,6 +168,44 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const currentStageIndex = PIPELINE_STAGES.findIndex(stage => stage.key === client.ops.stage);
   const fullName = `${client.person.firstName} ${client.person.lastName}`;
   const initials = `${client.person.firstName[0]}${client.person.lastName[0]}`;
+
+  // Pipeline stage UUID mapping
+  const STAGE_NAME_TO_ID: Record<string, string> = {
+    'Lead': 'c54f417b-3f67-43de-80f5-954cf260d571',
+    'Pending App': '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945',
+    'Screening': 'a4e162e0-5421-4d17-8ad5-4b1195bbc995',
+    'Pre-Qualified': '09162eec-d2b2-48e5-86d0-9e66ee8b2af7',
+    'Pre-Approved': '3cbf38ff-752e-4163-a9a3-1757499b4945'
+  };
+
+  const handlePipelineStageClick = async (stageLabel: string) => {
+    const stageId = STAGE_NAME_TO_ID[stageLabel];
+    if (!stageId || !leadId) {
+      console.error('Cannot update pipeline stage: missing stageId or leadId', { stageLabel, stageId, leadId });
+      return;
+    }
+    
+    try {
+      await databaseService.updateLead(leadId, { 
+        pipeline_stage_id: stageId 
+      });
+      
+      toast({ 
+        title: `Lead moved to ${stageLabel}`,
+        description: "Pipeline stage updated successfully"
+      });
+      
+      // Close drawer so user sees the lead move to new page
+      handleDrawerClose();
+    } catch (error) {
+      console.error('Error updating pipeline stage:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update pipeline stage",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleStageClick = (stageKey: PipelineStage) => {
     if (stageKey !== client.ops.stage) {
@@ -450,6 +489,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
                     currentStage={PIPELINE_CONFIGS[pipelineType]?.find(stage => stage.key === client.ops.stage)?.label.replace(/([a-z])([A-Z])/g, '$1 $2') || ''}
                     size="md"
+                    clickable={true}
+                    onStageClick={handlePipelineStageClick}
                   />
                 ) : (
                   <div className="flex items-center justify-center">

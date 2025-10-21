@@ -9,9 +9,13 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
+import { databaseService, type Lead as DatabaseLead } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface PendingApplication {
-  id: number;
+// Display type for table rows
+type DisplayLead = {
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -22,36 +26,7 @@ interface PendingApplication {
   submitted: string;
   processor: string;
   progress: number;
-}
-
-const pendingData: PendingApplication[] = [
-  {
-    id: 1,
-    name: "Michael Rodriguez",
-    email: "michael.r@email.com",
-    phone: "(555) 987-6543",
-    loanType: "Purchase",
-    status: "Pending",
-    loanAmount: "$450,000",
-    creditScore: 765,
-    submitted: "2024-01-15",
-    processor: "Sarah Wilson",
-    progress: 25
-  },
-  {
-    id: 2,
-    name: "Lisa Thompson",
-    email: "lisa.t@email.com",
-    phone: "(555) 876-5432",
-    loanType: "Refinance",
-    status: "Pending",
-    loanAmount: "$320,000",
-    creditScore: 710,
-    submitted: "2024-01-14",
-    processor: "Mark Johnson",
-    progress: 45
-  }
-  ];
+};
 
 // Define initial column configuration
 const initialColumns = [
@@ -67,9 +42,12 @@ const initialColumns = [
 ];
 
 export default function PendingApp() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [leads, setLeads] = useState<DatabaseLead[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Column visibility management
   const {
@@ -84,34 +62,61 @@ export default function PendingApp() {
     deleteView
   } = useColumnVisibility(initialColumns, 'pending-app-columns');
 
-  const handleRowClick = (application: PendingApplication) => {
-    // Convert PendingApplication to CRMClient for the drawer
+  // Load leads from database filtered by Pending App pipeline stage
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') // Pending App stage
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setLeads(data || []);
+      } catch (error) {
+        console.error('Error loading pending applications:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load pending applications",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeads();
+  }, [toast]);
+
+  const handleRowClick = (lead: DatabaseLead) => {
+    // Convert database Lead to CRMClient for the drawer
     const crmClient: CRMClient = {
       person: {
-        id: application.id,
-        firstName: application.name.split(' ')[0],
-        lastName: application.name.split(' ').slice(1).join(' '),
-        email: application.email,
-        phoneMobile: application.phone
+        id: Date.now(), // Placeholder numeric ID for legacy compatibility
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        email: lead.email || '',
+        phoneMobile: lead.phone || ''
       },
+      databaseId: lead.id, // Real UUID from database
       loan: {
-        loanAmount: application.loanAmount,
-        loanType: application.loanType,
+        loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0",
+        loanType: lead.loan_type || "Purchase",
         prType: "Primary Residence"
       },
       ops: {
+        status: lead.status || "Pending",
         stage: "pending-app",
-        status: application.status,
-        priority: "Medium"
+        priority: "Medium",
+        referralSource: lead.referral_source || "N/A"
       },
       dates: {
-        createdOn: application.submitted,
-        appliedOn: application.submitted
+        createdOn: new Date(lead.created_at).toLocaleDateString()
       },
       meta: {},
-      name: application.name,
-      creditScore: application.creditScore,
-      progress: application.progress
+      name: `${lead.first_name} ${lead.last_name}`
     };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
@@ -122,7 +127,22 @@ export default function PendingApp() {
     setIsDrawerOpen(false);
   };
 
-  const allColumns: ColumnDef<PendingApplication>[] = [
+  // Transform leads to display format
+  const displayData: DisplayLead[] = leads.map(lead => ({
+    id: lead.id,
+    name: `${lead.first_name} ${lead.last_name}`,
+    email: lead.email || '',
+    phone: lead.phone || '',
+    loanType: lead.loan_type || 'Purchase',
+    status: lead.status || 'Pending',
+    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
+    creditScore: 720, // Placeholder - would come from lead data if available
+    submitted: new Date(lead.created_at).toLocaleDateString(),
+    processor: 'Team',
+    progress: 25
+  }));
+
+  const allColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
       header: "Applicant",
@@ -132,7 +152,8 @@ export default function PendingApp() {
           className="cursor-pointer hover:text-primary transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(row.original);
+            const lead = leads.find(l => l.id === row.original.id);
+            if (lead) handleRowClick(lead);
           }}
         >
           {row.original.name}
@@ -229,7 +250,7 @@ export default function PendingApp() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Applications ({pendingData.length})</CardTitle>
+            <CardTitle className="text-lg">Applications ({leads.length})</CardTitle>
           </div>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
@@ -264,9 +285,12 @@ export default function PendingApp() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={pendingData}
+            data={displayData}
             searchTerm={searchTerm}
-            onRowClick={() => {}} // Disable generic row click
+            onRowClick={(row) => {
+              const lead = leads.find(l => l.id === row.id);
+              if (lead) handleRowClick(lead);
+            }}
           />
         </CardContent>
       </Card>

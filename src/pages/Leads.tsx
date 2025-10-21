@@ -212,6 +212,10 @@ export default function Leads() {
           break;
         case 'converted':
           updateData.converted = value as any;
+          // When converted to "Converted", also set pipeline_stage_id to Pending App
+          if (value === 'Converted') {
+            updateData.pipeline_stage_id = '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945'; // Pending App
+          }
           break;
         case 'leadStrength':
           updateData.lead_strength = value as any;

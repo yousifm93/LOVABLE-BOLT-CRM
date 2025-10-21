@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,13 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
-import { transformPreQualifiedToClient } from "@/utils/clientTransform";
+import { databaseService, type Lead as DatabaseLead } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface PreQualifiedClient {
-  id: number;
+// Display type for table rows
+type DisplayLead = {
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -25,40 +28,7 @@ interface PreQualifiedClient {
   qualifiedDate: string;
   expirationDate: string;
   loanOfficer: string;
-}
-
-const preQualifiedData: PreQualifiedClient[] = [
-  {
-    id: 1,
-    name: "Rachel Green",
-    email: "rachel.g@email.com",
-    phone: "(555) 654-3210",
-    loanType: "Purchase",
-    status: "Pre-Qualified",
-    loanAmount: "$500,000",
-    qualifiedAmount: "$475,000",
-    creditScore: 780,
-    dti: 28,
-    qualifiedDate: "2024-01-05",
-    expirationDate: "2024-04-05",
-    loanOfficer: "John Smith"
-  },
-  {
-    id: 2,
-    name: "Tom Wilson",
-    email: "tom.w@email.com",
-    phone: "(555) 765-4321",
-    loanType: "Purchase",
-    status: "Pre-Qualified",
-    loanAmount: "$425,000",
-    qualifiedAmount: "$400,000",
-    creditScore: 745,
-    dti: 32,
-    qualifiedDate: "2024-01-03",
-    expirationDate: "2024-04-03",
-    loanOfficer: "Emily Davis"
-  }
-];
+};
 
 // Define initial column configuration
 const initialColumns = [
@@ -74,9 +44,12 @@ const initialColumns = [
 ];
 
 export default function PreQualified() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [leads, setLeads] = useState<DatabaseLead[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Column visibility management
   const {
@@ -91,18 +64,88 @@ export default function PreQualified() {
     deleteView
   } = useColumnVisibility(initialColumns, 'pre-qualified-columns');
 
-  const handleRowClick = (client: PreQualifiedClient) => {
-    const crmClient = transformPreQualifiedToClient(client);
+  // Load leads from database filtered by Pre-Qualified pipeline stage
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('pipeline_stage_id', '09162eec-d2b2-48e5-86d0-9e66ee8b2af7') // Pre-Qualified stage
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setLeads(data || []);
+      } catch (error) {
+        console.error('Error loading pre-qualified clients:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load pre-qualified clients",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeads();
+  }, [toast]);
+
+  const handleRowClick = (lead: DatabaseLead) => {
+    const crmClient: CRMClient = {
+      person: {
+        id: Date.now(),
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        email: lead.email || '',
+        phoneMobile: lead.phone || ''
+      },
+      databaseId: lead.id,
+      loan: {
+        loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0",
+        loanType: lead.loan_type || "Purchase",
+        prType: "Primary Residence"
+      },
+      ops: {
+        status: lead.status || "Pre-Qualified",
+        stage: "pre-qualified",
+        priority: "Medium",
+        referralSource: lead.referral_source || "N/A"
+      },
+      dates: {
+        createdOn: new Date(lead.created_at).toLocaleDateString()
+      },
+      meta: {},
+      name: `${lead.first_name} ${lead.last_name}`
+    };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
   };
 
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
-    console.log(`Client ${clientId} moved to stage ${newStage}`);
+    console.log(`Moving client ${clientId} to stage ${newStage}`);
     setIsDrawerOpen(false);
   };
 
-  const allColumns: ColumnDef<PreQualifiedClient>[] = [
+  // Transform leads to display format
+  const displayData: DisplayLead[] = leads.map(lead => ({
+    id: lead.id,
+    name: `${lead.first_name} ${lead.last_name}`,
+    email: lead.email || '',
+    phone: lead.phone || '',
+    loanType: lead.loan_type || 'Purchase',
+    status: lead.status || 'Pre-Qualified',
+    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
+    qualifiedAmount: lead.loan_amount ? `$${(lead.loan_amount * 0.95).toLocaleString()}` : '$0',
+    creditScore: 750,
+    dti: 30,
+    qualifiedDate: new Date(lead.created_at).toLocaleDateString(),
+    expirationDate: new Date(new Date(lead.created_at).setMonth(new Date(lead.created_at).getMonth() + 3)).toLocaleDateString(),
+    loanOfficer: 'Team'
+  }));
+
+  const allColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
       header: "Client Name",
@@ -112,7 +155,8 @@ export default function PreQualified() {
           className="cursor-pointer hover:text-primary transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(row.original);
+            const lead = leads.find(l => l.id === row.original.id);
+            if (lead) handleRowClick(lead);
           }}
         >
           {row.original.name}
@@ -143,13 +187,12 @@ export default function PreQualified() {
     {
       accessorKey: "qualifiedAmount",
       header: "Qualified Amount",
-      sortable: true,
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium text-success">{row.original.qualifiedAmount}</div>
-          <div className="text-xs text-muted-foreground">Requested: {row.original.loanAmount}</div>
-        </div>
+        <span className="font-medium text-success">
+          {row.original.qualifiedAmount}
+        </span>
       ),
+      sortable: true,
     },
     {
       accessorKey: "creditScore",
@@ -172,9 +215,9 @@ export default function PreQualified() {
       header: "DTI",
       cell: ({ row }) => (
         <span className={`font-medium ${
-          row.original.dti <= 30 
+          row.original.dti <= 36 
             ? 'text-success' 
-            : row.original.dti <= 40 
+            : row.original.dti <= 43 
             ? 'text-warning' 
             : 'text-destructive'
         }`}>
@@ -197,17 +240,21 @@ export default function PreQualified() {
       accessorKey: "expirationDate",
       header: "Expires",
       cell: ({ row }) => {
-        const expirationDate = new Date(row.original.expirationDate);
-        const today = new Date();
-        const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const expDate = new Date(row.original.expirationDate);
+        const daysUntilExpiry = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+        const isExpired = daysUntilExpiry <= 0;
         
         return (
-          <div className="flex items-center gap-1">
-            <CheckCircle className={`h-3 w-3 ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-success'}`} />
-            <span className={`text-sm ${daysUntilExpiration <= 30 ? 'text-warning' : 'text-muted-foreground'}`}>
-              {row.original.expirationDate}
-            </span>
-          </div>
+          <span className={`text-sm ${
+            isExpired ? 'text-destructive font-medium' : 
+            isExpiringSoon ? 'text-warning font-medium' : 
+            'text-muted-foreground'
+          }`}>
+            {row.original.expirationDate}
+            {isExpiringSoon && ` (${daysUntilExpiry}d)`}
+            {isExpired && ' (Expired)'}
+          </span>
         );
       },
       sortable: true,
@@ -220,21 +267,23 @@ export default function PreQualified() {
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pre-Qualified</h1>
-          <p className="text-xs italic text-muted-foreground/70">Clients who have been pre-qualified for loans</p>
+          <p className="text-xs italic text-muted-foreground/70">Clients with conditional approval</p>
         </div>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Pre-Qualified Clients</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Pre-Qualified Clients ({leads.length})</CardTitle>
+          </div>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search pre-qualified clients..."
+                placeholder="Search clients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -263,9 +312,12 @@ export default function PreQualified() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={preQualifiedData}
+            data={displayData}
             searchTerm={searchTerm}
-            onRowClick={() => {}} // Disable generic row click
+            onRowClick={(row) => {
+              const lead = leads.find(l => l.id === row.id);
+              if (lead) handleRowClick(lead);
+            }}
           />
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Phone, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,13 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
+import { databaseService, type Lead as DatabaseLead } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface ScreeningClient {
-  id: number;
+// Display type for table rows
+type DisplayLead = {
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -23,38 +27,7 @@ interface ScreeningClient {
   screeningDate: string;
   nextStep: string;
   priority: "High" | "Medium" | "Low";
-}
-
-const screeningData: ScreeningClient[] = [
-  {
-    id: 1,
-    name: "Jessica Lee",
-    email: "jessica.l@email.com",
-    phone: "(555) 321-9876",
-    loanType: "Purchase",
-    status: "Screening",
-    loanAmount: "$475,000",
-    creditScore: 790,
-    incomeType: "W2",
-    screeningDate: "2024-01-10",
-    nextStep: "Income Verification",
-    priority: "High"
-  },
-  {
-    id: 2,
-    name: "David Park",
-    email: "david.p@email.com",
-    phone: "(555) 432-1098",
-    loanType: "Refinance",
-    status: "Screening",
-    loanAmount: "$350,000",
-    creditScore: 725,
-    incomeType: "Self-Employed",
-    screeningDate: "2024-01-09",
-    nextStep: "Asset Verification",
-    priority: "Medium"
-  }
-];
+};
 
 // Define initial column configuration
 const initialColumns = [
@@ -70,9 +43,12 @@ const initialColumns = [
 ];
 
 export default function Screening() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [leads, setLeads] = useState<DatabaseLead[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Column visibility management
   const {
@@ -87,35 +63,60 @@ export default function Screening() {
     deleteView
   } = useColumnVisibility(initialColumns, 'screening-columns');
 
-  const handleRowClick = (client: any) => {
-    // Convert legacy data to CRMClient format for the drawer
+  // Load leads from database filtered by Screening pipeline stage
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setLeads(data || []);
+      } catch (error) {
+        console.error('Error loading screening clients:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load screening clients",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeads();
+  }, [toast]);
+
+  const handleRowClick = (lead: DatabaseLead) => {
     const crmClient: CRMClient = {
       person: {
-        id: client.id,
-        firstName: client.name.split(' ')[0],
-        lastName: client.name.split(' ')[1] || '',
-        email: client.email,
-        phoneMobile: client.phone
+        id: Date.now(),
+        firstName: lead.first_name,
+        lastName: lead.last_name,
+        email: lead.email || '',
+        phoneMobile: lead.phone || ''
       },
+      databaseId: lead.id,
       loan: {
-        loanAmount: client.loanAmount,
-        loanType: client.loanType,
-        prType: client.pr || "Primary Residence"
+        loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0",
+        loanType: lead.loan_type || "Purchase",
+        prType: "Primary Residence"
       },
       ops: {
+        status: lead.status || "Screening",
         stage: "screening",
-        status: client.status,
-        priority: client.priority
+        priority: "Medium",
+        referralSource: lead.referral_source || "N/A"
       },
       dates: {
-        createdOn: client.screeningDate,
-        appliedOn: client.screeningDate
+        createdOn: new Date(lead.created_at).toLocaleDateString()
       },
       meta: {},
-      name: client.name,
-      creditScore: client.creditScore,
-      incomeType: client.incomeType,
-      nextStep: client.nextStep
+      name: `${lead.first_name} ${lead.last_name}`
     };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
@@ -126,7 +127,23 @@ export default function Screening() {
     setIsDrawerOpen(false);
   };
 
-  const allColumns: ColumnDef<ScreeningClient>[] = [
+  // Transform leads to display format
+  const displayData: DisplayLead[] = leads.map(lead => ({
+    id: lead.id,
+    name: `${lead.first_name} ${lead.last_name}`,
+    email: lead.email || '',
+    phone: lead.phone || '',
+    loanType: lead.loan_type || 'Purchase',
+    status: lead.status || 'Screening',
+    loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0',
+    creditScore: 725,
+    incomeType: 'W2',
+    screeningDate: new Date(lead.created_at).toLocaleDateString(),
+    nextStep: 'Income Verification',
+    priority: 'Medium' as const
+  }));
+
+  const allColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
       header: "Client Name",
@@ -136,7 +153,8 @@ export default function Screening() {
           className="cursor-pointer hover:text-primary transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            handleRowClick(row.original);
+            const lead = leads.find(l => l.id === row.original.id);
+            if (lead) handleRowClick(lead);
           }}
         >
           {row.original.name}
@@ -193,18 +211,14 @@ export default function Screening() {
     {
       accessorKey: "priority",
       header: "Priority",
-      cell: ({ row }) => (
-        <StatusBadge 
-          status={row.original.priority} 
-        />
-      ),
+      cell: ({ row }) => <StatusBadge status={row.original.priority} />,
       sortable: true,
     },
     {
       accessorKey: "nextStep",
       header: "Next Step",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Clock className="h-3 w-3 text-muted-foreground" />
           <span className="text-sm">{row.original.nextStep}</span>
         </div>
@@ -222,22 +236,24 @@ export default function Screening() {
   const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
 
   return (
-    <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold text-foreground">Screening</h1>
-        <p className="text-xs italic text-muted-foreground/70">Initial application review and verification</p>
+    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Screening</h1>
+          <p className="text-xs italic text-muted-foreground/70">Initial verification and qualification</p>
+        </div>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Clients ({screeningData.length})</CardTitle>
+            <CardTitle className="text-lg">Screening Clients ({leads.length})</CardTitle>
           </div>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search screening clients..."
+                placeholder="Search clients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -266,9 +282,12 @@ export default function Screening() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={screeningData}
+            data={displayData}
             searchTerm={searchTerm}
-            onRowClick={() => {}} // Disable generic row click
+            onRowClick={(row) => {
+              const lead = leads.find(l => l.id === row.id);
+              if (lead) handleRowClick(lead);
+            }}
           />
         </CardContent>
       </Card>

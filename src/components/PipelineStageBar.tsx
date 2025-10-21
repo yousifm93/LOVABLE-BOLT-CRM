@@ -8,13 +8,17 @@ interface PipelineStageBarProps {
   currentStage: string;
   size?: Size;
   className?: string;
+  clickable?: boolean;
+  onStageClick?: (stage: string) => void;
 }
 
 export function PipelineStageBar({
   stages,
   currentStage,
   size = 'md',
-  className = ''
+  className = '',
+  clickable = false,
+  onStageClick
 }: PipelineStageBarProps) {
   const sizeClasses =
     size === 'lg'
@@ -38,9 +42,11 @@ export function PipelineStageBar({
                 first ? '' : 'border-l-0',
                 sizeClasses,
                 'px-2 uppercase font-semibold tracking-[0.015em] whitespace-nowrap',
-                active ? 'bg-[#F5C400]' : 'bg-white'
+                active ? 'bg-[#F5C400]' : 'bg-white',
+                clickable && 'cursor-pointer transition-colors hover:bg-[#F5C400]/60'
               )}
               aria-current={active ? 'step' : undefined}
+              onClick={() => clickable && onStageClick?.(label)}
             >
               {label}
             </div>
