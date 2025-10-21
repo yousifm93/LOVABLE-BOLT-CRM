@@ -19,7 +19,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
-import { formatCurrency, formatDateShort } from "@/utils/formatters";
+import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -254,7 +254,11 @@ export default function Leads() {
       // Map field names to database columns
       switch (field) {
         case 'phone':
-          updateData.phone = value as string;
+          // Normalize phone: strip all non-digits, then format for storage
+          const cleanPhone = value ? (value as string).replace(/\D/g, '') : '';
+          updateData.phone = cleanPhone.length === 10 
+            ? `(${cleanPhone.slice(0, 3)}) ${cleanPhone.slice(3, 6)}-${cleanPhone.slice(6)}`
+            : value as string;
           break;
         case 'email':
           updateData.email = value as string;
@@ -282,13 +286,15 @@ export default function Leads() {
           updateData.lead_strength = value as any;
           break;
         case 'due_date':
-          // Due dates are handled via tasks, not directly on leads
-          toast({
-            title: "Due date update",
-            description: "Due date management coming soon",
-          });
-          setIsUpdating(null);
-          return;
+          if (value === undefined || value === null) {
+            updateData.task_eta = null;
+          } else {
+            // Convert Date to ISO string for database
+            updateData.task_eta = value instanceof Date 
+              ? value.toISOString().split('T')[0]  // YYYY-MM-DD format
+              : value;
+          }
+          break;
         default:
           setIsUpdating(null);
           return;
@@ -445,7 +451,7 @@ export default function Leads() {
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditText
-            value={row.original.phone}
+            value={formatPhone(row.original.phone)}
             onValueChange={(value) =>
               handleFieldUpdate(row.original.id, "phone", value)
             }
