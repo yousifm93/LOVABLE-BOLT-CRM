@@ -38,6 +38,7 @@ import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
+  { title: "TEST", url: "/test", icon: FileText },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
 ];
 
