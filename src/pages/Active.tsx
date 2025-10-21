@@ -517,6 +517,14 @@ export default function Active() {
     reorderColumns
   } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
 
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
   // Filter configuration
   const filterColumns = [
     { value: 'borrower_name', label: 'Borrower', type: 'text' as const },
@@ -740,8 +748,9 @@ export default function Active() {
   const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
   
   // Filter columns based on visibility settings
-  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
-  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+  const columns = visibleColumns
+    .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<ActiveLoan> => col !== undefined);
 
   // Group loans by pipeline section and apply filters
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
@@ -818,6 +827,7 @@ export default function Active() {
           onToggleAll={toggleAll}
           onSaveView={saveView}
           onReorderColumns={reorderColumns}
+          onViewSaved={handleViewSaved}
         />
         
         <ViewPills

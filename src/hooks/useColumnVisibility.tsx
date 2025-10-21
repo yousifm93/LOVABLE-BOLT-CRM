@@ -9,6 +9,7 @@ interface Column {
 interface View {
   name: string;
   columns: Record<string, boolean>;
+  order: string[];
 }
 
 export function useColumnVisibility(initialColumns: Column[], storageKey: string = 'columnVisibility') {
@@ -87,7 +88,8 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
       columns: columns.reduce((acc, col) => {
         acc[col.id] = col.visible;
         return acc;
-      }, {} as Record<string, boolean>)
+      }, {} as Record<string, boolean>),
+      order: columns.map(col => col.id)
     };
 
     const updatedViews = [...views.filter(v => v.name !== viewName), newView];
@@ -98,10 +100,28 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
   const loadView = (viewName: string) => {
     const view = views.find(v => v.name === viewName);
     if (view) {
-      setColumns(prev => prev.map(col => ({
-        ...col,
-        visible: view.columns[col.id] !== undefined ? view.columns[col.id] : col.visible
-      })));
+      // If view has order, restore order first
+      if (view.order) {
+        const orderedColumns = view.order
+          .map(id => columns.find(col => col.id === id))
+          .filter((col): col is Column => col !== undefined);
+        
+        // Add any new columns that weren't in the saved order
+        const existingIds = new Set(view.order);
+        const newColumns = columns.filter(col => !existingIds.has(col.id));
+        const allOrderedColumns = [...orderedColumns, ...newColumns];
+        
+        setColumns(allOrderedColumns.map(col => ({
+          ...col,
+          visible: view.columns[col.id] !== undefined ? view.columns[col.id] : col.visible
+        })));
+      } else {
+        // Fallback for old views without order
+        setColumns(prev => prev.map(col => ({
+          ...col,
+          visible: view.columns[col.id] !== undefined ? view.columns[col.id] : col.visible
+        })));
+      }
       setActiveView(viewName);
     }
   };

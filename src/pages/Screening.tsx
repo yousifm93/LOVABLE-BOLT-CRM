@@ -74,6 +74,14 @@ export default function Screening() {
     reorderColumns
   } = useColumnVisibility(initialColumns, 'screening-columns');
 
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
   // Load leads from database filtered by Screening pipeline stage
   const fetchLeads = async () => {
     try {
@@ -247,8 +255,9 @@ export default function Screening() {
   ];
 
   // Filter columns based on visibility settings
-  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
-  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+  const columns = visibleColumns
+    .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<DisplayLead> => col !== undefined);
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -279,13 +288,14 @@ export default function Screening() {
               Filter
             </Button>
             
-            <ColumnVisibilityButton
-              columns={columnVisibility}
-              onColumnToggle={toggleColumn}
-              onToggleAll={toggleAll}
-              onSaveView={saveView}
-              onReorderColumns={reorderColumns}
-            />
+              <ColumnVisibilityButton
+                columns={columnVisibility}
+                onColumnToggle={toggleColumn}
+                onToggleAll={toggleAll}
+                onSaveView={saveView}
+                onReorderColumns={reorderColumns}
+                onViewSaved={handleViewSaved}
+              />
             
             <ViewPills
               views={views}

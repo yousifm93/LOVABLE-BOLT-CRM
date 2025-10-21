@@ -38,6 +38,7 @@ interface ColumnVisibilityModalProps {
   onToggleAll: (visible: boolean) => void;
   onSaveView: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
+  onViewSaved?: (viewName: string) => void;
 }
 
 interface SortableColumnItemProps {
@@ -98,7 +99,8 @@ export function ColumnVisibilityModal({
   onColumnToggle,
   onToggleAll,
   onSaveView,
-  onReorderColumns
+  onReorderColumns,
+  onViewSaved
 }: ColumnVisibilityModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewName, setViewName] = useState("");
@@ -120,6 +122,7 @@ export function ColumnVisibilityModal({
   const handleSaveView = () => {
     if (viewName.trim()) {
       onSaveView(viewName.trim());
+      onViewSaved?.(viewName.trim());
       setViewName("");
     }
   };

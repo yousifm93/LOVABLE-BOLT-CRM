@@ -165,6 +165,14 @@ export default function Leads() {
     reorderColumns
   } = useColumnVisibility(initialColumns, 'leads-columns');
 
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
   // Load filters from localStorage on mount
   useEffect(() => {
     const savedFilters = localStorage.getItem('leads-filters');
@@ -538,8 +546,9 @@ export default function Leads() {
   ];
 
   // Filter columns based on visibility settings
-  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
-  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+  const columns = visibleColumns
+    .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<Lead> => col !== undefined);
 
   // Load leads on component mount with cleanup
   useEffect(() => {
@@ -741,13 +750,14 @@ export default function Leads() {
               </PopoverContent>
             </Popover>
             
-            <ColumnVisibilityButton
-              columns={columnVisibility}
-              onColumnToggle={toggleColumn}
-              onToggleAll={toggleAll}
-              onSaveView={saveView}
-              onReorderColumns={reorderColumns}
-            />
+                <ColumnVisibilityButton
+                  columns={columnVisibility}
+                  onColumnToggle={toggleColumn}
+                  onToggleAll={toggleAll}
+                  onSaveView={saveView}
+                  onReorderColumns={reorderColumns}
+                  onViewSaved={handleViewSaved}
+                />
             
             <ViewPills
               views={views}

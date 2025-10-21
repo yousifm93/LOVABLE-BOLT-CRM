@@ -15,6 +15,7 @@ interface ColumnVisibilityButtonProps {
   onToggleAll: (visible: boolean) => void;
   onSaveView: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
+  onViewSaved?: (viewName: string) => void;
 }
 
 export function ColumnVisibilityButton({
@@ -22,7 +23,8 @@ export function ColumnVisibilityButton({
   onColumnToggle,
   onToggleAll,
   onSaveView,
-  onReorderColumns
+  onReorderColumns,
+  onViewSaved
 }: ColumnVisibilityButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -49,6 +51,7 @@ export function ColumnVisibilityButton({
         onToggleAll={onToggleAll}
         onSaveView={onSaveView}
         onReorderColumns={onReorderColumns}
+        onViewSaved={onViewSaved}
       />
     </>
   );

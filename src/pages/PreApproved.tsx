@@ -128,6 +128,14 @@ export default function PreApproved() {
 
   const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
   const fetchLeads = async () => {
     const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
     if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
@@ -183,8 +191,9 @@ export default function PreApproved() {
 
   const allColumns: ColumnDef<DisplayLead>[] = [{ accessorKey: "name", header: "Client Name", sortable: true, cell: ({ row }) => <span className="cursor-pointer hover:text-primary" onClick={(e) => { e.stopPropagation(); const lead = leads.find(l => l.id === row.original.id); if (lead) handleRowClick(lead); }}>{row.original.name}</span> }, { accessorKey: "contact", header: "Contact", cell: ({ row }) => <div className="flex gap-3"><Mail className="h-3 w-3 mr-1" /><span>{row.original.email}</span></div> }, { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> }, { accessorKey: "approvedAmount", header: "Approved Amount", cell: ({ row }) => <span className="font-medium text-success">{row.original.approvedAmount}</span>, sortable: true }, { accessorKey: "creditScore", header: "Credit Score", sortable: true }];
 
-  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
-  const columns = allColumns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+  const columns = visibleColumns
+    .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<DisplayLead> => col !== undefined);
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -194,7 +203,7 @@ export default function PreApproved() {
           <CardTitle>Pre-Approved Clients ({leads.length})</CardTitle>
           <div className="flex gap-2">
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
-            <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} />
+            <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} onViewSaved={handleViewSaved} />
             <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />
           </div>
         </CardHeader>

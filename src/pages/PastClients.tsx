@@ -10,6 +10,7 @@ import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { transformPastClientToClient } from "@/utils/clientTransform";
+import { useToast } from "@/hooks/use-toast";
 
 interface PastClient {
   id: number;
@@ -264,6 +265,16 @@ export default function PastClients() {
     reorderColumns
   } = useColumnVisibility(initialColumns, 'past-clients-columns');
 
+  const { toast } = useToast();
+
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
   const handleRowClick = (client: PastClient) => {
     const crmClient = transformPastClientToClient(client);
     setSelectedClient(crmClient);
@@ -276,8 +287,9 @@ export default function PastClients() {
   };
 
   // Filter columns based on visibility settings
-  const visibleColumnIds = new Set(visibleColumns.map(col => col.id));
-  const filteredColumns = columns.filter(col => visibleColumnIds.has(col.accessorKey as string));
+  const filteredColumns = visibleColumns
+    .map(visibleCol => columns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<PastClient> => col !== undefined);
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -312,6 +324,7 @@ export default function PastClients() {
               onToggleAll={toggleAll}
               onSaveView={saveView}
               onReorderColumns={reorderColumns}
+              onViewSaved={handleViewSaved}
             />
             
             <ViewPills
