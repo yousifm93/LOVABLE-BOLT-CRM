@@ -112,14 +112,18 @@ const leadStrengthOptions = [
 ];
 
 // Define initial column configuration
+// LEAD Stage columns - Only 10 fields from Excel
 const initialColumns = [
-  { id: "name", label: "Lead Name", visible: true },
-  { id: "creationDate", label: "Created", visible: true },
-  { id: "referredVia", label: "Referred Via", visible: true },
-  { id: "referralSource", label: "Referral Source", visible: true },
-  { id: "converted", label: "Status", visible: true },
-  { id: "leadStrength", label: "Lead Strength", visible: true },
-  { id: "dueDate", label: "Due Date", visible: true },
+  { id: "first_name", label: "First Name", visible: true },
+  { id: "middle_name", label: "Middle Name", visible: false },
+  { id: "last_name", label: "Last Name", visible: true },
+  { id: "phone", label: "Phone", visible: true },
+  { id: "email", label: "Email", visible: true },
+  { id: "referred_via", label: "Referral Method", visible: true },
+  { id: "referral_source", label: "Referral Source", visible: true },
+  { id: "converted", label: "Lead Status", visible: true },
+  { id: "monthly_pmt_goal", label: "Monthly Pmt Goal", visible: false },
+  { id: "cash_to_close_goal", label: "Cash to Close Goal", visible: false },
 ];
 
 export default function Leads() {

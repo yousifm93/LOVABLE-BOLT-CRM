@@ -42,6 +42,57 @@ export type LeadExternalContactInsert = Database['public']['Tables']['lead_exter
 export type LeadDate = Database['public']['Tables']['lead_dates']['Row'];
 export type LeadDateInsert = Database['public']['Tables']['lead_dates']['Insert'];
 
+// Calculate PITI (Principal, Interest, Taxes, Insurance)
+export const calculatePITI = (lead: Partial<Lead>): number | null => {
+  const pi = lead.principal_interest || 0;
+  const taxes = lead.property_taxes || 0;
+  const insurance = lead.homeowners_insurance || 0;
+  const mi = lead.mortgage_insurance || 0;
+  const hoa = lead.hoa_dues || 0;
+  
+  const total = pi + taxes + insurance + mi + hoa;
+  return total > 0 ? total : null;
+};
+
+// Calculate DTI (Debt-to-Income Ratio)
+export const calculateDTI = (lead: Partial<Lead>): number | null => {
+  const piti = calculatePITI(lead) || 0;
+  const liabilities = lead.monthly_liabilities || 0;
+  const income = lead.total_monthly_income || 0;
+  
+  if (income === 0) return null;
+  
+  const dti = ((piti + liabilities) / income) * 100;
+  return Math.round(dti * 100) / 100; // Round to 2 decimal places
+};
+
+// Validate lead data
+export const validateLead = (lead: Partial<Lead>): string[] => {
+  const errors: string[] = [];
+  
+  if (!lead.first_name?.trim()) errors.push("First name is required");
+  if (!lead.last_name?.trim()) errors.push("Last name is required");
+  
+  if (lead.estimated_fico && (lead.estimated_fico < 300 || lead.estimated_fico > 850)) {
+    errors.push("FICO score must be between 300 and 850");
+  }
+  
+  const dti = calculateDTI(lead);
+  if (dti && dti > 50) {
+    errors.push("DTI over 50% may not qualify for most loan programs");
+  }
+  
+  if (lead.loan_amount && lead.loan_amount < 0) {
+    errors.push("Loan amount cannot be negative");
+  }
+  
+  if (lead.sales_price && lead.sales_price < 0) {
+    errors.push("Sales price cannot be negative");
+  }
+  
+  return errors;
+};
+
 // Database service functions
 export const databaseService = {
   // Lead operations

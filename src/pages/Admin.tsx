@@ -11,97 +11,96 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Field definitions for all CRM areas
+// Field definitions mapped from Excel spreadsheet (71 fields total)
 const fieldDefinitions = [
-  // Leads fields
-  { id: 1, section: "Leads", fieldName: "firstName", displayName: "First Name", type: "text", required: true, visible: true },
-  { id: 2, section: "Leads", fieldName: "lastName", displayName: "Last Name", type: "text", required: true, visible: true },
-  { id: 3, section: "Leads", fieldName: "email", displayName: "Email", type: "email", required: true, visible: true },
-  { id: 4, section: "Leads", fieldName: "phone", displayName: "Phone", type: "phone", required: true, visible: true },
-  { id: 5, section: "Leads", fieldName: "loanAmount", displayName: "Loan Amount", type: "currency", required: true, visible: true },
-  { id: 6, section: "Leads", fieldName: "creditScore", displayName: "Credit Score", type: "number", required: false, visible: true },
-  { id: 7, section: "Leads", fieldName: "incomeType", displayName: "Income Type", type: "select", required: false, visible: true },
-  { id: 8, section: "Leads", fieldName: "referralSource", displayName: "Referral Source", type: "text", required: false, visible: true },
-  { id: 9, section: "Leads", fieldName: "notes", displayName: "Notes", type: "textarea", required: false, visible: true },
-  { id: 10, section: "Leads", fieldName: "leadDate", displayName: "Lead Date", type: "date", required: true, visible: true },
-
-  // Pending App fields
-  { id: 11, section: "Pending App", fieldName: "applicationDate", displayName: "Application Date", type: "date", required: true, visible: true },
-  { id: 12, section: "Pending App", fieldName: "loanType", displayName: "Loan Type", type: "select", required: true, visible: true },
-  { id: 13, section: "Pending App", fieldName: "propertyAddress", displayName: "Property Address", type: "text", required: false, visible: true },
-  { id: 14, section: "Pending App", fieldName: "purchasePrice", displayName: "Purchase Price", type: "currency", required: false, visible: true },
-  { id: 15, section: "Pending App", fieldName: "downPayment", displayName: "Down Payment", type: "currency", required: false, visible: true },
-  { id: 16, section: "Pending App", fieldName: "employmentStatus", displayName: "Employment Status", type: "select", required: false, visible: true },
-  { id: 17, section: "Pending App", fieldName: "monthlyIncome", displayName: "Monthly Income", type: "currency", required: false, visible: true },
-  { id: 18, section: "Pending App", fieldName: "assets", displayName: "Assets", type: "currency", required: false, visible: true },
-  { id: 19, section: "Pending App", fieldName: "liabilities", displayName: "Liabilities", type: "currency", required: false, visible: true },
-  { id: 20, section: "Pending App", fieldName: "applicationProgress", displayName: "Application Progress", type: "percentage", required: false, visible: true },
-
-  // Screening fields
-  { id: 21, section: "Screening", fieldName: "screeningDate", displayName: "Screening Date", type: "date", required: true, visible: true },
-  { id: 22, section: "Screening", fieldName: "creditPull", displayName: "Credit Pull", type: "select", required: false, visible: true },
-  { id: 23, section: "Screening", fieldName: "incomeVerification", displayName: "Income Verification", type: "select", required: false, visible: true },
-  { id: 24, section: "Screening", fieldName: "assetVerification", displayName: "Asset Verification", type: "select", required: false, visible: true },
-  { id: 25, section: "Screening", fieldName: "dti", displayName: "DTI Ratio", type: "percentage", required: false, visible: true },
-  { id: 26, section: "Screening", fieldName: "ltv", displayName: "LTV Ratio", type: "percentage", required: false, visible: true },
-  { id: 27, section: "Screening", fieldName: "riskLevel", displayName: "Risk Level", type: "select", required: false, visible: true },
-  { id: 28, section: "Screening", fieldName: "nextStep", displayName: "Next Step", type: "text", required: false, visible: true },
-  { id: 29, section: "Screening", fieldName: "priority", displayName: "Priority", type: "select", required: false, visible: true },
-  { id: 30, section: "Screening", fieldName: "underwriterNotes", displayName: "Underwriter Notes", type: "textarea", required: false, visible: true },
-
-  // Pre-Qualified fields
-  { id: 31, section: "Pre-Qualified", fieldName: "qualifiedDate", displayName: "Qualified Date", type: "date", required: true, visible: true },
-  { id: 32, section: "Pre-Qualified", fieldName: "qualifiedAmount", displayName: "Qualified Amount", type: "currency", required: true, visible: true },
-  { id: 33, section: "Pre-Qualified", fieldName: "interestRate", displayName: "Interest Rate", type: "percentage", required: false, visible: true },
-  { id: 34, section: "Pre-Qualified", fieldName: "loanTerm", displayName: "Loan Term", type: "number", required: false, visible: true },
-  { id: 35, section: "Pre-Qualified", fieldName: "monthlyPayment", displayName: "Monthly Payment", type: "currency", required: false, visible: true },
-  { id: 36, section: "Pre-Qualified", fieldName: "expirationDate", displayName: "Expiration Date", type: "date", required: false, visible: true },
-  { id: 37, section: "Pre-Qualified", fieldName: "conditions", displayName: "Conditions", type: "textarea", required: false, visible: true },
-  { id: 38, section: "Pre-Qualified", fieldName: "loanOfficer", displayName: "Loan Officer", type: "select", required: false, visible: true },
-  { id: 39, section: "Pre-Qualified", fieldName: "processor", displayName: "Processor", type: "select", required: false, visible: true },
-  { id: 40, section: "Pre-Qualified", fieldName: "letterSent", displayName: "Letter Sent", type: "boolean", required: false, visible: true },
-
-  // Pre-Approved fields
-  { id: 41, section: "Pre-Approved", fieldName: "approvedDate", displayName: "Approved Date", type: "date", required: true, visible: true },
-  { id: 42, section: "Pre-Approved", fieldName: "approvedAmount", displayName: "Approved Amount", type: "currency", required: true, visible: true },
-  { id: 43, section: "Pre-Approved", fieldName: "finalRate", displayName: "Final Rate", type: "percentage", required: false, visible: true },
-  { id: 44, section: "Pre-Approved", fieldName: "rateLock", displayName: "Rate Lock", type: "boolean", required: false, visible: true },
-  { id: 45, section: "Pre-Approved", fieldName: "lockExpiration", displayName: "Lock Expiration", type: "date", required: false, visible: true },
-  { id: 46, section: "Pre-Approved", fieldName: "underwriter", displayName: "Underwriter", type: "select", required: false, visible: true },
-  { id: 47, section: "Pre-Approved", fieldName: "conditions", displayName: "Conditions", type: "textarea", required: false, visible: true },
-  { id: 48, section: "Pre-Approved", fieldName: "documentChecklist", displayName: "Document Checklist", type: "checklist", required: false, visible: true },
-  { id: 49, section: "Pre-Approved", fieldName: "appraisalOrdered", displayName: "Appraisal Ordered", type: "boolean", required: false, visible: true },
-  { id: 50, section: "Pre-Approved", fieldName: "titleOrdered", displayName: "Title Ordered", type: "boolean", required: false, visible: true },
-
-  // Active fields
-  { id: 51, section: "Active", fieldName: "activationDate", displayName: "Activation Date", type: "date", required: true, visible: true },
-  { id: 52, section: "Active", fieldName: "closingDate", displayName: "Closing Date", type: "date", required: false, visible: true },
-  { id: 53, section: "Active", fieldName: "fundingDate", displayName: "Funding Date", type: "date", required: false, visible: true },
-  { id: 54, section: "Active", fieldName: "progress", displayName: "Progress", type: "percentage", required: false, visible: true },
-  { id: 55, section: "Active", fieldName: "currentStage", displayName: "Current Stage", type: "select", required: false, visible: true },
-  { id: 56, section: "Active", fieldName: "daysToClosing", displayName: "Days to Closing", type: "number", required: false, visible: true },
-  { id: 57, section: "Active", fieldName: "closingCosts", displayName: "Closing Costs", type: "currency", required: false, visible: true },
-  { id: 58, section: "Active", fieldName: "titleCompany", displayName: "Title Company", type: "text", required: false, visible: true },
-  { id: 59, section: "Active", fieldName: "realtor", displayName: "Realtor", type: "text", required: false, visible: true },
-  { id: 60, section: "Active", fieldName: "finalWalkthrough", displayName: "Final Walkthrough", type: "date", required: false, visible: true },
-
-  // Past Clients fields
-  { id: 61, section: "Past Clients", fieldName: "closedDate", displayName: "Closed Date", type: "date", required: true, visible: true },
-  { id: 62, section: "Past Clients", fieldName: "finalLoanAmount", displayName: "Final Loan Amount", type: "currency", required: true, visible: true },
-  { id: 63, section: "Past Clients", fieldName: "finalRate", displayName: "Final Rate", type: "percentage", required: true, visible: true },
-  { id: 64, section: "Past Clients", fieldName: "satisfaction", displayName: "Satisfaction", type: "rating", required: false, visible: true },
-  { id: 65, section: "Past Clients", fieldName: "referrals", displayName: "Referrals Generated", type: "number", required: false, visible: true },
-  { id: 66, section: "Past Clients", fieldName: "lastContact", displayName: "Last Contact", type: "date", required: false, visible: true },
-  { id: 67, section: "Past Clients", fieldName: "reviewLeft", displayName: "Review Left", type: "boolean", required: false, visible: true },
-  { id: 68, section: "Past Clients", fieldName: "followUpScheduled", displayName: "Follow-up Scheduled", type: "boolean", required: false, visible: true },
-  { id: 69, section: "Past Clients", fieldName: "anniversaryDate", displayName: "Anniversary Date", type: "date", required: false, visible: true },
-  { id: 70, section: "Past Clients", fieldName: "clientType", displayName: "Client Type", type: "select", required: false, visible: true }
+  // LEAD Fields (1-10) - Used at: LEAD stage
+  { id: 1, section: "LEAD", fieldName: "first_name", displayName: "First Name", type: "text", required: true, visible: true },
+  { id: 2, section: "LEAD", fieldName: "middle_name", displayName: "Middle Name", type: "text", required: false, visible: true },
+  { id: 3, section: "LEAD", fieldName: "last_name", displayName: "Last Name", type: "text", required: true, visible: true },
+  { id: 4, section: "LEAD", fieldName: "phone", displayName: "Phone", type: "phone", required: true, visible: true },
+  { id: 5, section: "LEAD", fieldName: "email", displayName: "Email", type: "email", required: true, visible: true },
+  { id: 6, section: "LEAD", fieldName: "referred_via", displayName: "Referral Method", type: "select", required: false, visible: true },
+  { id: 7, section: "LEAD", fieldName: "referral_source", displayName: "Referral Source", type: "select", required: false, visible: true },
+  { id: 8, section: "LEAD", fieldName: "converted", displayName: "Lead Status", type: "select", required: false, visible: true },
+  { id: 9, section: "LEAD", fieldName: "monthly_pmt_goal", displayName: "Monthly Pmt Goal", type: "currency", required: false, visible: true },
+  { id: 10, section: "LEAD", fieldName: "cash_to_close_goal", displayName: "Cash to Close Goal", type: "currency", required: false, visible: true },
+  
+  // APP COMPLETE Fields (11-33) - Used at: APP COMPLETE stage
+  { id: 11, section: "APP COMPLETE", fieldName: "loan_type", displayName: "Loan Type", type: "select", required: false, visible: true },
+  { id: 12, section: "APP COMPLETE", fieldName: "income_type", displayName: "Income Type", type: "select", required: false, visible: true },
+  { id: 13, section: "APP COMPLETE", fieldName: "reo", displayName: "REO", type: "boolean", required: false, visible: true },
+  { id: 14, section: "APP COMPLETE", fieldName: "property_type", displayName: "Property Type", type: "select", required: false, visible: true },
+  { id: 15, section: "APP COMPLETE", fieldName: "occupancy", displayName: "Occupancy", type: "select", required: false, visible: true },
+  { id: 16, section: "APP COMPLETE", fieldName: "borrower_current_address", displayName: "Borrower Current Address", type: "text", required: false, visible: true },
+  { id: 17, section: "APP COMPLETE", fieldName: "own_rent_current_address", displayName: "Own/Rent", type: "select", required: false, visible: true },
+  { id: 18, section: "APP COMPLETE", fieldName: "time_at_current_address_years", displayName: "Time at Address (Years)", type: "number", required: false, visible: true },
+  { id: 19, section: "APP COMPLETE", fieldName: "time_at_current_address_months", displayName: "Time at Address (Months)", type: "number", required: false, visible: true },
+  { id: 20, section: "APP COMPLETE", fieldName: "military_veteran", displayName: "Military/Veteran", type: "boolean", required: false, visible: true },
+  { id: 21, section: "APP COMPLETE", fieldName: "dob", displayName: "Date of Birth", type: "date", required: false, visible: true },
+  { id: 22, section: "APP COMPLETE", fieldName: "estimated_fico", displayName: "Estimated FICO", type: "number", required: false, visible: true },
+  { id: 23, section: "APP COMPLETE", fieldName: "loan_amount", displayName: "Loan Amount", type: "currency", required: false, visible: true },
+  { id: 24, section: "APP COMPLETE", fieldName: "sales_price", displayName: "Sales Price", type: "currency", required: false, visible: true },
+  { id: 25, section: "APP COMPLETE", fieldName: "down_pmt", displayName: "Down Pmt", type: "text", required: false, visible: true },
+  { id: 26, section: "APP COMPLETE", fieldName: "term", displayName: "Term (Amortization)", type: "number", required: false, visible: true },
+  { id: 27, section: "APP COMPLETE", fieldName: "monthly_liabilities", displayName: "Stated Liabilities", type: "currency", required: false, visible: true },
+  { id: 28, section: "APP COMPLETE", fieldName: "assets", displayName: "Assets", type: "currency", required: false, visible: true },
+  { id: 29, section: "APP COMPLETE", fieldName: "subject_address_1", displayName: "Subject Address 1", type: "text", required: false, visible: true },
+  { id: 30, section: "APP COMPLETE", fieldName: "subject_address_2", displayName: "Subject Address 2", type: "text", required: false, visible: true },
+  { id: 31, section: "APP COMPLETE", fieldName: "subject_city", displayName: "Subject City", type: "text", required: false, visible: true },
+  { id: 32, section: "APP COMPLETE", fieldName: "subject_state", displayName: "Subject State", type: "text", required: false, visible: true },
+  { id: 33, section: "APP COMPLETE", fieldName: "subject_zip", displayName: "Subject Zip", type: "text", required: false, visible: true },
+  { id: 34, section: "APP COMPLETE", fieldName: "arrive_loan_number", displayName: "Arrive Loan #", type: "number", required: false, visible: true },
+  
+  // APP REVIEW Fields (35-41, 68-72) - Used at: APP REVIEW stage
+  { id: 35, section: "APP REVIEW", fieldName: "interest_rate", displayName: "Interest Rate", type: "percentage", required: false, visible: true },
+  { id: 36, section: "APP REVIEW", fieldName: "piti", displayName: "PITI", type: "currency", required: false, visible: true },
+  { id: 37, section: "APP REVIEW", fieldName: "program", displayName: "Program", type: "text", required: false, visible: true },
+  { id: 38, section: "APP REVIEW", fieldName: "total_monthly_income", displayName: "Total Monthly Income", type: "currency", required: false, visible: true },
+  { id: 39, section: "APP REVIEW", fieldName: "escrows", displayName: "Escrows", type: "select", required: false, visible: true },
+  { id: 40, section: "APP REVIEW", fieldName: "dti", displayName: "DTI", type: "percentage", required: false, visible: true },
+  { id: 41, section: "APP REVIEW", fieldName: "close_date", displayName: "Close Date", type: "date", required: false, visible: true },
+  { id: 68, section: "APP REVIEW", fieldName: "principal_interest", displayName: "Principal & Interest", type: "currency", required: false, visible: true },
+  { id: 69, section: "APP REVIEW", fieldName: "property_taxes", displayName: "Property Taxes", type: "currency", required: false, visible: true },
+  { id: 70, section: "APP REVIEW", fieldName: "homeowners_insurance", displayName: "Homeowners Insurance", type: "currency", required: false, visible: true },
+  { id: 71, section: "APP REVIEW", fieldName: "mortgage_insurance", displayName: "Mortgage Insurance", type: "currency", required: false, visible: true },
+  { id: 72, section: "APP REVIEW", fieldName: "hoa_dues", displayName: "HOA Dues", type: "currency", required: false, visible: true },
+  
+  // ACTIVE Fields (42-67) - Used at: ACTIVE stage
+  { id: 42, section: "ACTIVE", fieldName: "disclosure_status", displayName: "Disclosures", type: "select", required: false, visible: true },
+  { id: 43, section: "ACTIVE", fieldName: "loan_status", displayName: "Loan Status", type: "select", required: false, visible: true },
+  { id: 44, section: "ACTIVE", fieldName: "appraisal_status", displayName: "Appraisal Status", type: "select", required: false, visible: true },
+  { id: 45, section: "ACTIVE", fieldName: "title_status", displayName: "Title Status", type: "select", required: false, visible: true },
+  { id: 46, section: "ACTIVE", fieldName: "hoi_status", displayName: "HOI Status", type: "select", required: false, visible: true },
+  { id: 47, section: "ACTIVE", fieldName: "mi_status", displayName: "MI Status", type: "select", required: false, visible: true },
+  { id: 48, section: "ACTIVE", fieldName: "condo_status", displayName: "Condo Status", type: "select", required: false, visible: true },
+  { id: 49, section: "ACTIVE", fieldName: "cd_status", displayName: "CD Status", type: "select", required: false, visible: true },
+  { id: 50, section: "ACTIVE", fieldName: "package_status", displayName: "Package Status", type: "select", required: false, visible: true },
+  { id: 51, section: "ACTIVE", fieldName: "lock_expiration_date", displayName: "Lock Expiration", type: "date", required: false, visible: true },
+  { id: 52, section: "ACTIVE", fieldName: "ba_status", displayName: "BA Status", type: "select", required: false, visible: true },
+  { id: 53, section: "ACTIVE", fieldName: "epo_status", displayName: "EPO Status", type: "select", required: false, visible: true },
+  { id: 54, section: "ACTIVE", fieldName: "lender_id", displayName: "Lender", type: "select", required: false, visible: true },
+  { id: 55, section: "ACTIVE", fieldName: "title_eta", displayName: "Title ETA", type: "date", required: false, visible: true },
+  { id: 56, section: "ACTIVE", fieldName: "appr_date_time", displayName: "Appraisal Date/Time", type: "datetime", required: false, visible: true },
+  { id: 57, section: "ACTIVE", fieldName: "appr_eta", displayName: "Appraisal ETA", type: "date", required: false, visible: true },
+  { id: 58, section: "ACTIVE", fieldName: "appraisal_value", displayName: "Appraisal Value", type: "text", required: false, visible: true },
+  { id: 59, section: "ACTIVE", fieldName: "fin_cont", displayName: "Financing Contingency", type: "date", required: false, visible: true },
+  { id: 60, section: "ACTIVE", fieldName: "les_file", displayName: "LES File", type: "file", required: false, visible: true },
+  { id: 61, section: "ACTIVE", fieldName: "contract_file", displayName: "Contract File", type: "file", required: false, visible: true },
+  { id: 62, section: "ACTIVE", fieldName: "initial_approval_file", displayName: "Initial Approval File", type: "file", required: false, visible: true },
+  { id: 63, section: "ACTIVE", fieldName: "disc_file", displayName: "Disclosures File", type: "file", required: false, visible: true },
+  { id: 64, section: "ACTIVE", fieldName: "appraisal_file", displayName: "Appraisal File", type: "file", required: false, visible: true },
+  { id: 65, section: "ACTIVE", fieldName: "insurance_file", displayName: "Insurance File", type: "file", required: false, visible: true },
+  { id: 66, section: "ACTIVE", fieldName: "icd_file", displayName: "ICD File", type: "file", required: false, visible: true },
+  { id: 67, section: "ACTIVE", fieldName: "fcp_file", displayName: "FCP File", type: "file", required: false, visible: true },
+  
+  // Additional field
+  { id: 73, section: "ACTIVE", fieldName: "search_stage", displayName: "Search Stage", type: "text", required: false, visible: true }
 ];
 
 const systemStats = [
   { label: "Total Records", value: "1,247", icon: Database, color: "text-primary" },
   { label: "Active Users", value: "23", icon: Users, color: "text-success" },
-  { label: "Custom Fields", value: "70", icon: FileText, color: "text-warning" },
+  { label: "Custom Fields", value: "73", icon: FileText, color: "text-warning" },
   { label: "System Health", value: "98%", icon: BarChart3, color: "text-info" },
 ];
 
@@ -211,9 +210,11 @@ export default function Admin() {
                       <SelectItem value="currency">Currency</SelectItem>
                       <SelectItem value="percentage">Percentage</SelectItem>
                       <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="datetime">DateTime</SelectItem>
                       <SelectItem value="boolean">Boolean</SelectItem>
                       <SelectItem value="select">Select</SelectItem>
                       <SelectItem value="textarea">Textarea</SelectItem>
+                      <SelectItem value="file">File</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
