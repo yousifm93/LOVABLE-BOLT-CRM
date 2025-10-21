@@ -275,6 +275,14 @@ export default function PastClients() {
     loadView(viewName);
   };
 
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    reorderColumns(oldIndex, newIndex);
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   const handleRowClick = (client: PastClient) => {
     const crmClient = transformPastClientToClient(client);
     setSelectedClient(crmClient);
@@ -341,6 +349,7 @@ export default function PastClients() {
             data={pastClientsData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            onColumnReorder={handleColumnReorder}
           />
         </CardContent>
       </Card>

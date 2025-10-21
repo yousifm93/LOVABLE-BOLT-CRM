@@ -525,6 +525,14 @@ export default function Active() {
     loadView(viewName);
   };
 
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    reorderColumns(oldIndex, newIndex);
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   // Filter configuration
   const filterColumns = [
     { value: 'borrower_name', label: 'Borrower', type: 'text' as const },
@@ -870,6 +878,7 @@ export default function Active() {
           onViewDetails={handleViewDetails}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onColumnReorder={handleColumnReorder}
         />
         
         <CollapsiblePipelineSection
@@ -882,6 +891,7 @@ export default function Active() {
           onViewDetails={handleViewDetails}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onColumnReorder={handleColumnReorder}
         />
         
         <CollapsiblePipelineSection
@@ -894,6 +904,7 @@ export default function Active() {
           onViewDetails={handleViewDetails}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onColumnReorder={handleColumnReorder}
         />
       </div>
 

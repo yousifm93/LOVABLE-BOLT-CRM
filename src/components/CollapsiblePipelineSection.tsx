@@ -16,6 +16,7 @@ interface CollapsiblePipelineSectionProps {
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
   onRowClick?: (row: any) => void;
+  onColumnReorder?: (oldIndex: number, newIndex: number) => void;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -28,7 +29,8 @@ export function CollapsiblePipelineSection({
   onViewDetails,
   onEdit,
   onDelete,
-  onRowClick
+  onRowClick,
+  onColumnReorder
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -67,6 +69,7 @@ export function CollapsiblePipelineSection({
             onViewDetails={onViewDetails}
             onEdit={onEdit}
             onDelete={onDelete}
+            onColumnReorder={onColumnReorder}
           />
         </CardContent>
       )}

@@ -136,6 +136,14 @@ export default function PreApproved() {
     loadView(viewName);
   };
 
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    reorderColumns(oldIndex, newIndex);
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   const fetchLeads = async () => {
     const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
     if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
@@ -216,6 +224,7 @@ export default function PreApproved() {
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onColumnReorder={handleColumnReorder}
           />
         </CardContent>
       </Card>

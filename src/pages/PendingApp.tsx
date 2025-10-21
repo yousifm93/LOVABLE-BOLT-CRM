@@ -85,6 +85,14 @@ export default function PendingApp() {
     loadView(viewName);
   };
 
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    reorderColumns(oldIndex, newIndex);
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   // Load leads from database filtered by Pending App pipeline stage
   const fetchLeads = async () => {
     try {
@@ -338,6 +346,7 @@ export default function PendingApp() {
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onColumnReorder={handleColumnReorder}
           />
         </CardContent>
       </Card>
