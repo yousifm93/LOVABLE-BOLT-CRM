@@ -64,30 +64,30 @@ export default function Screening() {
   } = useColumnVisibility(initialColumns, 'screening-columns');
 
   // Load leads from database filtered by Screening pipeline stage
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        setLeads(data || []);
-      } catch (error) {
-        console.error('Error loading screening clients:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load screening clients",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error loading screening clients:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load screening clients",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLeads();
   }, [toast]);
 
@@ -302,6 +302,7 @@ export default function Screening() {
           }}
           onStageChange={handleStageChange}
           pipelineType="leads"
+          onLeadUpdated={fetchLeads}
         />
       )}
     </div>

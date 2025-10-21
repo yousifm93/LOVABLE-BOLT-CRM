@@ -63,30 +63,30 @@ export default function PendingApp() {
   } = useColumnVisibility(initialColumns, 'pending-app-columns');
 
   // Load leads from database filtered by Pending App pipeline stage
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') // Pending App stage
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        setLeads(data || []);
-      } catch (error) {
-        console.error('Error loading pending applications:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load pending applications",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') // Pending App stage
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error loading pending applications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load pending applications",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLeads();
   }, [toast]);
 
@@ -305,6 +305,7 @@ export default function PendingApp() {
           }}
           onStageChange={handleStageChange}
           pipelineType="leads"
+          onLeadUpdated={fetchLeads}
         />
       )}
     </div>

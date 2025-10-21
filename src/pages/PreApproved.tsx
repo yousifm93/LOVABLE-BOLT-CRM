@@ -41,12 +41,13 @@ export default function PreApproved() {
 
   const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
+  const fetchLeads = async () => {
+    const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
+    if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
+    setLeads(data || []);
+  };
+
   useEffect(() => {
-    const fetchLeads = async () => {
-      const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
-      if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
-      setLeads(data || []);
-    };
     fetchLeads();
   }, [toast]);
 
@@ -78,7 +79,7 @@ export default function PreApproved() {
           <DataTable columns={columns} data={displayData} searchTerm={searchTerm} onRowClick={(row) => { const lead = leads.find(l => l.id === row.id); if (lead) handleRowClick(lead); }} />
         </CardContent>
       </Card>
-      {selectedClient && <ClientDetailDrawer client={selectedClient} isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); setSelectedClient(null); }} onStageChange={() => setIsDrawerOpen(false)} pipelineType="leads" />}
+      {selectedClient && <ClientDetailDrawer client={selectedClient} isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); setSelectedClient(null); }} onStageChange={() => setIsDrawerOpen(false)} pipelineType="leads" onLeadUpdated={fetchLeads} />}
     </div>
   );
 }

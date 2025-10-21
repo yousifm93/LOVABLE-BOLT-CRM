@@ -65,30 +65,30 @@ export default function PreQualified() {
   } = useColumnVisibility(initialColumns, 'pre-qualified-columns');
 
   // Load leads from database filtered by Pre-Qualified pipeline stage
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('pipeline_stage_id', '09162eec-d2b2-48e5-86d0-9e66ee8b2af7') // Pre-Qualified stage
-          .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        setLeads(data || []);
-      } catch (error) {
-        console.error('Error loading pre-qualified clients:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load pre-qualified clients",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('pipeline_stage_id', '09162eec-d2b2-48e5-86d0-9e66ee8b2af7') // Pre-Qualified stage
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error loading pre-qualified clients:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load pre-qualified clients",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLeads();
   }, [toast]);
 
@@ -332,6 +332,7 @@ export default function PreQualified() {
           }}
           onStageChange={handleStageChange}
           pipelineType="leads"
+          onLeadUpdated={fetchLeads}
         />
       )}
     </div>

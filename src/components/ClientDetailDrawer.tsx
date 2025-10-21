@@ -29,9 +29,10 @@ interface ClientDetailDrawerProps {
   onClose: () => void;
   onStageChange: (clientId: number, newStage: PipelineStage) => void;
   pipelineType: 'leads' | 'active' | 'past-clients';
+  onLeadUpdated?: () => void | Promise<void>;
 }
 
-export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pipelineType }: ClientDetailDrawerProps) {
+export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pipelineType, onLeadUpdated }: ClientDetailDrawerProps) {
   // Extract lead UUID - handle both CRMClient and database Lead objects
   const getLeadId = (): string | null => {
     // Check if it's a database Lead object (has UUID id directly)
@@ -194,6 +195,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         title: `Lead moved to ${stageLabel}`,
         description: "Pipeline stage updated successfully"
       });
+      
+      // Refresh parent page data before closing
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
       
       // Close drawer so user sees the lead move to new page
       handleDrawerClose();

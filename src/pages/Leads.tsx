@@ -723,6 +723,7 @@ export default function Leads() {
           onClose={handleDrawerClose}
           onStageChange={handleStageChange}
           pipelineType="leads"
+          onLeadUpdated={loadLeads}
         />
       )}
 
