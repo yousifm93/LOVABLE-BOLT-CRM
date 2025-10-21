@@ -12,7 +12,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatPercentage, formatDateShort } from "@/utils/formatters";
 
 // Display type for table rows
 type DisplayLead = {
@@ -196,7 +196,7 @@ export default function Screening() {
     {
       accessorKey: "appCompleteOn",
       header: "App Complete On",
-      cell: ({ row }) => formatDateTime(row.original.appCompleteOn),
+      cell: ({ row }) => formatDateShort(row.original.appCompleteOn),
       sortable: true,
     },
     {

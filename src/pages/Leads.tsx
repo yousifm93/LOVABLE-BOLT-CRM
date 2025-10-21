@@ -15,7 +15,7 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { formatCurrency, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateShort } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -422,7 +422,7 @@ export default function Leads() {
     {
       accessorKey: "createdOn",
       header: "Lead Created On",
-      cell: ({ row }) => formatDateTime(row.original.createdOn),
+      cell: ({ row }) => formatDateShort(row.original.createdOn),
       sortable: true,
     },
     {

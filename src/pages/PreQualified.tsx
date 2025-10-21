@@ -12,7 +12,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, formatPercentage, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatPercentage, formatDateShort } from "@/utils/formatters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -237,7 +237,7 @@ export default function PreQualified() {
     {
       accessorKey: "preQualifiedOn",
       header: "Pre-Qualified On",
-      cell: ({ row }) => formatDateTime(row.original.preQualifiedOn),
+      cell: ({ row }) => formatDateShort(row.original.preQualifiedOn),
       sortable: true,
     },
     {

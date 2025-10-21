@@ -12,7 +12,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, formatPercentage, formatDate, formatBoolean, formatPhone, formatDateTime } from "@/utils/formatters";
+import { formatCurrency, formatDateShort } from "@/utils/formatters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,7 +229,7 @@ export default function PendingApp() {
     {
       accessorKey: "pendingAppOn",
       header: "Pending App On",
-      cell: ({ row }) => formatDateTime(row.original.pendingAppOn),
+      cell: ({ row }) => formatDateShort(row.original.pendingAppOn),
       sortable: true,
     },
     {

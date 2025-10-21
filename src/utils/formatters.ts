@@ -129,3 +129,16 @@ export const formatNumber = (value: number | null | undefined): string => {
   if (!value && value !== 0) return "—";
   return value.toLocaleString('en-US');
 };
+
+// Short date formatter (MON DD)
+export const formatDateShort = (dateString: string | null | undefined): string => {
+  if (!dateString) return "—";
+  try {
+    const date = new Date(dateString);
+    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const day = date.getDate();
+    return `${month} ${day}`;
+  } catch {
+    return "—";
+  }
+};

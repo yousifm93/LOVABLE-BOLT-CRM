@@ -16,11 +16,11 @@ function DetailRow({ icon: Icon, label, value, badgeVariant }: DetailItem) {
   if (!value && value !== 0) return null;
 
   return (
-    <div className="flex items-center gap-3 py-2">
-      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">{value}</p>
+    <div className="flex items-start gap-3 py-2">
+      <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-sm font-semibold text-foreground">{value}</p>
       </div>
     </div>
   );
