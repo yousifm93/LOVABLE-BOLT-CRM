@@ -273,11 +273,7 @@ export const databaseService = {
       .from('leads')
       .update(updates)
       .eq('id', id)
-      .select(`
-        *,
-        pipeline_stage:pipeline_stages(*),
-        teammate:users(*)
-      `)
+      .select('*')
       .single();
     
     if (error) throw error;
