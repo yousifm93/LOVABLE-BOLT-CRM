@@ -34,14 +34,18 @@ import {
 interface Lead {
   id: string;
   name: string;
-  creationDate: string;
-  email: string;
+  createdOn: string;
   phone: string;
+  email: string;
+  realEstateAgent: string;
+  user: string;
   referredVia: string;
   referralSource: string;
   converted: string;
   leadStrength: string;
   dueDate?: string;
+  loanType: string | null;
+  loanAmount: number | null;
 }
 
 // Transform database lead to display format  
@@ -70,14 +74,18 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & { task_due_date?: string 
   return {
     id: dbLead.id,
     name: `${dbLead.first_name} ${dbLead.last_name}`,
-    creationDate: formatDateModern(new Date(dbLead.created_at)),
-    email: dbLead.email || '',
+    createdOn: dbLead.created_at,
     phone: dbLead.phone || '',
+    email: dbLead.email || '',
+    realEstateAgent: '—',
+    user: '—',
     referredVia: dbLead.referred_via || 'Email',
     referralSource: dbLead.referral_source || 'Agent',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
-    dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : ''
+    dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : '',
+    loanType: dbLead.loan_type,
+    loanAmount: dbLead.loan_amount,
   };
 };
 

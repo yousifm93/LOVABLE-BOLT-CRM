@@ -11,6 +11,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatPercentage, formatDateTime } from "@/utils/formatters";
 import {
   AlertDialog,
