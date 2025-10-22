@@ -9,6 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type LeadInsert, type User, type Contact, type PipelineStage } from '@/services/database';
 
+// Format date as YYYY-MM-DD in local timezone
+const formatLocalDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
 interface CreateLeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,7 +33,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     email: '',
     source: '' as any,
     referred_via: '' as any,
-    lead_on_date: new Date().toISOString().split('T')[0],
+    lead_on_date: formatLocalDate(new Date()),
     status: 'Working on it' as any,
     teammate_assigned: '',
     buyer_agent_id: '',
@@ -96,7 +99,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         referral_source: 'Agent' as any,
         lead_strength: 'Warm' as any,
         converted: 'Working on it' as any,
-        lead_on_date: new Date().toISOString().split('T')[0],
+        lead_on_date: formatLocalDate(new Date()),
       };
 
       const newLead = await databaseService.createLead(leadData);
@@ -113,7 +116,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         email: '',
         source: '',
         referred_via: '',
-        lead_on_date: new Date().toISOString().split('T')[0],
+        lead_on_date: formatLocalDate(new Date()),
         status: 'Working on it',
         teammate_assigned: '',
         buyer_agent_id: '',

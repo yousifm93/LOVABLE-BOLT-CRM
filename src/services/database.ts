@@ -174,33 +174,12 @@ export const databaseService = {
 
       console.log('[DEBUG] Authenticated user:', sessionData.session.user.id);
 
-      // Get user's profile to get account_id
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('user_id', sessionData.session.user.id)
-        .single();
-      
-      if (profileError) {
-        console.error('[DEBUG] Profile error:', profileError);
-        throw new Error(`Failed to get user profile: ${profileError.message}`);
-      }
-
-      if (!profile?.account_id) {
-        console.error('[DEBUG] No account_id found in profile:', profile);
-        throw new Error('User profile missing account_id');
-      }
-
-      console.log('[DEBUG] User account_id:', profile.account_id);
-
-      // Prepare lead data with account info
+      // Prepare lead data (account_id and created_by handled by DB trigger)
       const leadDataWithAuth = {
         ...lead,
         // Convert empty strings to null for optional enum fields
         source: lead.source || null,
         referred_via: lead.referred_via || null,
-        created_by: sessionData.session.user.id,
-        account_id: profile.account_id,
       };
 
       console.log('[DEBUG] Lead data with auth:', leadDataWithAuth);
@@ -208,7 +187,7 @@ export const databaseService = {
       // Insert the lead
       const { data, error } = await supabase
         .from('leads')
-        .insert(leadDataWithAuth)
+        .insert(leadDataWithAuth as any)
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
