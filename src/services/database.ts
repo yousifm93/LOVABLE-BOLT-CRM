@@ -103,7 +103,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users(*)
+          teammate:users!teammate_assigned(*)
         `)
         .order('created_at', { ascending: false });
       
@@ -131,7 +131,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users(*),
+          teammate:users!teammate_assigned(*),
           tasks(due_date)
         `)
         .eq('pipeline_stage_id', 'c54f417b-3f67-43de-80f5-954cf260d571')
