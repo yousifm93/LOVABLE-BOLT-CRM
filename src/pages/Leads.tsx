@@ -58,7 +58,7 @@ interface Lead {
 // Transform database lead to display format  
 const transformLeadToDisplay = (
   dbLead: DatabaseLead & { 
-    task_due_date?: string;
+    task_eta?: string;
     teammate?: any;
     buyer_agent?: any;
   }
@@ -98,7 +98,7 @@ const transformLeadToDisplay = (
     referralSource: dbLead.referral_source || 'Agent',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
-    dueDate: dbLead.task_due_date ? new Date(dbLead.task_due_date).toLocaleDateString() : '',
+    dueDate: dbLead.task_eta ? new Date(dbLead.task_eta).toLocaleDateString() : '',
     loanType: dbLead.loan_type,
     loanAmount: dbLead.loan_amount,
   };
