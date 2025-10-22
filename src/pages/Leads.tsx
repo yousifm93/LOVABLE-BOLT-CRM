@@ -194,7 +194,14 @@ export default function Leads() {
   };
 
   const handleColumnReorder = (oldIndex: number, newIndex: number) => {
-    reorderColumns(oldIndex, newIndex);
+    // Convert visible column indices to actual column indices in the full array
+    const oldColumnId = visibleColumns[oldIndex].id;
+    const newColumnId = visibleColumns[newIndex].id;
+    
+    const actualOldIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const actualNewIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    
+    reorderColumns(actualOldIndex, actualNewIndex);
     toast({
       title: "Column Reordered",
       description: "Table column order has been updated",
