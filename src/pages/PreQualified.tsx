@@ -663,6 +663,23 @@ export default function PreQualified() {
         </div>
       ),
     },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate || ''}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "task_eta", value);
+              fetchLeads();
+            }}
+            placeholder="Set date"
+          />
+        </div>
+      ),
+    },
   ];
 
   // Filter columns based on visibility settings
