@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Lock, Unlock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,17 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -22,16 +33,6 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface ActiveLoan {
   id: string;
@@ -503,6 +504,10 @@ export default function Active() {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+  const [sortLocked, setSortLocked] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -557,6 +562,12 @@ export default function Active() {
       } catch (error) {
         console.error('Failed to parse saved filters:', error);
       }
+    }
+    
+    // Load sort lock state
+    const savedSortLocked = localStorage.getItem('active-sort-locked');
+    if (savedSortLocked) {
+      setSortLocked(JSON.parse(savedSortLocked));
     }
   }, []);
 
@@ -703,6 +714,55 @@ export default function Active() {
       setDeleteLeadId(null);
     }
   };
+  
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => databaseService.deleteLead(id))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} lead${successCount > 1 ? 's' : ''} deleted successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+        });
+      }
+      
+      await loadData();
+      setSelectedLeadIds([]);
+    } finally {
+      setIsBulkDeleteOpen(false);
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => handleUpdate(id, field, value))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} lead${successCount > 1 ? 's' : ''} updated successfully.`,
+        });
+      }
+      
+      await loadData();
+      setSelectedLeadIds([]);
+    } catch (error) {
+      console.error('Error during bulk update:', error);
+    }
+  };
 
   const handleViewDetails = (loan: ActiveLoan) => {
     handleRowClick(loan);
@@ -819,6 +879,23 @@ export default function Active() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-64"
         />
+        
+        <Button
+          variant={sortLocked ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            const newValue = !sortLocked;
+            setSortLocked(newValue);
+            localStorage.setItem('active-sort-locked', JSON.stringify(newValue));
+            toast({
+              title: newValue ? "Sort Locked" : "Sort Unlocked",
+              description: newValue ? "Loans will stay in creation order" : "You can now sort by any column",
+            });
+          }}
+          title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+        >
+          {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+        </Button>
         
         <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <PopoverTrigger asChild>
@@ -949,15 +1026,57 @@ export default function Active() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedLeadIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+          <Card className="shadow-lg border-2">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''} selected
+              </Badge>
+              <div className="flex gap-2">
+                <Button onClick={() => setIsBulkUpdateOpen(true)} size="sm">Update Field</Button>
+                <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive" size="sm">Delete</Button>
+                <Button onClick={() => setSelectedLeadIds([])} variant="outline" size="sm">Clear</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedLeadIds.length} Leads</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <BulkUpdateDialog
+        open={isBulkUpdateOpen}
+        onOpenChange={setIsBulkUpdateOpen}
+        selectedCount={selectedLeadIds.length}
+        onUpdate={handleBulkUpdate}
+        fieldOptions={[
+          { value: 'loan_status', label: 'Loan Status', type: 'select', options: loanStatusOptions },
+          { value: 'disclosure_status', label: 'Disclosure Status', type: 'select', options: disclosureStatusOptions },
+        ]}
+      />
     </div>
   );
 }

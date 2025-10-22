@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Phone, Mail, Shield } from "lucide-react";
+import { Search, Filter, Phone, Mail, Shield, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
@@ -61,6 +63,9 @@ export default function PreApproved() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [sortLocked, setSortLocked] = useState(false);
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
@@ -88,7 +93,44 @@ export default function PreApproved() {
 
   useEffect(() => {
     fetchLeads();
+    
+    // Load sort lock state from localStorage
+    const savedSortLocked = localStorage.getItem('preapproved-sort-locked');
+    if (savedSortLocked) {
+      setSortLocked(JSON.parse(savedSortLocked));
+    }
+    
+    // Load filters from localStorage
+    const savedFilters = localStorage.getItem('preapproved-filters');
+    if (savedFilters) {
+      try {
+        setFilters(JSON.parse(savedFilters));
+      } catch (error) {
+        console.error('Error loading saved filters:', error);
+      }
+    }
   }, [toast]);
+  
+  // Save filters to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('preapproved-filters', JSON.stringify(filters));
+  }, [filters]);
+  
+  // Filter columns definition
+  const filterColumns = [
+    { value: 'name', label: 'Name', type: 'text' as const },
+    { value: 'status', label: 'Status', type: 'text' as const },
+    { value: 'creditScore', label: 'Credit Score', type: 'text' as const },
+  ];
+  
+  const clearAllFilters = () => {
+    setFilters([]);
+    setIsFilterOpen(false);
+  };
+  
+  const removeFilter = (filterId: string) => {
+    setFilters(filters.filter(f => f.id !== filterId));
+  };
 
   const handleRowClick = (lead: DatabaseLead) => {
     setSelectedClient({ person: { id: Date.now(), firstName: lead.first_name, lastName: lead.last_name, email: lead.email || '', phoneMobile: lead.phone || '' }, databaseId: lead.id, loan: { loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0", loanType: lead.loan_type || "Purchase", prType: "Primary Residence" }, ops: { status: lead.status || "Pre-Approved", stage: "pre-approved", priority: "Medium", referralSource: lead.referral_source || "N/A" }, dates: { createdOn: new Date(lead.created_at).toLocaleDateString() }, meta: {}, name: `${lead.first_name} ${lead.last_name}` });
@@ -290,11 +332,77 @@ export default function PreApproved() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <h1 className="text-2xl font-bold">Pre-Approved</h1>
+      
+      {filters.length > 0 && (
+        <div className="flex gap-2 items-center flex-wrap">
+          {filters.map(filter => (
+            <Badge key={filter.id} variant="secondary" className="gap-1 pr-1">
+              <span>{filterColumns.find(col => col.value === filter.column)?.label}: {String(filter.value)}</span>
+              <button onClick={() => removeFilter(filter.id)} className="hover:bg-background/20 rounded p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-6">
+            Clear All
+          </Button>
+        </div>
+      )}
+      
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>Pre-Approved Clients ({leads.length})</CardTitle>
           <div className="flex gap-2">
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
+            
+            <Button
+              variant={sortLocked ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const newValue = !sortLocked;
+                setSortLocked(newValue);
+                localStorage.setItem('preapproved-sort-locked', JSON.stringify(newValue));
+                toast({
+                  title: newValue ? "Sort Locked" : "Sort Unlocked",
+                  description: newValue ? "Clients will stay in creation order" : "You can now sort by any column",
+                });
+              }}
+              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+            >
+              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+            </Button>
+            
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {filters.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                      {filters.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filter Clients</h4>
+                    {filters.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <FilterBuilder
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    columns={filterColumns}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} onViewSaved={handleViewSaved} />
             <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />
           </div>
@@ -303,7 +411,8 @@ export default function PreApproved() {
           <DataTable 
             columns={columns} 
             data={displayData} 
-            searchTerm={searchTerm} 
+            searchTerm={searchTerm}
+            lockSort={sortLocked}
             onRowClick={(row) => { const lead = leads.find(l => l.id === row.id); if (lead) handleRowClick(lead); }} 
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
