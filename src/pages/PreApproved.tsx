@@ -421,15 +421,17 @@ export default function PreApproved() {
       className: "text-center",
       sortable: true,
       cell: ({ row }) => (
-        <InlineEditAssignee
-          assigneeId={row.original.user}
-          users={users}
-          onValueChange={(userId) => {
-            handleFieldUpdate(row.original.id, "teammate_assigned", userId);
-            fetchLeads();
-          }}
-          showNameText={false}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAssignee
+            assigneeId={row.original.user}
+            users={users}
+            onValueChange={(userId) => {
+              handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+              fetchLeads();
+            }}
+            showNameText={false}
+          />
+        </div>
       ),
     },
     {
