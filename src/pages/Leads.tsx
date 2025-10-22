@@ -610,7 +610,7 @@ export default function Leads() {
     {
       accessorKey: "user",
       header: "User",
-      className: "text-left",
+      className: "text-center",
       cell: ({ row }) => (
         <InlineEditAssignee
           assigneeId={row.original.user}
