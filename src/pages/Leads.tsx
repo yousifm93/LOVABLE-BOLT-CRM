@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
@@ -271,11 +272,7 @@ export default function Leads() {
       // Map field names to database columns
       switch (field) {
         case 'phone':
-          // Normalize phone: strip all non-digits, then format for storage
-          const cleanPhone = value ? (value as string).replace(/\D/g, '') : '';
-          updateData.phone = cleanPhone.length === 10 
-            ? `(${cleanPhone.slice(0, 3)}) ${cleanPhone.slice(3, 6)}-${cleanPhone.slice(6)}`
-            : value as string;
+          updateData.phone = value as string;
           break;
         case 'email':
           updateData.email = value as string;
@@ -545,8 +542,8 @@ export default function Leads() {
       header: "Lead Phone",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
-            value={formatPhone(row.original.phone)}
+          <InlineEditPhone
+            value={row.original.phone}
             onValueChange={(value) =>
               handleFieldUpdate(row.original.id, "phone", value)
             }
@@ -1007,6 +1004,7 @@ export default function Leads() {
             columns={columns}
             data={filteredLeads}
             searchTerm=""
+            storageKey="leads-table"
             onRowClick={() => {}} // Disable generic row click
             onViewDetails={handleRowClick}
             onEdit={handleRowClick}

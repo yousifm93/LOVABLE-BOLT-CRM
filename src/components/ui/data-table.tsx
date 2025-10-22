@@ -50,6 +50,7 @@ interface DataTableProps<T> {
   defaultSortColumn?: string;
   defaultSortDirection?: "asc" | "desc";
   lockSort?: boolean;
+  storageKey?: string;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -225,17 +226,38 @@ export function DataTable<T extends Record<string, any>>({
   defaultSortColumn = "",
   defaultSortDirection = "asc",
   lockSort = false,
+  storageKey,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
   
   const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>(() => {
+    // Try to load from localStorage first if storageKey is provided
+    if (storageKey) {
+      const saved = localStorage.getItem(`${storageKey}_widths`);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse saved column widths", e);
+        }
+      }
+    }
+    
+    // Otherwise use default widths from columns config
     const initialWidths: Record<string, number> = {};
     columns.forEach(col => {
       initialWidths[col.accessorKey] = col.width || 150;
     });
     return initialWidths;
   });
+
+  // Save column widths to localStorage whenever they change
+  React.useEffect(() => {
+    if (storageKey) {
+      localStorage.setItem(`${storageKey}_widths`, JSON.stringify(columnWidths));
+    }
+  }, [columnWidths, storageKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

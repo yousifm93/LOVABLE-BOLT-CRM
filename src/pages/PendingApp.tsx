@@ -19,6 +19,10 @@ import { formatCurrency, formatDateShort } from "@/utils/formatters";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,8 +44,10 @@ type DisplayLead = {
   phone: string;
   email: string;
   realEstateAgent: string;
+  realEstateAgentData?: any;
   status: string;
   user: string;
+  userData?: any;
   loanType: string;
   loanAmount: number | null;
   creditScore: number;
@@ -76,6 +82,8 @@ export default function PendingApp() {
   const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
 
   // Column visibility management
   const {
@@ -107,13 +115,46 @@ export default function PendingApp() {
     });
   };
 
+  // Load users
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email')
+        .order('first_name');
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  // Load agents
+  const loadAgents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, first_name, last_name, company, email, phone')
+        .in('type', ['Real Estate Agent', 'Agent', 'Realtor'])
+        .order('first_name');
+      if (error) throw error;
+      setAgents(data || []);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    }
+  };
+
   // Load leads from database filtered by Pending App pipeline stage
   const fetchLeads = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+        `)
         .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') // Pending App stage
         .order('created_at', { ascending: false });
       
@@ -133,6 +174,8 @@ export default function PendingApp() {
 
   useEffect(() => {
     fetchLeads();
+    loadUsers();
+    loadAgents();
     
     // Load sort lock state from localStorage
     const savedSortLocked = localStorage.getItem('pendingapp-sort-locked');
@@ -247,7 +290,19 @@ export default function PendingApp() {
   };
 
   const handleFieldUpdate = async (id: string, field: string, value: any) => {
-    await databaseService.updateLead(id, { [field]: value });
+    // Map frontend field names to database column names
+    const fieldMapping: Record<string, string> = {
+      'phone': 'phone',
+      'email': 'email',
+      'loan_amount': 'loan_amount',
+      'estimated_fico': 'estimated_fico',
+      'loan_type': 'loan_type',
+      'teammate_assigned': 'teammate_assigned',
+      'buyer_agent_id': 'buyer_agent_id',
+    };
+    
+    const dbField = fieldMapping[field] || field;
+    await databaseService.updateLead(id, { [dbField]: value });
   };
 
   const handleBulkDelete = async () => {
@@ -328,16 +383,31 @@ export default function PendingApp() {
     }
   };
 
+  // Loan type options
+  const loanTypeOptions = [
+    { value: "Purchase", label: "Purchase" },
+    { value: "Refinance", label: "Refinance" },
+    { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+    { value: "HELOC", label: "HELOC" },
+    { value: "Construction", label: "Construction" },
+    { value: "VA Loan", label: "VA Loan" },
+    { value: "FHA Loan", label: "FHA Loan" },
+    { value: "Conventional", label: "Conventional" },
+    { value: "Jumbo", label: "Jumbo" },
+  ];
+
   // Transform leads to display format
-  const displayData: DisplayLead[] = leads.map(lead => ({
+  const displayData: DisplayLead[] = leads.map((lead: any) => ({
     id: lead.id,
     name: `${lead.first_name} ${lead.last_name}`,
     pendingAppOn: lead.pending_app_at || lead.created_at,
     phone: lead.phone || '',
     email: lead.email || '',
-    realEstateAgent: '—', // TODO: JOIN with contacts
+    realEstateAgent: lead.buyer_agent_id || '',
+    realEstateAgentData: lead.buyer_agent || null,
     status: lead.status || 'Pending App',
-    user: '—', // TODO: JOIN with users
+    user: lead.teammate_assigned || '',
+    userData: lead.teammate || null,
     loanType: lead.loan_type || '',
     loanAmount: lead.loan_amount || null,
     creditScore: lead.estimated_fico || 0,
@@ -374,7 +444,7 @@ export default function PendingApp() {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
+          <InlineEditPhone
             value={row.original.phone}
             onValueChange={(value) => {
               handleFieldUpdate(row.original.id, "phone", value);
@@ -405,8 +475,27 @@ export default function PendingApp() {
     {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
-      cell: ({ row }) => row.original.realEstateAgent || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData ? {
+              id: row.original.realEstateAgentData.id,
+              first_name: row.original.realEstateAgentData.first_name,
+              last_name: row.original.realEstateAgentData.last_name,
+              brokerage: row.original.realEstateAgentData.company,
+              email: row.original.realEstateAgentData.email,
+              phone: row.original.realEstateAgentData.phone
+            } : null}
+            agents={agents}
+            onValueChange={(agent) => {
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              fetchLeads();
+            }}
+            type="buyer"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "status",
@@ -417,15 +506,40 @@ export default function PendingApp() {
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }) => row.original.user || '—',
+      className: "text-center",
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAssignee
+            assigneeId={row.original.user}
+            users={users}
+            onValueChange={(userId) => {
+              handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+              fetchLeads();
+            }}
+            showNameText={false}
+          />
+        </div>
+      ),
     },
     // Additional columns
     {
       accessorKey: "loanType",
       header: "Loan Type",
-      cell: ({ row }) => row.original.loanType || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.loanType}
+            options={loanTypeOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_type", value);
+              fetchLeads();
+            }}
+            placeholder="Select type"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "loanAmount",
@@ -582,6 +696,7 @@ export default function PendingApp() {
             data={displayData}
             searchTerm={searchTerm}
             lockSort={sortLocked}
+            storageKey="pending-app-table"
             onRowClick={(row) => {
               const lead = leads.find(l => l.id === row.id);
               if (lead) handleRowClick(lead);
