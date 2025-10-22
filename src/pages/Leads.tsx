@@ -618,7 +618,7 @@ export default function Leads() {
           onValueChange={(userId) =>
             handleFieldUpdate(row.original.id, "teammate_assigned", userId)
           }
-          showNameText={true}
+          showNameText={false}
         />
       ),
       sortable: true,
@@ -873,7 +873,7 @@ export default function Leads() {
       <div className="pl-4 pr-0 pt-2 pb-0">
         <div className="flex justify-between items-center mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">New</h1>
+            <h1 className="text-2xl font-bold text-foreground">New ({filteredLeads.length})</h1>
             <p className="text-xs italic text-muted-foreground/70">
               New leads entering the pipeline
               {filters.length > 0 && (

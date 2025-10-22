@@ -31,7 +31,7 @@ export function InlineEditDate({
   const displayValue = dateValue ? dateValue.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric' 
-  }).toUpperCase() : placeholder;
+  }) : placeholder;
 
   const handleSelect = (date: Date | undefined) => {
     onValueChange(date);
