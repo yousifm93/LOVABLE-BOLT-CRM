@@ -78,7 +78,7 @@ export function InlineEditAssignee({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="grid grid-cols-[24px_1fr_auto] items-center gap-2 min-w-0 h-full">
             {currentUser ? (
               <>
                 <UserAvatar
@@ -86,15 +86,19 @@ export function InlineEditAssignee({
                   lastName={currentUser.last_name}
                   email={currentUser.email}
                   size="sm"
+                  className="flex-shrink-0"
                 />
                 {showNameText && (
                   <span className="text-sm truncate">{currentUser.first_name} {currentUser.last_name}</span>
                 )}
+                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
               </>
             ) : (
-              <span className="text-sm">{placeholder}</span>
+              <>
+                <span className="col-span-2 text-sm">{placeholder}</span>
+                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+              </>
             )}
-            <ChevronDown className="ml-auto h-3 w-3 opacity-50 flex-shrink-0" />
           </div>
         </Button>
       </DropdownMenuTrigger>

@@ -333,17 +333,31 @@ export function DataTable<T extends Record<string, any>>({
 
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
-        const aValue = a[sortColumn];
-        const bValue = b[sortColumn];
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
         
-        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-        return 0;
+        // Handle numeric and date comparisons
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          const diff = aValue - bValue;
+          if (diff !== 0) return sortDirection === "asc" ? diff : -diff;
+        } else if (aValue instanceof Date && bValue instanceof Date) {
+          const diff = aValue.getTime() - bValue.getTime();
+          if (diff !== 0) return sortDirection === "asc" ? diff : -diff;
+        } else {
+          // String comparison
+          if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+          if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        }
+        
+        // Deterministic tiebreaker: use row ID
+        const aId = getRowId(a);
+        const bId = getRowId(b);
+        return aId < bId ? -1 : aId > bId ? 1 : 0;
       });
     }
 
     return filtered;
-  }, [data, searchTerm, sortColumn, sortDirection]);
+  }, [data, searchTerm, sortColumn, sortDirection, getRowId]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

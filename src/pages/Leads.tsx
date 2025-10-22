@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3 } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ interface Lead {
   id: string;
   name: string;
   createdOn: string;
+  createdAtTs: number;
   phone: string;
   email: string;
   realEstateAgent: string;
@@ -88,6 +89,7 @@ const transformLeadToDisplay = (
     id: dbLead.id,
     name: `${dbLead.first_name} ${dbLead.last_name}`,
     createdOn: dbLead.created_at,
+    createdAtTs: new Date(dbLead.created_at).getTime(),
     phone: dbLead.phone || '',
     email: dbLead.email || '',
     realEstateAgent: dbLead.buyer_agent_id || '',
@@ -170,6 +172,10 @@ export default function Leads() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [sortLocked, setSortLocked] = useState(() => {
+    const saved = localStorage.getItem('leads-sort-locked');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   // Column visibility management
   const {
@@ -928,6 +934,23 @@ export default function Leads() {
               />
             </div>
             
+            <Button
+              variant={sortLocked ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const newValue = !sortLocked;
+                setSortLocked(newValue);
+                localStorage.setItem('leads-sort-locked', JSON.stringify(newValue));
+                toast({
+                  title: newValue ? "Sort Locked" : "Sort Unlocked",
+                  description: newValue ? "Leads will stay in creation order" : "You can now sort by any column",
+                });
+              }}
+              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+            >
+              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+            </Button>
+            
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="relative">
@@ -995,9 +1018,9 @@ export default function Leads() {
             selectedIds={selectedLeadIds}
             onSelectionChange={setSelectedLeadIds}
             getRowId={(row) => row.id}
-            defaultSortColumn="createdOn"
+            defaultSortColumn="createdAtTs"
             defaultSortDirection="desc"
-            lockSort={true}
+            lockSort={sortLocked}
           />
         </CardContent>
       </Card>
