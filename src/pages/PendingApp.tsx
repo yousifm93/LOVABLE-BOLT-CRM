@@ -23,6 +23,7 @@ import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +52,7 @@ type DisplayLead = {
   loanType: string;
   loanAmount: number | null;
   creditScore: number;
+  dueDate?: string;
 };
 
 // PENDING APP columns - 7 columns from Excel
@@ -66,6 +68,15 @@ const initialColumns = [
   { id: "loanType", label: "Loan Type", visible: false },
   { id: "loanAmount", label: "Loan Amount", visible: false },
   { id: "creditScore", label: "Credit Score", visible: false },
+  { id: "dueDate", label: "Due Date", visible: false },
+];
+
+// Status options
+const convertedOptions = [
+  { value: "Working on it", label: "Working on it" },
+  { value: "Converted", label: "Converted" },
+  { value: "Dead", label: "Dead" },
+  { value: "Pending App", label: "Pending App" },
 ];
 
 export default function PendingApp() {
@@ -205,6 +216,7 @@ export default function PendingApp() {
     { value: 'status', label: 'Status', type: 'text' as const },
     { value: 'loanType', label: 'Loan Type', type: 'text' as const },
     { value: 'pendingAppOn', label: 'Pending App On', type: 'date' as const },
+    { value: 'dueDate', label: 'Due Date', type: 'date' as const },
   ];
   
   const clearAllFilters = () => {
@@ -299,6 +311,8 @@ export default function PendingApp() {
       'loan_type': 'loan_type',
       'teammate_assigned': 'teammate_assigned',
       'buyer_agent_id': 'buyer_agent_id',
+      'converted': 'converted',
+      'due_date': 'task_eta',
     };
     
     const dbField = fieldMapping[field] || field;
@@ -405,12 +419,13 @@ export default function PendingApp() {
     email: lead.email || '',
     realEstateAgent: lead.buyer_agent_id || '',
     realEstateAgentData: lead.buyer_agent || null,
-    status: lead.status || 'Pending App',
+    status: lead.converted || 'Pending App',
     user: lead.teammate_assigned || '',
     userData: lead.teammate || null,
     loanType: lead.loan_type || '',
     loanAmount: lead.loan_amount || null,
     creditScore: lead.estimated_fico || 0,
+    dueDate: lead.task_eta || '',
   }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
@@ -476,6 +491,8 @@ export default function PendingApp() {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
       sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditAgent
@@ -500,8 +517,21 @@ export default function PendingApp() {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.status}
+            options={convertedOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "converted", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-36"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "user",
@@ -577,6 +607,24 @@ export default function PendingApp() {
         </div>
       )
     },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate}
+            onValueChange={(date) => {
+              const dateString = date ? date.toISOString().split('T')[0] : null;
+              handleFieldUpdate(row.original.id, "due_date", dateString);
+              fetchLeads();
+            }}
+            placeholder="Select date"
+          />
+        </div>
+      ),
+    },
   ];
 
   // Filter columns based on visibility settings
@@ -588,7 +636,7 @@ export default function PendingApp() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pending Applications</h1>
+          <h1 className="text-2xl font-bold text-foreground">Pending App ({displayData.length})</h1>
           <p className="text-xs italic text-muted-foreground/70">Applications under review and processing</p>
         </div>
       </div>
