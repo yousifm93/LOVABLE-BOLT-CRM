@@ -1,6 +1,7 @@
 import * as React from "react";
 import { MoreHorizontal, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -37,6 +38,10 @@ interface DataTableProps<T> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onColumnReorder?: (oldIndex: number, newIndex: number) => void;
+  selectable?: boolean;
+  selectedIds?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
+  getRowId?: (row: T) => string;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -113,6 +118,10 @@ export function DataTable<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onColumnReorder,
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange,
+  getRowId = (row) => row.id,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>("");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
@@ -170,6 +179,29 @@ export function DataTable<T extends Record<string, any>>({
     return filtered;
   }, [data, searchTerm, sortColumn, sortDirection]);
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = filteredData.map(row => getRowId(row));
+      onSelectionChange?.(allIds);
+    } else {
+      onSelectionChange?.([]);
+    }
+  };
+
+  const handleSelectRow = (rowId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange?.([...selectedIds, rowId]);
+    } else {
+      onSelectionChange?.(selectedIds.filter(id => id !== rowId));
+    }
+  };
+
+  const isAllSelected = filteredData.length > 0 && 
+    filteredData.every(row => selectedIds.includes(getRowId(row)));
+  
+  const isSomeSelected = selectedIds.length > 0 && !isAllSelected;
+
+
   return (
     <div className="rounded-md border bg-card shadow-soft">
       <Table>
@@ -180,6 +212,18 @@ export function DataTable<T extends Record<string, any>>({
         >
           <TableHeader>
             <TableRow>
+              {selectable && (
+                <TableHead className="w-[50px] h-8 px-2">
+                  <div className="flex justify-center">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all leads"
+                      className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                    />
+                  </div>
+                </TableHead>
+              )}
               <SortableContext
                 items={columns.map(col => col.accessorKey)}
                 strategy={horizontalListSortingStrategy}
@@ -199,16 +243,32 @@ export function DataTable<T extends Record<string, any>>({
           </TableHeader>
         </DndContext>
         <TableBody>
-          {filteredData.map((row, index) => (
-             <TableRow
-               key={index}
-               className={cn(
-                 "transition-colors h-10",
-                 onRowClick && "cursor-pointer"
-               )}
-               onClick={() => onRowClick?.(row)}
-             >
-               {columns.map((column) => (
+          {filteredData.map((row, index) => {
+            const rowId = getRowId(row);
+            const isSelected = selectedIds.includes(rowId);
+            
+            return (
+              <TableRow
+                key={index}
+                className={cn(
+                  "transition-colors h-10",
+                  onRowClick && "cursor-pointer",
+                  isSelected && "bg-primary/10"
+                )}
+                onClick={() => onRowClick?.(row)}
+              >
+                {selectable && (
+                  <TableCell className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleSelectRow(rowId, checked as boolean)}
+                        aria-label={`Select lead ${rowId}`}
+                      />
+                    </div>
+                  </TableCell>
+                )}
+                {columns.map((column) => (
                   <TableCell key={column.accessorKey} className="py-2 px-2 text-center">
                     {column.cell ? (
                       <div className="flex justify-center">
@@ -219,49 +279,50 @@ export function DataTable<T extends Record<string, any>>({
                     )}
                   </TableCell>
                 ))}
-              <TableCell className="py-2 px-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDetails?.(row);
-                      }}
-                    >
-                      View Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit?.(row);
-                      }}
-                    >
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete?.(row);
-                      }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell className="py-2 px-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewDetails?.(row);
+                        }}
+                      >
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit?.(row);
+                        }}
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete?.(row);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
       {filteredData.length === 0 && (

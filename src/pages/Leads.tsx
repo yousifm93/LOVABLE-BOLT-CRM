@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, X } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateModern } from "@/utils/dateUtils";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -166,6 +167,9 @@ export default function Leads() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [agents, setAgents] = useState<BuyerAgent[]>([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   // Column visibility management
   const {
@@ -421,6 +425,82 @@ export default function Leads() {
       setDeleteLeadId(null);
     }
   };
+
+  const handleBulkDelete = async () => {
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => databaseService.deleteLead(id))
+      );
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      await loadLeads();
+      setSelectedLeadIds([]);
+      setIsBulkDeleteOpen(false);
+      
+      if (failed === 0) {
+        toast({
+          title: "Success",
+          description: `${successful} lead${successful > 1 ? 's' : ''} deleted successfully`,
+        });
+      } else {
+        toast({
+          title: "Partial Success",
+          description: `${successful} deleted, ${failed} failed`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting leads:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete leads",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => handleFieldUpdate(id, field, value))
+      );
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      await loadLeads();
+      setSelectedLeadIds([]);
+      
+      if (failed === 0) {
+        toast({
+          title: "Success",
+          description: `${successful} lead${successful > 1 ? 's' : ''} updated successfully`,
+        });
+      } else {
+        toast({
+          title: "Partial Success",
+          description: `${successful} updated, ${failed} failed`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating leads:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update leads",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkUpdateFieldOptions = [
+    { value: 'converted', label: 'Status', type: 'select', options: convertedOptions },
+    { value: 'leadStrength', label: 'Lead Strength', type: 'select', options: leadStrengthOptions },
+    { value: 'referredVia', label: 'Referral Method', type: 'select', options: referredViaOptions },
+    { value: 'referralSource', label: 'Referral Source', type: 'select', options: referralSourceOptions },
+  ];
 
   const allColumns: ColumnDef<Lead>[] = [
     {
@@ -897,9 +977,50 @@ export default function Leads() {
             onEdit={handleRowClick}
             onDelete={handleDelete}
             onColumnReorder={handleColumnReorder}
+            selectable
+            selectedIds={selectedLeadIds}
+            onSelectionChange={setSelectedLeadIds}
+            getRowId={(row) => row.id}
           />
         </CardContent>
       </Card>
+
+      {selectedLeadIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+          <Card className="shadow-lg border-2">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''} selected
+              </Badge>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBulkUpdateOpen(true)}
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Update Field
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsBulkDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedLeadIds([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <CreateLeadModal
         open={isCreateModalOpen}
@@ -936,7 +1057,35 @@ export default function Leads() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-        </AlertDialog>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedLeadIds.length} Leads</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <BulkUpdateDialog
+        open={isBulkUpdateOpen}
+        onOpenChange={setIsBulkUpdateOpen}
+        selectedCount={selectedLeadIds.length}
+        onUpdate={handleBulkUpdate}
+        fieldOptions={bulkUpdateFieldOptions}
+      />
       </div>
     </ErrorBoundary>
   );
