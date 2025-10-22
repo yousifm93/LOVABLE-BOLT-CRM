@@ -751,10 +751,11 @@ export default function Leads() {
     try {
       setLoading(true);
       
-      // Fetch all leads
+      // Fetch leads without a pipeline stage (new leads)
       const { data: dbLeads, error: leadsError } = await supabase
         .from('leads')
         .select('*')
+        .is('pipeline_stage_id', null)
         .order('created_at', { ascending: false });
       
       if (leadsError) throw leadsError;
