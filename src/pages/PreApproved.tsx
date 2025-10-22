@@ -491,6 +491,7 @@ export default function PreApproved() {
           </div>
         </CardHeader>
         <CardContent>
+          <DataTable 
             storageKey="preapproved-table"
             columns={columns}
             data={displayData} 

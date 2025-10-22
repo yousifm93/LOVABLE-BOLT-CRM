@@ -693,6 +693,7 @@ export default function PreQualified() {
           </div>
         </CardHeader>
         <CardContent>
+          <DataTable
             storageKey="prequalified-table"
             columns={columns}
             data={displayData}
