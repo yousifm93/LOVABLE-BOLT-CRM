@@ -680,24 +680,39 @@ export const databaseService = {
 
   async getActiveLoans() {
     try {
+      // Try with explicit FK names first
       const { data, error } = await supabase
         .from('leads')
         .select(`
           *,
-          buyer_agent:buyer_agents(*),
-          lender:contacts!lender_id(*),
-          listing_agent:buyer_agents!listing_agent_id(*),
-          teammate:users!teammate_assigned(*)
+          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email),
+          listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
+          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
         `)
         .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Failed to load active loans:', error);
-        throw error;
+        console.error('Embed error, using fallback query:', error);
+        // Fallback: query without embeds
+        const fallbackResult = await supabase
+          .from('leads')
+          .select('*')
+          .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
+          .order('created_at', { ascending: false });
+        
+        if (fallbackResult.error) throw fallbackResult.error;
+        
+        return fallbackResult.data?.map(loan => ({
+          ...loan,
+          buyer_agent: null,
+          lender: null,
+          listing_agent: null,
+          teammate: null
+        })) || [];
       }
       
-      // Handle null relations to prevent errors
       return data?.map(loan => ({
         ...loan,
         buyer_agent: loan.buyer_agent || null,

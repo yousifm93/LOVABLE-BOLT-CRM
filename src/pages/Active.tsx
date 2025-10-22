@@ -80,7 +80,7 @@ const disclosureStatusOptions = [
 const loanStatusOptions = [
   { value: "NEW", label: "NEW" },
   { value: "RFP", label: "RFP" },
-  { value: "SUV", label: "SUB" },
+  { value: "SUB", label: "SUB" },
   { value: "AWC", label: "AWC" },
   { value: "CTC", label: "CTC" }
 ];
