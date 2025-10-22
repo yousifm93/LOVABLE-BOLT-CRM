@@ -217,6 +217,7 @@ export const databaseService = {
         created_by: userId,
         account_id: accountId,
         teammate_assigned: (lead as any).teammate_assigned ?? teammateId ?? null,
+        pipeline_stage_id: null,
         lead_on_date:
           inputLeadOnDate instanceof Date
             ? formatLocalDate(inputLeadOnDate)
