@@ -51,6 +51,7 @@ type DisplayLead = {
   realEstateAgentData?: any;
   user: string;
   userData?: any;
+  baStatus: string;
   dueDate?: string;
   dti: number | null;
   salesPrice: number | null;
@@ -65,11 +66,12 @@ const initialColumns = [
   { id: "status", label: "Status", visible: true },
   { id: "approvedAmount", label: "Approved Amount", visible: true },
   { id: "creditScore", label: "Credit Score", visible: true },
-  { id: "user", label: "User", visible: false },
+  { id: "user", label: "User", visible: true },
+  { id: "baStatus", label: "BA", visible: true },
+  { id: "dueDate", label: "Due Date", visible: true },
   { id: "loanType", label: "Loan Type", visible: false },
   { id: "dti", label: "DTI", visible: false },
   { id: "salesPrice", label: "Sales Price", visible: false },
-  { id: "dueDate", label: "Due Date", visible: false },
 ];
 
 // Status/Converted options
@@ -90,6 +92,13 @@ const loanTypeOptions = [
   { value: "FHA Loan", label: "FHA Loan" },
   { value: "Conventional", label: "Conventional" },
   { value: "Jumbo", label: "Jumbo" },
+];
+
+// BA Status options
+const baStatusOptions = [
+  { value: "Send", label: "Send" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" },
 ];
 
 export default function PreApproved() {
@@ -187,6 +196,7 @@ export default function PreApproved() {
     { value: 'name', label: 'Name', type: 'text' as const },
     { value: 'status', label: 'Status', type: 'text' as const },
     { value: 'creditScore', label: 'Credit Score', type: 'text' as const },
+    { value: 'baStatus', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(opt => opt.value) },
   ];
   
   const clearAllFilters = () => {
@@ -240,7 +250,34 @@ export default function PreApproved() {
   };
 
   const handleFieldUpdate = async (id: string, field: string, value: any) => {
-    await databaseService.updateLead(id, { [field]: value });
+    const fieldMapping: Record<string, string> = {
+      'phone': 'phone',
+      'email': 'email',
+      'estimated_fico': 'estimated_fico',
+      'creditScore': 'estimated_fico',
+      'loan_amount': 'loan_amount',
+      'loanAmount': 'loan_amount',
+      'sales_price': 'sales_price',
+      'salesPrice': 'sales_price',
+      'dti': 'dti',
+      'loan_type': 'loan_type',
+      'loanType': 'loan_type',
+      'converted': 'converted',
+      'status': 'converted',
+      'teammate_assigned': 'teammate_assigned',
+      'user': 'teammate_assigned',
+      'buyer_agent_id': 'buyer_agent_id',
+      'realEstateAgent': 'buyer_agent_id',
+      'arrive_loan_number': 'arrive_loan_number',
+      'loanNumber': 'arrive_loan_number',
+      'due_date': 'task_eta',
+      'dueDate': 'task_eta',
+      'task_eta': 'task_eta',
+      'ba_status': 'ba_status',
+      'baStatus': 'ba_status',
+    };
+    const dbField = fieldMapping[field] || field;
+    await databaseService.updateLead(id, { [dbField]: value });
   };
 
   const handleBulkDelete = async () => {
@@ -306,6 +343,7 @@ export default function PreApproved() {
     realEstateAgentData: (lead as any).buyer_agent || null,
     user: lead.teammate_assigned || '',
     userData: (lead as any).teammate || null,
+    baStatus: lead.ba_status || '',
     dueDate: lead.task_eta || '',
     dti: lead.dti || 0,
     salesPrice: lead.sales_price || 0,
@@ -405,7 +443,131 @@ export default function PreApproved() {
           />
         </div>
       )
-    }
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData}
+            agents={agents}
+            onValueChange={(agent) => {
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              fetchLeads();
+            }}
+            placeholder="Select agent"
+            type="buyer"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "user",
+      header: "User",
+      className: "text-center",
+      sortable: true,
+      cell: ({ row }) => (
+        <InlineEditAssignee
+          assigneeId={row.original.user}
+          users={users}
+          onValueChange={(userId) => {
+            handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+            fetchLeads();
+          }}
+          showNameText={false}
+        />
+      ),
+    },
+    {
+      accessorKey: "baStatus",
+      header: "BA",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.baStatus}
+            options={baStatusOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "ba_status", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-32"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate || ''}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "task_eta", value);
+              fetchLeads();
+            }}
+            placeholder="Set date"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "loanType",
+      header: "Loan Type",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.loanType}
+            options={loanTypeOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_type", value);
+              fetchLeads();
+            }}
+            placeholder="Select type"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "dti",
+      header: "DTI",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.dti || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "dti", value);
+              fetchLeads();
+            }}
+            decimals={1}
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "salesPrice",
+      header: "Sales Price",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.salesPrice}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "sales_price", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
+    },
   ];
 
   const columns = visibleColumns
