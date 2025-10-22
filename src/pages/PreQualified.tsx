@@ -56,6 +56,7 @@ type DisplayLead = {
   userData?: any;
   loanType: string;
   dueDate?: string;
+  baStatus: string;
 };
 
 // PRE-QUALIFIED columns - 12 columns from Excel
@@ -72,6 +73,7 @@ const initialColumns = [
   { id: "loanAmount", label: "Loan Amount", visible: true },
   { id: "salesPrice", label: "Sales Price", visible: true },
   { id: "user", label: "User", visible: true },
+  { id: "baStatus", label: "BA", visible: true },
   // Additional fields available
   { id: "loanType", label: "Loan Type", visible: false },
   { id: "dueDate", label: "Due Date", visible: false },
@@ -95,6 +97,13 @@ const loanTypeOptions = [
   { value: "FHA Loan", label: "FHA Loan" },
   { value: "Conventional", label: "Conventional" },
   { value: "Jumbo", label: "Jumbo" },
+];
+
+// BA Status options
+const baStatusOptions = [
+  { value: "Send", label: "Send" },
+  { value: "Sent", label: "Sent" },
+  { value: "Signed", label: "Signed" },
 ];
 
 export default function PreQualified() {
@@ -219,6 +228,7 @@ export default function PreQualified() {
     { value: 'name', label: 'Name', type: 'text' as const },
     { value: 'status', label: 'Status', type: 'text' as const },
     { value: 'loanType', label: 'Loan Type', type: 'text' as const },
+    { value: 'baStatus', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(opt => opt.value) },
     { value: 'fico', label: 'FICO', type: 'text' as const },
     { value: 'preQualifiedOn', label: 'Pre-Qualified On', type: 'date' as const },
   ];
@@ -327,6 +337,8 @@ export default function PreQualified() {
       'loanNumber': 'arrive_loan_number',
       'due_date': 'task_eta',
       'dueDate': 'task_eta',
+      'ba_status': 'ba_status',
+      'baStatus': 'ba_status',
     };
     
     const dbField = fieldMapping[field] || field;
@@ -401,6 +413,7 @@ export default function PreQualified() {
     userData: (lead as any).teammate || null,
     loanType: lead.loan_type || '',
     dueDate: lead.task_eta || '',
+    baStatus: lead.ba_status || '',
   }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
@@ -611,6 +624,25 @@ export default function PreQualified() {
           }}
           showNameText={false}
         />
+      ),
+    },
+    {
+      accessorKey: "baStatus",
+      header: "BA",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.baStatus}
+            options={baStatusOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "ba_status", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-32"
+          />
+        </div>
       ),
     },
     {
