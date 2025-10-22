@@ -305,7 +305,32 @@ export default function PreQualified() {
   };
 
   const handleFieldUpdate = async (id: string, field: string, value: any) => {
-    await databaseService.updateLead(id, { [field]: value });
+    const fieldMapping: Record<string, string> = {
+      'phone': 'phone',
+      'email': 'email',
+      'estimated_fico': 'estimated_fico',
+      'fico': 'estimated_fico',
+      'loan_amount': 'loan_amount',
+      'loanAmount': 'loan_amount',
+      'sales_price': 'sales_price',
+      'salesPrice': 'sales_price',
+      'dti': 'dti',
+      'loan_type': 'loan_type',
+      'loanType': 'loan_type',
+      'converted': 'converted',
+      'status': 'converted',
+      'teammate_assigned': 'teammate_assigned',
+      'user': 'teammate_assigned',
+      'buyer_agent_id': 'buyer_agent_id',
+      'realEstateAgent': 'buyer_agent_id',
+      'arrive_loan_number': 'arrive_loan_number',
+      'loanNumber': 'arrive_loan_number',
+      'due_date': 'task_eta',
+      'dueDate': 'task_eta',
+    };
+    
+    const dbField = fieldMapping[field] || field;
+    await databaseService.updateLead(id, { [dbField]: value });
   };
 
   const handleBulkDelete = async () => {
@@ -444,21 +469,26 @@ export default function PreQualified() {
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
-      cell: ({ row }) => {
-        const agent = row.original.realEstateAgentData || agents.find(a => a.id === row.original.realEstateAgent) || null;
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <InlineEditAgent
-              value={agent}
-              agents={agents}
-              onValueChange={(agent) => {
-                handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
-                fetchLeads();
-              }}
-            />
-          </div>
-        );
-      },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData ? {
+              id: row.original.realEstateAgentData.id,
+              first_name: row.original.realEstateAgentData.first_name,
+              last_name: row.original.realEstateAgentData.last_name,
+              brokerage: row.original.realEstateAgentData.company,
+              email: row.original.realEstateAgentData.email,
+              phone: row.original.realEstateAgentData.phone
+            } : null}
+            agents={agents}
+            onValueChange={(agent) => {
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              fetchLeads();
+            }}
+            type="buyer"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "status",
@@ -482,8 +512,19 @@ export default function PreQualified() {
     {
       accessorKey: "loanNumber",
       header: "Loan Number",
-      cell: ({ row }) => row.original.loanNumber,
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
+              fetchLeads();
+            }}
+            placeholder="Enter loan #"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "fico",
@@ -558,8 +599,19 @@ export default function PreQualified() {
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }) => row.original.user,
+      className: "text-center",
       sortable: true,
+      cell: ({ row }) => (
+        <InlineEditAssignee
+          assigneeId={row.original.user}
+          users={users}
+          onValueChange={(userId) => {
+            handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+            fetchLeads();
+          }}
+          showNameText={false}
+        />
+      ),
     },
     {
       accessorKey: "loanType",
