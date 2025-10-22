@@ -132,8 +132,22 @@ export default function PreApproved() {
     loadView(viewName);
   };
 
-  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
-    reorderColumns(oldIndex, newIndex);
+  const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
+    // Get the column IDs from the visible columns array
+    const oldColumnId = visibleColumns[oldVisibleIndex]?.id;
+    const newColumnId = visibleColumns[newVisibleIndex]?.id;
+    
+    if (!oldColumnId || !newColumnId) return;
+    
+    // Find the indices in the full columns array
+    const oldFullIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const newFullIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    
+    if (oldFullIndex === -1 || newFullIndex === -1) return;
+    
+    // Reorder using the full array indices
+    reorderColumns(oldFullIndex, newFullIndex);
+    
     toast({
       title: "Column Reordered",
       description: "Table column order has been updated",
