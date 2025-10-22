@@ -190,7 +190,9 @@ export default function PreApproved() {
     { 
       accessorKey: "name", 
       header: "Client Name", 
-      sortable: true, 
+      sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
       cell: ({ row }) => (
         <span 
           className="cursor-pointer hover:text-primary" 

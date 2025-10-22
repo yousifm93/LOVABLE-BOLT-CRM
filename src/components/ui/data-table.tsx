@@ -27,6 +27,8 @@ export interface ColumnDef<T> {
   header: string;
   cell?: (props: { row: { original: T } }) => React.ReactNode;
   sortable?: boolean;
+  className?: string;
+  headerClassName?: string;
 }
 
 interface DataTableProps<T> {
@@ -77,11 +79,15 @@ function DraggableTableHead<T>({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "h-8 px-2 text-center font-medium relative group",
+        "h-8 px-2 font-medium relative group",
+        column.headerClassName || "text-center",
         column.sortable && "cursor-pointer hover:bg-muted/50"
       )}
     >
-      <div className="flex items-center justify-center gap-1">
+      <div className={cn(
+        "flex items-center gap-1",
+        column.headerClassName?.includes("text-left") ? "justify-start" : "justify-center"
+      )}>
         {/* Drag Handle */}
         <div
           {...attributes}
@@ -94,7 +100,10 @@ function DraggableTableHead<T>({
         
         {/* Column Header Text */}
         <div 
-          className="flex items-center justify-center gap-1 flex-1"
+          className={cn(
+            "flex items-center gap-1 flex-1",
+            column.headerClassName?.includes("text-left") ? "justify-start" : "justify-center"
+          )}
           onClick={() => column.sortable && onSort(column.accessorKey)}
         >
           {column.header}
@@ -269,9 +278,15 @@ export function DataTable<T extends Record<string, any>>({
                   </TableCell>
                 )}
                 {columns.map((column) => (
-                  <TableCell key={column.accessorKey} className="py-2 px-2 text-center">
+                  <TableCell 
+                    key={column.accessorKey} 
+                    className={cn("py-2 px-2", column.className || "text-center")}
+                  >
                     {column.cell ? (
-                      <div className="flex justify-center">
+                      <div className={cn(
+                        "flex",
+                        column.className?.includes("text-left") ? "justify-start" : "justify-center"
+                      )}>
                         {column.cell({ row: { original: row } })}
                       </div>
                     ) : (

@@ -143,6 +143,8 @@ const createColumns = (
   {
     accessorKey: "borrower_name",
     header: "Borrower",
+    className: "text-left",
+    headerClassName: "text-left",
     cell: ({ row }) => (
       <div 
         className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors truncate max-w-[160px] text-left"

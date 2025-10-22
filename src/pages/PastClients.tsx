@@ -86,6 +86,8 @@ const columns: ColumnDef<PastClient>[] = [
     accessorKey: "name",
     header: "Client Name",
     sortable: true,
+    className: "text-left",
+    headerClassName: "text-left",
   },
   {
     accessorKey: "contact",

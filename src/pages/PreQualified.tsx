@@ -284,6 +284,8 @@ export default function PreQualified() {
       accessorKey: "name",
       header: "Full Name",
       sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
       cell: ({ row }) => (
         <span 
           className="cursor-pointer hover:text-primary transition-colors font-medium"

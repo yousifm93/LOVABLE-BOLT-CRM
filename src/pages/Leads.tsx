@@ -506,6 +506,8 @@ export default function Leads() {
     {
       accessorKey: "name",
       header: "Full Name",
+      className: "text-left",
+      headerClassName: "text-left",
       cell: ({ row }) => (
         <div
           className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors font-medium text-left"
