@@ -199,6 +199,15 @@ export const databaseService = {
       // Local date formatter YYYY-MM-DD
       const formatLocalDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+      // Resolve teammate_assigned safely (avoid FK violations)
+      let teammateId: string | null = null;
+      const { data: teammateUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (teammateUser?.id) teammateId = teammateUser.id;
+
       // Prepare input date
       const inputLeadOnDate: any = (lead as any).lead_on_date;
 
@@ -207,11 +216,12 @@ export const databaseService = {
         ...lead,
         created_by: userId,
         account_id: accountId,
-        teammate_assigned: (lead as any).teammate_assigned || userId,
+        teammate_assigned: (lead as any).teammate_assigned ?? teammateId ?? null,
         lead_on_date:
           inputLeadOnDate instanceof Date
             ? formatLocalDate(inputLeadOnDate)
             : (lead as any).lead_on_date || formatLocalDate(new Date()),
+        task_eta: formatLocalDate(new Date()),
         source: (lead as any).source || null,
         referred_via: (lead as any).referred_via || null,
         status: (lead as any).status || 'Working on it',
