@@ -66,11 +66,11 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
       
       onLeadCreated();
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error creating lead:', error);
+    } catch (err: any) {
+      console.error('Error creating lead:', err);
       toast({
-        title: "Error",
-        description: "Failed to create lead",
+        title: "Failed to create lead",
+        description: `${err?.message || 'Unknown error'}${err?.details ? ' — ' + err.details : ''}`,
         variant: "destructive",
       });
     } finally {

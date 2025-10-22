@@ -159,56 +159,83 @@ export const databaseService = {
   async createLead(lead: Omit<LeadInsert, 'account_id' | 'created_by'>) {
     try {
       console.log('[DEBUG] Creating lead with data:', lead);
-      
+
       // Get current user's session
-      const { data: sessionData, error: authError } = await supabase.auth.getSession();
-      if (authError) {
-        console.error('[DEBUG] Auth error:', authError);
-        throw new Error(`Authentication error: ${authError.message}`);
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const userId = sessionData?.session?.user?.id;
+      if (!userId) throw new Error('No active user session');
+
+      // Resolve account_id robustly
+      let accountId: string | null = null;
+
+      // Try RPC first
+      const { data: rpcAccount, error: rpcErr } = await supabase.rpc('get_user_account_id', {
+        user_uuid: userId,
+      });
+      if (rpcErr) {
+        console.warn('[DEBUG] RPC get_user_account_id error (will fallback):', rpcErr);
       }
-      
-      if (!sessionData?.session?.user) {
-        console.error('[DEBUG] No authenticated user found');
-        throw new Error('No authenticated session found');
+      if (rpcAccount) accountId = rpcAccount as unknown as string;
+
+      // Fallback to profiles table
+      if (!accountId) {
+        const { data: profile, error: profileErr } = await supabase
+          .from('profiles')
+          .select('account_id')
+          .eq('user_id', userId)
+          .single();
+        if (profileErr) {
+          console.warn('[DEBUG] profiles fallback error (may still proceed):', profileErr);
+        }
+        accountId = (profile as any)?.account_id || null;
       }
 
-      console.log('[DEBUG] Authenticated user:', sessionData.session.user.id);
+      if (!accountId) {
+        throw new Error('Your user is missing an account_id. Please create a profile or set an account.');
+      }
 
-      // Prepare lead data (account_id and created_by handled by DB trigger)
-      const leadDataWithAuth = {
+      // Local date formatter YYYY-MM-DD
+      const formatLocalDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      // Prepare input date
+      const inputLeadOnDate: any = (lead as any).lead_on_date;
+
+      // Build insert payload explicitly
+      const leadPayload: any = {
         ...lead,
-        // Convert empty strings to null for optional enum fields
-        source: lead.source || null,
-        referred_via: lead.referred_via || null,
+        created_by: userId,
+        account_id: accountId,
+        teammate_assigned: (lead as any).teammate_assigned || userId,
+        lead_on_date:
+          inputLeadOnDate instanceof Date
+            ? formatLocalDate(inputLeadOnDate)
+            : (lead as any).lead_on_date || formatLocalDate(new Date()),
+        source: (lead as any).source || null,
+        referred_via: (lead as any).referred_via || null,
+        status: (lead as any).status || 'Working on it',
       };
 
-      console.log('[DEBUG] Lead data with auth:', leadDataWithAuth);
+      console.log('[DEBUG] Inserting lead with payload:', leadPayload);
 
-      // Insert the lead
+      // Insert and return minimal shape to avoid relationship ambiguity
       const { data, error } = await supabase
         .from('leads')
-        .insert(leadDataWithAuth as any)
-        .select(`
-          *,
-          pipeline_stage:pipeline_stages(*),
-          teammate:users!teammate_assigned(*)
-        `)
+        .insert(leadPayload)
+        .select('*')
         .single();
-      
-      if (error) {
-        console.error('[DEBUG] Supabase insert error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-        throw error;
-      }
 
+      if (error) throw error;
       console.log('[DEBUG] Lead created successfully:', data);
       return data;
     } catch (error: any) {
-      console.error('[DEBUG] CreateLead function error:', error);
+      console.error('[DEBUG] createLead error:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+      });
       throw error;
     }
   },
