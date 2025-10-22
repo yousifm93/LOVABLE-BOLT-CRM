@@ -60,7 +60,8 @@ const columns: ColumnDef<Agent>[] = [
     header: "Agent",
     cell: ({ row }) => {
       const agent = row.original;
-      const initials = agent.name ? agent.name.split(' ').map(n => n[0]).join('') : '??';
+      const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || 'Unknown';
+      const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('') || '??';
       
       return (
         <div className="flex items-center gap-3">
@@ -70,7 +71,7 @@ const columns: ColumnDef<Agent>[] = [
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{agent.name || 'Unknown'}</div>
+            <div className="font-medium">{fullName}</div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Building2 className="h-3 w-3" />
               {agent.company || 'No company'}
