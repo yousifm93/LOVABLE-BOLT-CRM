@@ -50,7 +50,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         phone: formData.phone || null,
         email: formData.email || null,
         notes: formData.notes || null,
-        lead_on_date: formData.lead_on_date.toISOString().split('T')[0],
+        lead_on_date: `${formData.lead_on_date.getFullYear()}-${String(formData.lead_on_date.getMonth() + 1).padStart(2, '0')}-${String(formData.lead_on_date.getDate()).padStart(2, '0')}`,
         status: 'Working on it',
       });
 
