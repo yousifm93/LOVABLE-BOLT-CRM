@@ -290,6 +290,7 @@ export default function Screening() {
       'realEstateAgent': 'buyer_agent_id',
       'due_date': 'task_eta',
       'dueDate': 'task_eta',
+      'arrive_loan_number': 'arrive_loan_number',
     };
     
     const dbField = fieldMapping[field] || field;
@@ -398,8 +399,19 @@ export default function Screening() {
     {
       accessorKey: "loanNumber",
       header: "Loan Number",
-      cell: ({ row }) => row.original.loanNumber,
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
+              fetchLeads();
+            }}
+            placeholder="Enter loan #"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "realEstateAgent",
@@ -407,21 +419,26 @@ export default function Screening() {
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
-      cell: ({ row }) => {
-        const agent = row.original.realEstateAgentData || agents.find(a => a.id === row.original.realEstateAgent) || null;
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <InlineEditAgent
-              value={agent}
-              agents={agents}
-              onValueChange={(agent) => {
-                handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
-                fetchLeads();
-              }}
-            />
-          </div>
-        );
-      }
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData ? {
+              id: row.original.realEstateAgentData.id,
+              first_name: row.original.realEstateAgentData.first_name,
+              last_name: row.original.realEstateAgentData.last_name,
+              brokerage: row.original.realEstateAgentData.company,
+              email: row.original.realEstateAgentData.email,
+              phone: row.original.realEstateAgentData.phone
+            } : null}
+            agents={agents}
+            onValueChange={(agent) => {
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              fetchLeads();
+            }}
+            type="buyer"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "status",
