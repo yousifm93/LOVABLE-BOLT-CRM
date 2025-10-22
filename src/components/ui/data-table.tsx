@@ -56,16 +56,18 @@ interface DraggableTableHeadProps<T> {
   onSort: (key: string) => void;
   width?: number;
   onResize: (columnKey: string, newWidth: number) => void;
+  onAutoFit: (columnKey: string) => void;
 }
 
 interface ResizeHandleProps {
   columnKey: string;
   onResize: (columnKey: string, newWidth: number) => void;
+  onAutoFit: (columnKey: string) => void;
   minWidth?: number;
   maxWidth?: number;
 }
 
-function ResizeHandle({ columnKey, onResize, minWidth = 50, maxWidth = 500 }: ResizeHandleProps) {
+function ResizeHandle({ columnKey, onResize, onAutoFit, minWidth = 50, maxWidth = 500 }: ResizeHandleProps) {
   const [isResizing, setIsResizing] = React.useState(false);
   const [startX, setStartX] = React.useState(0);
   const [startWidth, setStartWidth] = React.useState(0);
@@ -79,6 +81,12 @@ function ResizeHandle({ columnKey, onResize, minWidth = 50, maxWidth = 500 }: Re
     if (th) {
       setStartWidth(th.offsetWidth);
     }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onAutoFit(columnKey);
   };
 
   React.useEffect(() => {
@@ -110,6 +118,7 @@ function ResizeHandle({ columnKey, onResize, minWidth = 50, maxWidth = 500 }: Re
         isResizing && "bg-primary"
       )}
       onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
       style={{ zIndex: 10 }}
     />
   );
@@ -121,7 +130,8 @@ function DraggableTableHead<T>({
   sortDirection, 
   onSort,
   width,
-  onResize
+  onResize,
+  onAutoFit
 }: DraggableTableHeadProps<T>) {
   const {
     attributes,
@@ -186,6 +196,7 @@ function DraggableTableHead<T>({
       <ResizeHandle 
         columnKey={column.accessorKey}
         onResize={onResize}
+        onAutoFit={onAutoFit}
         minWidth={column.minWidth}
         maxWidth={column.maxWidth}
       />
@@ -252,6 +263,52 @@ export function DataTable<T extends Record<string, any>>({
       [columnKey]: newWidth
     }));
   }, []);
+
+  const handleAutoFit = React.useCallback((columnKey: string) => {
+    const column = columns.find(col => col.accessorKey === columnKey);
+    if (!column) return;
+
+    // Find the column index (accounting for selection checkbox if present)
+    const columnIndex = columns.findIndex(col => col.accessorKey === columnKey);
+    const actualColumnIndex = selectable ? columnIndex + 1 : columnIndex;
+
+    // Find all cells in this column
+    const cells = document.querySelectorAll(
+      `table tbody tr td:nth-child(${actualColumnIndex + 1})`
+    );
+    const header = document.querySelector(
+      `table thead tr th:nth-child(${actualColumnIndex + 1})`
+    );
+
+    let maxWidth = 0;
+
+    // Measure header
+    if (header) {
+      const headerContent = header.querySelector('div');
+      if (headerContent) {
+        maxWidth = Math.max(maxWidth, headerContent.scrollWidth);
+      }
+    }
+
+    // Measure all cells
+    cells.forEach(cell => {
+      maxWidth = Math.max(maxWidth, (cell as HTMLElement).scrollWidth);
+    });
+
+    // Add padding buffer
+    const totalWidth = maxWidth + 32;
+
+    // Apply constraints
+    const constrainedWidth = Math.min(
+      Math.max(totalWidth, column.minWidth || 50),
+      column.maxWidth || 500
+    );
+
+    setColumnWidths(prev => ({
+      ...prev,
+      [columnKey]: constrainedWidth
+    }));
+  }, [columns, selectable]);
 
   const filteredData = React.useMemo(() => {
     let filtered = data;
@@ -336,6 +393,7 @@ export function DataTable<T extends Record<string, any>>({
                     onSort={handleSort}
                     width={columnWidths[column.accessorKey]}
                     onResize={handleResize}
+                    onAutoFit={handleAutoFit}
                   />
                 ))}
               </SortableContext>
