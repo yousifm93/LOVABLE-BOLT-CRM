@@ -212,7 +212,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users(*)
+          teammate:users!teammate_assigned(*)
         `)
         .single();
       
