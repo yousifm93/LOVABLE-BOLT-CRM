@@ -98,22 +98,6 @@ export const databaseService = {
   // Lead operations
   async getLeads() {
     try {
-      // Get current user's session and profile
-      const { data: sessionData, error: authError } = await supabase.auth.getSession();
-      if (authError || !sessionData?.session?.user) {
-        throw new Error('No authenticated session found');
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('user_id', sessionData.session.user.id)
-        .single();
-      
-      if (profileError) {
-        throw new Error(`Failed to get user profile: ${profileError.message}`);
-      }
-
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -121,7 +105,6 @@ export const databaseService = {
           pipeline_stage:pipeline_stages(*),
           teammate:users(*)
         `)
-        .eq('account_id', profile.account_id)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -143,22 +126,6 @@ export const databaseService = {
 
   async getLeadsWithTaskDueDates() {
     try {
-      // Get current user's session and profile
-      const { data: sessionData, error: authError } = await supabase.auth.getSession();
-      if (authError || !sessionData?.session?.user) {
-        throw new Error('No authenticated session found');
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('user_id', sessionData.session.user.id)
-        .single();
-      
-      if (profileError) {
-        throw new Error(`Failed to get user profile: ${profileError.message}`);
-      }
-
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -167,7 +134,6 @@ export const databaseService = {
           teammate:users(*),
           tasks(due_date)
         `)
-        .eq('account_id', profile.account_id)
         .eq('pipeline_stage_id', 'c54f417b-3f67-43de-80f5-954cf260d571')
         .order('created_at', { ascending: false });
       
@@ -282,30 +248,19 @@ export const databaseService = {
 
   deleteLead: async (id: string) => {
     try {
-      // Get the user's account_id from their profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
       console.log('[DEBUG] Delete lead:', {
         leadId: id,
-        userId: user.id,
-        accountId: profile.account_id
+        userId: user.id
       });
 
-      // Delete the lead with explicit account_id check
+      // Delete the lead (RLS handles access control)
       const { error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', id)
-        .eq('account_id', profile.account_id);
+        .eq('id', id);
 
       if (error) {
         console.error('[DEBUG] Delete lead error:', {
@@ -725,22 +680,6 @@ export const databaseService = {
 
   async getActiveLoans() {
     try {
-      // Get current user's session and profile
-      const { data: sessionData, error: authError } = await supabase.auth.getSession();
-      if (authError || !sessionData?.session?.user) {
-        throw new Error('No authenticated session found');
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('user_id', sessionData.session.user.id)
-        .single();
-      
-      if (profileError) {
-        throw new Error(`Failed to get user profile: ${profileError.message}`);
-      }
-
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -750,12 +689,13 @@ export const databaseService = {
           listing_agent:buyer_agents!listing_agent_id(*),
           teammate:users!teammate_assigned(*)
         `)
-        .eq('account_id', profile.account_id)
-        .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
         .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to load active loans:', error);
+        throw error;
+      }
       
       // Handle null relations to prevent errors
       return data?.map(loan => ({
@@ -765,9 +705,9 @@ export const databaseService = {
         listing_agent: loan.listing_agent || null,
         teammate: loan.teammate || null
       })) || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load active loans:', error);
-      throw new Error('Failed to load active loans. Please try again.');
+      throw new Error(error?.message || 'Failed to load active loans.');
     }
   },
 
