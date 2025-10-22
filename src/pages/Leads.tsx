@@ -575,18 +575,17 @@ export default function Leads() {
     {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
+      className: "text-left",
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditAgent
-            value={row.original.realEstateAgentData}
-            agents={agents}
-            onValueChange={(agent) =>
-              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
-            }
-            type="buyer"
-            placeholder="Select agent"
-          />
-        </div>
+        <InlineEditAgent
+          value={row.original.realEstateAgentData}
+          agents={agents}
+          onValueChange={(agent) =>
+            handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+          }
+          type="buyer"
+          placeholder="Select agent"
+        />
       ),
       sortable: true,
     },
@@ -611,17 +610,16 @@ export default function Leads() {
     {
       accessorKey: "user",
       header: "User",
+      className: "text-left",
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditAssignee
-            assigneeId={row.original.user}
-            users={users}
-            onValueChange={(userId) =>
-              handleFieldUpdate(row.original.id, "teammate_assigned", userId)
-            }
-            showNameText={true}
-          />
-        </div>
+        <InlineEditAssignee
+          assigneeId={row.original.user}
+          users={users}
+          onValueChange={(userId) =>
+            handleFieldUpdate(row.original.id, "teammate_assigned", userId)
+          }
+          showNameText={true}
+        />
       ),
       sortable: true,
     },
