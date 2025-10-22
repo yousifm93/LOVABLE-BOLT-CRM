@@ -724,24 +724,51 @@ export const databaseService = {
   },
 
   async getActiveLoans() {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session.session?.user) throw new Error('Not authenticated');
+    try {
+      // Get current user's session and profile
+      const { data: sessionData, error: authError } = await supabase.auth.getSession();
+      if (authError || !sessionData?.session?.user) {
+        throw new Error('No authenticated session found');
+      }
 
-    const { data, error } = await supabase
-      .from('leads')
-      .select(`
-        *,
-        buyer_agent:buyer_agents(*),
-        lender:contacts!lender_id(*),
-        listing_agent:buyer_agents!listing_agent_id(*),
-        teammate:users!teammate_assigned(*)
-      `)
-      .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
-      .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
-      .order('created_at', { ascending: false });
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('user_id', sessionData.session.user.id)
+        .single();
+      
+      if (profileError) {
+        throw new Error(`Failed to get user profile: ${profileError.message}`);
+      }
 
-    if (error) throw error;
-    return data;
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          buyer_agent:buyer_agents(*),
+          lender:contacts!lender_id(*),
+          listing_agent:buyer_agents!listing_agent_id(*),
+          teammate:users!teammate_assigned(*)
+        `)
+        .eq('account_id', profile.account_id)
+        .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
+        .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Handle null relations to prevent errors
+      return data?.map(loan => ({
+        ...loan,
+        buyer_agent: loan.buyer_agent || null,
+        lender: loan.lender || null,
+        listing_agent: loan.listing_agent || null,
+        teammate: loan.teammate || null
+      })) || [];
+    } catch (error) {
+      console.error('Failed to load active loans:', error);
+      throw new Error('Failed to load active loans. Please try again.');
+    }
   },
 
   async getLenders() {
