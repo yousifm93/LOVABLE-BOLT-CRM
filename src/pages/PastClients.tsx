@@ -3,6 +3,7 @@ import { Search, Plus, Filter, Phone, Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
@@ -250,6 +251,7 @@ export default function PastClients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
 
   // Column visibility management
   const {
@@ -350,6 +352,10 @@ export default function PastClients() {
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
             onColumnReorder={handleColumnReorder}
+            selectable
+            selectedIds={selectedLeadIds}
+            onSelectionChange={setSelectedLeadIds}
+            getRowId={(row) => row.id.toString()}
           />
         </CardContent>
       </Card>
@@ -362,6 +368,21 @@ export default function PastClients() {
           onStageChange={handleStageChange}
           pipelineType="past-clients"
         />
+      )}
+
+      {selectedLeadIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+          <Card className="shadow-lg border-2">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeadIds.length} client{selectedLeadIds.length > 1 ? 's' : ''} selected
+              </Badge>
+              <Button onClick={() => setSelectedLeadIds([])} variant="outline" size="sm">
+                Clear Selection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

@@ -3,6 +3,7 @@ import { Search, Plus, Filter, Phone, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
@@ -13,6 +14,18 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatPercentage, formatDateShort } from "@/utils/formatters";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
+import { Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Display type for table rows
 type DisplayLead = {
@@ -59,6 +72,9 @@ export default function Screening() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [leads, setLeads] = useState<DatabaseLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   // Column visibility management
   const {
@@ -152,6 +168,59 @@ export default function Screening() {
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
     console.log(`Moving client ${clientId} to stage ${newStage}`);
     setIsDrawerOpen(false);
+  };
+
+  const handleFieldUpdate = async (id: string, field: string, value: any) => {
+    await databaseService.updateLead(id, { [field]: value });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => databaseService.deleteLead(id))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} lead${successCount > 1 ? 's' : ''} deleted successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+        });
+      }
+      
+      await fetchLeads();
+      setSelectedLeadIds([]);
+    } finally {
+      setIsBulkDeleteOpen(false);
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => handleFieldUpdate(id, field, value))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} lead${successCount > 1 ? 's' : ''} updated successfully.`,
+        });
+      }
+      
+      await fetchLeads();
+      setSelectedLeadIds([]);
+    } catch (error) {
+      console.error('Error during bulk update:', error);
+    }
   };
 
   // Transform leads to DisplayLead format
@@ -323,6 +392,10 @@ export default function Screening() {
               if (lead) handleRowClick(lead);
             }}
             onColumnReorder={handleColumnReorder}
+            selectable
+            selectedIds={selectedLeadIds}
+            onSelectionChange={setSelectedLeadIds}
+            getRowId={(row) => row.id}
           />
         </CardContent>
       </Card>
@@ -340,6 +413,63 @@ export default function Screening() {
           onLeadUpdated={fetchLeads}
         />
       )}
+
+      {selectedLeadIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+          <Card className="shadow-lg border-2">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''} selected
+              </Badge>
+              <div className="flex gap-2">
+                <Button onClick={() => setIsBulkUpdateOpen(true)} size="sm">
+                  Update Field
+                </Button>
+                <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive" size="sm">
+                  Delete
+                </Button>
+                <Button onClick={() => setSelectedLeadIds([])} variant="outline" size="sm">
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedLeadIds.length} Leads</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedLeadIds.length} lead{selectedLeadIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <BulkUpdateDialog
+        open={isBulkUpdateOpen}
+        onOpenChange={setIsBulkUpdateOpen}
+        selectedCount={selectedLeadIds.length}
+        onUpdate={handleBulkUpdate}
+        fieldOptions={[
+          { value: 'converted', label: 'Status', type: 'select', options: [
+            { value: 'Working on it', label: 'Working on it' },
+            { value: 'Converted', label: 'Converted' },
+            { value: 'Dead', label: 'Dead' }
+          ]},
+        ]}
+      />
     </div>
   );
 }
