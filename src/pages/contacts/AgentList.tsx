@@ -140,7 +140,7 @@ const columns: ColumnDef<Agent>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <StatusBadge status={row.original.status} />
+      <StatusBadge status={row.original.status || "Active"} />
     ),
     sortable: true,
   },

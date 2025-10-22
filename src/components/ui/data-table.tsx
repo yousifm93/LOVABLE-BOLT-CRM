@@ -504,7 +504,8 @@ export function DataTable<T extends Record<string, any>>({
   );
 }
 
-export const StatusBadge = ({ status }: { status: string }) => {
+export const StatusBadge = ({ status }: { status?: string }) => {
+  const safeStatus = status || "Active";
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "lead":
@@ -527,8 +528,8 @@ export const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge className={getStatusColor(status)}>
-      {status}
+    <Badge className={getStatusColor(safeStatus)}>
+      {safeStatus}
     </Badge>
   );
 };
