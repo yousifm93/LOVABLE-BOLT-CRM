@@ -14,6 +14,10 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatPercentage, formatDateShort } from "@/utils/formatters";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -302,14 +306,36 @@ export default function PreQualified() {
     {
       accessorKey: "phone",
       header: "Lead Phone",
-      cell: ({ row }) => row.original.phone || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.phone}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "phone", value);
+              fetchLeads();
+            }}
+            placeholder="Enter phone"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "email",
       header: "Lead Email",
-      cell: ({ row }) => row.original.email || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.email}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "email", value);
+              fetchLeads();
+            }}
+            placeholder="Enter email"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "realEstateAgent",
@@ -332,33 +358,72 @@ export default function PreQualified() {
     {
       accessorKey: "fico",
       header: "FICO",
-      cell: ({ row }) => (
-        <span className={`font-medium ${
-          row.original.fico >= 750 ? 'text-success' : 
-          row.original.fico >= 700 ? 'text-warning' : 'text-destructive'
-        }`}>
-          {row.original.fico || '—'}
-        </span>
-      ),
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.fico}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              fetchLeads();
+            }}
+            placeholder="0"
+            min={300}
+            max={850}
+          />
+        </div>
+      )
     },
     {
       accessorKey: "dti",
       header: "DTI",
-      cell: ({ row }) => formatPercentage(row.original.dti),
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.dti || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "dti", value);
+              fetchLeads();
+            }}
+            decimals={1}
+          />
+        </div>
+      )
     },
     {
       accessorKey: "loanAmount",
       header: "Loan Amount",
-      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.loanAmount}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_amount", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "salesPrice",
       header: "Sales Price",
-      cell: ({ row }) => formatCurrency(row.original.salesPrice),
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.salesPrice}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "sales_price", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "user",

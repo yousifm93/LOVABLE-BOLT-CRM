@@ -13,6 +13,9 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,12 +38,14 @@ type DisplayLead = {
   status: string;
   approvedAmount: string;
   creditScore: number;
+  loanAmount: number | null;
 };
 
 // Display columns that match allColumns accessorKeys
 const initialColumns = [
   { id: "name", label: "Client Name", visible: true },
-  { id: "contact", label: "Contact", visible: true },
+  { id: "email", label: "Email", visible: true },
+  { id: "phone", label: "Phone", visible: true },
   { id: "status", label: "Status", visible: true },
   { id: "approvedAmount", label: "Approved Amount", visible: true },
   { id: "creditScore", label: "Credit Score", visible: true },
@@ -179,9 +184,102 @@ export default function PreApproved() {
     }
   };
 
-  const displayData: DisplayLead[] = leads.map(lead => ({ id: lead.id, name: `${lead.first_name} ${lead.last_name}`, email: lead.email || '', phone: lead.phone || '', loanType: lead.loan_type || 'Purchase', status: lead.status || 'Pre-Approved', approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', creditScore: 770 }));
+  const displayData: DisplayLead[] = leads.map(lead => ({ id: lead.id, name: `${lead.first_name} ${lead.last_name}`, email: lead.email || '', phone: lead.phone || '', loanType: lead.loan_type || 'Purchase', status: lead.status || 'Pre-Approved', approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', creditScore: lead.estimated_fico || 0, loanAmount: lead.loan_amount || 0 }));
 
-  const allColumns: ColumnDef<DisplayLead>[] = [{ accessorKey: "name", header: "Client Name", sortable: true, cell: ({ row }) => <span className="cursor-pointer hover:text-primary" onClick={(e) => { e.stopPropagation(); const lead = leads.find(l => l.id === row.original.id); if (lead) handleRowClick(lead); }}>{row.original.name}</span> }, { accessorKey: "contact", header: "Contact", cell: ({ row }) => <div className="flex gap-3"><Mail className="h-3 w-3 mr-1" /><span>{row.original.email}</span></div> }, { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> }, { accessorKey: "approvedAmount", header: "Approved Amount", cell: ({ row }) => <span className="font-medium text-success">{row.original.approvedAmount}</span>, sortable: true }, { accessorKey: "creditScore", header: "Credit Score", sortable: true }];
+  const allColumns: ColumnDef<DisplayLead>[] = [
+    { 
+      accessorKey: "name", 
+      header: "Client Name", 
+      sortable: true, 
+      cell: ({ row }) => (
+        <span 
+          className="cursor-pointer hover:text-primary" 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            const lead = leads.find(l => l.id === row.original.id); 
+            if (lead) handleRowClick(lead); 
+          }}
+        >
+          {row.original.name}
+        </span>
+      ) 
+    },
+    { 
+      accessorKey: "email", 
+      header: "Email", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.email}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "email", value);
+              fetchLeads();
+            }}
+            placeholder="Enter email"
+          />
+        </div>
+      )
+    },
+    { 
+      accessorKey: "phone", 
+      header: "Phone", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.phone}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "phone", value);
+              fetchLeads();
+            }}
+            placeholder="Enter phone"
+          />
+        </div>
+      )
+    },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      cell: ({ row }) => <StatusBadge status={row.original.status} /> 
+    }, 
+    { 
+      accessorKey: "approvedAmount", 
+      header: "Approved Amount", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.loanAmount}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_amount", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
+    }, 
+    { 
+      accessorKey: "creditScore", 
+      header: "Credit Score", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.creditScore}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              fetchLeads();
+            }}
+            placeholder="0"
+            min={300}
+            max={850}
+          />
+        </div>
+      )
+    }
+  ];
 
   const columns = visibleColumns
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))

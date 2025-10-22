@@ -14,6 +14,9 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatDateShort } from "@/utils/formatters";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -323,14 +326,36 @@ export default function PendingApp() {
     {
       accessorKey: "phone",
       header: "Lead Phone",
-      cell: ({ row }) => row.original.phone || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.phone}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "phone", value);
+              fetchLeads();
+            }}
+            placeholder="Enter phone"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "email",
       header: "Lead Email",
-      cell: ({ row }) => row.original.email || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.email}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "email", value);
+              fetchLeads();
+            }}
+            placeholder="Enter email"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "realEstateAgent",
@@ -360,14 +385,38 @@ export default function PendingApp() {
     {
       accessorKey: "loanAmount",
       header: "Loan Amount",
-      cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.loanAmount}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_amount", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
     },
     {
       accessorKey: "creditScore",
       header: "Credit Score",
-      cell: ({ row }) => row.original.creditScore || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.creditScore}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              fetchLeads();
+            }}
+            placeholder="0"
+            min={300}
+            max={850}
+          />
+        </div>
+      )
     },
   ];
 
