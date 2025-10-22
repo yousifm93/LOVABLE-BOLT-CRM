@@ -569,22 +569,36 @@ export default function Active() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [loansData, usersData, lendersData, agentsData] = await Promise.all([
-        databaseService.getActiveLoans(),
+      
+      // Phase 1: Load loans first (critical data)
+      const loansData = await databaseService.getActiveLoans();
+      setActiveLoans(loansData || []);
+      
+      // Phase 2: Load auxiliary data with Promise.allSettled (non-blocking)
+      const [usersRes, lendersRes, agentsRes] = await Promise.allSettled([
         databaseService.getUsers(),
-        databaseService.getLenders(),
+        databaseService.getLenderContacts(),
         databaseService.getAgents()
       ]);
-      
-      setActiveLoans(loansData || []);
-      setUsers(usersData || []);
-      setLenders(lendersData || []);
-      setAgents(agentsData || []);
-    } catch (error) {
-      console.error('Error loading data:', error);
+
+      setUsers(usersRes.status === 'fulfilled' ? usersRes.value ?? [] : []);
+      setLenders(lendersRes.status === 'fulfilled' ? lendersRes.value ?? [] : []);
+      setAgents(agentsRes.status === 'fulfilled' ? agentsRes.value ?? [] : []);
+
+      if (usersRes.status === 'rejected') {
+        console.error('Users load failed:', usersRes.reason);
+      }
+      if (lendersRes.status === 'rejected') {
+        console.error('Lender contacts load failed:', lendersRes.reason);
+      }
+      if (agentsRes.status === 'rejected') {
+        console.error('Agents load failed:', agentsRes.reason);
+      }
+    } catch (error: any) {
+      console.error('Error loading active loans:', error);
       toast({
         title: "Error",
-        description: "Failed to load active loans data",
+        description: error?.message || "Failed to load active loans data",
         variant: "destructive"
       });
     } finally {

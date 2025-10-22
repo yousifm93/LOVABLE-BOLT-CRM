@@ -781,6 +781,15 @@ export const databaseService = {
     return data;
   },
 
+  async getLenderContacts() {
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email')
+      .order('first_name');
+    if (error) throw error;
+    return data || [];
+  },
+
   async createLender(lender: any) {
     const { data, error } = await supabase
       .from('lenders')
