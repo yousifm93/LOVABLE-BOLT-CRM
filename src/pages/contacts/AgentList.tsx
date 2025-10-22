@@ -193,7 +193,7 @@ export default function AgentList() {
       
       // Safer array operations - handle all agent-related types
       const agentContacts = Array.isArray(allContacts) 
-        ? allContacts.filter(contact => contact && (contact.type === 'Real Estate Agent' || contact.type === 'Realtor'))
+        ? allContacts.filter(contact => contact && (contact.type === 'Agent' || contact.type === 'Real Estate Agent' || contact.type === 'Realtor'))
         : [];
       console.log("Filtered agent contacts:", agentContacts);
       setContacts(agentContacts);
