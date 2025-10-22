@@ -66,13 +66,12 @@ const transformLeadToDisplay = (
 ): Lead => {
   // Migrate old lead strength values to new ones
   const migrateLeadStrength = (oldValue: string): string => {
-    switch (oldValue?.toLowerCase()) {
-      case 'hot': return 'High';
-      case 'warm': return 'Medium';
-      case 'cold': return 'Low';
-      case 'qualified': return 'High';
-      default: return ['High', 'Medium', 'Low'].includes(oldValue) ? oldValue : 'Medium';
-    }
+    const mapping: Record<string, string> = {
+      'High': 'Hot',
+      'Medium': 'Warm',
+      'Low': 'Cold',
+    };
+    return mapping[oldValue] || oldValue || 'Warm';
   };
 
   // Migrate old converted values to new ones
@@ -100,7 +99,7 @@ const transformLeadToDisplay = (
     referralSource: dbLead.referral_source || 'Agent',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
-    dueDate: dbLead.task_eta ? new Date(dbLead.task_eta).toLocaleDateString() : '',
+    dueDate: dbLead.task_eta ? new Date(dbLead.task_eta + 'T00:00:00').toLocaleDateString() : '',
     loanType: dbLead.loan_type,
     loanAmount: dbLead.loan_amount,
   };
@@ -132,9 +131,10 @@ const convertedOptions = [
 ];
 
 const leadStrengthOptions = [
-  { value: "High", label: "High" },
-  { value: "Medium", label: "Medium" },
-  { value: "Low", label: "Low" },
+  { value: "Hot", label: "Hot" },
+  { value: "Warm", label: "Warm" },
+  { value: "Cold", label: "Cold" },
+  { value: "Qualified", label: "Qualified" },
 ];
 
 // Define initial column configuration - NEW LEADS (7 columns from Excel)
@@ -306,9 +306,9 @@ export default function Leads() {
           if (value === undefined || value === null) {
             updateData.task_eta = null;
           } else {
-            // Convert Date to ISO string for database
+            // Convert Date to YYYY-MM-DD format using local timezone
             updateData.task_eta = value instanceof Date 
-              ? value.toISOString().split('T')[0]  // YYYY-MM-DD format
+              ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
               : value;
           }
           break;

@@ -27,7 +27,7 @@ export function InlineEditDate({
 }: InlineEditDateProps) {
   const [open, setOpen] = React.useState(false);
   
-  const dateValue = value ? (typeof value === 'string' ? new Date(value) : value) : undefined;
+  const dateValue = value ? (typeof value === 'string' ? new Date(value + 'T00:00:00') : value) : undefined;
   const displayValue = dateValue ? dateValue.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric' 
