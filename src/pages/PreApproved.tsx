@@ -15,6 +15,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateShort } from "@/utils/formatters";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -40,6 +41,8 @@ import { Loader2 } from "lucide-react";
 type DisplayLead = {
   id: string;
   name: string;
+  preApprovedOn: string;
+  loanNumber: string;
   email: string;
   phone: string;
   loanType: string;
@@ -59,16 +62,18 @@ type DisplayLead = {
 
 // Display columns that match allColumns accessorKeys
 const initialColumns = [
-  { id: "name", label: "Client Name", visible: true },
-  { id: "email", label: "Email", visible: true },
-  { id: "phone", label: "Phone", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "approvedAmount", label: "Approved Amount", visible: true },
-  { id: "creditScore", label: "Credit Score", visible: true },
+  { id: "name", label: "Full Name", visible: true },
+  { id: "preApprovedOn", label: "Pre-Approved On", visible: true },
+  { id: "loanNumber", label: "Loan Number", visible: true },
   { id: "user", label: "User", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
   { id: "baStatus", label: "BA", visible: true },
   { id: "dueDate", label: "Due Date", visible: true },
+  { id: "email", label: "Email", visible: false },
+  { id: "phone", label: "Phone", visible: false },
+  { id: "approvedAmount", label: "Approved Amount", visible: false },
+  { id: "creditScore", label: "Credit Score", visible: false },
   { id: "loanType", label: "Loan Type", visible: false },
   { id: "dti", label: "DTI", visible: false },
   { id: "salesPrice", label: "Sales Price", visible: false },
@@ -194,9 +199,11 @@ export default function PreApproved() {
   // Filter columns definition
   const filterColumns = [
     { value: 'name', label: 'Name', type: 'text' as const },
-    { value: 'status', label: 'Status', type: 'text' as const },
-    { value: 'creditScore', label: 'Credit Score', type: 'text' as const },
+    { value: 'email', label: 'Email', type: 'text' as const },
+    { value: 'phone', label: 'Phone', type: 'text' as const },
+    { value: 'status', label: 'Status', type: 'select' as const, options: convertedOptions.map(opt => opt.value) },
     { value: 'baStatus', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(opt => opt.value) },
+    { value: 'preApprovedOn', label: 'Pre-Approved On', type: 'date' as const },
   ];
   
   const clearAllFilters = () => {
@@ -331,7 +338,9 @@ export default function PreApproved() {
 
   const displayData: DisplayLead[] = leads.map(lead => ({ 
     id: lead.id, 
-    name: `${lead.first_name} ${lead.last_name}`, 
+    name: `${lead.first_name} ${lead.last_name}`,
+    preApprovedOn: lead.pre_approved_at || lead.created_at,
+    loanNumber: lead.arrive_loan_number?.toString() || '—',
     email: lead.email || '', 
     phone: lead.phone || '', 
     loanType: lead.loan_type || 'Purchase', 
@@ -352,13 +361,13 @@ export default function PreApproved() {
   const allColumns: ColumnDef<DisplayLead>[] = [
     { 
       accessorKey: "name", 
-      header: "Client Name", 
+      header: "Full Name", 
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
       cell: ({ row }) => (
         <span 
-          className="cursor-pointer hover:text-primary" 
+          className="cursor-pointer hover:text-primary transition-colors font-medium" 
           onClick={(e) => { 
             e.stopPropagation(); 
             const lead = leads.find(l => l.id === row.original.id); 
@@ -369,96 +378,25 @@ export default function PreApproved() {
         </span>
       ) 
     },
-    { 
-      accessorKey: "email", 
-      header: "Email", 
+    {
+      accessorKey: "preApprovedOn",
+      header: "Pre-Approved On",
+      cell: ({ row }) => formatDateShort(row.original.preApprovedOn),
       sortable: true,
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
-            value={row.original.email}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "email", value);
-              fetchLeads();
-            }}
-            placeholder="Enter email"
-          />
-        </div>
-      )
     },
-    { 
-      accessorKey: "phone", 
-      header: "Phone", 
-      sortable: true,
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditPhone
-            value={row.original.phone}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "phone", value);
-              fetchLeads();
-            }}
-            placeholder="Enter phone"
-          />
-        </div>
-      )
-    },
-    { 
-      accessorKey: "status", 
-      header: "Status", 
-      cell: ({ row }) => <StatusBadge status={row.original.status} /> 
-    }, 
-    { 
-      accessorKey: "approvedAmount", 
-      header: "Approved Amount", 
-      sortable: true,
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditCurrency
-            value={row.original.loanAmount}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "loan_amount", value);
-              fetchLeads();
-            }}
-            placeholder="$0"
-          />
-        </div>
-      )
-    }, 
-    { 
-      accessorKey: "creditScore", 
-      header: "Credit Score", 
+    {
+      accessorKey: "loanNumber",
+      header: "Loan Number",
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditNumber
-            value={row.original.creditScore}
+            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
             onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
               fetchLeads();
             }}
-            placeholder="0"
-            min={300}
-            max={850}
-          />
-        </div>
-      )
-    },
-    {
-      accessorKey: "realEstateAgent",
-      header: "Real Estate Agent",
-      sortable: true,
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditAgent
-            value={row.original.realEstateAgentData}
-            agents={agents}
-            onValueChange={(agent) => {
-              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
-              fetchLeads();
-            }}
-            placeholder="Select agent"
-            type="buyer"
+            placeholder="Enter loan #"
           />
         </div>
       ),
@@ -478,6 +416,52 @@ export default function PreApproved() {
           }}
           showNameText={false}
         />
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.status}
+            options={convertedOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "converted", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-36"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData ? {
+              id: row.original.realEstateAgentData.id,
+              first_name: row.original.realEstateAgentData.first_name,
+              last_name: row.original.realEstateAgentData.last_name,
+              brokerage: row.original.realEstateAgentData.company,
+              email: row.original.realEstateAgentData.email,
+              phone: row.original.realEstateAgentData.phone
+            } : null}
+            agents={agents}
+            onValueChange={(agent) => {
+              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              fetchLeads();
+            }}
+            type="buyer"
+          />
+        </div>
       ),
     },
     {
@@ -515,6 +499,76 @@ export default function PreApproved() {
           />
         </div>
       ),
+    },
+    { 
+      accessorKey: "email", 
+      header: "Email", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.email}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "email", value);
+              fetchLeads();
+            }}
+            placeholder="Enter email"
+          />
+        </div>
+      )
+    },
+    { 
+      accessorKey: "phone", 
+      header: "Phone", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPhone
+            value={row.original.phone}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "phone", value);
+              fetchLeads();
+            }}
+            placeholder="Enter phone"
+          />
+        </div>
+      )
+    },
+    { 
+      accessorKey: "approvedAmount", 
+      header: "Approved Amount", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.loanAmount}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_amount", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
+    }, 
+    { 
+      accessorKey: "creditScore", 
+      header: "Credit Score", 
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditNumber
+            value={row.original.creditScore}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              fetchLeads();
+            }}
+            placeholder="0"
+            min={300}
+            max={850}
+          />
+        </div>
+      )
     },
     {
       accessorKey: "loanType",
