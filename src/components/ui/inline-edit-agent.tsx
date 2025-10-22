@@ -76,20 +76,20 @@ export function InlineEditAgent({
         <Button
           variant="ghost"
           className={cn(
-            "h-9 p-1 justify-start text-left font-normal hover:bg-muted/50 max-w-[200px]",
+            "h-9 px-1 py-1 justify-start text-left font-normal hover:bg-muted/50 w-full relative",
             !value && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="grid grid-cols-[16px_1fr] items-start gap-2 min-w-0 h-full">
-            <UserCheck className="h-3 w-3 mt-1 flex-shrink-0" />
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-sm leading-5 truncate w-full">
+          <div className="flex items-center gap-2 min-w-0 w-full">
+            <UserCheck className="h-3 w-3 flex-shrink-0" />
+            <div className="flex flex-col items-start min-w-0 flex-1">
+              <span className="text-sm leading-tight truncate w-full">
                 {value ? `${value.first_name} ${value.last_name}` : placeholder}
               </span>
               {value?.brokerage && (
-                <span className="text-xs text-muted-foreground leading-4 truncate w-full">
+                <span className="text-xs text-muted-foreground leading-tight truncate w-full">
                   {value.brokerage}
                 </span>
               )}

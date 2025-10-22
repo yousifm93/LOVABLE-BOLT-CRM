@@ -72,13 +72,13 @@ export function InlineEditAssignee({
         <Button
           variant="ghost"
           className={cn(
-            "h-9 p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
+            "h-9 px-1 py-1 justify-start font-normal hover:bg-muted/50 w-full",
             !currentUser && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="grid grid-cols-[24px_1fr_auto] items-center gap-2 min-w-0 h-full">
+          <div className="flex items-center gap-2 min-w-0 w-full">
             {currentUser ? (
               <>
                 <UserAvatar
@@ -89,14 +89,14 @@ export function InlineEditAssignee({
                   className="flex-shrink-0"
                 />
                 {showNameText && (
-                  <span className="text-sm truncate">{currentUser.first_name} {currentUser.last_name}</span>
+                  <span className="text-sm truncate flex-1">{currentUser.first_name} {currentUser.last_name}</span>
                 )}
-                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0 ml-auto" />
               </>
             ) : (
               <>
-                <span className="col-span-2 text-sm">{placeholder}</span>
-                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                <span className="text-sm flex-1">{placeholder}</span>
+                <ChevronDown className="h-3 w-3 opacity-50 flex-shrink-0 ml-auto" />
               </>
             )}
           </div>
