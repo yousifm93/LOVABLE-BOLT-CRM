@@ -72,28 +72,30 @@ export function InlineEditAssignee({
         <Button
           variant="ghost"
           className={cn(
-            "h-auto p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
+            "h-9 p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
             !currentUser && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          {currentUser ? (
-            <div className="flex items-center gap-2">
-              <UserAvatar
-                firstName={currentUser.first_name}
-                lastName={currentUser.last_name}
-                email={currentUser.email}
-                size="sm"
-              />
-              {showNameText && (
-                <span className="text-sm">{currentUser.first_name} {currentUser.last_name}</span>
-              )}
-            </div>
-          ) : (
-            <span className="text-sm">{placeholder}</span>
-          )}
-          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {currentUser ? (
+              <>
+                <UserAvatar
+                  firstName={currentUser.first_name}
+                  lastName={currentUser.last_name}
+                  email={currentUser.email}
+                  size="sm"
+                />
+                {showNameText && (
+                  <span className="text-sm truncate">{currentUser.first_name} {currentUser.last_name}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-sm">{placeholder}</span>
+            )}
+            <ChevronDown className="ml-auto h-3 w-3 opacity-50 flex-shrink-0" />
+          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60 bg-popover border z-50">

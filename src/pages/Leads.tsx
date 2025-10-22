@@ -995,6 +995,9 @@ export default function Leads() {
             selectedIds={selectedLeadIds}
             onSelectionChange={setSelectedLeadIds}
             getRowId={(row) => row.id}
+            defaultSortColumn="createdOn"
+            defaultSortDirection="desc"
+            lockSort={true}
           />
         </CardContent>
       </Card>

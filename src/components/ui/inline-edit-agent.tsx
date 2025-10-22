@@ -76,22 +76,24 @@ export function InlineEditAgent({
         <Button
           variant="ghost"
           className={cn(
-            "h-auto p-1 justify-start text-left font-normal hover:bg-muted/50 max-w-[200px]",
+            "h-9 p-1 justify-start text-left font-normal hover:bg-muted/50 max-w-[200px]",
             !value && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <UserCheck className="mr-1 h-3 w-3 flex-shrink-0" />
-          <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="text-sm truncate">
-              {value ? `${value.first_name} ${value.last_name}` : placeholder}
-            </span>
-            {value?.brokerage && (
-              <span className="text-xs text-muted-foreground truncate">
-                {value.brokerage}
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <UserCheck className="h-3 w-3 flex-shrink-0" />
+            <div className="flex flex-col items-start min-w-0 flex-1">
+              <span className="text-sm truncate">
+                {value ? `${value.first_name} ${value.last_name}` : placeholder}
               </span>
-            )}
+              {value?.brokerage && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {value.brokerage}
+                </span>
+              )}
+            </div>
           </div>
         </Button>
       </DropdownMenuTrigger>

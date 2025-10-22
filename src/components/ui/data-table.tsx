@@ -47,6 +47,9 @@ interface DataTableProps<T> {
   selectedIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
   getRowId?: (row: T) => string;
+  defaultSortColumn?: string;
+  defaultSortDirection?: "asc" | "desc";
+  lockSort?: boolean;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -57,6 +60,7 @@ interface DraggableTableHeadProps<T> {
   width?: number;
   onResize: (columnKey: string, newWidth: number) => void;
   onAutoFit: (columnKey: string) => void;
+  lockSort?: boolean;
 }
 
 interface ResizeHandleProps {
@@ -131,7 +135,8 @@ function DraggableTableHead<T>({
   onSort,
   width,
   onResize,
-  onAutoFit
+  onAutoFit,
+  lockSort = false
 }: DraggableTableHeadProps<T>) {
   const {
     attributes,
@@ -158,7 +163,7 @@ function DraggableTableHead<T>({
       className={cn(
         "h-8 px-2 font-medium relative group",
         column.headerClassName || "text-center",
-        column.sortable && "cursor-pointer hover:bg-muted/50"
+        column.sortable && !lockSort && "cursor-pointer hover:bg-muted/50"
       )}
     >
       <div className={cn(
@@ -181,10 +186,10 @@ function DraggableTableHead<T>({
             "flex items-center gap-1 flex-1",
             column.headerClassName?.includes("text-left") ? "justify-start" : "justify-center"
           )}
-          onClick={() => column.sortable && onSort(column.accessorKey)}
+          onClick={() => column.sortable && !lockSort && onSort(column.accessorKey)}
         >
           {column.header}
-          {column.sortable && sortColumn === column.accessorKey && (
+          {column.sortable && !lockSort && sortColumn === column.accessorKey && (
             <span className="text-xs">
               {sortDirection === "asc" ? "↑" : "↓"}
             </span>
@@ -217,9 +222,12 @@ export function DataTable<T extends Record<string, any>>({
   selectedIds = [],
   onSelectionChange,
   getRowId = (row) => row.id,
+  defaultSortColumn = "",
+  defaultSortDirection = "asc",
+  lockSort = false,
 }: DataTableProps<T>) {
-  const [sortColumn, setSortColumn] = React.useState<string>("");
-  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
+  const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
+  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
   
   const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>(() => {
     const initialWidths: Record<string, number> = {};
@@ -249,6 +257,8 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   const handleSort = (column: string) => {
+    if (lockSort) return; // Don't allow sorting when locked
+    
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -394,6 +404,7 @@ export function DataTable<T extends Record<string, any>>({
                     width={columnWidths[column.accessorKey]}
                     onResize={handleResize}
                     onAutoFit={handleAutoFit}
+                    lockSort={lockSort}
                   />
                 ))}
               </SortableContext>
