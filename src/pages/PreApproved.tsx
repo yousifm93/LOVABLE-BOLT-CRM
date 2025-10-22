@@ -18,6 +18,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +47,13 @@ type DisplayLead = {
   approvedAmount: string;
   creditScore: number;
   loanAmount: number | null;
+  realEstateAgent: string;
+  realEstateAgentData?: any;
+  user: string;
+  userData?: any;
+  dueDate?: string;
+  dti: number | null;
+  salesPrice: number | null;
 };
 
 // Display columns that match allColumns accessorKeys
@@ -48,9 +61,35 @@ const initialColumns = [
   { id: "name", label: "Client Name", visible: true },
   { id: "email", label: "Email", visible: true },
   { id: "phone", label: "Phone", visible: true },
+  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
   { id: "status", label: "Status", visible: true },
   { id: "approvedAmount", label: "Approved Amount", visible: true },
   { id: "creditScore", label: "Credit Score", visible: true },
+  { id: "user", label: "User", visible: false },
+  { id: "loanType", label: "Loan Type", visible: false },
+  { id: "dti", label: "DTI", visible: false },
+  { id: "salesPrice", label: "Sales Price", visible: false },
+  { id: "dueDate", label: "Due Date", visible: false },
+];
+
+// Status/Converted options
+const convertedOptions = [
+  { value: "Working on it", label: "Working on it" },
+  { value: "Converted", label: "Converted" },
+  { value: "Dead", label: "Dead" },
+];
+
+// Loan Type options
+const loanTypeOptions = [
+  { value: "Purchase", label: "Purchase" },
+  { value: "Refinance", label: "Refinance" },
+  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+  { value: "HELOC", label: "HELOC" },
+  { value: "Construction", label: "Construction" },
+  { value: "VA Loan", label: "VA Loan" },
+  { value: "FHA Loan", label: "FHA Loan" },
+  { value: "Conventional", label: "Conventional" },
+  { value: "Jumbo", label: "Jumbo" },
 ];
 
 export default function PreApproved() {
@@ -66,6 +105,8 @@ export default function PreApproved() {
   const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
 
   const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns } = useColumnVisibility(initialColumns, 'pre-approved-columns');
 
@@ -85,14 +126,39 @@ export default function PreApproved() {
     });
   };
 
+  const loadUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email');
+    if (data) setUsers(data);
+  };
+
+  const loadAgents = async () => {
+    const { data } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email, phone')
+      .eq('type', 'Agent');
+    if (data) setAgents(data.map(a => ({ ...a, brokerage: a.company })));
+  };
+
   const fetchLeads = async () => {
-    const { data, error } = await supabase.from('leads').select('*').eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
+        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+      `)
+      .eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945')
+      .order('created_at', { ascending: false });
     if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
     setLeads(data || []);
   };
 
   useEffect(() => {
     fetchLeads();
+    loadUsers();
+    loadAgents();
     
     // Load sort lock state from localStorage
     const savedSortLocked = localStorage.getItem('preapproved-sort-locked');
@@ -226,7 +292,24 @@ export default function PreApproved() {
     }
   };
 
-  const displayData: DisplayLead[] = leads.map(lead => ({ id: lead.id, name: `${lead.first_name} ${lead.last_name}`, email: lead.email || '', phone: lead.phone || '', loanType: lead.loan_type || 'Purchase', status: lead.status || 'Pre-Approved', approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', creditScore: lead.estimated_fico || 0, loanAmount: lead.loan_amount || 0 }));
+  const displayData: DisplayLead[] = leads.map(lead => ({ 
+    id: lead.id, 
+    name: `${lead.first_name} ${lead.last_name}`, 
+    email: lead.email || '', 
+    phone: lead.phone || '', 
+    loanType: lead.loan_type || 'Purchase', 
+    status: lead.converted || 'Working on it', 
+    approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', 
+    creditScore: lead.estimated_fico || 0, 
+    loanAmount: lead.loan_amount || 0,
+    realEstateAgent: lead.buyer_agent_id || '',
+    realEstateAgentData: (lead as any).buyer_agent || null,
+    user: lead.teammate_assigned || '',
+    userData: (lead as any).teammate || null,
+    dueDate: lead.task_eta || '',
+    dti: lead.dti || 0,
+    salesPrice: lead.sales_price || 0,
+  }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
     { 
@@ -271,7 +354,7 @@ export default function PreApproved() {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
+          <InlineEditPhone
             value={row.original.phone}
             onValueChange={(value) => {
               handleFieldUpdate(row.original.id, "phone", value);
@@ -331,7 +414,7 @@ export default function PreApproved() {
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      <h1 className="text-2xl font-bold">Pre-Approved</h1>
+      <h1 className="text-2xl font-bold">Pre-Approved ({displayData.length})</h1>
       
       {filters.length > 0 && (
         <div className="flex gap-2 items-center flex-wrap">
@@ -408,8 +491,8 @@ export default function PreApproved() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable 
-            columns={columns} 
+            storageKey="preapproved-table"
+            columns={columns}
             data={displayData} 
             searchTerm={searchTerm}
             lockSort={sortLocked}

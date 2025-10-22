@@ -20,6 +20,11 @@ import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +45,7 @@ type DisplayLead = {
   phone: string;
   email: string;
   realEstateAgent: string;
+  realEstateAgentData?: any;
   status: string;
   loanNumber: string;
   fico: number;
@@ -47,7 +53,9 @@ type DisplayLead = {
   loanAmount: number | null;
   salesPrice: number | null;
   user: string;
+  userData?: any;
   loanType: string;
+  dueDate?: string;
 };
 
 // PRE-QUALIFIED columns - 12 columns from Excel
@@ -66,6 +74,27 @@ const initialColumns = [
   { id: "user", label: "User", visible: true },
   // Additional fields available
   { id: "loanType", label: "Loan Type", visible: false },
+  { id: "dueDate", label: "Due Date", visible: false },
+];
+
+// Status/Converted options
+const convertedOptions = [
+  { value: "Working on it", label: "Working on it" },
+  { value: "Converted", label: "Converted" },
+  { value: "Dead", label: "Dead" },
+];
+
+// Loan Type options
+const loanTypeOptions = [
+  { value: "Purchase", label: "Purchase" },
+  { value: "Refinance", label: "Refinance" },
+  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+  { value: "HELOC", label: "HELOC" },
+  { value: "Construction", label: "Construction" },
+  { value: "VA Loan", label: "VA Loan" },
+  { value: "FHA Loan", label: "FHA Loan" },
+  { value: "Conventional", label: "Conventional" },
+  { value: "Jumbo", label: "Jumbo" },
 ];
 
 export default function PreQualified() {
@@ -82,6 +111,8 @@ export default function PreQualified() {
   const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
 
   // Column visibility management
   const {
@@ -113,13 +144,32 @@ export default function PreQualified() {
     });
   };
 
+  const loadUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email');
+    if (data) setUsers(data);
+  };
+
+  const loadAgents = async () => {
+    const { data } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email, phone')
+      .eq('type', 'Agent');
+    if (data) setAgents(data.map(a => ({ ...a, brokerage: a.company })));
+  };
+
   // Load leads from database filtered by Pre-Qualified pipeline stage
   const fetchLeads = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+        `)
         .eq('pipeline_stage_id', '09162eec-d2b2-48e5-86d0-9e66ee8b2af7') // Pre-Qualified stage
         .order('created_at', { ascending: false });
       
@@ -139,6 +189,8 @@ export default function PreQualified() {
 
   useEffect(() => {
     fetchLeads();
+    loadUsers();
+    loadAgents();
     
     // Load sort lock state from localStorage
     const savedSortLocked = localStorage.getItem('prequalified-sort-locked');
@@ -312,15 +364,18 @@ export default function PreQualified() {
     preQualifiedOn: lead.pre_qualified_at || lead.created_at,
     phone: lead.phone || '',
     email: lead.email || '',
-    realEstateAgent: '—', // TODO: JOIN
-    status: lead.status || 'Pre-Qualified',
+    realEstateAgent: lead.buyer_agent_id || '',
+    realEstateAgentData: (lead as any).buyer_agent || null,
+    status: lead.converted || 'Working on it',
     loanNumber: lead.arrive_loan_number?.toString() || '—',
     fico: lead.estimated_fico || 0,
     dti: lead.dti || 0,
     loanAmount: lead.loan_amount || 0,
     salesPrice: lead.sales_price || 0,
-    user: '—', // TODO: JOIN
+    user: lead.teammate_assigned || '',
+    userData: (lead as any).teammate || null,
     loanType: lead.loan_type || '',
+    dueDate: lead.task_eta || '',
   }));
 
   const allColumns: ColumnDef<DisplayLead>[] = [
@@ -355,7 +410,7 @@ export default function PreQualified() {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
+          <InlineEditPhone
             value={row.original.phone}
             onValueChange={(value) => {
               handleFieldUpdate(row.original.id, "phone", value);
@@ -386,14 +441,43 @@ export default function PreQualified() {
     {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
-      cell: ({ row }) => row.original.realEstateAgent,
       sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
+      cell: ({ row }) => {
+        const agent = row.original.realEstateAgentData || agents.find(a => a.id === row.original.realEstateAgent) || null;
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditAgent
+              value={agent}
+              agents={agents}
+              onValueChange={(agent) => {
+                handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+                fetchLeads();
+              }}
+            />
+          </div>
+        );
+      },
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.status}
+            options={convertedOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "converted", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-36"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "loanNumber",
@@ -480,8 +564,20 @@ export default function PreQualified() {
     {
       accessorKey: "loanType",
       header: "Loan Type",
-      cell: ({ row }) => row.original.loanType || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.loanType}
+            options={loanTypeOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_type", value);
+              fetchLeads();
+            }}
+            placeholder="Select type"
+          />
+        </div>
+      ),
     },
   ];
 
@@ -494,7 +590,7 @@ export default function PreQualified() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pre-Qualified</h1>
+          <h1 className="text-2xl font-bold text-foreground">Pre-Qualified ({displayData.length})</h1>
           <p className="text-xs italic text-muted-foreground/70">Clients with conditional approval</p>
         </div>
       </div>
@@ -597,7 +693,7 @@ export default function PreQualified() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
+            storageKey="prequalified-table"
             columns={columns}
             data={displayData}
             searchTerm={searchTerm}

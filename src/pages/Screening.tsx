@@ -20,6 +20,11 @@ import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { Loader2 } from "lucide-react";
 import {
@@ -40,14 +45,17 @@ type DisplayLead = {
   appCompleteOn: string;
   loanNumber: string;
   realEstateAgent: string;
+  realEstateAgentData?: any;
   status: string;
   user: string;
+  userData?: any;
   phone: string;
   email: string;
   loanType: string;
   creditScore: number;
   loanAmount: number | null;
   dti: number | null;
+  dueDate?: string;
   incomeType: string;
   screeningDate: string;
   nextStep: string;
@@ -69,6 +77,27 @@ const initialColumns = [
   { id: "creditScore", label: "FICO", visible: false },
   { id: "loanAmount", label: "Loan Amount", visible: false },
   { id: "dti", label: "DTI", visible: false },
+  { id: "dueDate", label: "Due Date", visible: false },
+];
+
+// Status/Converted options
+const convertedOptions = [
+  { value: "Working on it", label: "Working on it" },
+  { value: "Converted", label: "Converted" },
+  { value: "Dead", label: "Dead" },
+];
+
+// Loan Type options
+const loanTypeOptions = [
+  { value: "Purchase", label: "Purchase" },
+  { value: "Refinance", label: "Refinance" },
+  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+  { value: "HELOC", label: "HELOC" },
+  { value: "Construction", label: "Construction" },
+  { value: "VA Loan", label: "VA Loan" },
+  { value: "FHA Loan", label: "FHA Loan" },
+  { value: "Conventional", label: "Conventional" },
+  { value: "Jumbo", label: "Jumbo" },
 ];
 
 export default function Screening() {
@@ -84,6 +113,8 @@ export default function Screening() {
   const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
 
   // Column visibility management
   const {
@@ -115,13 +146,32 @@ export default function Screening() {
     });
   };
 
+  const loadUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email');
+    if (data) setUsers(data);
+  };
+
+  const loadAgents = async () => {
+    const { data } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email, phone')
+      .eq('type', 'Agent');
+    if (data) setAgents(data.map(a => ({ ...a, brokerage: a.company })));
+  };
+
   // Load leads from database filtered by Screening pipeline stage
   const fetchLeads = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+        `)
         .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
         .order('created_at', { ascending: false });
       
@@ -141,6 +191,8 @@ export default function Screening() {
 
   useEffect(() => {
     fetchLeads();
+    loadUsers();
+    loadAgents();
     
     // Load sort lock state from localStorage
     const savedSortLocked = localStorage.getItem('screening-sort-locked');
@@ -171,6 +223,7 @@ export default function Screening() {
     { value: 'loanType', label: 'Loan Type', type: 'text' as const },
     { value: 'creditScore', label: 'Credit Score', type: 'text' as const },
     { value: 'appCompleteOn', label: 'App Complete On', type: 'date' as const },
+    { value: 'dueDate', label: 'Due Date', type: 'date' as const },
   ];
   
   const clearAllFilters = () => {
@@ -219,7 +272,28 @@ export default function Screening() {
   };
 
   const handleFieldUpdate = async (id: string, field: string, value: any) => {
-    await databaseService.updateLead(id, { [field]: value });
+    const fieldMapping: Record<string, string> = {
+      'phone': 'phone',
+      'email': 'email',
+      'estimated_fico': 'estimated_fico',
+      'creditScore': 'estimated_fico',
+      'loan_amount': 'loan_amount',
+      'loanAmount': 'loan_amount',
+      'dti': 'dti',
+      'loan_type': 'loan_type',
+      'loanType': 'loan_type',
+      'converted': 'converted',
+      'status': 'converted',
+      'teammate_assigned': 'teammate_assigned',
+      'user': 'teammate_assigned',
+      'buyer_agent_id': 'buyer_agent_id',
+      'realEstateAgent': 'buyer_agent_id',
+      'due_date': 'task_eta',
+      'dueDate': 'task_eta',
+    };
+    
+    const dbField = fieldMapping[field] || field;
+    await databaseService.updateLead(id, { [dbField]: value });
   };
 
   const handleBulkDelete = async () => {
@@ -277,15 +351,18 @@ export default function Screening() {
     name: `${lead.first_name} ${lead.last_name}`,
     appCompleteOn: lead.app_complete_at || lead.created_at,
     loanNumber: lead.arrive_loan_number?.toString() || '—',
-    realEstateAgent: '—', // TODO: JOIN with contacts
-    status: lead.status || 'Screening',
-    user: '—', // TODO: JOIN with users
+    realEstateAgent: lead.buyer_agent_id || '',
+    realEstateAgentData: (lead as any).buyer_agent || null,
+    status: lead.converted || 'Working on it',
+    user: lead.teammate_assigned || '',
+    userData: (lead as any).teammate || null,
     phone: lead.phone || '',
     email: lead.email || '',
     loanType: lead.loan_type || '',
     creditScore: lead.estimated_fico || 0,
     loanAmount: lead.loan_amount || 0,
     dti: lead.dti || 0,
+    dueDate: lead.task_eta || '',
     incomeType: lead.income_type || '',
     screeningDate: lead.created_at,
     nextStep: 'Review',
@@ -327,20 +404,60 @@ export default function Screening() {
     {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
-      cell: ({ row }) => row.original.realEstateAgent,
       sortable: true,
+      className: "text-left",
+      headerClassName: "text-left",
+      cell: ({ row }) => {
+        const agent = row.original.realEstateAgentData || agents.find(a => a.id === row.original.realEstateAgent) || null;
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditAgent
+              value={agent}
+              agents={agents}
+              onValueChange={(agent) => {
+                handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+                fetchLeads();
+              }}
+            />
+          </div>
+        );
+      }
     },
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.status}
+            options={convertedOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "converted", value);
+              fetchLeads();
+            }}
+            showAsStatusBadge={true}
+            fixedWidth="w-36"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "user",
       header: "User",
-      cell: ({ row }) => row.original.user,
+      className: "text-center",
       sortable: true,
+      cell: ({ row }) => (
+        <InlineEditAssignee
+          assigneeId={row.original.user}
+          users={users}
+          onValueChange={(userId) => {
+            handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+            fetchLeads();
+          }}
+          showNameText={false}
+        />
+      ),
     },
     // Additional columns
     {
@@ -349,7 +466,7 @@ export default function Screening() {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
+          <InlineEditPhone
             value={row.original.phone}
             onValueChange={(value) => {
               handleFieldUpdate(row.original.id, "phone", value);
@@ -380,8 +497,20 @@ export default function Screening() {
     {
       accessorKey: "loanType",
       header: "Loan Type",
-      cell: ({ row }) => row.original.loanType || '—',
       sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.loanType}
+            options={loanTypeOptions}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_type", value);
+              fetchLeads();
+            }}
+            placeholder="Select type"
+          />
+        </div>
+      ),
     },
     {
       accessorKey: "creditScore",
@@ -436,6 +565,24 @@ export default function Screening() {
         </div>
       )
     },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate}
+            onValueChange={(date) => {
+              const dateString = date ? date.toISOString().split('T')[0] : null;
+              handleFieldUpdate(row.original.id, "due_date", dateString);
+              fetchLeads();
+            }}
+            placeholder="Select date"
+          />
+        </div>
+      ),
+    },
   ];
 
   // Filter columns based on visibility settings
@@ -447,7 +594,7 @@ export default function Screening() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Screening</h1>
+          <h1 className="text-2xl font-bold text-foreground">Screening ({displayData.length})</h1>
           <p className="text-xs italic text-muted-foreground/70">Initial verification and qualification</p>
         </div>
       </div>
@@ -551,6 +698,7 @@ export default function Screening() {
         </CardHeader>
         <CardContent>
           <DataTable
+            storageKey="screening-table"
             columns={columns}
             data={displayData}
             searchTerm={searchTerm}
