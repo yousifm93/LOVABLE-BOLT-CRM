@@ -7,7 +7,7 @@ export function formatDateModern(date: Date | string | null | undefined): string
   
   if (isNaN(dateObj.getTime())) return "";
   
-  return format(dateObj, "MMM dd").toUpperCase();
+  return format(dateObj, "MMM dd");
 }
 
 export function formatDateForInput(date: Date | string | null | undefined): string {

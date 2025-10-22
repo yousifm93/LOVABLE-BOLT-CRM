@@ -135,7 +135,7 @@ export const formatDateShort = (dateString: string | null | undefined): string =
   if (!dateString) return "—";
   try {
     const date = new Date(dateString);
-    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
     const day = date.getDate();
     return `${month} ${day}`;
   } catch {

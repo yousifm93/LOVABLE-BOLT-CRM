@@ -29,6 +29,9 @@ export interface ColumnDef<T> {
   sortable?: boolean;
   className?: string;
   headerClassName?: string;
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
 }
 
 interface DataTableProps<T> {
@@ -51,13 +54,74 @@ interface DraggableTableHeadProps<T> {
   sortColumn: string;
   sortDirection: "asc" | "desc";
   onSort: (key: string) => void;
+  width?: number;
+  onResize: (columnKey: string, newWidth: number) => void;
+}
+
+interface ResizeHandleProps {
+  columnKey: string;
+  onResize: (columnKey: string, newWidth: number) => void;
+  minWidth?: number;
+  maxWidth?: number;
+}
+
+function ResizeHandle({ columnKey, onResize, minWidth = 50, maxWidth = 500 }: ResizeHandleProps) {
+  const [isResizing, setIsResizing] = React.useState(false);
+  const [startX, setStartX] = React.useState(0);
+  const [startWidth, setStartWidth] = React.useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    setStartX(e.clientX);
+    const th = (e.target as HTMLElement).closest('th');
+    if (th) {
+      setStartWidth(th.offsetWidth);
+    }
+  };
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX;
+      const newWidth = Math.min(Math.max(startWidth + diff, minWidth), maxWidth);
+      onResize(columnKey, newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, startX, startWidth, columnKey, onResize, minWidth, maxWidth]);
+
+  return (
+    <div
+      className={cn(
+        "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary transition-colors",
+        isResizing && "bg-primary"
+      )}
+      onMouseDown={handleMouseDown}
+      style={{ zIndex: 10 }}
+    />
+  );
 }
 
 function DraggableTableHead<T>({ 
   column, 
   sortColumn, 
   sortDirection, 
-  onSort 
+  onSort,
+  width,
+  onResize
 }: DraggableTableHeadProps<T>) {
   const {
     attributes,
@@ -72,6 +136,9 @@ function DraggableTableHead<T>({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    width: width ? `${width}px` : 'auto',
+    minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
+    maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
   };
 
   return (
@@ -114,6 +181,14 @@ function DraggableTableHead<T>({
           )}
         </div>
       </div>
+      
+      {/* Resize Handle */}
+      <ResizeHandle 
+        columnKey={column.accessorKey}
+        onResize={onResize}
+        minWidth={column.minWidth}
+        maxWidth={column.maxWidth}
+      />
     </TableHead>
   );
 }
@@ -134,6 +209,14 @@ export function DataTable<T extends Record<string, any>>({
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>("");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
+  
+  const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>(() => {
+    const initialWidths: Record<string, number> = {};
+    columns.forEach(col => {
+      initialWidths[col.accessorKey] = col.width || 150;
+    });
+    return initialWidths;
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -162,6 +245,13 @@ export function DataTable<T extends Record<string, any>>({
       setSortDirection("asc");
     }
   };
+
+  const handleResize = React.useCallback((columnKey: string, newWidth: number) => {
+    setColumnWidths(prev => ({
+      ...prev,
+      [columnKey]: newWidth
+    }));
+  }, []);
 
   const filteredData = React.useMemo(() => {
     let filtered = data;
@@ -244,6 +334,8 @@ export function DataTable<T extends Record<string, any>>({
                     sortColumn={sortColumn}
                     sortDirection={sortDirection}
                     onSort={handleSort}
+                    width={columnWidths[column.accessorKey]}
+                    onResize={handleResize}
                   />
                 ))}
               </SortableContext>
@@ -281,6 +373,11 @@ export function DataTable<T extends Record<string, any>>({
                   <TableCell 
                     key={column.accessorKey} 
                     className={cn("py-2 px-2", column.className || "text-center")}
+                    style={{
+                      width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
+                      minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
+                      maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
+                    }}
                   >
                     {column.cell ? (
                       <div className={cn(
