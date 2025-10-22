@@ -76,7 +76,7 @@ const initialColumns = [
   { id: "baStatus", label: "BA", visible: true },
   // Additional fields available
   { id: "loanType", label: "Loan Type", visible: false },
-  { id: "dueDate", label: "Due Date", visible: false },
+  { id: "dueDate", label: "Due Date", visible: true },
 ];
 
 // Status/Converted options
