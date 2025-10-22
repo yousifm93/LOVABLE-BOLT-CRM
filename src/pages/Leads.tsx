@@ -166,7 +166,7 @@ export default function Leads() {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [agents, setAgents] = useState<BuyerAgent[]>([]);
+  const [agents, setAgents] = useState<Array<{ id: string; first_name: string; last_name: string; brokerage?: string; email?: string; phone?: string }>>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
@@ -740,7 +740,7 @@ export default function Leads() {
 
   const loadAgents = async () => {
     try {
-      const data = await databaseService.getAgents();
+      const data = await databaseService.getRealEstateAgents();
       setAgents(data || []);
     } catch (error) {
       console.error('Error loading agents:', error);
@@ -774,14 +774,18 @@ export default function Leads() {
         .from('users')
         .select('id, first_name, last_name, email');
       
-      // Fetch all buyer agents
+      // Fetch all real estate agents from contacts
       const { data: agentsData } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email');
+        .from('contacts')
+        .select('id, first_name, last_name, company, email, phone')
+        .eq('type', 'Agent');
       
       // Create lookup maps for efficient matching
       const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
-      const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
+      const agentsMap = new Map(agentsData?.map(a => [a.id, {
+        ...a,
+        brokerage: a.company
+      }]) || []);
       
       // Enrich leads with related user and agent data
       const enrichedLeads = (dbLeads || []).map(lead => ({

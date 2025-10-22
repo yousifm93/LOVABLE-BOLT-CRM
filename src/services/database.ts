@@ -778,6 +778,20 @@ export const databaseService = {
     return data;
   },
 
+  async getRealEstateAgents() {
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email, phone')
+      .eq('type', 'Agent')
+      .order('first_name');
+
+    if (error) throw error;
+    return data?.map(agent => ({
+      ...agent,
+      brokerage: agent.company
+    })) || [];
+  },
+
   // Condo operations
   async getCondos() {
     const { data, error } = await supabase
