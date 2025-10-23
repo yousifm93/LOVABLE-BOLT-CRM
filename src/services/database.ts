@@ -701,10 +701,10 @@ export const databaseService = {
         .from('leads')
         .select(`
           *,
-          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+          lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
           buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
-          listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
-          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
+          listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
+          teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
         .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
         .order('created_at', { ascending: false });
@@ -905,10 +905,10 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
-        lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+        lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
         buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
-        listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
-        teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
+        listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
+        teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
       `)
       .eq('id', id)
       .single();
@@ -965,7 +965,7 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('contacts')
       .select('id, first_name, last_name, company, email, phone')
-      .eq('type', 'Agent')
+      .in('type', ['Real Estate Agent', 'Agent', 'Realtor'])
       .order('first_name');
 
     if (error) throw error;
