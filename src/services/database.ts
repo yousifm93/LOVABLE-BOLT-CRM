@@ -697,15 +697,14 @@ export const databaseService = {
 
   async getActiveLoans() {
     try {
-      // Try with explicit FK names first
       const { data, error } = await supabase
         .from('leads')
         .select(`
           *,
-          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
-          listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
-          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
+          lender:contacts!lender_id(id, first_name, last_name, company, email),
+          buyer_agent:contacts!buyer_agent_id(id, first_name, last_name, company, email, phone),
+          listing_agent:buyer_agents!listing_agent_id(id, first_name, last_name, brokerage, email),
+          teammate:users!teammate_assigned(id, first_name, last_name, email)
         `)
         .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
         .order('created_at', { ascending: false });
@@ -807,7 +806,10 @@ export const databaseService = {
         .select()
         .single();
       
-      if (createError) throw createError;
+      if (createError) {
+        console.error('Failed to create buyer_agent from contact:', createError);
+        throw createError;
+      }
       buyerAgent = newAgent;
     }
 
@@ -839,12 +841,15 @@ export const databaseService = {
           company: lender.lender_name,
           email: lender.account_executive_email,
           phone: lender.account_executive_phone,
-          type: 'Third Party',
+          type: 'Other',
           tags: ['Lender'],
         })
         .select('id')
         .single();
-      if (createErr) throw createErr;
+      if (createErr) {
+        console.error('Failed to create contact for lender:', createErr);
+        throw createErr;
+      }
       contact = newContact;
     }
 
@@ -856,14 +861,17 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
-        lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
-        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
-        listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
-        teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
+        lender:contacts!lender_id(id, first_name, last_name, company, email),
+        buyer_agent:contacts!buyer_agent_id(id, first_name, last_name, company, email, phone),
+        listing_agent:buyer_agents!listing_agent_id(id, first_name, last_name, brokerage, email),
+        teammate:users!teammate_assigned(id, first_name, last_name, email)
       `)
       .eq('id', id)
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('Failed to fetch lead with embeds:', error);
+      throw error;
+    }
     
     // Transform array embeds to single objects (Supabase returns arrays for FKs)
     return {
