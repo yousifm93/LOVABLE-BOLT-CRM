@@ -702,7 +702,7 @@ export const databaseService = {
         .select(`
           *,
           lender:contacts!lender_id(id, first_name, last_name, company, email),
-          buyer_agent:contacts!buyer_agent_id(id, first_name, last_name, company, email, phone),
+          buyer_agent:buyer_agents!buyer_agent_id(id, first_name, last_name, brokerage, email),
           listing_agent:buyer_agents!listing_agent_id(id, first_name, last_name, brokerage, email),
           teammate:users!teammate_assigned(id, first_name, last_name, email)
         `)
@@ -731,10 +731,10 @@ export const databaseService = {
       
       return data?.map(loan => ({
         ...loan,
-        buyer_agent: loan.buyer_agent || null,
-        lender: loan.lender || null,
-        listing_agent: loan.listing_agent || null,
-        teammate: loan.teammate || null
+        buyer_agent: Array.isArray((loan as any).buyer_agent) ? (loan as any).buyer_agent[0] || null : (loan as any).buyer_agent || null,
+        lender: Array.isArray((loan as any).lender) ? (loan as any).lender[0] || null : (loan as any).lender || null,
+        listing_agent: Array.isArray((loan as any).listing_agent) ? (loan as any).listing_agent[0] || null : (loan as any).listing_agent || null,
+        teammate: Array.isArray((loan as any).teammate) ? (loan as any).teammate[0] || null : (loan as any).teammate || null,
       })) || [];
     } catch (error: any) {
       console.error('Failed to load active loans:', error);
@@ -816,6 +816,48 @@ export const databaseService = {
     return buyerAgent.id;
   },
 
+  async ensureContactFromBuyerAgent(buyerAgentId: string) {
+    const { data: agent, error: agentErr } = await supabase
+      .from('buyer_agents')
+      .select('id, first_name, last_name, brokerage, email')
+      .eq('id', buyerAgentId)
+      .single();
+    if (agentErr || !agent) throw agentErr || new Error('Buyer agent not found');
+
+    // 1) Try by email
+    if (agent.email) {
+      const { data: byEmail, error: byEmailErr } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('email', agent.email)
+        .maybeSingle();
+      if (byEmailErr) throw byEmailErr;
+      if (byEmail?.id) return byEmail.id;
+    }
+
+    // 2) Try by name
+    const { data: byName, error: byNameErr } = await supabase
+      .from('contacts')
+      .select('id')
+      .eq('first_name', agent.first_name)
+      .eq('last_name', agent.last_name)
+      .maybeSingle();
+    if (byNameErr) throw byNameErr;
+    if (byName?.id) return byName.id;
+
+    // 3) Try by brokerage/company
+    const { data: byBrokerage, error: byBrokerageErr } = await supabase
+      .from('contacts')
+      .select('id')
+      .eq('company', agent.brokerage)
+      .maybeSingle();
+    if (byBrokerageErr) throw byBrokerageErr;
+    if (byBrokerage?.id) return byBrokerage.id;
+
+    // Not found
+    throw new Error(`No existing Contact found for agent "${agent.first_name} ${agent.last_name}". Please add them as a Contact, then retry.`);
+  },
+
   async ensureContactForLender(lenderId: string) {
     const { data: lender, error: lenderErr } = await supabase
       .from('lenders')
@@ -824,36 +866,38 @@ export const databaseService = {
       .single();
     if (lenderErr || !lender) throw lenderErr || new Error('Lender not found');
 
-    // Try to find existing contact by company name
-    let { data: contact } = await supabase
+    // 1) Try by AE email
+    if (lender.account_executive_email) {
+      const { data: byEmail, error: byEmailErr } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('email', lender.account_executive_email)
+        .maybeSingle();
+      if (byEmailErr) throw byEmailErr;
+      if (byEmail?.id) return byEmail.id;
+    }
+
+    // 2) Try by tags+company
+    const { data: byTag, error: byTagErr } = await supabase
+      .from('contacts')
+      .select('id')
+      .contains('tags', ['Lender'])
+      .eq('company', lender.lender_name)
+      .maybeSingle();
+    if (byTagErr) throw byTagErr;
+    if (byTag?.id) return byTag.id;
+
+    // 3) Fallback by company only
+    const { data: byCompany, error: byCompanyErr } = await supabase
       .from('contacts')
       .select('id')
       .eq('company', lender.lender_name)
       .maybeSingle();
+    if (byCompanyErr) throw byCompanyErr;
+    if (byCompany?.id) return byCompany.id;
 
-    if (!contact) {
-      // Create a contact representing this lender
-      const { data: newContact, error: createErr } = await supabase
-        .from('contacts')
-        .insert({
-          first_name: lender.lender_name,
-          last_name: 'Lender',
-          company: lender.lender_name,
-          email: lender.account_executive_email,
-          phone: lender.account_executive_phone,
-          type: 'Other',
-          tags: ['Lender'],
-        })
-        .select('id')
-        .single();
-      if (createErr) {
-        console.error('Failed to create contact for lender:', createErr);
-        throw createErr;
-      }
-      contact = newContact;
-    }
-
-    return contact.id;
+    // Not found - ask user to add it (RLS prevents auto-insert here)
+    throw new Error(`No existing Contact found for lender "${lender.lender_name}". Please add the lender/A.E. as a Contact, then retry.`);
   },
 
   async getLeadByIdWithEmbeds(id: string) {
@@ -861,10 +905,10 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
-        lender:contacts!lender_id(id, first_name, last_name, company, email),
-        buyer_agent:contacts!buyer_agent_id(id, first_name, last_name, company, email, phone),
-        listing_agent:buyer_agents!listing_agent_id(id, first_name, last_name, brokerage, email),
-        teammate:users!teammate_assigned(id, first_name, last_name, email)
+        lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+        listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
+        teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
       `)
       .eq('id', id)
       .single();
