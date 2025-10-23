@@ -195,7 +195,7 @@ export default function PastClients() {
       person: { id: Date.now(), firstName: loan.first_name, lastName: loan.last_name, email: "", phoneMobile: "" },
       databaseId: loan.id,
       loan: { loanAmount: loan.loan_amount ? `$${loan.loan_amount.toLocaleString()}` : "", loanType: "Purchase", prType: "", closeDate: loan.close_date, disclosureStatus: null },
-      ops: { stage: "closed", status: "Closed", priority: "Low" },
+      ops: { stage: "past-clients", status: "Closed", priority: "Low" },
       dates: { createdOn: new Date().toISOString(), appliedOn: new Date().toISOString() },
       meta: {},
       name: `${loan.first_name} ${loan.last_name}`,
@@ -228,12 +228,22 @@ export default function PastClients() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search clients..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
           </div>
-          <ColumnVisibilityButton columns={columnVisibility} onToggleColumn={toggleColumn} onToggleAll={toggleAll} onSaveView={(name) => { toast({ title: "View Saved", description: `"${name}" saved` }); loadView(name); }} views={views} onDeleteView={deleteView} />
+          <ColumnVisibilityButton 
+            columns={columnVisibility} 
+            onColumnToggle={toggleColumn} 
+            onToggleAll={toggleAll} 
+            onSaveView={saveView}
+            onReorderColumns={() => {}}
+            onViewSaved={(name) => { 
+              toast({ title: "View Saved", description: `"${name}" saved` }); 
+              loadView(name); 
+            }}
+          />
         </div>
-        {views.length > 0 && <ViewPills views={views} activeView={activeView} onSelectView={loadView} onDeleteView={deleteView} />}
+        {views.length > 0 && <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />}
       </div>
       <Card><CardContent className="p-0"><DataTable columns={columns} data={filteredLoans} searchTerm={searchTerm} onRowClick={handleRowClick} /></CardContent></Card>
-      {selectedClient && <ClientDetailDrawer isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); setSelectedClient(null); }} client={selectedClient} onUpdate={() => {}} onStageChange={() => setIsDrawerOpen(false)} onLeadUpdated={loadData} pipelineType="closed" />}
+      {selectedClient && <ClientDetailDrawer isOpen={isDrawerOpen} onClose={() => { setIsDrawerOpen(false); setSelectedClient(null); }} client={selectedClient} onStageChange={() => setIsDrawerOpen(false)} onLeadUpdated={loadData} pipelineType="past-clients" />}
     </div>
   );
 }
