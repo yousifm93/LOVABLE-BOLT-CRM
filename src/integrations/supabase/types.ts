@@ -1608,6 +1608,7 @@ export type Database = {
             | Database["public"]["Enums"]["appraisal_status"]
             | null
           appraisal_value: string | null
+          approved_lender_id: string | null
           arrive_loan_number: number | null
           assets: number | null
           ba_status: Database["public"]["Enums"]["ba_status"] | null
@@ -1708,6 +1709,7 @@ export type Database = {
             | Database["public"]["Enums"]["appraisal_status"]
             | null
           appraisal_value?: string | null
+          approved_lender_id?: string | null
           arrive_loan_number?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
@@ -1810,6 +1812,7 @@ export type Database = {
             | Database["public"]["Enums"]["appraisal_status"]
             | null
           appraisal_value?: string | null
+          approved_lender_id?: string | null
           arrive_loan_number?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
@@ -1903,6 +1906,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_leads_approved_lender"
+            columns: ["approved_lender_id"]
+            isOneToOne: false
+            referencedRelation: "lenders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_leads_lender"
             columns: ["lender_id"]

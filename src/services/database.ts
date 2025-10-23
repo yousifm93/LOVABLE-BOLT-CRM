@@ -702,6 +702,7 @@ export const databaseService = {
         .select(`
           *,
           lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
+          approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
           buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
           listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
@@ -724,6 +725,7 @@ export const databaseService = {
           ...loan,
           buyer_agent: null,
           lender: null,
+          approved_lender: null,
           listing_agent: null,
           teammate: null
         })) || [];
@@ -733,6 +735,7 @@ export const databaseService = {
         ...loan,
         buyer_agent: Array.isArray((loan as any).buyer_agent) ? (loan as any).buyer_agent[0] || null : (loan as any).buyer_agent || null,
         lender: Array.isArray((loan as any).lender) ? (loan as any).lender[0] || null : (loan as any).lender || null,
+        approved_lender: Array.isArray((loan as any).approved_lender) ? (loan as any).approved_lender[0] || null : (loan as any).approved_lender || null,
         listing_agent: Array.isArray((loan as any).listing_agent) ? (loan as any).listing_agent[0] || null : (loan as any).listing_agent || null,
         teammate: Array.isArray((loan as any).teammate) ? (loan as any).teammate[0] || null : (loan as any).teammate || null,
       })) || [];
@@ -906,6 +909,7 @@ export const databaseService = {
       .select(`
         *,
         lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
+        approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
         buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
         listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
         teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
@@ -921,6 +925,7 @@ export const databaseService = {
     return {
       ...data,
       lender: Array.isArray(data.lender) ? data.lender[0] || null : data.lender,
+      approved_lender: Array.isArray(data.approved_lender) ? data.approved_lender[0] || null : data.approved_lender,
       buyer_agent: Array.isArray(data.buyer_agent) ? data.buyer_agent[0] || null : data.buyer_agent,
       listing_agent: Array.isArray(data.listing_agent) ? data.listing_agent[0] || null : data.listing_agent,
       teammate: Array.isArray(data.teammate) ? data.teammate[0] || null : data.teammate,

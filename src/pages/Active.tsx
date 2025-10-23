@@ -57,6 +57,7 @@ interface ActiveLoan {
   epo_status: string | null;
   teammate_assigned: string | null;
   lender_id: string | null;
+  approved_lender_id: string | null;
   buyer_agent_id: string | null;
   listing_agent_id: string | null;
   pipeline_section: string | null;
@@ -66,6 +67,11 @@ interface ActiveLoan {
     last_name: string;
     company?: string;
     email?: string;
+  } | null;
+  approved_lender?: {
+    id: string;
+    lender_name: string;
+    lender_type?: string;
   } | null;
   buyer_agent?: {
     id: string;
@@ -210,9 +216,8 @@ const createColumns = (
     accessorKey: "lender",
     header: "Lender",
     cell: ({ row }) => {
-      const currentLenderName = row.original.lender?.company;
-      const matchedLender = currentLenderName 
-        ? lenders.find(l => l.lender_name === currentLenderName) 
+      const matchedLender = row.original.approved_lender
+        ? lenders.find(l => l.id === row.original.approved_lender!.id)
         : null;
       
       return (
@@ -222,21 +227,7 @@ const createColumns = (
               value={matchedLender}
               lenders={lenders}
               onValueChange={async (lender) => {
-                if (!lender) {
-                  await handleUpdate(row.original.id, "lender_id", null);
-                } else {
-                  try {
-                    const contactId = await databaseService.ensureContactForLender(lender.id);
-                    await handleUpdate(row.original.id, "lender_id", contactId);
-                  } catch (error) {
-                    console.error('Error mapping lender:', error);
-                    toast({
-                      variant: "destructive",
-                      title: "Lender contact not found",
-                      description: "Please add this lender/A.E. as a Contact, then retry the selection.",
-                    });
-                  }
-                }
+                await handleUpdate(row.original.id, "approved_lender_id", lender?.id ?? null);
               }}
             />
           </div>
@@ -789,7 +780,7 @@ export default function Active() {
       await databaseService.updateLead(id, { [field]: value });
       
       // Refresh embedded data for relationship fields
-      if (['lender_id', 'buyer_agent_id', 'listing_agent_id'].includes(field)) {
+      if (['approved_lender_id', 'lender_id', 'buyer_agent_id', 'listing_agent_id'].includes(field)) {
         await refreshRow(id);
       } else {
         // Update local state optimistically for simple fields
