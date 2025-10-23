@@ -103,7 +103,8 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users!teammate_assigned(*)
+          teammate:users!teammate_assigned(*),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
         `)
         .order('created_at', { ascending: false });
       
@@ -116,7 +117,8 @@ export const databaseService = {
       return data?.map(lead => ({
         ...lead,
         teammate: lead.teammate || null,
-        pipeline_stage: lead.pipeline_stage || null
+        pipeline_stage: lead.pipeline_stage || null,
+        buyer_agent: lead.buyer_agent || null
       })) || [];
     } catch (error) {
       console.error('Failed to load leads:', error);
@@ -132,6 +134,7 @@ export const databaseService = {
           *,
           pipeline_stage:pipeline_stages(*),
           teammate:users!teammate_assigned(*),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
           tasks(due_date)
         `)
         .eq('pipeline_stage_id', 'c54f417b-3f67-43de-80f5-954cf260d571')
@@ -147,6 +150,7 @@ export const databaseService = {
         ...lead,
         teammate: lead.teammate || null,
         pipeline_stage: lead.pipeline_stage || null,
+        buyer_agent: lead.buyer_agent || null,
         task_due_date: lead.tasks?.[0]?.due_date || null
       })) || [];
     } catch (error) {

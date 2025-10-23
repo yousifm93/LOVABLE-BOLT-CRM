@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,12 +40,15 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
   
   // Edit form state
   const [editData, setEditData] = useState({
+    firstName: client.person?.firstName || "",
+    lastName: client.person?.lastName || "",
     phone: client.person?.phone || "",
     email: client.person?.email || "",
-    buyersAgent: "",
+    buyer_agent_id: (client as any).buyer_agent_id || null,
     loanAmount: client.loan?.loanAmount || null,
     salesPrice: client.loan?.salesPrice || null,
     transactionType: client.loan?.loanType || "",
@@ -53,15 +56,30 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     loanProgram: client.loan?.loanProgram || "",
   });
 
+  // Fetch agents list
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const agentsData = await databaseService.getContacts();
+        setAgents(agentsData || []);
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+      }
+    };
+    fetchAgents();
+  }, []);
+
   const fullName = `${client.person.firstName} ${client.person.lastName}`;
   const initials = `${client.person.firstName[0]}${client.person.lastName[0]}`;
 
   const handleEdit = () => {
     setIsEditing(true);
     setEditData({
+      firstName: client.person?.firstName || "",
+      lastName: client.person?.lastName || "",
       phone: client.person?.phone || "",
       email: client.person?.email || "",
-      buyersAgent: "",
+      buyer_agent_id: (client as any).buyer_agent_id || null,
       loanAmount: client.loan?.loanAmount || null,
       salesPrice: client.loan?.salesPrice || null,
       transactionType: client.loan?.loanType || "",
@@ -85,6 +103,15 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     }
 
     // Basic validation
+    if (!editData.firstName?.trim() || !editData.lastName?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "First name and last name are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!editData.email.includes("@")) {
       toast({
         title: "Validation Error",
@@ -97,8 +124,11 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     setIsSaving(true);
     try {
       await databaseService.updateLead(leadId, {
+        first_name: editData.firstName,
+        last_name: editData.lastName,
         phone: editData.phone,
         email: editData.email,
+        buyer_agent_id: editData.buyer_agent_id,
         loan_amount: editData.loanAmount,
         sales_price: editData.salesPrice,
         loan_type: editData.transactionType,
@@ -168,15 +198,32 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 onClick={onClose}
                 className="flex items-center justify-center"
               >
-                <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={client.person.avatar} />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
+              <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                <AvatarImage src={client.person.avatar} />
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Input
+                  value={editData.firstName}
+                  onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                  placeholder="First Name"
+                  className="h-8"
+                />
+                <Input
+                  value={editData.lastName}
+                  onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                  placeholder="Last Name"
+                  className="h-8"
+                />
+              </div>
+            ) : (
               <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
-            </div>
+            )}
+          </div>
           </div>
           <div className="flex gap-2 mb-3">
             {!isEditing ? (
@@ -260,28 +307,34 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Buyer's Agent</Label>
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-3 w-3 text-muted-foreground" />
-                  <span>—</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Loan Amount</Label>
                 {isEditing ? (
-                  <Input
-                    type="number"
-                    value={editData.loanAmount || ""}
-                    onChange={(e) => setEditData({ ...editData, loanAmount: parseFloat(e.target.value) || null })}
-                    className="h-8"
-                  />
+                  <Select
+                    value={editData.buyer_agent_id || ""}
+                    onValueChange={(value) => setEditData({ ...editData, buyer_agent_id: value })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select agent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          {agent.first_name} {agent.last_name}{agent.company ? ` - ${agent.company}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.loanAmount || "—"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span>
+                      {(client as any).buyer_agent 
+                        ? `${(client as any).buyer_agent.first_name} ${(client as any).buyer_agent.last_name}${(client as any).buyer_agent.company ? ` - ${(client as any).buyer_agent.company}` : ''}`
+                        : "—"}
+                    </span>
+                  </div>
                 )}
               </div>
-            </div>
-            
-            {/* Right Column */}
-            <div className="space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Sales Price</Label>
                 {isEditing ? (
@@ -292,9 +345,13 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     className="h-8"
                   />
                 ) : (
-                  <span className="font-medium text-sm">$425,000</span>
+                  <span className="font-medium text-sm">{client.loan?.salesPrice ? `$${client.loan.salesPrice.toLocaleString()}` : "$425,000"}</span>
                 )}
               </div>
+            </div>
+            
+            {/* Right Column */}
+            <div className="space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Transaction Type</Label>
                 {isEditing ? (
@@ -313,6 +370,19 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </Select>
                 ) : (
                   <span className="font-medium text-sm">{client.loan?.loanType || "—"}</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Loan Amount</Label>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    value={editData.loanAmount || ""}
+                    onChange={(e) => setEditData({ ...editData, loanAmount: parseFloat(e.target.value) || null })}
+                    className="h-8"
+                  />
+                ) : (
+                  <span className="font-medium text-sm">{client.loan?.loanAmount ? `$${client.loan.loanAmount.toLocaleString()}` : "—"}</span>
                 )}
               </div>
               <div className="flex flex-col gap-1">
