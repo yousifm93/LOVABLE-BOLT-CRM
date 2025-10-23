@@ -40,8 +40,10 @@ interface ActiveLoan {
   first_name: string;
   last_name: string;
   loan_amount: number | null;
+  sales_price: number | null;
   arrive_loan_number: number | null;
   pr_type: string | null;
+  occupancy: string | null;
   disclosure_status: string | null;
   close_date: string | null;
   loan_status: string | null;
@@ -218,41 +220,80 @@ const createColumns = (
     ),
     sortable: true,
   },
-  {
-    accessorKey: "pr_type",
-    header: "P/R",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.pr_type}
-          options={prTypeOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "pr_type", value)
-          }
-          showAsStatusBadge
-          className="w-12"
-        />
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "loan_amount",
-    header: "Loan Amount",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <div className="whitespace-nowrap">
-          <InlineEditCurrency
-            value={row.original.loan_amount}
+    {
+      accessorKey: "pr_type",
+      header: "P/R",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.pr_type}
+            options={prTypeOptions}
             onValueChange={(value) => 
-              handleUpdate(row.original.id, "loan_amount", value)
+              handleUpdate(row.original.id, "pr_type", value)
             }
+            showAsStatusBadge
+            className="w-12"
           />
         </div>
-      </div>
-    ),
-    sortable: true,
-  },
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "occupancy",
+      header: "Occupancy",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.occupancy}
+            options={[
+              { value: 'Primary Residence', label: 'PRIMARY' },
+              { value: 'Investment Property', label: 'INVESTMENT' },
+              { value: 'Second Home', label: 'SECOND HOME' },
+            ]}
+            onValueChange={(value) => 
+              handleUpdate(row.original.id, "occupancy", value)
+            }
+            showAsStatusBadge
+            className="w-32"
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "loan_amount",
+      header: "Loan Amount",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="whitespace-nowrap">
+            <InlineEditCurrency
+              value={row.original.loan_amount}
+              onValueChange={(value) => 
+                handleUpdate(row.original.id, "loan_amount", value)
+              }
+            />
+          </div>
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "sales_price",
+      header: "Sales Price",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="whitespace-nowrap">
+            <InlineEditCurrency
+              value={row.original.sales_price}
+              onValueChange={(value) => 
+                handleUpdate(row.original.id, "sales_price", value)
+              }
+            />
+          </div>
+        </div>
+      ),
+      sortable: true,
+    },
   {
     accessorKey: "disclosure_status",
     header: "DISC",
@@ -512,28 +553,30 @@ const createColumns = (
 ];
 
 // Define initial column configuration
-const initialColumns = [
-  { id: "borrower_name", label: "Borrower", visible: true },
-  { id: "team", label: "Team", visible: true },
-  { id: "lender", label: "Lender", visible: true },
-  { id: "arrive_loan_number", label: "Loan #", visible: true },
-  { id: "pr_type", label: "P/R", visible: true },
-  { id: "loan_amount", label: "Loan Amount", visible: true },
-  { id: "disclosure_status", label: "DISC", visible: true },
-  { id: "close_date", label: "Close Date", visible: true },
-  { id: "loan_status", label: "Loan Status", visible: true },
-  { id: "appraisal_status", label: "Appraisal", visible: true },
-  { id: "title_status", label: "Title", visible: true },
-  { id: "hoi_status", label: "HOI", visible: true },
-  { id: "condo_status", label: "Condo", visible: true },
-  { id: "cd_status", label: "CD", visible: true },
-  { id: "package_status", label: "Package", visible: true },
-  { id: "lock_expiration_date", label: "LOC EXP", visible: true },
-  { id: "ba_status", label: "BA", visible: true },
-  { id: "epo_status", label: "EPO", visible: true },
-  { id: "buyer_agent", label: "Buyer's Agent", visible: true },
-  { id: "listing_agent", label: "Listing Agent", visible: true },
-];
+  const initialColumns = [
+    { id: "borrower_name", label: "Borrower", visible: true },
+    { id: "team", label: "Team", visible: true },
+    { id: "arrive_loan_number", label: "Loan #", visible: true },
+    { id: "lender", label: "Lender", visible: true },
+    { id: "loan_amount", label: "Loan Amount", visible: true },
+    { id: "sales_price", label: "Sales Price", visible: true },
+    { id: "close_date", label: "Close Date", visible: true },
+    { id: "pr_type", label: "P/R", visible: true },
+    { id: "occupancy", label: "Occupancy", visible: true },
+    { id: "disclosure_status", label: "DISC", visible: true },
+    { id: "loan_status", label: "Loan Status", visible: true },
+    { id: "title_status", label: "Title", visible: true },
+    { id: "hoi_status", label: "HOI", visible: true },
+    { id: "appraisal_status", label: "Appraisal", visible: true },
+    { id: "cd_status", label: "CD", visible: true },
+    { id: "package_status", label: "Package", visible: true },
+    { id: "condo_status", label: "Condo", visible: true },
+    { id: "lock_expiration_date", label: "LOC EXP", visible: true },
+    { id: "ba_status", label: "BA", visible: true },
+    { id: "epo_status", label: "EPO", visible: true },
+    { id: "buyer_agent", label: "Buyer's Agent", visible: true },
+    { id: "listing_agent", label: "Listing Agent", visible: true },
+  ];
 
 export default function Active() {
   const [searchTerm, setSearchTerm] = useState("");

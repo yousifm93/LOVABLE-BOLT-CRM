@@ -702,7 +702,7 @@ export const databaseService = {
         .from('leads')
         .select(`
           *,
-          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+          lender:lenders!leads_lender_id_fkey(id, lender_name, lender_type, account_executive),
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email),
           listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
           teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
