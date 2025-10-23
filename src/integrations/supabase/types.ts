@@ -3927,6 +3927,19 @@ export type Database = {
         | "Nurture"
         | "Dead"
         | "Needs Attention"
+        | "Converted"
+        | "App Complete"
+        | "Standby"
+        | "DNA"
+        | "Just Applied"
+        | "Screening"
+        | "Pre-Qualified"
+        | "Pre-Approved"
+        | "New"
+        | "Shopping"
+        | "Offers Out"
+        | "Under Contract"
+        | "Long-Term"
       disclosure_status: "Ordered" | "Sent" | "Signed" | "Need Signature"
       doc_type:
         | "pay_stub"
@@ -4195,6 +4208,19 @@ export const Constants = {
         "Nurture",
         "Dead",
         "Needs Attention",
+        "Converted",
+        "App Complete",
+        "Standby",
+        "DNA",
+        "Just Applied",
+        "Screening",
+        "Pre-Qualified",
+        "Pre-Approved",
+        "New",
+        "Shopping",
+        "Offers Out",
+        "Under Contract",
+        "Long-Term",
       ],
       disclosure_status: ["Ordered", "Sent", "Signed", "Need Signature"],
       doc_type: [
