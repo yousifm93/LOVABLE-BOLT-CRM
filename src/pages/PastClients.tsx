@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search } from "lucide-react";
+import { Search, Filter, X, Lock, Unlock } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { DataTable } from "@/components/ui/data-table";
@@ -14,6 +16,8 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
 import { databaseService } from "@/services/database";
@@ -636,6 +640,12 @@ export default function PastClients() {
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortLocked, setSortLocked] = useState(() => {
+    const saved = localStorage.getItem('past-clients-sort-locked');
+    return saved ? JSON.parse(saved) : false;
+  });
   const { toast } = useToast();
 
   // Column visibility management
@@ -651,6 +661,18 @@ export default function PastClients() {
     deleteView,
     reorderColumns
   } = useColumnVisibility(initialColumns, 'past-clients-columns');
+
+  const filterColumns = [
+    { value: 'borrower_name', label: 'Borrower Name', type: 'text' as const },
+    { value: 'arrive_loan_number', label: 'Loan Number', type: 'text' as const },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'text' as const },
+    { value: 'sales_price', label: 'Sales Price', type: 'text' as const },
+    { value: 'close_date', label: 'Close Date', type: 'date' as const },
+    { value: 'closed_at', label: 'Closed Date', type: 'date' as const },
+    { value: 'pr_type', label: 'P/R Type', type: 'select' as const, options: prTypeOptions.map(o => o.value) },
+    { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(o => o.value) },
+    { value: 'lender', label: 'Lender', type: 'text' as const },
+  ];
 
   const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
     // Get the column IDs from the visible columns array
@@ -705,7 +727,17 @@ export default function PastClients() {
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
       await databaseService.updateLead(id, { [field]: value });
-      setPastClients(prev => prev.map(loan => loan.id === id ? { ...loan, [field]: value } : loan));
+      
+      // For relationship fields, reload the entire dataset to get fresh embedded objects
+      if (['approved_lender_id', 'lender_id', 'buyer_agent_id', 'listing_agent_id', 'teammate_assigned'].includes(field)) {
+        await loadData();
+      } else {
+        // For simple fields, just update optimistically
+        setPastClients(prev => prev.map(loan => 
+          loan.id === id ? { ...loan, [field]: value } : loan
+        ));
+      }
+      
       toast({
         title: "Updated",
         description: "Field updated successfully",
@@ -717,8 +749,7 @@ export default function PastClients() {
         description: "Failed to update field",
         variant: "destructive"
       });
-      // Reload data to revert optimistic update
-      loadData();
+      await loadData(); // Reload on error to revert
     }
   };
 
@@ -756,6 +787,65 @@ export default function PastClients() {
     setIsDrawerOpen(true);
   };
 
+  const applyAdvancedFilters = (loans: PastClientLoan[]) => {
+    if (filters.length === 0) return loans;
+
+    return loans.filter(loan => {
+      return filters.every(filter => {
+        if (!filter.column || !filter.operator || filter.value === undefined) return true;
+
+        let fieldValue: any;
+        switch (filter.column) {
+          case 'borrower_name':
+            fieldValue = `${loan.first_name} ${loan.last_name}`.toLowerCase();
+            break;
+          case 'lender':
+            fieldValue = loan.approved_lender?.lender_name?.toLowerCase() || '';
+            break;
+          case 'loan_amount':
+            fieldValue = loan.loan_amount || 0;
+            break;
+          case 'sales_price':
+            fieldValue = loan.sales_price || 0;
+            break;
+          case 'close_date':
+            fieldValue = loan.close_date;
+            break;
+          case 'closed_at':
+            fieldValue = loan.closed_at;
+            break;
+          default:
+            fieldValue = loan[filter.column as keyof PastClientLoan];
+        }
+
+        const filterValue = filter.value;
+
+        switch (filter.operator) {
+          case 'is':
+            return String(fieldValue).toLowerCase() === String(filterValue).toLowerCase();
+          case 'is_not':
+            return String(fieldValue).toLowerCase() !== String(filterValue).toLowerCase();
+          case 'contains':
+            return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
+          case 'is_after':
+            return fieldValue && new Date(fieldValue) > new Date(filterValue as string);
+          case 'is_before':
+            return fieldValue && new Date(fieldValue) < new Date(filterValue as string);
+          default:
+            return true;
+        }
+      });
+    });
+  };
+
+  const clearAllFilters = () => {
+    setFilters([]);
+  };
+
+  const removeFilter = (filterId: string) => {
+    setFilters(prev => prev.filter(f => f.id !== filterId));
+  };
+
   // Generate columns with current data
   const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick, toast);
   
@@ -764,15 +854,23 @@ export default function PastClients() {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<PastClientLoan> => col !== undefined);
 
-  // Filter loans based on search
-  const filteredLoans = pastClients.filter(loan => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      `${loan.first_name} ${loan.last_name}`.toLowerCase().includes(search) ||
-      loan.arrive_loan_number?.toString().includes(search)
-    );
-  });
+  // Filter loans based on search and advanced filters
+  const filteredLoans = useMemo(() => {
+    // First apply search term
+    let result = pastClients.filter(loan => {
+      if (!searchTerm) return true;
+      const search = searchTerm.toLowerCase();
+      return (
+        `${loan.first_name} ${loan.last_name}`.toLowerCase().includes(search) ||
+        loan.arrive_loan_number?.toString().includes(search)
+      );
+    });
+    
+    // Then apply advanced filters
+    result = applyAdvancedFilters(result);
+    
+    return result;
+  }, [pastClients, searchTerm, filters]);
 
   if (loading) {
     return (
@@ -803,6 +901,50 @@ export default function PastClients() {
               className="pl-10"
             />
           </div>
+          
+          <Button
+            variant={sortLocked ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const newValue = !sortLocked;
+              setSortLocked(newValue);
+              localStorage.setItem('past-clients-sort-locked', JSON.stringify(newValue));
+              toast({
+                title: newValue ? "Sort Locked" : "Sort Unlocked",
+                description: newValue ? "Loans will stay in closed date order" : "You can now sort by any column",
+              });
+            }}
+            title={sortLocked ? "Unlock sorting" : "Lock sorting to closed date"}
+          >
+            {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+          </Button>
+
+          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter {filters.length > 0 && `(${filters.length})`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-0" align="start">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium">Filter Past Clients</h4>
+                  {filters.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+                <FilterBuilder
+                  filters={filters}
+                  columns={filterColumns}
+                  onFiltersChange={setFilters}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+          
           <ColumnVisibilityButton 
             columns={columnVisibility} 
             onColumnToggle={toggleColumn} 
@@ -815,6 +957,7 @@ export default function PastClients() {
             }}
           />
         </div>
+
         {views.length > 0 && (
           <ViewPills 
             views={views} 
@@ -823,15 +966,38 @@ export default function PastClients() {
             onDeleteView={deleteView} 
           />
         )}
+
+        {filters.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => (
+              <Badge key={filter.id} variant="secondary" className="gap-1">
+                <span className="text-xs">
+                  {filterColumns.find(col => col.value === filter.column)?.label}: {filter.operator} {String(filter.value)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 ml-1"
+                  onClick={() => removeFilter(filter.id)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
       <Card>
         <CardContent className="p-0">
-          <DataTable 
-            columns={columns} 
-            data={filteredLoans} 
-            searchTerm={searchTerm} 
-            onRowClick={handleRowClick} 
-          />
+        <DataTable 
+          columns={columns} 
+          data={filteredLoans} 
+          searchTerm={searchTerm} 
+          onRowClick={handleRowClick}
+          onColumnReorder={handleColumnReorder}
+          lockSort={sortLocked}
+          storageKey="past-clients"
+        />
         </CardContent>
       </Card>
       {selectedClient && (
