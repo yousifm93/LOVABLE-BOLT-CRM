@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
-import { InlineEditLender } from "@/components/ui/inline-edit-lender";
+import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -209,25 +209,39 @@ const createColumns = (
   {
     accessorKey: "lender",
     header: "Lender",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <div className="whitespace-nowrap">
-          <InlineEditLender
-            value={row.original.lender ? {
-              id: row.original.lender.id,
-              first_name: row.original.lender.first_name,
-              last_name: row.original.lender.last_name,
-              company: row.original.lender.company,
-              email: row.original.lender.email,
-            } : null}
-            lenders={lenders}
-            onValueChange={(lender) => 
-              handleUpdate(row.original.id, "lender_id", lender?.id || null)
-            }
-          />
+    cell: ({ row }) => {
+      const currentLenderName = row.original.lender?.company;
+      const matchedLender = currentLenderName 
+        ? lenders.find(l => l.lender_name === currentLenderName) 
+        : null;
+      
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="whitespace-nowrap">
+            <InlineEditApprovedLender
+              value={matchedLender}
+              lenders={lenders}
+              onValueChange={async (lender) => {
+                if (!lender) {
+                  await handleUpdate(row.original.id, "lender_id", null);
+                } else {
+                  try {
+                    const contactId = await databaseService.ensureContactForLender(lender.id);
+                    await handleUpdate(row.original.id, "lender_id", contactId);
+                  } catch (error) {
+                    console.error('Error mapping lender:', error);
+                    toast({
+                      variant: "destructive",
+                      title: "Failed to update lender",
+                    });
+                  }
+                }
+              }}
+            />
+          </div>
         </div>
-      </div>
-    ),
+      );
+    },
     sortable: true,
   },
   {
@@ -546,8 +560,8 @@ const createColumns = (
             phone: row.original.buyer_agent.phone,
           } : null}
           agents={agents}
-          onValueChange={(agent) => 
-            handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+          onValueChange={async (agent) => 
+            await handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
           }
           type="buyer"
         />
@@ -731,7 +745,7 @@ export default function Active() {
       // Phase 2: Load auxiliary data with Promise.allSettled (non-blocking)
       const [usersRes, lendersRes, agentsRes] = await Promise.allSettled([
         databaseService.getUsers(),
-        databaseService.getLenderContacts(),
+        databaseService.getLenders(),
         databaseService.getRealEstateAgents()
       ]);
 
@@ -760,14 +774,28 @@ export default function Active() {
     }
   };
 
+  const refreshRow = async (id: string) => {
+    try {
+      const fresh = await databaseService.getLeadByIdWithEmbeds(id);
+      setActiveLoans(prev => prev.map(loan => loan.id === id ? (fresh as any) : loan));
+    } catch (e) {
+      console.error('Failed to refresh row', e);
+    }
+  };
+
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
       await databaseService.updateLead(id, { [field]: value });
       
-      // Update local state optimistically
-      setActiveLoans(prev => prev.map(loan => 
-        loan.id === id ? { ...loan, [field]: value } : loan
-      ));
+      // Refresh embedded data for relationship fields
+      if (['lender_id', 'buyer_agent_id', 'listing_agent_id'].includes(field)) {
+        await refreshRow(id);
+      } else {
+        // Update local state optimistically for simple fields
+        setActiveLoans(prev => prev.map(loan => 
+          loan.id === id ? { ...loan, [field]: value } : loan
+        ));
+      }
 
       toast({
         title: "Updated",

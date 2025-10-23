@@ -814,6 +814,68 @@ export const databaseService = {
     return buyerAgent.id;
   },
 
+  async ensureContactForLender(lenderId: string) {
+    const { data: lender, error: lenderErr } = await supabase
+      .from('lenders')
+      .select('id, lender_name, account_executive_email, account_executive_phone')
+      .eq('id', lenderId)
+      .single();
+    if (lenderErr || !lender) throw lenderErr || new Error('Lender not found');
+
+    // Try to find existing contact by company name
+    let { data: contact } = await supabase
+      .from('contacts')
+      .select('id')
+      .eq('company', lender.lender_name)
+      .maybeSingle();
+
+    if (!contact) {
+      // Create a contact representing this lender
+      const { data: newContact, error: createErr } = await supabase
+        .from('contacts')
+        .insert({
+          first_name: lender.lender_name,
+          last_name: 'Lender',
+          company: lender.lender_name,
+          email: lender.account_executive_email,
+          phone: lender.account_executive_phone,
+          type: 'Third Party',
+          tags: ['Lender'],
+        })
+        .select('id')
+        .single();
+      if (createErr) throw createErr;
+      contact = newContact;
+    }
+
+    return contact.id;
+  },
+
+  async getLeadByIdWithEmbeds(id: string) {
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+        listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
+        teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
+      `)
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    
+    // Transform array embeds to single objects (Supabase returns arrays for FKs)
+    return {
+      ...data,
+      lender: Array.isArray(data.lender) ? data.lender[0] || null : data.lender,
+      buyer_agent: Array.isArray(data.buyer_agent) ? data.buyer_agent[0] || null : data.buyer_agent,
+      listing_agent: Array.isArray(data.listing_agent) ? data.listing_agent[0] || null : data.listing_agent,
+      teammate: Array.isArray(data.teammate) ? data.teammate[0] || null : data.teammate,
+    };
+  },
+
+
   async createLender(lender: any) {
     const { data, error } = await supabase
       .from('lenders')
