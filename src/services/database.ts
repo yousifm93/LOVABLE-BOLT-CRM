@@ -702,8 +702,8 @@ export const databaseService = {
         .from('leads')
         .select(`
           *,
-          lender:lenders!leads_lender_id_fkey(id, lender_name, lender_type, account_executive),
-          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email),
+          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
           listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
           teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
         `)
@@ -757,9 +757,61 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('contacts')
       .select('id, first_name, last_name, company, email')
-      .order('first_name');
+      .order('last_name');
     if (error) throw error;
     return data || [];
+  },
+
+  // Ensure a buyer_agents record exists for a contact (for listing_agent_id compatibility)
+  async ensureBuyerAgentFromContact(contactId: string) {
+    // First get the contact
+    const { data: contact, error: contactError } = await supabase
+      .from('contacts')
+      .select('id, first_name, last_name, company, email')
+      .eq('id', contactId)
+      .single();
+    
+    if (contactError || !contact) throw contactError || new Error('Contact not found');
+
+    // Try to find existing buyer_agents record by email or name match
+    let buyerAgent = null;
+    if (contact.email) {
+      const { data } = await supabase
+        .from('buyer_agents')
+        .select('*')
+        .eq('email', contact.email)
+        .maybeSingle();
+      buyerAgent = data;
+    }
+
+    if (!buyerAgent) {
+      const { data } = await supabase
+        .from('buyer_agents')
+        .select('*')
+        .eq('first_name', contact.first_name)
+        .eq('last_name', contact.last_name)
+        .maybeSingle();
+      buyerAgent = data;
+    }
+
+    // If not found, create new buyer_agents record
+    if (!buyerAgent) {
+      const { data: newAgent, error: createError } = await supabase
+        .from('buyer_agents')
+        .insert({
+          first_name: contact.first_name,
+          last_name: contact.last_name,
+          brokerage: contact.company,
+          email: contact.email,
+        })
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      buyerAgent = newAgent;
+    }
+
+    return buyerAgent.id;
   },
 
   async createLender(lender: any) {

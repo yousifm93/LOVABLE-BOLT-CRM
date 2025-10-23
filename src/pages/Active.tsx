@@ -22,7 +22,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
-import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -61,10 +60,34 @@ interface ActiveLoan {
   buyer_agent_id: string | null;
   listing_agent_id: string | null;
   pipeline_section: string | null;
-  buyer_agent?: any;
-  lender?: any;
-  listing_agent?: any;
-  teammate?: any;
+  lender?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company?: string;
+    email?: string;
+  } | null;
+  buyer_agent?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company?: string;
+    email?: string;
+    phone?: string;
+  } | null;
+  listing_agent?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    brokerage?: string;
+    email?: string;
+  } | null;
+  teammate?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email?: string;
+  } | null;
 }
 
 // Status options for dropdowns
@@ -142,7 +165,8 @@ const createColumns = (
   lenders: any[], 
   agents: any[], 
   handleUpdate: (id: string, field: string, value: any) => void,
-  handleRowClick: (loan: ActiveLoan) => void
+  handleRowClick: (loan: ActiveLoan) => void,
+  toast: any
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
@@ -187,18 +211,21 @@ const createColumns = (
     header: "Lender",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditApprovedLender
-          value={row.original.lender ? {
-            id: row.original.lender.id,
-            lender_name: row.original.lender.lender_name,
-            lender_type: row.original.lender.lender_type,
-            account_executive: row.original.lender.account_executive
-          } : null}
-          lenders={lenders}
-          onValueChange={(lender) => 
-            handleUpdate(row.original.id, "lender_id", lender?.id || null)
-          }
-        />
+        <div className="whitespace-nowrap">
+          <InlineEditLender
+            value={row.original.lender ? {
+              id: row.original.lender.id,
+              first_name: row.original.lender.first_name,
+              last_name: row.original.lender.last_name,
+              company: row.original.lender.company,
+              email: row.original.lender.email,
+            } : null}
+            lenders={lenders}
+            onValueChange={(lender) => 
+              handleUpdate(row.original.id, "lender_id", lender?.id || null)
+            }
+          />
+        </div>
       </div>
     ),
     sortable: true,
@@ -514,8 +541,9 @@ const createColumns = (
             id: row.original.buyer_agent.id,
             first_name: row.original.buyer_agent.first_name,
             last_name: row.original.buyer_agent.last_name,
-            brokerage: row.original.buyer_agent.brokerage,
-            email: row.original.buyer_agent.email
+            brokerage: row.original.buyer_agent.company,
+            email: row.original.buyer_agent.email,
+            phone: row.original.buyer_agent.phone,
           } : null}
           agents={agents}
           onValueChange={(agent) => 
@@ -538,12 +566,25 @@ const createColumns = (
             first_name: row.original.listing_agent.first_name,
             last_name: row.original.listing_agent.last_name,
             brokerage: row.original.listing_agent.brokerage,
-            email: row.original.listing_agent.email
+            email: row.original.listing_agent.email,
           } : null}
           agents={agents}
-          onValueChange={(agent) => 
-            handleUpdate(row.original.id, "listing_agent_id", agent?.id || null)
-          }
+          onValueChange={async (agent) => {
+            if (!agent) {
+              await handleUpdate(row.original.id, "listing_agent_id", null);
+            } else {
+              try {
+                const buyerAgentId = await databaseService.ensureBuyerAgentFromContact(agent.id);
+                await handleUpdate(row.original.id, "listing_agent_id", buyerAgentId);
+              } catch (error) {
+                console.error('Error mapping listing agent:', error);
+                toast({
+                  variant: "destructive",
+                  title: "Failed to update listing agent",
+                });
+              }
+            }
+          }}
           type="listing"
         />
       </div>
@@ -690,8 +731,8 @@ export default function Active() {
       // Phase 2: Load auxiliary data with Promise.allSettled (non-blocking)
       const [usersRes, lendersRes, agentsRes] = await Promise.allSettled([
         databaseService.getUsers(),
-        databaseService.getLenders(),
-        databaseService.getAgents()
+        databaseService.getLenderContacts(),
+        databaseService.getRealEstateAgents()
       ]);
 
       setUsers(usersRes.status === 'fulfilled' ? usersRes.value ?? [] : []);
@@ -930,7 +971,7 @@ export default function Active() {
     setFilters(prev => prev.filter(f => f.id !== filterId));
   };
 
-  const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick);
+  const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick, toast);
   
   // Filter columns based on visibility settings
   const columns = visibleColumns
