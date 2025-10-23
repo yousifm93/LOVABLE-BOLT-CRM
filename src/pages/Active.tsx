@@ -561,23 +561,9 @@ const createColumns = (
             phone: row.original.buyer_agent.phone,
           } : null}
           agents={agents}
-          onValueChange={async (agent) => {
-            if (!agent) {
-              await handleUpdate(row.original.id, "buyer_agent_id", null);
-            } else {
-              try {
-                const contactId = await databaseService.ensureContactFromBuyerAgent(agent.id);
-                await handleUpdate(row.original.id, "buyer_agent_id", contactId);
-              } catch (error) {
-                console.error('Error mapping buyer agent to contact:', error);
-                toast({
-                  variant: "destructive",
-                  title: "Buyer agent contact not found",
-                  description: "Please add this agent as a Contact, then retry the selection.",
-                });
-              }
-            }
-          }}
+          onValueChange={async (agent) => 
+            await handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+          }
           type="buyer"
         />
       </div>

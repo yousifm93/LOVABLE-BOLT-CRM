@@ -701,10 +701,10 @@ export const databaseService = {
         .from('leads')
         .select(`
           *,
-          lender:contacts!lender_id(id, first_name, last_name, company, email),
-          buyer_agent:buyer_agents!buyer_agent_id(id, first_name, last_name, brokerage, email),
-          listing_agent:buyer_agents!listing_agent_id(id, first_name, last_name, brokerage, email),
-          teammate:users!teammate_assigned(id, first_name, last_name, email)
+          lender:contacts!leads_lender_id_fkey(id, first_name, last_name, company, email),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+          listing_agent:buyer_agents!leads_listing_agent_id_fkey(id, first_name, last_name, brokerage, email),
+          teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email)
         `)
         .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
         .order('created_at', { ascending: false });
