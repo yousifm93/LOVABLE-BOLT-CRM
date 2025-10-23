@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditLender } from "@/components/ui/inline-edit-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -164,15 +165,17 @@ const createColumns = (
     accessorKey: "team",
     header: "Team",
     cell: ({ row }) => (
-      <div className="w-12">
-        <InlineEditAssignee
-          assigneeId={row.original.teammate_assigned}
-          users={users}
-          onValueChange={(userId) => 
-            handleUpdate(row.original.id, "teammate_assigned", userId)
-          }
-          showNameText={false}
-        />
+      <div onClick={(e) => e.stopPropagation()}>
+        <div className="w-12">
+          <InlineEditAssignee
+            assigneeId={row.original.teammate_assigned}
+            users={users}
+            onValueChange={(userId) => 
+              handleUpdate(row.original.id, "teammate_assigned", userId)
+            }
+            showNameText={false}
+          />
+        </div>
       </div>
     ),
     sortable: true,
@@ -181,19 +184,20 @@ const createColumns = (
     accessorKey: "lender",
     header: "Lender",
     cell: ({ row }) => (
-      <InlineEditLender
-        value={row.original.lender ? {
-          id: row.original.lender.id,
-          first_name: row.original.lender.first_name,
-          last_name: row.original.lender.last_name,
-          company: row.original.lender.company,
-          email: row.original.lender.email
-        } : null}
-        lenders={lenders}
-        onValueChange={(lender) => 
-          handleUpdate(row.original.id, "lender_id", lender?.id || null)
-        }
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditApprovedLender
+          value={row.original.lender ? {
+            id: row.original.lender.id,
+            lender_name: row.original.lender.lender_name,
+            lender_type: row.original.lender.lender_type,
+            account_executive: row.original.lender.account_executive
+          } : null}
+          lenders={lenders}
+          onValueChange={(lender) => 
+            handleUpdate(row.original.id, "lender_id", lender?.id || null)
+          }
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -201,9 +205,16 @@ const createColumns = (
     accessorKey: "arrive_loan_number",
     header: "Loan #",
     cell: ({ row }) => (
-      <span className="text-sm font-medium whitespace-nowrap">
-        #{row.original.arrive_loan_number || '0'}
-      </span>
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditNumber
+          value={row.original.arrive_loan_number || 0}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "arrive_loan_number", value)
+          }
+          placeholder="0"
+          className="w-20"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -211,15 +222,17 @@ const createColumns = (
     accessorKey: "pr_type",
     header: "P/R",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.pr_type}
-        options={prTypeOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "pr_type", value)
-        }
-        showAsStatusBadge
-        className="w-12"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.pr_type}
+          options={prTypeOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "pr_type", value)
+          }
+          showAsStatusBadge
+          className="w-12"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -227,13 +240,15 @@ const createColumns = (
     accessorKey: "loan_amount",
     header: "Loan Amount",
     cell: ({ row }) => (
-      <div className="whitespace-nowrap">
-        <InlineEditCurrency
-          value={row.original.loan_amount}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "loan_amount", value)
-          }
-        />
+      <div onClick={(e) => e.stopPropagation()}>
+        <div className="whitespace-nowrap">
+          <InlineEditCurrency
+            value={row.original.loan_amount}
+            onValueChange={(value) => 
+              handleUpdate(row.original.id, "loan_amount", value)
+            }
+          />
+        </div>
       </div>
     ),
     sortable: true,
@@ -242,15 +257,17 @@ const createColumns = (
     accessorKey: "disclosure_status",
     header: "DISC",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.disclosure_status}
-        options={disclosureStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "disclosure_status", value)
-        }
-        showAsStatusBadge
-        className="w-16"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.disclosure_status}
+          options={disclosureStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "disclosure_status", value)
+          }
+          showAsStatusBadge
+          className="w-16"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -258,12 +275,14 @@ const createColumns = (
     accessorKey: "close_date",
     header: "Close Date",
     cell: ({ row }) => (
-      <InlineEditDate
-        value={row.original.close_date}
-        onValueChange={(date) => 
-          handleUpdate(row.original.id, "close_date", date?.toISOString().split('T')[0] || null)
-        }
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditDate
+          value={row.original.close_date}
+          onValueChange={(date) => 
+            handleUpdate(row.original.id, "close_date", date?.toISOString().split('T')[0] || null)
+          }
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -271,15 +290,17 @@ const createColumns = (
     accessorKey: "loan_status",
     header: "Loan Status",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.loan_status}
-        options={loanStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "loan_status", value)
-        }
-        showAsStatusBadge
-        className="w-14"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.loan_status}
+          options={loanStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "loan_status", value)
+          }
+          showAsStatusBadge
+          className="w-14"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -287,15 +308,17 @@ const createColumns = (
     accessorKey: "appraisal_status",
     header: "Appraisal",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.appraisal_status}
-        options={appraisalStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "appraisal_status", value)
-        }
-        showAsStatusBadge
-        className="w-18"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.appraisal_status}
+          options={appraisalStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "appraisal_status", value)
+          }
+          showAsStatusBadge
+          className="w-18"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -303,15 +326,17 @@ const createColumns = (
     accessorKey: "title_status",
     header: "Title",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.title_status}
-        options={titleStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "title_status", value)
-        }
-        showAsStatusBadge
-        className="w-20"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.title_status}
+          options={titleStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "title_status", value)
+          }
+          showAsStatusBadge
+          className="w-20"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -319,15 +344,17 @@ const createColumns = (
     accessorKey: "hoi_status",
     header: "HOI",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.hoi_status}
-        options={hoiStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "hoi_status", value)
-        }
-        showAsStatusBadge
-        className="w-14"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.hoi_status}
+          options={hoiStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "hoi_status", value)
+          }
+          showAsStatusBadge
+          className="w-14"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -335,15 +362,17 @@ const createColumns = (
     accessorKey: "condo_status",
     header: "Condo",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.condo_status}
-        options={condoStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "condo_status", value)
-        }
-        showAsStatusBadge
-        className="w-16"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.condo_status}
+          options={condoStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "condo_status", value)
+          }
+          showAsStatusBadge
+          className="w-16"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -351,15 +380,17 @@ const createColumns = (
     accessorKey: "cd_status",
     header: "CD",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.cd_status}
-        options={cdStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "cd_status", value)
-        }
-        showAsStatusBadge
-        className="w-16"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.cd_status}
+          options={cdStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "cd_status", value)
+          }
+          showAsStatusBadge
+          className="w-16"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -367,15 +398,17 @@ const createColumns = (
     accessorKey: "package_status",
     header: "Package",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.package_status}
-        options={packageStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "package_status", value)
-        }
-        showAsStatusBadge
-        className="w-12"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.package_status}
+          options={packageStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "package_status", value)
+          }
+          showAsStatusBadge
+          className="w-12"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -383,12 +416,14 @@ const createColumns = (
     accessorKey: "lock_expiration_date",
     header: "LOC EXP",
     cell: ({ row }) => (
-      <InlineEditDate
-        value={row.original.lock_expiration_date}
-        onValueChange={(date) => 
-          handleUpdate(row.original.id, "lock_expiration_date", date?.toISOString().split('T')[0] || null)
-        }
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditDate
+          value={row.original.lock_expiration_date}
+          onValueChange={(date) => 
+            handleUpdate(row.original.id, "lock_expiration_date", date?.toISOString().split('T')[0] || null)
+          }
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -396,15 +431,17 @@ const createColumns = (
     accessorKey: "ba_status",
     header: "BA",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.ba_status}
-        options={baStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "ba_status", value)
-        }
-        showAsStatusBadge
-        className="w-16"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.ba_status}
+          options={baStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "ba_status", value)
+          }
+          showAsStatusBadge
+          className="w-16"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -412,15 +449,17 @@ const createColumns = (
     accessorKey: "epo_status",
     header: "EPO",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.epo_status}
-        options={epoStatusOptions}
-        onValueChange={(value) => 
-          handleUpdate(row.original.id, "epo_status", value)
-        }
-        showAsStatusBadge
-        className="w-16"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditSelect
+          value={row.original.epo_status}
+          options={epoStatusOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "epo_status", value)
+          }
+          showAsStatusBadge
+          className="w-16"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -428,20 +467,22 @@ const createColumns = (
     accessorKey: "buyer_agent",
     header: "Buyer's Agent",
     cell: ({ row }) => (
-      <InlineEditAgent
-        value={row.original.buyer_agent ? {
-          id: row.original.buyer_agent.id,
-          first_name: row.original.buyer_agent.first_name,
-          last_name: row.original.buyer_agent.last_name,
-          brokerage: row.original.buyer_agent.brokerage,
-          email: row.original.buyer_agent.email
-        } : null}
-        agents={agents}
-        onValueChange={(agent) => 
-          handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
-        }
-        type="buyer"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditAgent
+          value={row.original.buyer_agent ? {
+            id: row.original.buyer_agent.id,
+            first_name: row.original.buyer_agent.first_name,
+            last_name: row.original.buyer_agent.last_name,
+            brokerage: row.original.buyer_agent.brokerage,
+            email: row.original.buyer_agent.email
+          } : null}
+          agents={agents}
+          onValueChange={(agent) => 
+            handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+          }
+          type="buyer"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -449,20 +490,22 @@ const createColumns = (
     accessorKey: "listing_agent",
     header: "Listing Agent",
     cell: ({ row }) => (
-      <InlineEditAgent
-        value={row.original.listing_agent ? {
-          id: row.original.listing_agent.id,
-          first_name: row.original.listing_agent.first_name,
-          last_name: row.original.listing_agent.last_name,
-          brokerage: row.original.listing_agent.brokerage,
-          email: row.original.listing_agent.email
-        } : null}
-        agents={agents}
-        onValueChange={(agent) => 
-          handleUpdate(row.original.id, "listing_agent_id", agent?.id || null)
-        }
-        type="listing"
-      />
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditAgent
+          value={row.original.listing_agent ? {
+            id: row.original.listing_agent.id,
+            first_name: row.original.listing_agent.first_name,
+            last_name: row.original.listing_agent.last_name,
+            brokerage: row.original.listing_agent.brokerage,
+            email: row.original.listing_agent.email
+          } : null}
+          agents={agents}
+          onValueChange={(agent) => 
+            handleUpdate(row.original.id, "listing_agent_id", agent?.id || null)
+          }
+          type="listing"
+        />
+      </div>
     ),
     sortable: true,
   },
@@ -533,8 +576,22 @@ export default function Active() {
     loadView(viewName);
   };
 
-  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
-    reorderColumns(oldIndex, newIndex);
+  const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
+    // Get the column IDs from the visible columns array
+    const oldColumnId = visibleColumns[oldVisibleIndex]?.id;
+    const newColumnId = visibleColumns[newVisibleIndex]?.id;
+    
+    if (!oldColumnId || !newColumnId) return;
+    
+    // Find the indices in the full columns array
+    const oldFullIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const newFullIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    
+    if (oldFullIndex === -1 || newFullIndex === -1) return;
+    
+    // Reorder using the full array indices
+    reorderColumns(oldFullIndex, newFullIndex);
+    
     toast({
       title: "Column Reordered",
       description: "Table column order has been updated",
@@ -590,7 +647,7 @@ export default function Active() {
       // Phase 2: Load auxiliary data with Promise.allSettled (non-blocking)
       const [usersRes, lendersRes, agentsRes] = await Promise.allSettled([
         databaseService.getUsers(),
-        databaseService.getLenderContacts(),
+        databaseService.getLenders(),
         databaseService.getAgents()
       ]);
 
@@ -973,6 +1030,10 @@ export default function Active() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onColumnReorder={handleColumnReorder}
+          selectable
+          selectedIds={selectedLeadIds}
+          onSelectionChange={setSelectedLeadIds}
+          getRowId={(row) => row.id}
         />
         
         <CollapsiblePipelineSection
@@ -986,6 +1047,10 @@ export default function Active() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onColumnReorder={handleColumnReorder}
+          selectable
+          selectedIds={selectedLeadIds}
+          onSelectionChange={setSelectedLeadIds}
+          getRowId={(row) => row.id}
         />
         
         <CollapsiblePipelineSection
@@ -999,6 +1064,10 @@ export default function Active() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onColumnReorder={handleColumnReorder}
+          selectable
+          selectedIds={selectedLeadIds}
+          onSelectionChange={setSelectedLeadIds}
+          getRowId={(row) => row.id}
         />
       </div>
 
@@ -1075,6 +1144,9 @@ export default function Active() {
         fieldOptions={[
           { value: 'loan_status', label: 'Loan Status', type: 'select', options: loanStatusOptions },
           { value: 'disclosure_status', label: 'Disclosure Status', type: 'select', options: disclosureStatusOptions },
+          { value: 'pr_type', label: 'P/R Type', type: 'select', options: prTypeOptions },
+          { value: 'appraisal_status', label: 'Appraisal Status', type: 'select', options: appraisalStatusOptions },
+          { value: 'title_status', label: 'Title Status', type: 'select', options: titleStatusOptions },
         ]}
       />
     </div>

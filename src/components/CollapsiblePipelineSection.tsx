@@ -17,6 +17,10 @@ interface CollapsiblePipelineSectionProps {
   onDelete?: (row: any) => void;
   onRowClick?: (row: any) => void;
   onColumnReorder?: (oldIndex: number, newIndex: number) => void;
+  selectable?: boolean;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
+  getRowId?: (row: any) => string;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -30,7 +34,11 @@ export function CollapsiblePipelineSection({
   onEdit,
   onDelete,
   onRowClick,
-  onColumnReorder
+  onColumnReorder,
+  selectable,
+  selectedIds,
+  onSelectionChange,
+  getRowId
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -70,6 +78,10 @@ export function CollapsiblePipelineSection({
             onEdit={onEdit}
             onDelete={onDelete}
             onColumnReorder={onColumnReorder}
+            selectable={selectable}
+            selectedIds={selectedIds}
+            onSelectionChange={onSelectionChange}
+            getRowId={getRowId}
           />
         </CardContent>
       )}
