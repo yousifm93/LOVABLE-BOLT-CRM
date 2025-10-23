@@ -1617,6 +1617,7 @@ export type Database = {
           cash_to_close_goal: number | null
           cd_status: Database["public"]["Enums"]["cd_status"] | null
           close_date: string | null
+          closed_at: string | null
           condo_status: Database["public"]["Enums"]["condo_status"] | null
           contract_file: string | null
           converted: Database["public"]["Enums"]["converted_status"] | null
@@ -1645,6 +1646,7 @@ export type Database = {
           initial_approval_file: string | null
           insurance_file: string | null
           interest_rate: number | null
+          is_closed: boolean | null
           last_name: string
           lead_on_date: string
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
@@ -1718,6 +1720,7 @@ export type Database = {
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
           close_date?: string | null
+          closed_at?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
           contract_file?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
@@ -1746,6 +1749,7 @@ export type Database = {
           initial_approval_file?: string | null
           insurance_file?: string | null
           interest_rate?: number | null
+          is_closed?: boolean | null
           last_name: string
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
@@ -1821,6 +1825,7 @@ export type Database = {
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
           close_date?: string | null
+          closed_at?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
           contract_file?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
@@ -1849,6 +1854,7 @@ export type Database = {
           initial_approval_file?: string | null
           insurance_file?: string | null
           interest_rate?: number | null
+          is_closed?: boolean | null
           last_name?: string
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null

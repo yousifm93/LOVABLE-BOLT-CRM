@@ -28,6 +28,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
@@ -61,6 +62,8 @@ interface ActiveLoan {
   buyer_agent_id: string | null;
   listing_agent_id: string | null;
   pipeline_section: string | null;
+  is_closed: boolean | null;
+  closed_at: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -172,7 +175,8 @@ const createColumns = (
   agents: any[], 
   handleUpdate: (id: string, field: string, value: any) => void,
   handleRowClick: (loan: ActiveLoan) => void,
-  toast: any
+  toast: any,
+  onCloseLoan: (loanId: string) => void
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
@@ -597,6 +601,23 @@ const createColumns = (
     ),
     sortable: true,
   },
+  {
+    accessorKey: "is_closed",
+    header: "Closed",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={row.original.is_closed || false}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              onCloseLoan(row.original.id);
+            }
+          }}
+        />
+      </div>
+    ),
+    sortable: false,
+  },
 ];
 
 // Define initial column configuration
@@ -623,6 +644,7 @@ const createColumns = (
     { id: "epo_status", label: "EPO", visible: true },
     { id: "buyer_agent", label: "Buyer's Agent", visible: true },
     { id: "listing_agent", label: "Listing Agent", visible: true },
+    { id: "is_closed", label: "Closed", visible: true },
   ];
 
 export default function Active() {
@@ -641,6 +663,8 @@ export default function Active() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [loanToClose, setLoanToClose] = useState<string | null>(null);
+  const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -875,6 +899,36 @@ export default function Active() {
       setDeleteLeadId(null);
     }
   };
+
+  const handleCloseLoan = async () => {
+    if (!loanToClose) return;
+    
+    try {
+      await databaseService.updateLead(loanToClose, {
+        pipeline_section: 'Closed',
+        is_closed: true,
+        closed_at: new Date().toISOString()
+      });
+      
+      // Remove from active loans list
+      setActiveLoans(prev => prev.filter(loan => loan.id !== loanToClose));
+      
+      toast({
+        title: "Loan Closed",
+        description: "The loan has been moved to Past Clients",
+      });
+    } catch (error) {
+      console.error('Error closing loan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to close loan",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCloseDialogOpen(false);
+      setLoanToClose(null);
+    }
+  };
   
   const handleBulkDelete = async () => {
     if (selectedLeadIds.length === 0) return;
@@ -991,7 +1045,18 @@ export default function Active() {
     setFilters(prev => prev.filter(f => f.id !== filterId));
   };
 
-  const allColumns = createColumns(users, lenders, agents, handleUpdate, handleRowClick, toast);
+  const allColumns = createColumns(
+    users, 
+    lenders, 
+    agents, 
+    handleUpdate, 
+    handleRowClick, 
+    toast,
+    (loanId: string) => {
+      setLoanToClose(loanId);
+      setIsCloseDialogOpen(true);
+    }
+  );
   
   // Filter columns based on visibility settings
   const columns = visibleColumns
@@ -1201,6 +1266,23 @@ export default function Active() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isCloseDialogOpen} onOpenChange={setIsCloseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close Loan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this loan as closed? It will be moved to the Past Clients tab.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCloseLoan}>
+              Close Loan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -745,6 +745,58 @@ export const databaseService = {
     }
   },
 
+  async getPastClientLoans() {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
+          approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
+          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+          listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
+          teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
+        `)
+        .eq('pipeline_section', 'Closed')
+        .eq('is_closed', true)
+        .order('closed_at', { ascending: false });
+
+      if (error) {
+        console.error('Embed error, using fallback query:', error);
+        // Fallback: query without embeds
+        const fallbackResult = await supabase
+          .from('leads')
+          .select('*')
+          .eq('pipeline_section', 'Closed')
+          .eq('is_closed', true)
+          .order('closed_at', { ascending: false });
+        
+        if (fallbackResult.error) throw fallbackResult.error;
+        
+        return fallbackResult.data?.map(loan => ({
+          ...loan,
+          buyer_agent: null,
+          lender: null,
+          approved_lender: null,
+          listing_agent: null,
+          teammate: null
+        })) || [];
+      }
+      
+      return data?.map(loan => ({
+        ...loan,
+        buyer_agent: Array.isArray((loan as any).buyer_agent) ? (loan as any).buyer_agent[0] || null : (loan as any).buyer_agent || null,
+        lender: Array.isArray((loan as any).lender) ? (loan as any).lender[0] || null : (loan as any).lender || null,
+        approved_lender: Array.isArray((loan as any).approved_lender) ? (loan as any).approved_lender[0] || null : (loan as any).approved_lender || null,
+        listing_agent: Array.isArray((loan as any).listing_agent) ? (loan as any).listing_agent[0] || null : (loan as any).listing_agent || null,
+        teammate: Array.isArray((loan as any).teammate) ? (loan as any).teammate[0] || null : (loan as any).teammate || null,
+      })) || [];
+    } catch (error: any) {
+      console.error('Failed to load past client loans:', error);
+      throw new Error(error?.message || 'Failed to load past client loans.');
+    }
+  },
+
   async getLenders() {
     const { data, error } = await supabase
       .from('lenders')
