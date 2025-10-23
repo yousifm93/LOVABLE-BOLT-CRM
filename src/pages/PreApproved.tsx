@@ -81,9 +81,11 @@ const initialColumns = [
 
 // Status/Converted options
 const convertedOptions = [
-  { value: "Working on it", label: "Working on it" },
-  { value: "Converted", label: "Converted" },
-  { value: "Dead", label: "Dead" },
+  { value: "New", label: "New" },
+  { value: "Shopping", label: "Shopping" },
+  { value: "Offers Out", label: "Offers Out" },
+  { value: "Under Contract", label: "Under Contract" },
+  { value: "Long-Term", label: "Long-Term" },
 ];
 
 // Loan Type options

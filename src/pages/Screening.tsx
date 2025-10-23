@@ -82,9 +82,10 @@ const initialColumns = [
 
 // Status/Converted options
 const convertedOptions = [
-  { value: "Working on it", label: "Working on it" },
-  { value: "Converted", label: "Converted" },
-  { value: "Dead", label: "Dead" },
+  { value: "Just Applied", label: "Just Applied" },
+  { value: "Screening", label: "Screening" },
+  { value: "Pre-Qualified", label: "Pre-Qualified" },
+  { value: "Standby", label: "Standby" },
 ];
 
 // Loan Type options

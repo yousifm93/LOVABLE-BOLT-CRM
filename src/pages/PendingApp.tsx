@@ -73,10 +73,10 @@ const initialColumns = [
 
 // Status options
 const convertedOptions = [
-  { value: "Working on it", label: "Working on it" },
-  { value: "Converted", label: "Converted" },
-  { value: "Dead", label: "Dead" },
   { value: "Pending App", label: "Pending App" },
+  { value: "App Complete", label: "App Complete" },
+  { value: "Standby", label: "Standby" },
+  { value: "DNA", label: "DNA" },
 ];
 
 export default function PendingApp() {
