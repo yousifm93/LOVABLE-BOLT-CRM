@@ -4,6 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { ColumnDef } from "@/components/ui/data-table";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
@@ -646,6 +657,10 @@ export default function PastClients() {
     const saved = localStorage.getItem('past-clients-sort-locked');
     return saved ? JSON.parse(saved) : false;
   });
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Column visibility management
@@ -785,6 +800,118 @@ export default function PastClients() {
     };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
+  };
+
+  const handleDelete = async (row: PastClientLoan) => {
+    setDeleteLeadId(row.id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLeadId) return;
+    
+    try {
+      await databaseService.deleteLead(deleteLeadId);
+      toast({
+        title: "Success",
+        description: "Past client deleted successfully.",
+      });
+      await loadData();
+    } catch (error: any) {
+      console.error('Error deleting past client:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete past client.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLeadId(null);
+    }
+  };
+
+  const handleViewDetails = (row: PastClientLoan) => {
+    handleRowClick(row);
+  };
+
+  const handleEdit = (row: PastClientLoan) => {
+    handleRowClick(row);
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => databaseService.updateLead(id, { [field]: value }))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} past client${successCount > 1 ? 's' : ''} updated successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+        });
+      }
+      
+      if (failCount > 0 && successCount === 0) {
+        toast({
+          title: "Error",
+          description: `Failed to update ${failCount} past client${failCount > 1 ? 's' : ''}.`,
+          variant: "destructive",
+        });
+      }
+      
+      await loadData();
+      setSelectedLeadIds([]);
+    } catch (error) {
+      console.error('Error during bulk update:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred during bulk update.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) return;
+    
+    try {
+      const results = await Promise.allSettled(
+        selectedLeadIds.map(id => databaseService.deleteLead(id))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} past client${successCount > 1 ? 's' : ''} deleted successfully${failCount > 0 ? `, ${failCount} failed` : ''}.`,
+        });
+      }
+      
+      if (failCount > 0 && successCount === 0) {
+        toast({
+          title: "Error",
+          description: `Failed to delete ${failCount} past client${failCount > 1 ? 's' : ''}.`,
+          variant: "destructive",
+        });
+      }
+      
+      await loadData();
+      setSelectedLeadIds([]);
+    } catch (error) {
+      console.error('Error during bulk delete:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred during bulk deletion.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkDeleteOpen(false);
+    }
   };
 
   const applyAdvancedFilters = (loans: PastClientLoan[]) => {
@@ -997,6 +1124,13 @@ export default function PastClients() {
           onColumnReorder={handleColumnReorder}
           lockSort={sortLocked}
           storageKey="past-clients"
+          selectable
+          selectedIds={selectedLeadIds}
+          onSelectionChange={setSelectedLeadIds}
+          getRowId={(row) => row.id}
+          onDelete={handleDelete}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
         />
         </CardContent>
       </Card>
@@ -1013,6 +1147,85 @@ export default function PastClients() {
           pipelineType="past-clients" 
         />
       )}
+
+      {/* Floating Bulk Action Bar */}
+      {selectedLeadIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+          <Card className="shadow-lg border-2">
+            <CardContent className="flex items-center gap-4 p-4">
+              <Badge variant="secondary" className="text-sm">
+                {selectedLeadIds.length} past client{selectedLeadIds.length > 1 ? 's' : ''} selected
+              </Badge>
+              <div className="flex gap-2">
+                <Button onClick={() => setIsBulkUpdateOpen(true)} size="sm">Update Field</Button>
+                <Button onClick={() => setIsBulkDeleteOpen(true)} variant="destructive" size="sm">Delete</Button>
+                <Button onClick={() => setSelectedLeadIds([])} variant="outline" size="sm">Clear</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteLeadId} onOpenChange={() => setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Past Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this past client? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedLeadIds.length} Past Clients</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedLeadIds.length} past client{selectedLeadIds.length > 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Update Dialog */}
+      <BulkUpdateDialog
+        open={isBulkUpdateOpen}
+        onOpenChange={setIsBulkUpdateOpen}
+        selectedCount={selectedLeadIds.length}
+        onUpdate={handleBulkUpdate}
+        fieldOptions={[
+          { value: 'loan_status', label: 'Loan Status', type: 'select', options: loanStatusOptions },
+          { value: 'pr_type', label: 'P/R Type', type: 'select', options: prTypeOptions },
+          { value: 'disclosure_status', label: 'Disclosure Status', type: 'select', options: disclosureStatusOptions },
+          { value: 'appraisal_status', label: 'Appraisal Status', type: 'select', options: appraisalStatusOptions },
+          { value: 'title_status', label: 'Title Status', type: 'select', options: titleStatusOptions },
+          { value: 'hoi_status', label: 'HOI Status', type: 'select', options: hoiStatusOptions },
+          { value: 'condo_status', label: 'Condo Status', type: 'select', options: condoStatusOptions },
+          { value: 'cd_status', label: 'CD Status', type: 'select', options: cdStatusOptions },
+          { value: 'package_status', label: 'Package Status', type: 'select', options: packageStatusOptions },
+          { value: 'ba_status', label: 'BA Status', type: 'select', options: baStatusOptions },
+          { value: 'epo_status', label: 'EPO Status', type: 'select', options: epoStatusOptions },
+          { value: 'teammate_assigned', label: 'Team Member', type: 'select', options: users.map(u => ({ 
+            value: u.id, 
+            label: `${u.first_name} ${u.last_name}` 
+          })) },
+        ]}
+      />
     </div>
   );
 }
