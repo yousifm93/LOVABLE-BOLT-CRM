@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Lock, Unlock } from "lucide-react";
+import { Search, Filter, X, Lock, Unlock, Pencil } from "lucide-react";
+import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,19 +37,30 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 // Main view default columns
-const MAIN_VIEW_COLUMNS = [
+const DEFAULT_MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
   "arrive_loan_number",
+  "lender_loan_number",
   "loan_amount",
   "sales_price",
   "close_date",
   "loan_status",
   "appraisal_status",
+  "title_status",
+  "hoi_status",
+  "condo_status",
+  "cd_status",
   "disclosure_status",
-  "ba_status"
+  "package_status",
+  "lock_expiration_date",
+  "ba_status",
+  "real_estate_agent",
+  "listing_agent"
 ];
+
+const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
 
 interface ActiveLoan {
   id: string;
@@ -635,34 +647,53 @@ const createColumns = (
   },
 ];
 
-// Define initial column configuration
-  const initialColumns = [
+export default function Active() {
+  const { allFields } = useFields();
+  
+  // Core columns that should appear first with default visibility
+  const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "Team", visible: true },
-    { id: "arrive_loan_number", label: "Loan #", visible: true },
+    { id: "team", label: "User", visible: true },
     { id: "lender", label: "Lender", visible: true },
+    { id: "arrive_loan_number", label: "Loan #", visible: true },
+    { id: "lender_loan_number", label: "Lender Loan #", visible: false },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "sales_price", label: "Sales Price", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
-    { id: "pr_type", label: "P/R", visible: true },
-    { id: "occupancy", label: "Occupancy", visible: true },
-    { id: "disclosure_status", label: "DISC", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
+    { id: "appraisal_status", label: "Appraisal", visible: true },
     { id: "title_status", label: "Title", visible: true },
     { id: "hoi_status", label: "HOI", visible: true },
-    { id: "appraisal_status", label: "Appraisal", visible: true },
-    { id: "cd_status", label: "CD", visible: true },
-    { id: "package_status", label: "Package", visible: true },
     { id: "condo_status", label: "Condo", visible: true },
+    { id: "cd_status", label: "CD", visible: true },
+    { id: "disclosure_status", label: "DISC", visible: true },
+    { id: "package_status", label: "Package", visible: true },
     { id: "lock_expiration_date", label: "LOC EXP", visible: true },
     { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
-    { id: "buyer_agent", label: "Buyer's Agent", visible: true },
-    { id: "listing_agent", label: "Listing Agent", visible: true },
-    { id: "is_closed", label: "Closed", visible: true },
-  ];
-
-export default function Active() {
+    { id: "real_estate_agent", label: "Buyer Agent", visible: false },
+    { id: "listing_agent", label: "Listing Agent", visible: false },
+    { id: "pr_type", label: "P/R", visible: false },
+    { id: "occupancy", label: "Occupancy", visible: false },
+    { id: "epo_status", label: "EPO", visible: false },
+    { id: "buyer_agent", label: "Buyer's Agent", visible: false },
+    { id: "is_closed", label: "Closed", visible: false },
+  ], []);
+  
+  // Load ALL database fields for Hide/Show modal (~85 total)
+  const allAvailableColumns = useMemo(() => {
+    const dbColumns = allFields
+      .filter(f => f.is_in_use)
+      .map(field => ({
+        id: field.field_name,
+        label: field.display_name,
+        visible: false
+      }));
+    
+    const existingIds = new Set(coreColumns.map(c => c.id));
+    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+    
+    return [...coreColumns, ...newColumns];
+  }, [allFields, coreColumns]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
   const [users, setUsers] = useState([]);
@@ -680,8 +711,22 @@ export default function Active() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [loanToClose, setLoanToClose] = useState<string | null>(null);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+  const [isEditMainViewOpen, setIsEditMainViewOpen] = useState(false);
   
   const { toast } = useToast();
+
+  // Custom main view columns (editable)
+  const [mainViewColumns, setMainViewColumns] = useState<string[]>(() => {
+    const saved = localStorage.getItem(MAIN_VIEW_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return DEFAULT_MAIN_VIEW_COLUMNS;
+      }
+    }
+    return DEFAULT_MAIN_VIEW_COLUMNS;
+  });
 
   // Column visibility management
   const {
@@ -696,7 +741,7 @@ export default function Active() {
     deleteView,
     reorderColumns,
     setColumns
-  } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
+  } = useColumnVisibility(allAvailableColumns, 'active-pipeline-columns');
 
   const handleViewSaved = (viewName: string) => {
     toast({
@@ -1192,12 +1237,12 @@ export default function Active() {
           variant={activeView === "Main" ? "default" : "outline"}
           size="sm"
           onClick={() => {
-            const orderedMainColumns = MAIN_VIEW_COLUMNS
+            const orderedMainColumns = mainViewColumns
               .map(id => columnVisibility.find(col => col.id === id))
               .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
               .map(col => ({ ...col, visible: true }));
             
-            const existingIds = new Set(MAIN_VIEW_COLUMNS);
+            const existingIds = new Set(mainViewColumns);
             const remainingColumns = columnVisibility
               .filter(col => !existingIds.has(col.id))
               .map(col => ({ ...col, visible: false }));
@@ -1213,6 +1258,16 @@ export default function Active() {
           className="h-8 text-xs"
         >
           Main
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsEditMainViewOpen(true)}
+          className="h-8 px-2"
+          title="Edit Main View"
+        >
+          <Pencil className="h-3 w-3" />
         </Button>
         
         <ViewPills
@@ -1392,6 +1447,64 @@ export default function Active() {
           { value: 'title_status', label: 'Title Status', type: 'select', options: titleStatusOptions },
         ]}
       />
+
+      <AlertDialog open={isEditMainViewOpen} onOpenChange={setIsEditMainViewOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Main View</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the Main view to show your currently visible columns ({visibleColumns.length} columns), 
+              or reset to the factory default ({DEFAULT_MAIN_VIEW_COLUMNS.length} columns).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <p className="text-sm font-medium mb-2">Currently visible columns:</p>
+            <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
+              {visibleColumns.map(col => (
+                <Badge key={col.id} variant="secondary" className="text-xs">{col.label}</Badge>
+              ))}
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setMainViewColumns(DEFAULT_MAIN_VIEW_COLUMNS);
+                localStorage.removeItem(MAIN_VIEW_STORAGE_KEY);
+                
+                toast({
+                  title: "Main View Reset",
+                  description: "Main view restored to factory default"
+                });
+                
+                setIsEditMainViewOpen(false);
+              }}
+            >
+              Reset to Default
+            </Button>
+            <AlertDialogAction 
+              onClick={() => {
+                const currentVisibleColumns = columnVisibility
+                  .filter(col => col.visible)
+                  .map(col => col.id);
+                
+                setMainViewColumns(currentVisibleColumns);
+                localStorage.setItem(MAIN_VIEW_STORAGE_KEY, JSON.stringify(currentVisibleColumns));
+                
+                toast({
+                  title: "Main View Updated",
+                  description: `Main view now shows ${currentVisibleColumns.length} columns`
+                });
+                
+                setIsEditMainViewOpen(false);
+              }}
+            >
+              Update Main View
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

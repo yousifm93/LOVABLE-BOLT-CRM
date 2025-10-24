@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Filter, X, Lock, Unlock } from "lucide-react";
+import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -173,6 +174,29 @@ const epoStatusOptions = [
   { value: "Send", label: "Send" },
   { value: "Sent", label: "Sent" },
   { value: "Signed", label: "Signed" }
+];
+
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "borrower_name",
+  "team",
+  "lender",
+  "arrive_loan_number",
+  "loan_amount",
+  "sales_price",
+  "close_date",
+  "closed_at",
+  "loan_status",
+  "appraisal_status",
+  "title_status",
+  "hoi_status",
+  "condo_status",
+  "cd_status",
+  "disclosure_status",
+  "package_status",
+  "ba_status",
+  "real_estate_agent",
+  "listing_agent"
 ];
 
 const createColumns = (
@@ -622,34 +646,51 @@ const createColumns = (
   },
 ];
 
-// Define initial column configuration
-const initialColumns = [
-  { id: "borrower_name", label: "Borrower", visible: true },
-  { id: "team", label: "Team", visible: true },
-  { id: "arrive_loan_number", label: "Loan #", visible: true },
-  { id: "lender", label: "Lender", visible: true },
-  { id: "loan_amount", label: "Loan Amount", visible: true },
-  { id: "sales_price", label: "Sales Price", visible: true },
-  { id: "close_date", label: "Close Date", visible: true },
-  { id: "pr_type", label: "P/R", visible: true },
-  { id: "occupancy", label: "Occupancy", visible: true },
-  { id: "disclosure_status", label: "DISC", visible: true },
-  { id: "loan_status", label: "Loan Status", visible: true },
-  { id: "title_status", label: "Title", visible: true },
-  { id: "hoi_status", label: "HOI", visible: true },
-  { id: "appraisal_status", label: "Appraisal", visible: true },
-  { id: "cd_status", label: "CD", visible: true },
-  { id: "package_status", label: "Package", visible: true },
-  { id: "condo_status", label: "Condo", visible: true },
-  { id: "lock_expiration_date", label: "LOC EXP", visible: true },
-  { id: "ba_status", label: "BA", visible: true },
-  { id: "epo_status", label: "EPO", visible: true },
-  { id: "buyer_agent", label: "Buyer's Agent", visible: true },
-  { id: "listing_agent", label: "Listing Agent", visible: true },
-  { id: "closed_at", label: "Closed Date", visible: true },
-];
-
 export default function PastClients() {
+  const { allFields } = useFields();
+  
+  // Core columns that should appear first with default visibility
+  const coreColumns = useMemo(() => [
+    { id: "borrower_name", label: "Borrower", visible: true },
+    { id: "team", label: "Team", visible: true },
+    { id: "arrive_loan_number", label: "Loan #", visible: true },
+    { id: "lender", label: "Lender", visible: true },
+    { id: "loan_amount", label: "Loan Amount", visible: true },
+    { id: "sales_price", label: "Sales Price", visible: true },
+    { id: "close_date", label: "Close Date", visible: true },
+    { id: "pr_type", label: "P/R", visible: true },
+    { id: "occupancy", label: "Occupancy", visible: true },
+    { id: "disclosure_status", label: "DISC", visible: true },
+    { id: "loan_status", label: "Loan Status", visible: true },
+    { id: "title_status", label: "Title", visible: true },
+    { id: "hoi_status", label: "HOI", visible: true },
+    { id: "appraisal_status", label: "Appraisal", visible: true },
+    { id: "cd_status", label: "CD", visible: true },
+    { id: "package_status", label: "Package", visible: true },
+    { id: "condo_status", label: "Condo", visible: true },
+    { id: "lock_expiration_date", label: "LOC EXP", visible: true },
+    { id: "ba_status", label: "BA", visible: true },
+    { id: "epo_status", label: "EPO", visible: true },
+    { id: "buyer_agent", label: "Buyer's Agent", visible: true },
+    { id: "listing_agent", label: "Listing Agent", visible: true },
+    { id: "closed_at", label: "Closed Date", visible: true },
+  ], []);
+  
+  // Load ALL database fields for Hide/Show modal (~85 total)
+  const allAvailableColumns = useMemo(() => {
+    const dbColumns = allFields
+      .filter(f => f.is_in_use)
+      .map(field => ({
+        id: field.field_name,
+        label: field.display_name,
+        visible: false
+      }));
+    
+    const existingIds = new Set(coreColumns.map(c => c.id));
+    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+    
+    return [...coreColumns, ...newColumns];
+  }, [allFields, coreColumns]);
   const [searchTerm, setSearchTerm] = useState("");
   const [pastClients, setPastClients] = useState<PastClientLoan[]>([]);
   const [users, setUsers] = useState([]);
@@ -681,8 +722,9 @@ export default function PastClients() {
     saveView,
     loadView,
     deleteView,
-    reorderColumns
-  } = useColumnVisibility(initialColumns, 'past-clients-columns');
+    reorderColumns,
+    setColumns
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns');
 
   const filterColumns = [
     { value: 'borrower_name', label: 'Borrower Name', type: 'text' as const },
@@ -1090,16 +1132,41 @@ export default function PastClients() {
               loadView(name); 
             }}
           />
-        </div>
 
-        {views.length > 0 && (
+          <Button
+            variant={activeView === "Main" ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const orderedMainColumns = MAIN_VIEW_COLUMNS
+                .map(id => columnVisibility.find(col => col.id === id))
+                .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                .map(col => ({ ...col, visible: true }));
+              
+              const existingIds = new Set(MAIN_VIEW_COLUMNS);
+              const remainingColumns = columnVisibility
+                .filter(col => !existingIds.has(col.id))
+                .map(col => ({ ...col, visible: false }));
+              
+              const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+              setColumns(newColumnOrder);
+              
+              toast({
+                title: "Main View Loaded",
+                description: "Default column configuration restored"
+              });
+            }}
+            className="h-8 text-xs"
+          >
+            Main
+          </Button>
+
           <ViewPills 
             views={views} 
             activeView={activeView} 
             onLoadView={loadView} 
             onDeleteView={deleteView} 
           />
-        )}
+        </div>
 
         {filters.length > 0 && (
           <div className="flex flex-wrap gap-2">
