@@ -35,6 +35,21 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "borrower_name",
+  "team",
+  "lender",
+  "arrive_loan_number",
+  "loan_amount",
+  "sales_price",
+  "close_date",
+  "loan_status",
+  "appraisal_status",
+  "disclosure_status",
+  "ba_status"
+];
+
 interface ActiveLoan {
   id: string;
   first_name: string;
@@ -679,7 +694,8 @@ export default function Active() {
     saveView,
     loadView,
     deleteView,
-    reorderColumns
+    reorderColumns,
+    setColumns
   } = useColumnVisibility(initialColumns, 'active-pipeline-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -1171,6 +1187,33 @@ export default function Active() {
           onReorderColumns={reorderColumns}
           onViewSaved={handleViewSaved}
         />
+
+        <Button
+          variant={activeView === "Main" ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            const orderedMainColumns = MAIN_VIEW_COLUMNS
+              .map(id => columnVisibility.find(col => col.id === id))
+              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+              .map(col => ({ ...col, visible: true }));
+            
+            const existingIds = new Set(MAIN_VIEW_COLUMNS);
+            const remainingColumns = columnVisibility
+              .filter(col => !existingIds.has(col.id))
+              .map(col => ({ ...col, visible: false }));
+            
+            const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+            setColumns(newColumnOrder);
+            
+            toast({
+              title: "Main View Loaded",
+              description: "Default column configuration restored"
+            });
+          }}
+          className="h-8 text-xs"
+        >
+          Main
+        </Button>
         
         <ViewPills
           views={views}

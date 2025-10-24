@@ -163,7 +163,8 @@ export default function Screening() {
     saveView,
     loadView,
     deleteView,
-    reorderColumns
+    reorderColumns,
+    setColumns
   } = useColumnVisibility(allAvailableColumns, 'screening-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -899,31 +900,32 @@ export default function Screening() {
                 onViewSaved={handleViewSaved}
               />
             
-            <Button
-              variant={activeView === "Main" ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                const mainColumns = columnVisibility.map(col => ({
-                  ...col,
-                  visible: MAIN_VIEW_COLUMNS.includes(col.id)
-                }));
-                
-                mainColumns.forEach(col => {
-                  const currentCol = columnVisibility.find(c => c.id === col.id);
-                  if (currentCol && currentCol.visible !== col.visible) {
-                    toggleColumn(col.id);
-                  }
-                });
-                
-                toast({
-                  title: "Main View Loaded",
-                  description: "Default column configuration restored"
-                });
-              }}
-              className="h-8 text-xs"
-            >
-              Main
-            </Button>
+              <Button
+                variant={activeView === "Main" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const orderedMainColumns = MAIN_VIEW_COLUMNS
+                    .map(id => columnVisibility.find(col => col.id === id))
+                    .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                    .map(col => ({ ...col, visible: true }));
+                  
+                  const existingIds = new Set(MAIN_VIEW_COLUMNS);
+                  const remainingColumns = columnVisibility
+                    .filter(col => !existingIds.has(col.id))
+                    .map(col => ({ ...col, visible: false }));
+                  
+                  const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+                  setColumns(newColumnOrder);
+                  
+                  toast({
+                    title: "Main View Loaded",
+                    description: "Default column configuration restored"
+                  });
+                }}
+                className="h-8 text-xs"
+              >
+                Main
+              </Button>
             
             <ViewPills
               views={views}
