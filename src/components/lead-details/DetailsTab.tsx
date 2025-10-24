@@ -24,6 +24,8 @@ import {
 import { formatCurrency, formatPercentage, formatYesNo, formatAmortizationTerm } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeNumber } from "@/lib/utils";
+import { z } from "zod";
 
 interface DetailsTabProps {
   client: any;

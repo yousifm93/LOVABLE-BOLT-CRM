@@ -291,13 +291,18 @@ export default function Screening() {
         firstName: lead.first_name,
         lastName: lead.last_name,
         email: lead.email || '',
-        phoneMobile: lead.phone || ''
+        phone: lead.phone || '' // Use 'phone' instead of 'phoneMobile'
       },
-      databaseId: lead.id,
+      databaseId: lead.id, // Pass UUID directly
       loan: {
-        loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0",
+        loanAmount: lead.loan_amount || 0, // Raw number, not formatted string
+        salesPrice: lead.sales_price || 0,
         loanType: lead.loan_type || "Purchase",
+        loanProgram: lead.program || "",
         prType: "Primary Residence"
+      },
+      property: {
+        propertyType: lead.property_type || ""
       },
       ops: {
         status: lead.status || "Screening",
@@ -309,7 +314,9 @@ export default function Screening() {
         createdOn: new Date(lead.created_at).toLocaleDateString()
       },
       meta: {},
-      name: `${lead.first_name} ${lead.last_name}`
+      name: `${lead.first_name} ${lead.last_name}`,
+      buyer_agent_id: lead.buyer_agent_id,
+      buyer_agent: (lead as any).buyer_agent
     };
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);

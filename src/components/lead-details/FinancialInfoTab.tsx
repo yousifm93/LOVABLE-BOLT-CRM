@@ -8,6 +8,8 @@ import { DollarSign, CreditCard, TrendingUp, Building, PiggyBank, Pencil } from 
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeNumber } from "@/lib/utils";
+import { z } from "zod";
 
 interface FinancialInfoTabProps {
   client: any;
@@ -50,14 +52,29 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
       return;
     }
 
-    setIsSaving(true);
+    // Validation schema
+    const schema = z.object({
+      total_monthly_income: z.number().min(0).nullable().optional(),
+      monthly_liabilities: z.number().min(0).nullable().optional(),
+      assets: z.number().min(0).nullable().optional(),
+      dti: z.number().min(0).max(100).nullable().optional(),
+    });
+
     try {
-      await databaseService.updateLead(leadId, {
-        total_monthly_income: editData.total_monthly_income,
-        monthly_liabilities: editData.monthly_liabilities,
-        assets: editData.assets,
-        dti: editData.dti,
-      });
+      // Sanitize numeric fields
+      const sanitizedData = {
+        total_monthly_income: sanitizeNumber(editData.total_monthly_income),
+        monthly_liabilities: sanitizeNumber(editData.monthly_liabilities),
+        assets: sanitizeNumber(editData.assets),
+        dti: sanitizeNumber(editData.dti),
+      };
+
+      // Validate
+      schema.parse(sanitizedData);
+
+      setIsSaving(true);
+
+      await databaseService.updateLead(leadId, sanitizedData);
 
       toast({
         title: "Success",
@@ -67,12 +84,19 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
       setIsEditing(false);
       onLeadUpdated?.();
     } catch (error: any) {
-      console.error("Error updating financial info:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update financial information",
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update financial information",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSaving(false);
     }

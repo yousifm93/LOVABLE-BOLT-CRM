@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeNumber } from "@/lib/utils";
+import { z } from "zod";
 
 interface ContactInfoCardProps {
   client: any;
@@ -102,37 +104,43 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
       return;
     }
 
-    // Basic validation
-    if (!editData.firstName?.trim() || !editData.lastName?.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "First name and last name are required",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validation schema
+    const schema = z.object({
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      email: z.string().email("Invalid email address"),
+      phone: z.string().optional(),
+      loanAmount: z.number().min(0).nullable().optional(),
+      salesPrice: z.number().min(0).nullable().optional(),
+    });
 
-    if (!editData.email.includes("@")) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
     try {
-      await databaseService.updateLead(leadId, {
-        first_name: editData.firstName,
-        last_name: editData.lastName,
+      // Sanitize numeric fields
+      const sanitizedData = {
+        firstName: editData.firstName.trim(),
+        lastName: editData.lastName.trim(),
+        email: editData.email.trim(),
         phone: editData.phone,
-        email: editData.email,
+        loanAmount: sanitizeNumber(editData.loanAmount),
+        salesPrice: sanitizeNumber(editData.salesPrice),
+      };
+
+      // Validate
+      schema.parse(sanitizedData);
+
+      setIsSaving(true);
+      
+      await databaseService.updateLead(leadId, {
+        first_name: sanitizedData.firstName,
+        last_name: sanitizedData.lastName,
+        phone: sanitizedData.phone,
+        email: sanitizedData.email,
         buyer_agent_id: editData.buyer_agent_id,
-        loan_amount: editData.loanAmount,
-        sales_price: editData.salesPrice,
+        loan_amount: sanitizedData.loanAmount,
+        sales_price: sanitizedData.salesPrice,
         loan_type: editData.transactionType,
         property_type: editData.propertyType,
+        program: editData.loanProgram, // Save loan program to 'program' field
       });
 
       toast({
@@ -143,12 +151,19 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
       setIsEditing(false);
       onLeadUpdated?.();
     } catch (error: any) {
-      console.error("Error updating lead:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update lead",
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update lead",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -340,12 +355,15 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 {isEditing ? (
                   <Input
                     type="number"
+                    step="1000"
+                    min="0"
                     value={editData.salesPrice || ""}
-                    onChange={(e) => setEditData({ ...editData, salesPrice: parseFloat(e.target.value) || null })}
+                    onChange={(e) => setEditData({ ...editData, salesPrice: e.target.value })}
+                    placeholder="Enter amount"
                     className="h-8"
                   />
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.salesPrice ? `$${client.loan.salesPrice.toLocaleString()}` : "$425,000"}</span>
+                  <span className="font-medium text-sm">{client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}</span>
                 )}
               </div>
             </div>
@@ -377,12 +395,15 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 {isEditing ? (
                   <Input
                     type="number"
+                    step="1000"
+                    min="0"
                     value={editData.loanAmount || ""}
-                    onChange={(e) => setEditData({ ...editData, loanAmount: parseFloat(e.target.value) || null })}
+                    onChange={(e) => setEditData({ ...editData, loanAmount: e.target.value })}
+                    placeholder="Enter amount"
                     className="h-8"
                   />
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.loanAmount ? `$${client.loan.loanAmount.toLocaleString()}` : "—"}</span>
+                  <span className="font-medium text-sm">{client.loan?.loanAmount ? `$${Number(client.loan.loanAmount).toLocaleString()}` : "—"}</span>
                 )}
               </div>
               <div className="flex flex-col gap-1">
@@ -403,7 +424,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-sm">Single Family Home</span>
+                  <span className="font-medium text-sm">{client.property?.propertyType || "—"}</span>
                 )}
               </div>
               <div className="flex flex-col gap-1">
@@ -424,7 +445,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-sm">Conventional</span>
+                  <span className="font-medium text-sm">{client.loan?.loanProgram || "—"}</span>
                 )}
               </div>
             </div>

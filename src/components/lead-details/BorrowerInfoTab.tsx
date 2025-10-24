@@ -15,6 +15,8 @@ import { User, Phone, Mail, Home, Users, Shield, Pencil } from "lucide-react";
 import { formatDate, formatYesNo, maskSSN, formatAddress } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeNumber } from "@/lib/utils";
+import { z } from "zod";
 
 interface BorrowerInfoTabProps {
   client: any;

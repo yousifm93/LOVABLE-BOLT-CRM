@@ -4,7 +4,8 @@ export interface Person {
   firstName: string;
   lastName: string;
   email: string;
-  phoneMobile: string;
+  phoneMobile?: string;
+  phone?: string;
   phoneAlt?: string;
   avatar?: string;
   title?: string;
@@ -13,8 +14,9 @@ export interface Person {
 
 export interface Loan {
   loanNumber?: string;
-  loanAmount: string;
-  salesPrice?: string;
+  loanAmount: string | number;
+  salesPrice?: string | number;
+  loanProgram?: string;
   prType: string;
   occupancy?: string;
   lender?: string;
@@ -64,6 +66,9 @@ export interface MetaData {
 export interface CRMClient {
   person: Person;
   loan: Loan;
+  property?: {
+    propertyType?: string;
+  };
   ops: Operations;
   dates: Dates;
   meta: MetaData;
