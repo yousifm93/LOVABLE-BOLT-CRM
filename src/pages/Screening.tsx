@@ -61,6 +61,7 @@ type DisplayLead = {
   screeningDate: string;
   nextStep: string;
   priority: "High" | "Medium" | "Low";
+  [key: string]: any; // Allow dynamic fields
 };
 
 export default function Screening() {
@@ -409,9 +410,129 @@ export default function Screening() {
     screeningDate: lead.created_at,
     nextStep: 'Review',
     priority: 'Medium' as const,
+    // Add all database fields dynamically
+    ...Object.fromEntries(
+      allFields
+        .filter(f => ['LEAD', 'APP COMPLETE'].includes(f.section) && f.is_in_use)
+        .map(field => [field.field_name, (lead as any)[field.field_name]])
+    )
   }));
 
-  const allColumns: ColumnDef<DisplayLead>[] = [
+  // Generate column definition for dynamic fields
+  const generateColumnDef = (field: any): ColumnDef<DisplayLead> => {
+    const baseColumn: ColumnDef<DisplayLead> = {
+      accessorKey: field.field_name,
+      header: field.display_name,
+      sortable: true,
+    };
+
+    // Add cell renderer based on field type
+    switch (field.field_type) {
+      case 'text':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditText
+              value={row.original[field.field_name] || ''}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+              placeholder={`Enter ${field.display_name.toLowerCase()}`}
+            />
+          </div>
+        );
+        break;
+      
+      case 'number':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditNumber
+              value={row.original[field.field_name] || 0}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+              placeholder="0"
+            />
+          </div>
+        );
+        break;
+      
+      case 'currency':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditCurrency
+              value={row.original[field.field_name] || 0}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+              placeholder="$0"
+            />
+          </div>
+        );
+        break;
+      
+      case 'percentage':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditPercentage
+              value={row.original[field.field_name] || 0}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+              decimals={1}
+            />
+          </div>
+        );
+        break;
+      
+      case 'date':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditDate
+              value={row.original[field.field_name]}
+              onValueChange={(date) => {
+                const dateString = date ? (typeof date === 'string' ? date : date.toISOString().split('T')[0]) : null;
+                handleFieldUpdate(row.original.id, field.field_name, dateString);
+                fetchLeads();
+              }}
+              placeholder="Select date"
+            />
+          </div>
+        );
+        break;
+      
+      case 'select':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditSelect
+              value={row.original[field.field_name] || ''}
+              options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+              placeholder="Select option"
+            />
+          </div>
+        );
+        break;
+      
+      default:
+        // Fallback: display raw value
+        baseColumn.cell = ({ row }) => (
+          <span className="text-sm">{String(row.original[field.field_name] || '—')}</span>
+        );
+    }
+
+    return baseColumn;
+  };
+
+  const allColumns: ColumnDef<DisplayLead>[] = useMemo(() => {
+    // Hardcoded columns with custom rendering
+    const hardcodedColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
       header: "Full Name",
@@ -642,6 +763,21 @@ export default function Screening() {
       ),
     },
   ];
+
+    // Get IDs of hardcoded columns to avoid duplicates
+    const hardcodedIds = new Set(hardcodedColumns.map(col => col.accessorKey));
+
+    // Generate column definitions for all other database fields
+    const dynamicColumns = allFields
+      .filter(f => 
+        ['LEAD', 'APP COMPLETE'].includes(f.section) && 
+        f.is_in_use &&
+        !hardcodedIds.has(f.field_name)
+      )
+      .map(field => generateColumnDef(field));
+
+    return [...hardcodedColumns, ...dynamicColumns];
+  }, [allFields, leads, users, agents]);
 
   // Filter columns based on visibility settings
   const columns = visibleColumns
