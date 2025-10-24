@@ -66,13 +66,22 @@ export default function PreApproved() {
   
   // Core columns (original customized set)
   const coreColumns = [
-    { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "Team", visible: true },
-    { id: "loan_type", label: "Loan Type", visible: true },
-    { id: "loan_amount", label: "Loan Amount", visible: true },
+    { id: "name", label: "Full Name", visible: true },
+    { id: "preApprovedOn", label: "Pre-Approved On", visible: true },
+    { id: "loanNumber", label: "Loan Number", visible: true },
+    { id: "email", label: "Email", visible: true },
+    { id: "phone", label: "Phone", visible: true },
+    { id: "loanType", label: "Loan Type", visible: true },
     { id: "status", label: "Status", visible: true },
-    { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
+    { id: "approvedAmount", label: "Approved Amount", visible: true },
+    { id: "creditScore", label: "Credit Score", visible: true },
+    { id: "loanAmount", label: "Loan Amount", visible: true },
+    { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
+    { id: "user", label: "User", visible: true },
+    { id: "baStatus", label: "BA Status", visible: true },
+    { id: "dueDate", label: "Due Date", visible: true },
+    { id: "dti", label: "DTI", visible: true },
+    { id: "salesPrice", label: "Sales Price", visible: true },
   ];
 
   // Load ALL database fields for Hide/Show modal

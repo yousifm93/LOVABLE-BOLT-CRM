@@ -65,13 +65,21 @@ export default function PreQualified() {
   
   // Core columns (original customized set)
   const coreColumns = [
-    { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "Team", visible: true },
-    { id: "loan_type", label: "Loan Type", visible: true },
-    { id: "loan_amount", label: "Loan Amount", visible: true },
+    { id: "name", label: "Full Name", visible: true },
+    { id: "preQualifiedOn", label: "Pre-Qualified On", visible: true },
+    { id: "phone", label: "Lead Phone", visible: true },
+    { id: "email", label: "Lead Email", visible: true },
+    { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
     { id: "status", label: "Status", visible: true },
-    { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
+    { id: "loanNumber", label: "Loan Number", visible: true },
+    { id: "fico", label: "FICO", visible: true },
+    { id: "dti", label: "DTI", visible: true },
+    { id: "loanAmount", label: "Loan Amount", visible: true },
+    { id: "salesPrice", label: "Sales Price", visible: true },
+    { id: "user", label: "User", visible: true },
+    { id: "loanType", label: "Loan Type", visible: true },
+    { id: "dueDate", label: "Due Date", visible: true },
+    { id: "baStatus", label: "BA Status", visible: true },
   ];
 
   // Load ALL database fields for Hide/Show modal
