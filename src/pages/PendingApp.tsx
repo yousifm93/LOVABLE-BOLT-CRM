@@ -136,7 +136,19 @@ export default function PendingApp() {
   };
 
   const handleColumnReorder = (oldIndex: number, newIndex: number) => {
-    reorderColumns(oldIndex, newIndex);
+    // Map visible column indices to full column indices
+    const oldColumnId = visibleColumns[oldIndex]?.id;
+    const newColumnId = visibleColumns[newIndex]?.id;
+    
+    if (!oldColumnId || !newColumnId) return;
+    
+    const actualOldIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const actualNewIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    
+    if (actualOldIndex === -1 || actualNewIndex === -1) return;
+    
+    reorderColumns(actualOldIndex, actualNewIndex);
+    
     toast({
       title: "Column Reordered",
       description: "Table column order has been updated",

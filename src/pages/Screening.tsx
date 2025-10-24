@@ -156,21 +156,19 @@ export default function Screening() {
     loadView(viewName);
   };
 
-  const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
-    // Get the column IDs from the visible columns array
-    const oldColumnId = visibleColumns[oldVisibleIndex]?.id;
-    const newColumnId = visibleColumns[newVisibleIndex]?.id;
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    // Map visible column indices to full column indices
+    const oldColumnId = visibleColumns[oldIndex]?.id;
+    const newColumnId = visibleColumns[newIndex]?.id;
     
     if (!oldColumnId || !newColumnId) return;
     
-    // Find the indices in the full columns array
-    const oldFullIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
-    const newFullIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    const actualOldIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const actualNewIndex = columnVisibility.findIndex(col => col.id === newColumnId);
     
-    if (oldFullIndex === -1 || newFullIndex === -1) return;
+    if (actualOldIndex === -1 || actualNewIndex === -1) return;
     
-    // Reorder using the full array indices
-    reorderColumns(oldFullIndex, newFullIndex);
+    reorderColumns(actualOldIndex, actualNewIndex);
     
     toast({
       title: "Column Reordered",
