@@ -12,26 +12,51 @@ interface StatusBadgeProps {
 const getStatusColor = (status: string): string => {
   const statusLower = status.toLowerCase();
   
-  // Converted status colors (green/yellow/red scheme)
-  if (statusLower === 'working on it') return 'bg-success/20 text-success';
-  if (statusLower === 'converted') return 'bg-success text-success-foreground';
-  if (statusLower === 'nurture') return 'bg-warning text-warning-foreground';
-  if (statusLower === 'dead') return 'bg-destructive text-destructive-foreground';
+  // LEADS BOARD STATUSES
+  if (statusLower === 'working on it') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'converted') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'nurture') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'dead') return 'bg-red-400 text-white'; // Red
+  
+  // PENDING APP STATUSES
+  if (statusLower === 'pending app') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'app complete') return 'bg-green-600 text-white'; // Dark Green
+  if (statusLower === 'standby') return 'bg-pink-400 text-white'; // Pink
+  if (statusLower === 'dna') return 'bg-red-400 text-white'; // Red
+  
+  // SCREENING STATUSES
+  if (statusLower === 'just applied') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'screening') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'pre-qualified') return 'bg-green-600 text-white'; // Dark Green
+  
+  // PRE-QUALIFIED STATUSES
+  if (statusLower === 'ready for pre-approval') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'pre-approved') return 'bg-green-600 text-white'; // Dark Green
+  
+  // PRE-APPROVED STATUSES
+  if (statusLower === 'new') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'shopping') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'offers out') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'under contract') return 'bg-green-600 text-white'; // Dark Green
+  if (statusLower === 'incoming') return 'bg-purple-400 text-white'; // Purple
+  if (statusLower === 'long term' || statusLower === 'long-term') return 'bg-pink-400 text-white'; // Pink
+  
+  // ACTIVE BOARD STATUSES (loan_status)
+  if (statusLower === 'new rfp' || statusLower === 'new') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'rfp') return 'bg-blue-400 text-white'; // Light Blue
+  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'awc') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'ctc') return 'bg-green-600 text-white'; // Dark Green
+  
+  // PAST CLIENTS STATUSES
+  if (statusLower === 'closed') return 'bg-green-600 text-white'; // Dark Green
+  if (statusLower === 'need support') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'new lead') return 'bg-blue-500 text-white'; // Blue
   
   // Lead strength colors (High=green, Medium=yellow, Low=red)
   if (statusLower === 'high') return 'bg-success text-success-foreground';
   if (statusLower === 'medium') return 'bg-warning text-warning-foreground';
   if (statusLower === 'low') return 'bg-destructive text-destructive-foreground';
-  
-  // Referred via colors - now unified to avoid per-option color changes
-  if (statusLower === 'email' || statusLower === 'text' || statusLower === 'call' || statusLower === 'web' || statusLower === 'in person') {
-    return 'bg-muted text-muted-foreground';
-  }
-  
-  // Priority colors - all gray for consistency
-  if (statusLower === 'high') return 'bg-muted text-muted-foreground';
-  if (statusLower === 'medium') return 'bg-muted text-muted-foreground';
-  if (statusLower === 'low') return 'bg-muted text-muted-foreground';
   
   // Task status colors
   if (statusLower === 'done') return 'bg-success text-success-foreground';
@@ -39,6 +64,7 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'open') return 'bg-muted text-muted-foreground';
   if (statusLower.includes('help')) return 'bg-destructive text-destructive-foreground';
   
+  // Default fallback
   return 'bg-muted text-muted-foreground';
 };
 

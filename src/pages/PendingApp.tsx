@@ -316,7 +316,18 @@ export default function PendingApp() {
     };
     
     const dbField = fieldMapping[field] || field;
-    await databaseService.updateLead(id, { [dbField]: value });
+    const updateData: any = { [dbField]: value };
+    
+    // Automation: When App Complete, move to Screening board
+    if (field === 'converted' && value === 'App Complete') {
+      updateData.pipeline_stage_id = 'a4e162e0-5421-4d17-8ad5-4b1195bbc995'; // Screening
+      toast({
+        title: "Moving to Screening",
+        description: "Lead moved to Screening board",
+      });
+    }
+    
+    await databaseService.updateLead(id, updateData);
   };
 
   const handleBulkDelete = async () => {

@@ -114,7 +114,7 @@ const disclosureStatusOptions = [
 ];
 
 const loanStatusOptions = [
-  { value: "NEW", label: "NEW" },
+  { value: "New RFP", label: "New RFP" },
   { value: "RFP", label: "RFP" },
   { value: "SUB", label: "SUB" },
   { value: "AWC", label: "AWC" },
@@ -801,7 +801,21 @@ export default function Active() {
 
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
-      await databaseService.updateLead(id, { [field]: value });
+      const updateData: any = { [field]: value };
+      
+      // Automation: When CTC (Clear To Close), move to Past Clients
+      if (field === 'loan_status' && value === 'CTC') {
+        updateData.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'; // Past Clients
+        updateData.is_closed = true;
+        updateData.closed_at = new Date().toISOString();
+        updateData.converted = 'Closed'; // Set status to Closed
+        toast({
+          title: "Moving to Past Clients",
+          description: "Loan moved to Past Clients board",
+        });
+      }
+      
+      await databaseService.updateLead(id, updateData);
       
       // Refresh embedded data for relationship fields
       if (['approved_lender_id', 'lender_id', 'buyer_agent_id', 'listing_agent_id'].includes(field)) {

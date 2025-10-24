@@ -113,6 +113,13 @@ const disclosureStatusOptions = [
 ];
 
 const loanStatusOptions = [
+  { value: "Closed", label: "Closed" },
+  { value: "Need Support", label: "Need Support" },
+  { value: "New Lead", label: "New Lead" }
+];
+
+// Keep original options for other fields
+const originalLoanStatusOptions = [
   { value: "NEW", label: "NEW" },
   { value: "RFP", label: "RFP" },
   { value: "SUB", label: "SUB" },

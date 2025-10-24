@@ -309,7 +309,18 @@ export default function Screening() {
     };
     
     const dbField = fieldMapping[field] || field;
-    await databaseService.updateLead(id, { [dbField]: value });
+    const updateData: any = { [dbField]: value };
+    
+    // Automation: When Pre-Qualified, move to Pre-Qualified board
+    if (field === 'converted' && value === 'Pre-Qualified') {
+      updateData.pipeline_stage_id = '09162eec-d2b2-48e5-86d0-9e66ee8b2af7'; // Pre-Qualified
+      toast({
+        title: "Moving to Pre-Qualified",
+        description: "Lead moved to Pre-Qualified board",
+      });
+    }
+    
+    await databaseService.updateLead(id, updateData);
   };
 
   const handleBulkDelete = async () => {

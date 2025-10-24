@@ -82,8 +82,9 @@ const initialColumns = [
 // Status/Converted options
 const convertedOptions = [
   { value: "Pre-Qualified", label: "Pre-Qualified" },
-  { value: "Pre-Approved", label: "Pre-Approved" },
+  { value: "Ready for Pre-Approval", label: "Ready for Pre-Approval" },
   { value: "Standby", label: "Standby" },
+  { value: "Pre-Approved", label: "Pre-Approved" },
 ];
 
 // Loan Type options
@@ -356,7 +357,18 @@ export default function PreQualified() {
     };
     
     const dbField = fieldMapping[field] || field;
-    await databaseService.updateLead(id, { [dbField]: value });
+    const updateData: any = { [dbField]: value };
+    
+    // Automation: When Pre-Approved, move to Pre-Approved board
+    if (field === 'converted' && value === 'Pre-Approved') {
+      updateData.pipeline_stage_id = '3cbf38ff-752e-4163-a9a3-1757499b4945'; // Pre-Approved
+      toast({
+        title: "Moving to Pre-Approved",
+        description: "Lead moved to Pre-Approved board",
+      });
+    }
+    
+    await databaseService.updateLead(id, updateData);
   };
 
   const handleBulkDelete = async () => {

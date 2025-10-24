@@ -85,7 +85,8 @@ const convertedOptions = [
   { value: "Shopping", label: "Shopping" },
   { value: "Offers Out", label: "Offers Out" },
   { value: "Under Contract", label: "Under Contract" },
-  { value: "Long-Term", label: "Long-Term" },
+  { value: "Incoming", label: "Incoming" },
+  { value: "Long Term", label: "Long Term" },
 ];
 
 // Loan Type options
@@ -300,7 +301,29 @@ export default function PreApproved() {
       'baStatus': 'ba_status',
     };
     const dbField = fieldMapping[field] || field;
-    await databaseService.updateLead(id, { [dbField]: value });
+    const updateData: any = { [dbField]: value };
+    
+    // Automation: Status-based board transitions
+    if (field === 'converted') {
+      if (value === 'Under Contract') {
+        // When Under Contract, set pipeline_section to 'Incoming' (stays in Pre-Approved)
+        updateData.pipeline_section = 'Incoming';
+        toast({
+          title: "Status Updated",
+          description: "Lead marked as Under Contract (Incoming)",
+        });
+      } else if (value === 'Incoming') {
+        // When Incoming, move to Active board
+        updateData.pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'; // Active
+        updateData.pipeline_section = 'Incoming';
+        toast({
+          title: "Moving to Active",
+          description: "Lead moved to Active Pipeline",
+        });
+      }
+    }
+    
+    await databaseService.updateLead(id, updateData);
   };
 
   const handleBulkDelete = async () => {

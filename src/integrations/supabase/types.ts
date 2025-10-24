@@ -3940,6 +3940,12 @@ export type Database = {
         | "Offers Out"
         | "Under Contract"
         | "Long-Term"
+        | "Ready for Pre-Approval"
+        | "Incoming"
+        | "Long Term"
+        | "Closed"
+        | "Need Support"
+        | "New Lead"
       disclosure_status: "Ordered" | "Sent" | "Signed" | "Need Signature"
       doc_type:
         | "pay_stub"
@@ -3981,7 +3987,7 @@ export type Database = {
       lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
       lender_type: "Conventional" | "Non-QM" | "Private"
       loan_product: "conv" | "fha" | "va" | "usda"
-      loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC"
+      loan_status: "NEW" | "RFP" | "SUV" | "AWC" | "CTC" | "New RFP"
       log_direction: "In" | "Out"
       ocr_status: "pending" | "processing" | "success" | "failed"
       package_status: "Initial" | "Final"
@@ -4221,6 +4227,12 @@ export const Constants = {
         "Offers Out",
         "Under Contract",
         "Long-Term",
+        "Ready for Pre-Approval",
+        "Incoming",
+        "Long Term",
+        "Closed",
+        "Need Support",
+        "New Lead",
       ],
       disclosure_status: ["Ordered", "Sent", "Signed", "Need Signature"],
       doc_type: [
@@ -4267,7 +4279,7 @@ export const Constants = {
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
       lender_type: ["Conventional", "Non-QM", "Private"],
       loan_product: ["conv", "fha", "va", "usda"],
-      loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC"],
+      loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC", "New RFP"],
       log_direction: ["In", "Out"],
       ocr_status: ["pending", "processing", "success", "failed"],
       package_status: ["Initial", "Final"],
