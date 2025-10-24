@@ -211,7 +211,7 @@ export default function Admin() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end">
+                <div className="flex flex-col gap-2">
                     <Button 
                       onClick={handleAddField} 
                       className="w-full"
@@ -230,7 +230,7 @@ export default function Admin() {
                       )}
                     </Button>
                     {(!newFieldName || !newFieldDisplayName) && (
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs text-red-500">
                         Field name and display name are required
                       </p>
                     )}
@@ -312,10 +312,12 @@ export default function Admin() {
                           <TableCell>
                             <Switch
                               checked={editingField === field.id ? editData.is_required : field.is_required}
-                              disabled={field.is_system_field || editingField !== field.id}
+                              disabled={field.is_system_field}
                               onCheckedChange={(checked) => {
                                 if (editingField === field.id) {
                                   setEditData({ ...editData, is_required: checked });
+                                } else {
+                                  updateField(field.id, { is_required: checked });
                                 }
                               }}
                             />

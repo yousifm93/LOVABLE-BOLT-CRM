@@ -159,7 +159,7 @@ export default function Leads() {
   // Load ALL database fields for Hide/Show modal
   const allAvailableColumns = useMemo(() => {
     const dbColumns = allFields
-      .filter(f => ['LEAD', 'APP COMPLETE', 'APP REVIEW'].includes(f.section) && f.is_in_use)
+      .filter(f => f.is_in_use) // Show ALL 72 fields
       .map(field => ({
         id: field.field_name,
         label: field.display_name,
