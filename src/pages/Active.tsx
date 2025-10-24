@@ -114,7 +114,7 @@ const disclosureStatusOptions = [
 ];
 
 const loanStatusOptions = [
-  { value: "New RFP", label: "New RFP" },
+  { value: "New", label: "New" },
   { value: "RFP", label: "RFP" },
   { value: "SUB", label: "SUB" },
   { value: "AWC", label: "AWC" },

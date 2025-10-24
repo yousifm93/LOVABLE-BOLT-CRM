@@ -312,15 +312,16 @@ export default function PreApproved() {
           title: "Status Updated",
           description: "Lead marked as Under Contract (Incoming)",
         });
-      } else if (value === 'Incoming') {
-        // When Incoming, move to Active board
-        updateData.pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'; // Active
-        updateData.pipeline_section = 'Incoming';
-        toast({
-          title: "Moving to Active",
-          description: "Lead moved to Active Pipeline",
-        });
-      }
+        } else if (value === 'Incoming') {
+          // When Incoming, move to Active board with default status "New"
+          updateData.pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'; // Active
+          updateData.pipeline_section = 'Incoming';
+          updateData.loan_status = 'New'; // Set initial loan status
+          toast({
+            title: "Moving to Active",
+            description: "Lead moved to Active Pipeline with status 'New'",
+          });
+        }
     }
     
     await databaseService.updateLead(id, updateData);

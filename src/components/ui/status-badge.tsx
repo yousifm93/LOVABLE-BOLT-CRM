@@ -42,7 +42,7 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'long term' || statusLower === 'long-term') return 'bg-pink-400 text-white'; // Pink
   
   // ACTIVE BOARD STATUSES (loan_status)
-  if (statusLower === 'new rfp' || statusLower === 'new') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'new' || statusLower === 'new rfp') return 'bg-green-300 text-green-900'; // Light Green
   if (statusLower === 'rfp') return 'bg-blue-400 text-white'; // Light Blue
   if (statusLower === 'sub' || statusLower === 'suv') return 'bg-blue-500 text-white'; // Blue
   if (statusLower === 'awc') return 'bg-orange-400 text-white'; // Orange
