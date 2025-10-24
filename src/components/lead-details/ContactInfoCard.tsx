@@ -309,14 +309,14 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 <Label className="text-xs text-muted-foreground">Buyer's Agent</Label>
                 {isEditing ? (
                   <Select
-                    value={editData.buyer_agent_id || ""}
-                    onValueChange={(value) => setEditData({ ...editData, buyer_agent_id: value })}
+                    value={editData.buyer_agent_id || "none"}
+                    onValueChange={(value) => setEditData({ ...editData, buyer_agent_id: value === "none" ? null : value })}
                   >
                     <SelectTrigger className="h-8">
                       <SelectValue placeholder="Select agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {agents.map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>
                           {agent.first_name} {agent.last_name}{agent.company ? ` - ${agent.company}` : ''}
