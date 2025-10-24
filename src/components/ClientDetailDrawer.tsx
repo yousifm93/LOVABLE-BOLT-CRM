@@ -41,14 +41,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (uuidRegex.test(uuid)) {
+        console.log('[ClientDetailDrawer] Extracted leadId from client.id:', uuid);
         return uuid;
       }
     }
     // Check if it's a CRMClient with databaseId
     if (client.databaseId) {
+      console.log('[ClientDetailDrawer] Extracted leadId from client.databaseId:', client.databaseId);
       return client.databaseId;
     }
     // No valid UUID found
+    console.warn('[ClientDetailDrawer] No valid leadId found. Client object:', client);
     return null;
   };
 
@@ -648,10 +651,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
             {/* Lead Information Tabs */}
             <LeadCenterTabs 
-              leadId={leadId || ""}
+              leadId={leadId}
               activities={activities}
               documents={documents}
               client={client}
+              onLeadUpdated={onLeadUpdated}
               onCallClick={() => {
                 if (!leadId) {
                   toast({

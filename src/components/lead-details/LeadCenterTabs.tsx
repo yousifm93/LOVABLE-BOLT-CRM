@@ -9,10 +9,11 @@ import { FinancialInfoTab } from "./FinancialInfoTab";
 import { DocumentsTab } from "./DocumentsTab";
 
 interface LeadCenterTabsProps {
-  leadId: string;
+  leadId: string | null;
   activities: any[];
   documents: any[];
   client: any;
+  onLeadUpdated?: () => void;
   onCallClick?: () => void;
   onSmsClick?: () => void;
   onEmailClick?: () => void;
@@ -20,7 +21,7 @@ interface LeadCenterTabsProps {
   onTaskClick?: () => void;
 }
 
-export function LeadCenterTabs({ leadId, activities, documents, client, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
+export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
   return (
     <Card className="mb-4 h-[600px]">
       <CardHeader className="pb-2">
@@ -63,15 +64,15 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onCallCl
           </TabsContent>
           
           <TabsContent value="loan-property" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <DetailsTab client={client} />
+            <DetailsTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
           </TabsContent>
           
           <TabsContent value="borrower" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <BorrowerInfoTab client={client} />
+            <BorrowerInfoTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
           </TabsContent>
           
           <TabsContent value="financial" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <FinancialInfoTab client={client} />
+            <FinancialInfoTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
           </TabsContent>
           
           <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">
