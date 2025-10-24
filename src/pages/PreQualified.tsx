@@ -39,6 +39,25 @@ import {
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { Loader2 } from "lucide-react";
 
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "name",
+  "preQualifiedOn",
+  "phone",
+  "email",
+  "realEstateAgent",
+  "status",
+  "loanNumber",
+  "creditScore",
+  "dti",
+  "loanAmount",
+  "salesPrice",
+  "user",
+  "loanType",
+  "dueDate",
+  "baStatus"
+];
+
 type DisplayLead = {
   id: string;
   name: string;
@@ -580,7 +599,7 @@ export default function PreQualified() {
     const hardcodedColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
-      header: "Full Name",
+      header: "Borrower",
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
@@ -958,6 +977,32 @@ export default function PreQualified() {
                 onReorderColumns={reorderColumns}
                 onViewSaved={handleViewSaved}
               />
+            
+            <Button
+              variant={activeView === "Main" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const mainColumns = columnVisibility.map(col => ({
+                  ...col,
+                  visible: MAIN_VIEW_COLUMNS.includes(col.id)
+                }));
+                
+                mainColumns.forEach(col => {
+                  const currentCol = columnVisibility.find(c => c.id === col.id);
+                  if (currentCol && currentCol.visible !== col.visible) {
+                    toggleColumn(col.id);
+                  }
+                });
+                
+                toast({
+                  title: "Main View Loaded",
+                  description: "Default column configuration restored"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Main
+            </Button>
             
             <ViewPills
               views={views}

@@ -38,6 +38,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "name",
+  "createdOn",
+  "phone",
+  "email",
+  "realEstateAgent",
+  "status",
+  "user",
+  "referredVia",
+  "referralSource",
+  "dueDate"
+];
+
 interface Lead {
   id: string;
   name: string;
@@ -530,7 +544,7 @@ export default function Leads() {
   const allColumns: ColumnDef<Lead>[] = [
     {
       accessorKey: "name",
-      header: "Full Name",
+      header: "Borrower",
       className: "text-left",
       headerClassName: "text-left",
       cell: ({ row }) => (
@@ -997,14 +1011,40 @@ export default function Leads() {
               </PopoverContent>
             </Popover>
             
-                <ColumnVisibilityButton
-                  columns={columnVisibility}
-                  onColumnToggle={toggleColumn}
-                  onToggleAll={toggleAll}
-                  onSaveView={saveView}
-                  onReorderColumns={reorderColumns}
-                  onViewSaved={handleViewSaved}
-                />
+              <ColumnVisibilityButton
+                columns={columnVisibility}
+                onColumnToggle={toggleColumn}
+                onToggleAll={toggleAll}
+                onSaveView={saveView}
+                onReorderColumns={reorderColumns}
+                onViewSaved={handleViewSaved}
+              />
+            
+            <Button
+              variant={activeView === "Main" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const mainColumns = columnVisibility.map(col => ({
+                  ...col,
+                  visible: MAIN_VIEW_COLUMNS.includes(col.id)
+                }));
+                
+                mainColumns.forEach(col => {
+                  const currentCol = columnVisibility.find(c => c.id === col.id);
+                  if (currentCol && currentCol.visible !== col.visible) {
+                    toggleColumn(col.id);
+                  }
+                });
+                
+                toast({
+                  title: "Main View Loaded",
+                  description: "Default column configuration restored"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Main
+            </Button>
             
             <ViewPills
               views={views}

@@ -22,11 +22,9 @@ const systemStats = [
 ];
 
 export default function Admin() {
-  const [selectedSection, setSelectedSection] = useState("all");
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldDisplayName, setNewFieldDisplayName] = useState("");
   const [newFieldType, setNewFieldType] = useState("text");
-  const [newFieldSection, setNewFieldSection] = useState("LEAD");
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -34,11 +32,7 @@ export default function Admin() {
 
   const { fields, loading, addField, updateField, deleteField } = useFieldManagement();
 
-  const filteredFields = selectedSection === "all" 
-    ? fields 
-    : fields.filter(field => field.section === selectedSection);
-
-  const sections = [...new Set(fields.map(field => field.section))];
+  const filteredFields = fields; // Show all fields
 
   const handleAddField = async () => {
     if (!newFieldName || !newFieldDisplayName) return;
@@ -46,7 +40,7 @@ export default function Admin() {
     const success = await addField({
       field_name: newFieldName,
       display_name: newFieldDisplayName,
-      section: newFieldSection,
+      section: "LEAD", // Fixed default since sections are now irrelevant to UI
       field_type: newFieldType,
       is_required: false,
       is_visible: true,
@@ -132,27 +126,12 @@ export default function Admin() {
         <TabsContent value="fields" className="space-y-4">
           <Card className="bg-gradient-card shadow-soft">
             <CardHeader>
-                <div className="mb-6">
+              <div className="mb-6">
                   <h3 className="text-lg font-semibold">Custom Fields</h3>
                   <p className="text-sm text-muted-foreground">
-                    Configure custom fields for your CRM
+                    Configure custom fields for your CRM - all fields are available on all boards
                   </p>
                 </div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Select value={selectedSection} onValueChange={setSelectedSection}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Sections</SelectItem>
-                      {sections.map(section => (
-                        <SelectItem key={section} value={section}>{section}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
             </CardHeader>
             <CardContent>
               {/* Add New Field Form */}
@@ -196,26 +175,11 @@ export default function Admin() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="fieldSection">Section</Label>
-                  <Select value={newFieldSection} onValueChange={setNewFieldSection}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LEAD">LEAD</SelectItem>
-                      <SelectItem value="APP COMPLETE">APP COMPLETE</SelectItem>
-                      <SelectItem value="APP REVIEW">APP REVIEW</SelectItem>
-                      <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                      <SelectItem value="PRE_APPROVED">PRE_APPROVED</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="flex flex-col gap-2">
                     <Button 
                       onClick={handleAddField} 
                       className="w-full"
-                      disabled={!newFieldName || !newFieldDisplayName || !newFieldSection || !newFieldType || loading}
+                      disabled={!newFieldName || !newFieldDisplayName || !newFieldType || loading}
                     >
                       {loading ? (
                         <>
@@ -242,7 +206,6 @@ export default function Admin() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Section</TableHead>
                       <TableHead>Field Name</TableHead>
                       <TableHead>Display Name</TableHead>
                       <TableHead>Type</TableHead>
@@ -254,22 +217,19 @@ export default function Admin() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={6} className="text-center py-8">
                           Loading fields...
                         </TableCell>
                       </TableRow>
                     ) : filteredFields.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           No fields found
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredFields.map((field) => (
                         <TableRow key={field.id}>
-                          <TableCell>
-                            <Badge variant="outline">{field.section}</Badge>
-                          </TableCell>
                           <TableCell className="font-mono text-xs">{field.field_name}</TableCell>
                           <TableCell>
                             {editingField === field.id ? (

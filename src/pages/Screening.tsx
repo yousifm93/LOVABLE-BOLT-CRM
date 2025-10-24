@@ -39,6 +39,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "name",
+  "appCompleteOn",
+  "loanNumber",
+  "realEstateAgent",
+  "status",
+  "user",
+  "phone",
+  "email",
+  "loanType",
+  "creditScore",
+  "loanAmount",
+  "dti",
+  "dueDate"
+];
+
 // Display type for table rows
 type DisplayLead = {
   id: string;
@@ -535,7 +552,7 @@ export default function Screening() {
     const hardcodedColumns: ColumnDef<DisplayLead>[] = [
     {
       accessorKey: "name",
-      header: "Full Name",
+      header: "Borrower",
       sortable: true,
       className: "text-left",
       headerClassName: "text-left",
@@ -881,6 +898,32 @@ export default function Screening() {
                 onReorderColumns={reorderColumns}
                 onViewSaved={handleViewSaved}
               />
+            
+            <Button
+              variant={activeView === "Main" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const mainColumns = columnVisibility.map(col => ({
+                  ...col,
+                  visible: MAIN_VIEW_COLUMNS.includes(col.id)
+                }));
+                
+                mainColumns.forEach(col => {
+                  const currentCol = columnVisibility.find(c => c.id === col.id);
+                  if (currentCol && currentCol.visible !== col.visible) {
+                    toggleColumn(col.id);
+                  }
+                });
+                
+                toast({
+                  title: "Main View Loaded",
+                  description: "Default column configuration restored"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Main
+            </Button>
             
             <ViewPills
               views={views}

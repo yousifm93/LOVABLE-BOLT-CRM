@@ -204,7 +204,7 @@ const createColumns = (
   },
   {
     accessorKey: "team",
-    header: "Team",
+    header: "User",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <div className="w-12">
