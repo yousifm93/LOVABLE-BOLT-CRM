@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useFields } from "@/contexts/FieldsContext";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Search, Plus, Filter, Phone, Mail, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,31 +57,29 @@ type DisplayLead = {
   dueDate?: string;
 };
 
-// PENDING APP columns - 7 columns from Excel
-const initialColumns = [
-  { id: "name", label: "Full Name", visible: true },
-  { id: "pendingAppOn", label: "Pending App On", visible: true },
-  { id: "phone", label: "Lead Phone", visible: true },
-  { id: "email", label: "Lead Email", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "user", label: "User", visible: true },
-  // Additional fields available
-  { id: "loanType", label: "Loan Type", visible: false },
-  { id: "loanAmount", label: "Loan Amount", visible: false },
-  { id: "creditScore", label: "Credit Score", visible: false },
-  { id: "dueDate", label: "Due Date", visible: false },
-];
-
-// Status options
-const convertedOptions = [
-  { value: "Pending App", label: "Pending App" },
-  { value: "App Complete", label: "App Complete" },
-  { value: "Standby", label: "Standby" },
-  { value: "DNA", label: "DNA" },
-];
-
 export default function PendingApp() {
+  const { allFields } = useFields();
+  
+  // Generate columns dynamically from database fields
+  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE'], 'pending-app-columns');
+  
+  // Merge with core display columns
+  const initialColumns = useMemo(() => {
+    const coreColumns = [
+      { id: "name", label: "Full Name", visible: true },
+      { id: "pendingAppOn", label: "Pending App On", visible: true },
+    ];
+    
+    return [...coreColumns, ...dynamicColumns];
+  }, [dynamicColumns]);
+
+  // Status options
+  const convertedOptions = [
+    { value: "Pending App", label: "Pending App" },
+    { value: "App Complete", label: "App Complete" },
+    { value: "Standby", label: "Standby" },
+    { value: "DNA", label: "DNA" },
+  ];
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);

@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useFields } from "@/contexts/FieldsContext";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Search, Plus, Filter, Phone, Mail, CheckCircle, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,55 +61,49 @@ type DisplayLead = {
   baStatus: string;
 };
 
-// PRE-QUALIFIED columns - 12 columns from Excel
-const initialColumns = [
-  { id: "name", label: "Full Name", visible: true },
-  { id: "preQualifiedOn", label: "Pre-Qualified On", visible: true },
-  { id: "phone", label: "Lead Phone", visible: true },
-  { id: "email", label: "Lead Email", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "loanNumber", label: "Loan Number", visible: true },
-  { id: "fico", label: "FICO", visible: true },
-  { id: "dti", label: "DTI", visible: true },
-  { id: "loanAmount", label: "Loan Amount", visible: true },
-  { id: "salesPrice", label: "Sales Price", visible: true },
-  { id: "user", label: "User", visible: true },
-  { id: "baStatus", label: "BA", visible: true },
-  // Additional fields available
-  { id: "loanType", label: "Loan Type", visible: false },
-  { id: "dueDate", label: "Due Date", visible: true },
-];
-
-// Status/Converted options
-const convertedOptions = [
-  { value: "Pre-Qualified", label: "Pre-Qualified" },
-  { value: "Ready for Pre-Approval", label: "Ready for Pre-Approval" },
-  { value: "Standby", label: "Standby" },
-  { value: "Pre-Approved", label: "Pre-Approved" },
-];
-
-// Loan Type options
-const loanTypeOptions = [
-  { value: "Purchase", label: "Purchase" },
-  { value: "Refinance", label: "Refinance" },
-  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
-  { value: "HELOC", label: "HELOC" },
-  { value: "Construction", label: "Construction" },
-  { value: "VA Loan", label: "VA Loan" },
-  { value: "FHA Loan", label: "FHA Loan" },
-  { value: "Conventional", label: "Conventional" },
-  { value: "Jumbo", label: "Jumbo" },
-];
-
-// BA Status options
-const baStatusOptions = [
-  { value: "Send", label: "Send" },
-  { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" },
-];
-
 export default function PreQualified() {
+  const { allFields } = useFields();
+  
+  // Generate columns dynamically from database fields
+  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE', 'APP REVIEW', 'ACTIVE'], 'pre-qualified-columns');
+  
+  // Merge with core display columns
+  const initialColumns = useMemo(() => {
+    const coreColumns = [
+      { id: "name", label: "Full Name", visible: true },
+      { id: "preQualifiedOn", label: "Pre-Qualified On", visible: true },
+    ];
+    
+    return [...coreColumns, ...dynamicColumns];
+  }, [dynamicColumns]);
+
+  // Status/Converted options
+  const convertedOptions = [
+    { value: "Pre-Qualified", label: "Pre-Qualified" },
+    { value: "Ready for Pre-Approval", label: "Ready for Pre-Approval" },
+    { value: "Standby", label: "Standby" },
+    { value: "Pre-Approved", label: "Pre-Approved" },
+  ];
+
+  // Loan Type options
+  const loanTypeOptions = [
+    { value: "Purchase", label: "Purchase" },
+    { value: "Refinance", label: "Refinance" },
+    { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+    { value: "HELOC", label: "HELOC" },
+    { value: "Construction", label: "Construction" },
+    { value: "VA Loan", label: "VA Loan" },
+    { value: "FHA Loan", label: "FHA Loan" },
+    { value: "Conventional", label: "Conventional" },
+    { value: "Jumbo", label: "Jumbo" },
+  ];
+
+  // BA Status options
+  const baStatusOptions = [
+    { value: "Send", label: "Send" },
+    { value: "Sent", label: "Sent" },
+    { value: "Signed", label: "Signed" },
+  ];
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);

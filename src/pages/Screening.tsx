@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useFields } from "@/contexts/FieldsContext";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Search, Plus, Filter, Phone, Mail, Clock, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,46 +64,42 @@ type DisplayLead = {
   priority: "High" | "Medium" | "Low";
 };
 
-// SCREENING columns - 6 columns from Excel
-const initialColumns = [
-  { id: "name", label: "Full Name", visible: true },
-  { id: "appCompleteOn", label: "App Complete On", visible: true },
-  { id: "loanNumber", label: "Loan Number", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "user", label: "User", visible: true },
-  // Additional fields available
-  { id: "phone", label: "Lead Phone", visible: false },
-  { id: "email", label: "Lead Email", visible: false },
-  { id: "loanType", label: "Loan Type", visible: false },
-  { id: "creditScore", label: "FICO", visible: false },
-  { id: "loanAmount", label: "Loan Amount", visible: false },
-  { id: "dti", label: "DTI", visible: false },
-  { id: "dueDate", label: "Due Date", visible: false },
-];
-
-// Status/Converted options
-const convertedOptions = [
-  { value: "Just Applied", label: "Just Applied" },
-  { value: "Screening", label: "Screening" },
-  { value: "Pre-Qualified", label: "Pre-Qualified" },
-  { value: "Standby", label: "Standby" },
-];
-
-// Loan Type options
-const loanTypeOptions = [
-  { value: "Purchase", label: "Purchase" },
-  { value: "Refinance", label: "Refinance" },
-  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
-  { value: "HELOC", label: "HELOC" },
-  { value: "Construction", label: "Construction" },
-  { value: "VA Loan", label: "VA Loan" },
-  { value: "FHA Loan", label: "FHA Loan" },
-  { value: "Conventional", label: "Conventional" },
-  { value: "Jumbo", label: "Jumbo" },
-];
-
 export default function Screening() {
+  const { allFields } = useFields();
+  
+  // Generate columns dynamically from database fields
+  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE', 'APP REVIEW'], 'screening-columns');
+  
+  // Merge with core display columns
+  const initialColumns = useMemo(() => {
+    const coreColumns = [
+      { id: "name", label: "Full Name", visible: true },
+      { id: "appCompleteOn", label: "App Complete On", visible: true },
+    ];
+    
+    return [...coreColumns, ...dynamicColumns];
+  }, [dynamicColumns]);
+
+  // Status/Converted options
+  const convertedOptions = [
+    { value: "Just Applied", label: "Just Applied" },
+    { value: "Screening", label: "Screening" },
+    { value: "Pre-Qualified", label: "Pre-Qualified" },
+    { value: "Standby", label: "Standby" },
+  ];
+
+  // Loan Type options
+  const loanTypeOptions = [
+    { value: "Purchase", label: "Purchase" },
+    { value: "Refinance", label: "Refinance" },
+    { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+    { value: "HELOC", label: "HELOC" },
+    { value: "Construction", label: "Construction" },
+    { value: "VA Loan", label: "VA Loan" },
+    { value: "FHA Loan", label: "FHA Loan" },
+    { value: "Conventional", label: "Conventional" },
+    { value: "Jumbo", label: "Jumbo" },
+  ];
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);

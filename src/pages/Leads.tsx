@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3, Lock, Unlock } from "lucide-react";
+import { useFields } from "@/contexts/FieldsContext";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -138,25 +140,21 @@ const leadStrengthOptions = [
   { value: "Qualified", label: "Qualified" },
 ];
 
-// Define initial column configuration - NEW LEADS (7 columns from Excel)
-const initialColumns = [
-  { id: "name", label: "Full Name", visible: true },
-  { id: "createdOn", label: "Lead Created On", visible: true },
-  { id: "phone", label: "Lead Phone", visible: true },
-  { id: "email", label: "Lead Email", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "user", label: "User", visible: true },
-  // Additional fields available in Hide/Show but hidden by default
-  { id: "referredVia", label: "Referral Method", visible: false },
-  { id: "referralSource", label: "Referral Source", visible: false },
-  { id: "leadStrength", label: "Lead Strength", visible: false },
-  { id: "dueDate", label: "Due Date", visible: false },
-  { id: "loanType", label: "Loan Type", visible: false },
-  { id: "loanAmount", label: "Loan Amount", visible: false },
-];
-
 export default function Leads() {
+  const { allFields } = useFields();
+  
+  // Generate columns dynamically from database fields
+  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE', 'APP REVIEW'], 'leads-columns');
+  
+  // Merge with core display columns (name, createdOn)
+  const initialColumns = useMemo(() => {
+    const coreColumns = [
+      { id: "name", label: "Full Name", visible: true },
+      { id: "createdOn", label: "Lead Created On", visible: true },
+    ];
+    
+    return [...coreColumns, ...dynamicColumns];
+  }, [dynamicColumns]);
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);

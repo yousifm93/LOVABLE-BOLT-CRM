@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useFields } from "@/contexts/FieldsContext";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Search, Filter, Phone, Mail, Shield, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,56 +62,51 @@ type DisplayLead = {
   salesPrice: number | null;
 };
 
-// Display columns that match allColumns accessorKeys
-const initialColumns = [
-  { id: "name", label: "Full Name", visible: true },
-  { id: "preApprovedOn", label: "Pre-Approved On", visible: true },
-  { id: "loanNumber", label: "Loan Number", visible: true },
-  { id: "user", label: "User", visible: true },
-  { id: "status", label: "Status", visible: true },
-  { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
-  { id: "baStatus", label: "BA", visible: true },
-  { id: "dueDate", label: "Due Date", visible: true },
-  { id: "email", label: "Email", visible: false },
-  { id: "phone", label: "Phone", visible: false },
-  { id: "approvedAmount", label: "Approved Amount", visible: false },
-  { id: "creditScore", label: "Credit Score", visible: false },
-  { id: "loanType", label: "Loan Type", visible: false },
-  { id: "dti", label: "DTI", visible: false },
-  { id: "salesPrice", label: "Sales Price", visible: false },
-];
-
-// Status/Converted options
-const convertedOptions = [
-  { value: "New", label: "New" },
-  { value: "Shopping", label: "Shopping" },
-  { value: "Offers Out", label: "Offers Out" },
-  { value: "Under Contract", label: "Under Contract" },
-  { value: "Incoming", label: "Incoming" },
-  { value: "Long Term", label: "Long Term" },
-];
-
-// Loan Type options
-const loanTypeOptions = [
-  { value: "Purchase", label: "Purchase" },
-  { value: "Refinance", label: "Refinance" },
-  { value: "Cash Out Refinance", label: "Cash Out Refinance" },
-  { value: "HELOC", label: "HELOC" },
-  { value: "Construction", label: "Construction" },
-  { value: "VA Loan", label: "VA Loan" },
-  { value: "FHA Loan", label: "FHA Loan" },
-  { value: "Conventional", label: "Conventional" },
-  { value: "Jumbo", label: "Jumbo" },
-];
-
-// BA Status options
-const baStatusOptions = [
-  { value: "Send", label: "Send" },
-  { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" },
-];
-
 export default function PreApproved() {
+  const { allFields } = useFields();
+  
+  // Generate columns dynamically from database fields
+  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE', 'APP REVIEW', 'ACTIVE'], 'pre-approved-columns');
+  
+  // Merge with core display columns
+  const initialColumns = useMemo(() => {
+    const coreColumns = [
+      { id: "name", label: "Full Name", visible: true },
+      { id: "preApprovedOn", label: "Pre-Approved On", visible: true },
+    ];
+    
+    return [...coreColumns, ...dynamicColumns];
+  }, [dynamicColumns]);
+
+  // Status/Converted options
+  const convertedOptions = [
+    { value: "New", label: "New" },
+    { value: "Shopping", label: "Shopping" },
+    { value: "Offers Out", label: "Offers Out" },
+    { value: "Under Contract", label: "Under Contract" },
+    { value: "Incoming", label: "Incoming" },
+    { value: "Long Term", label: "Long Term" },
+  ];
+
+  // Loan Type options
+  const loanTypeOptions = [
+    { value: "Purchase", label: "Purchase" },
+    { value: "Refinance", label: "Refinance" },
+    { value: "Cash Out Refinance", label: "Cash Out Refinance" },
+    { value: "HELOC", label: "HELOC" },
+    { value: "Construction", label: "Construction" },
+    { value: "VA Loan", label: "VA Loan" },
+    { value: "FHA Loan", label: "FHA Loan" },
+    { value: "Conventional", label: "Conventional" },
+    { value: "Jumbo", label: "Jumbo" },
+  ];
+
+  // BA Status options
+  const baStatusOptions = [
+    { value: "Send", label: "Send" },
+    { value: "Sent", label: "Sent" },
+    { value: "Signed", label: "Signed" },
+  ];
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
