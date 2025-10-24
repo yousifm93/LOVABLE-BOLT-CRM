@@ -121,33 +121,6 @@ export default function PreApproved() {
     { value: "Signed", label: "Signed" },
   ];
 
-  // Core columns (original customized set)
-  const coreColumns = [
-    { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "Team", visible: true },
-    { id: "loan_type", label: "Loan Type", visible: true },
-    { id: "loan_amount", label: "Loan Amount", visible: true },
-    { id: "status", label: "Status", visible: true },
-    { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
-  ];
-
-  // Load ALL database fields for Hide/Show modal
-  const allAvailableColumns = useMemo(() => {
-    const dbColumns = allFields
-      .filter(f => ['APP COMPLETE', 'APP REVIEW'].includes(f.section) && f.is_in_use)
-      .map(field => ({
-        id: field.field_name,
-        label: field.display_name,
-        visible: false
-      }));
-    
-    const existingIds = new Set(coreColumns.map(c => c.id));
-    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
-    
-    return [...coreColumns, ...newColumns];
-  }, [allFields]);
-
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
