@@ -105,6 +105,8 @@ export interface CRMClient {
   nextFollowUpDate?: string;
   teammateAssigned?: 'Yousif' | 'Salma' | 'Herman Daza' | string;
   buyersAgreement?: 'signed' | 'pending' | 'not_applicable';
+  buyer_agent_id?: string | null;
+  buyer_agent?: any;
 }
 
 export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients' | 'incoming' | 'rfp' | 'submitted' | 'awc' | 'ctc' | 'closing';

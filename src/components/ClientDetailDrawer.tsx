@@ -534,7 +534,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
           <div className="space-y-4 overflow-y-auto">
             {/* Contact Info Card - Moved from top row */}
-            <ContactInfoCard client={client} onClose={handleDrawerClose} />
+            <ContactInfoCard 
+              client={client} 
+              onClose={handleDrawerClose} 
+              leadId={leadId}
+              onLeadUpdated={onLeadUpdated}
+            />
 
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={leadId || ""} />
