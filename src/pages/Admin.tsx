@@ -132,8 +132,13 @@ export default function Admin() {
         <TabsContent value="fields" className="space-y-4">
           <Card className="bg-gradient-card shadow-soft">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>CRM Field Configuration</span>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold">Custom Fields</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure custom fields for your CRM
+                  </p>
+                </div>
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Select value={selectedSection} onValueChange={setSelectedSection}>
                     <SelectTrigger className="w-[180px]">
@@ -146,15 +151,8 @@ export default function Admin() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="bg-primary hover:bg-primary/90">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
                 </div>
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Manage custom fields across all CRM sections. {filteredFields.length} fields shown.
-              </p>
+              </div>
             </CardHeader>
             <CardContent>
               {/* Add New Field Form */}
@@ -214,14 +212,28 @@ export default function Admin() {
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <Button 
-                    onClick={handleAddField} 
-                    className="w-full"
-                    disabled={!newFieldName || !newFieldDisplayName || loading}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field
-                  </Button>
+                    <Button 
+                      onClick={handleAddField} 
+                      className="w-full"
+                      disabled={!newFieldName || !newFieldDisplayName || !newFieldSection || !newFieldType || loading}
+                    >
+                      {loading ? (
+                        <>
+                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Field
+                        </>
+                      )}
+                    </Button>
+                    {(!newFieldName || !newFieldDisplayName) && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Field name and display name are required
+                      </p>
+                    )}
                 </div>
               </div>
 

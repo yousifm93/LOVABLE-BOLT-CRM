@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFields } from "@/contexts/FieldsContext";
-import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Search, Plus, Filter, Phone, Mail, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,18 +59,32 @@ type DisplayLead = {
 export default function PendingApp() {
   const { allFields } = useFields();
   
-  // Generate columns dynamically from database fields
-  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE'], 'pending-app-columns');
-  
-  // Merge with core display columns
-  const initialColumns = useMemo(() => {
-    const coreColumns = [
-      { id: "name", label: "Full Name", visible: true },
-      { id: "pendingAppOn", label: "Pending App On", visible: true },
-    ];
+  // Core columns (original customized set)
+  const coreColumns = [
+    { id: "borrower_name", label: "Borrower", visible: true },
+    { id: "team", label: "Team", visible: true },
+    { id: "loan_type", label: "Loan Type", visible: true },
+    { id: "loan_amount", label: "Loan Amount", visible: true },
+    { id: "status", label: "Status", visible: true },
+    { id: "ba_status", label: "BA", visible: true },
+    { id: "epo_status", label: "EPO", visible: true },
+  ];
+
+  // Load ALL database fields for Hide/Show modal
+  const allAvailableColumns = useMemo(() => {
+    const dbColumns = allFields
+      .filter(f => ['APP COMPLETE', 'APP REVIEW'].includes(f.section) && f.is_in_use)
+      .map(field => ({
+        id: field.field_name,
+        label: field.display_name,
+        visible: false
+      }));
     
-    return [...coreColumns, ...dynamicColumns];
-  }, [dynamicColumns]);
+    const existingIds = new Set(coreColumns.map(c => c.id));
+    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+    
+    return [...coreColumns, ...newColumns];
+  }, [allFields]);
 
   // Status options
   const convertedOptions = [
@@ -96,7 +109,7 @@ export default function PendingApp() {
   const [users, setUsers] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
 
-  // Column visibility management
+  // Use column visibility with all available columns
   const {
     columns: columnVisibility,
     views,
@@ -108,7 +121,7 @@ export default function PendingApp() {
     loadView,
     deleteView,
     reorderColumns
-  } = useColumnVisibility(initialColumns, 'pending-app-columns');
+  } = useColumnVisibility(allAvailableColumns, 'pending-app-columns');
 
   const handleViewSaved = (viewName: string) => {
     toast({

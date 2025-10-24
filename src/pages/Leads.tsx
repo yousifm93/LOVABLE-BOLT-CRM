@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3, Lock, Unlock } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
-import { useDynamicColumns } from "@/hooks/useDynamicColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -143,18 +142,36 @@ const leadStrengthOptions = [
 export default function Leads() {
   const { allFields } = useFields();
   
-  // Generate columns dynamically from database fields
-  const dynamicColumns = useDynamicColumns(['LEAD', 'APP COMPLETE', 'APP REVIEW'], 'leads-columns');
-  
-  // Merge with core display columns (name, createdOn)
-  const initialColumns = useMemo(() => {
-    const coreColumns = [
-      { id: "name", label: "Full Name", visible: true },
-      { id: "createdOn", label: "Lead Created On", visible: true },
-    ];
+  // Core columns (original customized set)
+  const coreColumns = [
+    { id: "name", label: "Full Name", visible: true },
+    { id: "createdOn", label: "Lead Created On", visible: true },
+    { id: "phone", label: "Lead Phone", visible: true },
+    { id: "email", label: "Lead Email", visible: true },
+    { id: "buyerAgent", label: "Buyer's Agent", visible: true },
+    { id: "referredVia", label: "Referred Via", visible: true },
+    { id: "referralSource", label: "Referral Source", visible: true },
+    { id: "status", label: "Lead Status", visible: true },
+    { id: "taskEta", label: "Task ETA", visible: true },
+    { id: "team", label: "Team", visible: true },
+  ];
+
+  // Load ALL database fields for Hide/Show modal
+  const allAvailableColumns = useMemo(() => {
+    const dbColumns = allFields
+      .filter(f => ['LEAD', 'APP COMPLETE', 'APP REVIEW'].includes(f.section) && f.is_in_use)
+      .map(field => ({
+        id: field.field_name,
+        label: field.display_name,
+        visible: false // hidden by default for new fields
+      }));
     
-    return [...coreColumns, ...dynamicColumns];
-  }, [dynamicColumns]);
+    // Merge: existing columns take precedence
+    const existingIds = new Set(coreColumns.map(c => c.id));
+    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+    
+    return [...coreColumns, ...newColumns];
+  }, [allFields]);
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
@@ -176,7 +193,7 @@ export default function Leads() {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  // Column visibility management
+  // Use column visibility with all available columns (core + database)
   const {
     columns: columnVisibility,
     views,
@@ -188,7 +205,7 @@ export default function Leads() {
     loadView,
     deleteView,
     reorderColumns
-  } = useColumnVisibility(initialColumns, 'leads-columns');
+  } = useColumnVisibility(allAvailableColumns, 'leads-columns');
 
   const handleViewSaved = (viewName: string) => {
     toast({
