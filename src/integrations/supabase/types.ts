@@ -686,6 +686,98 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_fields: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          dropdown_options: Json | null
+          field_name: string
+          field_type: string
+          file_config: Json | null
+          id: string
+          is_in_use: boolean | null
+          is_required: boolean | null
+          is_system_field: boolean | null
+          is_visible: boolean | null
+          section: string
+          sort_order: number | null
+          updated_at: string | null
+          validation_rules: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          dropdown_options?: Json | null
+          field_name: string
+          field_type: string
+          file_config?: Json | null
+          id?: string
+          is_in_use?: boolean | null
+          is_required?: boolean | null
+          is_system_field?: boolean | null
+          is_visible?: boolean | null
+          section: string
+          sort_order?: number | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          dropdown_options?: Json | null
+          field_name?: string
+          field_type?: string
+          file_config?: Json | null
+          id?: string
+          is_in_use?: boolean | null
+          is_required?: boolean | null
+          is_system_field?: boolean | null
+          is_visible?: boolean | null
+          section?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Relationships: []
+      }
+      crm_fields_audit: {
+        Row: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          changed_at: string | null
+          changed_by: string | null
+          field_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          after_data?: Json | null
+          before_data?: Json | null
+          changed_at?: string | null
+          changed_by?: string | null
+          field_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          changed_at?: string | null
+          changed_by?: string | null
+          field_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_fields_audit_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
