@@ -27,6 +27,7 @@ import {
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeNumber } from "@/lib/utils";
+import { formatPhone } from "@/utils/formatters";
 import { z } from "zod";
 
 interface ContactInfoCardProps {
@@ -289,7 +290,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
             {/* Left Column */}
             <div className="space-y-4">
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Phone Number</Label>
+                <Label className="text-xs text-muted-foreground">Borrower Phone</Label>
                 {isEditing ? (
                   <Input
                     type="tel"
@@ -300,12 +301,12 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-3 w-3 text-muted-foreground" />
-                    <span>{client.person?.phone || "—"}</span>
+                    <span>{formatPhone(client.person?.phone)}</span>
                   </div>
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Email</Label>
+                <Label className="text-xs text-muted-foreground">Borrower Email</Label>
                 {isEditing ? (
                   <Input
                     type="email"

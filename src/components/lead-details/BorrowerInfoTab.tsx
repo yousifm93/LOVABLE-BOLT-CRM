@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { User, Phone, Mail, Home, Users, Shield, Pencil } from "lucide-react";
-import { formatDate, formatYesNo, maskSSN, formatAddress } from "@/utils/formatters";
+import { formatDate, formatYesNo, maskSSN, formatAddress, formatPhone } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeNumber } from "@/lib/utils";
@@ -125,8 +125,8 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     { icon: User, label: "Date of Birth", value: formatDate("1985-06-15") },
     { icon: Home, label: "Residence Type", value: "Owner Occupied" },
     { icon: Users, label: "Marital Status", value: "Married" },
-    { icon: Mail, label: "Email", value: client.person?.email || "—" },
-    { icon: Phone, label: "Cell Phone", value: client.person?.phone || "—" },
+    { icon: Mail, label: "Borrower Email", value: client.person?.email || "—" },
+    { icon: Phone, label: "Borrower Phone", value: formatPhone(client.person?.phone) },
     { icon: Users, label: "Number of Dependents", value: "2" },
     { icon: Shield, label: "Estimated Credit Score", value: "750" },
     { icon: Home, label: "Current Address", value: formatAddress("123 Main St, Anytown, CA 90210") },
@@ -174,7 +174,7 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">Borrower Email</Label>
               <Input
                 type="email"
                 value={editData.email}
@@ -184,7 +184,7 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Phone</Label>
+              <Label className="text-xs">Borrower Phone</Label>
               <Input
                 type="tel"
                 value={editData.phone}

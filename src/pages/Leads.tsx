@@ -693,7 +693,7 @@ export default function Leads() {
     },
     {
       accessorKey: "phone",
-      header: "Lead Phone",
+      header: "Borrower Phone",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditPhone
@@ -709,7 +709,7 @@ export default function Leads() {
     },
     {
       accessorKey: "email",
-      header: "Lead Email",
+      header: "Borrower Email",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditText
