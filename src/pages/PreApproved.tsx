@@ -827,7 +827,6 @@ export default function PreApproved() {
 
     const dynamicColumns = allFields
       .filter(f => 
-        ['APP COMPLETE', 'APP REVIEW'].includes(f.section) && 
         f.is_in_use &&
         !hardcodedIds.has(f.field_name)
       )

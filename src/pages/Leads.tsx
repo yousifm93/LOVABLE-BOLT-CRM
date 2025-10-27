@@ -19,6 +19,9 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
@@ -542,7 +545,111 @@ export default function Leads() {
     { value: 'referralSource', label: 'Referral Source', type: 'select', options: referralSourceOptions },
   ];
 
-  const allColumns: ColumnDef<Lead>[] = [
+  // Generate column definition for dynamic fields
+  const generateColumnDef = (field: any): ColumnDef<Lead> => {
+    const baseColumn: ColumnDef<Lead> = {
+      accessorKey: field.field_name,
+      header: field.display_name,
+      sortable: true,
+    };
+
+    switch (field.field_type) {
+      case 'text':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditText
+              value={(row.original as any)[field.field_name] || ''}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              placeholder={`Enter ${field.display_name.toLowerCase()}`}
+            />
+          </div>
+        );
+        break;
+      
+      case 'number':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditNumber
+              value={(row.original as any)[field.field_name] || 0}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              placeholder="0"
+            />
+          </div>
+        );
+        break;
+      
+      case 'currency':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditCurrency
+              value={(row.original as any)[field.field_name] || 0}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              placeholder="$0"
+            />
+          </div>
+        );
+        break;
+      
+      case 'percentage':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditPercentage
+              value={(row.original as any)[field.field_name] || 0}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              decimals={1}
+            />
+          </div>
+        );
+        break;
+      
+      case 'date':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditDate
+              value={(row.original as any)[field.field_name]}
+              onValueChange={(date) => handleFieldUpdate(row.original.id, field.field_name, date)}
+              placeholder="Select date"
+            />
+          </div>
+        );
+        break;
+      
+      case 'select':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditSelect
+              value={(row.original as any)[field.field_name] || ''}
+              options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              placeholder="Select option"
+            />
+          </div>
+        );
+        break;
+      
+      case 'phone':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditPhone
+              value={(row.original as any)[field.field_name] || ''}
+              onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
+              placeholder="Enter phone"
+            />
+          </div>
+        );
+        break;
+      
+      default:
+        baseColumn.cell = ({ row }) => (
+          <span className="text-sm">{String((row.original as any)[field.field_name] || '—')}</span>
+        );
+    }
+
+    return baseColumn;
+  };
+
+  const allColumns: ColumnDef<Lead>[] = useMemo(() => {
+    const hardcodedColumns: ColumnDef<Lead>[] = [
     {
       accessorKey: "name",
       header: "Borrower",
@@ -735,6 +842,15 @@ export default function Leads() {
       sortable: true,
     },
   ];
+
+    const hardcodedIds = new Set(hardcodedColumns.map(col => col.accessorKey));
+
+    const dynamicColumns = allFields
+      .filter(f => f.is_in_use && !hardcodedIds.has(f.field_name))
+      .map(field => generateColumnDef(field));
+
+    return [...hardcodedColumns, ...dynamicColumns];
+  }, [allFields, users, agents]);
 
   // Filter columns based on visibility settings
   const columns = visibleColumns

@@ -795,7 +795,6 @@ export default function Screening() {
     // Generate column definitions for all other database fields
     const dynamicColumns = allFields
       .filter(f => 
-        ['LEAD', 'APP COMPLETE'].includes(f.section) && 
         f.is_in_use &&
         !hardcodedIds.has(f.field_name)
       )
