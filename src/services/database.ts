@@ -221,7 +221,8 @@ export const databaseService = {
         created_by: userId,
         account_id: accountId,
         teammate_assigned: (lead as any).teammate_assigned ?? teammateId ?? null,
-        pipeline_stage_id: null,
+        pipeline_stage_id: 'c54f417b-3f67-43de-80f5-954cf260d571', // Leads stage
+        pipeline_section: null, // Don't put in Active section
         lead_on_date:
           inputLeadOnDate instanceof Date
             ? formatLocalDate(inputLeadOnDate)
@@ -711,7 +712,7 @@ export const databaseService = {
           listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
-        .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
+        .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db') // Active stage only
         .order('created_at', { ascending: false });
 
       if (error) {
