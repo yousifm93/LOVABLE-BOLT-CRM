@@ -103,14 +103,14 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .toUpperCase()
             .slice(0, 2);
 
-          const isNote = activity.type === 'note';
+          const isClickable = ['note', 'email', 'sms'].includes(activity.type);
 
           return (
             <div 
               key={activity.id} 
-              className={`flex items-start gap-3 pb-3 border-b last:border-0 ${isNote ? 'cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors' : ''}`}
+              className={`flex items-start gap-3 pb-3 border-b last:border-0 ${isClickable ? 'cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors' : ''}`}
               onClick={() => {
-                if (isNote) {
+                if (isClickable) {
                   setSelectedNote(activity);
                   setShowNoteDetailModal(true);
                 }
