@@ -38,11 +38,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editData, setEditData] = useState({
-    sales_price: client.loan?.purchasePrice || null,
+    sales_price: client.loan?.salesPrice || client.loan?.purchasePrice || null,
     appraisal_value: client.loan?.appraisedValue || null,
     down_pmt: client.loan?.downPayment || null,
     loan_amount: client.loan?.loanAmount || null,
-    loan_type: client.loan?.mortgageType || "",
+    loan_type: client.loan?.loanProgram || client.loan?.mortgageType || "",
     interest_rate: client.loan?.interestRate || null,
     term: client.loan?.term || 360,
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
@@ -53,11 +53,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   const handleEdit = () => {
     setIsEditing(true);
     setEditData({
-      sales_price: client.loan?.purchasePrice || null,
+      sales_price: client.loan?.salesPrice || client.loan?.purchasePrice || null,
       appraisal_value: client.loan?.appraisedValue || null,
       down_pmt: client.loan?.downPayment || null,
       loan_amount: client.loan?.loanAmount || null,
-      loan_type: client.loan?.mortgageType || "",
+      loan_type: client.loan?.loanProgram || client.loan?.mortgageType || "",
       interest_rate: client.loan?.interestRate || null,
       term: client.loan?.term || 360,
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
@@ -87,7 +87,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         appraisal_value: editData.appraisal_value?.toString() || null,
         down_pmt: editData.down_pmt?.toString() || null,
         loan_amount: editData.loan_amount,
-        loan_type: editData.loan_type || null,
+        program: editData.loan_type || null, // Save to 'program' field (Mortgage Type/Loan Program)
         interest_rate: editData.interest_rate,
         term: editData.term,
         escrows: editData.escrows || null,
@@ -95,13 +95,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         piti: editData.piti,
       });
 
+      setIsEditing(false);
+      
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+      
       toast({
         title: "Success",
         description: "Loan information updated successfully",
       });
-
-      setIsEditing(false);
-      onLeadUpdated?.();
     } catch (error: any) {
       console.error("Error updating loan info:", error);
       toast({
@@ -114,19 +117,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   };
 
-  // Mock data for loan & property info fields
+  // Loan & property info fields
   const loanPropertyData = [
-    { icon: DollarSign, label: "Purchase Price", value: formatCurrency(client.loan?.purchasePrice || 450000) },
-    { icon: DollarSign, label: "Appraised Value", value: formatCurrency(client.loan?.appraisedValue || 455000) },
-    { icon: DollarSign, label: "Down Payment", value: formatCurrency(client.loan?.downPayment || 90000) },
-    { icon: DollarSign, label: "Loan Amount", value: formatCurrency(client.loan?.loanAmount || 360000) },
-    { icon: Percent, label: "LTV", value: formatPercentage(client.loan?.ltv || 80) },
-    { icon: Home, label: "Mortgage Type", value: client.loan?.mortgageType || "Conventional", badgeVariant: "outline" as const },
-    { icon: Percent, label: "Interest Rate", value: formatPercentage(client.loan?.interestRate || 6.875) },
-    { icon: Calendar, label: "Amortization Term", value: formatAmortizationTerm(client.loan?.term || 360) },
+    { icon: DollarSign, label: "Purchase Price", value: formatCurrency(client.loan?.salesPrice || client.loan?.purchasePrice || 0) },
+    { icon: DollarSign, label: "Appraised Value", value: formatCurrency(client.loan?.appraisedValue || 0) },
+    { icon: DollarSign, label: "Down Payment", value: formatCurrency(client.loan?.downPayment || 0) },
+    { icon: DollarSign, label: "Loan Amount", value: formatCurrency(client.loan?.loanAmount || 0) },
+    { icon: Percent, label: "LTV", value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—" },
+    { icon: Home, label: "Mortgage Type (Loan Program)", value: client.loan?.loanProgram || client.loan?.mortgageType || "—", badgeVariant: "outline" as const },
+    { icon: Percent, label: "Interest Rate", value: client.loan?.interestRate ? formatPercentage(client.loan.interestRate) : "—" },
+    { icon: Calendar, label: "Amortization Term", value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : "—" },
     { icon: Building, label: "Escrow Waiver", value: formatYesNo(client.loan?.escrowWaiver || false) },
-    { icon: CreditCard, label: "FICO Score", value: client.loan?.ficoScore || "750" },
-    { icon: DollarSign, label: "Proposed Monthly Payment", value: formatCurrency(client.loan?.monthlyPayment || 2145) }
+    { icon: CreditCard, label: "FICO Score", value: client.loan?.ficoScore?.toString() || "—" },
+    { icon: DollarSign, label: "Proposed Monthly Payment", value: formatCurrency(client.loan?.monthlyPayment || 0) }
   ];
 
   if (isEditing) {
@@ -190,7 +193,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Mortgage Type</Label>
+              <Label className="text-xs">Mortgage Type (Loan Program)</Label>
               <Select
                 value={editData.loan_type}
                 onValueChange={(value) => setEditData({ ...editData, loan_type: value })}

@@ -30,6 +30,7 @@ import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -211,6 +212,7 @@ export default function Leads() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [dbLeadsMap, setDbLeadsMap] = useState<Map<string, DatabaseLead>>(new Map());
   const [loading, setLoading] = useState(true);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
@@ -958,6 +960,10 @@ export default function Leads() {
         buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null,
       }));
       
+      // Store full database leads for drawer access
+      const leadsMap = new Map(enrichedLeads.map(lead => [lead.id, lead]));
+      setDbLeadsMap(leadsMap);
+      
       const transformedLeads = enrichedLeads.map(transformLeadToDisplay);
       setLeads(transformedLeads);
     } catch (error) {
@@ -982,37 +988,17 @@ export default function Leads() {
   };
 
   const handleRowClick = (lead: Lead) => {
-    // Convert Lead to CRMClient for the drawer
-    const crmClient: CRMClient = {
-      person: {
-        id: Date.now(), // Placeholder numeric ID for legacy compatibility
-        firstName: lead.name.split(' ')[0],
-        lastName: lead.name.split(' ').slice(1).join(' '),
-        email: lead.email,
-        phone: lead.phone,
-        phoneMobile: lead.phone
-      },
-      databaseId: lead.id, // Real UUID from database
-      buyer_agent_id: lead.realEstateAgent || null,
-      buyer_agent: lead.realEstateAgentData || null,
-      loan: {
-        loanAmount: "$0",
-        loanType: "Purchase",
-        prType: "Primary Residence"
-      },
-      ops: {
-        stage: "leads",
-        status: lead.converted,
-        priority: "Medium",
-        referralSource: lead.referralSource
-      },
-      dates: {
-        createdOn: new Date().toISOString()
-      },
-      meta: {},
-      name: lead.name,
-      creditScore: 750
-    };
+    // Get full database lead data
+    const dbLead = dbLeadsMap.get(lead.id);
+    if (!dbLead) {
+      console.error('Database lead not found for ID:', lead.id);
+      return;
+    }
+    
+    // Use transformLeadToClient for proper field mapping
+    const { transformLeadToClient } = require('@/utils/clientTransform');
+    const crmClient = transformLeadToClient(dbLead);
+    
     setSelectedClient(crmClient);
     setIsDrawerOpen(true);
   };

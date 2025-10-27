@@ -144,13 +144,16 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         program: editData.loanProgram, // Save loan program to 'program' field
       });
 
+      setIsEditing(false);
+      
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+      
       toast({
         title: "Success",
         description: "Lead updated successfully",
       });
-
-      setIsEditing(false);
-      onLeadUpdated?.();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
