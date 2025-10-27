@@ -66,6 +66,8 @@ interface ActiveLoan {
   id: string;
   first_name: string;
   last_name: string;
+  email: string | null;
+  phone: string | null;
   loan_amount: number | null;
   sales_price: number | null;
   arrive_loan_number: number | null;
@@ -864,6 +866,18 @@ export default function Active() {
     try {
       const updateData: any = { [field]: value };
       
+      // Automation: When SUB (Submitted), move from Incoming to Live
+      if (field === 'loan_status' && value === 'SUB') {
+        const currentLoan = activeLoans.find(loan => loan.id === id);
+        if (currentLoan?.pipeline_section === 'Incoming') {
+          updateData.pipeline_section = 'Live';
+          toast({
+            title: "Moved to Live",
+            description: "Loan moved from Incoming to Live section",
+          });
+        }
+      }
+      
       // Automation: When CTC (Clear To Close), move to Past Clients
       if (field === 'loan_status' && value === 'CTC') {
         updateData.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'; // Past Clients
@@ -911,8 +925,8 @@ export default function Active() {
         id: Date.now(), // Placeholder numeric ID for legacy compatibility
         firstName: loan.first_name,
         lastName: loan.last_name,
-        email: "", // ActiveLoan doesn't have email, will be empty
-        phoneMobile: "" // ActiveLoan doesn't have phone, will be empty
+        email: loan.email || "",
+        phoneMobile: loan.phone || ""
       },
       databaseId: loan.id, // Real UUID from database
       loan: {
