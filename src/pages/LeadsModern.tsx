@@ -9,6 +9,7 @@ import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { CreateLeadModalModern } from "@/components/modals/CreateLeadModalModern";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { databaseService, Lead, BuyerAgent, User } from "@/services/database";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
@@ -50,6 +51,7 @@ const REFERRAL_SOURCE_OPTIONS = [
 
 export function LeadsModern() {
   const [leads, setLeads] = useState<ModernLead[]>([]);
+  const [dbLeadsMap, setDbLeadsMap] = useState<Map<string, ModernLead>>(new Map());
   const [buyerAgents, setBuyerAgents] = useState<BuyerAgent[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,7 +86,26 @@ export function LeadsModern() {
         databaseService.getUsers(),
       ]);
       
-      setLeads((leadsData as unknown as ModernLead[]) || []);
+      // Create lookup maps for enrichment
+      const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
+      const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+      
+      // Enrich leads with related buyer_agent and teammate data
+      const enrichedLeads = (leadsData as unknown as ModernLead[] || []).map(lead => ({
+        ...lead,
+        buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null,
+        teammate: lead.teammate_assigned ? usersMap.get(lead.teammate_assigned) : null,
+      }));
+      
+      setLeads(enrichedLeads);
+      
+      // Build map of full database leads for drawer access
+      const newDbLeadsMap = new Map<string, ModernLead>();
+      enrichedLeads.forEach(lead => {
+        newDbLeadsMap.set(lead.id, lead);
+      });
+      setDbLeadsMap(newDbLeadsMap);
+      
       setBuyerAgents(agentsData || []);
       setUsers(usersData || []);
     } catch (error) {
@@ -140,7 +161,22 @@ export function LeadsModern() {
   });
 
   const handleRowClick = (lead: ModernLead) => {
-    setSelectedLead(lead);
+    // Get full database lead data with enriched relationships
+    const dbLead = dbLeadsMap.get(lead.id);
+    if (!dbLead) {
+      console.error('Database lead not found for ID:', lead.id);
+      toast({
+        title: "Error",
+        description: "Could not load lead details. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Use transformLeadToClient for proper CRMClient structure
+    const crmClient = transformLeadToClient(dbLead);
+    
+    setSelectedLead(crmClient as any);
     setShowDetailDrawer(true);
   };
 
@@ -313,9 +349,19 @@ export function LeadsModern() {
         <ClientDetailDrawer
           client={selectedLead as any}
           isOpen={showDetailDrawer}
-          onClose={() => setShowDetailDrawer(false)}
-          onStageChange={() => {}}
+          onClose={() => {
+            setShowDetailDrawer(false);
+            setSelectedLead(null);
+          }}
+          onStageChange={() => {
+            setShowDetailDrawer(false);
+            setSelectedLead(null);
+            loadData();
+          }}
           pipelineType="leads"
+          onLeadUpdated={async () => {
+            await loadData();
+          }}
         />
       )}
     </div>
