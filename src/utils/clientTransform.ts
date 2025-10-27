@@ -154,6 +154,8 @@ export function transformLeadToClient(lead: any): any {
     ssn: lead.ssn || null,
     dob: lead.dob || null,
     occupancy: lead.occupancy || null,
+    residency_type: lead.residency_type || null,
+    marital_status: lead.marital_status || null,
     number_of_dependents: lead.number_of_dependents || null,
     borrower_current_address: lead.borrower_current_address || null,
     time_at_current_address_years: lead.time_at_current_address_years || null,

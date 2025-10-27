@@ -31,6 +31,8 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     ssn: (client as any).ssn || "",
     dob: (client as any).dob || null,
     occupancy: (client as any).occupancy || "",
+    residency_type: (client as any).residency_type || "",
+    marital_status: (client as any).marital_status || "",
     number_of_dependents: (client as any).number_of_dependents || null,
     monthly_payment_goal: (client as any).monthly_payment_goal || null,
     cash_to_close_goal: (client as any).cash_to_close_goal || null,
@@ -48,6 +50,8 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       ssn: (client as any).ssn || "",
       dob: (client as any).dob || null,
       occupancy: (client as any).occupancy || "",
+      residency_type: (client as any).residency_type || "",
+      marital_status: (client as any).marital_status || "",
       number_of_dependents: (client as any).number_of_dependents || null,
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
@@ -89,6 +93,8 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
         ssn: editData.ssn || null,
         dob: editData.dob,
         occupancy: editData.occupancy || null,
+        residency_type: editData.residency_type || null,
+        marital_status: editData.marital_status || null,
         number_of_dependents: editData.number_of_dependents,
         monthly_pmt_goal: editData.monthly_payment_goal, // Note: DB field is monthly_pmt_goal
         cash_to_close_goal: editData.cash_to_close_goal,
@@ -188,6 +194,46 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
             <SelectItem value="Primary Residence">Primary Residence</SelectItem>
             <SelectItem value="Second Home">Second Home</SelectItem>
             <SelectItem value="Investment Property">Investment Property</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Shield, 
+      label: "Residency Type", 
+      value: (client as any).residency_type || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.residency_type}
+          onValueChange={(value) => setEditData({ ...editData, residency_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select residency type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="US Citizen">US Citizen</SelectItem>
+            <SelectItem value="Permanent Resident">Permanent Resident</SelectItem>
+            <SelectItem value="Non-Permanent Resident Alien">Non-Permanent Resident Alien</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Users, 
+      label: "Marital Status", 
+      value: (client as any).marital_status || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.marital_status}
+          onValueChange={(value) => setEditData({ ...editData, marital_status: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select marital status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Unmarried">Unmarried</SelectItem>
+            <SelectItem value="Married">Married</SelectItem>
+            <SelectItem value="Separated">Separated</SelectItem>
           </SelectContent>
         </Select>
       ) : undefined

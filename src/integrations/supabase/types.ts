@@ -1749,6 +1749,7 @@ export type Database = {
           loan_status: Database["public"]["Enums"]["loan_status"] | null
           loan_type: string | null
           lock_expiration_date: string | null
+          marital_status: string | null
           mi_status: string | null
           middle_name: string | null
           military_veteran: boolean | null
@@ -1775,6 +1776,7 @@ export type Database = {
           referral_source: Database["public"]["Enums"]["referral_source"] | null
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           reo: boolean | null
+          residency_type: string | null
           sales_price: number | null
           search_stage: string | null
           source: Database["public"]["Enums"]["lead_source"] | null
@@ -1854,6 +1856,7 @@ export type Database = {
           loan_status?: Database["public"]["Enums"]["loan_status"] | null
           loan_type?: string | null
           lock_expiration_date?: string | null
+          marital_status?: string | null
           mi_status?: string | null
           middle_name?: string | null
           military_veteran?: boolean | null
@@ -1882,6 +1885,7 @@ export type Database = {
             | null
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
+          residency_type?: string | null
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null
@@ -1961,6 +1965,7 @@ export type Database = {
           loan_status?: Database["public"]["Enums"]["loan_status"] | null
           loan_type?: string | null
           lock_expiration_date?: string | null
+          marital_status?: string | null
           mi_status?: string | null
           middle_name?: string | null
           military_veteran?: boolean | null
@@ -1989,6 +1994,7 @@ export type Database = {
             | null
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
+          residency_type?: string | null
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null
