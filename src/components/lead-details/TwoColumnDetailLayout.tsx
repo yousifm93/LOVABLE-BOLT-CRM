@@ -6,21 +6,29 @@ interface DetailItem {
   label: string;
   value: string | number | null | undefined;
   badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+  editComponent?: React.ReactNode;
+  isCalculated?: boolean;
 }
 
 interface TwoColumnDetailLayoutProps {
   items: DetailItem[];
 }
 
-function DetailRow({ icon: Icon, label, value, badgeVariant }: DetailItem) {
-  if (!value && value !== 0) return null;
+function DetailRow({ icon: Icon, label, value, badgeVariant, editComponent, isCalculated }: DetailItem) {
+  if (!editComponent && !value && value !== 0) return null;
 
   return (
     <div className="flex items-start gap-3 py-2">
       <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="text-sm font-semibold text-foreground">{value}</p>
+        {editComponent ? (
+          <div className={isCalculated ? "opacity-60" : ""}>
+            {editComponent}
+          </div>
+        ) : (
+          <p className="text-sm font-semibold text-foreground">{value || "—"}</p>
+        )}
       </div>
     </div>
   );

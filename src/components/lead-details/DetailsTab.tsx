@@ -144,182 +144,191 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
   // Loan & property info fields
   const loanPropertyData = [
-    { icon: DollarSign, label: "Purchase Price", value: formatCurrency(client.loan?.salesPrice || client.loan?.purchasePrice || 0) },
-    { icon: DollarSign, label: "Appraised Value", value: formatCurrency(client.loan?.appraisedValue || 0) },
-    { icon: DollarSign, label: "Down Payment", value: formatCurrency(client.loan?.downPayment || 0) },
-    { icon: DollarSign, label: "Loan Amount", value: formatCurrency(client.loan?.loanAmount || 0) },
-    { icon: Percent, label: "LTV", value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—" },
-    { icon: Home, label: "Mortgage Type (Loan Program)", value: client.loan?.loanProgram || client.loan?.mortgageType || "—", badgeVariant: "outline" as const },
-    { icon: Percent, label: "Interest Rate", value: client.loan?.interestRate ? formatPercentage(client.loan.interestRate) : formatPercentage(7.0) },
-    { icon: Calendar, label: "Amortization Term", value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360) },
-    { icon: Building, label: "Escrow Waiver", value: formatYesNo(client.loan?.escrowWaiver || false) },
-    { icon: CreditCard, label: "FICO Score", value: client.loan?.ficoScore?.toString() || "—" },
-    { icon: DollarSign, label: "Proposed Monthly Payment", value: formatCurrency(client.loan?.monthlyPayment || 0) },
-    { icon: Home, label: "Property Type", value: client.property?.propertyType || "—", badgeVariant: "outline" as const }
+    { 
+      icon: DollarSign, 
+      label: "Purchase Price", 
+      value: formatCurrency(client.loan?.salesPrice || client.loan?.purchasePrice || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.sales_price || ""}
+          onChange={(e) => setEditData({ ...editData, sales_price: parseFloat(e.target.value) || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Appraised Value", 
+      value: formatCurrency(client.loan?.appraisedValue || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.appraisal_value || ""}
+          disabled
+          className="h-8 bg-muted cursor-not-allowed"
+          title="Auto-synced with Purchase Price"
+        />
+      ) : undefined,
+      isCalculated: isEditing
+    },
+    { 
+      icon: DollarSign, 
+      label: "Down Payment", 
+      value: formatCurrency(client.loan?.downPayment || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.down_pmt || ""}
+          onChange={(e) => setEditData({ ...editData, down_pmt: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Loan Amount", 
+      value: formatCurrency(client.loan?.loanAmount || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.loan_amount || ""}
+          onChange={(e) => setEditData({ ...editData, loan_amount: parseFloat(e.target.value) || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Percent, 
+      label: "LTV", 
+      value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
+    },
+    { 
+      icon: Home, 
+      label: "Mortgage Type (Loan Program)", 
+      value: client.loan?.loanProgram || client.loan?.mortgageType || "—", 
+      badgeVariant: "outline" as const,
+      editComponent: isEditing ? (
+        <Select
+          value={editData.loan_type}
+          onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Conventional">Conventional</SelectItem>
+            <SelectItem value="FHA">FHA</SelectItem>
+            <SelectItem value="VA">VA</SelectItem>
+            <SelectItem value="USDA">USDA</SelectItem>
+            <SelectItem value="Jumbo">Jumbo</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Percent, 
+      label: "Interest Rate", 
+      value: client.loan?.interestRate ? formatPercentage(client.loan.interestRate) : formatPercentage(7.0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          step="0.001"
+          value={editData.interest_rate || ""}
+          onChange={(e) => setEditData({ ...editData, interest_rate: parseFloat(e.target.value) || null })}
+          className="h-8"
+          placeholder="7.0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Calendar, 
+      label: "Amortization Term", 
+      value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.term || ""}
+          onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
+          className="h-8"
+          placeholder="360"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Building, 
+      label: "Escrow Waiver", 
+      value: formatYesNo(client.loan?.escrowWaiver || false),
+      editComponent: isEditing ? (
+        <Select
+          value={editData.escrows}
+          onValueChange={(value) => setEditData({ ...editData, escrows: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Escrowed">Escrowed</SelectItem>
+            <SelectItem value="Waived">Waived</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: CreditCard, 
+      label: "FICO Score", 
+      value: client.loan?.ficoScore?.toString() || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.estimated_fico || ""}
+          onChange={(e) => setEditData({ ...editData, estimated_fico: parseInt(e.target.value) || null })}
+          className="h-8"
+          placeholder="Credit score"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Proposed Monthly Payment", 
+      value: client.loan?.monthlyPayment ? formatCurrency(client.loan.monthlyPayment) : "—",
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.piti ? formatCurrency(editData.piti) : "—"}
+          disabled
+          className="h-8 bg-muted cursor-not-allowed"
+          title="Automatically calculated from Loan Amount, Interest Rate, and Term"
+        />
+      ) : undefined,
+      isCalculated: isEditing
+    },
+    { 
+      icon: Home, 
+      label: "Property Type", 
+      value: client.property?.propertyType || "—", 
+      badgeVariant: "outline" as const,
+      editComponent: isEditing ? (
+        <Select
+          value={editData.property_type}
+          onValueChange={(value) => setEditData({ ...editData, property_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Single Family Home">Single Family Home</SelectItem>
+            <SelectItem value="Condo">Condo</SelectItem>
+            <SelectItem value="Townhouse">Townhouse</SelectItem>
+            <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    }
   ];
-
-  if (isEditing) {
-    return (
-      <ScrollArea className="h-full">
-        <div className="space-y-6 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Edit Loan & Property Information
-            </h3>
-            <div className="flex gap-2">
-              <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">Purchase Price</Label>
-              <Input
-                type="number"
-                value={editData.sales_price || ""}
-                onChange={(e) => setEditData({ ...editData, sales_price: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Appraised Value</Label>
-              <Input
-                type="text"
-                value={editData.appraisal_value || ""}
-                onChange={(e) => setEditData({ ...editData, appraisal_value: e.target.value || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Down Payment</Label>
-              <Input
-                type="text"
-                value={editData.down_pmt || ""}
-                onChange={(e) => setEditData({ ...editData, down_pmt: e.target.value || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Loan Amount</Label>
-              <Input
-                type="number"
-                value={editData.loan_amount || ""}
-                onChange={(e) => setEditData({ ...editData, loan_amount: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Mortgage Type (Loan Program)</Label>
-              <Select
-                value={editData.loan_type}
-                onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Conventional">Conventional</SelectItem>
-                  <SelectItem value="FHA">FHA</SelectItem>
-                  <SelectItem value="VA">VA</SelectItem>
-                  <SelectItem value="USDA">USDA</SelectItem>
-                  <SelectItem value="Jumbo">Jumbo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Interest Rate (%)</Label>
-              <Input
-                type="number"
-                step="0.001"
-                value={editData.interest_rate || ""}
-                onChange={(e) => setEditData({ ...editData, interest_rate: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Amortization Term (months)</Label>
-              <Input
-                type="number"
-                value={editData.term || ""}
-                onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Escrows</Label>
-              <Select
-                value={editData.escrows}
-                onValueChange={(value) => setEditData({ ...editData, escrows: value })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Escrowed">Escrowed</SelectItem>
-                  <SelectItem value="Waived">Waived</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">FICO Score</Label>
-              <Input
-                type="number"
-                value={editData.estimated_fico || ""}
-                onChange={(e) => setEditData({ ...editData, estimated_fico: parseInt(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">
-                Proposed Monthly Payment (P&I)
-                <span className="text-muted-foreground ml-1">(Auto-calculated)</span>
-              </Label>
-              <Input
-                type="text"
-                value={editData.piti ? formatCurrency(editData.piti) : "—"}
-                disabled
-                className="h-8 bg-muted cursor-not-allowed"
-                title="Automatically calculated from Loan Amount, Interest Rate, and Term"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Property Type</Label>
-              <Select
-                value={editData.property_type}
-                onValueChange={(value) => setEditData({ ...editData, property_type: value })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Single Family Home">Single Family Home</SelectItem>
-                  <SelectItem value="Condo">Condo</SelectItem>
-                  <SelectItem value="Townhouse">Townhouse</SelectItem>
-                  <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </ScrollArea>
-    );
-  }
 
   return (
     <ScrollArea className="h-full">
@@ -328,12 +337,23 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              Loan & Property Information
+              {isEditing ? "Edit Loan & Property Information" : "Loan & Property Information"}
             </h3>
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Pencil className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Pencil className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+            )}
           </div>
           <TwoColumnDetailLayout items={loanPropertyData} />
         </div>
