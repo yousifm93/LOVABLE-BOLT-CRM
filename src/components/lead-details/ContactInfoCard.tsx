@@ -338,7 +338,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                       <SelectItem value="none">None</SelectItem>
                       {agents.map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>
-                          {agent.first_name} {agent.last_name}{agent.company ? ` - ${agent.company}` : ''}
+                          {agent.first_name} {agent.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -351,7 +351,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                         const displayAgent = (client as any).buyer_agent 
                           || agents.find(a => a.id === (client as any).buyer_agent_id);
                         return displayAgent
-                          ? `${displayAgent.first_name} ${displayAgent.last_name}${displayAgent.company ? ` - ${displayAgent.company}` : ''}`
+                          ? `${displayAgent.first_name} ${displayAgent.last_name}`
                           : "—";
                       })()}
                     </span>
