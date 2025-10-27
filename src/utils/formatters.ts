@@ -142,3 +142,37 @@ export const formatDateShort = (dateString: string | null | undefined): string =
     return "—";
   }
 };
+
+/**
+ * Calculate monthly mortgage payment (Principal & Interest only)
+ * @param loanAmount - Principal loan amount
+ * @param annualInterestRate - Annual interest rate as percentage (e.g., 7 for 7%)
+ * @param termInMonths - Loan term in months (e.g., 360 for 30 years)
+ * @returns Monthly P&I payment, or null if inputs invalid
+ */
+export const calculateMonthlyPayment = (
+  loanAmount: number | null | undefined,
+  annualInterestRate: number | null | undefined,
+  termInMonths: number | null | undefined
+): number | null => {
+  // Validate inputs
+  if (!loanAmount || !annualInterestRate || !termInMonths) return null;
+  if (loanAmount <= 0 || annualInterestRate < 0 || termInMonths <= 0) return null;
+  
+  // Special case: 0% interest rate (interest-free loan)
+  if (annualInterestRate === 0) {
+    return loanAmount / termInMonths;
+  }
+  
+  // Convert annual rate to monthly decimal rate
+  const monthlyRate = annualInterestRate / 100 / 12;
+  
+  // Calculate using mortgage payment formula: M = P[r(1+r)^n]/[(1+r)^n-1]
+  const numerator = monthlyRate * Math.pow(1 + monthlyRate, termInMonths);
+  const denominator = Math.pow(1 + monthlyRate, termInMonths) - 1;
+  
+  const monthlyPayment = loanAmount * (numerator / denominator);
+  
+  // Round to 2 decimal places
+  return Math.round(monthlyPayment * 100) / 100;
+};

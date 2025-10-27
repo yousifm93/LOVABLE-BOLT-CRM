@@ -1,4 +1,5 @@
 import { CRMClient, PipelineStage } from '@/types/crm';
+import { calculateMonthlyPayment } from './formatters';
 
 // Helper to calculate down payment
 const calculateDownPayment = (salesPrice: number | null, loanAmount: number | null): number | null => {
@@ -124,7 +125,7 @@ export function transformLeadToClient(lead: any): any {
       term: lead.term,
       escrowWaiver: lead.escrows === 'Waived',
       ficoScore: lead.estimated_fico,
-      monthlyPayment: lead.piti,
+      monthlyPayment: lead.piti || calculateMonthlyPayment(lead.loan_amount, lead.interest_rate, lead.term),
       prType: lead.loan_type || 'Purchase',
     },
     property: {

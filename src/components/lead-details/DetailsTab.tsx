@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TwoColumnDetailLayout } from "./TwoColumnDetailLayout";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   Building,
   Pencil
 } from "lucide-react";
-import { formatCurrency, formatPercentage, formatYesNo, formatAmortizationTerm } from "@/utils/formatters";
+import { formatCurrency, formatPercentage, formatYesNo, formatAmortizationTerm, calculateMonthlyPayment } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeNumber } from "@/lib/utils";
@@ -50,6 +50,21 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     piti: client.loan?.monthlyPayment || null,
     property_type: client.property?.propertyType || "",
   });
+
+  // Auto-calculate monthly payment when loan amount, interest rate, or term changes
+  useEffect(() => {
+    if (isEditing) {
+      const calculatedPayment = calculateMonthlyPayment(
+        editData.loan_amount,
+        editData.interest_rate,
+        editData.term
+      );
+      
+      if (calculatedPayment !== null && calculatedPayment !== editData.piti) {
+        setEditData(prev => ({ ...prev, piti: calculatedPayment }));
+      }
+    }
+  }, [editData.loan_amount, editData.interest_rate, editData.term, isEditing]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -263,12 +278,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Monthly Payment (PITI)</Label>
+              <Label className="text-xs">
+                Proposed Monthly Payment (P&I)
+                <span className="text-muted-foreground ml-1">(Auto-calculated)</span>
+              </Label>
               <Input
-                type="number"
-                value={editData.piti || ""}
-                onChange={(e) => setEditData({ ...editData, piti: parseFloat(e.target.value) || null })}
-                className="h-8"
+                type="text"
+                value={editData.piti ? formatCurrency(editData.piti) : "—"}
+                disabled
+                className="h-8 bg-muted cursor-not-allowed"
+                title="Automatically calculated from Loan Amount, Interest Rate, and Term"
               />
             </div>
 
