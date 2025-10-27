@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Mail, User } from "lucide-react";
+import { Phone, Mail, User, DollarSign, ArrowRightLeft } from "lucide-react";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { Input } from "@/components/ui/input";
@@ -54,10 +54,18 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     buyer_agent_id: (client as any).buyer_agent_id || null,
     loanAmount: client.loan?.loanAmount || null,
     salesPrice: client.loan?.salesPrice || null,
+    appraisal_value: client.loan?.appraisedValue || null,
     transactionType: client.loan?.loanType || "",
     propertyType: client.property?.propertyType || "",
     loanProgram: client.loan?.loanProgram || "",
   });
+
+  // Auto-sync appraised value with purchase price during editing
+  useEffect(() => {
+    if (isEditing && editData.salesPrice) {
+      setEditData(prev => ({ ...prev, appraisal_value: prev.salesPrice }));
+    }
+  }, [editData.salesPrice, isEditing]);
 
   // Fetch agents list
   useEffect(() => {
@@ -85,6 +93,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
       buyer_agent_id: (client as any).buyer_agent_id || null,
       loanAmount: client.loan?.loanAmount || null,
       salesPrice: client.loan?.salesPrice || null,
+      appraisal_value: client.loan?.appraisedValue || null,
       transactionType: client.loan?.loanType || "",
       propertyType: client.property?.propertyType || "",
       loanProgram: client.loan?.loanProgram || "",
@@ -139,6 +148,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         buyer_agent_id: editData.buyer_agent_id,
         loan_amount: sanitizedData.loanAmount,
         sales_price: sanitizedData.salesPrice,
+        appraisal_value: sanitizedData.salesPrice?.toString() || null, // Sync with purchase price
         loan_type: editData.transactionType,
         property_type: editData.propertyType,
         program: editData.loanProgram, // Save loan program to 'program' field
@@ -359,26 +369,6 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Sales Price</Label>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="1000"
-                    min="0"
-                    value={editData.salesPrice || ""}
-                    onChange={(e) => setEditData({ ...editData, salesPrice: e.target.value })}
-                    placeholder="Enter amount"
-                    className="h-8"
-                  />
-                ) : (
-                  <span className="font-medium text-sm">{client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}</span>
-                )}
-              </div>
-            </div>
-            
-            {/* Right Column */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Transaction Type</Label>
                 {isEditing ? (
                   <Select
@@ -395,7 +385,33 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.loanType || "—"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                    <span>{client.loan?.loanType || "—"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Purchase Price</Label>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="1000"
+                    min="0"
+                    value={editData.salesPrice || ""}
+                    onChange={(e) => setEditData({ ...editData, salesPrice: e.target.value })}
+                    placeholder="Enter amount"
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                    <span>{client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}</span>
+                  </div>
                 )}
               </div>
               <div className="flex flex-col gap-1">

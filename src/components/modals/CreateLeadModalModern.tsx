@@ -55,6 +55,10 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         notes: formData.notes || null,
         lead_on_date: `${formData.lead_on_date.getFullYear()}-${String(formData.lead_on_date.getMonth() + 1).padStart(2, '0')}-${String(formData.lead_on_date.getDate()).padStart(2, '0')}`,
         status: 'Working on it',
+        teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Yousif Mohamed
+        interest_rate: 7.0,
+        term: 360,
+        loan_type: 'Purchase',
       });
 
       // If notes were provided, create a note record

@@ -66,6 +66,13 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   }, [editData.loan_amount, editData.interest_rate, editData.term, isEditing]);
 
+  // Auto-sync appraised value with purchase price during editing
+  useEffect(() => {
+    if (isEditing && editData.sales_price) {
+      setEditData(prev => ({ ...prev, appraisal_value: editData.sales_price }));
+    }
+  }, [editData.sales_price, isEditing]);
+
   const handleEdit = () => {
     setIsEditing(true);
     setEditData({
