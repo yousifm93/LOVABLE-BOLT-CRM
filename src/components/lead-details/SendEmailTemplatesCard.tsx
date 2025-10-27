@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,9 +6,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface SendEmailTemplatesCardProps {
   leadId: string;
+}
+
+interface EmailTemplate {
+  id: string;
+  name: string;
+  html: string;
+}
+
+interface User {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
 }
 
 export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) {
@@ -19,26 +35,56 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     agent: false,
     thirdParty: false
   });
-  const [emails, setEmails] = useState({
-    borrower: "",
-    agent: "",
-    thirdParty: ""
-  });
+  const [thirdPartyEmail, setThirdPartyEmail] = useState("");
   const [showThirdPartyEmail, setShowThirdPartyEmail] = useState(false);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [borrowerEmail, setBorrowerEmail] = useState<string | null>(null);
+  const [agentEmail, setAgentEmail] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const emailTemplates = [
-    "Appraisal Received",
-    "Appraisal Scheduled", 
-    "Following Up",
-    "Document Request",
-    "Loan Update"
-  ];
+  useEffect(() => {
+    fetchData();
+  }, [leadId]);
 
-  const senders = [
-    "Yusuf Mohammed",
-    "Salam Mohammed", 
-    "Herman Daza"
-  ];
+  const fetchData = async () => {
+    // Fetch users
+    const { data: usersData } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("first_name");
+    setUsers(usersData || []);
+
+    // Fetch templates
+    const { data: templatesData } = await supabase
+      .from("email_templates")
+      .select("*")
+      .order("name");
+    setTemplates(templatesData || []);
+
+    // Fetch lead data
+    const { data: leadData } = await supabase
+      .from("leads")
+      .select("email, buyer_agent_id")
+      .eq("id", leadId)
+      .single();
+
+    if (leadData) {
+      setBorrowerEmail(leadData.email);
+      
+      // Fetch agent email if buyer_agent_id exists
+      if (leadData.buyer_agent_id) {
+        const { data: agentData } = await supabase
+          .from("buyer_agents")
+          .select("email")
+          .eq("id", leadData.buyer_agent_id)
+          .single();
+        
+        setAgentEmail(agentData?.email || null);
+      }
+    }
+  };
 
   const handleRecipientChange = (recipient: keyof typeof recipients, checked: boolean) => {
     setRecipients(prev => ({
@@ -51,16 +97,14 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     }
   };
 
-  const handleEmailChange = (recipient: keyof typeof emails, email: string) => {
-    setEmails(prev => ({
-      ...prev,
-      [recipient]: email
-    }));
-  };
-
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (!selectedTemplate) {
-      alert("Please select an email template");
+      toast({ title: "Error", description: "Please select an email template", variant: "destructive" });
+      return;
+    }
+
+    if (!selectedSender) {
+      toast({ title: "Error", description: "Please select a sender", variant: "destructive" });
       return;
     }
 
@@ -69,16 +113,64 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
       .map(([recipient]) => recipient);
 
     if (selectedRecipients.length === 0) {
-      alert("Please select at least one recipient");
+      toast({ title: "Error", description: "Please select at least one recipient", variant: "destructive" });
       return;
     }
 
-    // TODO: Implement email sending logic
-    console.log("Sending email:", {
-      template: selectedTemplate,
-      recipients: selectedRecipients,
-      emails
-    });
+    // Validate recipient emails
+    if (recipients.borrower && !borrowerEmail) {
+      toast({ title: "Error", description: "Borrower email not found", variant: "destructive" });
+      return;
+    }
+
+    if (recipients.agent && !agentEmail) {
+      toast({ title: "Error", description: "Agent email not found", variant: "destructive" });
+      return;
+    }
+
+    if (recipients.thirdParty && !thirdPartyEmail.trim()) {
+      toast({ title: "Error", description: "Please enter third party email", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-template-email", {
+        body: {
+          leadId,
+          templateId: selectedTemplate,
+          senderId: selectedSender,
+          recipients: {
+            borrower: recipients.borrower,
+            agent: recipients.agent,
+            thirdParty: recipients.thirdParty ? thirdPartyEmail : "",
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({ title: "Success", description: "Email sent successfully" });
+        // Reset form
+        setSelectedTemplate("");
+        setRecipients({ borrower: false, agent: false, thirdParty: false });
+        setThirdPartyEmail("");
+        setShowThirdPartyEmail(false);
+      } else {
+        throw new Error(data?.error || "Failed to send email");
+      }
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to send email", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,9 +191,10 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
               <SelectValue placeholder="Select sender" />
             </SelectTrigger>
             <SelectContent>
-              {senders.map((sender) => (
-                <SelectItem key={sender} value={sender}>
-                  {sender}
+              {users.map((user) => (
+                <SelectItem key={user.id} value={user.user_id}>
+                  {user.first_name} {user.last_name}
+                  {user.email && ` (${user.email})`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -117,9 +210,9 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
               <SelectValue placeholder="Select a template" />
             </SelectTrigger>
             <SelectContent>
-              {emailTemplates.map((template) => (
-                <SelectItem key={template} value={template}>
-                  {template}
+              {templates.map((template) => (
+                <SelectItem key={template.id} value={template.id}>
+                  {template.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -136,7 +229,9 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 checked={recipients.borrower}
                 onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
               />
-              <Label htmlFor="borrower" className="text-sm">Borrower</Label>
+              <Label htmlFor="borrower" className="text-sm">
+                Borrower {borrowerEmail && `(${borrowerEmail})`}
+              </Label>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -144,8 +239,11 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 id="agent"
                 checked={recipients.agent}
                 onCheckedChange={(checked) => handleRecipientChange("agent", checked as boolean)}
+                disabled={!agentEmail}
               />
-              <Label htmlFor="agent" className="text-sm">Agent</Label>
+              <Label htmlFor="agent" className="text-sm">
+                Agent {agentEmail ? `(${agentEmail})` : "(No agent assigned)"}
+              </Label>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -162,16 +260,16 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
             <div className="mt-2">
               <Input
                 placeholder="Enter third party email address"
-                value={emails.thirdParty}
-                onChange={(e) => handleEmailChange("thirdParty", e.target.value)}
+                value={thirdPartyEmail}
+                onChange={(e) => setThirdPartyEmail(e.target.value)}
                 className="w-full"
               />
             </div>
           )}
         </div>
 
-        <Button onClick={handleSendEmail} className="w-full mt-6">
-          Send Email
+        <Button onClick={handleSendEmail} className="w-full mt-6" disabled={loading}>
+          {loading ? "Sending..." : "Send Email"}
         </Button>
       </CardContent>
     </Card>

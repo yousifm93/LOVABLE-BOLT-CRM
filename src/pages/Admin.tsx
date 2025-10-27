@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Settings, Database, Users, FileText, BarChart3, Shield, Plus, Edit, Trash2, Check, X } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import PasswordsVault from "@/pages/PasswordsVault";
+import EmailTemplates from "@/pages/admin/EmailTemplates";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -115,9 +116,10 @@ export default function Admin() {
 
       {/* Main Content */}
       <Tabs defaultValue="fields" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="passwords">Passwords</TabsTrigger>
           <TabsTrigger value="system">System Settings</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -337,6 +339,10 @@ export default function Admin() {
 
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="email-templates" className="space-y-4">
+          <EmailTemplates />
         </TabsContent>
 
         <TabsContent value="passwords" className="space-y-4">
