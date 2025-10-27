@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
 interface InlineEditNumberProps {
-  value: number;
+  value: number | null;
   onValueChange: (value: number) => void;
   placeholder?: string;
   className?: string;
@@ -22,7 +22,7 @@ export function InlineEditNumber({
   max
 }: InlineEditNumberProps) {
   const [isEditing, setIsEditing] = React.useState(false);
-  const [editValue, setEditValue] = React.useState(value.toString());
+  const [editValue, setEditValue] = React.useState(value?.toString() || "");
 
   const handleSave = () => {
     const newValue = parseInt(editValue) || 0;
@@ -33,7 +33,7 @@ export function InlineEditNumber({
   };
 
   const handleCancel = () => {
-    setEditValue(value.toString());
+    setEditValue(value?.toString() || "");
     setIsEditing(false);
   };
 
@@ -48,7 +48,7 @@ export function InlineEditNumber({
   if (disabled) {
     return (
       <span className={cn("text-sm", className)}>
-        {value}
+        {value ?? "—"}
       </span>
     );
   }
@@ -80,7 +80,7 @@ export function InlineEditNumber({
         className
       )}
     >
-      {value}
+      {value ?? "—"}
     </button>
   );
 }
