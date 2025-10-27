@@ -205,9 +205,8 @@ export default function PendingApp() {
   const loadAgents = async () => {
     try {
       const { data, error } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, company, email, phone')
-        .in('type', ['Real Estate Agent', 'Agent', 'Realtor'])
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone')
         .order('first_name');
       if (error) throw error;
       setAgents(data || []);
@@ -225,7 +224,7 @@ export default function PendingApp() {
         .select(`
           *,
           teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') // Pending App stage
         .order('created_at', { ascending: false });

@@ -218,10 +218,9 @@ export default function Screening() {
 
   const loadAgents = async () => {
     const { data } = await supabase
-      .from('contacts')
-      .select('id, first_name, last_name, company, email, phone')
-      .eq('type', 'Agent');
-    if (data) setAgents(data.map(a => ({ ...a, brokerage: a.company })));
+      .from('buyer_agents')
+      .select('id, first_name, last_name, brokerage, email, phone');
+    if (data) setAgents(data);
   };
 
   // Load leads from database filtered by Screening pipeline stage
@@ -233,7 +232,7 @@ export default function Screening() {
         .select(`
           *,
           teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
         .order('created_at', { ascending: false });

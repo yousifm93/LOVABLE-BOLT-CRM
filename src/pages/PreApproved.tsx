@@ -223,10 +223,9 @@ export default function PreApproved() {
 
   const loadAgents = async () => {
     const { data } = await supabase
-      .from('contacts')
-      .select('id, first_name, last_name, company, email, phone')
-      .eq('type', 'Agent');
-    if (data) setAgents(data.map(a => ({ ...a, brokerage: a.company })));
+      .from('buyer_agents')
+      .select('id, first_name, last_name, brokerage, email, phone');
+    if (data) setAgents(data);
   };
 
   const fetchLeads = async () => {
@@ -235,7 +234,7 @@ export default function PreApproved() {
       .select(`
         *,
         teammate:users!leads_teammate_assigned_fkey(id, first_name, last_name, email),
-        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+        buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
       `)
       .eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945')
       .order('created_at', { ascending: false });
