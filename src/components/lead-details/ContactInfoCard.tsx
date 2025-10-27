@@ -407,12 +407,11 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     placeholder="Enter amount"
                     className="h-8"
                   />
-                ) : (
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <DollarSign className="h-3 w-3 text-muted-foreground" />
-                    <span>{client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}</span>
-                  </div>
-                )}
+    ) : (
+      <span className="font-medium text-sm">
+        {client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}
+      </span>
+    )}
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Amount</Label>

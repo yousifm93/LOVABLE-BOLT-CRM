@@ -136,6 +136,7 @@ export function transformLeadToClient(lead: any): any {
     ops: {
       stage: lead.pipeline_stage?.name || 'leads',
       status: lead.status,
+      referralSource: lead.referral_source || null,
     },
     dates: {
       createdOn: lead.created_at,
@@ -145,5 +146,9 @@ export function transformLeadToClient(lead: any): any {
     },
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
+    referral_method: lead.referral_method || null,
+    referral_source: lead.referral_source || null,
+    monthly_payment_goal: lead.monthly_payment_goal || null,
+    cash_to_close_goal: lead.cash_to_close_goal || null,
   };
 }
