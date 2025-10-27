@@ -48,6 +48,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
     estimated_fico: client.loan?.ficoScore || null,
     piti: client.loan?.monthlyPayment || null,
+    property_type: client.property?.propertyType || "",
   });
 
   const handleEdit = () => {
@@ -63,6 +64,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
       estimated_fico: client.loan?.ficoScore || null,
       piti: client.loan?.monthlyPayment || null,
+      property_type: client.property?.propertyType || "",
     });
   };
 
@@ -93,6 +95,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         escrows: editData.escrows || null,
         estimated_fico: editData.estimated_fico,
         piti: editData.piti,
+        property_type: editData.property_type || null,
       });
 
       setIsEditing(false);
@@ -129,7 +132,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     { icon: Calendar, label: "Amortization Term", value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : "—" },
     { icon: Building, label: "Escrow Waiver", value: formatYesNo(client.loan?.escrowWaiver || false) },
     { icon: CreditCard, label: "FICO Score", value: client.loan?.ficoScore?.toString() || "—" },
-    { icon: DollarSign, label: "Proposed Monthly Payment", value: formatCurrency(client.loan?.monthlyPayment || 0) }
+    { icon: DollarSign, label: "Proposed Monthly Payment", value: formatCurrency(client.loan?.monthlyPayment || 0) },
+    { icon: Home, label: "Property Type", value: client.property?.propertyType || "—", badgeVariant: "outline" as const }
   ];
 
   if (isEditing) {
@@ -266,6 +270,24 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
                 onChange={(e) => setEditData({ ...editData, piti: parseFloat(e.target.value) || null })}
                 className="h-8"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Property Type</Label>
+              <Select
+                value={editData.property_type}
+                onValueChange={(value) => setEditData({ ...editData, property_type: value })}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single Family Home">Single Family Home</SelectItem>
+                  <SelectItem value="Condo">Condo</SelectItem>
+                  <SelectItem value="Townhouse">Townhouse</SelectItem>
+                  <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

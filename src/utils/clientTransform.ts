@@ -127,6 +127,11 @@ export function transformLeadToClient(lead: any): any {
       monthlyPayment: lead.piti,
       prType: lead.loan_type || 'Purchase',
     },
+    property: {
+      propertyType: lead.property_type || '',
+    },
+    buyer_agent_id: lead.buyer_agent_id || null,
+    buyer_agent: lead.buyer_agent || null,
     ops: {
       stage: lead.pipeline_stage?.name || 'leads',
       status: lead.status,
