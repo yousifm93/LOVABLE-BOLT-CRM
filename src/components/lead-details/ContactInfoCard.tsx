@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, Mail, User, DollarSign, ArrowRightLeft, Home, Building2, Landmark } from "lucide-react";
+import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,8 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [showAgentDrawer, setShowAgentDrawer] = useState(false);
   
   // Edit form state
   const [editData, setEditData] = useState({
@@ -71,8 +74,8 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const agentsData = await databaseService.getContacts();
-        setAgents(agentsData || []);
+        const buyerAgentsData = await databaseService.getBuyerAgents();
+        setAgents(buyerAgentsData || []);
       } catch (error) {
         console.error('Error fetching agents:', error);
       }
@@ -82,6 +85,24 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
 
   const fullName = `${client.person.firstName} ${client.person.lastName}`;
   const initials = `${client.person.firstName[0]}${client.person.lastName[0]}`;
+
+  const handleAgentClick = async () => {
+    const agentId = (client as any).buyer_agent_id;
+    if (!agentId) return;
+    
+    try {
+      const agent = await databaseService.getBuyerAgentById(agentId);
+      setSelectedAgent(agent);
+      setShowAgentDrawer(true);
+    } catch (error) {
+      console.error('Error fetching agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load agent details",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -355,7 +376,11 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3 w-3 text-muted-foreground" />
-                    <span>
+                    <button
+                      onClick={handleAgentClick}
+                      className="text-primary hover:underline cursor-pointer disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
+                      disabled={!(client as any).buyer_agent_id}
+                    >
                       {(() => {
                         const displayAgent = (client as any).buyer_agent 
                           || agents.find(a => a.id === (client as any).buyer_agent_id);
@@ -363,7 +388,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                           ? `${displayAgent.first_name} ${displayAgent.last_name}`
                           : "—";
                       })()}
-                    </span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -509,6 +534,18 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AgentDetailDrawer
+        agent={selectedAgent}
+        isOpen={showAgentDrawer}
+        onClose={() => {
+          setShowAgentDrawer(false);
+          setSelectedAgent(null);
+        }}
+        onAgentUpdated={() => {
+          onLeadUpdated?.();
+        }}
+      />
     </>
   );
 }

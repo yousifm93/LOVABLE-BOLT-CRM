@@ -2102,7 +2102,7 @@ export type Database = {
             foreignKeyName: "leads_buyer_agent_id_fkey"
             columns: ["buyer_agent_id"]
             isOneToOne: false
-            referencedRelation: "contacts"
+            referencedRelation: "buyer_agents"
             referencedColumns: ["id"]
           },
           {
