@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, MessageSquare, FileText, Circle, Plus } from "lucide-react";
 import { formatDistance } from "date-fns";
+import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 
 interface Activity {
   id: number;
@@ -55,6 +56,9 @@ const getActivityBadgeVariant = (type: Activity['type']) => {
 };
 
 export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: ActivityTabProps) {
+  const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
+  const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
+
   return (
     <div className="space-y-4">
       {/* Action Buttons */}
@@ -99,8 +103,19 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .toUpperCase()
             .slice(0, 2);
 
+          const isNote = activity.type === 'note';
+
           return (
-            <div key={activity.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
+            <div 
+              key={activity.id} 
+              className={`flex items-start gap-3 pb-3 border-b last:border-0 ${isNote ? 'cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors' : ''}`}
+              onClick={() => {
+                if (isNote) {
+                  setSelectedNote(activity);
+                  setShowNoteDetailModal(true);
+                }
+              }}
+            >
               <Avatar className="h-8 w-8 shrink-0">
                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                   {userInitials}
@@ -141,6 +156,12 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
           </div>
         </ScrollArea>
       )}
+
+      <NoteDetailModal
+        open={showNoteDetailModal}
+        onOpenChange={setShowNoteDetailModal}
+        note={selectedNote}
+      />
     </div>
   );
 }

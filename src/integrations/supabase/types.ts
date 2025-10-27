@@ -414,7 +414,7 @@ export type Database = {
           notes: string | null
           outcome: Database["public"]["Enums"]["call_outcome"]
           timestamp: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -424,7 +424,7 @@ export type Database = {
           notes?: string | null
           outcome: Database["public"]["Enums"]["call_outcome"]
           timestamp?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -434,7 +434,7 @@ export type Database = {
           notes?: string | null
           outcome?: Database["public"]["Enums"]["call_outcome"]
           timestamp?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1148,7 +1148,7 @@ export type Database = {
           subject: string
           timestamp: string
           to_email: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1160,7 +1160,7 @@ export type Database = {
           subject: string
           timestamp?: string
           to_email: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1172,7 +1172,7 @@ export type Database = {
           subject?: string
           timestamp?: string
           to_email?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -3387,7 +3387,7 @@ export type Database = {
           lead_id: string
           timestamp: string
           to_number: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           body: string
@@ -3398,7 +3398,7 @@ export type Database = {
           lead_id: string
           timestamp?: string
           to_number: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           body?: string
@@ -3409,7 +3409,7 @@ export type Database = {
           lead_id?: string
           timestamp?: string
           to_number?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {

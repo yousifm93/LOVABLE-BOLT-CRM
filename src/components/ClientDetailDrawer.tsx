@@ -15,6 +15,7 @@ import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, 
 import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
+import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
@@ -63,6 +64,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [showSmsLogModal, setShowSmsLogModal] = useState(false);
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<Activity | null>(null);
+  const [showNoteDetailModal, setShowNoteDetailModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<any[]>([
     { id: 1, name: "W2_2023.pdf", size: 245760, uploadDate: "2024-01-10", type: "application/pdf" },
@@ -741,17 +744,24 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     </p>
                   ) : (
                     activities.filter(a => a.type === 'note').slice(0, 5).map((note) => (
-                      <div key={note.id} className="space-y-1">
-                        <button className="text-primary hover:underline text-sm font-medium">
+                      <div 
+                        key={note.id} 
+                        className="space-y-1 cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors"
+                        onClick={() => {
+                          setSelectedNote(note);
+                          setShowNoteDetailModal(true);
+                        }}
+                      >
+                        <div className="text-primary hover:underline text-sm font-medium">
                           {note.title}
-                        </button>
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {new Date(note.timestamp).toLocaleDateString('en-US', { 
                             month: 'short', day: 'numeric', year: 'numeric', 
                             hour: 'numeric', minute: '2-digit' 
-                          })} • by <button className="text-primary hover:underline">{note.user}</button>
+                          })} • by <span className="text-primary">{note.user}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
                           {note.description}
                         </p>
                       </div>
@@ -931,6 +941,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               await handleActivityCreated('note');
               setShowAddNoteModal(false);
             }}
+          />
+
+          <NoteDetailModal
+            open={showNoteDetailModal}
+            onOpenChange={setShowNoteDetailModal}
+            note={selectedNote}
           />
         </>
       )}

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
 
 interface ActivityLogModalProps {
@@ -47,9 +48,23 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
+      // Get current session and try to find matching user
+      const { data: { session } } = await supabase.auth.getSession();
+      let userId: string | null = null;
+
+      if (session?.user?.email) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        userId = usersData?.id || null;
+      }
+
       const callLogData: CallLogInsert = {
         lead_id: leadId,
-        user_id: user?.id || 'temp-user-id',
+        user_id: userId,
         timestamp: new Date(formData.timestamp).toISOString(),
         outcome: 'Connected' as any,
         duration_seconds: null,
@@ -158,9 +173,23 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     setLoading(true);
 
     try {
+      // Get current session and try to find matching user
+      const { data: { session } } = await supabase.auth.getSession();
+      let userId: string | null = null;
+
+      if (session?.user?.email) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        userId = usersData?.id || null;
+      }
+
       const smsLogData: SmsLogInsert = {
         lead_id: leadId,
-        user_id: user?.id || 'temp-user-id',
+        user_id: userId,
         timestamp: new Date(formData.timestamp).toISOString(),
         direction: 'Out' as any,
         to_number: 'client-number',
@@ -270,9 +299,23 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
     setLoading(true);
 
     try {
+      // Get current session and try to find matching user
+      const { data: { session } } = await supabase.auth.getSession();
+      let userId: string | null = null;
+
+      if (session?.user?.email) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        userId = usersData?.id || null;
+      }
+
       const emailLogData: EmailLogInsert = {
         lead_id: leadId,
-        user_id: user?.id || 'temp-user-id',
+        user_id: userId,
         timestamp: new Date(formData.timestamp).toISOString(),
         direction: 'Out' as any,
         to_email: 'client@example.com',
@@ -381,9 +424,23 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
+      // Get current session and try to find matching user
+      const { data: { session } } = await supabase.auth.getSession();
+      let authorId: string | null = null;
+
+      if (session?.user?.email) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        
+        authorId = usersData?.id || null;
+      }
+
       const noteData: NoteInsert = {
         lead_id: leadId,
-        author_id: user?.id || 'temp-user-id',
+        author_id: authorId,
         body: noteBody.trim(),
       };
 
