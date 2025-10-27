@@ -41,7 +41,8 @@ const handler = async (req: Request): Promise<Response> => {
         *,
         buyer_agent:buyer_agents!buyer_agent_id(
           id,
-          name,
+          first_name,
+          last_name,
           email
         )
       `)
@@ -89,9 +90,9 @@ const handler = async (req: Request): Promise<Response> => {
       loan_type: lead.loan_type || "",
       property_type: lead.property_type || "",
       program: lead.program || "",
-      agent_first_name: lead.buyer_agent?.name?.split(" ")[0] || "",
-      agent_last_name: lead.buyer_agent?.name?.split(" ").slice(1).join(" ") || "",
-      agent_name: lead.buyer_agent?.name || "",
+      agent_first_name: lead.buyer_agent?.first_name || "",
+      agent_last_name: lead.buyer_agent?.last_name || "",
+      agent_name: lead.buyer_agent ? `${lead.buyer_agent.first_name} ${lead.buyer_agent.last_name}`.trim() : "",
       agent_email: lead.buyer_agent?.email || "",
       sender_first_name: sender.first_name || "",
       sender_last_name: sender.last_name || "",
