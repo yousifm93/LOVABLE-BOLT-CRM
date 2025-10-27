@@ -67,21 +67,16 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [selectedNote, setSelectedNote] = useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [documents, setDocuments] = useState<any[]>([
-    { id: 1, name: "W2_2023.pdf", size: 245760, uploadDate: "2024-01-10", type: "application/pdf" },
-    { id: 2, name: "Pay_Stub_Dec_2023.pdf", size: 156342, uploadDate: "2024-01-12", type: "application/pdf" },
-    { id: 3, name: "Bank_Statement_Nov.pdf", size: 423187, uploadDate: "2024-01-15", type: "application/pdf" },
-    { id: 4, name: "Property_Photos.jpg", size: 2847563, uploadDate: "2024-01-16", type: "image/jpeg" },
-    { id: 5, name: "Purchase_Agreement.docx", size: 87432, uploadDate: "2024-01-18", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
-  ]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [chatMessage, setChatMessage] = useState('');
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
 
-  // Load activities when drawer opens
+  // Load activities and documents when drawer opens
   React.useEffect(() => {
     if (isOpen && leadId) {
       loadActivities();
+      loadDocuments();
     }
   }, [isOpen, leadId]);
 
@@ -105,6 +100,16 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     } catch (error) {
       console.error('Error loading activities:', error);
       // Don't show toast error to avoid cluttering UI on open
+    }
+  };
+
+  const loadDocuments = async () => {
+    if (!leadId) return;
+    try {
+      const fetchedDocuments = await databaseService.getLeadDocuments(leadId);
+      setDocuments(fetchedDocuments);
+    } catch (error) {
+      console.error('Error loading documents:', error);
     }
   };
 
@@ -668,6 +673,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 // Merge patch into client object for immediate UI update
                 Object.assign(client, patch);
               }}
+              onDocumentsChange={loadDocuments}
               onCallClick={() => {
                 if (!leadId) {
                   toast({

@@ -1069,5 +1069,83 @@ export const databaseService = {
     
     if (error) throw error;
     return data;
+  },
+
+  // Document operations
+  async getLeadDocuments(leadId: string) {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  async uploadLeadDocument(
+    leadId: string,
+    file: File,
+    metadata?: { title?: string; notes?: string }
+  ) {
+    // 1. Upload to storage
+    const timestamp = Date.now();
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const storagePath = `leads/${leadId}/${timestamp}_${sanitizedFileName}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (uploadError) throw uploadError;
+    
+    // 2. Create database record
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        lead_id: leadId,
+        file_name: file.name,
+        file_url: storagePath,
+        mime_type: file.type,
+        size_bytes: file.size,
+        uploaded_by: userData.user?.id,
+        title: metadata?.title || file.name,
+        notes: metadata?.notes
+      })
+      .select()
+      .single();
+    
+    if (dbError) throw dbError;
+    return data;
+  },
+
+  async deleteLeadDocument(documentId: string, storagePath: string) {
+    // 1. Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from('documents')
+      .remove([storagePath]);
+    
+    if (storageError) console.error('Storage deletion error:', storageError);
+    
+    // 2. Delete from database
+    const { error: dbError } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', documentId);
+    
+    if (dbError) throw dbError;
+  },
+
+  async getDocumentSignedUrl(storagePath: string, expiresIn = 3600) {
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(storagePath, expiresIn);
+    
+    if (error) throw error;
+    return data.signedUrl;
   }
 };

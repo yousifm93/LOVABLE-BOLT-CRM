@@ -16,6 +16,7 @@ interface LeadCenterTabsProps {
   client: any;
   onLeadUpdated?: () => void;
   onClientPatched?: (patch: any) => void;
+  onDocumentsChange?: () => void;
   onCallClick?: () => void;
   onSmsClick?: () => void;
   onEmailClick?: () => void;
@@ -23,7 +24,7 @@ interface LeadCenterTabsProps {
   onTaskClick?: () => void;
 }
 
-export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
+export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
   return (
     <Card className="mb-4 h-[600px]">
       <CardHeader className="pb-2">
@@ -82,7 +83,11 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
           </TabsContent>
           
           <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <DocumentsTab documents={documents} />
+            <DocumentsTab 
+              leadId={leadId} 
+              documents={documents} 
+              onDocumentsChange={onDocumentsChange || (() => {})}
+            />
           </TabsContent>
           
           <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
