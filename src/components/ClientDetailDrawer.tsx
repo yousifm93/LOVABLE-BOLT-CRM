@@ -613,17 +613,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     currentStage={
                       pipelineType === 'active' 
                         ? (client.ops.status === 'SUV' ? 'SUB' : client.ops.status || '')
-                        : (() => {
-                            const stageMapping: Record<string, string> = {
-                              'leads': 'New',
-                              'pending-app': 'Pending App',
-                              'screening': 'Screening',
-                              'pre-qualified': 'Pre-Qualified',
-                              'pre-approved': 'Pre-Approved',
-                              'active': 'Active'
-                            };
-                            return stageMapping[client.ops.stage as string] || '';
-                          })()
+                        : client.ops.stage || ''
                     }
                     size="md"
                     clickable={true}
