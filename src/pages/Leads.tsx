@@ -992,11 +992,15 @@ export default function Leads() {
     const dbLead = dbLeadsMap.get(lead.id);
     if (!dbLead) {
       console.error('Database lead not found for ID:', lead.id);
+      toast({
+        title: "Error",
+        description: "Could not load lead details. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
     
     // Use transformLeadToClient for proper field mapping
-    const { transformLeadToClient } = require('@/utils/clientTransform');
     const crmClient = transformLeadToClient(dbLead);
     
     setSelectedClient(crmClient);
