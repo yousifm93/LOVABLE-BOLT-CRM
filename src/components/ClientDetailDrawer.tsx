@@ -617,7 +617,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                             const upper = String(raw).toUpperCase();
                             return upper === 'SUV' ? 'SUB' : upper;
                           })()
-                        : (client.ops.stage || '')
+                        : (() => {
+                            const s = client.ops.stage;
+                            const config = PIPELINE_CONFIGS['leads'];
+                            if (!s) return 'New';
+                            // Try key match (e.g., 'leads', 'pending-app', etc.)
+                            const byKey = config.find(st => st.key === s);
+                            if (byKey) return byKey.label;
+                            // Try label match (e.g., 'Pending App', 'Pre-Approved')
+                            const byLabel = config.find(st => st.label.toLowerCase() === String(s).toLowerCase());
+                            return byLabel ? byLabel.label : 'New';
+                          })()
                     }
                     size="md"
                     clickable={true}
