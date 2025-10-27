@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type LeadInsert, type User, type Contact, type PipelineStage } from '@/services/database';
+import { supabase } from '@/integrations/supabase/client';
 
 // Format date as YYYY-MM-DD in local timezone
 const formatLocalDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -106,15 +107,20 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       console.log('[DEBUG] Lead created successfully:', newLead);
       
       // If notes were provided, create a note record
-      if (formData.notes.trim() && newLead.id && user) {
+      if (formData.notes.trim() && newLead.id) {
         try {
-          const currentUser = users.find(u => u.email === user.email);
-          if (currentUser) {
+          const { data: { session } } = await supabase.auth.getSession();
+          const authorId = session?.user?.id || users.find(u => u.email === user?.email)?.id;
+          
+          if (authorId) {
             await databaseService.createNote({
               lead_id: newLead.id,
-              author_id: currentUser.id,
+              author_id: authorId,
               body: formData.notes,
             });
+            console.log('[DEBUG] Note created successfully');
+          } else {
+            console.warn('[DEBUG] Could not create note: no author_id found');
           }
         } catch (noteError) {
           console.error('[DEBUG] Error creating note:', noteError);

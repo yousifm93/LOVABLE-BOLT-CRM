@@ -346,15 +346,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   };
 
-  const handleActivityCreated = (activityType: string) => {
-    const newActivity: Activity = {
-      id: Date.now(),
-      type: activityType as any,
-      title: `${activityType.charAt(0).toUpperCase() + activityType.slice(1)} logged`,
-      timestamp: new Date().toISOString(),
-      user: 'Current User'
-    };
-    setActivities(prev => [newActivity, ...prev]);
+  const handleActivityCreated = async (activityType: string) => {
+    // Reload activities from database to get the latest data
+    await loadActivities();
   };
 
   const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -933,8 +927,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             open={showAddNoteModal}
             onOpenChange={setShowAddNoteModal}
             leadId={leadId}
-            onActivityCreated={(activity) => {
-              handleActivityCreated('note');
+            onActivityCreated={async (activity) => {
+              await handleActivityCreated('note');
               setShowAddNoteModal(false);
             }}
           />

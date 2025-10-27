@@ -300,7 +300,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-3 w-3 text-muted-foreground" />
-                    <span>{client.person?.phone || "(352) 328-9828"}</span>
+                    <span>{client.person?.phone || "—"}</span>
                   </div>
                 )}
               </div>
@@ -343,9 +343,13 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3 w-3 text-muted-foreground" />
                     <span>
-                      {(client as any).buyer_agent 
-                        ? `${(client as any).buyer_agent.first_name} ${(client as any).buyer_agent.last_name}${(client as any).buyer_agent.company ? ` - ${(client as any).buyer_agent.company}` : ''}`
-                        : "—"}
+                      {(() => {
+                        const displayAgent = (client as any).buyer_agent 
+                          || agents.find(a => a.id === (client as any).buyer_agent_id);
+                        return displayAgent
+                          ? `${displayAgent.first_name} ${displayAgent.last_name}${displayAgent.company ? ` - ${displayAgent.company}` : ''}`
+                          : "—";
+                      })()}
                     </span>
                   </div>
                 )}

@@ -989,9 +989,12 @@ export default function Leads() {
         firstName: lead.name.split(' ')[0],
         lastName: lead.name.split(' ').slice(1).join(' '),
         email: lead.email,
+        phone: lead.phone,
         phoneMobile: lead.phone
       },
       databaseId: lead.id, // Real UUID from database
+      buyer_agent_id: lead.realEstateAgent || null,
+      buyer_agent: lead.realEstateAgentData || null,
       loan: {
         loanAmount: "$0",
         loanType: "Purchase",
