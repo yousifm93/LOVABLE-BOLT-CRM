@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Mail, User, DollarSign, ArrowRightLeft } from "lucide-react";
+import { Phone, Mail, User, DollarSign, ArrowRightLeft, Home, Building2, Landmark } from "lucide-react";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { Input } from "@/components/ui/input";
@@ -221,81 +221,82 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     <>
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 
                 onClick={onClose}
                 className="flex items-center justify-center"
               >
-              <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={client.person.avatar} />
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-            {isEditing ? (
-              <div className="flex gap-2">
-                <Input
-                  value={editData.firstName}
-                  onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                  placeholder="First Name"
-                  className="h-8"
-                />
-                <Input
-                  value={editData.lastName}
-                  onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                  placeholder="Last Name"
-                  className="h-8"
-                />
-              </div>
-            ) : (
-              <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
-            )}
-          </div>
-          </div>
-          <div className="flex gap-2 mb-3">
-            {!isEditing ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="default" 
-                  className="px-4 py-2"
-                  onClick={handleEdit}
-                >
-                  Edit
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="default" 
-                  className="px-4 py-2"
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  Delete
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button 
-                  variant="default" 
-                  size="default" 
-                  className="px-4 py-2"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="default" 
-                  className="px-4 py-2"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-              </>
-            )}
+                <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <AvatarImage src={client.person.avatar} />
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              {isEditing ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={editData.firstName}
+                    onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                    placeholder="First Name"
+                    className="h-8"
+                  />
+                  <Input
+                    value={editData.lastName}
+                    onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                    placeholder="Last Name"
+                    className="h-8"
+                  />
+                </div>
+              ) : (
+                <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              {!isEditing ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="default" 
+                    className="px-4 py-2"
+                    onClick={handleEdit}
+                  >
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="default" 
+                    className="px-4 py-2"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    Delete
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="default" 
+                    size="default" 
+                    className="px-4 py-2"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="default" 
+                    className="px-4 py-2"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -407,11 +408,14 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     placeholder="Enter amount"
                     className="h-8"
                   />
-    ) : (
-      <span className="font-medium text-sm">
-        {client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}
-      </span>
-    )}
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">
+                      {client.loan?.salesPrice ? `$${Number(client.loan.salesPrice).toLocaleString()}` : "—"}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Amount</Label>
@@ -426,7 +430,12 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     className="h-8"
                   />
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.loanAmount ? `$${Number(client.loan.loanAmount).toLocaleString()}` : "—"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Landmark className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">
+                      {client.loan?.loanAmount ? `$${Number(client.loan.loanAmount).toLocaleString()}` : "—"}
+                    </span>
+                  </div>
                 )}
               </div>
               <div className="flex flex-col gap-1">
@@ -447,7 +456,10 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-sm">{client.property?.propertyType || "—"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Home className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">{client.property?.propertyType || "—"}</span>
+                  </div>
                 )}
               </div>
               <div className="flex flex-col gap-1">
@@ -468,7 +480,10 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-sm">{client.loan?.loanProgram || "—"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">{client.loan?.loanProgram || "—"}</span>
+                  </div>
                 )}
               </div>
             </div>
