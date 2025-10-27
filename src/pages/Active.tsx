@@ -29,6 +29,8 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
@@ -39,6 +41,8 @@ import { useToast } from "@/hooks/use-toast";
 // Main view default columns
 const DEFAULT_MAIN_VIEW_COLUMNS = [
   "borrower_name",
+  "email",
+  "phone",
   "team",
   "lender",
   "arrive_loan_number",
@@ -222,6 +226,37 @@ const createColumns = (
         }}
       >
         {`${row.original.first_name} ${row.original.last_name}`}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.email || ""}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "email", value || null)
+          }
+          placeholder="Email"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditPhone
+          value={row.original.phone || ""}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "phone", value || null)
+          }
+        />
       </div>
     ),
     sortable: true,
@@ -655,6 +690,8 @@ export default function Active() {
   // Core columns that should appear first with default visibility
   const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
+    { id: "email", label: "Email", visible: true },
+    { id: "phone", label: "Phone", visible: true },
     { id: "team", label: "User", visible: true },
     { id: "lender", label: "Lender", visible: true },
     { id: "arrive_loan_number", label: "Loan #", visible: true },
