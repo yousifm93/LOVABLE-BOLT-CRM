@@ -228,9 +228,10 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 id="borrower"
                 checked={recipients.borrower}
                 onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
+                disabled={!borrowerEmail}
               />
               <Label htmlFor="borrower" className="text-sm">
-                Borrower {borrowerEmail && `(${borrowerEmail})`}
+                Borrower
               </Label>
             </div>
             
@@ -242,7 +243,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 disabled={!agentEmail}
               />
               <Label htmlFor="agent" className="text-sm">
-                Agent {agentEmail ? `(${agentEmail})` : "(No agent assigned)"}
+                Buyer's Agent
               </Label>
             </div>
             
