@@ -661,6 +661,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               documents={documents}
               client={client}
               onLeadUpdated={onLeadUpdated}
+              onClientPatched={(patch) => {
+                // Merge patch into client object for immediate UI update
+                Object.assign(client, patch);
+              }}
               onCallClick={() => {
                 if (!leadId) {
                   toast({
