@@ -220,41 +220,39 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   return (
     <>
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={onClose}
-                className="flex items-center justify-center"
-              >
-                <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                  <AvatarImage src={client.person.avatar} />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-              {isEditing ? (
-                <div className="flex gap-2">
-                  <Input
-                    value={editData.firstName}
-                    onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                    placeholder="First Name"
-                    className="h-8"
-                  />
-                  <Input
-                    value={editData.lastName}
-                    onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                    placeholder="Last Name"
-                    className="h-8"
-                  />
-                </div>
-              ) : (
-                <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
-              )}
-            </div>
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="flex items-center justify-center"
+            >
+              <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
+                <AvatarImage src={client.person.avatar} />
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Input
+                  value={editData.firstName}
+                  onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
+                  placeholder="First Name"
+                  className="h-8"
+                />
+                <Input
+                  value={editData.lastName}
+                  onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
+                  placeholder="Last Name"
+                  className="h-8"
+                />
+              </div>
+            ) : (
+              <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
+            )}
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 ml-4">
               {!isEditing ? (
                 <>
                   <Button 
