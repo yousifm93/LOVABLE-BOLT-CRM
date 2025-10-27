@@ -58,6 +58,22 @@ const MAIN_VIEW_COLUMNS = [
   "baStatus"
 ];
 
+// Map database field names to frontend accessorKey names
+const FIELD_NAME_MAP: Record<string, string> = {
+  'real_estate_agent': 'realEstateAgent',
+  'buyer_agent_id': 'realEstateAgent',
+  'task_eta': 'dueDate',
+  'teammate_assigned': 'user',
+  'converted': 'status',
+  'estimated_fico': 'fico',
+  'loan_type': 'loanType',
+  'loan_amount': 'loanAmount',
+  'sales_price': 'salesPrice',
+  'pre_qualified_at': 'preQualifiedOn',
+  'arrive_loan_number': 'loanNumber',
+  'ba_status': 'baStatus',
+};
+
 type DisplayLead = {
   id: string;
   name: string;
@@ -107,7 +123,7 @@ export default function PreQualified() {
     const dbColumns = allFields
       .filter(f => f.is_in_use) // Show ALL 72 fields
       .map(field => ({
-        id: field.field_name,
+        id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
         label: field.display_name,
         visible: false
       }));
@@ -488,8 +504,9 @@ export default function PreQualified() {
 
   // Generate column definition for dynamic fields
   const generateColumnDef = (field: any): ColumnDef<DisplayLead> => {
+    const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
     const baseColumn: ColumnDef<DisplayLead> = {
-      accessorKey: field.field_name,
+      accessorKey: frontendFieldName, // Use mapped frontend name
       header: field.display_name,
       sortable: true,
     };

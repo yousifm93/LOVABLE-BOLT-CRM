@@ -156,21 +156,37 @@ const leadStrengthOptions = [
   { value: "Qualified", label: "Qualified" },
 ];
 
+// Map database field names to frontend accessorKey names
+const FIELD_NAME_MAP: Record<string, string> = {
+  'real_estate_agent': 'realEstateAgent',
+  'buyer_agent_id': 'realEstateAgent',
+  'task_eta': 'dueDate',
+  'teammate_assigned': 'user',
+  'converted': 'status',
+  'estimated_fico': 'creditScore',
+  'referred_via': 'referredVia',
+  'referral_source': 'referralSource',
+  'lead_strength': 'leadStrength',
+  'created_at': 'createdOn',
+  'loan_type': 'loanType',
+  'loan_amount': 'loanAmount',
+};
+
 export default function Leads() {
   const { allFields } = useFields();
   
-  // Core columns (original customized set)
+  // Core columns (original customized set) - IDs match hardcoded accessorKey values
   const coreColumns = [
     { id: "name", label: "Full Name", visible: true },
     { id: "createdOn", label: "Lead Created On", visible: true },
     { id: "phone", label: "Lead Phone", visible: true },
     { id: "email", label: "Lead Email", visible: true },
-    { id: "buyerAgent", label: "Buyer's Agent", visible: true },
+    { id: "realEstateAgent", label: "Buyer's Agent", visible: true },
     { id: "referredVia", label: "Referred Via", visible: true },
     { id: "referralSource", label: "Referral Source", visible: true },
     { id: "status", label: "Lead Status", visible: true },
-    { id: "taskEta", label: "Task ETA", visible: true },
-    { id: "team", label: "Team", visible: true },
+    { id: "dueDate", label: "Task ETA", visible: true },
+    { id: "user", label: "Team", visible: true },
   ];
 
   // Load ALL database fields for Hide/Show modal
@@ -178,7 +194,7 @@ export default function Leads() {
     const dbColumns = allFields
       .filter(f => f.is_in_use) // Show ALL 72 fields
       .map(field => ({
-        id: field.field_name,
+        id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
         label: field.display_name,
         visible: false // hidden by default for new fields
       }));
@@ -547,8 +563,9 @@ export default function Leads() {
 
   // Generate column definition for dynamic fields
   const generateColumnDef = (field: any): ColumnDef<Lead> => {
+    const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
     const baseColumn: ColumnDef<Lead> = {
-      accessorKey: field.field_name,
+      accessorKey: frontendFieldName, // Use mapped frontend name
       header: field.display_name,
       sortable: true,
     };
