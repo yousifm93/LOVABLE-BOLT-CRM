@@ -612,8 +612,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
                     currentStage={
                       pipelineType === 'active' 
-                        ? (client.ops.status === 'SUV' ? 'SUB' : client.ops.status || '')
-                        : client.ops.stage || ''
+                        ? (() => {
+                            const raw = (client as any).loanStatus || (client as any).loan_status || client.ops.status || '';
+                            const upper = String(raw).toUpperCase();
+                            return upper === 'SUV' ? 'SUB' : upper;
+                          })()
+                        : (client.ops.stage || '')
                     }
                     size="md"
                     clickable={true}

@@ -965,6 +965,7 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
+        pipeline_stage:pipeline_stages(*),
         lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
         approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
         buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
@@ -981,6 +982,7 @@ export const databaseService = {
     // Transform array embeds to single objects (Supabase returns arrays for FKs)
     return {
       ...data,
+      pipeline_stage: Array.isArray((data as any).pipeline_stage) ? (data as any).pipeline_stage[0] || null : (data as any).pipeline_stage,
       lender: Array.isArray(data.lender) ? data.lender[0] || null : data.lender,
       approved_lender: Array.isArray(data.approved_lender) ? data.approved_lender[0] || null : data.approved_lender,
       buyer_agent: Array.isArray(data.buyer_agent) ? data.buyer_agent[0] || null : data.buyer_agent,

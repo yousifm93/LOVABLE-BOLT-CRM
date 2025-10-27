@@ -146,6 +146,7 @@ export function transformLeadToClient(lead: any): any {
     },
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
+    loanStatus: lead.loan_status || null,
     referral_method: lead.referred_via || null, // Map referred_via to referral_method
     referred_via: lead.referred_via || null,
     referral_source: lead.referral_source || null,
