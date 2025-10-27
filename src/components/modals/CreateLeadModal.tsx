@@ -110,21 +110,23 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       if (formData.notes.trim() && newLead.id) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          const authorId = session?.user?.id || users.find(u => u.email === user?.email)?.id;
+          const authorId = session?.user?.id 
+            ? users.find(u => u.email === session.user.email)?.id || null
+            : null;
           
-          if (authorId) {
-            await databaseService.createNote({
-              lead_id: newLead.id,
-              author_id: authorId,
-              body: formData.notes,
-            });
-            console.log('[DEBUG] Note created successfully');
-          } else {
-            console.warn('[DEBUG] Could not create note: no author_id found');
-          }
+          await databaseService.createNote({
+            lead_id: newLead.id,
+            author_id: authorId,
+            body: formData.notes,
+          });
+          console.log('[DEBUG] Note created successfully', authorId ? `by user ${authorId}` : 'without author');
         } catch (noteError) {
           console.error('[DEBUG] Error creating note:', noteError);
-          // Don't fail the lead creation if note creation fails
+          toast({
+            title: 'Warning',
+            description: 'Lead created but note could not be saved',
+            variant: 'destructive',
+          });
         }
       }
       

@@ -62,16 +62,21 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         try {
           // Get current user ID from session
           const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await databaseService.createNote({
-              lead_id: newLead.id,
-              author_id: session.user.id,
-              body: formData.notes,
-            });
-          }
+          const authorId = session?.user?.id || null;
+          
+          await databaseService.createNote({
+            lead_id: newLead.id,
+            author_id: authorId,
+            body: formData.notes,
+          });
+          console.log('Note created successfully', authorId ? `by user ${authorId}` : 'without author');
         } catch (noteError) {
           console.error('Error creating note:', noteError);
-          // Don't fail the lead creation if note creation fails
+          toast({
+            title: 'Warning',
+            description: 'Lead created but note could not be saved',
+            variant: 'destructive',
+          });
         }
       }
 

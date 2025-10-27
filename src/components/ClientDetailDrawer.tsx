@@ -96,7 +96,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         description: activity.body || activity.notes || '',
         timestamp: activity.created_at,
         user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
-              activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'Unknown'
+              activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System'
       }));
       setActivities(transformedActivities);
     } catch (error) {

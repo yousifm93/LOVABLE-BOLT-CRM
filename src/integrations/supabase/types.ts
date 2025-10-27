@@ -2356,21 +2356,21 @@ export type Database = {
       }
       notes: {
         Row: {
-          author_id: string
+          author_id: string | null
           body: string
           created_at: string
           id: string
           lead_id: string
         }
         Insert: {
-          author_id: string
+          author_id?: string | null
           body: string
           created_at?: string
           id?: string
           lead_id: string
         }
         Update: {
-          author_id?: string
+          author_id?: string | null
           body?: string
           created_at?: string
           id?: string
