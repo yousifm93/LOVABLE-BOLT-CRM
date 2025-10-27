@@ -1148,11 +1148,17 @@ export type Database = {
       }
       email_logs: {
         Row: {
+          bounced_at: string | null
+          clicked_at: string | null
           created_at: string
+          delivery_status: string | null
           direction: Database["public"]["Enums"]["log_direction"]
+          error_details: string | null
           from_email: string
           id: string
           lead_id: string
+          opened_at: string | null
+          provider_message_id: string | null
           snippet: string | null
           subject: string
           timestamp: string
@@ -1160,11 +1166,17 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          bounced_at?: string | null
+          clicked_at?: string | null
           created_at?: string
+          delivery_status?: string | null
           direction: Database["public"]["Enums"]["log_direction"]
+          error_details?: string | null
           from_email: string
           id?: string
           lead_id: string
+          opened_at?: string | null
+          provider_message_id?: string | null
           snippet?: string | null
           subject: string
           timestamp?: string
@@ -1172,11 +1184,17 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          bounced_at?: string | null
+          clicked_at?: string | null
           created_at?: string
+          delivery_status?: string | null
           direction?: Database["public"]["Enums"]["log_direction"]
+          error_details?: string | null
           from_email?: string
           id?: string
           lead_id?: string
+          opened_at?: string | null
+          provider_message_id?: string | null
           snippet?: string | null
           subject?: string
           timestamp?: string

@@ -29,6 +29,7 @@ import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Email from "@/pages/Email";
 import EmailMarketing from "@/pages/resources/EmailMarketing";
+import EmailHistory from "@/pages/admin/EmailHistory";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/past-clients" element={<PastClients />} />
         <Route path="/admin/assistant" element={<AdminAssistant />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/email-history" element={<EmailHistory />} />
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
         <Route path="/contacts/lenders" element={<ApprovedLenders />} />

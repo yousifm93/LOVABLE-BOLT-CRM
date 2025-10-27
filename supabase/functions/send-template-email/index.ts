@@ -101,7 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     // Replace merge tags in template
-    let htmlContent = template.html_content || "";
+    let htmlContent = template.html || "";
     let subject = template.name; // Use template name as subject for now
 
     Object.entries(mergeData).forEach(([key, value]) => {
@@ -145,15 +145,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
+    // Check for errors from Resend
+    if (emailResponse.error) {
+      throw new Error(`Failed to send email: ${emailResponse.error.message}`);
+    }
+
+    if (!emailResponse.data) {
+      throw new Error('Email sending failed - no response from Resend');
+    }
+
     // Log email in database
     const { error: logError } = await supabase.from("email_logs").insert({
-      template_id: templateId,
       lead_id: leadId,
-      sender_id: senderId,
-      recipients: recipientData,
+      user_id: senderId,
+      timestamp: new Date().toISOString(),
+      direction: 'outbound',
+      to_email: toEmails.join(', '),
+      from_email: sender.email,
       subject: subject,
-      status: "sent",
-      sent_at: new Date().toISOString(),
+      snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
+      provider_message_id: emailResponse.data?.id,
+      delivery_status: 'sent',
     });
 
     if (logError) {

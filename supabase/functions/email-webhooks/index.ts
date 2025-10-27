@@ -60,13 +60,22 @@ serve(async (req) => {
       .eq('provider_message_id', emailId)
       .single();
 
-    if (sendError || !sendRecord) {
-      console.warn(`No send record found for email_id: ${emailId}`);
+    // Also check for template emails in email_logs
+    const { data: emailLog } = await supabase
+      .from('email_logs')
+      .select('*')
+      .eq('provider_message_id', emailId)
+      .single();
+
+    if (sendError && !emailLog) {
+      console.warn(`No send record or email log found for email_id: ${emailId}`);
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
+
+    const campaignSend = sendRecord || null;
 
     // Map webhook types to our event types
     const eventTypeMapping: Record<string, string> = {
@@ -87,36 +96,68 @@ serve(async (req) => {
       });
     }
 
-    // Update send status for delivered events
-    if (eventType === 'delivered') {
+    // Update send status for campaign emails
+    if (eventType === 'delivered' && campaignSend) {
       await supabase
         .from('email_campaign_sends')
         .update({ 
           status: 'delivered', 
           delivered_at: new Date(created_at).toISOString() 
         })
-        .eq('id', sendRecord.id);
+        .eq('id', campaignSend.id);
     }
 
-    // Record the event
-    const { error: eventError } = await supabase
-      .from('email_events')
-      .insert({
-        campaign_id: sendRecord.campaign_id,
-        contact_id: sendRecord.contact_id,
-        type: eventType,
-        meta: {
-          provider_data: data,
-          webhook_type: type,
-          occurred_at: created_at,
-          user_agent: data.headers?.['user-agent'],
-          ip_address: data.headers?.['x-forwarded-for']
-        },
-        occurred_at: new Date(created_at).toISOString()
-      });
+    // Update email_logs for template emails
+    if (emailLog) {
+      const updates: any = {};
+      
+      if (eventType === 'delivered') {
+        updates.delivery_status = 'delivered';
+      } else if (eventType === 'bounce') {
+        updates.delivery_status = 'bounced';
+        updates.bounced_at = new Date(created_at).toISOString();
+        updates.error_details = JSON.stringify(data);
+      } else if (eventType === 'spam') {
+        updates.delivery_status = 'complained';
+      } else if (eventType === 'open') {
+        updates.opened_at = new Date(created_at).toISOString();
+      } else if (eventType === 'click') {
+        updates.clicked_at = new Date(created_at).toISOString();
+      }
 
-    if (eventError) {
-      console.error('Error recording event:', eventError);
+      if (Object.keys(updates).length > 0) {
+        const { error: logUpdateError } = await supabase
+          .from('email_logs')
+          .update(updates)
+          .eq('id', emailLog.id);
+
+        if (logUpdateError) {
+          console.error('Error updating email log:', logUpdateError);
+        }
+      }
+    }
+
+    // Record the event for campaign emails
+    if (campaignSend) {
+      const { error: eventError } = await supabase
+        .from('email_events')
+        .insert({
+          campaign_id: campaignSend.campaign_id,
+          contact_id: campaignSend.contact_id,
+          type: eventType,
+          meta: {
+            provider_data: data,
+            webhook_type: type,
+            occurred_at: created_at,
+            user_agent: data.headers?.['user-agent'],
+            ip_address: data.headers?.['x-forwarded-for']
+          },
+          occurred_at: new Date(created_at).toISOString()
+        });
+
+      if (eventError) {
+        console.error('Error recording event:', eventError);
+      }
     }
 
     // Handle special event types
@@ -153,25 +194,27 @@ serve(async (req) => {
 
       case 'click':
         // Log activity to CRM if enabled
-        try {
-          const { data: contact } = await supabase
-            .from('email_contacts')
-            .select('object_type, object_id')
-            .eq('id', sendRecord.contact_id)
-            .single();
+        if (campaignSend) {
+          try {
+            const { data: contact } = await supabase
+              .from('email_contacts')
+              .select('object_type, object_id')
+              .eq('id', campaignSend.contact_id)
+              .single();
 
-          if (contact?.object_type === 'lead' && contact.object_id) {
-            // Create activity log entry for the lead
-            // This would integrate with your existing activity logging system
-            console.log(`Contact clicked email - Lead ID: ${contact.object_id}`);
+            if (contact?.object_type === 'lead' && contact.object_id) {
+              // Create activity log entry for the lead
+              // This would integrate with your existing activity logging system
+              console.log(`Contact clicked email - Lead ID: ${contact.object_id}`);
+            }
+          } catch (error) {
+            console.error('Error logging CRM activity:', error);
           }
-        } catch (error) {
-          console.error('Error logging CRM activity:', error);
         }
         break;
     }
 
-    console.log(`Successfully processed ${eventType} event for campaign ${sendRecord.campaign_id}`);
+    console.log(`Successfully processed ${eventType} event for ${campaignSend ? `campaign ${campaignSend.campaign_id}` : `email ${emailId}`}`);
 
     return new Response(
       JSON.stringify({ success: true }),
