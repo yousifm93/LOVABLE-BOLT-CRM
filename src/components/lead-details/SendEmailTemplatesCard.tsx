@@ -170,7 +170,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
           )}
         </div>
 
-        <Button onClick={handleSendEmail} className="w-full">
+        <Button onClick={handleSendEmail} className="w-full mt-6">
           Send Email
         </Button>
       </CardContent>
