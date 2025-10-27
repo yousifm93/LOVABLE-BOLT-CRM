@@ -1756,6 +1756,7 @@ export type Database = {
           monthly_pmt_goal: number | null
           mortgage_insurance: number | null
           notes: string | null
+          number_of_dependents: number | null
           occupancy: string | null
           own_rent_current_address: string | null
           package_status: Database["public"]["Enums"]["package_status"] | null
@@ -1777,6 +1778,7 @@ export type Database = {
           sales_price: number | null
           search_stage: string | null
           source: Database["public"]["Enums"]["lead_source"] | null
+          ssn: string | null
           status: Database["public"]["Enums"]["lead_status"]
           subject_address_1: string | null
           subject_address_2: string | null
@@ -1859,6 +1861,7 @@ export type Database = {
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
           notes?: string | null
+          number_of_dependents?: number | null
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
@@ -1882,6 +1885,7 @@ export type Database = {
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null
+          ssn?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           subject_address_1?: string | null
           subject_address_2?: string | null
@@ -1964,6 +1968,7 @@ export type Database = {
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
           notes?: string | null
+          number_of_dependents?: number | null
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
@@ -1987,6 +1992,7 @@ export type Database = {
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null
+          ssn?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           subject_address_1?: string | null
           subject_address_2?: string | null

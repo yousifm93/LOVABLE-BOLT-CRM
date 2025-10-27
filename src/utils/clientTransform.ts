@@ -146,9 +146,18 @@ export function transformLeadToClient(lead: any): any {
     },
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
-    referral_method: lead.referral_method || null,
+    referral_method: lead.referred_via || null, // Map referred_via to referral_method
+    referred_via: lead.referred_via || null,
     referral_source: lead.referral_source || null,
-    monthly_payment_goal: lead.monthly_payment_goal || null,
+    monthly_payment_goal: lead.monthly_pmt_goal || null,
     cash_to_close_goal: lead.cash_to_close_goal || null,
+    ssn: lead.ssn || null,
+    dob: lead.dob || null,
+    occupancy: lead.occupancy || null,
+    number_of_dependents: lead.number_of_dependents || null,
+    borrower_current_address: lead.borrower_current_address || null,
+    time_at_current_address_years: lead.time_at_current_address_years || null,
+    time_at_current_address_months: lead.time_at_current_address_months || null,
+    military_veteran: lead.military_veteran || false,
   };
 }

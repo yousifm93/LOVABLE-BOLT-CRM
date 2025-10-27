@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TwoColumnDetailLayout } from "./TwoColumnDetailLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,12 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Phone, Mail, Home, Users, Shield, Pencil } from "lucide-react";
-import { formatDate, formatYesNo, maskSSN, formatAddress, formatPhone } from "@/utils/formatters";
+import { User, Home, Users, Shield, Pencil, Calendar, DollarSign } from "lucide-react";
+import { formatDate, formatYesNo, maskSSN, formatTimeAtAddress, formatCurrency } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { sanitizeNumber } from "@/lib/utils";
-import { z } from "zod";
 
 interface BorrowerInfoTabProps {
   client: any;
@@ -31,15 +28,16 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
   const [editData, setEditData] = useState({
     first_name: client.person?.firstName || "",
     last_name: client.person?.lastName || "",
-    email: client.person?.email || "",
-    phone: client.person?.phone || "",
-    dob: null as string | null,
-    borrower_current_address: "",
-    own_rent_current_address: "",
-    time_at_current_address_years: null as number | null,
-    time_at_current_address_months: null as number | null,
-    military_veteran: false,
-    estimated_fico: null as number | null,
+    ssn: (client as any).ssn || "",
+    dob: (client as any).dob || null,
+    occupancy: (client as any).occupancy || "",
+    number_of_dependents: (client as any).number_of_dependents || null,
+    monthly_payment_goal: (client as any).monthly_payment_goal || null,
+    cash_to_close_goal: (client as any).cash_to_close_goal || null,
+    borrower_current_address: (client as any).borrower_current_address || "",
+    time_at_current_address_years: (client as any).time_at_current_address_years || null,
+    time_at_current_address_months: (client as any).time_at_current_address_months || null,
+    military_veteran: (client as any).military_veteran || false,
   });
 
   const handleEdit = () => {
@@ -47,15 +45,16 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     setEditData({
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
-      email: client.person?.email || "",
-      phone: client.person?.phone || "",
-      dob: null,
-      borrower_current_address: "",
-      own_rent_current_address: "",
-      time_at_current_address_years: null,
-      time_at_current_address_months: null,
-      military_veteran: false,
-      estimated_fico: null,
+      ssn: (client as any).ssn || "",
+      dob: (client as any).dob || null,
+      occupancy: (client as any).occupancy || "",
+      number_of_dependents: (client as any).number_of_dependents || null,
+      monthly_payment_goal: (client as any).monthly_payment_goal || null,
+      cash_to_close_goal: (client as any).cash_to_close_goal || null,
+      borrower_current_address: (client as any).borrower_current_address || "",
+      time_at_current_address_years: (client as any).time_at_current_address_years || null,
+      time_at_current_address_months: (client as any).time_at_current_address_months || null,
+      military_veteran: (client as any).military_veteran || false,
     });
   };
 
@@ -87,15 +86,16 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       await databaseService.updateLead(leadId, {
         first_name: editData.first_name,
         last_name: editData.last_name,
-        email: editData.email || null,
-        phone: editData.phone || null,
+        ssn: editData.ssn || null,
         dob: editData.dob,
+        occupancy: editData.occupancy || null,
+        number_of_dependents: editData.number_of_dependents,
+        monthly_pmt_goal: editData.monthly_payment_goal, // Note: DB field is monthly_pmt_goal
+        cash_to_close_goal: editData.cash_to_close_goal,
         borrower_current_address: editData.borrower_current_address || null,
-        own_rent_current_address: editData.own_rent_current_address || null,
         time_at_current_address_years: editData.time_at_current_address_years,
         time_at_current_address_months: editData.time_at_current_address_months,
         military_veteran: editData.military_veteran,
-        estimated_fico: editData.estimated_fico,
       });
 
       toast({
@@ -117,168 +117,188 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     }
   };
 
-  // Mock data for borrower info fields not in current client structure
+  // Borrower data with inline editing support
   const borrowerData = [
-    { icon: User, label: "Borrower First Name", value: client.person?.firstName || "John" },
-    { icon: User, label: "Borrower Last Name", value: client.person?.lastName || "Smith" },
-    { icon: Shield, label: "Social Security Number", value: maskSSN("123456789") },
-    { icon: User, label: "Date of Birth", value: formatDate("1985-06-15") },
-    { icon: Home, label: "Residence Type", value: "Owner Occupied" },
-    { icon: Users, label: "Marital Status", value: "Married" },
-    { icon: Mail, label: "Borrower Email", value: client.person?.email || "—" },
-    { icon: Phone, label: "Borrower Phone", value: formatPhone(client.person?.phone) },
-    { icon: Users, label: "Number of Dependents", value: "2" },
-    { icon: Shield, label: "Estimated Credit Score", value: "750" },
-    { icon: Home, label: "Current Address", value: formatAddress("123 Main St, Anytown, CA 90210") },
-    { icon: Home, label: "Occupancy of Current Address", value: "Primary Residence" },
-    { icon: Home, label: "Time at Current Address", value: "3 years" },
-    { icon: Shield, label: "Military/Veteran", value: formatYesNo(false) }
-  ];
-
-  if (isEditing) {
-    return (
-      <ScrollArea className="h-full">
-        <div className="space-y-6 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Edit Borrower Information
-            </h3>
-            <div className="flex gap-2">
-              <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">First Name *</Label>
-              <Input
-                value={editData.first_name}
-                onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Last Name *</Label>
-              <Input
-                value={editData.last_name}
-                onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Borrower Email</Label>
-              <Input
-                type="email"
-                value={editData.email}
-                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Borrower Phone</Label>
-              <Input
-                type="tel"
-                value={editData.phone}
-                onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Date of Birth</Label>
-              <Input
-                type="date"
-                value={editData.dob || ""}
-                onChange={(e) => setEditData({ ...editData, dob: e.target.value || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Estimated FICO Score</Label>
-              <Input
-                type="number"
-                value={editData.estimated_fico || ""}
-                onChange={(e) => setEditData({ ...editData, estimated_fico: parseInt(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs">Current Address</Label>
-              <Input
-                value={editData.borrower_current_address}
-                onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Own/Rent Current Address</Label>
-              <Select
-                value={editData.own_rent_current_address}
-                onValueChange={(value) => setEditData({ ...editData, own_rent_current_address: value })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Own">Own</SelectItem>
-                  <SelectItem value="Rent">Rent</SelectItem>
-                  <SelectItem value="Living with Family">Living with Family</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Time at Current Address (Years)</Label>
-              <Input
-                type="number"
-                value={editData.time_at_current_address_years || ""}
-                onChange={(e) => setEditData({ ...editData, time_at_current_address_years: parseInt(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Time at Current Address (Months)</Label>
-              <Input
-                type="number"
-                value={editData.time_at_current_address_months || ""}
-                onChange={(e) => setEditData({ ...editData, time_at_current_address_months: parseInt(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Military/Veteran Status</Label>
-              <Select
-                value={editData.military_veteran ? "Yes" : "No"}
-                onValueChange={(value) => setEditData({ ...editData, military_veteran: value === "Yes" })}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Yes">Yes</SelectItem>
-                  <SelectItem value="No">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+    { 
+      icon: User, 
+      label: "Borrower First Name", 
+      value: client.person?.firstName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.first_name}
+          onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
+          className="h-8"
+          placeholder="First name"
+        />
+      ) : undefined
+    },
+    { 
+      icon: User, 
+      label: "Borrower Last Name", 
+      value: client.person?.lastName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.last_name}
+          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+          className="h-8"
+          placeholder="Last name"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Shield, 
+      label: "Social Security Number", 
+      value: maskSSN((client as any).ssn),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.ssn}
+          onChange={(e) => setEditData({ ...editData, ssn: e.target.value })}
+          className="h-8"
+          placeholder="XXX-XX-XXXX"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Calendar, 
+      label: "Date of Birth", 
+      value: formatDate((client as any).dob),
+      editComponent: isEditing ? (
+        <Input
+          type="date"
+          value={editData.dob || ""}
+          onChange={(e) => setEditData({ ...editData, dob: e.target.value || null })}
+          className="h-8"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Occupancy", 
+      value: (client as any).occupancy || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.occupancy}
+          onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select occupancy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Primary Residence">Primary Residence</SelectItem>
+            <SelectItem value="Second Home">Second Home</SelectItem>
+            <SelectItem value="Investment Property">Investment Property</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Users, 
+      label: "Number of Dependents", 
+      value: (client as any).number_of_dependents?.toString() || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.number_of_dependents || ""}
+          onChange={(e) => setEditData({ ...editData, number_of_dependents: parseInt(e.target.value) || null })}
+          className="h-8"
+          placeholder="0"
+          min="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Monthly Payment Goal", 
+      value: (client as any).monthly_payment_goal ? formatCurrency((client as any).monthly_payment_goal) : "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.monthly_payment_goal || ""}
+          onChange={(e) => setEditData({ ...editData, monthly_payment_goal: parseFloat(e.target.value) || null })}
+          className="h-8"
+          placeholder="0"
+          min="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Cash to Close Goal", 
+      value: (client as any).cash_to_close_goal ? formatCurrency((client as any).cash_to_close_goal) : "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.cash_to_close_goal || ""}
+          onChange={(e) => setEditData({ ...editData, cash_to_close_goal: parseFloat(e.target.value) || null })}
+          className="h-8"
+          placeholder="0"
+          min="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Current Address", 
+      value: (client as any).borrower_current_address || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.borrower_current_address}
+          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
+          className="h-8"
+          placeholder="Street, City, State, ZIP"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Time at Current Address", 
+      value: formatTimeAtAddress(
+        (client as any).time_at_current_address_years, 
+        (client as any).time_at_current_address_months
+      ),
+      editComponent: isEditing ? (
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            value={editData.time_at_current_address_years || ""}
+            onChange={(e) => setEditData({ ...editData, time_at_current_address_years: parseInt(e.target.value) || null })}
+            className="h-8 flex-1"
+            placeholder="Years"
+            min="0"
+          />
+          <Input
+            type="number"
+            value={editData.time_at_current_address_months || ""}
+            onChange={(e) => setEditData({ ...editData, time_at_current_address_months: parseInt(e.target.value) || null })}
+            className="h-8 flex-1"
+            placeholder="Months"
+            min="0"
+            max="11"
+          />
         </div>
-      </ScrollArea>
-    );
-  }
+      ) : undefined
+    },
+    { 
+      icon: Shield, 
+      label: "Military/Veteran", 
+      value: formatYesNo((client as any).military_veteran),
+      editComponent: isEditing ? (
+        <Select
+          value={editData.military_veteran ? "Yes" : "No"}
+          onValueChange={(value) => setEditData({ ...editData, military_veteran: value === "Yes" })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Yes">Yes</SelectItem>
+            <SelectItem value="No">No</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    }
+  ];
 
   return (
     <ScrollArea className="h-full">
@@ -287,12 +307,23 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Borrower Information
+              {isEditing ? "Edit Borrower Information" : "Borrower Information"}
             </h3>
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Pencil className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
+            {isEditing ? (
+              <div className="flex gap-2">
+                <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Pencil className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+            )}
           </div>
           <TwoColumnDetailLayout items={borrowerData} />
         </div>

@@ -118,7 +118,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
            <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
             <h4 className="font-medium text-sm mb-3">Lead Status</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Referral Method: {(client as any).referral_method || 'N/A'}</div>
+              <div>• Referral Method: {(client as any).referred_via || (client as any).referral_method || 'N/A'}</div>
               <div>• Referral Source: {client.ops.referralSource || (client as any).referral_source || 'N/A'}</div>
               <div>• Lead Status: {client.ops.status || 'Working on it'}</div>
               <div>• Monthly Payment Goal: {(client as any).monthly_payment_goal ? `$${Number((client as any).monthly_payment_goal).toLocaleString()}` : 'N/A'}</div>

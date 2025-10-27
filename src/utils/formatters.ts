@@ -176,3 +176,22 @@ export const calculateMonthlyPayment = (
   // Round to 2 decimal places
   return Math.round(monthlyPayment * 100) / 100;
 };
+
+/**
+ * Format time at current address (years and months)
+ * @param years - Number of years
+ * @param months - Number of months
+ * @returns Formatted string like "2 years, 3 months" or "—" if both null
+ */
+export const formatTimeAtAddress = (
+  years: number | null | undefined,
+  months: number | null | undefined
+): string => {
+  if (!years && !months) return "—";
+  
+  const parts = [];
+  if (years) parts.push(`${years} year${years !== 1 ? 's' : ''}`);
+  if (months) parts.push(`${months} month${months !== 1 ? 's' : ''}`);
+  
+  return parts.join(', ');
+};
