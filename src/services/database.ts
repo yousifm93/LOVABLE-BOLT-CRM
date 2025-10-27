@@ -221,7 +221,7 @@ export const databaseService = {
         created_by: userId,
         account_id: accountId,
         teammate_assigned: (lead as any).teammate_assigned ?? teammateId ?? null,
-        pipeline_stage_id: 'c54f417b-3f67-43de-80f5-954cf260d571', // Leads stage
+        pipeline_stage_id: null, // NULL for "New" page filter
         pipeline_section: null, // Don't put in Active section
         lead_on_date:
           inputLeadOnDate instanceof Date
