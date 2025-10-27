@@ -49,7 +49,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   const [editData, setEditData] = useState({
     firstName: client.person?.firstName || "",
     lastName: client.person?.lastName || "",
-    phone: client.person?.phone || "",
+    phone: client.person?.phone || client.person?.phoneMobile || "",
     email: client.person?.email || "",
     buyer_agent_id: (client as any).buyer_agent_id || null,
     loanAmount: client.loan?.loanAmount || null,
@@ -88,7 +88,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     setEditData({
       firstName: client.person?.firstName || "",
       lastName: client.person?.lastName || "",
-      phone: client.person?.phone || "",
+      phone: client.person?.phone || client.person?.phoneMobile || "",
       email: client.person?.email || "",
       buyer_agent_id: (client as any).buyer_agent_id || null,
       loanAmount: client.loan?.loanAmount || null,
@@ -313,7 +313,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-3 w-3 text-muted-foreground" />
-                    <span>{formatPhone(client.person?.phone)}</span>
+                    <span>{formatPhone(client.person?.phone || client.person?.phoneMobile)}</span>
                   </div>
                 )}
               </div>

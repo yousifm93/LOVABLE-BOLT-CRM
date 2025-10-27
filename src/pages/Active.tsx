@@ -12,6 +12,7 @@ import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -955,44 +956,19 @@ export default function Active() {
     }
   };
 
-  const handleRowClick = (loan: ActiveLoan) => {
-    // Convert ActiveLoan to CRMClient for the drawer
-    const crmClient: CRMClient = {
-      person: {
-        id: Date.now(), // Placeholder numeric ID for legacy compatibility
-        firstName: loan.first_name,
-        lastName: loan.last_name,
-        email: loan.email || "",
-        phoneMobile: loan.phone || ""
-      },
-      databaseId: loan.id, // Real UUID from database
-      loan: {
-        loanAmount: loan.loan_amount ? `$${loan.loan_amount.toLocaleString()}` : "",
-        loanType: loan.pr_type || "Purchase",
-        prType: loan.pr_type || "",
-        closeDate: loan.close_date,
-        disclosureStatus: loan.disclosure_status
-      },
-      ops: {
-        stage: "active",
-        status: loan.loan_status || "NEW",
-        priority: "High"
-      },
-      dates: {
-        createdOn: new Date().toISOString(), // ActiveLoan doesn't have creation date
-        appliedOn: new Date().toISOString()
-      },
-      meta: {},
-      name: `${loan.first_name} ${loan.last_name}`,
-      teammateAssigned: loan.teammate?.first_name && loan.teammate?.last_name 
-        ? `${loan.teammate.first_name} ${loan.teammate.last_name}` 
-        : undefined,
-      buyersAgent: loan.buyer_agent?.first_name && loan.buyer_agent?.last_name
-        ? `${loan.buyer_agent.first_name} ${loan.buyer_agent.last_name}`
-        : undefined
-    };
-    setSelectedClient(crmClient);
-    setIsDrawerOpen(true);
+  const handleRowClick = async (loan: ActiveLoan) => {
+    try {
+      const dbLead = await databaseService.getLeadByIdWithEmbeds(loan.id);
+      const crmClient = transformLeadToClient(dbLead);
+      setSelectedClient(crmClient);
+      setIsDrawerOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not load lead details. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {

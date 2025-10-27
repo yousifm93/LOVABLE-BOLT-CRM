@@ -17,6 +17,7 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatDateShort } from "@/utils/formatters";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -288,36 +289,19 @@ export default function PendingApp() {
     setFilters(filters.filter(f => f.id !== filterId));
   };
 
-  const handleRowClick = (lead: DatabaseLead) => {
-    // Convert database Lead to CRMClient for the drawer
-    const crmClient: CRMClient = {
-      person: {
-        id: Date.now(), // Placeholder numeric ID for legacy compatibility
-        firstName: lead.first_name,
-        lastName: lead.last_name,
-        email: lead.email || '',
-        phoneMobile: lead.phone || ''
-      },
-      databaseId: lead.id, // Real UUID from database
-      loan: {
-        loanAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : "$0",
-        loanType: lead.loan_type || "Purchase",
-        prType: "Primary Residence"
-      },
-      ops: {
-        status: lead.status || "Pending",
-        stage: "pending-app",
-        priority: "Medium",
-        referralSource: lead.referral_source || "N/A"
-      },
-      dates: {
-        createdOn: new Date(lead.created_at).toLocaleDateString()
-      },
-      meta: {},
-      name: `${lead.first_name} ${lead.last_name}`
-    };
-    setSelectedClient(crmClient);
-    setIsDrawerOpen(true);
+  const handleRowClick = async (lead: DatabaseLead) => {
+    try {
+      const dbLead = await databaseService.getLeadByIdWithEmbeds(lead.id);
+      const crmClient = transformLeadToClient(dbLead);
+      setSelectedClient(crmClient);
+      setIsDrawerOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not load lead details. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
