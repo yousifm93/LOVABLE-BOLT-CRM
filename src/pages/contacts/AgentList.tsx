@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building2, Badge as BadgeIcon } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Building2, Badge as BadgeIcon, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Agent } from "@/types/crm";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 
 const columns: ColumnDef<any>[] = [
@@ -82,6 +84,55 @@ const columns: ColumnDef<any>[] = [
     ),
     sortable: true,
   },
+  {
+    accessorKey: "agent_rank",
+    header: "Rank",
+    cell: ({ row }) => {
+      const rank = row.original.agent_rank;
+      if (!rank) return <span className="text-muted-foreground">—</span>;
+      
+      const rankColors = {
+        'A': 'bg-success text-success-foreground',
+        'B': 'bg-info text-info-foreground',
+        'C': 'bg-warning text-warning-foreground',
+        'D': 'bg-destructive/70 text-destructive-foreground',
+        'F': 'bg-destructive text-destructive-foreground'
+      };
+      
+      return (
+        <Badge className={cn("font-bold", rankColors[rank as keyof typeof rankColors])}>
+          {rank}
+        </Badge>
+      );
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "last_agent_call",
+    header: "Last Call",
+    cell: ({ row }) => {
+      const date = row.original.last_agent_call;
+      if (!date) return <span className="text-muted-foreground text-sm">Never</span>;
+      return <span className="text-sm">{new Date(date).toLocaleDateString()}</span>;
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "next_agent_call",
+    header: "Next Call",
+    cell: ({ row }) => {
+      const date = row.original.next_agent_call;
+      if (!date) return <span className="text-muted-foreground text-sm">—</span>;
+      
+      const isOverdue = new Date(date) < new Date();
+      return (
+        <span className={cn("text-sm", isOverdue && "text-destructive font-medium")}>
+          {new Date(date).toLocaleDateString()}
+        </span>
+      );
+    },
+    sortable: true,
+  },
 ];
 
 export default function AgentList() {
@@ -89,6 +140,8 @@ export default function AgentList() {
   const [agents, setAgents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [showAgentDrawer, setShowAgentDrawer] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -117,7 +170,8 @@ export default function AgentList() {
   };
 
   const handleRowClick = (agent: any) => {
-    console.log("View agent details:", agent);
+    setSelectedAgent(agent);
+    setShowAgentDrawer(true);
   };
 
   if (isLoading) {
@@ -133,7 +187,7 @@ export default function AgentList() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -181,6 +235,20 @@ export default function AgentList() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {agents.filter(a => a.agent_rank === 'A' || a.agent_rank === 'B').length}
+                </p>
+                <p className="text-sm text-muted-foreground">A/B Ranked</p>
+              </div>
+              <Star className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
@@ -188,12 +256,12 @@ export default function AgentList() {
           <CardTitle className="flex items-center justify-between">
             <span>Agent Directory</span>
             <Button 
-              size="sm" 
-              className="bg-primary hover:bg-primary/90"
+              size="default"
+              className="bg-primary hover:bg-primary/90 px-6 py-2"
               onClick={() => setShowCreateModal(true)}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add
+              <Plus className="h-5 w-5 mr-2" />
+              Add New Agent
             </Button>
           </CardTitle>
           <div className="flex gap-2 items-center">
@@ -227,6 +295,16 @@ export default function AgentList() {
         onOpenChange={setShowCreateModal}
         onContactCreated={handleContactCreated}
         defaultType="agent"
+      />
+      
+      <AgentDetailDrawer
+        agent={selectedAgent}
+        isOpen={showAgentDrawer}
+        onClose={() => {
+          setShowAgentDrawer(false);
+          setSelectedAgent(null);
+        }}
+        onAgentUpdated={loadAgents}
       />
     </div>
   );

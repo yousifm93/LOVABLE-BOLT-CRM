@@ -368,37 +368,46 @@ export type Database = {
       }
       buyer_agents: {
         Row: {
+          agent_rank: string | null
           brokerage: string
           created_at: string
           email: string | null
           first_name: string
           id: string
+          last_agent_call: string | null
           last_name: string
           license_number: string | null
+          next_agent_call: string | null
           phone: string | null
           updated_at: string
           years_experience: number | null
         }
         Insert: {
+          agent_rank?: string | null
           brokerage: string
           created_at?: string
           email?: string | null
           first_name: string
           id?: string
+          last_agent_call?: string | null
           last_name: string
           license_number?: string | null
+          next_agent_call?: string | null
           phone?: string | null
           updated_at?: string
           years_experience?: number | null
         }
         Update: {
+          agent_rank?: string | null
           brokerage?: string
           created_at?: string
           email?: string | null
           first_name?: string
           id?: string
+          last_agent_call?: string | null
           last_name?: string
           license_number?: string | null
+          next_agent_call?: string | null
           phone?: string | null
           updated_at?: string
           years_experience?: number | null

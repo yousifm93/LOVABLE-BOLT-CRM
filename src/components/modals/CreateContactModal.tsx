@@ -62,7 +62,21 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
         return;
       }
 
-      const contact = await databaseService.createContact(formData);
+      let contact;
+      
+      // If agent type, insert into buyer_agents table
+      if (formData.type === 'Agent' || defaultType === 'agent') {
+        contact = await databaseService.createBuyerAgent({
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          brokerage: formData.company || null,
+        });
+      } else {
+        // Insert into contacts table for other types
+        contact = await databaseService.createContact(formData);
+      }
       
       onContactCreated(contact);
       onOpenChange(false);
@@ -70,7 +84,7 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
       
       toast({
         title: "Success",
-        description: `${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)} contact created successfully.`
+        description: `${formData.type} contact created successfully.`
       });
     } catch (error) {
       console.error('Error creating contact:', error);

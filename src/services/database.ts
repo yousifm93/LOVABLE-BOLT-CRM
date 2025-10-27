@@ -547,6 +547,29 @@ export const databaseService = {
     return data;
   },
 
+  async updateBuyerAgent(id: string, updates: any) {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async getBuyerAgentById(id: string) {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   // Team assignment operations
   async getTeamAssignments(leadId: string) {
     const { data, error } = await supabase
