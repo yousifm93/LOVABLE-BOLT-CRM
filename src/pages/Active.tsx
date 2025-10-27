@@ -114,7 +114,7 @@ interface ActiveLoan {
     id: string;
     first_name: string;
     last_name: string;
-    company?: string;
+    brokerage?: string;
     email?: string;
     phone?: string;
   } | null;
@@ -616,7 +616,7 @@ const createColumns = (
             id: row.original.buyer_agent.id,
             first_name: row.original.buyer_agent.first_name,
             last_name: row.original.buyer_agent.last_name,
-            brokerage: row.original.buyer_agent.company,
+            brokerage: row.original.buyer_agent.brokerage,
             email: row.original.buyer_agent.email,
             phone: row.original.buyer_agent.phone,
           } : null}
@@ -644,22 +644,9 @@ const createColumns = (
             email: row.original.listing_agent.email,
           } : null}
           agents={agents}
-          onValueChange={async (agent) => {
-            if (!agent) {
-              await handleUpdate(row.original.id, "listing_agent_id", null);
-            } else {
-              try {
-                const buyerAgentId = await databaseService.ensureBuyerAgentFromContact(agent.id);
-                await handleUpdate(row.original.id, "listing_agent_id", buyerAgentId);
-              } catch (error) {
-                console.error('Error mapping listing agent:', error);
-                toast({
-                  variant: "destructive",
-                  title: "Failed to update listing agent",
-                });
-              }
-            }
-          }}
+          onValueChange={async (agent) => 
+            await handleUpdate(row.original.id, "listing_agent_id", agent?.id ?? null)
+          }
           type="listing"
         />
       </div>
@@ -863,7 +850,7 @@ export default function Active() {
       const [usersRes, lendersRes, agentsRes] = await Promise.allSettled([
         databaseService.getUsers(),
         databaseService.getLenders(),
-        databaseService.getRealEstateAgents()
+        databaseService.getAgents()
       ]);
 
       setUsers(usersRes.status === 'fulfilled' ? usersRes.value ?? [] : []);

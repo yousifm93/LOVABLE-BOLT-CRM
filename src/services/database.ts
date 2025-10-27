@@ -104,7 +104,7 @@ export const databaseService = {
           *,
           pipeline_stage:pipeline_stages(*),
           teammate:users!teammate_assigned(*),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone)
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .order('created_at', { ascending: false });
       
@@ -134,7 +134,7 @@ export const databaseService = {
           *,
           pipeline_stage:pipeline_stages(*),
           teammate:users!teammate_assigned(*),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone),
           tasks(due_date)
         `)
         .eq('pipeline_stage_id', 'c54f417b-3f67-43de-80f5-954cf260d571')
@@ -731,7 +731,7 @@ export const databaseService = {
           *,
           lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
           approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone),
           listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
@@ -781,7 +781,7 @@ export const databaseService = {
           *,
           lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
           approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
-          buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone),
           listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
@@ -991,7 +991,7 @@ export const databaseService = {
         pipeline_stage:pipeline_stages(*),
         lender:contacts!fk_leads_lender(id, first_name, last_name, company, email),
         approved_lender:lenders!fk_leads_approved_lender(id, lender_name, lender_type),
-        buyer_agent:contacts!leads_buyer_agent_id_fkey(id, first_name, last_name, company, email, phone),
+        buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone),
         listing_agent:buyer_agents!fk_leads_listing_agent(id, first_name, last_name, brokerage, email),
         teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
       `)
