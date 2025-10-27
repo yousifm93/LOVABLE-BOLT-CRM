@@ -219,8 +219,8 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="min-h-[600px]">
+        <CardHeader className="pb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 

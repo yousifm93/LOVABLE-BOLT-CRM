@@ -369,43 +369,37 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
 
         {/* Income Section */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Income Information
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              Total: {formatCurrency(calculateTotalIncome())}
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <DollarSign className="h-5 w-5 text-primary" />
+            <span>Monthly Income:</span>
+            <span className="text-emerald-600 font-bold">
+              {formatCurrency(calculateTotalIncome())}
             </span>
-          </div>
+          </h3>
           <TwoColumnDetailLayout items={incomeData} />
         </div>
 
         {/* Assets Section */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <PiggyBank className="h-5 w-5 text-primary" />
-              Asset Information
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              Total: {formatCurrency(calculateTotalAssets())}
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <PiggyBank className="h-5 w-5 text-primary" />
+            <span>Total Assets:</span>
+            <span className="text-purple-600 font-bold">
+              {formatCurrency(calculateTotalAssets())}
             </span>
-          </div>
+          </h3>
           <TwoColumnDetailLayout items={assetData} />
         </div>
 
         {/* Debts Section */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Debt Information
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              Total Monthly: {formatCurrency(calculateTotalDebts())}
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <span>Monthly Liability:</span>
+            <span className="text-orange-600 font-bold">
+              {formatCurrency(calculateTotalDebts())}
             </span>
-          </div>
+          </h3>
           <TwoColumnDetailLayout items={debtData} />
           
           {/* Show DTI if we have income and debts */}
