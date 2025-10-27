@@ -1703,11 +1703,15 @@ export type Database = {
           approved_lender_id: string | null
           arrive_loan_number: number | null
           assets: number | null
+          auto_loans: number | null
           ba_status: Database["public"]["Enums"]["ba_status"] | null
+          base_employment_income: number | null
+          bonus_income: number | null
           borrower_current_address: string | null
           buyer_agent_id: string | null
           cash_to_close_goal: number | null
           cd_status: Database["public"]["Enums"]["cd_status"] | null
+          checking_account: number | null
           close_date: string | null
           closed_at: string | null
           condo_status: Database["public"]["Enums"]["condo_status"] | null
@@ -1715,6 +1719,7 @@ export type Database = {
           converted: Database["public"]["Enums"]["converted_status"] | null
           created_at: string
           created_by: string
+          credit_card_debt: number | null
           disc_file: string | null
           disclosure_status:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -1729,6 +1734,7 @@ export type Database = {
           fcp_file: string | null
           fin_cont: string | null
           first_name: string
+          gift_funds: number | null
           hoa_dues: number | null
           hoi_status: Database["public"]["Enums"]["hoi_status"] | null
           homeowners_insurance: number | null
@@ -1738,6 +1744,7 @@ export type Database = {
           initial_approval_file: string | null
           insurance_file: string | null
           interest_rate: number | null
+          investment_accounts: number | null
           is_closed: boolean | null
           last_name: string
           lead_on_date: string
@@ -1759,6 +1766,10 @@ export type Database = {
           notes: string | null
           number_of_dependents: number | null
           occupancy: string | null
+          other_assets: number | null
+          other_income: number | null
+          other_monthly_debts: number | null
+          overtime_income: number | null
           own_rent_current_address: string | null
           package_status: Database["public"]["Enums"]["package_status"] | null
           pending_app_at: string | null
@@ -1777,11 +1788,15 @@ export type Database = {
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           reo: boolean | null
           residency_type: string | null
+          retirement_accounts: number | null
           sales_price: number | null
+          savings_account: number | null
           search_stage: string | null
+          self_employment_income: number | null
           source: Database["public"]["Enums"]["lead_source"] | null
           ssn: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          student_loans: number | null
           subject_address_1: string | null
           subject_address_2: string | null
           subject_city: string | null
@@ -1810,11 +1825,15 @@ export type Database = {
           approved_lender_id?: string | null
           arrive_loan_number?: number | null
           assets?: number | null
+          auto_loans?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
+          base_employment_income?: number | null
+          bonus_income?: number | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          checking_account?: number | null
           close_date?: string | null
           closed_at?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
@@ -1822,6 +1841,7 @@ export type Database = {
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by: string
+          credit_card_debt?: number | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -1836,6 +1856,7 @@ export type Database = {
           fcp_file?: string | null
           fin_cont?: string | null
           first_name: string
+          gift_funds?: number | null
           hoa_dues?: number | null
           hoi_status?: Database["public"]["Enums"]["hoi_status"] | null
           homeowners_insurance?: number | null
@@ -1845,6 +1866,7 @@ export type Database = {
           initial_approval_file?: string | null
           insurance_file?: string | null
           interest_rate?: number | null
+          investment_accounts?: number | null
           is_closed?: boolean | null
           last_name: string
           lead_on_date?: string
@@ -1866,6 +1888,10 @@ export type Database = {
           notes?: string | null
           number_of_dependents?: number | null
           occupancy?: string | null
+          other_assets?: number | null
+          other_income?: number | null
+          other_monthly_debts?: number | null
+          overtime_income?: number | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
           pending_app_at?: string | null
@@ -1886,11 +1912,15 @@ export type Database = {
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
           residency_type?: string | null
+          retirement_accounts?: number | null
           sales_price?: number | null
+          savings_account?: number | null
           search_stage?: string | null
+          self_employment_income?: number | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           ssn?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          student_loans?: number | null
           subject_address_1?: string | null
           subject_address_2?: string | null
           subject_city?: string | null
@@ -1919,11 +1949,15 @@ export type Database = {
           approved_lender_id?: string | null
           arrive_loan_number?: number | null
           assets?: number | null
+          auto_loans?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
+          base_employment_income?: number | null
+          bonus_income?: number | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
+          checking_account?: number | null
           close_date?: string | null
           closed_at?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
@@ -1931,6 +1965,7 @@ export type Database = {
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by?: string
+          credit_card_debt?: number | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -1945,6 +1980,7 @@ export type Database = {
           fcp_file?: string | null
           fin_cont?: string | null
           first_name?: string
+          gift_funds?: number | null
           hoa_dues?: number | null
           hoi_status?: Database["public"]["Enums"]["hoi_status"] | null
           homeowners_insurance?: number | null
@@ -1954,6 +1990,7 @@ export type Database = {
           initial_approval_file?: string | null
           insurance_file?: string | null
           interest_rate?: number | null
+          investment_accounts?: number | null
           is_closed?: boolean | null
           last_name?: string
           lead_on_date?: string
@@ -1975,6 +2012,10 @@ export type Database = {
           notes?: string | null
           number_of_dependents?: number | null
           occupancy?: string | null
+          other_assets?: number | null
+          other_income?: number | null
+          other_monthly_debts?: number | null
+          overtime_income?: number | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
           pending_app_at?: string | null
@@ -1995,11 +2036,15 @@ export type Database = {
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
           residency_type?: string | null
+          retirement_accounts?: number | null
           sales_price?: number | null
+          savings_account?: number | null
           search_stage?: string | null
+          self_employment_income?: number | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           ssn?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          student_loans?: number | null
           subject_address_1?: string | null
           subject_address_2?: string | null
           subject_city?: string | null

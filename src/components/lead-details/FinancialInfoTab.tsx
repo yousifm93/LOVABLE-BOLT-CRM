@@ -3,13 +3,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TwoColumnDetailLayout } from "./TwoColumnDetailLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { DollarSign, CreditCard, TrendingUp, Building, PiggyBank, Pencil } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { sanitizeNumber } from "@/lib/utils";
-import { z } from "zod";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 
 interface FinancialInfoTabProps {
   client: any;
@@ -22,19 +20,76 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editData, setEditData] = useState({
-    total_monthly_income: null as number | null,
-    monthly_liabilities: null as number | null,
-    assets: null as number | null,
-    dti: null as number | null,
+    // Income breakdown
+    base_employment_income: (client as any).base_employment_income || null,
+    overtime_income: (client as any).overtime_income || null,
+    bonus_income: (client as any).bonus_income || null,
+    self_employment_income: (client as any).self_employment_income || null,
+    other_income: (client as any).other_income || null,
+    
+    // Asset breakdown
+    checking_account: (client as any).checking_account || null,
+    savings_account: (client as any).savings_account || null,
+    investment_accounts: (client as any).investment_accounts || null,
+    retirement_accounts: (client as any).retirement_accounts || null,
+    gift_funds: (client as any).gift_funds || null,
+    other_assets: (client as any).other_assets || null,
+    
+    // Debt breakdown
+    credit_card_debt: (client as any).credit_card_debt || null,
+    auto_loans: (client as any).auto_loans || null,
+    student_loans: (client as any).student_loans || null,
+    other_monthly_debts: (client as any).other_monthly_debts || null,
   });
+
+  // Calculate total income from breakdown
+  const calculateTotalIncome = () => {
+    const base = editData.base_employment_income || 0;
+    const overtime = editData.overtime_income || 0;
+    const bonus = editData.bonus_income || 0;
+    const selfEmp = editData.self_employment_income || 0;
+    const other = editData.other_income || 0;
+    return base + overtime + bonus + selfEmp + other;
+  };
+
+  // Calculate total assets from breakdown
+  const calculateTotalAssets = () => {
+    const checking = editData.checking_account || 0;
+    const savings = editData.savings_account || 0;
+    const investments = editData.investment_accounts || 0;
+    const retirement = editData.retirement_accounts || 0;
+    const gifts = editData.gift_funds || 0;
+    const otherAssets = editData.other_assets || 0;
+    return checking + savings + investments + retirement + gifts + otherAssets;
+  };
+
+  // Calculate total monthly debts from breakdown
+  const calculateTotalDebts = () => {
+    const creditCard = editData.credit_card_debt || 0;
+    const auto = editData.auto_loans || 0;
+    const student = editData.student_loans || 0;
+    const other = editData.other_monthly_debts || 0;
+    return creditCard + auto + student + other;
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
     setEditData({
-      total_monthly_income: null,
-      monthly_liabilities: null,
-      assets: null,
-      dti: null,
+      base_employment_income: (client as any).base_employment_income || null,
+      overtime_income: (client as any).overtime_income || null,
+      bonus_income: (client as any).bonus_income || null,
+      self_employment_income: (client as any).self_employment_income || null,
+      other_income: (client as any).other_income || null,
+      checking_account: (client as any).checking_account || null,
+      savings_account: (client as any).savings_account || null,
+      investment_accounts: (client as any).investment_accounts || null,
+      retirement_accounts: (client as any).retirement_accounts || null,
+      gift_funds: (client as any).gift_funds || null,
+      other_assets: (client as any).other_assets || null,
+      credit_card_debt: (client as any).credit_card_debt || null,
+      auto_loans: (client as any).auto_loans || null,
+      student_loans: (client as any).student_loans || null,
+      other_monthly_debts: (client as any).other_monthly_debts || null,
     });
   };
 
@@ -52,29 +107,38 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
       return;
     }
 
-    // Validation schema
-    const schema = z.object({
-      total_monthly_income: z.number().min(0).nullable().optional(),
-      monthly_liabilities: z.number().min(0).nullable().optional(),
-      assets: z.number().min(0).nullable().optional(),
-      dti: z.number().min(0).max(100).nullable().optional(),
-    });
-
     try {
-      // Sanitize numeric fields
-      const sanitizedData = {
-        total_monthly_income: sanitizeNumber(editData.total_monthly_income),
-        monthly_liabilities: sanitizeNumber(editData.monthly_liabilities),
-        assets: sanitizeNumber(editData.assets),
-        dti: sanitizeNumber(editData.dti),
-      };
-
-      // Validate
-      schema.parse(sanitizedData);
-
+      const totalIncome = calculateTotalIncome();
+      const totalAssets = calculateTotalAssets();
+      const totalDebts = calculateTotalDebts();
+      
       setIsSaving(true);
 
-      await databaseService.updateLead(leadId, sanitizedData);
+      await databaseService.updateLead(leadId, {
+        // Income breakdown
+        base_employment_income: editData.base_employment_income,
+        overtime_income: editData.overtime_income,
+        bonus_income: editData.bonus_income,
+        self_employment_income: editData.self_employment_income,
+        other_income: editData.other_income,
+        total_monthly_income: totalIncome,
+        
+        // Asset breakdown
+        checking_account: editData.checking_account,
+        savings_account: editData.savings_account,
+        investment_accounts: editData.investment_accounts,
+        retirement_accounts: editData.retirement_accounts,
+        gift_funds: editData.gift_funds,
+        other_assets: editData.other_assets,
+        assets: totalAssets,
+        
+        // Debt breakdown
+        credit_card_debt: editData.credit_card_debt,
+        auto_loans: editData.auto_loans,
+        student_loans: editData.student_loans,
+        other_monthly_debts: editData.other_monthly_debts,
+        monthly_liabilities: totalDebts,
+      });
 
       toast({
         title: "Success",
@@ -84,153 +148,277 @@ export function FinancialInfoTab({ client, leadId, onLeadUpdated }: FinancialInf
       setIsEditing(false);
       onLeadUpdated?.();
     } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update financial information",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update financial information",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Mock data for financial info fields
   const incomeData = [
-    { icon: DollarSign, label: "Gross Monthly Income", value: formatCurrency(8500) },
-    { icon: DollarSign, label: "Base Employment Income", value: formatCurrency(7500) },
-    { icon: DollarSign, label: "Overtime Income", value: formatCurrency(500) },
-    { icon: DollarSign, label: "Bonus Income", value: formatCurrency(500) },
-    { icon: Building, label: "Self Employment Income", value: formatCurrency(0) },
-    { icon: TrendingUp, label: "Other Income", value: formatCurrency(0) }
+    { 
+      icon: DollarSign, 
+      label: "Gross Monthly Income", 
+      value: formatCurrency(calculateTotalIncome()),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={formatCurrency(calculateTotalIncome())}
+          disabled
+          className="h-8 opacity-60 bg-muted"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Base Employment Income", 
+      value: formatCurrency((client as any).base_employment_income),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.base_employment_income}
+          onValueChange={(value) => setEditData({ ...editData, base_employment_income: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Overtime Income", 
+      value: formatCurrency((client as any).overtime_income),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.overtime_income}
+          onValueChange={(value) => setEditData({ ...editData, overtime_income: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Bonus Income", 
+      value: formatCurrency((client as any).bonus_income),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.bonus_income}
+          onValueChange={(value) => setEditData({ ...editData, bonus_income: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: Building, 
+      label: "Self Employment Income", 
+      value: formatCurrency((client as any).self_employment_income),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.self_employment_income}
+          onValueChange={(value) => setEditData({ ...editData, self_employment_income: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: TrendingUp, 
+      label: "Other Income", 
+      value: formatCurrency((client as any).other_income),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.other_income}
+          onValueChange={(value) => setEditData({ ...editData, other_income: value })}
+        />
+      ) : undefined
+    }
   ];
 
   const assetData = [
-    { icon: PiggyBank, label: "Checking Account", value: formatCurrency(15000) },
-    { icon: PiggyBank, label: "Savings Account", value: formatCurrency(45000) },
-    { icon: TrendingUp, label: "Investment Accounts", value: formatCurrency(75000) },
-    { icon: Building, label: "Retirement Accounts (401k/IRA)", value: formatCurrency(125000) },
-    { icon: DollarSign, label: "Gift Funds", value: formatCurrency(0) },
-    { icon: DollarSign, label: "Other Assets", value: formatCurrency(25000) }
+    { 
+      icon: PiggyBank, 
+      label: "Checking Account", 
+      value: formatCurrency((client as any).checking_account),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.checking_account}
+          onValueChange={(value) => setEditData({ ...editData, checking_account: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: PiggyBank, 
+      label: "Savings Account", 
+      value: formatCurrency((client as any).savings_account),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.savings_account}
+          onValueChange={(value) => setEditData({ ...editData, savings_account: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: TrendingUp, 
+      label: "Investment Accounts", 
+      value: formatCurrency((client as any).investment_accounts),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.investment_accounts}
+          onValueChange={(value) => setEditData({ ...editData, investment_accounts: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: Building, 
+      label: "Retirement Accounts (401k/IRA)", 
+      value: formatCurrency((client as any).retirement_accounts),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.retirement_accounts}
+          onValueChange={(value) => setEditData({ ...editData, retirement_accounts: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Gift Funds", 
+      value: formatCurrency((client as any).gift_funds),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.gift_funds}
+          onValueChange={(value) => setEditData({ ...editData, gift_funds: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Other Assets", 
+      value: formatCurrency((client as any).other_assets),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.other_assets}
+          onValueChange={(value) => setEditData({ ...editData, other_assets: value })}
+        />
+      ) : undefined
+    }
   ];
 
   const debtData = [
-    { icon: CreditCard, label: "Credit Card Debt", value: formatCurrency(2500) },
-    { icon: Building, label: "Auto Loans", value: formatCurrency(18000) },
-    { icon: DollarSign, label: "Student Loans", value: formatCurrency(0) },
-    { icon: CreditCard, label: "Other Monthly Debts", value: formatCurrency(450) },
-    { icon: DollarSign, label: "Total Monthly Debt Payments", value: formatCurrency(950) },
-    { icon: TrendingUp, label: "Debt-to-Income Ratio", value: formatPercentage(11.2) }
+    { 
+      icon: CreditCard, 
+      label: "Credit Card Debt", 
+      value: formatCurrency((client as any).credit_card_debt),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.credit_card_debt}
+          onValueChange={(value) => setEditData({ ...editData, credit_card_debt: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: Building, 
+      label: "Auto Loans", 
+      value: formatCurrency((client as any).auto_loans),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.auto_loans}
+          onValueChange={(value) => setEditData({ ...editData, auto_loans: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Student Loans", 
+      value: formatCurrency((client as any).student_loans),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.student_loans}
+          onValueChange={(value) => setEditData({ ...editData, student_loans: value })}
+        />
+      ) : undefined
+    },
+    { 
+      icon: CreditCard, 
+      label: "Other Monthly Debts", 
+      value: formatCurrency((client as any).other_monthly_debts),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.other_monthly_debts}
+          onValueChange={(value) => setEditData({ ...editData, other_monthly_debts: value })}
+        />
+      ) : undefined
+    }
   ];
 
-  if (isEditing) {
-    return (
-      <ScrollArea className="h-full">
-        <div className="space-y-6 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Edit Financial Information
-            </h3>
-            <div className="flex gap-2">
+  return (
+    <ScrollArea className="h-full">
+      <div className="space-y-6">
+        {/* Edit/Save buttons */}
+        <div className="flex items-center justify-end gap-2">
+          {isEditing ? (
+            <>
               <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? "Saving..." : "Save"}
               </Button>
               <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
                 Cancel
               </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">Gross Monthly Income</Label>
-              <Input
-                type="number"
-                value={editData.total_monthly_income || ""}
-                onChange={(e) => setEditData({ ...editData, total_monthly_income: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Total Monthly Debt Payments</Label>
-              <Input
-                type="number"
-                value={editData.monthly_liabilities || ""}
-                onChange={(e) => setEditData({ ...editData, monthly_liabilities: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Total Assets</Label>
-              <Input
-                type="number"
-                value={editData.assets || ""}
-                onChange={(e) => setEditData({ ...editData, assets: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Debt-to-Income Ratio (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={editData.dti || ""}
-                onChange={(e) => setEditData({ ...editData, dti: parseFloat(e.target.value) || null })}
-                className="h-8"
-              />
-            </div>
-          </div>
-
-          <div className="bg-muted/50 p-3 rounded-lg text-xs text-muted-foreground">
-            <p><strong>Note:</strong> Detailed income breakdown (overtime, bonus, etc.) and asset categories are not yet available for editing. These fields will be added in a future update.</p>
-          </div>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleEdit}>
+              <Pencil className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          )}
         </div>
-      </ScrollArea>
-    );
-  }
 
-  return (
-    <ScrollArea className="h-full">
-      <div className="space-y-6">
+        {/* Income Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
               Income Information
             </h3>
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Pencil className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
+            <span className="text-sm text-muted-foreground">
+              Total: {formatCurrency(calculateTotalIncome())}
+            </span>
           </div>
           <TwoColumnDetailLayout items={incomeData} />
         </div>
 
+        {/* Assets Section */}
         <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <PiggyBank className="h-5 w-5 text-primary" />
-            Assets Information
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <PiggyBank className="h-5 w-5 text-primary" />
+              Asset Information
+            </h3>
+            <span className="text-sm text-muted-foreground">
+              Total: {formatCurrency(calculateTotalAssets())}
+            </span>
+          </div>
           <TwoColumnDetailLayout items={assetData} />
         </div>
 
+        {/* Debts Section */}
         <div>
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            Debt Information
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Debt Information
+            </h3>
+            <span className="text-sm text-muted-foreground">
+              Total Monthly: {formatCurrency(calculateTotalDebts())}
+            </span>
+          </div>
           <TwoColumnDetailLayout items={debtData} />
+          
+          {/* Show DTI if we have income and debts */}
+          {calculateTotalIncome() > 0 && (
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Debt-to-Income Ratio (DTI)</span>
+                <span className="text-sm font-bold">
+                  {formatPercentage((calculateTotalDebts() / calculateTotalIncome()) * 100)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </ScrollArea>

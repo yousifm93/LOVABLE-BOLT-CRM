@@ -154,8 +154,33 @@ export function transformLeadToClient(lead: any): any {
     ssn: lead.ssn || null,
     dob: lead.dob || null,
     occupancy: lead.occupancy || null,
-    residency_type: lead.residency_type || null,
-    marital_status: lead.marital_status || null,
+  residency_type: lead.residency_type || null,
+  marital_status: lead.marital_status || null,
+  
+  // Income breakdown
+  base_employment_income: lead.base_employment_income || null,
+  overtime_income: lead.overtime_income || null,
+  bonus_income: lead.bonus_income || null,
+  self_employment_income: lead.self_employment_income || null,
+  other_income: lead.other_income || null,
+  total_monthly_income: lead.total_monthly_income || null,
+  
+  // Asset breakdown
+  checking_account: lead.checking_account || null,
+  savings_account: lead.savings_account || null,
+  investment_accounts: lead.investment_accounts || null,
+  retirement_accounts: lead.retirement_accounts || null,
+  gift_funds: lead.gift_funds || null,
+  other_assets: lead.other_assets || null,
+  assets: lead.assets || null,
+  
+  // Debt breakdown
+  credit_card_debt: lead.credit_card_debt || null,
+  auto_loans: lead.auto_loans || null,
+  student_loans: lead.student_loans || null,
+  other_monthly_debts: lead.other_monthly_debts || null,
+  monthly_liabilities: lead.monthly_liabilities || null,
+  dti: lead.dti || null,
     number_of_dependents: lead.number_of_dependents || null,
     borrower_current_address: lead.borrower_current_address || null,
     time_at_current_address_years: lead.time_at_current_address_years || null,
