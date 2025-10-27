@@ -64,13 +64,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [notes, setNotes] = useState<string[]>([
-    "Initial loan consultation completed. Client is interested in a 30-year fixed rate mortgage.",
-    "Credit score pulled - 720. Good standing for preferred rates.",
-    "Client prefers closing in March to align with lease expiration.",
-    "Discussed down payment options and PMI requirements.",
-    "Property inspection scheduled for next Tuesday. Client confirmed availability."
-  ]);
   const [documents, setDocuments] = useState<any[]>([
     { id: 1, name: "W2_2023.pdf", size: 245760, uploadDate: "2024-01-10", type: "application/pdf" },
     { id: 2, name: "Pay_Stub_Dec_2023.pdf", size: 156342, uploadDate: "2024-01-12", type: "application/pdf" },
@@ -81,6 +74,36 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [chatMessage, setChatMessage] = useState('');
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
+
+  // Load activities when drawer opens
+  React.useEffect(() => {
+    if (isOpen && leadId) {
+      loadActivities();
+    }
+  }, [isOpen, leadId]);
+
+  const loadActivities = async () => {
+    if (!leadId) return;
+    try {
+      const fetchedActivities = await databaseService.getLeadActivities(leadId);
+      // Transform to match Activity interface
+      const transformedActivities = fetchedActivities.map((activity: any) => ({
+        id: activity.id,
+        type: activity.type,
+        title: activity.type === 'note' ? 'Note added' : 
+               activity.type === 'call' ? 'Call logged' :
+               activity.type === 'sms' ? 'SMS sent' : 'Email sent',
+        description: activity.body || activity.notes || '',
+        timestamp: activity.created_at,
+        user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
+              activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'Unknown'
+      }));
+      setActivities(transformedActivities);
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      // Don't show toast error to avoid cluttering UI on open
+    }
+  };
 
   // Critical status information based on pipeline stage
   const renderCriticalStatusInfo = () => {
@@ -320,23 +343,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const handleStageClick = (stageKey: string) => {
     if (stageKey !== client.ops.stage) {
       onStageChange(client.person.id, stageKey as PipelineStage);
-    }
-  };
-
-  const handleAddNote = () => {
-    if (newNote.trim()) {
-      setNotes(prev => [newNote, ...prev]);
-      setNewNote('');
-      
-      const newActivity: Activity = {
-        id: Date.now(),
-        type: 'note',
-        title: 'Note Added',
-        description: newNote.trim(),
-        timestamp: new Date().toISOString(),
-        user: 'Current User'
-      };
-      setActivities(prev => [newActivity, ...prev]);
     }
   };
 
@@ -735,39 +741,28 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardHeader>
               <CardContent className="bg-gray-50">
                 <div className="max-h-[160px] overflow-y-auto space-y-3">
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Initial loan consultation
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 18, 2024 at 2:30 PM • by <button className="text-primary hover:underline">Yousif</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Client interested in 30-year fixed rate mortgage. Discussed timeline and documentation requirements.
+                  {activities.filter(a => a.type === 'note').length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No notes yet. Click + to add a note.
                     </p>
-                  </div>
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Credit score review
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 17, 2024 at 10:15 AM • by <button className="text-primary hover:underline">Salma</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Pulled credit report - score of 720. Good standing for preferred rates.
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <button className="text-primary hover:underline text-sm font-medium">
-                      Documentation checklist
-                    </button>
-                    <div className="text-xs text-muted-foreground">
-                      Jan 16, 2024 at 4:45 PM • by <button className="text-primary hover:underline">Herman Daza</button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Provided client with required document list. W2s and pay stubs are priority.
-                    </p>
-                  </div>
+                  ) : (
+                    activities.filter(a => a.type === 'note').slice(0, 5).map((note) => (
+                      <div key={note.id} className="space-y-1">
+                        <button className="text-primary hover:underline text-sm font-medium">
+                          {note.title}
+                        </button>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(note.timestamp).toLocaleDateString('en-US', { 
+                            month: 'short', day: 'numeric', year: 'numeric', 
+                            hour: 'numeric', minute: '2-digit' 
+                          })} • by <button className="text-primary hover:underline">{note.user}</button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {note.description}
+                        </p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

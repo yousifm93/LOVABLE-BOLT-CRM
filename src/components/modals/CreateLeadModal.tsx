@@ -105,6 +105,23 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       const newLead = await databaseService.createLead(leadData);
       console.log('[DEBUG] Lead created successfully:', newLead);
       
+      // If notes were provided, create a note record
+      if (formData.notes.trim() && newLead.id && user) {
+        try {
+          const currentUser = users.find(u => u.email === user.email);
+          if (currentUser) {
+            await databaseService.createNote({
+              lead_id: newLead.id,
+              author_id: currentUser.id,
+              body: formData.notes,
+            });
+          }
+        } catch (noteError) {
+          console.error('[DEBUG] Error creating note:', noteError);
+          // Don't fail the lead creation if note creation fails
+        }
+      }
+      
       onLeadCreated(newLead);
       onOpenChange(false);
       

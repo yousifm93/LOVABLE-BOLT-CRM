@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateLeadModalProps {
   open: boolean;
@@ -29,6 +31,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
 
     setLoading(true);
     try {
-      await databaseService.createLead({
+      const newLead = await databaseService.createLead({
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone: formData.phone || null,
@@ -54,6 +57,23 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         status: 'Working on it',
       });
 
+      // If notes were provided, create a note record
+      if (formData.notes.trim() && newLead.id) {
+        try {
+          // Get current user ID from session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await databaseService.createNote({
+              lead_id: newLead.id,
+              author_id: session.user.id,
+              body: formData.notes,
+            });
+          }
+        } catch (noteError) {
+          console.error('Error creating note:', noteError);
+          // Don't fail the lead creation if note creation fails
+        }
+      }
 
       setFormData({
         first_name: "",
