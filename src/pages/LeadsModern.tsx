@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { CreateLeadModalModern } from "@/components/modals/CreateLeadModalModern";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
@@ -275,11 +276,12 @@ export function LeadsModern() {
                     </span>
                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditSelect
-                      value={lead.buyer_agent_id || ''}
-                      options={buyerAgentOptions}
-                      onValueChange={(value) => handleUpdateLead(lead.id, 'buyer_agent_id', value)}
+                    <InlineEditAgent
+                      value={lead.buyer_agent}
+                      agents={buyerAgents}
+                      onValueChange={(agent) => handleUpdateLead(lead.id, 'buyer_agent_id', agent?.id || null)}
                       placeholder="Select agent"
+                      type="buyer"
                     />
                   </td>
                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
