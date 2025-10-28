@@ -257,15 +257,33 @@ export const databaseService = {
   },
 
   async updateLead(id: string, updates: LeadUpdate) {
-    const { data, error } = await supabase
-      .from('leads')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single();
-    
-    if (error) throw error;
-    return data;
+    try {
+      console.log('[DEBUG] updateLead called', { id, updates });
+      const { data, error } = await supabase
+        .from('leads')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('[DEBUG] updateLead error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          id,
+          updates,
+        });
+        throw new Error(`Update failed: ${error.message}${error.details ? ' - ' + error.details : ''}`);
+      }
+
+      console.log('[DEBUG] updateLead success', data);
+      return data;
+    } catch (e: any) {
+      console.error('[DEBUG] updateLead exception:', e);
+      throw e;
+    }
   },
 
   deleteLead: async (id: string) => {

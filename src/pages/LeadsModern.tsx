@@ -63,7 +63,7 @@ export function LeadsModern() {
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const filterColumns = [
     { value: 'created_at', label: 'Created Date', type: 'date' as const },
     { value: 'converted', label: 'Converted', type: 'select' as const, options: CONVERTED_OPTIONS.map(o => o.label) },
@@ -122,8 +122,34 @@ export function LeadsModern() {
   };
 
   const handleUpdateLead = async (leadId: string, field: string, value: any) => {
+    const key = `${leadId}:${field}`;
     try {
-      const updateData: any = { [field]: value };
+      // Sanitize value types before sending to DB
+      let sanitizedValue = value;
+      if (field === 'task_eta') {
+        if (value instanceof Date) {
+          sanitizedValue = format(value, 'yyyy-MM-dd');
+        } else if (typeof value === 'string' && value) {
+          // Assume already a date string
+          sanitizedValue = value;
+        } else if (!value) {
+          sanitizedValue = null;
+        }
+      }
+      if (field === 'buyer_agent_id') {
+        if (sanitizedValue === '' || sanitizedValue === undefined) sanitizedValue = null;
+        if (sanitizedValue !== null && typeof sanitizedValue !== 'string') {
+          console.warn('[WARN] buyer_agent_id should be string or null, coercing to null', { sanitizedValue });
+          sanitizedValue = null;
+        }
+      }
+
+      const updateData: any = { [field]: sanitizedValue };
+      console.log('[DEBUG] handleUpdateLead -> sending', { leadId, field, value, sanitizedValue, typeofValue: typeof sanitizedValue });
+
+      // Mark updating
+      setUpdatingKey(key);
+
       await databaseService.updateLead(leadId, updateData);
       
       // Update local state
@@ -132,26 +158,26 @@ export function LeadsModern() {
         
         // Special handling for buyer_agent_id to keep buyer_agent object in sync
         if (field === 'buyer_agent_id') {
-          const agentObj = value ? buyerAgents.find(a => a.id === value) : null;
+          const agentObj = sanitizedValue ? buyerAgents.find(a => a.id === sanitizedValue) : null;
           return { 
             ...lead, 
-            buyer_agent_id: value,
+            buyer_agent_id: sanitizedValue,
             buyer_agent: agentObj || null
-          };
+          } as ModernLead;
         }
         
         // Special handling for teammate_assigned to keep teammate object in sync
         if (field === 'teammate_assigned') {
-          const userObj = value ? users.find(u => u.id === value) : null;
+          const userObj = sanitizedValue ? users.find(u => u.id === sanitizedValue) : null;
           return {
             ...lead,
-            teammate_assigned: value,
+            teammate_assigned: sanitizedValue,
             teammate: userObj || null
-          };
+          } as ModernLead;
         }
         
         // Default: just update the field
-        return { ...lead, [field]: value };
+        return { ...lead, [field]: sanitizedValue } as ModernLead;
       }));
       
       // Also update the dbLeadsMap for drawer access
@@ -160,21 +186,21 @@ export function LeadsModern() {
         const existingLead = newMap.get(leadId);
         if (existingLead) {
           if (field === 'buyer_agent_id') {
-            const agentObj = value ? buyerAgents.find(a => a.id === value) : null;
+            const agentObj = sanitizedValue ? buyerAgents.find(a => a.id === sanitizedValue) : null;
             newMap.set(leadId, {
               ...existingLead,
-              buyer_agent_id: value,
+              buyer_agent_id: sanitizedValue,
               buyer_agent: agentObj || null
             });
           } else if (field === 'teammate_assigned') {
-            const userObj = value ? users.find(u => u.id === value) : null;
+            const userObj = sanitizedValue ? users.find(u => u.id === sanitizedValue) : null;
             newMap.set(leadId, {
               ...existingLead,
-              teammate_assigned: value,
+              teammate_assigned: sanitizedValue,
               teammate: userObj || null
             });
           } else {
-            newMap.set(leadId, { ...existingLead, [field]: value });
+            newMap.set(leadId, { ...existingLead, [field]: sanitizedValue });
           }
         }
         return newMap;
@@ -184,13 +210,16 @@ export function LeadsModern() {
         title: "Success",
         description: "Lead updated successfully",
       });
-    } catch (error) {
-      console.error('Error updating lead:', error);
+    } catch (error: any) {
+      console.error('Error updating lead:', { error, leadId, field, value });
       toast({
         title: "Error",
-        description: "Failed to update lead",
+        description: error?.message ? String(error.message) : "Failed to update lead",
         variant: "destructive",
       });
+    } finally {
+      // Clear updating marker
+      setUpdatingKey(prev => (prev === key ? null : prev));
     }
   };
 
@@ -331,6 +360,7 @@ export function LeadsModern() {
                       onValueChange={(agent) => handleUpdateLead(lead.id, 'buyer_agent_id', agent?.id || null)}
                       placeholder="Select agent"
                       type="buyer"
+                      disabled={!buyerAgents.length || updatingKey === `${lead.id}:buyer_agent_id`}
                     />
                   </td>
                    <td className="p-3" onClick={(e) => e.stopPropagation()}>
