@@ -88,9 +88,11 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
       });
     } catch (error) {
       console.error('Error creating contact:', error);
+      console.error('Form data:', formData);
+      console.error('Default type:', defaultType);
       toast({
         title: "Error",
-        description: "Failed to create contact. Please try again.",
+        description: error?.message || "Failed to create contact. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -112,25 +114,26 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Contact Type</Label>
-            <Select 
-              value={formData.type} 
-              onValueChange={(value) => handleInputChange('type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Borrower">Borrower</SelectItem>
-                <SelectItem value="Agent">Agent</SelectItem>
-                <SelectItem value="Real Estate Agent">Real Estate Agent</SelectItem>
-                <SelectItem value="Prospect">Prospect</SelectItem>
-                <SelectItem value="Third Party">Third Party</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {!defaultType && (
+            <div className="space-y-2">
+              <Label htmlFor="type">Contact Type</Label>
+              <Select 
+                value={formData.type} 
+                onValueChange={(value) => handleInputChange('type', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Borrower">Borrower</SelectItem>
+                  <SelectItem value="Agent">Agent</SelectItem>
+                  <SelectItem value="Prospect">Prospect</SelectItem>
+                  <SelectItem value="Third Party">Third Party</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

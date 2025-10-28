@@ -940,18 +940,14 @@ export default function Leads() {
         .from('users')
         .select('id, first_name, last_name, email');
       
-      // Fetch all real estate agents from contacts
+      // Fetch all buyer agents
       const { data: agentsData } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, company, email, phone')
-        .eq('type', 'Agent');
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone');
       
       // Create lookup maps for efficient matching
       const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
-      const agentsMap = new Map(agentsData?.map(a => [a.id, {
-        ...a,
-        brokerage: a.company
-      }]) || []);
+      const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
       
       // Enrich leads with related user and agent data
       const enrichedLeads = (dbLeads || []).map(lead => ({
