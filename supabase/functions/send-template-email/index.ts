@@ -137,6 +137,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Use verified sender address (not the user's Gmail)
     const fromAddress = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
     
+    console.log("Attempting to send email:", {
+      to: toEmails.join(', '),
+      from: fromAddress,
+      subject: subject
+    });
+    
     try {
       // Send email via Resend
       const emailResponse = await resend.emails.send({
@@ -162,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Log successful email in database
       const { error: logError } = await supabase.from("email_logs").insert({
         lead_id: leadId,
-        user_id: senderId,
+        user_id: null,
         timestamp: new Date().toISOString(),
         direction: 'Out',
         to_email: toEmails.join(', '),
@@ -175,6 +181,8 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (logError) {
         console.error("Failed to log email:", logError);
+      } else {
+        console.log("Email logged successfully in email_logs");
       }
 
       return new Response(
@@ -192,9 +200,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Error sending email:", emailError);
 
       // Log failed attempt in database
-      await supabase.from("email_logs").insert({
+      const { error: logError } = await supabase.from("email_logs").insert({
         lead_id: leadId,
-        user_id: senderId,
+        user_id: null,
         timestamp: new Date().toISOString(),
         direction: 'Out',
         to_email: toEmails.join(', '),
@@ -204,6 +212,10 @@ const handler = async (req: Request): Promise<Response> => {
         delivery_status: 'failed',
         error_details: emailError.message,
       });
+
+      if (logError) {
+        console.error("Failed to log failed email attempt:", logError);
+      }
 
       throw emailError;
     }
