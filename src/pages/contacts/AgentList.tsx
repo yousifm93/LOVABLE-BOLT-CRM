@@ -7,7 +7,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
-import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
+import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ const columns: ColumnDef<any>[] = [
       const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('') || '??';
       
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pl-4">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
               {initials}
@@ -65,24 +65,6 @@ const columns: ColumnDef<any>[] = [
         <span>{row.original.phone || 'N/A'}</span>
       </div>
     ),
-  },
-  {
-    accessorKey: "license_number",
-    header: "License",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1 text-sm">
-        <BadgeIcon className="h-3 w-3 text-muted-foreground" />
-        <span>{row.original.license_number || 'N/A'}</span>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "years_experience",
-    header: "Experience",
-    cell: ({ row }) => (
-      <span>{row.original.years_experience ? `${row.original.years_experience} yrs` : 'N/A'}</span>
-    ),
-    sortable: true,
   },
   {
     accessorKey: "agent_rank",
@@ -297,7 +279,7 @@ export default function AgentList() {
         defaultType="agent"
       />
       
-      <AgentDetailDrawer
+      <AgentDetailDialog
         agent={selectedAgent}
         isOpen={showAgentDrawer}
         onClose={() => {
