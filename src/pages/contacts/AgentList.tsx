@@ -23,13 +23,13 @@ const columns: ColumnDef<any>[] = [
       const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('') || '??';
       
       return (
-        <div className="flex items-center gap-3 pl-4">
+        <div className="flex items-center gap-3 justify-start">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="text-left">
             <div className="font-medium">{fullName}</div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               <Building2 className="h-3 w-3" />

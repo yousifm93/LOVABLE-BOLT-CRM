@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, Mail, User, DollarSign, ArrowRightLeft, Home, Building2, Landmark } from "lucide-react";
-import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
+import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { Input } from "@/components/ui/input";
@@ -535,7 +535,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         </AlertDialogContent>
       </AlertDialog>
 
-      <AgentDetailDrawer
+      <AgentDetailDialog
         agent={selectedAgent}
         isOpen={showAgentDrawer}
         onClose={() => {
