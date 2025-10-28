@@ -1,23 +1,34 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, X, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
+import { InlineEditContact } from "@/components/ui/inline-edit-contact";
 
-interface TeamMember {
+interface Lender {
+  id: string;
+  lender_name: string;
+  lender_type: string;
+  account_executive: string | null;
+  account_executive_email: string | null;
+}
+
+interface Contact {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  company: string | null;
+  email: string | null;
 }
 
 interface TeamAssignment {
   role: string;
-  user_id: string;
-  user?: TeamMember;
+  user_id: string | null;
+  lender_id: string | null;
+  contact_id: string | null;
+  lender?: Lender;
+  contact?: Contact;
 }
 
 interface TeamTabProps {
@@ -25,107 +36,99 @@ interface TeamTabProps {
 }
 
 const TEAM_ROLES = [
-  { key: 'pre_approval_expert', label: 'Pre-Approval Expert' },
-  { key: 'processor', label: 'Processor' },
-  { key: 'lender', label: 'Lender' },
-  { key: 'account_executive', label: 'Account Executive' },
+  { key: 'lender', label: 'Lender', type: 'lender' },
+  { key: 'account_executive', label: 'Account Executive', type: 'readonly' },
+  { key: 'title_company', label: 'Title Company', type: 'contact' },
+  { key: 'insurance_provider', label: 'Insurance Provider', type: 'contact' },
 ];
 
-function TeamRoleRow({ role, label, assignment, users, onAssign, onRemove }: {
+function TeamRoleRow({ 
+  role, 
+  label, 
+  type,
+  assignment, 
+  lenders,
+  contacts,
+  lenderAssignment,
+  onAssign, 
+  onRemove 
+}: {
   role: string;
   label: string;
+  type: string;
   assignment?: TeamAssignment;
-  users: TeamMember[];
-  onAssign: (role: string, userId: string) => void;
+  lenders: Lender[];
+  contacts: Contact[];
+  lenderAssignment?: TeamAssignment;
+  onAssign: (role: string, entityId: string, entityType: 'lender' | 'contact') => void;
   onRemove: (role: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(assignment?.user_id || "");
-
-  const selectedUser = users.find(user => user.id === value);
+  
+  // For readonly account executive, derive from lender
+  if (type === 'readonly') {
+    const lender = lenderAssignment?.lender;
+    return (
+      <div className="py-3 border-b last:border-0">
+        <div className="flex items-center gap-2 mb-2">
+          <User className="h-3 w-3 text-muted-foreground shrink-0" />
+          <span className="text-sm font-medium">{label}</span>
+        </div>
+        <div className="text-sm text-muted-foreground pl-5">
+          {lender?.account_executive 
+            ? `${lender.account_executive}${lender.account_executive_email ? ` (${lender.account_executive_email})` : ''}`
+            : 'Select lender first'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-3 border-b last:border-0">
       <div className="flex items-center gap-2 mb-2">
         <User className="h-3 w-3 text-muted-foreground shrink-0" />
         <span className="text-sm font-medium">{label}</span>
-        {assignment && (
+        {assignment && type !== 'readonly' && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onRemove(role)}
             className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive ml-auto"
           >
-            <X className="h-3 w-3" />
+            <User className="h-3 w-3" />
           </Button>
         )}
       </div>
       
-      {assignment ? (
-        <div className="text-sm text-muted-foreground pl-5">
-          {selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : 'Unknown User'}
-        </div>
-      ) : (
-        <div className="pl-5">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between text-xs h-8"
-              >
-                {selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : "Select user..."}
-                <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search users..." className="h-8" />
-                <CommandList>
-                  <CommandEmpty>No users found.</CommandEmpty>
-                  <CommandGroup>
-                    {users.map((user) => (
-                      <CommandItem
-                        key={user.id}
-                        value={`${user.first_name} ${user.last_name} ${user.email}`}
-                        onSelect={() => {
-                          setValue(user.id);
-                          onAssign(role, user.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-3 w-3",
-                            value === user.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm">{user.first_name} {user.last_name}</span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )}
+      <div className="pl-5">
+        {type === 'lender' ? (
+          <InlineEditApprovedLender
+            value={assignment?.lender || null}
+            lenders={lenders}
+            onValueChange={(lender) => lender && onAssign(role, lender.id, 'lender')}
+            placeholder="Select lender..."
+          />
+        ) : type === 'contact' ? (
+          <InlineEditContact
+            value={assignment?.contact_id || null}
+            contacts={contacts}
+            onValueChange={(value) => value && onAssign(role, value, 'contact')}
+            placeholder="Select contact..."
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 export function TeamTab({ leadId }: TeamTabProps) {
   const [assignments, setAssignments] = useState<TeamAssignment[]>([]);
-  const [users, setUsers] = useState<TeamMember[]>([]);
+  const [lenders, setLenders] = useState<Lender[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([loadAssignments(), loadUsers()]);
+    Promise.all([loadAssignments(), loadLenders(), loadContacts()]);
   }, [leadId]);
 
   const loadAssignments = async () => {
@@ -143,12 +146,48 @@ export function TeamTab({ leadId }: TeamTabProps) {
         .select(`
           role,
           user_id,
-          user:users!team_assignments_user_id_fkey(id, first_name, last_name, email)
+          lender_id,
+          contact_id,
+          lender:contacts!team_assignments_lender_id_fkey(id, first_name, last_name, company, email),
+          contact:contacts!team_assignments_contact_id_fkey(id, first_name, last_name, company, email)
         `)
         .eq('lead_id', leadId);
 
       if (error) throw error;
-      setAssignments(data || []);
+      
+      // Transform lender contact data to Lender format
+      const transformedData: TeamAssignment[] = (data || []).map((assignment: any) => {
+        const result: TeamAssignment = {
+          role: assignment.role,
+          user_id: assignment.user_id,
+          lender_id: assignment.lender_id,
+          contact_id: assignment.contact_id,
+        };
+        
+        if (assignment.lender_id && assignment.lender) {
+          result.lender = {
+            id: assignment.lender.id,
+            lender_name: assignment.lender.company || `${assignment.lender.first_name} ${assignment.lender.last_name}`,
+            lender_type: 'Conventional',
+            account_executive: `${assignment.lender.first_name} ${assignment.lender.last_name}`,
+            account_executive_email: assignment.lender.email
+          };
+        }
+        
+        if (assignment.contact_id && assignment.contact) {
+          result.contact = {
+            id: assignment.contact.id,
+            first_name: assignment.contact.first_name,
+            last_name: assignment.contact.last_name,
+            company: assignment.contact.company,
+            email: assignment.contact.email
+          };
+        }
+        
+        return result;
+      });
+      
+      setAssignments(transformedData);
     } catch (error) {
       console.error('Error loading team assignments:', error);
       toast({
@@ -159,21 +198,51 @@ export function TeamTab({ leadId }: TeamTabProps) {
     }
   };
 
-  const loadUsers = async () => {
+  const loadLenders = async () => {
+    try {
+      // Load from contacts table where company field is set (indicates lenders)
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, first_name, last_name, company, email')
+        .not('company', 'is', null)
+        .order('company');
+
+      if (error) throw error;
+      
+      // Transform to Lender format
+      const lenderData: Lender[] = (data || []).map(contact => ({
+        id: contact.id,
+        lender_name: contact.company || `${contact.first_name} ${contact.last_name}`,
+        lender_type: 'Conventional', // Default type
+        account_executive: `${contact.first_name} ${contact.last_name}`,
+        account_executive_email: contact.email
+      }));
+      
+      setLenders(lenderData);
+    } catch (error) {
+      console.error('Error loading lenders:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to load lenders",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadContacts = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
-        .eq('is_active', true)
+        .from('contacts')
+        .select('id, first_name, last_name, company, email')
         .order('first_name');
 
       if (error) throw error;
-      setUsers(data || []);
+      setContacts(data || []);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error loading contacts:', error);
       toast({
         title: "Error", 
-        description: "Failed to load users",
+        description: "Failed to load contacts",
         variant: "destructive",
       });
     } finally {
@@ -181,15 +250,25 @@ export function TeamTab({ leadId }: TeamTabProps) {
     }
   };
 
-  const handleAssign = async (role: string, userId: string) => {
+  const handleAssign = async (role: string, entityId: string, entityType: 'lender' | 'contact') => {
     try {
+      const assignmentData: any = {
+        lead_id: leadId,
+        role,
+        user_id: null,
+        lender_id: null,
+        contact_id: null,
+      };
+
+      if (entityType === 'lender') {
+        assignmentData.lender_id = entityId;
+      } else {
+        assignmentData.contact_id = entityId;
+      }
+
       const { error } = await supabase
         .from('team_assignments')
-        .upsert({
-          lead_id: leadId,
-          role,
-          user_id: userId,
-        }, {
+        .upsert(assignmentData, {
           onConflict: 'lead_id,role'
         });
 
@@ -245,6 +324,8 @@ export function TeamTab({ leadId }: TeamTabProps) {
     );
   }
 
+  const lenderAssignment = assignments.find(a => a.role === 'lender');
+
   return (
     <div className="space-y-1">
       {TEAM_ROLES.map(role => {
@@ -255,14 +336,16 @@ export function TeamTab({ leadId }: TeamTabProps) {
             key={role.key}
             role={role.key}
             label={role.label}
+            type={role.type}
             assignment={assignment}
-            users={users}
+            lenders={lenders}
+            contacts={contacts}
+            lenderAssignment={lenderAssignment}
             onAssign={handleAssign}
             onRemove={handleRemove}
           />
         );
       })}
-      
     </div>
   );
 }

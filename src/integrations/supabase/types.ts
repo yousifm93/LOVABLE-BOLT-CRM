@@ -3593,30 +3593,43 @@ export type Database = {
       }
       team_assignments: {
         Row: {
+          contact_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           lead_id: string | null
+          lender_id: string | null
           role: string | null
           user_id: string | null
         }
         Insert: {
+          contact_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           lead_id?: string | null
+          lender_id?: string | null
           role?: string | null
           user_id?: string | null
         }
         Update: {
+          contact_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           lead_id?: string | null
+          lender_id?: string | null
           role?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "team_assignments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_assignments_created_by_fkey"
             columns: ["created_by"]
@@ -3629,6 +3642,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_assignments_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
