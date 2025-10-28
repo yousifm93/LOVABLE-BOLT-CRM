@@ -906,7 +906,7 @@ export default function Leads() {
 
   const loadAgents = async () => {
     try {
-      const data = await databaseService.getRealEstateAgents();
+      const data = await databaseService.getBuyerAgents();
       setAgents(data || []);
     } catch (error) {
       console.error('Error loading agents:', error);
