@@ -72,6 +72,13 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [documents, setDocuments] = useState<any[]>([]);
   const [chatMessage, setChatMessage] = useState('');
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
+  
+  // Local state for gray section fields to reflect updates immediately
+  const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
+  const [localPriority, setLocalPriority] = useState((client as any).priority || 'Medium');
+  const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
+  const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
+  
   const { toast } = useToast();
 
   // Load activities and documents when drawer opens
@@ -128,6 +135,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     try {
       const dbFieldName = getDatabaseFieldName(fieldName);
       await databaseService.updateLead(leadId, { [dbFieldName]: value });
+      
+      // Update local state immediately so UI reflects the change
+      const now = new Date().toISOString();
+      setLocalUpdatedAt(now);
+      
+      if (fieldName === 'status') {
+        setLocalStatus(value);
+      } else if (fieldName === 'priority') {
+        setLocalPriority(value);
+      } else if (fieldName === 'likelyToApply') {
+        setLocalLikelyToApply(value);
+      }
       
       if (onLeadUpdated) {
         await onLeadUpdated();
@@ -225,7 +244,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Current Status:</span>
                 <InlineEditSelect
-                  value={client.ops.status || 'Pending App'}
+                  value={localStatus}
                   options={[
                     { value: 'Pending App', label: 'Pending App' },
                     { value: 'App Complete', label: 'App Complete' },
@@ -239,34 +258,32 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Priority:</span>
                 <InlineEditSelect
-                  value={client.ops.priority || 'Medium'}
+                  value={localPriority}
                   options={[
                     { value: 'High', label: 'High' },
                     { value: 'Medium', label: 'Medium' },
                     { value: 'Low', label: 'Low' }
                   ]}
                   onValueChange={(value) => handleLeadUpdate('priority', value)}
-                  showAsStatusBadge
                 />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Likely to Apply:</span>
                 <InlineEditSelect
-                  value={(client as any).likelyToApply || null}
+                  value={localLikelyToApply}
                   options={[
-                    { value: 'High', label: 'High' },
-                    { value: 'Medium', label: 'Medium' },
-                    { value: 'Low', label: 'Low' }
+                    { value: 'Very Likely', label: 'Very Likely' },
+                    { value: 'Likely', label: 'Likely' },
+                    { value: 'Unlikely', label: 'Unlikely' }
                   ]}
                   onValueChange={(value) => handleLeadUpdate('likelyToApply', value)}
-                  showAsStatusBadge
                   placeholder="Select likelihood"
                 />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Last Updated:</span>
                 <span className="text-sm">
-                  {new Date((client as any).updated_at || Date.now()).toLocaleString('en-US', {
+                  {new Date(localUpdatedAt).toLocaleString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
@@ -927,6 +944,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </CardHeader>
               <CardContent className="space-y-3 max-h-[calc(100vh-580px)] overflow-y-auto bg-gray-50">
                 {(() => {
+                  const calculateDaysAgo = (dateString: string | null): number | null => {
+                    if (!dateString) return null;
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now.getTime() - date.getTime();
+                    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                  };
+                  
                   const getStageHistory = () => {
                     if (pipelineType === 'active') {
                       return [
@@ -944,12 +969,51 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         { key: 'stage4', label: '', date: '', daysAgo: null }
                       ];
                     } else {
+                      // Live data for leads pipeline
+                      const createdAt = (client as any).created_at;
+                      const pendingAppAt = (client as any).pending_app_at;
+                      const appCompleteAt = (client as any).app_complete_at;
+                      const preQualifiedAt = (client as any).pre_qualified_at;
+                      const preApprovedAt = (client as any).pre_approved_at;
+                      const activeAt = (client as any).active_at;
+                      
                       return [
-                        { key: 'leads', label: 'Lead', date: '2024-01-08', daysAgo: 10 },
-                        { key: 'pending-app', label: 'Pending App', date: '2024-01-10', daysAgo: 8 },
-                        { key: 'screening', label: 'Screening', date: '2024-01-12', daysAgo: 6 },
-                        { key: 'pre-qualified', label: 'Pre-Qualified', date: '2024-01-15', daysAgo: 3 },
-                        { key: 'pre-approved', label: 'Pre-Approved', date: '', daysAgo: null }
+                        { 
+                          key: 'leads', 
+                          label: 'New', 
+                          date: createdAt, 
+                          daysAgo: calculateDaysAgo(createdAt) 
+                        },
+                        { 
+                          key: 'pending-app', 
+                          label: 'Pending App', 
+                          date: pendingAppAt, 
+                          daysAgo: calculateDaysAgo(pendingAppAt) 
+                        },
+                        { 
+                          key: 'screening', 
+                          label: 'Screening', 
+                          date: appCompleteAt, 
+                          daysAgo: calculateDaysAgo(appCompleteAt) 
+                        },
+                        { 
+                          key: 'pre-qualified', 
+                          label: 'Pre-Qualified', 
+                          date: preQualifiedAt, 
+                          daysAgo: calculateDaysAgo(preQualifiedAt) 
+                        },
+                        { 
+                          key: 'pre-approved', 
+                          label: 'Pre-Approved', 
+                          date: preApprovedAt, 
+                          daysAgo: calculateDaysAgo(preApprovedAt) 
+                        },
+                        { 
+                          key: 'active', 
+                          label: 'Active', 
+                          date: activeAt, 
+                          daysAgo: calculateDaysAgo(activeAt) 
+                        }
                       ];
                     }
                   };

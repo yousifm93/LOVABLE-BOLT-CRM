@@ -1719,6 +1719,7 @@ export type Database = {
       leads: {
         Row: {
           account_id: string
+          active_at: string | null
           app_complete_at: string | null
           appr_date_time: string | null
           appr_eta: string | null
@@ -1843,6 +1844,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          active_at?: string | null
           app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null
@@ -1969,6 +1971,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          active_at?: string | null
           app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null

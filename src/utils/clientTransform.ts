@@ -155,8 +155,17 @@ export function transformLeadToClient(lead: any): any {
     ssn: lead.ssn || null,
     dob: lead.dob || null,
     occupancy: lead.occupancy || null,
-  residency_type: lead.residency_type || null,
-  marital_status: lead.marital_status || null,
+    residency_type: lead.residency_type || null,
+    marital_status: lead.marital_status || null,
+    
+    // Timestamps for Stage History
+    updated_at: lead.updated_at || null,
+    created_at: lead.created_at || null,
+    pending_app_at: lead.pending_app_at || null,
+    app_complete_at: lead.app_complete_at || null,
+    pre_qualified_at: lead.pre_qualified_at || null,
+    pre_approved_at: lead.pre_approved_at || null,
+    active_at: lead.active_at || null,
   
   // Income breakdown
   base_employment_income: lead.base_employment_income || null,
