@@ -159,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
       lead_id: leadId,
       user_id: senderId,
       timestamp: new Date().toISOString(),
-      direction: 'outbound',
+      direction: 'Out',
       to_email: toEmails.join(', '),
       from_email: sender.email,
       subject: subject,
