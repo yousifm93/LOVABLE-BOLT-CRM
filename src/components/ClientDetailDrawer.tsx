@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as React from "react";
+import { format } from "date-fns";
 import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
   const [localNotes, setLocalNotes] = useState((client as any).notes || '');
   const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
+  
+  // About the Borrower editing state
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [hasUnsavedNotes, setHasUnsavedNotes] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
   
   const { toast } = useToast();
 
@@ -848,16 +854,68 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* About the Borrower Section */}
             <Card>
               <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                  {!isEditingNotes && localNotes && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingNotes(true)}
+                      className="h-7 text-xs"
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="bg-gray-50">
-                <Textarea
-                  value={localNotes}
-                  onChange={(e) => setLocalNotes(e.target.value)}
-                  onBlur={(e) => handleLeadUpdate('notes', e.target.value)}
-                  placeholder="Describe the borrower, how they were referred, what they're looking for..."
-                  className="min-h-[160px] resize-none bg-white"
-                />
+                {isEditingNotes || !localNotes ? (
+                  <>
+                    <Textarea
+                      value={localNotes}
+                      onChange={(e) => {
+                        setLocalNotes(e.target.value);
+                        setHasUnsavedNotes(true);
+                      }}
+                      placeholder="Describe the borrower, how they were referred, what they're looking for..."
+                      className="min-h-[160px] resize-none bg-white mb-2"
+                    />
+                    {hasUnsavedNotes && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            setIsSavingNotes(true);
+                            await handleLeadUpdate('notes', localNotes);
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                            setIsSavingNotes(false);
+                          }}
+                          disabled={isSavingNotes}
+                        >
+                          {isSavingNotes ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setLocalNotes((client as any).notes || '');
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border">
+                    {localNotes.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1008,11 +1066,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                           <p className="font-medium">{stage.label}</p>
                           {stage.date ? (
                             <p className="text-xs text-muted-foreground">
-                              {new Date(stage.date).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric' 
-                              })} - {stage.daysAgo} days ago
+                              {format(new Date(stage.date), 'MMM d, yyyy h:mm a')} EST - {stage.daysAgo} days ago
                             </p>
                           ) : (
                             <p className="text-xs text-muted-foreground">-</p>

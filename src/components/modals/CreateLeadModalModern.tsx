@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -28,18 +29,36 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     email: "",
     notes: "",
     lead_on_date: new Date(),
+    buyer_agent_id: null as string | null,
+    task_eta: new Date(),
   });
   const [loading, setLoading] = useState(false);
+  const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (open) {
+      loadBuyerAgents();
+    }
+  }, [open]);
+
+  const loadBuyerAgents = async () => {
+    try {
+      const agents = await databaseService.getBuyerAgents();
+      setBuyerAgents(agents || []);
+    } catch (error) {
+      console.error('Error loading buyer agents:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.first_name.trim() || !formData.last_name.trim()) {
+    if (!formData.first_name.trim()) {
       toast({
         title: "Error",
-        description: "First name and last name are required",
+        description: "First name is required",
         variant: "destructive",
       });
       return;
@@ -54,6 +73,8 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         email: formData.email || null,
         notes: formData.notes || null,
         lead_on_date: `${formData.lead_on_date.getFullYear()}-${String(formData.lead_on_date.getMonth() + 1).padStart(2, '0')}-${String(formData.lead_on_date.getDate()).padStart(2, '0')}`,
+        buyer_agent_id: formData.buyer_agent_id,
+        task_eta: `${formData.task_eta.getFullYear()}-${String(formData.task_eta.getMonth() + 1).padStart(2, '0')}-${String(formData.task_eta.getDate()).padStart(2, '0')}`,
         status: 'Working on it',
         teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Yousif Mohamed
         interest_rate: 7.0,
@@ -91,6 +112,8 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         email: "",
         notes: "",
         lead_on_date: new Date(),
+        buyer_agent_id: null,
+        task_eta: new Date(),
       });
       
       onLeadCreated();
@@ -130,13 +153,12 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name *</Label>
+              <Label htmlFor="last_name">Last Name</Label>
               <Input
                 id="last_name"
                 value={formData.last_name}
                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 placeholder="Enter last name"
-                required
               />
             </div>
           </div>
@@ -160,6 +182,54 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter email address"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="buyer_agent">Real Estate Agent</Label>
+            <Select
+              value={formData.buyer_agent_id || ""}
+              onValueChange={(value) => setFormData({ ...formData, buyer_agent_id: value || null })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an agent" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {buyerAgents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.first_name} {agent.last_name}
+                    {agent.brokerage ? ` - ${agent.brokerage}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="task_eta">Due Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.task_eta && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.task_eta ? format(formData.task_eta, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={formData.task_eta}
+                  onSelect={(date) => date && setFormData({ ...formData, task_eta: date })}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
