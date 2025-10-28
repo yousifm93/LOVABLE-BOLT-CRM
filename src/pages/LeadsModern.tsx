@@ -127,9 +127,58 @@ export function LeadsModern() {
       await databaseService.updateLead(leadId, updateData);
       
       // Update local state
-      setLeads(prev => prev.map(lead => 
-        lead.id === leadId ? { ...lead, [field]: value } : lead
-      ));
+      setLeads(prev => prev.map(lead => {
+        if (lead.id !== leadId) return lead;
+        
+        // Special handling for buyer_agent_id to keep buyer_agent object in sync
+        if (field === 'buyer_agent_id') {
+          const agentObj = value ? buyerAgents.find(a => a.id === value) : null;
+          return { 
+            ...lead, 
+            buyer_agent_id: value,
+            buyer_agent: agentObj || null
+          };
+        }
+        
+        // Special handling for teammate_assigned to keep teammate object in sync
+        if (field === 'teammate_assigned') {
+          const userObj = value ? users.find(u => u.id === value) : null;
+          return {
+            ...lead,
+            teammate_assigned: value,
+            teammate: userObj || null
+          };
+        }
+        
+        // Default: just update the field
+        return { ...lead, [field]: value };
+      }));
+      
+      // Also update the dbLeadsMap for drawer access
+      setDbLeadsMap(prev => {
+        const newMap = new Map(prev);
+        const existingLead = newMap.get(leadId);
+        if (existingLead) {
+          if (field === 'buyer_agent_id') {
+            const agentObj = value ? buyerAgents.find(a => a.id === value) : null;
+            newMap.set(leadId, {
+              ...existingLead,
+              buyer_agent_id: value,
+              buyer_agent: agentObj || null
+            });
+          } else if (field === 'teammate_assigned') {
+            const userObj = value ? users.find(u => u.id === value) : null;
+            newMap.set(leadId, {
+              ...existingLead,
+              teammate_assigned: value,
+              teammate: userObj || null
+            });
+          } else {
+            newMap.set(leadId, { ...existingLead, [field]: value });
+          }
+        }
+        return newMap;
+      });
       
       toast({
         title: "Success",
