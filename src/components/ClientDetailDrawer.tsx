@@ -77,6 +77,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
   const [localPriority, setLocalPriority] = useState((client as any).priority || 'Medium');
   const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
+  const [localNotes, setLocalNotes] = useState((client as any).notes || '');
   const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
   
   const { toast } = useToast();
@@ -146,6 +147,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         setLocalPriority(value);
       } else if (fieldName === 'likelyToApply') {
         setLocalLikelyToApply(value);
+      } else if (fieldName === 'notes') {
+        setLocalNotes(value);
       }
       
       if (onLeadUpdated) {
@@ -842,53 +845,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* Send Email Templates */}
             <SendEmailTemplatesCard leadId={leadId || ""} />
 
-            {/* Notes Section */}
+            {/* About the Borrower Section */}
             <Card>
               <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">Notes</CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6"
-                    onClick={() => setShowAddNoteModal(true)}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
+                <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
               </CardHeader>
               <CardContent className="bg-gray-50">
-                <div className="max-h-[160px] overflow-y-auto space-y-3">
-                  {activities.filter(a => a.type === 'note').length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      No notes yet. Click + to add a note.
-                    </p>
-                  ) : (
-                    activities.filter(a => a.type === 'note').slice(0, 5).map((note) => (
-                      <div 
-                        key={note.id} 
-                        className="space-y-1 cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors"
-                        onClick={() => {
-                          setSelectedNote(note);
-                          setShowNoteDetailModal(true);
-                        }}
-                      >
-                        <div className="text-primary hover:underline text-sm font-medium">
-                          {note.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(note.timestamp).toLocaleDateString('en-US', { 
-                            month: 'short', day: 'numeric', year: 'numeric', 
-                            hour: 'numeric', minute: '2-digit' 
-                          })} • by <span className="text-primary">{note.user}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {note.description}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <Textarea
+                  value={localNotes}
+                  onChange={(e) => setLocalNotes(e.target.value)}
+                  onBlur={(e) => handleLeadUpdate('notes', e.target.value)}
+                  placeholder="Describe the borrower, how they were referred, what they're looking for..."
+                  className="min-h-[160px] resize-none bg-white"
+                />
               </CardContent>
             </Card>
 
