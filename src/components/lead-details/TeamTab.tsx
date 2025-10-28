@@ -148,14 +148,14 @@ export function TeamTab({ leadId }: TeamTabProps) {
           user_id,
           lender_id,
           contact_id,
-          lender:contacts!team_assignments_lender_id_fkey(id, first_name, last_name, company, email),
+          lender:lenders!team_assignments_lender_id_fkey(id, lender_name, lender_type, account_executive, account_executive_email),
           contact:contacts!team_assignments_contact_id_fkey(id, first_name, last_name, company, email)
         `)
         .eq('lead_id', leadId);
 
       if (error) throw error;
       
-      // Transform lender contact data to Lender format
+      // Transform data to TeamAssignment format
       const transformedData: TeamAssignment[] = (data || []).map((assignment: any) => {
         const result: TeamAssignment = {
           role: assignment.role,
@@ -165,13 +165,7 @@ export function TeamTab({ leadId }: TeamTabProps) {
         };
         
         if (assignment.lender_id && assignment.lender) {
-          result.lender = {
-            id: assignment.lender.id,
-            lender_name: assignment.lender.company || `${assignment.lender.first_name} ${assignment.lender.last_name}`,
-            lender_type: 'Conventional',
-            account_executive: `${assignment.lender.first_name} ${assignment.lender.last_name}`,
-            account_executive_email: assignment.lender.email
-          };
+          result.lender = assignment.lender;
         }
         
         if (assignment.contact_id && assignment.contact) {
@@ -200,29 +194,17 @@ export function TeamTab({ leadId }: TeamTabProps) {
 
   const loadLenders = async () => {
     try {
-      // Load from contacts table where company field is set (indicates lenders)
       const { data, error } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, company, email')
-        .not('company', 'is', null)
-        .order('company');
+        .from('lenders')
+        .select('*')
+        .order('lender_name');
 
       if (error) throw error;
-      
-      // Transform to Lender format
-      const lenderData: Lender[] = (data || []).map(contact => ({
-        id: contact.id,
-        lender_name: contact.company || `${contact.first_name} ${contact.last_name}`,
-        lender_type: 'Conventional', // Default type
-        account_executive: `${contact.first_name} ${contact.last_name}`,
-        account_executive_email: contact.email
-      }));
-      
-      setLenders(lenderData);
+      setLenders(data || []);
     } catch (error) {
       console.error('Error loading lenders:', error);
       toast({
-        title: "Error", 
+        title: "Error",
         description: "Failed to load lenders",
         variant: "destructive",
       });

@@ -1778,6 +1778,7 @@ export type Database = {
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           lender_id: string | null
           les_file: string | null
+          likely_to_apply: string | null
           listing_agent_id: string | null
           loan_amount: number | null
           loan_status: Database["public"]["Enums"]["loan_status"] | null
@@ -1900,6 +1901,7 @@ export type Database = {
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
           les_file?: string | null
+          likely_to_apply?: string | null
           listing_agent_id?: string | null
           loan_amount?: number | null
           loan_status?: Database["public"]["Enums"]["loan_status"] | null
@@ -2024,6 +2026,7 @@ export type Database = {
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
           les_file?: string | null
+          likely_to_apply?: string | null
           listing_agent_id?: string | null
           loan_amount?: number | null
           loan_status?: Database["public"]["Enums"]["loan_status"] | null
@@ -3648,7 +3651,7 @@ export type Database = {
             foreignKeyName: "team_assignments_lender_id_fkey"
             columns: ["lender_id"]
             isOneToOne: false
-            referencedRelation: "contacts"
+            referencedRelation: "lenders"
             referencedColumns: ["id"]
           },
           {

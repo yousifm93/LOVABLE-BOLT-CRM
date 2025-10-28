@@ -23,6 +23,8 @@ import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
 import { PipelineStageBar } from "@/components/PipelineStageBar";
 import { databaseService } from "@/services/database";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { getDatabaseFieldName } from "@/types/crm";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -113,6 +115,38 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   };
 
+  const handleLeadUpdate = async (fieldName: string, value: any) => {
+    if (!leadId) {
+      toast({
+        title: "Error",
+        description: "Lead ID is missing. Cannot save field.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const dbFieldName = getDatabaseFieldName(fieldName);
+      await databaseService.updateLead(leadId, { [dbFieldName]: value });
+      
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+      
+      toast({
+        title: "Field Updated",
+        description: `${fieldName} has been updated successfully.`,
+      });
+    } catch (error) {
+      console.error(`Error updating ${fieldName}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to update ${fieldName}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Critical status information based on pipeline stage
   const renderCriticalStatusInfo = () => {
     const stage = client.ops.stage;
@@ -187,11 +221,51 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         return (
            <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
              <h4 className="font-medium text-sm mb-3">Status Information</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Current status: {client.ops.status || 'Active'}</div>
-              <div>• Priority: {client.ops.priority || 'Medium'}</div>
-              <div>• Last updated: Today</div>
-              <div>• Assigned team: Primary</div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground min-w-[120px]">Current Status:</span>
+                <InlineEditSelect
+                  value={client.ops.status || 'Working on it'}
+                  options={[
+                    { value: 'Working on it', label: 'Working on it' },
+                    { value: 'Done', label: 'Done' },
+                    { value: 'Need help', label: 'Need help' }
+                  ]}
+                  onValueChange={(value) => handleLeadUpdate('status', value)}
+                  showAsStatusBadge
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground min-w-[120px]">Priority:</span>
+                <InlineEditSelect
+                  value={client.ops.priority || 'Medium'}
+                  options={[
+                    { value: 'High', label: 'High' },
+                    { value: 'Medium', label: 'Medium' },
+                    { value: 'Low', label: 'Low' }
+                  ]}
+                  onValueChange={(value) => handleLeadUpdate('priority', value)}
+                  showAsStatusBadge
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground min-w-[120px]">Likely to Apply:</span>
+                <InlineEditSelect
+                  value={(client as any).likelyToApply || null}
+                  options={[
+                    { value: 'High', label: 'High' },
+                    { value: 'Medium', label: 'Medium' },
+                    { value: 'Low', label: 'Low' }
+                  ]}
+                  onValueChange={(value) => handleLeadUpdate('likelyToApply', value)}
+                  showAsStatusBadge
+                  placeholder="Select likelihood"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground min-w-[120px]">Last Updated:</span>
+                <span className="text-sm">{new Date((client as any).updated_at || Date.now()).toLocaleDateString()}</span>
+              </div>
             </div>
           </div>
         );

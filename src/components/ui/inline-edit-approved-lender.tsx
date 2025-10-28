@@ -71,9 +71,9 @@ export function InlineEditApprovedLender({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           className={cn(
-            "h-auto p-1 justify-start font-normal hover:bg-muted/50 min-w-[140px]",
+            "h-auto p-2 justify-start font-normal hover:bg-muted/50 min-w-[140px]",
             !value && "text-muted-foreground",
             className
           )}
