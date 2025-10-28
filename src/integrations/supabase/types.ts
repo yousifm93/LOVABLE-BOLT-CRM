@@ -1809,6 +1809,7 @@ export type Database = {
           pre_approved_at: string | null
           pre_qualified_at: string | null
           principal_interest: number | null
+          priority: string | null
           program: string | null
           property_taxes: number | null
           property_type: string | null
@@ -1932,6 +1933,7 @@ export type Database = {
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
           principal_interest?: number | null
+          priority?: string | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null
@@ -2057,6 +2059,7 @@ export type Database = {
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
           principal_interest?: number | null
+          priority?: string | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null

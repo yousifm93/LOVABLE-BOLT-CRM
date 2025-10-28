@@ -234,6 +234,8 @@ export function TeamTab({ leadId }: TeamTabProps) {
 
   const handleAssign = async (role: string, entityId: string, entityType: 'lender' | 'contact') => {
     try {
+      console.log('Attempting to assign:', { role, entityId, entityType, leadId });
+      
       const assignmentData: any = {
         lead_id: leadId,
         role,
@@ -248,14 +250,20 @@ export function TeamTab({ leadId }: TeamTabProps) {
         assignmentData.contact_id = entityId;
       }
 
+      console.log('Assignment data:', assignmentData);
+
       const { error } = await supabase
         .from('team_assignments')
         .upsert(assignmentData, {
           onConflict: 'lead_id,role'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
+      console.log('Assignment successful');
       await loadAssignments();
       toast({
         title: "Success",

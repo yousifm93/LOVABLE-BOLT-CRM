@@ -225,11 +225,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Current Status:</span>
                 <InlineEditSelect
-                  value={client.ops.status || 'Working on it'}
+                  value={client.ops.status || 'Pending App'}
                   options={[
-                    { value: 'Working on it', label: 'Working on it' },
-                    { value: 'Done', label: 'Done' },
-                    { value: 'Need help', label: 'Need help' }
+                    { value: 'Pending App', label: 'Pending App' },
+                    { value: 'App Complete', label: 'App Complete' },
+                    { value: 'Standby', label: 'Standby' },
+                    { value: 'DNA', label: 'DNA' }
                   ]}
                   onValueChange={(value) => handleLeadUpdate('status', value)}
                   showAsStatusBadge
@@ -264,7 +265,16 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground min-w-[120px]">Last Updated:</span>
-                <span className="text-sm">{new Date((client as any).updated_at || Date.now()).toLocaleDateString()}</span>
+                <span className="text-sm">
+                  {new Date((client as any).updated_at || Date.now()).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </span>
               </div>
             </div>
           </div>

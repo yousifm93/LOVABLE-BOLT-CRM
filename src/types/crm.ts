@@ -430,6 +430,8 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'fin_cont': 'financingContingency',
   'monthly_pmt_goal': 'monthlyPaymentGoal',
   'cash_to_close_goal': 'cashToCloseGoal',
+  'likely_to_apply': 'likelyToApply',
+  'priority': 'priority',
 };
 
 // Reverse mapping for lookup
