@@ -543,6 +543,98 @@ export const databaseService = {
     return activities;
   },
 
+  // Update note
+  async updateNote(noteId: string, updates: { body?: string }) {
+    const { data, error } = await supabase
+      .from('notes')
+      .update(updates)
+      .eq('id', noteId)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete note
+  async deleteNote(noteId: string) {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteId);
+    
+    if (error) throw error;
+  },
+
+  // Update call log
+  async updateCallLog(callLogId: string, updates: { notes?: string }) {
+    const { data, error } = await supabase
+      .from('call_logs')
+      .update(updates)
+      .eq('id', callLogId)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete call log
+  async deleteCallLog(callLogId: string) {
+    const { error } = await supabase
+      .from('call_logs')
+      .delete()
+      .eq('id', callLogId);
+    
+    if (error) throw error;
+  },
+
+  // Update SMS log
+  async updateSmsLog(smsLogId: string, updates: { body?: string }) {
+    const { data, error } = await supabase
+      .from('sms_logs')
+      .update(updates)
+      .eq('id', smsLogId)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete SMS log
+  async deleteSmsLog(smsLogId: string) {
+    const { error } = await supabase
+      .from('sms_logs')
+      .delete()
+      .eq('id', smsLogId);
+    
+    if (error) throw error;
+  },
+
+  // Update email log
+  async updateEmailLog(emailLogId: string, updates: { body?: string; subject?: string }) {
+    const { data, error } = await supabase
+      .from('email_logs')
+      .update(updates)
+      .eq('id', emailLogId)
+      .select('*')
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete email log
+  async deleteEmailLog(emailLogId: string) {
+    const { error } = await supabase
+      .from('email_logs')
+      .delete()
+      .eq('id', emailLogId);
+    
+    if (error) throw error;
+  },
+
   // Buyer Agent operations
   async getBuyerAgents() {
     const { data, error } = await supabase

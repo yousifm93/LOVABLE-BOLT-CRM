@@ -22,9 +22,10 @@ interface LeadCenterTabsProps {
   onEmailClick?: () => void;
   onNoteClick?: () => void;
   onTaskClick?: () => void;
+  onActivityUpdated?: () => void;
 }
 
-export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: LeadCenterTabsProps) {
+export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onActivityUpdated }: LeadCenterTabsProps) {
   return (
     <Card className="mb-4 h-[600px]">
       <CardHeader className="pb-2">
@@ -67,6 +68,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               onEmailClick={onEmailClick}
               onNoteClick={onNoteClick}
               onTaskClick={onTaskClick}
+              onActivityUpdated={onActivityUpdated}
             />
           </TabsContent>
           

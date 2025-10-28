@@ -101,17 +101,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     try {
       const fetchedActivities = await databaseService.getLeadActivities(leadId);
       // Transform to match Activity interface
-      const transformedActivities = fetchedActivities.map((activity: any) => ({
-        id: activity.id,
-        type: activity.type,
-        title: activity.type === 'note' ? 'Note added' : 
-               activity.type === 'call' ? 'Call logged' :
-               activity.type === 'sms' ? 'SMS sent' : 'Email sent',
-        description: activity.body || activity.notes || '',
-        timestamp: activity.created_at,
-        user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
-              activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System'
-      }));
+        const transformedActivities = fetchedActivities.map((activity: any) => ({
+          id: activity.id,
+          type: activity.type,
+          title: activity.type === 'note' ? 'Note added' : 
+                 activity.type === 'call' ? 'Call logged' :
+                 activity.type === 'sms' ? 'SMS sent' : 'Email sent',
+          description: activity.body || activity.notes || '',
+          timestamp: activity.created_at,
+          user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
+                activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+          author_id: activity.author_id || activity.user_id
+        }));
       setActivities(transformedActivities);
     } catch (error) {
       console.error('Error loading activities:', error);
@@ -798,6 +799,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 Object.assign(client, patch);
               }}
               onDocumentsChange={loadDocuments}
+              onActivityUpdated={loadActivities}
               onCallClick={() => {
                 if (!leadId) {
                   toast({
@@ -882,19 +884,36 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     />
                     {hasUnsavedNotes && (
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={async () => {
-                            setIsSavingNotes(true);
-                            await handleLeadUpdate('notes', localNotes);
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                            setIsSavingNotes(false);
-                          }}
-                          disabled={isSavingNotes}
-                        >
-                          {isSavingNotes ? 'Saving...' : 'Save'}
-                        </Button>
+            <Button
+              size="sm"
+              onClick={async () => {
+                setIsSavingNotes(true);
+                try {
+                  await handleLeadUpdate('notes', localNotes);
+                  if (onLeadUpdated) {
+                    await onLeadUpdated();
+                  }
+                  setHasUnsavedNotes(false);
+                  setIsEditingNotes(false);
+                  toast({
+                    title: "Saved",
+                    description: "About the Borrower section has been updated.",
+                  });
+                } catch (error) {
+                  console.error('Error saving notes:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to save. Please try again.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsSavingNotes(false);
+                }
+              }}
+              disabled={isSavingNotes}
+            >
+              {isSavingNotes ? 'Saving...' : 'Save'}
+            </Button>
                         <Button
                           size="sm"
                           variant="outline"

@@ -14,6 +14,7 @@ interface Activity {
   description?: string;
   timestamp: string;
   user: string;
+  author_id?: string;
 }
 
 interface ActivityTabProps {
@@ -23,6 +24,7 @@ interface ActivityTabProps {
   onEmailClick?: () => void;
   onNoteClick?: () => void;
   onTaskClick?: () => void;
+  onActivityUpdated?: () => void;
 }
 
 const getActivityIcon = (type: Activity['type']) => {
@@ -55,7 +57,7 @@ const getActivityBadgeVariant = (type: Activity['type']) => {
   }
 };
 
-export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick }: ActivityTabProps) {
+export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onActivityUpdated }: ActivityTabProps) {
   const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
 
@@ -161,6 +163,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
         open={showNoteDetailModal}
         onOpenChange={setShowNoteDetailModal}
         note={selectedNote}
+        onActivityUpdated={onActivityUpdated}
       />
     </div>
   );
