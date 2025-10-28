@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.guideline-chat]
 verify_jwt = true
+
+[functions.email-webhooks]
+verify_jwt = false

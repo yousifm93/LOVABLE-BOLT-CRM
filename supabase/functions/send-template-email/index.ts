@@ -134,55 +134,80 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("At least one recipient email is required");
     }
 
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: `${sender.first_name} ${sender.last_name} <${sender.email}>`,
-      to: toEmails,
-      cc: ccEmails.length > 0 ? ccEmails : undefined,
-      subject: subject,
-      html: htmlContent,
-    });
+    // Use verified sender address (not the user's Gmail)
+    const fromAddress = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+    
+    try {
+      // Send email via Resend
+      const emailResponse = await resend.emails.send({
+        from: `${sender.first_name} ${sender.last_name} <${fromAddress}>`,
+        reply_to: [sender.email],
+        to: toEmails,
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
+        subject: subject,
+        html: htmlContent,
+      });
 
-    console.log("Email sent successfully:", emailResponse);
+      console.log("Email sent successfully:", emailResponse);
 
-    // Check for errors from Resend
-    if (emailResponse.error) {
-      throw new Error(`Failed to send email: ${emailResponse.error.message}`);
-    }
-
-    if (!emailResponse.data) {
-      throw new Error('Email sending failed - no response from Resend');
-    }
-
-    // Log email in database
-    const { error: logError } = await supabase.from("email_logs").insert({
-      lead_id: leadId,
-      user_id: senderId,
-      timestamp: new Date().toISOString(),
-      direction: 'Out',
-      to_email: toEmails.join(', '),
-      from_email: sender.email,
-      subject: subject,
-      snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
-      provider_message_id: emailResponse.data?.id,
-      delivery_status: 'sent',
-    });
-
-    if (logError) {
-      console.error("Failed to log email:", logError);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Email sent successfully",
-        emailId: emailResponse.id,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      // Check for errors from Resend
+      if (emailResponse.error) {
+        throw new Error(`Failed to send email: ${emailResponse.error.message}`);
       }
-    );
+
+      if (!emailResponse.data) {
+        throw new Error('Email sending failed - no response from Resend');
+      }
+
+      // Log successful email in database
+      const { error: logError } = await supabase.from("email_logs").insert({
+        lead_id: leadId,
+        user_id: senderId,
+        timestamp: new Date().toISOString(),
+        direction: 'Out',
+        to_email: toEmails.join(', '),
+        from_email: fromAddress,
+        subject: subject,
+        snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
+        provider_message_id: emailResponse.data.id,
+        delivery_status: 'sent',
+      });
+
+      if (logError) {
+        console.error("Failed to log email:", logError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Email sent successfully",
+          emailId: emailResponse.data.id,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    } catch (emailError: any) {
+      console.error("Error sending email:", emailError);
+
+      // Log failed attempt in database
+      await supabase.from("email_logs").insert({
+        lead_id: leadId,
+        user_id: senderId,
+        timestamp: new Date().toISOString(),
+        direction: 'Out',
+        to_email: toEmails.join(', '),
+        from_email: fromAddress,
+        subject: subject,
+        snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
+        delivery_status: 'failed',
+        error_details: emailError.message,
+      });
+
+      throw emailError;
+    }
+
   } catch (error: any) {
     console.error("Error sending email:", error);
 
