@@ -88,6 +88,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   
   const { toast } = useToast();
 
+  // Sync localNotes when client.notes changes
+  React.useEffect(() => {
+    setLocalNotes((client as any).notes || '');
+  }, [(client as any).notes]);
+
   // Load activities and documents when drawer opens
   React.useEffect(() => {
     if (isOpen && leadId) {
@@ -378,9 +383,20 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
     
     try {
+      // Special handling for Pending App stage
+      const isPendingApp = normalizedLabel === 'Pending App' || stageId === '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945';
+      
       const updateData: any = { 
-        pipeline_stage_id: stageId 
+        pipeline_stage_id: stageId,
+        pending_app_at: new Date().toISOString()
       };
+      
+      // If moving to Pending App, set defaults
+      if (isPendingApp) {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        updateData.status = 'Pending App';
+        updateData.task_eta = today;
+      }
       
       // If moving to Active, also update the pipeline_section to Incoming
       if (normalizedLabel === 'Active') {

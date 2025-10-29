@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { InlineEditAgent } from '@/components/ui/inline-edit-agent';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type LeadInsert, type User, type Contact, type PipelineStage } from '@/services/database';
@@ -27,6 +29,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
   const [users, setUsers] = useState<User[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
   const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
   
@@ -271,6 +274,73 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
               />
             </div>
           </div>
+
+          <Collapsible open={showAdvancedOptions} onOpenChange={setShowAdvancedOptions}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" type="button" className="w-full justify-between p-2 h-auto">
+                <span className="text-sm font-medium">Advanced Options</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="teammate_assigned">Assign User</Label>
+                <Select
+                  value={formData.teammate_assigned}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, teammate_assigned: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="referred_via">Referral Method</Label>
+                  <Select
+                    value={formData.referred_via || ""}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, referred_via: value || null }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Phone">Phone</SelectItem>
+                      <SelectItem value="Referral">Referral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="source">Referral Source</Label>
+                  <Select
+                    value={formData.source || ""}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, source: value || null }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="Agent">Agent</SelectItem>
+                      <SelectItem value="Website">Website</SelectItem>
+                      <SelectItem value="Social Media">Social Media</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

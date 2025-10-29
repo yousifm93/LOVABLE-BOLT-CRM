@@ -139,7 +139,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     const schema = z.object({
       firstName: z.string().min(1, "First name is required"),
       lastName: z.string().min(1, "Last name is required"),
-      email: z.string().email("Invalid email address"),
+      email: z.string().email("Invalid email address").optional().or(z.literal('')),
       phone: z.string().optional(),
       loanAmount: z.number().min(0).nullable().optional(),
       salesPrice: z.number().min(0).nullable().optional(),

@@ -106,7 +106,7 @@ const transformLeadToDisplay = (
 
   return {
     id: dbLead.id,
-    name: `${dbLead.first_name} ${dbLead.last_name}`,
+    name: `${dbLead.first_name || ''} ${dbLead.last_name || ''}`.trim() || 'Unnamed Lead',
     createdOn: dbLead.created_at,
     createdAtTs: new Date(dbLead.created_at).getTime(),
     phone: dbLead.phone || '',
@@ -115,8 +115,8 @@ const transformLeadToDisplay = (
     realEstateAgentData: dbLead.buyer_agent || null,
     user: dbLead.teammate_assigned || '',
     userData: dbLead.teammate || null,
-    referredVia: dbLead.referred_via || 'Email',
-    referralSource: dbLead.referral_source || 'Agent',
+    referredVia: dbLead.referred_via || '',
+    referralSource: dbLead.referral_source || '',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
     dueDate: dbLead.task_eta ? new Date(dbLead.task_eta + 'T00:00:00').toLocaleDateString() : '',
