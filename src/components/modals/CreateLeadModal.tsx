@@ -42,7 +42,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     referred_via: '' as any,
     lead_on_date: formatLocalDate(new Date()),
     status: 'Working on it' as any,
-    teammate_assigned: '',
+    teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Default to Yousif Mohamed
     buyer_agent_id: '',
     task_eta: formatLocalDate(new Date()),
     notes: '',
@@ -67,14 +67,6 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       setContacts(contactsData.filter(c => c.type === 'Agent' || c.type === 'Realtor'));
       setPipelineStages(stagesData);
       setBuyerAgents(agentsData);
-      
-      // Set current user as default teammate if not already set
-      if (user && !formData.teammate_assigned) {
-        const currentUser = usersData.find(u => u.email === user.email);
-        if (currentUser) {
-          setFormData(prev => ({ ...prev, teammate_assigned: currentUser.id }));
-        }
-      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -289,16 +281,20 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                   value={formData.teammate_assigned}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, teammate_assigned: value }))}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
+                <SelectTrigger>
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">Loading users...</div>
+                  ) : (
+                    users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.first_name} {user.last_name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
+                    ))
+                  )}
+                </SelectContent>
                 </Select>
               </div>
               

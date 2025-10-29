@@ -90,6 +90,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
 
   // Sync localNotes when client.notes changes
   React.useEffect(() => {
+    console.log('[ClientDetailDrawer] Client notes changed:', (client as any).notes);
     setLocalNotes((client as any).notes || '');
   }, [(client as any).notes]);
 
@@ -900,36 +901,39 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     />
                     {hasUnsavedNotes && (
                       <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={async () => {
-                setIsSavingNotes(true);
-                try {
-                  await handleLeadUpdate('notes', localNotes);
-                  if (onLeadUpdated) {
-                    await onLeadUpdated();
+              <Button
+                size="sm"
+                onClick={async () => {
+                  setIsSavingNotes(true);
+                  console.log('[ClientDetailDrawer] Saving notes:', localNotes);
+                  try {
+                    await handleLeadUpdate('notes', localNotes);
+                    console.log('[ClientDetailDrawer] Notes saved, calling onLeadUpdated');
+                    if (onLeadUpdated) {
+                      await onLeadUpdated();
+                    }
+                    console.log('[ClientDetailDrawer] onLeadUpdated completed');
+                    setHasUnsavedNotes(false);
+                    setIsEditingNotes(false);
+                    toast({
+                      title: "Saved",
+                      description: "About the Borrower section has been updated.",
+                    });
+                  } catch (error) {
+                    console.error('[ClientDetailDrawer] Error saving notes:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to save. Please try again.",
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsSavingNotes(false);
                   }
-                  setHasUnsavedNotes(false);
-                  setIsEditingNotes(false);
-                  toast({
-                    title: "Saved",
-                    description: "About the Borrower section has been updated.",
-                  });
-                } catch (error) {
-                  console.error('Error saving notes:', error);
-                  toast({
-                    title: "Error",
-                    description: "Failed to save. Please try again.",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setIsSavingNotes(false);
-                }
-              }}
-              disabled={isSavingNotes}
-            >
-              {isSavingNotes ? 'Saving...' : 'Save'}
-            </Button>
+                }}
+                disabled={isSavingNotes}
+              >
+                {isSavingNotes ? 'Saving...' : 'Save'}
+              </Button>
                         <Button
                           size="sm"
                           variant="outline"

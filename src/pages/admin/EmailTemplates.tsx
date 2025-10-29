@@ -17,25 +17,7 @@ interface EmailTemplate {
   created_at: string;
 }
 
-const MERGE_TAGS = [
-  { tag: "{{borrower_first_name}}", label: "Borrower First Name" },
-  { tag: "{{borrower_last_name}}", label: "Borrower Last Name" },
-  { tag: "{{borrower_email}}", label: "Borrower Email" },
-  { tag: "{{borrower_phone}}", label: "Borrower Phone" },
-  { tag: "{{address}}", label: "Property Address" },
-  { tag: "{{city}}", label: "City" },
-  { tag: "{{state}}", label: "State" },
-  { tag: "{{zip_code}}", label: "Zip Code" },
-  { tag: "{{loan_amount}}", label: "Loan Amount" },
-  { tag: "{{sales_price}}", label: "Sales Price" },
-  { tag: "{{loan_type}}", label: "Loan Type" },
-  { tag: "{{property_type}}", label: "Property Type" },
-  { tag: "{{program}}", label: "Program" },
-  { tag: "{{agent_name}}", label: "Agent Name" },
-  { tag: "{{agent_email}}", label: "Agent Email" },
-  { tag: "{{sender_name}}", label: "Sender Name" },
-  { tag: "{{sender_email}}", label: "Sender Email" },
-];
+// Merge tags are now dynamically loaded from crm_fields table
 
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -43,10 +25,14 @@ export default function EmailTemplates() {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [formData, setFormData] = useState({ name: "", html: "" });
   const [previewHtml, setPreviewHtml] = useState("");
+  const [crmFields, setCrmFields] = useState<any[]>([]);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [editorMode, setEditorMode] = useState<'plain' | 'html'>('plain');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTemplates();
+    fetchCrmFields();
   }, []);
 
   const fetchTemplates = async () => {
@@ -59,6 +45,21 @@ export default function EmailTemplates() {
       toast({ title: "Error loading templates", description: error.message, variant: "destructive" });
     } else {
       setTemplates(data || []);
+    }
+  };
+
+  const fetchCrmFields = async () => {
+    const { data, error } = await supabase
+      .from('crm_fields')
+      .select('field_name, display_name, section, field_type')
+      .eq('is_in_use', true)
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading CRM fields:', error);
+    } else {
+      setCrmFields(data || []);
     }
   };
 
@@ -128,32 +129,58 @@ export default function EmailTemplates() {
   };
 
   const handlePreview = () => {
-    // Replace merge tags with sample data for preview
     let preview = formData.html;
-    const sampleData = {
-      "{{borrower_first_name}}": "John",
-      "{{borrower_last_name}}": "Doe",
-      "{{borrower_email}}": "john.doe@example.com",
-      "{{borrower_phone}}": "(555) 123-4567",
-      "{{address}}": "123 Main Street",
-      "{{city}}": "Los Angeles",
-      "{{state}}": "CA",
-      "{{zip_code}}": "90001",
-      "{{loan_amount}}": "$450,000",
-      "{{sales_price}}": "$500,000",
-      "{{loan_type}}": "Purchase",
-      "{{property_type}}": "Single Family",
-      "{{program}}": "Conventional",
-      "{{agent_name}}": "Jane Smith",
-      "{{agent_email}}": "jane.smith@realty.com",
-      "{{sender_name}}": "Yousif Mohammed",
-      "{{sender_email}}": "yusufminc@gmail.com",
-    };
-
-    Object.entries(sampleData).forEach(([tag, value]) => {
-      preview = preview.replace(new RegExp(tag, "g"), value);
+    
+    // Generate sample data for all CRM fields
+    const sampleData: Record<string, string> = {};
+    
+    crmFields.forEach((field) => {
+      const tag = `{{${field.field_name}}}`;
+      let sampleValue = '';
+      
+      // Generate appropriate sample value based on field name patterns
+      if (field.field_name.includes('first_name')) {
+        sampleValue = 'John';
+      } else if (field.field_name.includes('last_name')) {
+        sampleValue = 'Doe';
+      } else if (field.field_name.includes('name') && !field.field_name.includes('_name')) {
+        sampleValue = 'Sample Name';
+      } else if (field.field_name.includes('email')) {
+        sampleValue = 'example@email.com';
+      } else if (field.field_name.includes('phone')) {
+        sampleValue = '(555) 123-4567';
+      } else if (field.field_name.includes('amount') || field.field_name.includes('price')) {
+        sampleValue = '$450,000';
+      } else if (field.field_name.includes('rate') && !field.field_name.includes('operating')) {
+        sampleValue = '6.5%';
+      } else if (field.field_name.includes('date')) {
+        sampleValue = new Date().toLocaleDateString();
+      } else if (field.field_name.includes('address')) {
+        sampleValue = '123 Main Street';
+      } else if (field.field_name.includes('city')) {
+        sampleValue = 'Los Angeles';
+      } else if (field.field_name.includes('state')) {
+        sampleValue = 'CA';
+      } else if (field.field_name.includes('zip')) {
+        sampleValue = '90001';
+      } else if (field.field_name.includes('status')) {
+        sampleValue = 'Active';
+      } else if (field.field_name.includes('score') || field.field_name.includes('fico')) {
+        sampleValue = '740';
+      } else if (field.field_name.includes('dti')) {
+        sampleValue = '38%';
+      } else {
+        sampleValue = `Sample ${field.display_name}`;
+      }
+      
+      sampleData[tag] = sampleValue;
     });
-
+    
+    // Replace all merge tags with sample data
+    Object.entries(sampleData).forEach(([tag, value]) => {
+      preview = preview.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
+    });
+    
     setPreviewHtml(preview);
   };
 
@@ -195,31 +222,95 @@ export default function EmailTemplates() {
 
               <div>
                 <Label>Merge Tags</Label>
-                <div className="flex flex-wrap gap-2 mt-2 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
-                  {MERGE_TAGS.map(({ tag, label }) => (
-                    <Button
-                      key={tag}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => insertMergeTag(tag)}
-                      type="button"
-                    >
-                      {label}
-                    </Button>
-                  ))}
+                <div className="space-y-3 mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
+                  {Object.entries(
+                    crmFields.reduce((acc, field) => {
+                      if (!acc[field.section]) {
+                        acc[field.section] = [];
+                      }
+                      acc[field.section].push({
+                        tag: `{{${field.field_name}}}`,
+                        label: field.display_name,
+                      });
+                      return acc;
+                    }, {} as Record<string, Array<{ tag: string; label: string }>>)
+                  )
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([section, fields]: [string, Array<{ tag: string; label: string }>]) => (
+                      <div key={section} className="space-y-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))}
+                          type="button"
+                          className="w-full justify-between h-auto p-2"
+                        >
+                          <h4 className="text-sm font-semibold text-foreground">{section}</h4>
+                          <span className="text-xs text-muted-foreground">
+                            {expandedSections[section] ? 'Collapse' : 'Expand'} ({fields.length} fields)
+                          </span>
+                        </Button>
+                        
+                        {expandedSections[section] && (
+                          <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-md">
+                            {fields.map(({ tag, label }: { tag: string; label: string }) => (
+                              <Button
+                                key={tag}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => insertMergeTag(tag)}
+                                type="button"
+                                className="text-xs h-auto py-1"
+                              >
+                                {label}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="content">HTML Content</Label>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="content">Email Content</Label>
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      type="button"
+                      variant={editorMode === 'plain' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setEditorMode('plain')}
+                    >
+                      Plain Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={editorMode === 'html' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setEditorMode('html')}
+                    >
+                      HTML
+                    </Button>
+                  </div>
+                </div>
                 <Textarea
                   id="content"
                   value={formData.html}
                   onChange={(e) => setFormData({ ...formData, html: e.target.value })}
-                  placeholder="Enter HTML content with merge tags..."
+                  placeholder={
+                    editorMode === 'plain'
+                      ? "Type your email here. Click merge tag buttons above to insert fields like {{first_name}}..."
+                      : "Enter HTML content with merge tags..."
+                  }
                   rows={12}
-                  className="font-mono text-sm"
+                  className={editorMode === 'html' ? 'font-mono text-sm' : 'text-sm'}
                 />
+                {editorMode === 'plain' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The email will be formatted as HTML when sent. Use merge tags like {`{{first_name}}`} anywhere in your text.
+                  </p>
+                )}
               </div>
 
               {previewHtml && (

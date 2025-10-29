@@ -984,15 +984,19 @@ export default function Leads() {
   };
 
   const handleLeadUpdated = async () => {
+    console.log('[Leads] handleLeadUpdated called');
     await loadLeads();
     // If a lead is currently selected in the drawer, refresh its data
     if (selectedClient?.databaseId) {
       try {
+        console.log('[Leads] Refetching lead with ID:', selectedClient.databaseId);
         const { data: updatedLead, error } = await supabase
           .from('leads')
           .select('*')
           .eq('id', selectedClient.databaseId)
           .single();
+        
+        console.log('[Leads] Refetched lead:', updatedLead);
         
         if (!error && updatedLead) {
           // Fetch related data for the updated lead
@@ -1014,11 +1018,14 @@ export default function Leads() {
             buyer_agent: agentData,
           };
           
+          console.log('[Leads] Enriched lead notes:', enrichedLead.notes);
           const crmClient = transformLeadToClient(enrichedLead);
+          console.log('[Leads] Transformed client notes:', (crmClient as any).notes);
           setSelectedClient(crmClient);
+          console.log('[Leads] selectedClient updated');
         }
       } catch (error) {
-        console.error('Error refreshing selected lead:', error);
+        console.error('[Leads] Error updating selected client:', error);
       }
     }
   };
@@ -1285,6 +1292,7 @@ export default function Leads() {
 
       {selectedClient && (
         <ClientDetailDrawer
+          key={selectedClient?.databaseId}
           client={selectedClient}
           isOpen={isDrawerOpen}
           onClose={handleDrawerClose}
