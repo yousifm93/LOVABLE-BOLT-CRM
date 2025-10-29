@@ -38,8 +38,8 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     last_name: '',
     phone: '',
     email: '',
-    source: '' as any,
-    referred_via: '' as any,
+    source: 'none' as any,
+    referred_via: 'none' as any,
     lead_on_date: formatLocalDate(new Date()),
     status: 'Working on it' as any,
     teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Default to Yousif Mohamed
@@ -142,8 +142,8 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         last_name: '',
         phone: '',
         email: '',
-        source: '',
-        referred_via: '',
+        source: 'none',
+        referred_via: 'none',
         lead_on_date: formatLocalDate(new Date()),
         status: 'Working on it',
         teammate_assigned: '',
@@ -302,14 +302,14 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                 <div className="space-y-2">
                   <Label htmlFor="referred_via">Referral Method</Label>
                   <Select
-                    value={formData.referred_via || ""}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, referred_via: value || null }))}
+                    value={formData.referred_via || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, referred_via: value === "none" ? null : value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="Email">Email</SelectItem>
                       <SelectItem value="Phone">Phone</SelectItem>
                       <SelectItem value="Referral">Referral</SelectItem>
@@ -320,14 +320,14 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                 <div className="space-y-2">
                   <Label htmlFor="source">Referral Source</Label>
                   <Select
-                    value={formData.source || ""}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, source: value || null }))}
+                    value={formData.source || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, source: value === "none" ? null : value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select source" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       <SelectItem value="Agent">Agent</SelectItem>
                       <SelectItem value="Website">Website</SelectItem>
                       <SelectItem value="Social Media">Social Media</SelectItem>
