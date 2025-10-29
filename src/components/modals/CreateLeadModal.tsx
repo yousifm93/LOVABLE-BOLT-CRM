@@ -292,7 +292,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                   {users.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground">Loading users...</div>
                   ) : (
-                    users.map((user) => (
+                    users.filter(u => u.is_assignable !== false).map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.first_name} {user.last_name}
                       </SelectItem>

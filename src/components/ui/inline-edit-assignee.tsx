@@ -15,6 +15,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
+  is_assignable?: boolean;
 }
 
 interface InlineEditAssigneeProps {
@@ -112,7 +113,7 @@ export function InlineEditAssignee({
             Clear assignment
           </DropdownMenuItem>
         )}
-        {users.map((user) => (
+        {users.filter(u => u.is_assignable !== false).map((user) => (
           <DropdownMenuItem
             key={user.id}
             onClick={() => handleSelect(user)}

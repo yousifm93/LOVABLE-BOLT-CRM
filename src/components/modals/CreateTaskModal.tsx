@@ -180,7 +180,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((user) => (
+                  {users.filter(u => u.is_assignable !== false).map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.first_name} {user.last_name}
                     </SelectItem>

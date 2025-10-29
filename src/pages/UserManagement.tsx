@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CreateUserModal } from "@/components/modals/CreateUserModal";
-import { Mail, UserPlus, Power } from "lucide-react";
+import { Mail, UserPlus, Power, Pencil } from "lucide-react";
+import { EditUserModal } from "@/components/modals/EditUserModal";
 
 interface User {
   id: string;
@@ -15,12 +16,15 @@ interface User {
   email: string | null;
   role: string;
   is_active: boolean;
+  is_assignable: boolean;
   created_at: string;
 }
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -69,6 +73,11 @@ export default function UserManagement() {
     }
   };
 
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -105,6 +114,7 @@ export default function UserManagement() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Assignable</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -126,10 +136,23 @@ export default function UserManagement() {
                       {user.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <Badge variant={user.is_assignable !== false ? "default" : "outline"}>
+                      {user.is_assignable !== false ? "Yes" : "No"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDate(user.created_at)}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                      title="Edit user"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -159,6 +182,13 @@ export default function UserManagement() {
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
         onUserCreated={fetchUsers}
+      />
+
+      <EditUserModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        user={selectedUser}
+        onUserUpdated={fetchUsers}
       />
     </div>
   );
