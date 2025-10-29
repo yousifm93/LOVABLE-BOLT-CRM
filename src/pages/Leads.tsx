@@ -983,6 +983,46 @@ export default function Leads() {
     });
   };
 
+  const handleLeadUpdated = async () => {
+    await loadLeads();
+    // If a lead is currently selected in the drawer, refresh its data
+    if (selectedClient?.databaseId) {
+      try {
+        const { data: updatedLead, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('id', selectedClient.databaseId)
+          .single();
+        
+        if (!error && updatedLead) {
+          // Fetch related data for the updated lead
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name, email')
+            .eq('id', updatedLead.teammate_assigned)
+            .single();
+          
+          const { data: agentData } = await supabase
+            .from('buyer_agents')
+            .select('id, first_name, last_name, brokerage, email, phone')
+            .eq('id', updatedLead.buyer_agent_id)
+            .single();
+          
+          const enrichedLead = {
+            ...updatedLead,
+            teammate: userData,
+            buyer_agent: agentData,
+          };
+          
+          const crmClient = transformLeadToClient(enrichedLead);
+          setSelectedClient(crmClient);
+        }
+      } catch (error) {
+        console.error('Error refreshing selected lead:', error);
+      }
+    }
+  };
+
   const handleRowClick = (lead: Lead) => {
     // Get full database lead data
     const dbLead = dbLeadsMap.get(lead.id);
@@ -1250,7 +1290,7 @@ export default function Leads() {
           onClose={handleDrawerClose}
           onStageChange={handleStageChange}
           pipelineType="leads"
-          onLeadUpdated={loadLeads}
+          onLeadUpdated={handleLeadUpdated}
         />
       )}
 

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { InlineEditAgent } from '@/components/ui/inline-edit-agent';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { databaseService, type LeadInsert, type User, type Contact, type PipelineStage } from '@/services/database';
@@ -100,11 +101,11 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         buyer_agent_id: formData.buyer_agent_id || null,
         task_eta: formData.task_eta,
         // Set defaults for other fields
-        pipeline_stage_id: leadsStage?.id || null,
-        teammate_assigned: user ? users.find(u => u.email === user.email)?.id || null : null,
-        status: 'Working on it' as any,
-        referred_via: 'Email' as any,
-        referral_source: 'Agent' as any,
+      pipeline_stage_id: leadsStage?.id || null,
+      teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Default to Yousif Mohamed
+      status: 'Working on it' as any,
+      referred_via: null,
+      referral_source: null,
         lead_strength: 'Warm' as any,
         converted: 'Working on it' as any,
         lead_on_date: formatLocalDate(new Date()),
@@ -245,33 +246,30 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="buyer_agent_id">Real Estate Agent</Label>
-            <Select
-              value={formData.buyer_agent_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, buyer_agent_id: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select agent (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {buyerAgents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.first_name} {agent.last_name} {agent.brokerage ? `- ${agent.brokerage}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="buyer_agent_id">Real Estate Agent</Label>
+              <InlineEditAgent
+                value={buyerAgents.find(a => a.id === formData.buyer_agent_id) || null}
+                agents={buyerAgents}
+                onValueChange={(agent) => setFormData(prev => ({ 
+                  ...prev, 
+                  buyer_agent_id: agent?.id || '' 
+                }))}
+                placeholder="Select agent (optional)"
+                className="w-full border rounded-md"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="task_eta">Due Date</Label>
-            <Input
-              id="task_eta"
-              type="date"
-              value={formData.task_eta}
-              onChange={(e) => setFormData(prev => ({ ...prev, task_eta: e.target.value }))}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="task_eta">Due Date</Label>
+              <Input
+                id="task_eta"
+                type="date"
+                value={formData.task_eta}
+                onChange={(e) => setFormData(prev => ({ ...prev, task_eta: e.target.value }))}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
