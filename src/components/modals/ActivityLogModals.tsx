@@ -48,19 +48,9 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
-      // Get current session and try to find matching user
+      // Use auth.uid() directly for user tracking
       const { data: { session } } = await supabase.auth.getSession();
-      let userId: string | null = null;
-
-      if (session?.user?.email) {
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        
-        userId = usersData?.id || null;
-      }
+      const userId = session?.user?.id || null;
 
       const callLogData: CallLogInsert = {
         lead_id: leadId,
@@ -173,19 +163,9 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     setLoading(true);
 
     try {
-      // Get current session and try to find matching user
+      // Use auth.uid() directly for user tracking
       const { data: { session } } = await supabase.auth.getSession();
-      let userId: string | null = null;
-
-      if (session?.user?.email) {
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        
-        userId = usersData?.id || null;
-      }
+      const userId = session?.user?.id || null;
 
       const smsLogData: SmsLogInsert = {
         lead_id: leadId,
@@ -299,19 +279,9 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
     setLoading(true);
 
     try {
-      // Get current session and try to find matching user
+      // Use auth.uid() directly for user tracking
       const { data: { session } } = await supabase.auth.getSession();
-      let userId: string | null = null;
-
-      if (session?.user?.email) {
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        
-        userId = usersData?.id || null;
-      }
+      const userId = session?.user?.id || null;
 
       const emailLogData: EmailLogInsert = {
         lead_id: leadId,
@@ -424,19 +394,9 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
-      // Get current session and try to find matching user
+      // Use auth.uid() directly for user tracking
       const { data: { session } } = await supabase.auth.getSession();
-      let authorId: string | null = null;
-
-      if (session?.user?.email) {
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        
-        authorId = usersData?.id || null;
-      }
+      const authorId = session?.user?.id || null;
 
       const noteData: NoteInsert = {
         lead_id: leadId,

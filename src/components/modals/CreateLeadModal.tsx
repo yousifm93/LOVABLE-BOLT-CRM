@@ -42,7 +42,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     referred_via: 'none' as any,
     lead_on_date: formatLocalDate(new Date()),
     status: 'Working on it' as any,
-    teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Default to Yousif Mohamed
+    teammate_assigned: '', // Will be set to current user on submit
     buyer_agent_id: '',
     task_eta: formatLocalDate(new Date()),
     notes: '',
@@ -87,6 +87,10 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       // Find the "Leads" pipeline stage
       const leadsStage = pipelineStages.find(stage => stage.name === 'Leads');
       
+      // Get current authenticated user
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id || null;
+
       const leadData = {
         first_name: formData.first_name,
         last_name: formData.last_name || '',
@@ -97,10 +101,10 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         task_eta: formData.task_eta,
         // Set defaults for other fields
       pipeline_stage_id: leadsStage?.id || null,
-      teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Default to Yousif Mohamed
+      teammate_assigned: currentUserId, // Set to current authenticated user
       status: 'Working on it' as any,
-      referred_via: null,
-      referral_source: null,
+      referred_via: formData.referred_via === 'none' ? null : formData.referred_via,
+      referral_source: formData.source === 'none' ? null : formData.source,
         lead_strength: 'Warm' as any,
         converted: 'Working on it' as any,
         lead_on_date: formatLocalDate(new Date()),
