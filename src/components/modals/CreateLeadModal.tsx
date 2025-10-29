@@ -27,6 +27,8 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
   
+  const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -38,6 +40,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
     status: 'Working on it' as any,
     teammate_assigned: '',
     buyer_agent_id: '',
+    task_eta: formatLocalDate(new Date()),
     notes: '',
   });
 
@@ -49,15 +52,17 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
 
   const loadData = async () => {
     try {
-      const [usersData, contactsData, stagesData] = await Promise.all([
+      const [usersData, contactsData, stagesData, agentsData] = await Promise.all([
         databaseService.getUsers(),
         databaseService.getContacts(),
         databaseService.getPipelineStages(),
+        databaseService.getBuyerAgents(),
       ]);
       
       setUsers(usersData);
       setContacts(contactsData.filter(c => c.type === 'Agent' || c.type === 'Realtor'));
       setPipelineStages(stagesData);
+      setBuyerAgents(agentsData);
       
       // Set current user as default teammate if not already set
       if (user && !formData.teammate_assigned) {
@@ -88,10 +93,12 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
       
       const leadData = {
         first_name: formData.first_name,
-        last_name: formData.last_name,
+        last_name: formData.last_name || '',
         phone: formData.phone,
         email: formData.email,
         notes: formData.notes,
+        buyer_agent_id: formData.buyer_agent_id || null,
+        task_eta: formData.task_eta,
         // Set defaults for other fields
         pipeline_stage_id: leadsStage?.id || null,
         teammate_assigned: user ? users.find(u => u.email === user.email)?.id || null : null,
@@ -145,6 +152,7 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
         status: 'Working on it',
         teammate_assigned: '',
         buyer_agent_id: '',
+        task_eta: formatLocalDate(new Date()),
         notes: '',
       });
 
@@ -206,12 +214,11 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name *</Label>
+              <Label htmlFor="last_name">Last Name</Label>
               <Input
                 id="last_name"
                 value={formData.last_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                required
               />
             </div>
           </div>
@@ -236,6 +243,35 @@ export function CreateLeadModal({ open, onOpenChange, onLeadCreated }: CreateLea
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="buyer_agent_id">Real Estate Agent</Label>
+            <Select
+              value={formData.buyer_agent_id}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, buyer_agent_id: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select agent (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {buyerAgents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.first_name} {agent.last_name} {agent.brokerage ? `- ${agent.brokerage}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="task_eta">Due Date</Label>
+            <Input
+              id="task_eta"
+              type="date"
+              value={formData.task_eta}
+              onChange={(e) => setFormData(prev => ({ ...prev, task_eta: e.target.value }))}
+            />
           </div>
 
           <div className="space-y-2">

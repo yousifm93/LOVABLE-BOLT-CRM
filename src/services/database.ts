@@ -227,7 +227,7 @@ export const databaseService = {
           inputLeadOnDate instanceof Date
             ? formatLocalDate(inputLeadOnDate)
             : (lead as any).lead_on_date || formatLocalDate(new Date()),
-        task_eta: formatLocalDate(new Date()),
+        task_eta: (lead as any).task_eta || formatLocalDate(new Date()),
         source: (lead as any).source || null,
         referred_via: (lead as any).referred_via || null,
         status: (lead as any).status || 'Working on it',

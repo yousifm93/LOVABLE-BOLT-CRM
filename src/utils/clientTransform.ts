@@ -142,7 +142,7 @@ export function transformLeadToClient(lead: any): any {
       createdOn: lead.created_at,
     },
     meta: {
-      notes: '',
+      notes: lead.notes || '',
     },
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
