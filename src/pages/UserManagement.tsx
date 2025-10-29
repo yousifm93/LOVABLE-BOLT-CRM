@@ -89,7 +89,13 @@ export default function UserManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
-          <CardDescription>All users have shared access to CRM data. Activity tracking shows who performed each action.</CardDescription>
+          <CardDescription>
+            All users have shared access to CRM data. Activity tracking shows who performed each action.
+            <br />
+            <span className="text-xs text-muted-foreground mt-1 block">
+              Passwords are securely managed by Supabase. Use "Send Password Reset" to allow users to set new passwords.
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>

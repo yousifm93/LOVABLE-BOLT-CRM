@@ -23,6 +23,8 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
     password: "",
     role: "LO",
   });
+  const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [showPasswordCopied, setShowPasswordCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,22 +46,15 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
 
       if (error) throw error;
 
-      // The trigger will automatically create profiles and users records
+      // Store the password temporarily to show to admin
+      setCreatedPassword(formData.password);
+      
       toast({
         title: "Success",
-        description: `User ${formData.firstName} ${formData.lastName} created successfully. They can now log in with ${formData.email}`,
+        description: "User created successfully. Copy the temporary password now!",
       });
-
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-        role: "LO",
-      });
-
+      
       onUserCreated();
-      onOpenChange(false);
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
@@ -73,7 +68,20 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        // Reset password display and form when closing
+        setCreatedPassword(null);
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          password: "",
+          role: "LO",
+        });
+      }
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
@@ -82,7 +90,44 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {createdPassword ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+              <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                ⚠️ Important: Save This Password
+              </h4>
+              <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                This password will only be shown once. Copy it now and share it securely with the user.
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={createdPassword}
+                  readOnly
+                  className="font-mono bg-white dark:bg-gray-800"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(createdPassword);
+                    setShowPasswordCopied(true);
+                    setTimeout(() => setShowPasswordCopied(false), 2000);
+                  }}
+                >
+                  {showPasswordCopied ? "Copied!" : "Copy"}
+                </Button>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
             <Input
@@ -150,15 +195,16 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
             </Select>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create User"}
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating..." : "Create User"}
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
