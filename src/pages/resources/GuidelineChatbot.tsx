@@ -122,7 +122,12 @@ export default function GuidelineChatbot() {
   const loadConversation = (conversation: ConversationHistory) => {
     setSessionId(conversation.session_id);
     setCurrentConversationId(conversation.id);
-    setMessages(conversation.messages);
+    // Convert timestamp strings/numbers back to Date objects
+    const messagesWithDates = conversation.messages.map(msg => ({
+      ...msg,
+      timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+    }));
+    setMessages(messagesWithDates);
     localStorage.setItem('guideline-chat-session-id', conversation.session_id);
     setShowHistorySidebar(false);
   };
@@ -430,7 +435,7 @@ export default function GuidelineChatbot() {
                     }`}>
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                       <span className="text-xs opacity-0 group-hover:opacity-70 transition-opacity mt-1 block">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </div>
