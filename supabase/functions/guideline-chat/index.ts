@@ -35,7 +35,11 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: message
+          query: message,
+          message,
+          text: message,
+          prompt: message,
+          question: message
         }),
         signal: controller.signal
       });
@@ -54,7 +58,12 @@ serve(async (req) => {
 
       // Check if response is empty
       if (!responseText || responseText.trim() === '') {
-        throw new Error('N8N returned an empty response');
+        console.warn('N8N returned an empty response body; using fallback message');
+        const assistantMessage = 'I could not get a response from the guideline service. Please try again.';
+        return new Response(
+          JSON.stringify({ response: assistantMessage, success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Try to parse as JSON, if it fails treat as plain text
