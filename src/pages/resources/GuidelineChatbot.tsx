@@ -14,6 +14,15 @@ interface ChatMessage {
 }
 
 export default function GuidelineChatbot() {
+  // Generate a unique session ID for conversation memory
+  const [sessionId] = useState(() => {
+    const stored = localStorage.getItem('guideline-chat-session-id');
+    if (stored) return stored;
+    const newId = crypto.randomUUID();
+    localStorage.setItem('guideline-chat-session-id', newId);
+    return newId;
+  });
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -41,7 +50,10 @@ export default function GuidelineChatbot() {
 
     try {
       const { data, error } = await supabase.functions.invoke('guideline-chat', {
-        body: { message: inputMessage }
+        body: { 
+          message: inputMessage,
+          sessionId: sessionId
+        }
       });
 
       if (error) throw error;

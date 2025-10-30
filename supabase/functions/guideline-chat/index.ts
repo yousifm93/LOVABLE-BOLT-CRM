@@ -15,26 +15,32 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    const { message, sessionId } = await req.json();
     
     if (!message || typeof message !== 'string' || message.trim() === '') {
       throw new Error('Invalid or empty message');
     }
 
+    if (!sessionId || typeof sessionId !== 'string') {
+      throw new Error('Invalid or missing sessionId');
+    }
+
     console.log('Processing guideline query via N8N:', message.substring(0, 100));
+    console.log('Session ID:', sessionId);
 
     // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      // Call N8N webhook with the query
+      // Call N8N webhook with the query and sessionId for memory
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          sessionId: sessionId,
           query: message,
           message,
           text: message,
