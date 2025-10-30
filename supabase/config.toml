@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.email-webhooks]
 verify_jwt = false
+
+[functions.voice-transcribe]
+verify_jwt = false

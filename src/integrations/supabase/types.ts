@@ -650,6 +650,36 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_message_at: string | null
+          messages: Json | null
+          session_id: string
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json | null
+          session_id: string
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json | null
+          session_id?: string
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cost_profiles: {
         Row: {
           created_at: string
