@@ -48,13 +48,41 @@ serve(async (req) => {
         throw new Error(`N8N webhook returned status ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('N8N response received:', JSON.stringify(data).substring(0, 200));
+      // Get response as text first to handle both JSON and plain text responses
+      const responseText = await response.text();
+      console.log('N8N raw response:', responseText.substring(0, 500));
 
-      // Extract the answer from N8N response
-      // Trying multiple possible response field names
-      const assistantMessage = data.response || data.answer || data.output || data.result ||
-        'I apologize, but I could not generate a response. Please try again.';
+      // Check if response is empty
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('N8N returned an empty response');
+      }
+
+      // Try to parse as JSON, if it fails treat as plain text
+      let data;
+      let assistantMessage;
+      
+      try {
+        data = JSON.parse(responseText);
+        console.log('N8N response parsed as JSON:', JSON.stringify(data).substring(0, 200));
+        
+        // Extract the answer from N8N response - trying multiple possible field names
+        assistantMessage = data.response || data.answer || data.output || data.result || data.message || null;
+        
+        // If no known field found, use the entire responseText
+        if (!assistantMessage) {
+          console.log('No known field found in JSON response, using raw text');
+          assistantMessage = responseText;
+        }
+      } catch (parseError) {
+        // N8N returned plain text instead of JSON
+        console.log('N8N response is plain text, not JSON:', parseError.message);
+        assistantMessage = responseText;
+      }
+
+      // Final fallback
+      if (!assistantMessage || assistantMessage.trim() === '') {
+        assistantMessage = 'I apologize, but I could not generate a response. Please try again.';
+      }
 
       console.log('Generated response successfully');
 
