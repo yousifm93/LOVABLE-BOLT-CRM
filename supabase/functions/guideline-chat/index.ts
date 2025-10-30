@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const N8N_WEBHOOK_URL = 'https://yousifmo93.app.n8n.cloud/webhook/chatbot-query';
+const TIMEOUT_MS = 30000; // 30 seconds
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,77 +16,68 @@ serve(async (req) => {
 
   try {
     const { message } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+      throw new Error('Invalid or empty message');
     }
 
-    console.log('Processing guideline query:', message);
+    console.log('Processing guideline query via N8N:', message.substring(0, 100));
 
-    // Call OpenAI Assistants API with your agent configuration
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a senior mortgage underwriter and product expert. Your role is to answer questions about lender guidelines, loan programs, products, and pricing by searching the vector store of uploaded lender guidelines.
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-Always:
-- Retrieve the most relevant passages from the vector store.
-- Provide a clear, accurate, and compliant answer as if advising a loan officer.
-- Include specific conditions, eligibility requirements, or overlays when available.
-- If the answer is not explicitly supported in the guidelines, say so and avoid speculation.
-- Prioritize precision and completeness over brevity.`
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        tools: [
-          {
-            type: 'file_search'
-          }
-        ],
-        tool_choice: 'auto',
-        max_tokens: 1500,
-        temperature: 0.3
-      })
-    });
+    try {
+      // Call N8N webhook with the query
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: message
+        }),
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+      clearTimeout(timeoutId);
 
-    const data = await response.json();
-    const assistantMessage = data.choices[0]?.message?.content || 'I apologize, but I could not generate a response. Please try again.';
-
-    console.log('Generated response successfully');
-
-    return new Response(
-      JSON.stringify({ 
-        response: assistantMessage,
-        success: true 
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('N8N webhook error:', response.status, errorText);
+        throw new Error(`N8N webhook returned status ${response.status}`);
       }
-    );
+
+      const data = await response.json();
+      console.log('N8N response received:', JSON.stringify(data).substring(0, 200));
+
+      // Extract the answer from N8N response
+      // Trying multiple possible response field names
+      const assistantMessage = data.response || data.answer || data.output || data.result ||
+        'I apologize, but I could not generate a response. Please try again.';
+
+      console.log('Generated response successfully');
+
+      return new Response(
+        JSON.stringify({ 
+          response: assistantMessage,
+          success: true 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (fetchError) {
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timeout - the guideline search took too long');
+      }
+      throw fetchError;
+    }
   } catch (error) {
     console.error('Error in guideline-chat function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error.message || 'An unexpected error occurred',
         success: false 
       }),
       {
