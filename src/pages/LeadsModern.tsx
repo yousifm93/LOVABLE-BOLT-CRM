@@ -24,6 +24,8 @@ import { format } from "date-fns";
 const MAIN_VIEW_COLUMNS = [
   "name",
   "leadCreatedOn",
+  "referredVia",
+  "referralSource",
   "realEstateAgent",
   "mdStatus",
   "user",
@@ -184,7 +186,7 @@ export function LeadsModern() {
     try {
       setLoading(true);
       const [leadsData, agentsData, usersData] = await Promise.all([
-        databaseService.getLeads(),
+        databaseService.getNewLeads(),
         databaseService.getBuyerAgents(),
         databaseService.getUsers(),
       ]);

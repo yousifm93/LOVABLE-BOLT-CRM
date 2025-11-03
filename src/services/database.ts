@@ -126,6 +126,37 @@ export const databaseService = {
     }
   },
 
+  async getNewLeads() {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          pipeline_stage:pipeline_stages(*),
+          teammate:users!teammate_assigned(*),
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
+        `)
+        .is('pipeline_stage_id', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching new leads:', error);
+        throw error;
+      }
+      
+      // Handle null relations to prevent transformation errors
+      return data?.map(lead => ({
+        ...lead,
+        teammate: lead.teammate || null,
+        pipeline_stage: lead.pipeline_stage || null,
+        buyer_agent: lead.buyer_agent || null
+      })) || [];
+    } catch (error) {
+      console.error('Failed to load new leads:', error);
+      throw new Error('Failed to load new leads. Please try again.');
+    }
+  },
+
   async getLeadsWithTaskDueDates() {
     try {
       const { data, error } = await supabase
