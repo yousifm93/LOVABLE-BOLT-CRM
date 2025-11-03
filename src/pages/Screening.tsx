@@ -62,6 +62,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'loan_amount': 'loanAmount',
   'app_complete_at': 'appCompleteOn',
   'arrive_loan_number': 'loanNumber',
+  'notes': 'notes',
 };
 
 // Display type for table rows
@@ -557,7 +558,7 @@ export default function Screening() {
       default:
         // Fallback: display raw value
         baseColumn.cell = ({ row }) => (
-          <span className="text-sm">{String(row.original[field.field_name] || '—')}</span>
+          <span className="text-sm">{String(row.original[frontendFieldName] || '—')}</span>
         );
     }
 

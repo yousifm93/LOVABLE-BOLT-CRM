@@ -72,6 +72,7 @@ interface Lead {
   dueDate?: string;
   loanType: string | null;
   loanAmount: number | null;
+  notes: string | null;
 }
 
 // Transform database lead to display format  
@@ -120,6 +121,7 @@ const transformLeadToDisplay = (
     dueDate: dbLead.task_eta ? new Date(dbLead.task_eta + 'T00:00:00').toLocaleDateString() : '',
     loanType: dbLead.loan_type,
     loanAmount: dbLead.loan_amount,
+    notes: dbLead.notes || null,
   };
 };
 
@@ -169,6 +171,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'created_at': 'createdOn',
   'loan_type': 'loanType',
   'loan_amount': 'loanAmount',
+  'notes': 'notes',
 };
 
 export default function Leads() {
@@ -349,7 +352,7 @@ export default function Leads() {
         case 'leadStrength':
           updateData.lead_strength = value as any;
           break;
-        case 'due_date':
+      case 'due_date':
           if (value === undefined || value === null) {
             updateData.task_eta = null;
           } else {
@@ -358,6 +361,9 @@ export default function Leads() {
               ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
               : value;
           }
+          break;
+        case 'notes':
+          updateData.notes = value as string;
           break;
         default:
           setIsUpdating(null);
@@ -576,7 +582,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditText
-              value={(row.original as any)[field.field_name] || ''}
+              value={(row.original as any)[frontendFieldName] || ''}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               placeholder={`Enter ${field.display_name.toLowerCase()}`}
             />
@@ -588,7 +594,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditNumber
-              value={(row.original as any)[field.field_name] || 0}
+              value={(row.original as any)[frontendFieldName] || 0}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               placeholder="0"
             />
@@ -600,7 +606,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditCurrency
-              value={(row.original as any)[field.field_name] || 0}
+              value={(row.original as any)[frontendFieldName] || 0}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               placeholder="$0"
             />
@@ -612,7 +618,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditPercentage
-              value={(row.original as any)[field.field_name] || 0}
+              value={(row.original as any)[frontendFieldName] || 0}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               decimals={1}
             />
@@ -624,7 +630,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditDate
-              value={(row.original as any)[field.field_name]}
+              value={(row.original as any)[frontendFieldName]}
               onValueChange={(date) => handleFieldUpdate(row.original.id, field.field_name, date)}
               placeholder="Select date"
             />
@@ -636,7 +642,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditSelect
-              value={(row.original as any)[field.field_name] || ''}
+              value={(row.original as any)[frontendFieldName] || ''}
               options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               placeholder="Select option"
@@ -649,7 +655,7 @@ export default function Leads() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditPhone
-              value={(row.original as any)[field.field_name] || ''}
+              value={(row.original as any)[frontendFieldName] || ''}
               onValueChange={(value) => handleFieldUpdate(row.original.id, field.field_name, value as any)}
               placeholder="Enter phone"
             />
@@ -659,7 +665,7 @@ export default function Leads() {
       
       default:
         baseColumn.cell = ({ row }) => (
-          <span className="text-sm">{String((row.original as any)[field.field_name] || '—')}</span>
+          <span className="text-sm">{String((row.original as any)[frontendFieldName] || '—')}</span>
         );
     }
 

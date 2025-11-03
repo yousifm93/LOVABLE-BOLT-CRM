@@ -66,6 +66,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'pre_approved_at': 'preApprovedOn',
   'arrive_loan_number': 'loanNumber',
   'ba_status': 'baStatus',
+  'notes': 'notes',
 };
 
 type DisplayLead = {
@@ -477,7 +478,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditText
-              value={row.original[field.field_name] || ''}
+              value={row.original[frontendFieldName] || ''}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -492,7 +493,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditNumber
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -507,7 +508,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditCurrency
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -522,7 +523,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditPercentage
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -537,7 +538,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditDate
-              value={row.original[field.field_name]}
+              value={row.original[frontendFieldName]}
               onValueChange={(date) => {
                 const dateString = date ? (typeof date === 'string' ? date : date.toISOString().split('T')[0]) : null;
                 handleFieldUpdate(row.original.id, field.field_name, dateString);
@@ -553,7 +554,7 @@ export default function PreApproved() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditSelect
-              value={row.original[field.field_name] || ''}
+              value={row.original[frontendFieldName] || ''}
               options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
@@ -567,7 +568,7 @@ export default function PreApproved() {
       
       default:
         baseColumn.cell = ({ row }) => (
-          <span className="text-sm">{String(row.original[field.field_name] || '—')}</span>
+          <span className="text-sm">{String(row.original[frontendFieldName] || '—')}</span>
         );
     }
 
