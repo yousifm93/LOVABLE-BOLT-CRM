@@ -47,12 +47,6 @@ const MAIN_VIEW_COLUMNS = [
   "realEstateAgent",
   "status",
   "user",
-  "phone",
-  "email",
-  "loanType",
-  "creditScore",
-  "loanAmount",
-  "dti",
   "dueDate"
 ];
 
@@ -944,7 +938,7 @@ export default function Screening() {
                 }}
                 className="h-8 text-xs"
               >
-                Main
+                Main View
               </Button>
             
             <ViewPills

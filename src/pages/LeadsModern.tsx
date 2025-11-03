@@ -1,29 +1,68 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Filter, Search, Lock, Unlock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CreateLeadModalModern } from "@/components/modals/CreateLeadModalModern";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { databaseService, Lead, BuyerAgent, User } from "@/services/database";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+
+// Main view default columns
+const MAIN_VIEW_COLUMNS = [
+  "name",
+  "leadCreatedOn",
+  "realEstateAgent",
+  "mdStatus",
+  "user",
+  "dueDate"
+];
+
+// Map database field names to frontend accessorKey names
+const FIELD_NAME_MAP: Record<string, string> = {
+  'first_name': 'name',
+  'buyer_agent_id': 'realEstateAgent',
+  'converted': 'mdStatus',
+  'teammate_assigned': 'user',
+  'task_eta': 'dueDate',
+  'created_at': 'leadCreatedOn',
+  'referred_via': 'referredVia',
+  'referral_source': 'referralSource',
+};
 
 interface ModernLead extends Lead {
   buyer_agent?: BuyerAgent | null;
   teammate?: User | null;
   pipeline_stage?: any;
 }
+
+// Display type for table rows
+type DisplayLead = {
+  id: string;
+  name: string;
+  leadCreatedOn: string;
+  realEstateAgent: string;
+  realEstateAgentData?: any;
+  mdStatus: string;
+  user: string;
+  userData?: any;
+  dueDate?: string;
+  referredVia: string;
+  referralSource: string;
+  [key: string]: any;
+};
 
 const CONVERTED_OPTIONS = [
   { value: 'Working on it', label: 'Working on it' },
@@ -51,19 +90,75 @@ const REFERRAL_SOURCE_OPTIONS = [
 ];
 
 export function LeadsModern() {
+  // Core columns for the table
+  const coreColumns = [
+    { id: "name", label: "Lead Name", visible: true },
+    { id: "leadCreatedOn", label: "Lead Created On", visible: true },
+    { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
+    { id: "referredVia", label: "Referred Via", visible: false },
+    { id: "referralSource", label: "Referral Source", visible: false },
+    { id: "mdStatus", label: "MD Status", visible: true },
+    { id: "dueDate", label: "Due Date", visible: true },
+    { id: "user", label: "User", visible: true },
+  ];
+
   const [leads, setLeads] = useState<ModernLead[]>([]);
   const [dbLeadsMap, setDbLeadsMap] = useState<Map<string, ModernLead>>(new Map());
   const [buyerAgents, setBuyerAgents] = useState<BuyerAgent[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<FilterCondition[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<ModernLead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sortLocked, setSortLocked] = useState(false);
   const { toast } = useToast();
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+
+  // Use column visibility
+  const {
+    columns: columnVisibility,
+    views,
+    visibleColumns,
+    activeView,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    loadView,
+    deleteView,
+    reorderColumns,
+    setColumns
+  } = useColumnVisibility(coreColumns, 'leads-columns');
+
+  const handleViewSaved = (viewName: string) => {
+    toast({
+      title: "View Saved",
+      description: `"${viewName}" has been saved successfully`,
+    });
+    loadView(viewName);
+  };
+
+  const handleColumnReorder = (oldIndex: number, newIndex: number) => {
+    const oldColumnId = visibleColumns[oldIndex]?.id;
+    const newColumnId = visibleColumns[newIndex]?.id;
+    
+    if (!oldColumnId || !newColumnId) return;
+    
+    const actualOldIndex = columnVisibility.findIndex(col => col.id === oldColumnId);
+    const actualNewIndex = columnVisibility.findIndex(col => col.id === newColumnId);
+    
+    if (actualOldIndex === -1 || actualNewIndex === -1) return;
+    
+    reorderColumns(actualOldIndex, actualNewIndex);
+    
+    toast({
+      title: "Column Reordered",
+      description: "Table column order has been updated",
+    });
+  };
+
   const filterColumns = [
     { value: 'created_at', label: 'Created Date', type: 'date' as const },
     { value: 'converted', label: 'Converted', type: 'select' as const, options: CONVERTED_OPTIONS.map(o => o.label) },
@@ -76,6 +171,12 @@ export function LeadsModern() {
 
   useEffect(() => {
     loadData();
+    
+    // Load sort lock state from localStorage
+    const savedSortLocked = localStorage.getItem('leads-sort-locked');
+    if (savedSortLocked) {
+      setSortLocked(JSON.parse(savedSortLocked));
+    }
   }, []);
 
   const loadData = async () => {
@@ -87,11 +188,9 @@ export function LeadsModern() {
         databaseService.getUsers(),
       ]);
       
-      // Create lookup maps for enrichment
       const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
       const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
       
-      // Enrich leads with related buyer_agent and teammate data
       const enrichedLeads = (leadsData as unknown as ModernLead[] || []).map(lead => ({
         ...lead,
         buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null,
@@ -100,7 +199,6 @@ export function LeadsModern() {
       
       setLeads(enrichedLeads);
       
-      // Build map of full database leads for drawer access
       const newDbLeadsMap = new Map<string, ModernLead>();
       enrichedLeads.forEach(lead => {
         newDbLeadsMap.set(lead.id, lead);
@@ -124,13 +222,11 @@ export function LeadsModern() {
   const handleUpdateLead = async (leadId: string, field: string, value: any) => {
     const key = `${leadId}:${field}`;
     try {
-      // Sanitize value types before sending to DB
       let sanitizedValue = value;
       if (field === 'task_eta') {
         if (value instanceof Date) {
           sanitizedValue = format(value, 'yyyy-MM-dd');
         } else if (typeof value === 'string' && value) {
-          // Assume already a date string
           sanitizedValue = value;
         } else if (!value) {
           sanitizedValue = null;
@@ -139,24 +235,18 @@ export function LeadsModern() {
       if (field === 'buyer_agent_id') {
         if (sanitizedValue === '' || sanitizedValue === undefined) sanitizedValue = null;
         if (sanitizedValue !== null && typeof sanitizedValue !== 'string') {
-          console.warn('[WARN] buyer_agent_id should be string or null, coercing to null', { sanitizedValue });
           sanitizedValue = null;
         }
       }
 
       const updateData: any = { [field]: sanitizedValue };
-      console.log('[DEBUG] handleUpdateLead -> sending', { leadId, field, value, sanitizedValue, typeofValue: typeof sanitizedValue });
-
-      // Mark updating
       setUpdatingKey(key);
 
       await databaseService.updateLead(leadId, updateData);
       
-      // Update local state
       setLeads(prev => prev.map(lead => {
         if (lead.id !== leadId) return lead;
         
-        // Special handling for buyer_agent_id to keep buyer_agent object in sync
         if (field === 'buyer_agent_id') {
           const agentObj = sanitizedValue ? buyerAgents.find(a => a.id === sanitizedValue) : null;
           return { 
@@ -166,7 +256,6 @@ export function LeadsModern() {
           } as ModernLead;
         }
         
-        // Special handling for teammate_assigned to keep teammate object in sync
         if (field === 'teammate_assigned') {
           const userObj = sanitizedValue ? users.find(u => u.id === sanitizedValue) : null;
           return {
@@ -176,11 +265,9 @@ export function LeadsModern() {
           } as ModernLead;
         }
         
-        // Default: just update the field
         return { ...lead, [field]: sanitizedValue } as ModernLead;
       }));
       
-      // Also update the dbLeadsMap for drawer access
       setDbLeadsMap(prev => {
         const newMap = new Map(prev);
         const existingLead = newMap.get(leadId);
@@ -218,29 +305,11 @@ export function LeadsModern() {
         variant: "destructive",
       });
     } finally {
-      // Clear updating marker
       setUpdatingKey(prev => (prev === key ? null : prev));
     }
   };
 
-  const filteredLeads = leads.filter(lead => {
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const fullName = `${lead.first_name} ${lead.last_name}`.toLowerCase();
-      if (!fullName.includes(searchLower) && 
-          !lead.email?.toLowerCase().includes(searchLower) &&
-          !lead.phone?.toLowerCase().includes(searchLower)) {
-        return false;
-      }
-    }
-    
-    // Advanced filters (simplified for now)
-    return true;
-  });
-
-  const handleRowClick = (lead: ModernLead) => {
-    // Get full database lead data with enriched relationships
+  const handleRowClick = (lead: DisplayLead) => {
     const dbLead = dbLeadsMap.get(lead.id);
     if (!dbLead) {
       console.error('Database lead not found for ID:', lead.id);
@@ -252,7 +321,6 @@ export function LeadsModern() {
       return;
     }
     
-    // Use transformLeadToClient for proper CRMClient structure
     const crmClient = transformLeadToClient(dbLead);
     
     setSelectedLead(crmClient as any);
@@ -269,157 +337,321 @@ export function LeadsModern() {
     label: `${user.first_name} ${user.last_name}`
   }));
 
+  const clearAllFilters = () => {
+    setFilters([]);
+    setIsFilterOpen(false);
+  };
+  
+  const removeFilter = (filterId: string) => {
+    setFilters(filters.filter(f => f.id !== filterId));
+  };
+
+  // Transform leads to display format
+  const displayData: DisplayLead[] = leads.map((lead: any) => ({
+    id: lead.id,
+    name: `${lead.first_name} ${lead.last_name}`,
+    leadCreatedOn: lead.created_at,
+    realEstateAgent: lead.buyer_agent_id || '',
+    realEstateAgentData: lead.buyer_agent || null,
+    referredVia: lead.referred_via || '',
+    referralSource: lead.referral_source || '',
+    mdStatus: lead.converted || '',
+    dueDate: lead.task_eta || '',
+    user: lead.teammate_assigned || '',
+    userData: lead.teammate || null,
+  }));
+
+  // Column definitions
+  const allColumns: ColumnDef<DisplayLead>[] = useMemo(() => [
+    {
+      accessorKey: "name",
+      header: "Lead Name",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div className="text-sm font-medium">{row.original.name}</div>
+      ),
+    },
+    {
+      accessorKey: "leadCreatedOn",
+      header: "Lead Created On",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {row.original.leadCreatedOn ? format(new Date(row.original.leadCreatedOn), 'MMM dd, yyyy') : '-'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "realEstateAgent",
+      header: "Real Estate Agent",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditAgent
+            value={row.original.realEstateAgentData}
+            agents={buyerAgents}
+            onValueChange={(agent) => handleUpdateLead(row.original.id, 'buyer_agent_id', agent?.id || null)}
+            placeholder="Select agent"
+            type="buyer"
+            disabled={!buyerAgents.length || updatingKey === `${row.original.id}:buyer_agent_id`}
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "referredVia",
+      header: "Referred Via",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.referredVia || ''}
+            options={REFERRED_VIA_OPTIONS}
+            onValueChange={(value) => handleUpdateLead(row.original.id, 'referred_via', value)}
+            placeholder="Select method"
+            showAsStatusBadge
+            forceGrayBadge
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "referralSource",
+      header: "Referral Source",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.referralSource || ''}
+            options={REFERRAL_SOURCE_OPTIONS}
+            onValueChange={(value) => handleUpdateLead(row.original.id, 'referral_source', value)}
+            placeholder="Select source"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "mdStatus",
+      header: "MD Status",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.mdStatus || ''}
+            options={CONVERTED_OPTIONS}
+            onValueChange={(value) => handleUpdateLead(row.original.id, 'converted', value)}
+            placeholder="Select status"
+            showAsStatusBadge
+            forceGrayBadge
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.dueDate}
+            onValueChange={(date) => handleUpdateLead(row.original.id, 'task_eta', date)}
+            placeholder="Set date"
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "user",
+      header: "User",
+      headerClassName: "text-left",
+      className: "text-left",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditSelect
+            value={row.original.user || ''}
+            options={teamOptions}
+            onValueChange={(value) => handleUpdateLead(row.original.id, 'teammate_assigned', value)}
+            placeholder="Assign team"
+          />
+        </div>
+      ),
+    },
+  ], [buyerAgents, users, updatingKey]);
+
+  // Filter columns based on visibility settings
+  const columns = visibleColumns
+    .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
+    .filter((col): col is ColumnDef<DisplayLead> => col !== undefined);
+
   if (loading) {
     return <div className="pl-4 pr-0 pt-2 pb-0">Loading...</div>;
   }
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground">Leads (Modern)</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Leads</h1>
         <Button onClick={() => setShowCreateModal(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           New Lead
         </Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {filters.length > 0 && (
+        <div className="flex gap-2 items-center flex-wrap">
+          {filters.map(filter => (
+            <Badge key={filter.id} variant="secondary" className="gap-1 pr-1">
+              <span>{filterColumns.find(col => col.value === filter.column)?.label}: {String(filter.value)}</span>
+              <button onClick={() => removeFilter(filter.id)} className="hover:bg-background/20 rounded p-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-6">
+            Clear All
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
-        >
-          <Filter className="h-4 w-4" />
-          Filters
-        </Button>
-      </div>
+      )}
 
-      {/* Advanced Filters */}
-      <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-        <CollapsibleContent>
-          <div className="bg-card p-4 rounded-lg border">
-            <FilterBuilder
-              filters={filters}
-              onFiltersChange={setFilters}
-              columns={filterColumns}
+      <Card className="bg-gradient-card shadow-soft">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">All Leads</CardTitle>
+          </div>
+          <div className="flex gap-2 items-center">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Button
+              variant={sortLocked ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const newValue = !sortLocked;
+                setSortLocked(newValue);
+                localStorage.setItem('leads-sort-locked', JSON.stringify(newValue));
+                toast({
+                  title: newValue ? "Sort Locked" : "Sort Unlocked",
+                  description: newValue ? "Leads will stay in creation order" : "You can now sort by any column",
+                });
+              }}
+              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+              className="h-8"
+            >
+              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+            </Button>
+            
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="relative h-8">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {filters.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                      {filters.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Filter Leads</h4>
+                    {filters.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  <FilterBuilder
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    columns={filterColumns}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <ColumnVisibilityButton
+              columns={columnVisibility}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+              onReorderColumns={reorderColumns}
+              onViewSaved={handleViewSaved}
+            />
+            
+            <Button
+              variant={activeView === "Main" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const orderedMainColumns = MAIN_VIEW_COLUMNS
+                  .map(id => columnVisibility.find(col => col.id === id))
+                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                  .map(col => ({ ...col, visible: true }));
+                
+                const existingIds = new Set(MAIN_VIEW_COLUMNS);
+                const remainingColumns = columnVisibility
+                  .filter(col => !existingIds.has(col.id))
+                  .map(col => ({ ...col, visible: false }));
+                
+                const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+                setColumns(newColumnOrder);
+                
+                toast({
+                  title: "Main View Loaded",
+                  description: "Default column configuration restored"
+                });
+              }}
+              className="h-8 text-xs"
+            >
+              Main View
+            </Button>
+            
+            <ViewPills
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onDeleteView={deleteView}
             />
           </div>
-        </CollapsibleContent>
-      </Collapsible>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={displayData}
+            searchTerm={searchTerm}
+            lockSort={sortLocked}
+            storageKey="leads-table"
+            onRowClick={handleRowClick}
+            onColumnReorder={handleColumnReorder}
+            getRowId={(row) => row.id}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Modern Data Table */}
-      <div className="bg-card rounded-lg border shadow-soft overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/30 border-b">
-              <tr>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Lead Name</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Created Date</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Buyer's Agent</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Referred Via</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Referral Source</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Converted</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Task ETA</th>
-                <th className="text-left p-3 text-sm font-medium text-muted-foreground">Team</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLeads.map((lead) => (
-                <tr 
-                  key={lead.id} 
-                  className="border-b hover:bg-muted/20 cursor-pointer transition-colors"
-                  onClick={() => handleRowClick(lead)}
-                >
-                  <td className="p-3">
-                    <div>
-                      <div className="font-medium text-sm">{lead.first_name} {lead.last_name}</div>
-                      <div className="text-xs text-muted-foreground">{lead.email}</div>
-                      <div className="text-xs text-muted-foreground">{lead.phone}</div>
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <span className="text-sm">
-                      {lead.created_at ? format(new Date(lead.created_at), 'MMM dd, yyyy') : '-'}
-                    </span>
-                  </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditAgent
-                      value={lead.buyer_agent}
-                      agents={buyerAgents}
-                      onValueChange={(agent) => handleUpdateLead(lead.id, 'buyer_agent_id', agent?.id || null)}
-                      placeholder="Select agent"
-                      type="buyer"
-                      disabled={!buyerAgents.length || updatingKey === `${lead.id}:buyer_agent_id`}
-                    />
-                  </td>
-                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                     <InlineEditSelect
-                       value={lead.referred_via || ''}
-                       options={REFERRED_VIA_OPTIONS}
-                       onValueChange={(value) => handleUpdateLead(lead.id, 'referred_via', value)}
-                       placeholder="Select method"
-                       showAsStatusBadge
-                       forceGrayBadge
-                     />
-                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditSelect
-                      value={lead.referral_source || ''}
-                      options={REFERRAL_SOURCE_OPTIONS}
-                      onValueChange={(value) => handleUpdateLead(lead.id, 'referral_source', value)}
-                      placeholder="Select source"
-                    />
-                  </td>
-                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                     <InlineEditSelect
-                       value={lead.converted || ''}
-                       options={CONVERTED_OPTIONS}
-                       onValueChange={(value) => handleUpdateLead(lead.id, 'converted', value)}
-                       placeholder="Select status"
-                       showAsStatusBadge
-                       forceGrayBadge
-                     />
-                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditDate
-                      value={lead.task_eta}
-                      onValueChange={(date) => handleUpdateLead(lead.id, 'task_eta', date)}
-                      placeholder="Set date"
-                    />
-                  </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineEditSelect
-                      value={lead.teammate_assigned || ''}
-                      options={teamOptions}
-                      onValueChange={(value) => handleUpdateLead(lead.id, 'teammate_assigned', value)}
-                      placeholder="Assign team"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {filteredLeads.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            No leads found matching your criteria
-          </div>
-        )}
-      </div>
-
-      {/* Modals */}
       <CreateLeadModalModern
         open={showCreateModal}
         onOpenChange={setShowCreateModal}

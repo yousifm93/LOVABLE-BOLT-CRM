@@ -42,17 +42,11 @@ import { Loader2 } from "lucide-react";
 
 // Main view default columns
 const MAIN_VIEW_COLUMNS = [
-  "name",
   "pendingAppOn",
-  "phone",
-  "email",
-  "realEstateAgent",
   "status",
-  "user",
-  "loanType",
-  "loanAmount",
-  "creditScore",
-  "dueDate"
+  "realEstateAgent",
+  "dueDate",
+  "user"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -820,8 +814,8 @@ export default function PendingApp() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Pending App ({displayData.length})</h1>
-          <p className="text-xs italic text-muted-foreground/70">Applications under review and processing</p>
+          <h1 className="text-2xl font-bold text-foreground">Pending App</h1>
+          <p className="text-xs italic text-muted-foreground/70">Borrowers who are pending applying</p>
         </div>
       </div>
 
@@ -844,7 +838,7 @@ export default function PendingApp() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Applications ({leads.length})</CardTitle>
+            <CardTitle className="text-lg">Pending Applications</CardTitle>
           </div>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
@@ -938,7 +932,7 @@ export default function PendingApp() {
                 }}
                 className="h-8 text-xs"
               >
-                Main
+                Main View
               </Button>
             
             <ViewPills

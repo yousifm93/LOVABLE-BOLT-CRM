@@ -168,7 +168,7 @@ function DraggableTableHead<T>({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "h-8 px-2 font-medium relative group",
+        "h-8 px-2 font-medium relative group whitespace-nowrap",
         column.headerClassName || "text-center",
         column.sortable && !lockSort && "cursor-pointer hover:bg-muted/50"
       )}
