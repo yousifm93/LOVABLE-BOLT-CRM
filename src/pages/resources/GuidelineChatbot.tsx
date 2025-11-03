@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Zap, Mic, MessageSquare, Trash2, Plus, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 interface ChatMessage {
   id: string;
@@ -304,65 +306,86 @@ export default function GuidelineChatbot() {
   };
 
   const HistorySidebar = () => (
-    <div className="h-full flex flex-col bg-card border-r">
-      <div className="p-4 border-b">
-        <Button 
-          onClick={startNewChat}
-          className="w-full justify-start gap-2"
-          variant="default"
-        >
-          <Plus className="h-4 w-4" />
-          New Chat
-        </Button>
-      </div>
-      
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {conversationHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No conversation history yet
-            </p>
-          ) : (
-            conversationHistory.map((conv) => (
-              <div
-                key={conv.id}
-                className={`group flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent ${
-                  currentConversationId === conv.id ? 'bg-accent border-primary' : ''
-                }`}
-                onClick={() => loadConversation(conv)}
-              >
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <MessageSquare className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{conv.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(conv.last_message_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+    <TooltipProvider>
+      <div className="h-full flex flex-col bg-card border-r">
+        <div className="p-4 border-b">
+          <Button 
+            onClick={startNewChat}
+            className="w-full justify-start gap-2"
+            variant="default"
+          >
+            <Plus className="h-4 w-4" />
+            New Chat
+          </Button>
         </div>
-      </ScrollArea>
-    </div>
+        
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-2">
+            {conversationHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No conversation history yet
+              </p>
+            ) : (
+              conversationHistory.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`group flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent ${
+                    currentConversationId === conv.id ? 'bg-accent border-primary' : ''
+                  }`}
+                  onClick={() => loadConversation(conv)}
+                >
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <MessageSquare className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-sm font-medium line-clamp-2 cursor-help">
+                            {conv.title}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="text-xs">{conv.title}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs text-muted-foreground cursor-help">
+                            {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p className="text-xs">
+                            {new Date(conv.last_message_at).toLocaleString()}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation(conv.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </TooltipProvider>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-80 border-r">
+      <div className="hidden lg:block w-96 border-r">
         <HistorySidebar />
       </div>
 
@@ -377,7 +400,7 @@ export default function GuidelineChatbot() {
                 Chat History
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0">
+            <SheetContent side="left" className="w-96 p-0">
               <SheetHeader className="p-4 border-b">
                 <SheetTitle>Chat History</SheetTitle>
               </SheetHeader>
