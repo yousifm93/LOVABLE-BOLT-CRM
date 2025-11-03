@@ -70,6 +70,15 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'notes': 'notes',
 };
 
+// Exclude legacy/computed alias fields from dynamic column generation
+const ALIAS_FIELD_NAMES = new Set([
+  'pendingAppOn',
+  'appCompleteOn',
+  'preQualifiedOn',
+  'preApprovedOn',
+  'createdOn',
+]);
+
 type DisplayLead = {
   id: string;
   name: string;
@@ -117,20 +126,20 @@ export default function PreApproved() {
   ];
 
   // Load ALL database fields for Hide/Show modal
-  const allAvailableColumns = useMemo(() => {
-    const dbColumns = allFields
-      .filter(f => f.is_in_use) // Show ALL 72 fields
-      .map(field => ({
-        id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
-        label: field.display_name,
-        visible: false
-      }));
-    
-    const existingIds = new Set(coreColumns.map(c => c.id));
-    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
-    
-    return [...coreColumns, ...newColumns];
-  }, [allFields]);
+const allAvailableColumns = useMemo(() => {
+  const dbColumns = allFields
+    .filter(f => f.is_in_use && !ALIAS_FIELD_NAMES.has(f.field_name) && f.field_type !== 'computed')
+    .map(field => ({
+      id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
+      label: field.display_name,
+      visible: false
+    }));
+  
+  const existingIds = new Set(coreColumns.map(c => c.id));
+  const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+  
+  return [...coreColumns, ...newColumns];
+}, [allFields]);
 
   // Status/Converted options
   const convertedOptions = [

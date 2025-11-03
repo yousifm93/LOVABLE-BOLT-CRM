@@ -27,8 +27,8 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
-import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +65,15 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'arrive_loan_number': 'loanNumber',
   'notes': 'notes',
 };
+
+// Exclude legacy/computed alias fields from dynamic column generation
+const ALIAS_FIELD_NAMES = new Set([
+  'pendingAppOn',
+  'appCompleteOn',
+  'preQualifiedOn',
+  'preApprovedOn',
+  'createdOn',
+]);
 
 // Display type for table rows
 type DisplayLead = {
@@ -111,20 +120,20 @@ export default function Screening() {
   ];
 
   // Load ALL database fields for Hide/Show modal
-  const allAvailableColumns = useMemo(() => {
-    const dbColumns = allFields
-      .filter(f => f.is_in_use) // Show ALL 72 fields
-      .map(field => ({
-        id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
-        label: field.display_name,
-        visible: false
-      }));
-    
-    const existingIds = new Set(coreColumns.map(c => c.id));
-    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
-    
-    return [...coreColumns, ...newColumns];
-  }, [allFields]);
+const allAvailableColumns = useMemo(() => {
+  const dbColumns = allFields
+    .filter(f => f.is_in_use && !ALIAS_FIELD_NAMES.has(f.field_name) && f.field_type !== 'computed')
+    .map(field => ({
+      id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
+      label: field.display_name,
+      visible: false
+    }));
+  
+  const existingIds = new Set(coreColumns.map(c => c.id));
+  const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+  
+  return [...coreColumns, ...newColumns];
+}, [allFields]);
 
   // Status/Converted options
   const convertedOptions = [
@@ -423,11 +432,16 @@ export default function Screening() {
     nextStep: 'Review',
     priority: 'Medium' as const,
     // Add all database fields dynamically
-    ...Object.fromEntries(
-      allFields
-        .filter(f => f.is_in_use)
-        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name] ?? null])
-    )
+...allFields
+      .filter(f => f.is_in_use && !ALIAS_FIELD_NAMES.has(f.field_name) && f.field_type !== 'computed')
+      .reduce((acc, field) => {
+        const key = FIELD_NAME_MAP[field.field_name] || field.field_name;
+        const val = (lead as any)[field.field_name];
+        if (val !== undefined && val !== null && !(typeof val === 'string' && val === '')) {
+          acc[key] = val;
+        }
+        return acc;
+      }, {} as Record<string, any>)
   }));
 
   // Generate column definition for dynamic fields
@@ -512,6 +526,20 @@ export default function Screening() {
                 fetchLeads();
               }}
               placeholder="Select date"
+            />
+          </div>
+        );
+        break;
+      
+      case 'datetime':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditDateTime
+              value={row.original[frontendFieldName]}
+              onValueChange={(value: string) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
             />
           </div>
         );
