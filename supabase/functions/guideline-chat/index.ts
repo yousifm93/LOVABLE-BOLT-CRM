@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const N8N_WEBHOOK_URL = 'https://yousifmo93.app.n8n.cloud/webhook/chatbot-query';
-const TIMEOUT_MS = 30000; // 30 seconds
+const TIMEOUT_MS = 60000; // 60 seconds - N8N RAG workflows can be slow
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -112,7 +112,8 @@ serve(async (req) => {
       );
     } catch (fetchError) {
       if (fetchError.name === 'AbortError') {
-        throw new Error('Request timeout - the guideline search took too long');
+        console.error('N8N webhook timeout after', TIMEOUT_MS, 'ms');
+        throw new Error('The search is taking longer than expected. This may be due to a complex query or high load on the guideline database. Please try again or simplify your question.');
       }
       throw fetchError;
     }
