@@ -27,6 +27,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -479,7 +480,7 @@ export default function PreQualified() {
     ...Object.fromEntries(
       allFields
         .filter(f => f.is_in_use)
-        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name] ?? null])
+        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name]])
     )
   }));
 
@@ -569,6 +570,20 @@ export default function PreQualified() {
         );
         break;
       
+      case 'datetime':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditDateTime
+              value={row.original[frontendFieldName]}
+              onValueChange={(value: string) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+            />
+          </div>
+        );
+        break;
+      
       case 'select':
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
@@ -614,12 +629,6 @@ export default function PreQualified() {
           {row.original.name}
         </span>
       ),
-    },
-    {
-      accessorKey: "preQualifiedOn",
-      header: "Pre-Qualified On",
-      cell: ({ row }) => formatDateShort(row.original.preQualifiedOn),
-      sortable: true,
     },
     {
       accessorKey: "phone",

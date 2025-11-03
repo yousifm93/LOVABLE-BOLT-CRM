@@ -27,6 +27,7 @@ import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
+import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -462,7 +463,7 @@ export default function PreApproved() {
     ...Object.fromEntries(
       allFields
         .filter(f => f.is_in_use)
-        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name] ?? null])
+        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name]])
     )
   }));
 
@@ -552,6 +553,20 @@ export default function PreApproved() {
         );
         break;
       
+      case 'datetime':
+        baseColumn.cell = ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditDateTime
+              value={row.original[frontendFieldName]}
+              onValueChange={(value: string) => {
+                handleFieldUpdate(row.original.id, field.field_name, value);
+                fetchLeads();
+              }}
+            />
+          </div>
+        );
+        break;
+      
       case 'select':
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
@@ -597,12 +612,6 @@ export default function PreApproved() {
           {row.original.name}
         </span>
       ) 
-    },
-    {
-      accessorKey: "preApprovedOn",
-      header: "Pre-Approved On",
-      cell: ({ row }) => formatDateShort(row.original.preApprovedOn),
-      sortable: true,
     },
     {
       accessorKey: "loanNumber",
