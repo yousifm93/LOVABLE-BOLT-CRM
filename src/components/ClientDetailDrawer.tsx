@@ -393,8 +393,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       const isPendingApp = normalizedLabel === 'Pending App' || stageId === '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945';
       
       const updateData: any = { 
-        pipeline_stage_id: stageId,
-        pending_app_at: new Date().toISOString()
+        pipeline_stage_id: stageId
       };
       
       // If moving to Pending App, set defaults

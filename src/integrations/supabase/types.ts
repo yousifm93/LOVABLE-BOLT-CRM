@@ -3554,6 +3554,58 @@ export type Database = {
           },
         ]
       }
+      stage_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_stage_id: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage_id?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
