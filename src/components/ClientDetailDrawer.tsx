@@ -78,7 +78,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
   const [localPriority, setLocalPriority] = useState((client as any).priority || 'Medium');
   const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
-  const [localNotes, setLocalNotes] = useState((client as any).notes || '');
+  const [localNotes, setLocalNotes] = useState((client as any).meta?.notes ?? (client as any).notes ?? '');
   const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
   
   // About the Borrower editing state
@@ -91,8 +91,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   // Sync localNotes only when drawer opens or lead changes
   React.useEffect(() => {
     if (isOpen && leadId) {
-      console.log('[ClientDetailDrawer] Syncing notes on drawer open. leadId:', leadId, 'notes:', (client as any).notes);
-      setLocalNotes((client as any).notes || '');
+      const notes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+      console.log('[ClientDetailDrawer] Syncing notes on drawer open. leadId:', leadId, 'notes:', notes);
+      setLocalNotes(notes);
       setHasUnsavedNotes(false);
       setIsEditingNotes(false);
     }
@@ -908,17 +909,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <Button
                 size="sm"
                 onClick={async () => {
-                  // Validate notes
-                  if (!localNotes.trim()) {
-                    toast({
-                      title: "Empty Notes",
-                      description: "Please enter some text before saving.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  if (localNotes === (client as any).notes) {
+                  // Check if notes actually changed
+                  const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                  if (localNotes === currentNotes) {
                     toast({
                       title: "No Changes",
                       description: "Notes haven't changed.",

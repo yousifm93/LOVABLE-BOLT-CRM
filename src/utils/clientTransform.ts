@@ -144,6 +144,7 @@ export function transformLeadToClient(lead: any): any {
     meta: {
       notes: lead.notes || '',
     },
+    notes: lead.notes || '', // Top-level for compatibility
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
     loanStatus: lead.loan_status || null,
