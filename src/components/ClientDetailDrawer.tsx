@@ -88,11 +88,15 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   
   const { toast } = useToast();
 
-  // Sync localNotes when client.notes changes
+  // Sync localNotes only when drawer opens or lead changes
   React.useEffect(() => {
-    console.log('[ClientDetailDrawer] Client notes changed:', (client as any).notes);
-    setLocalNotes((client as any).notes || '');
-  }, [(client as any).notes]);
+    if (isOpen && leadId) {
+      console.log('[ClientDetailDrawer] Syncing notes on drawer open. leadId:', leadId, 'notes:', (client as any).notes);
+      setLocalNotes((client as any).notes || '');
+      setHasUnsavedNotes(false);
+      setIsEditingNotes(false);
+    }
+  }, [isOpen, leadId]);
 
   // Load activities and documents when drawer opens
   React.useEffect(() => {
@@ -904,17 +908,40 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               <Button
                 size="sm"
                 onClick={async () => {
-                  setIsSavingNotes(true);
-                  console.log('[ClientDetailDrawer] Saving notes:', localNotes);
-                  try {
-                    await handleLeadUpdate('notes', localNotes);
-                    console.log('[ClientDetailDrawer] Notes saved, calling onLeadUpdated');
-                    if (onLeadUpdated) {
-                      await onLeadUpdated();
-                    }
-                    console.log('[ClientDetailDrawer] onLeadUpdated completed');
+                  // Validate notes
+                  if (!localNotes.trim()) {
+                    toast({
+                      title: "Empty Notes",
+                      description: "Please enter some text before saving.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  if (localNotes === (client as any).notes) {
+                    toast({
+                      title: "No Changes",
+                      description: "Notes haven't changed.",
+                    });
                     setHasUnsavedNotes(false);
                     setIsEditingNotes(false);
+                    return;
+                  }
+                  
+                  setIsSavingNotes(true);
+                  console.log('[ClientDetailDrawer] Saving notes. leadId:', leadId, 'notes:', localNotes);
+                  try {
+                    await handleLeadUpdate('notes', localNotes);
+                    console.log('[ClientDetailDrawer] Notes saved successfully to database');
+                    
+                    if (onLeadUpdated) {
+                      await onLeadUpdated();
+                      console.log('[ClientDetailDrawer] Parent refreshed with new data');
+                    }
+                    
+                    setHasUnsavedNotes(false);
+                    setIsEditingNotes(false);
+                    
                     toast({
                       title: "Saved",
                       description: "About the Borrower section has been updated.",
@@ -949,7 +976,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     )}
                   </>
                 ) : (
-                  <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border">
+                  <div 
+                    className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setIsEditingNotes(true)}
+                  >
                     {localNotes.split('\n').map((line, i) => (
                       <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>
                     ))}
