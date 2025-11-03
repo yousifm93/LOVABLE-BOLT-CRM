@@ -45,18 +45,11 @@ const MAIN_VIEW_COLUMNS = [
   "name",
   "preApprovedOn",
   "loanNumber",
-  "email",
-  "phone",
-  "loanType",
-  "status",
-  "loanAmount",
-  "creditScore",
-  "realEstateAgent",
   "user",
+  "status",
+  "realEstateAgent",
   "baStatus",
-  "dueDate",
-  "dti",
-  "salesPrice"
+  "dueDate"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -973,7 +966,7 @@ export default function PreApproved() {
                 }}
                 className="h-8 text-xs"
               >
-                Main
+                  Main View
               </Button>
             
             <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />

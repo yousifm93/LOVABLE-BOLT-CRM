@@ -44,17 +44,10 @@ import { Loader2 } from "lucide-react";
 const MAIN_VIEW_COLUMNS = [
   "name",
   "preQualifiedOn",
-  "phone",
-  "email",
   "realEstateAgent",
   "status",
   "loanNumber",
-  "creditScore",
-  "dti",
-  "loanAmount",
-  "salesPrice",
   "user",
-  "loanType",
   "dueDate",
   "baStatus"
 ];
@@ -1003,7 +996,7 @@ export default function PreQualified() {
                 }}
                 className="h-8 text-xs"
               >
-                Main
+                  Main View
               </Button>
             
             <ViewPills

@@ -42,6 +42,7 @@ import { Loader2 } from "lucide-react";
 
 // Main view default columns
 const MAIN_VIEW_COLUMNS = [
+  "name",
   "pendingAppOn",
   "status",
   "realEstateAgent",
