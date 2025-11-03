@@ -46,13 +46,11 @@ import {
 const MAIN_VIEW_COLUMNS = [
   "name",
   "createdOn",
-  "phone",
-  "email",
+  "referredVia",
+  "referralSource",
   "realEstateAgent",
   "status",
   "user",
-  "referredVia",
-  "referralSource",
   "dueDate"
 ];
 
@@ -240,7 +238,8 @@ export default function Leads() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(allAvailableColumns, 'leads-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -1191,7 +1190,7 @@ export default function Leads() {
               />
             
               <Button
-                variant={activeView === "Main" ? "default" : "outline"}
+                variant={activeView === "Main View" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
                   const orderedMainColumns = MAIN_VIEW_COLUMNS
@@ -1206,6 +1205,7 @@ export default function Leads() {
                   
                   const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
                   setColumns(newColumnOrder);
+                  setActiveView("Main View");
                   
                   toast({
                     title: "Main View Loaded",
@@ -1214,7 +1214,7 @@ export default function Leads() {
                 }}
                 className="h-8 text-xs"
               >
-                Main
+                Main View
               </Button>
             
             <ViewPills
