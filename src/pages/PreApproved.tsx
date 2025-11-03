@@ -175,7 +175,7 @@ export default function PreApproved() {
   const [users, setUsers] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
 
-  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns, setColumns } = useColumnVisibility(allAvailableColumns, 'pre-approved-columns');
+  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns, setColumns, setActiveView } = useColumnVisibility(allAvailableColumns, 'pre-approved-columns');
 
   const handleViewSaved = (viewName: string) => {
     toast({
@@ -943,7 +943,7 @@ export default function PreApproved() {
             />
             
               <Button
-                variant={activeView === "Main" ? "default" : "outline"}
+                variant={activeView === "Main View" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
                   const orderedMainColumns = MAIN_VIEW_COLUMNS
@@ -958,6 +958,7 @@ export default function PreApproved() {
                   
                   const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
                   setColumns(newColumnOrder);
+                  setActiveView("Main View");
                   
                   toast({
                     title: "Main View Loaded",

@@ -151,7 +151,8 @@ export default function PendingApp() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(allAvailableColumns, 'pending-app-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -910,7 +911,7 @@ export default function PendingApp() {
               />
             
               <Button
-                variant={activeView === "Main" ? "default" : "outline"}
+                variant={activeView === "Main View" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
                   const orderedMainColumns = MAIN_VIEW_COLUMNS
@@ -925,6 +926,7 @@ export default function PendingApp() {
                   
                   const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
                   setColumns(newColumnOrder);
+                  setActiveView("Main View");
                   
                   toast({
                     title: "Main View Loaded",

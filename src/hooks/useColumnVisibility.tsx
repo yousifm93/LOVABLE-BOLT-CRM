@@ -157,6 +157,7 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   };
 }

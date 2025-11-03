@@ -129,7 +129,8 @@ export function LeadsModern() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(coreColumns, 'leads-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -604,7 +605,7 @@ export function LeadsModern() {
             />
             
             <Button
-              variant={activeView === "Main" ? "default" : "outline"}
+              variant={activeView === "Main View" ? "default" : "outline"}
               size="sm"
               onClick={() => {
                 const orderedMainColumns = MAIN_VIEW_COLUMNS
@@ -619,6 +620,7 @@ export function LeadsModern() {
                 
                 const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
                 setColumns(newColumnOrder);
+                setActiveView("Main View");
                 
                 toast({
                   title: "Main View Loaded",

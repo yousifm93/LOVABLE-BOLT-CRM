@@ -172,7 +172,8 @@ export default function Screening() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(allAvailableColumns, 'screening-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -915,7 +916,7 @@ export default function Screening() {
               />
             
               <Button
-                variant={activeView === "Main" ? "default" : "outline"}
+                variant={activeView === "Main View" ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
                   const orderedMainColumns = MAIN_VIEW_COLUMNS
@@ -930,6 +931,7 @@ export default function Screening() {
                   
                   const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
                   setColumns(newColumnOrder);
+                  setActiveView("Main View");
                   
                   toast({
                     title: "Main View Loaded",
