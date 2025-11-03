@@ -905,9 +905,6 @@ export default function PreQualified() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Pre-Qualified Clients ({leads.length})</CardTitle>
-          </div>
           <div className="flex gap-2 items-center">
             <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

@@ -884,7 +884,6 @@ export default function PreApproved() {
       
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <CardTitle>Pre-Approved Clients ({leads.length})</CardTitle>
           <div className="flex gap-2">
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
             
