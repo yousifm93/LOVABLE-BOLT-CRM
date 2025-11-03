@@ -17,6 +17,7 @@ import { databaseService, type Lead as DatabaseLead } from "@/services/database"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatPercentage, formatDateShort } from "@/utils/formatters";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -293,42 +294,19 @@ export default function Screening() {
     setFilters(filters.filter(f => f.id !== filterId));
   };
 
-  const handleRowClick = (lead: DatabaseLead) => {
-    const crmClient: CRMClient = {
-      person: {
-        id: Date.now(),
-        firstName: lead.first_name,
-        lastName: lead.last_name,
-        email: lead.email || '',
-        phone: lead.phone || '' // Use 'phone' instead of 'phoneMobile'
-      },
-      databaseId: lead.id, // Pass UUID directly
-      loan: {
-        loanAmount: lead.loan_amount || 0, // Raw number, not formatted string
-        salesPrice: lead.sales_price || 0,
-        loanType: lead.loan_type || "Purchase",
-        loanProgram: lead.program || "",
-        prType: "Primary Residence"
-      },
-      property: {
-        propertyType: lead.property_type || ""
-      },
-      ops: {
-        status: lead.status || "Screening",
-        stage: "screening",
-        priority: "Medium",
-        referralSource: lead.referral_source || "N/A"
-      },
-      dates: {
-        createdOn: new Date(lead.created_at).toLocaleDateString()
-      },
-      meta: {},
-      name: `${lead.first_name} ${lead.last_name}`,
-      buyer_agent_id: lead.buyer_agent_id,
-      buyer_agent: (lead as any).buyer_agent
-    };
-    setSelectedClient(crmClient);
-    setIsDrawerOpen(true);
+  const handleRowClick = async (lead: DatabaseLead) => {
+    try {
+      const dbLead = await databaseService.getLeadByIdWithEmbeds(lead.id);
+      const crmClient = transformLeadToClient(dbLead);
+      setSelectedClient(crmClient);
+      setIsDrawerOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not load lead details. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStageChange = (clientId: number, newStage: PipelineStage) => {
@@ -447,8 +425,8 @@ export default function Screening() {
     // Add all database fields dynamically
     ...Object.fromEntries(
       allFields
-        .filter(f => ['LEAD', 'APP COMPLETE'].includes(f.section) && f.is_in_use)
-        .map(field => [field.field_name, (lead as any)[field.field_name]])
+        .filter(f => f.is_in_use)
+        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name] ?? null])
     )
   }));
 
@@ -467,7 +445,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditText
-              value={row.original[field.field_name] || ''}
+              value={row.original[frontendFieldName] || ''}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -482,7 +460,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditNumber
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -497,7 +475,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditCurrency
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -512,7 +490,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditPercentage
-              value={row.original[field.field_name] || 0}
+              value={row.original[frontendFieldName] || 0}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);
                 fetchLeads();
@@ -527,7 +505,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditDate
-              value={row.original[field.field_name]}
+              value={row.original[frontendFieldName]}
               onValueChange={(date) => {
                 const dateString = date ? (typeof date === 'string' ? date : date.toISOString().split('T')[0]) : null;
                 handleFieldUpdate(row.original.id, field.field_name, dateString);
@@ -543,7 +521,7 @@ export default function Screening() {
         baseColumn.cell = ({ row }) => (
           <div onClick={(e) => e.stopPropagation()}>
             <InlineEditSelect
-              value={row.original[field.field_name] || ''}
+              value={row.original[frontendFieldName] || ''}
               options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
               onValueChange={(value) => {
                 handleFieldUpdate(row.original.id, field.field_name, value);

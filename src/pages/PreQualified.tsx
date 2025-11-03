@@ -476,8 +476,8 @@ export default function PreQualified() {
     // Add all database fields dynamically
     ...Object.fromEntries(
       allFields
-        .filter(f => ['APP COMPLETE', 'APP REVIEW'].includes(f.section) && f.is_in_use)
-        .map(field => [field.field_name, (lead as any)[field.field_name]])
+        .filter(f => f.is_in_use)
+        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name] ?? null])
     )
   }));
 
