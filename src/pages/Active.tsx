@@ -98,6 +98,7 @@ interface ActiveLoan {
   pipeline_section: string | null;
   is_closed: boolean | null;
   closed_at: string | null;
+  notes: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -913,6 +914,11 @@ export default function Active() {
           title: "Moving to Past Clients",
           description: "Loan moved to Past Clients board",
         });
+      }
+      
+      // Handle notes field (typically edited in drawer)
+      if (field === 'notes') {
+        // Just pass through - notes are saved via drawer
       }
       
       await databaseService.updateLead(id, updateData);

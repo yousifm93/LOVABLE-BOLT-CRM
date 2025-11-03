@@ -64,6 +64,7 @@ interface PastClientLoan {
   pipeline_section: string | null;
   is_closed: boolean | null;
   closed_at: string | null;
+  notes: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -790,6 +791,11 @@ export default function PastClients() {
 
   const handleUpdate = async (id: string, field: string, value: any) => {
     try {
+      // Handle notes field (typically edited in drawer)
+      if (field === 'notes') {
+        // Just pass through - notes are saved via drawer
+      }
+      
       await databaseService.updateLead(id, { [field]: value });
       
       // For relationship fields, reload the entire dataset to get fresh embedded objects
