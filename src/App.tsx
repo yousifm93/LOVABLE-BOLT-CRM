@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "@/pages/Auth";
 import Index from "@/pages/Index";
 import DashboardTabs from "@/pages/DashboardTabs";
-import Leads from "@/pages/Leads";
+import { LeadsModern } from "@/pages/LeadsModern";
 import PendingApp from "@/pages/PendingApp";
 import Screening from "@/pages/Screening";
 import PreQualified from "@/pages/PreQualified";
@@ -72,7 +72,7 @@ function AppRoutes() {
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="/" element={<DashboardTabs />} />
         <Route path="/email" element={<Email />} />
-        <Route path="/leads" element={<Leads />} />
+        <Route path="/leads" element={<LeadsModern />} />
         <Route path="/pending-app" element={<PendingApp />} />
         <Route path="/screening" element={<Screening />} />
         <Route path="/pre-qualified" element={<PreQualified />} />
