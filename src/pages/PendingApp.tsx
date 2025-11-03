@@ -187,11 +187,7 @@ export default function PendingApp() {
   // Load users
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
-        .order('first_name');
-      if (error) throw error;
+      const data = await databaseService.getUsers();
       setUsers(data || []);
     } catch (error) {
       console.error('Error loading users:', error);

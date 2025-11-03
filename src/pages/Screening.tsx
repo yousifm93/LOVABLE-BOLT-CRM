@@ -207,10 +207,12 @@ export default function Screening() {
   };
 
   const loadUsers = async () => {
-    const { data } = await supabase
-      .from('users')
-      .select('id, first_name, last_name, email');
-    if (data) setUsers(data);
+    try {
+      const data = await databaseService.getUsers();
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
   };
 
   const loadAgents = async () => {
