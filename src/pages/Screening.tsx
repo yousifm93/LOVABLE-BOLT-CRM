@@ -85,7 +85,6 @@ type DisplayLead = {
   dti: number | null;
   dueDate?: string;
   incomeType: string;
-  screeningDate: string;
   nextStep: string;
   priority: "High" | "Medium" | "Low";
   [key: string]: any; // Allow dynamic fields
@@ -421,7 +420,6 @@ export default function Screening() {
     dti: lead.dti || 0,
     dueDate: lead.task_eta || '',
     incomeType: lead.income_type || '',
-    screeningDate: lead.created_at,
     nextStep: 'Review',
     priority: 'Medium' as const,
     // Add all database fields dynamically
