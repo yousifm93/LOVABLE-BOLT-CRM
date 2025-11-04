@@ -1,12 +1,13 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, FileText, User, DollarSign, Users, List } from "lucide-react";
+import { Activity, FileText, User, DollarSign, Users, List, CheckCircle } from "lucide-react";
 import { ActivityTab } from "./ActivityTab";
 import { DetailsTab } from "./DetailsTab";
 import { BorrowerInfoTab } from "./BorrowerInfoTab";
 import { FinancialInfoTab } from "./FinancialInfoTab";
 import { DocumentsTab } from "./DocumentsTab";
+import { ConditionsTab } from "./ConditionsTab";
 import { AllFieldsTab } from "./AllFieldsTab";
 
 interface LeadCenterTabsProps {
@@ -34,7 +35,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
         <Tabs defaultValue="activity" className="w-full h-full">
-          <TabsList className="grid w-full grid-cols-6 mb-4">
+          <TabsList className="grid w-full grid-cols-7 mb-4">
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
               Activity
@@ -54,6 +55,10 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             <TabsTrigger value="documents" className="text-xs flex items-center gap-1">
               <FileText className="h-3 w-3" />
               Documents
+            </TabsTrigger>
+            <TabsTrigger value="conditions" className="text-xs flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Conditions
             </TabsTrigger>
             <TabsTrigger value="all-fields" className="text-xs flex items-center gap-1">
               <List className="h-3 w-3" />
@@ -91,6 +96,13 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               leadId={leadId} 
               documents={documents} 
               onDocumentsChange={onDocumentsChange || (() => {})}
+            />
+          </TabsContent>
+          
+          <TabsContent value="conditions" className="mt-0 h-[calc(100%-56px)] overflow-auto">
+            <ConditionsTab 
+              leadId={leadId} 
+              onConditionsChange={onLeadUpdated}
             />
           </TabsContent>
           

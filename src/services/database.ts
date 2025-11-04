@@ -95,6 +95,61 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 
 // Database service functions
 export const databaseService = {
+  // Lead Conditions operations
+  async getLeadConditions(leadId: string) {
+    const { data, error } = await supabase
+      .from('lead_conditions')
+      .select(`
+        *,
+        assigned_user:users!lead_conditions_assigned_to_fkey(first_name, last_name, email),
+        created_user:users!lead_conditions_created_by_fkey(first_name, last_name)
+      `)
+      .eq('lead_id', leadId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async createLeadCondition(condition: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('lead_conditions')
+      .insert({
+        ...condition,
+        created_by: user?.id,
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateLeadCondition(id: string, updates: any) {
+    const { data, error } = await supabase
+      .from('lead_conditions')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteLeadCondition(id: string) {
+    const { error } = await supabase
+      .from('lead_conditions')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
   // Lead operations
   async getLeads() {
     try {

@@ -1652,6 +1652,86 @@ export type Database = {
           },
         ]
       }
+      lead_conditions: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          condition_type: string
+          created_at: string | null
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          priority: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition_type: string
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          priority?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          condition_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          priority?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_conditions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_conditions_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_conditions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_conditions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_dates: {
         Row: {
           created_at: string | null
@@ -1805,6 +1885,9 @@ export type Database = {
           investment_accounts: number | null
           is_closed: boolean | null
           last_name: string
+          latest_file_updates: string | null
+          latest_file_updates_updated_at: string | null
+          latest_file_updates_updated_by: string | null
           lead_on_date: string
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           lender_id: string | null
@@ -1823,6 +1906,8 @@ export type Database = {
           monthly_pmt_goal: number | null
           mortgage_insurance: number | null
           notes: string | null
+          notes_updated_at: string | null
+          notes_updated_by: string | null
           number_of_dependents: number | null
           occupancy: string | null
           other_assets: number | null
@@ -1930,6 +2015,9 @@ export type Database = {
           investment_accounts?: number | null
           is_closed?: boolean | null
           last_name: string
+          latest_file_updates?: string | null
+          latest_file_updates_updated_at?: string | null
+          latest_file_updates_updated_by?: string | null
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
@@ -1948,6 +2036,8 @@ export type Database = {
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
           notes?: string | null
+          notes_updated_at?: string | null
+          notes_updated_by?: string | null
           number_of_dependents?: number | null
           occupancy?: string | null
           other_assets?: number | null
@@ -2057,6 +2147,9 @@ export type Database = {
           investment_accounts?: number | null
           is_closed?: boolean | null
           last_name?: string
+          latest_file_updates?: string | null
+          latest_file_updates_updated_at?: string | null
+          latest_file_updates_updated_by?: string | null
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
@@ -2075,6 +2168,8 @@ export type Database = {
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
           notes?: string | null
+          notes_updated_at?: string | null
+          notes_updated_by?: string | null
           number_of_dependents?: number | null
           occupancy?: string | null
           other_assets?: number | null
@@ -2160,6 +2255,20 @@ export type Database = {
             columns: ["buyer_agent_id"]
             isOneToOne: false
             referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_latest_file_updates_updated_by_fkey"
+            columns: ["latest_file_updates_updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_notes_updated_by_fkey"
+            columns: ["notes_updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {

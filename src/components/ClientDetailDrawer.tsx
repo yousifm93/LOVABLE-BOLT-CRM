@@ -25,6 +25,7 @@ import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
 import { PipelineStageBar } from "@/components/PipelineStageBar";
 import { databaseService } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern } from "@/utils/dateUtils";
@@ -90,18 +91,50 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [hasUnsavedNotes, setHasUnsavedNotes] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   
+  // Latest File Updates editing state
+  const [localFileUpdates, setLocalFileUpdates] = useState((client as any).latest_file_updates ?? '');
+  const [isEditingFileUpdates, setIsEditingFileUpdates] = useState(false);
+  const [hasUnsavedFileUpdates, setHasUnsavedFileUpdates] = useState(false);
+  const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
+  
+  // User info for timestamps
+  const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
+  const [fileUpdatesUpdatedByUser, setFileUpdatesUpdatedByUser] = useState<any>(null);
+  
   const { toast } = useToast();
 
-  // Sync localNotes only when drawer opens or lead changes
+  // Sync localNotes and fileUpdates when drawer opens or lead changes
   React.useEffect(() => {
     if (isOpen && leadId) {
       const notes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+      const fileUpdates = (client as any).latest_file_updates ?? '';
       console.log('[ClientDetailDrawer] Syncing notes on drawer open. leadId:', leadId, 'notes:', notes);
       setLocalNotes(notes);
+      setLocalFileUpdates(fileUpdates);
       setHasUnsavedNotes(false);
       setIsEditingNotes(false);
+      setHasUnsavedFileUpdates(false);
+      setIsEditingFileUpdates(false);
+      
+      // Load user info for timestamps
+      if ((client as any).notes_updated_by) {
+        loadUserInfo((client as any).notes_updated_by, setNotesUpdatedByUser);
+      }
+      if ((client as any).latest_file_updates_updated_by) {
+        loadUserInfo((client as any).latest_file_updates_updated_by, setFileUpdatesUpdatedByUser);
+      }
     }
   }, [isOpen, leadId]);
+  
+  const loadUserInfo = async (userId: string, setter: (user: any) => void) => {
+    try {
+      const users = await databaseService.getUsers();
+      const user = users?.find((u: any) => u.id === userId);
+      if (user) setter(user);
+    } catch (error) {
+      console.error('Error loading user info:', error);
+    }
+  };
 
   // Load activities and documents when drawer opens
   React.useEffect(() => {
@@ -951,10 +984,15 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     return;
                   }
                   
-                  setIsSavingNotes(true);
+                   setIsSavingNotes(true);
                   console.log('[ClientDetailDrawer] Saving notes. leadId:', leadId, 'notes:', localNotes);
                   try {
+                    const { data: { user } } = await supabase.auth.getUser();
                     await handleLeadUpdate('notes', localNotes);
+                    if (user?.id) {
+                      await handleLeadUpdate('notes_updated_by', user.id);
+                      await handleLeadUpdate('notes_updated_at', new Date().toISOString());
+                    }
                     console.log('[ClientDetailDrawer] Notes saved successfully to database');
                     
                     if (onLeadUpdated) {
@@ -1006,6 +1044,139 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                     {localNotes.split('\n').map((line, i) => (
                       <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>
                     ))}
+                  </div>
+                )}
+                {(client as any).notes_updated_at && (
+                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                    {notesUpdatedByUser && (
+                      <>
+                        <span>•</span>
+                        <User className="h-3 w-3" />
+                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Latest File Updates Section */}
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
+                  {!isEditingFileUpdates && localFileUpdates && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingFileUpdates(true)}
+                      className="h-7 text-xs"
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                {isEditingFileUpdates || !localFileUpdates ? (
+                  <>
+                    <Textarea
+                      value={localFileUpdates}
+                      onChange={(e) => {
+                        setLocalFileUpdates(e.target.value);
+                        setHasUnsavedFileUpdates(true);
+                      }}
+                      placeholder="Track file uploads, document updates, and important file changes..."
+                      className="min-h-[160px] resize-none bg-white mb-2"
+                    />
+                    {hasUnsavedFileUpdates && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const currentFileUpdates = (client as any).latest_file_updates ?? '';
+                            if (localFileUpdates === currentFileUpdates) {
+                              toast({
+                                title: "No Changes",
+                                description: "File updates haven't changed.",
+                              });
+                              setHasUnsavedFileUpdates(false);
+                              setIsEditingFileUpdates(false);
+                              return;
+                            }
+                            
+                            setIsSavingFileUpdates(true);
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              await handleLeadUpdate('latest_file_updates', localFileUpdates);
+                              if (user?.id) {
+                                await handleLeadUpdate('latest_file_updates_updated_by', user.id);
+                                await handleLeadUpdate('latest_file_updates_updated_at', new Date().toISOString());
+                              }
+                              
+                              if (onLeadUpdated) {
+                                await onLeadUpdated();
+                              }
+                              
+                              setHasUnsavedFileUpdates(false);
+                              setIsEditingFileUpdates(false);
+                              
+                              toast({
+                                title: "Saved",
+                                description: "Latest File Updates section has been updated.",
+                              });
+                            } catch (error) {
+                              console.error('Error saving file updates:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to save. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsSavingFileUpdates(false);
+                            }
+                          }}
+                          disabled={isSavingFileUpdates}
+                        >
+                          {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setLocalFileUpdates((client as any).latest_file_updates || '');
+                            setHasUnsavedFileUpdates(false);
+                            setIsEditingFileUpdates(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div 
+                    className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setIsEditingFileUpdates(true)}
+                  >
+                    {localFileUpdates.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>
+                    ))}
+                  </div>
+                )}
+                {(client as any).latest_file_updates_updated_at && (
+                  <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                    {fileUpdatesUpdatedByUser && (
+                      <>
+                        <span>•</span>
+                        <User className="h-3 w-3" />
+                        {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
