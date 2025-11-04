@@ -26,6 +26,7 @@ import { PipelineStageBar } from "@/components/PipelineStageBar";
 import { databaseService } from "@/services/database";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { getDatabaseFieldName } from "@/types/crm";
+import { formatDateModern } from "@/utils/dateUtils";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -104,6 +105,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     if (isOpen && leadId) {
       loadActivities();
       loadDocuments();
+      loadLeadTasks();
     }
   }, [isOpen, leadId]);
 
@@ -522,11 +524,41 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   };
 
-  const handleTaskToggle = (taskId: number) => {
-    setCompletedTasks(prev => ({
-      ...prev,
-      [taskId]: !prev[taskId]
-    }));
+  const loadLeadTasks = async () => {
+    const leadId = getLeadId();
+    if (!leadId) return;
+
+    setLoadingTasks(true);
+    try {
+      const tasks = await databaseService.getLeadTasks(leadId);
+      setLeadTasks(tasks);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const handleTaskToggle = async (taskId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === "Done" ? "To Do" : "Done";
+      await databaseService.updateTask(taskId, { status: newStatus });
+      
+      // Refresh tasks
+      await loadLeadTasks();
+      
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
   };
 
   // Initialize with mock data
@@ -593,53 +625,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   }, []);
 
-  const mockTasks: Task[] = [
-    {
-      id: 1,
-      title: 'Collect W2 documents',
-      dueDate: '2024-01-20',
-      completed: false,
-      assignee: 'Salma',
-      priority: 'High'
-    },
-    {
-      id: 2,
-      title: 'Schedule property appraisal',
-      dueDate: '2024-01-18',
-      completed: true,
-      assignee: 'Herman Daza'
-    },
-    {
-      id: 3,
-      title: 'Credit report review',
-      dueDate: '2024-01-22',
-      completed: false,
-      assignee: 'Yousif'
-    },
-    {
-      id: 4,
-      title: 'Verify employment status',
-      dueDate: '2024-01-25',
-      completed: false,
-      assignee: 'Salma',
-      priority: 'Medium'
-    },
-    {
-      id: 5,
-      title: 'Review insurance quotes',
-      dueDate: '2024-01-28',
-      completed: false,
-      assignee: 'Herman Daza'
-    },
-    {
-      id: 6,
-      title: 'Final loan package review',
-      dueDate: '2024-02-01',
-      completed: false,
-      assignee: 'Yousif',
-      priority: 'High'
-    }
-  ];
+  const [leadTasks, setLeadTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -997,29 +984,35 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 bg-gray-50">
-                {/* Mock task data */}
-                {mockTasks.map((task, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Checkbox 
-                      checked={task.completed}
-                      onCheckedChange={() => handleTaskToggle(index)}
-                    />
-                    <div className="flex-1">
-                      <span className={cn(
-                        "text-xs block",
-                        task.completed && "line-through text-muted-foreground"
-                      )}>
-                        {task.title}
-                      </span>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>Due: {task.dueDate}</span>
-                        <span>•</span>
-                        <span>{task.assignee}</span>
+                {loadingTasks ? (
+                  <p className="text-xs text-muted-foreground">Loading tasks...</p>
+                ) : leadTasks.length > 0 ? (
+                  leadTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-2">
+                      <Checkbox 
+                        checked={task.status === "Done"}
+                        onCheckedChange={() => handleTaskToggle(task.id, task.status)}
+                      />
+                      <div className="flex-1">
+                        <span className={cn(
+                          "text-xs block",
+                          task.status === "Done" && "line-through text-muted-foreground"
+                        )}>
+                          {task.title}
+                        </span>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>Due: {task.due_date ? formatDateModern(task.due_date) : "No date"}</span>
+                          {task.assignee && (
+                            <>
+                              <span>•</span>
+                              <span>{task.assignee.first_name} {task.assignee.last_name}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {mockTasks.length === 0 && (
+                  ))
+                ) : (
                   <p className="text-xs text-muted-foreground">No tasks yet</p>
                 )}
               </CardContent>
@@ -1147,9 +1140,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       <CreateTaskModal
         open={showCreateTaskModal}
         onOpenChange={setShowCreateTaskModal}
+        preselectedBorrowerId={leadId || undefined}
         onTaskCreated={() => {
           setShowCreateTaskModal(false);
-          // Handle task creation
+          loadLeadTasks();
+          toast({
+            title: "Success",
+            description: "Task created successfully",
+          });
         }}
       />
 

@@ -5,35 +5,52 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CreateTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskCreated: () => void;
+  preselectedBorrowerId?: string;
 }
 
-export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTaskModalProps) {
+const ASSIGNABLE_USERS = [
+  "Yousif Mohamed",
+  "Salma Mohamed", 
+  "Herman Daza",
+  "Juan Furtado"
+];
+
+export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    due_date: new Date().toISOString().split('T')[0], // Default to today
+    due_date: new Date().toISOString().split('T')[0],
     assignee_id: "",
-    borrower_id: "",
+    borrower_id: preselectedBorrowerId || "",
   });
   const [users, setUsers] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [borrowerOpen, setBorrowerOpen] = useState(false);
+  const [borrowerSearch, setBorrowerSearch] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
       loadData();
+      if (preselectedBorrowerId) {
+        setFormData(prev => ({ ...prev, borrower_id: preselectedBorrowerId }));
+      }
     }
-  }, [open]);
+  }, [open, preselectedBorrowerId]);
 
   const loadData = async () => {
     try {
@@ -132,21 +149,67 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
 
           <div>
             <Label htmlFor="borrower">Borrower</Label>
-            <Select
-              value={formData.borrower_id}
-              onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select borrower" />
-              </SelectTrigger>
-              <SelectContent>
-                {leads.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.first_name} {lead.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={borrowerOpen} onOpenChange={setBorrowerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={borrowerOpen}
+                  className="w-full justify-between"
+                >
+                  {formData.borrower_id
+                    ? (() => {
+                        const lead = leads.find((l) => l.id === formData.borrower_id);
+                        return lead ? `${lead.first_name} ${lead.last_name}` : "Select borrower";
+                      })()
+                    : "Select borrower"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0 bg-popover" align="start">
+                <Command>
+                  <CommandInput 
+                    placeholder="Search borrower..." 
+                    value={borrowerSearch}
+                    onValueChange={setBorrowerSearch}
+                  />
+                  <CommandEmpty>No borrower found.</CommandEmpty>
+                  <CommandGroup className="max-h-[300px] overflow-y-auto">
+                    {leads
+                      .filter((lead) => {
+                        const searchLower = borrowerSearch.toLowerCase();
+                        const fullName = `${lead.first_name} ${lead.last_name}`.toLowerCase();
+                        const email = (lead.email || "").toLowerCase();
+                        return fullName.includes(searchLower) || email.includes(searchLower);
+                      })
+                      .map((lead) => (
+                        <CommandItem
+                          key={lead.id}
+                          value={lead.id}
+                          onSelect={() => {
+                            setFormData({ ...formData, borrower_id: lead.id });
+                            setBorrowerOpen(false);
+                            setBorrowerSearch("");
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.borrower_id === lead.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span>{lead.first_name} {lead.last_name}</span>
+                            {lead.email && (
+                              <span className="text-xs text-muted-foreground">{lead.email}</span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -179,12 +242,17 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated }: CreateTas
                 <SelectTrigger>
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
-                <SelectContent>
-                  {users.filter(u => u.is_assignable !== false).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.first_name} {user.last_name}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="bg-popover">
+                  {users
+                    .filter(u => {
+                      const fullName = `${u.first_name} ${u.last_name}`;
+                      return ASSIGNABLE_USERS.includes(fullName);
+                    })
+                    .map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

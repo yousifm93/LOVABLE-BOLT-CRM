@@ -367,6 +367,23 @@ export const databaseService = {
     return data;
   },
 
+  async getLeadTasks(leadId: string) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
+        created_by_user:users!tasks_created_by_fkey(*),
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
+      `)
+      .eq('borrower_id', leadId)
+      .is('deleted_at', null)
+      .order('due_date', { ascending: true, nullsFirst: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
   async getDeletedTasks() {
     const { data, error } = await supabase
       .from('tasks')

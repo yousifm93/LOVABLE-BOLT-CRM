@@ -39,7 +39,8 @@ interface ModernTask {
 const USERS = [
   { id: "b06a12ea-00b9-4725-b368-e8a416d4028d", first_name: "Yousif", last_name: "Mohamed", email: "yousif@mortgagebolt.com" },
   { id: "159376ae-30e9-4997-b61f-76ab8d7f224b", first_name: "Salma", last_name: "Mohamed", email: "salma@mortgagebolt.com" },
-  { id: "fa92a4c6-890d-4d69-99a8-c3adc6c904ee", first_name: "Herman", last_name: "Daza", email: "herman@mortgagebolt.com" }
+  { id: "fa92a4c6-890d-4d69-99a8-c3adc6c904ee", first_name: "Herman", last_name: "Daza", email: "herman@mortgagebolt.com" },
+  { id: "e9f3c8b7-4a2d-4e1f-9b5a-8c7d6e5f4a3b", first_name: "Juan", last_name: "Furtado", email: "juan@mortgagebolt.com" }
 ];
 
 const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[], users: any[]): ColumnDef<ModernTask>[] => [
@@ -540,6 +541,7 @@ export default function TasksModern() {
         open={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         task={selectedTask}
+        onTaskUpdated={handleTaskCreated}
       />
     </div>
   );
