@@ -143,6 +143,27 @@ export function LeadsModern() {
     loadView(viewName);
   };
 
+  // Auto-load Main View on initial mount
+  useEffect(() => {
+    const hasCustomization = localStorage.getItem('leads-columns');
+    
+    if (!activeView && !hasCustomization) {
+      const orderedMainColumns = MAIN_VIEW_COLUMNS
+        .map(id => columnVisibility.find(col => col.id === id))
+        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+        .map(col => ({ ...col, visible: true }));
+      
+      const existingIds = new Set(MAIN_VIEW_COLUMNS);
+      const remainingColumns = columnVisibility
+        .filter(col => !existingIds.has(col.id))
+        .map(col => ({ ...col, visible: false }));
+      
+      const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+      setColumns(newColumnOrder);
+      setActiveView("Main View");
+    }
+  }, []);
+
   const handleColumnReorder = (oldIndex: number, newIndex: number) => {
     const oldColumnId = visibleColumns[oldIndex]?.id;
     const newColumnId = visibleColumns[newIndex]?.id;

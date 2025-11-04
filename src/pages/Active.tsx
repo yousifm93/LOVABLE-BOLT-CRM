@@ -42,8 +42,6 @@ import { useToast } from "@/hooks/use-toast";
 // Main view default columns
 const DEFAULT_MAIN_VIEW_COLUMNS = [
   "borrower_name",
-  "email",
-  "phone",
   "team",
   "lender",
   "arrive_loan_number",
@@ -62,7 +60,8 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "lock_expiration_date",
   "ba_status",
   "real_estate_agent",
-  "listing_agent"
+  "listing_agent",
+  "buyer_agent_id"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
@@ -768,7 +767,8 @@ export default function Active() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(allAvailableColumns, 'active-pipeline-columns');
 
   const handleViewSaved = (viewName: string) => {
@@ -778,6 +778,27 @@ export default function Active() {
     });
     loadView(viewName);
   };
+
+  // Auto-load Main View on initial mount
+  useEffect(() => {
+    const hasCustomization = localStorage.getItem('active-pipeline-columns');
+    
+    if (!activeView && !hasCustomization) {
+      const orderedMainColumns = mainViewColumns
+        .map(id => columnVisibility.find(col => col.id === id))
+        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+        .map(col => ({ ...col, visible: true }));
+      
+      const existingIds = new Set(mainViewColumns);
+      const remainingColumns = columnVisibility
+        .filter(col => !existingIds.has(col.id))
+        .map(col => ({ ...col, visible: false }));
+      
+      const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+      setColumns(newColumnOrder);
+      setActiveView("Main View");
+    }
+  }, []);
 
   const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
     // Get the column IDs from the visible columns array
@@ -1254,7 +1275,7 @@ export default function Active() {
         />
 
         <Button
-          variant={activeView === "Main" ? "default" : "outline"}
+          variant={activeView === "Main View" ? "default" : "outline"}
           size="sm"
           onClick={() => {
             const orderedMainColumns = mainViewColumns
@@ -1269,6 +1290,7 @@ export default function Active() {
             
             const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
             setColumns(newColumnOrder);
+            setActiveView("Main View");
             
             toast({
               title: "Main View Loaded",
@@ -1277,7 +1299,7 @@ export default function Active() {
           }}
           className="h-8 text-xs"
         >
-          Main
+          Main View
         </Button>
 
         <Button

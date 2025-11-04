@@ -724,7 +724,8 @@ export default function PastClients() {
     loadView,
     deleteView,
     reorderColumns,
-    setColumns
+    setColumns,
+    setActiveView
   } = useColumnVisibility(allAvailableColumns, 'past-clients-columns');
 
   const filterColumns = [
@@ -738,6 +739,27 @@ export default function PastClients() {
     { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(o => o.value) },
     { value: 'lender', label: 'Lender', type: 'text' as const },
   ];
+
+  // Auto-load Main View on initial mount
+  useEffect(() => {
+    const hasCustomization = localStorage.getItem('past-clients-columns');
+    
+    if (!activeView && !hasCustomization) {
+      const orderedMainColumns = MAIN_VIEW_COLUMNS
+        .map(id => columnVisibility.find(col => col.id === id))
+        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+        .map(col => ({ ...col, visible: true }));
+      
+      const existingIds = new Set(MAIN_VIEW_COLUMNS);
+      const remainingColumns = columnVisibility
+        .filter(col => !existingIds.has(col.id))
+        .map(col => ({ ...col, visible: false }));
+      
+      const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+      setColumns(newColumnOrder);
+      setActiveView("Main View");
+    }
+  }, []);
 
   const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
     // Get the column IDs from the visible columns array
