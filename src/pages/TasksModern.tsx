@@ -10,6 +10,7 @@ import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { databaseService } from "@/services/database";
@@ -447,11 +448,21 @@ export default function TasksModern() {
     }
   };
 
-  const handleBorrowerClick = (borrowerId: string) => {
-    const lead = leads.find(l => l.id === borrowerId);
-    if (lead) {
-      setSelectedLead(lead);
+  const handleBorrowerClick = async (borrowerId: string) => {
+    try {
+      // Fetch full lead details with all embedded data
+      const fullLead = await databaseService.getLeadByIdWithEmbeds(borrowerId);
+      // Transform to the format ClientDetailDrawer expects
+      const transformedLead = transformLeadToClient(fullLead);
+      setSelectedLead(transformedLead);
       setIsLeadDrawerOpen(true);
+    } catch (error) {
+      console.error("Error loading lead details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load borrower details",
+        variant: "destructive",
+      });
     }
   };
 

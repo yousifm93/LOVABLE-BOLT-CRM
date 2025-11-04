@@ -22,7 +22,7 @@ interface InlineEditBorrowerProps {
   borrowerId?: string;
   leads: Lead[];
   onValueChange: (leadId: string | null, leadName: string) => void;
-  onBorrowerClick?: (borrowerId: string) => void;
+  onBorrowerClick?: (borrowerId: string) => void | Promise<void>;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
