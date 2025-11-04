@@ -33,19 +33,19 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="team" className="mt-0">
+          <TabsContent value="team" className="mt-0 min-h-[280px]">
             <div className="grid grid-cols-2 gap-x-4">
               <TeamTab leadId={leadId} />
             </div>
           </TabsContent>
           
-          <TabsContent value="contacts" className="mt-0">
+          <TabsContent value="contacts" className="mt-0 min-h-[280px]">
             <div className="grid grid-cols-2 gap-x-4">
               <ContactsTab leadId={leadId} />
             </div>
           </TabsContent>
           
-          <TabsContent value="dates" className="mt-0">
+          <TabsContent value="dates" className="mt-0 min-h-[280px]">
             <div className="grid grid-cols-2 gap-x-4">
               <DatesTab leadId={leadId} />
             </div>
