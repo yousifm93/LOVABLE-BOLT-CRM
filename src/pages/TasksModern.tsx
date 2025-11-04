@@ -8,6 +8,7 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +46,12 @@ interface ModernTask {
   };
 }
 
-const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[], users: any[]): ColumnDef<ModernTask>[] => [
+const columns = (
+  handleUpdate: (taskId: string, field: string, value: any) => void, 
+  leads: any[], 
+  users: any[],
+  handleBorrowerClick: (borrowerId: string) => void
+): ColumnDef<ModernTask>[] => [
   {
     accessorKey: "status",
     header: "",
@@ -99,6 +105,7 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
         onValueChange={(leadId, leadName) => {
           handleUpdate(row.original.id, 'borrower_id', leadId);
         }}
+        onBorrowerClick={handleBorrowerClick}
         className="w-32"
       />
     ),
@@ -231,6 +238,8 @@ export default function TasksModern() {
   const [userFilter, setUserFilter] = useState<string>("");
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [isLeadDrawerOpen, setIsLeadDrawerOpen] = useState(false);
   const { toast } = useToast();
 
   // Get assignable users
@@ -438,6 +447,14 @@ export default function TasksModern() {
     }
   };
 
+  const handleBorrowerClick = (borrowerId: string) => {
+    const lead = leads.find(l => l.id === borrowerId);
+    if (lead) {
+      setSelectedLead(lead);
+      setIsLeadDrawerOpen(true);
+    }
+  };
+
   const clearAllFilters = () => {
     setFilters([]);
     setUserFilter("");
@@ -594,7 +611,7 @@ export default function TasksModern() {
             </div>
           ) : (
             <DataTable
-              columns={columns(handleUpdate, leads, assignableUsers)}
+              columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
               data={filteredTasks}
               searchTerm={searchTerm}
               onViewDetails={handleViewDetails}
@@ -617,6 +634,20 @@ export default function TasksModern() {
         task={selectedTask}
         onTaskUpdated={handleTaskCreated}
       />
+
+      {selectedLead && (
+        <ClientDetailDrawer
+          client={selectedLead}
+          isOpen={isLeadDrawerOpen}
+          onClose={() => {
+            setIsLeadDrawerOpen(false);
+            setSelectedLead(null);
+          }}
+          onStageChange={() => setIsLeadDrawerOpen(false)}
+          pipelineType="leads"
+          onLeadUpdated={loadTasks}
+        />
+      )}
     </div>
   );
 }

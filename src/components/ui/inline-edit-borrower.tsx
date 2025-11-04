@@ -22,6 +22,7 @@ interface InlineEditBorrowerProps {
   borrowerId?: string;
   leads: Lead[];
   onValueChange: (leadId: string | null, leadName: string) => void;
+  onBorrowerClick?: (borrowerId: string) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -32,6 +33,7 @@ export function InlineEditBorrower({
   borrowerId,
   leads,
   onValueChange,
+  onBorrowerClick,
   placeholder = "Select borrower",
   className,
   disabled = false
@@ -68,22 +70,39 @@ export function InlineEditBorrower({
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn(
-            "h-auto p-1 justify-start font-normal hover:bg-muted/50 min-w-[120px]",
-            !value && "text-muted-foreground",
-            className
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span className="text-sm">{value || placeholder}</span>
-          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-80 bg-popover border z-50">
+    <div className={cn("flex items-center gap-1", className)}>
+      {/* Clickable name to open lead details */}
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          if (borrowerId && onBorrowerClick) {
+            onBorrowerClick(borrowerId);
+          } else if (!borrowerId) {
+            // If no borrower, clicking placeholder opens dropdown
+            setOpen(true);
+          }
+        }}
+        className={cn(
+          "text-sm px-1 py-1 rounded cursor-pointer transition-colors",
+          borrowerId ? "hover:text-primary hover:bg-muted/50" : "text-muted-foreground hover:bg-muted/50"
+        )}
+      >
+        {value || placeholder}
+      </span>
+
+      {/* Dropdown trigger for chevron only */}
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-muted/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-80 bg-popover border z-50">
         <div className="p-2">
           <div className="flex items-center gap-2 mb-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -127,5 +146,6 @@ export function InlineEditBorrower({
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   );
 }
