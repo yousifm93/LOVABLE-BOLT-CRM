@@ -103,7 +103,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users!teammate_assigned(*),
+          teammate:users!fk_leads_teammate_assigned(*),
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .order('created_at', { ascending: false });
@@ -133,7 +133,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users!teammate_assigned(*),
+          teammate:users!fk_leads_teammate_assigned(*),
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .is('pipeline_stage_id', null)
@@ -164,7 +164,7 @@ export const databaseService = {
         .select(`
           *,
           pipeline_stage:pipeline_stages(*),
-          teammate:users!teammate_assigned(*),
+          teammate:users!fk_leads_teammate_assigned(*),
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone),
           tasks(due_date)
         `)

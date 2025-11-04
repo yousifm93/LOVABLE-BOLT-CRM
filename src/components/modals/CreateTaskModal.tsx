@@ -47,18 +47,31 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   }, [open, preselectedBorrowerId]);
 
   const loadData = async () => {
-    try {
-      const [usersData, leadsData] = await Promise.all([
-        databaseService.getUsers(),
-        databaseService.getLeads(),
-      ]);
-      setUsers(usersData);
-      setLeads(leadsData);
-    } catch (error) {
-      console.error("Error loading data:", error);
+    const results = await Promise.allSettled([
+      databaseService.getUsers(),
+      databaseService.getLeads(),
+    ]);
+    
+    // Handle users result
+    if (results[0].status === 'fulfilled') {
+      setUsers(results[0].value);
+    } else {
+      console.error("Error loading users:", results[0].reason);
       toast({
         title: "Error",
-        description: "Failed to load users and borrowers",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    }
+    
+    // Handle leads result
+    if (results[1].status === 'fulfilled') {
+      setLeads(results[1].value);
+    } else {
+      console.error("Error loading leads:", results[1].reason);
+      toast({
+        title: "Error",
+        description: "Failed to load borrowers",
         variant: "destructive",
       });
     }

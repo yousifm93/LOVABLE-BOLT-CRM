@@ -216,23 +216,35 @@ export default function TasksModern() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const [fetchedTasks, fetchedLeads] = await Promise.all([
+      const results = await Promise.allSettled([
         databaseService.getTasks(),
         databaseService.getLeads()
       ]);
-      // Sort tasks so newest appear first
-      const sortedTasks = (fetchedTasks as ModernTask[]).sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      setTasks(sortedTasks);
-      setLeads(fetchedLeads);
+      
+      // Handle tasks result
+      if (results[0].status === 'fulfilled') {
+        const sortedTasks = (results[0].value as ModernTask[]).sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setTasks(sortedTasks);
+      } else {
+        console.error("Error loading tasks:", results[0].reason);
+        toast({
+          title: "Error",
+          description: results[0].reason instanceof Error ? results[0].reason.message : "Failed to load tasks",
+          variant: "destructive",
+        });
+      }
+      
+      // Handle leads result (non-critical for tasks page)
+      if (results[1].status === 'fulfilled') {
+        setLeads(results[1].value);
+      } else {
+        console.error("Error loading leads:", results[1].reason);
+        setLeads([]);
+      }
     } catch (error) {
-      console.error("Error loading tasks:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load tasks",
-        variant: "destructive",
-      });
+      console.error("Unexpected error loading tasks:", error);
     } finally {
       setLoading(false);
     }
