@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TwoColumnDetailLayout } from "./TwoColumnDetailLayout";
+import { FourColumnDetailLayout } from "./FourColumnDetailLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -828,7 +828,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <DollarSign className="h-5 w-5 text-primary" />
             Loan & Property Information
           </h3>
-          <TwoColumnDetailLayout items={loanPropertyData} />
+          <FourColumnDetailLayout items={loanPropertyData} />
         </div>
 
         {/* Borrower Information Section */}
@@ -837,7 +837,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <User className="h-5 w-5 text-primary" />
             Borrower Information
           </h3>
-          <TwoColumnDetailLayout items={borrowerData} />
+          <FourColumnDetailLayout items={borrowerData} />
         </div>
 
         {/* Financial Information Section */}
@@ -849,7 +849,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
               {formatCurrency(calculateTotalIncome())}
             </span>
           </h3>
-          <TwoColumnDetailLayout items={incomeData} />
+          <FourColumnDetailLayout items={incomeData} />
         </div>
 
         {/* Assets Section */}
@@ -861,7 +861,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
               {formatCurrency(calculateTotalAssets())}
             </span>
           </h3>
-          <TwoColumnDetailLayout items={assetData} />
+          <FourColumnDetailLayout items={assetData} />
         </div>
 
         {/* Debts Section */}
@@ -873,7 +873,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
               {formatCurrency(calculateTotalDebts())}
             </span>
           </h3>
-          <TwoColumnDetailLayout items={debtData} />
+          <FourColumnDetailLayout items={debtData} />
           
           {/* Show DTI if we have income and debts */}
           {calculateTotalIncome() > 0 && (
