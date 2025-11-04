@@ -417,16 +417,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
             <div className="space-y-2">
               <Label htmlFor="assigned_to">Assigned To</Label>
               <Select
-                value={formData.assigned_to}
+                value={formData.assigned_to || "unassigned"}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, assigned_to: value })
+                  setFormData({ ...formData, assigned_to: value === "unassigned" ? "" : value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select user" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.first_name} {user.last_name}
