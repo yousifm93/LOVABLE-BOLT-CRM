@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Calendar, User, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, User, AlertCircle, FileText, DollarSign, Home, Shield, CreditCard, FileCheck, FileBox, Building } from "lucide-react";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +36,9 @@ interface Condition {
   assigned_to: string | null;
   notes: string | null;
   created_at: string;
-  assigned_user?: { first_name: string; last_name: string } | null;
-  created_user?: { first_name: string; last_name: string } | null;
+  updated_at: string;
+  assigned_user?: { first_name: string; last_name: string; email?: string } | null;
+  created_user?: { first_name: string; last_name: string; email?: string } | null;
 }
 
 interface ConditionsTabProps {
@@ -44,24 +47,25 @@ interface ConditionsTabProps {
 }
 
 const CONDITION_TYPES = [
-  "Title",
-  "Appraisal",
-  "Insurance",
-  "Income Verification",
-  "Credit Review",
-  "Asset Documentation",
-  "Property Documents",
-  "Loan Documents",
-  "HOA Documents",
-  "Other",
+  { value: "Title", label: "Title", icon: FileText },
+  { value: "Appraisal", label: "Appraisal", icon: DollarSign },
+  { value: "Insurance", label: "Insurance", icon: Shield },
+  { value: "Income Verification", label: "Income Verification", icon: FileCheck },
+  { value: "Credit Review", label: "Credit Review", icon: CreditCard },
+  { value: "Asset Documentation", label: "Asset Documentation", icon: FileBox },
+  { value: "Property Documents", label: "Property Documents", icon: Home },
+  { value: "Loan Documents", label: "Loan Documents", icon: FileText },
+  { value: "HOA Documents", label: "HOA Documents", icon: Building },
+  { value: "Other", label: "Other", icon: FileText },
 ];
 
 const STATUSES = [
-  { value: "pending", label: "Pending", variant: "secondary" as const },
-  { value: "in_progress", label: "In Progress", variant: "default" as const },
-  { value: "satisfied", label: "Satisfied", variant: "default" as const },
-  { value: "waived", label: "Waived", variant: "outline" as const },
-  { value: "not_applicable", label: "N/A", variant: "outline" as const },
+  { value: "1_added", label: "1. ADDED", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+  { value: "2_requested", label: "2. REQUESTED", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
+  { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200" },
+  { value: "4_collected", label: "4. COLLECTED", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
+  { value: "5_sent_to_lender", label: "5. SENT TO LENDER", color: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200" },
+  { value: "6_cleared", label: "6. CLEARED", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" }
 ];
 
 const PRIORITIES = [
@@ -82,7 +86,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const [formData, setFormData] = useState({
     condition_type: "",
     description: "",
-    status: "pending",
+    status: "1_added",
     due_date: "",
     priority: "medium",
     assigned_to: "",
@@ -117,7 +121,12 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const loadUsers = async () => {
     try {
       const data = await databaseService.getUsers();
-      setUsers(data || []);
+      // Filter to only include specific team members
+      const allowedNames = ['Youssef', 'Salma', 'Juan', 'Herman'];
+      const filteredUsers = (data || []).filter(user => 
+        allowedNames.includes(user.first_name)
+      );
+      setUsers(filteredUsers);
     } catch (error) {
       console.error("Error loading users:", error);
     }
@@ -140,7 +149,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       setFormData({
         condition_type: "",
         description: "",
-        status: "pending",
+        status: "1_added",
         due_date: "",
         priority: "medium",
         assigned_to: "",
@@ -187,8 +196,8 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       }
 
       setIsDialogOpen(false);
+      setEditingCondition(null);
       loadConditions();
-      if (onConditionsChange) onConditionsChange();
     } catch (error) {
       console.error("Error saving condition:", error);
       toast({
@@ -209,7 +218,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         description: "Condition deleted successfully",
       });
       loadConditions();
-      if (onConditionsChange) onConditionsChange();
     } catch (error) {
       console.error("Error deleting condition:", error);
       toast({
@@ -220,19 +228,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    const statusObj = STATUSES.find((s) => s.value === status);
-    return statusObj?.variant || "secondary";
+  const getStatusColor = (status: string) => {
+    const statusConfig = STATUSES.find(s => s.value === status);
+    return statusConfig?.color || "bg-gray-100 text-gray-800";
   };
 
-  const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-      low: "text-muted-foreground",
-      medium: "text-blue-600",
-      high: "text-orange-600",
-      critical: "text-red-600",
-    };
-    return colors[priority] || "text-muted-foreground";
+  const getUserById = (userId: string | null) => {
+    if (!userId) return null;
+    return users.find(u => u.id === userId);
   };
 
   if (isLoading) {
@@ -252,73 +255,112 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       </div>
 
       {conditions.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            No conditions added yet. Click "Add Condition" to get started.
-          </CardContent>
-        </Card>
+        <div className="text-center py-8 text-muted-foreground">
+          No conditions added yet. Click "Add Condition" to get started.
+        </div>
       ) : (
-        <div className="space-y-3">
-          {conditions.map((condition) => (
-            <Card key={condition.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline">{condition.condition_type}</Badge>
-                      <Badge variant={getStatusBadgeVariant(condition.status)}>
-                        {STATUSES.find((s) => s.value === condition.status)?.label}
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[20%]">Subitem</TableHead>
+                <TableHead className="w-[15%]">Condition Status</TableHead>
+                <TableHead className="w-[10%]">ETA</TableHead>
+                <TableHead className="w-[12%]">Last updated</TableHead>
+                <TableHead className="w-[25%]">Team Notes</TableHead>
+                <TableHead className="w-[10%]">People</TableHead>
+                <TableHead className="w-[8%]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {conditions.map((condition) => {
+                const conditionType = CONDITION_TYPES.find(t => t.value === condition.condition_type);
+                const assignedUser = getUserById(condition.assigned_to);
+                const updatedAt = condition.updated_at ? new Date(condition.updated_at) : new Date(condition.created_at);
+                
+                return (
+                  <TableRow key={condition.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {conditionType && (
+                            <conditionType.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <span className="font-medium text-sm">{condition.description || conditionType?.label}</span>
+                        </div>
+                        {condition.description && conditionType && (
+                          <span className="text-xs text-muted-foreground ml-6">{conditionType.label}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Badge className={getStatusColor(condition.status)}>
+                        {STATUSES.find(s => s.value === condition.status)?.label || condition.status}
                       </Badge>
-                      {condition.priority !== "medium" && (
-                        <span className={`text-xs font-medium ${getPriorityColor(condition.priority)}`}>
-                          <AlertCircle className="h-3 w-3 inline mr-1" />
-                          {PRIORITIES.find((p) => p.value === condition.priority)?.label}
-                        </span>
+                    </TableCell>
+                    
+                    <TableCell>
+                      {condition.due_date ? (
+                        <span className="text-sm">{format(new Date(condition.due_date), "MMM d")}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
-                    </div>
-                    <CardTitle className="text-sm font-medium">
-                      {condition.description}
-                    </CardTitle>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleOpenDialog(condition)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteCondition(condition.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  {condition.due_date && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Due: {format(new Date(condition.due_date), "MMM dd, yyyy")}
-                    </div>
-                  )}
-                  {condition.assigned_user && (
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {condition.assigned_user.first_name} {condition.assigned_user.last_name}
-                    </div>
-                  )}
-                </div>
-                {condition.notes && (
-                  <p className="text-xs text-muted-foreground mt-2 italic">{condition.notes}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(updatedAt, { addSuffix: true })}
+                        </span>
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground max-w-[300px] truncate">
+                        {condition.notes || "—"}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      {assignedUser ? (
+                        <div className="flex items-center gap-2">
+                          <UserAvatar
+                            firstName={assignedUser.first_name}
+                            lastName={assignedUser.last_name}
+                            email={assignedUser.email}
+                            size="sm"
+                          />
+                          <span className="text-sm">{assignedUser.first_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenDialog(condition)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCondition(condition.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -344,8 +386,8 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   </SelectTrigger>
                   <SelectContent>
                     {CONDITION_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -361,11 +403,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
+                  {STATUSES.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
                   </SelectContent>
                 </Select>
               </div>
