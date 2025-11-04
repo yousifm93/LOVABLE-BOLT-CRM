@@ -372,7 +372,6 @@ export const databaseService = {
       .select(`
         *,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        created_by_user:users!tasks_created_by_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
       .eq('borrower_id', leadId)
@@ -389,7 +388,6 @@ export const databaseService = {
       .select(`
         *,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        created_by_user:users!tasks_created_by_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name),
         deleted_by_user:users!tasks_deleted_by_fkey(id, first_name, last_name, email)
       `)
@@ -406,9 +404,8 @@ export const databaseService = {
       .insert(task)
       .select(`
         *,
-        assignee:users!tasks_assignee_id_fkey(*),
-        created_by_user:users!tasks_created_by_fkey(*),
-        borrower:leads!tasks_borrower_id_fkey(*)
+        assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
       .single();
     

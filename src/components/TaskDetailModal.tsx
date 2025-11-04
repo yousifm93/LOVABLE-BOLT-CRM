@@ -18,13 +18,6 @@ interface TaskDetailModalProps {
   onTaskUpdated?: () => void;
 }
 
-const ASSIGNABLE_USERS = [
-  "Yousif Mohamed",
-  "Salma Mohamed", 
-  "Herman Daza",
-  "Juan Furtado"
-];
-
 export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: TaskDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
@@ -90,10 +83,9 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
 
   if (!task) return null;
 
-  const assignableUsers = users.filter(u => {
-    const fullName = `${u.first_name} ${u.last_name}`;
-    return ASSIGNABLE_USERS.includes(fullName);
-  });
+  const assignableUsers = users.filter(u => 
+    u.is_active === true && u.is_assignable !== false
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

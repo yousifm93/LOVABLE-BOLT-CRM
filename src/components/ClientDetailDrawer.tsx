@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, Task, Document } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +71,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [chatMessage, setChatMessage] = useState('');
@@ -993,7 +996,13 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         checked={task.status === "Done"}
                         onCheckedChange={() => handleTaskToggle(task.id, task.status)}
                       />
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
+                        onClick={() => {
+                          setSelectedTask(task);
+                          setShowTaskDetailModal(true);
+                        }}
+                      >
                         <span className={cn(
                           "text-xs block",
                           task.status === "Done" && "line-through text-muted-foreground"
@@ -1147,6 +1156,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           toast({
             title: "Success",
             description: "Task created successfully",
+          });
+        }}
+      />
+
+      <TaskDetailModal
+        open={showTaskDetailModal}
+        onOpenChange={setShowTaskDetailModal}
+        task={selectedTask}
+        onTaskUpdated={() => {
+          loadLeadTasks();
+          toast({
+            title: "Success",
+            description: "Task updated successfully",
           });
         }}
       />
