@@ -146,20 +146,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   const loanPropertyData = [
     { 
       icon: DollarSign, 
-      label: "Purchase Price", 
-      value: formatCurrency(client.loan?.salesPrice || client.loan?.purchasePrice || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.sales_price || ""}
-          onChange={(e) => setEditData({ ...editData, sales_price: parseFloat(e.target.value) || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
       label: "Appraised Value", 
       value: formatCurrency(client.loan?.appraisedValue || 0),
       editComponent: isEditing ? (
@@ -188,46 +174,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: DollarSign, 
-      label: "Loan Amount", 
-      value: formatCurrency(client.loan?.loanAmount || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.loan_amount || ""}
-          onChange={(e) => setEditData({ ...editData, loan_amount: parseFloat(e.target.value) || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
       icon: Percent, 
       label: "LTV", 
       value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
-    },
-    { 
-      icon: Home, 
-      label: "Mortgage Type (Loan Program)", 
-      value: client.loan?.loanProgram || client.loan?.mortgageType || "—", 
-      badgeVariant: "outline" as const,
-      editComponent: isEditing ? (
-        <Select
-          value={editData.loan_type}
-          onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Conventional">Conventional</SelectItem>
-            <SelectItem value="FHA">FHA</SelectItem>
-            <SelectItem value="VA">VA</SelectItem>
-            <SelectItem value="USDA">USDA</SelectItem>
-            <SelectItem value="Jumbo">Jumbo</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
     },
     { 
       icon: Percent, 
@@ -305,28 +254,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         />
       ) : undefined,
       isCalculated: isEditing
-    },
-    { 
-      icon: Home, 
-      label: "Property Type", 
-      value: client.property?.propertyType || "—", 
-      badgeVariant: "outline" as const,
-      editComponent: isEditing ? (
-        <Select
-          value={editData.property_type}
-          onValueChange={(value) => setEditData({ ...editData, property_type: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Single Family Home">Single Family Home</SelectItem>
-            <SelectItem value="Condo">Condo</SelectItem>
-            <SelectItem value="Townhouse">Townhouse</SelectItem>
-            <SelectItem value="Multi-Family">Multi-Family</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
     }
   ];
 

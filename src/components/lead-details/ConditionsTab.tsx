@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
 import {
   Dialog,
   DialogContent,
@@ -228,6 +231,29 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  const handleInlineUpdate = async (conditionId: string, field: string, value: any) => {
+    try {
+      await databaseService.updateLeadCondition(conditionId, { [field]: value });
+      
+      // Update local state
+      setConditions(prev => 
+        prev.map(c => c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString() } : c)
+      );
+      
+      toast({
+        title: "Success",
+        description: "Condition updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating condition:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update condition",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const statusConfig = STATUSES.find(s => s.value === status);
     return statusConfig?.color || "bg-gray-100 text-gray-800";
@@ -263,13 +289,12 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[20%]">Subitem</TableHead>
-                <TableHead className="w-[15%]">Condition Status</TableHead>
-                <TableHead className="w-[10%]">ETA</TableHead>
-                <TableHead className="w-[12%]">Last updated</TableHead>
-                <TableHead className="w-[25%]">Team Notes</TableHead>
-                <TableHead className="w-[10%]">People</TableHead>
-                <TableHead className="w-[8%]"></TableHead>
+                <TableHead className="w-[22%]">Condition</TableHead>
+                <TableHead className="w-[18%]">Condition Status</TableHead>
+                <TableHead className="w-[12%]">ETA</TableHead>
+                <TableHead className="w-[13%]">Last updated</TableHead>
+                <TableHead className="w-[30%]">Team Notes</TableHead>
+                <TableHead className="w-[5%]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -295,17 +320,21 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </TableCell>
                     
                     <TableCell>
-                      <Badge className={getStatusColor(condition.status)}>
-                        {STATUSES.find(s => s.value === condition.status)?.label || condition.status}
-                      </Badge>
+                      <InlineEditSelect
+                        value={condition.status}
+                        options={STATUSES.map(s => ({ value: s.value, label: s.label }))}
+                        onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
+                        showAsStatusBadge={true}
+                        className={getStatusColor(condition.status)}
+                      />
                     </TableCell>
                     
                     <TableCell>
-                      {condition.due_date ? (
-                        <span className="text-sm">{format(new Date(condition.due_date), "MMM d")}</span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
+                      <InlineEditDate
+                        value={condition.due_date}
+                        onValueChange={(date) => handleInlineUpdate(condition.id, 'due_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                        placeholder="Set date"
+                      />
                     </TableCell>
                     
                     <TableCell>
@@ -317,44 +346,22 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </TableCell>
                     
                     <TableCell>
-                      <div className="text-sm text-muted-foreground max-w-[300px] truncate">
-                        {condition.notes || "—"}
-                      </div>
+                      <InlineEditText
+                        value={condition.notes}
+                        onValueChange={(value) => handleInlineUpdate(condition.id, 'notes', value)}
+                        placeholder="Add notes..."
+                        className="max-w-[300px]"
+                      />
                     </TableCell>
                     
                     <TableCell>
-                      {assignedUser ? (
-                        <div className="flex items-center gap-2">
-                          <UserAvatar
-                            firstName={assignedUser.first_name}
-                            lastName={assignedUser.last_name}
-                            email={assignedUser.email}
-                            size="sm"
-                          />
-                          <span className="text-sm">{assignedUser.first_name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDialog(condition)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCondition(condition.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCondition(condition.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
