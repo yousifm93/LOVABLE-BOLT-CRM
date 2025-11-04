@@ -796,7 +796,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           </div>
 
           {/* Center Column - Status Tracker & Lead Information */}
-          <div className="space-y-4 overflow-y-auto">
+          <div className="space-y-4 overflow-y-auto flex flex-col">
             {/* Status Tracker Pills - Moved from top row */}
             <Card>
               <CardHeader className="pb-3">
@@ -872,18 +872,19 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             </Card>
 
             {/* Lead Information Tabs */}
-            <LeadCenterTabs 
-              leadId={leadId}
-              activities={activities}
-              documents={documents}
-              client={client}
-              onLeadUpdated={onLeadUpdated}
-              onActivityUpdated={loadActivities}
-              onClientPatched={(patch) => {
-                // Merge patch into client object for immediate UI update
-                Object.assign(client, patch);
-              }}
-              onDocumentsChange={loadDocuments}
+            <div className="flex-1 min-h-0">
+              <LeadCenterTabs 
+                leadId={leadId}
+                activities={activities}
+                documents={documents}
+                client={client}
+                onLeadUpdated={onLeadUpdated}
+                onActivityUpdated={loadActivities}
+                onClientPatched={(patch) => {
+                  // Merge patch into client object for immediate UI update
+                  Object.assign(client, patch);
+                }}
+                onDocumentsChange={loadDocuments}
               onCallClick={() => {
                 if (!leadId) {
                   toast({
@@ -930,7 +931,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               }}
               onTaskClick={() => setShowCreateTaskModal(true)}
               onTaskActivityClick={handleTaskActivityClick}
-            />
+              />
+            </div>
           </div>
 
           {/* Right Column - Notes, Documents, Stage History */}

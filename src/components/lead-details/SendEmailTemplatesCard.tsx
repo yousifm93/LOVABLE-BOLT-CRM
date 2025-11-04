@@ -21,10 +21,12 @@ interface EmailTemplate {
 
 interface User {
   id: string;
-  user_id: string;
   first_name: string;
   last_name: string;
   email: string | null;
+  role: string;
+  is_active: boolean;
+  is_assignable: boolean;
 }
 
 export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) {
@@ -49,10 +51,12 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   }, [leadId]);
 
   const fetchData = async () => {
-    // Fetch users
+    // Fetch users - only assignable users from the users table
     const { data: usersData } = await supabase
-      .from("profiles")
+      .from("users")
       .select("*")
+      .eq("is_assignable", true)
+      .eq("is_active", true)
       .order("first_name");
     setUsers(usersData || []);
 
@@ -192,7 +196,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
             </SelectTrigger>
             <SelectContent>
               {users.map((user) => (
-                <SelectItem key={user.id} value={user.user_id}>
+                <SelectItem key={user.id} value={user.id}>
                   {user.first_name} {user.last_name}
                   {user.email && ` (${user.email})`}
                 </SelectItem>
