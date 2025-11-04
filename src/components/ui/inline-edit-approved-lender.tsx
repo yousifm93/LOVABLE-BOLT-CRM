@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { Building2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,16 +71,31 @@ export function InlineEditApprovedLender({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           className={cn(
-            "h-auto p-2 justify-start font-normal hover:bg-muted/50 min-w-[140px]",
+            "h-9 px-0 py-1 justify-start text-left font-normal hover:bg-muted/50 w-full relative",
             !value && "text-muted-foreground",
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="text-sm truncate">{displayValue}</span>
-          <ChevronDown className="ml-1 h-3 w-3 opacity-50 flex-shrink-0" />
+          <div className="flex items-center w-full relative pl-6">
+            <Building2 className="h-3 w-3 flex-shrink-0 absolute left-1 top-1/2 -translate-y-1/2" />
+            {value ? (
+              <div className="flex flex-col items-start min-w-0 flex-1">
+                <span className="text-sm leading-tight truncate w-full">
+                  {value.lender_name}
+                </span>
+                {value.lender_type && (
+                  <span className="text-xs text-muted-foreground leading-tight truncate w-full">
+                    {value.lender_type}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-sm leading-tight text-muted-foreground">{placeholder}</span>
+            )}
+          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80 bg-popover border z-50">
