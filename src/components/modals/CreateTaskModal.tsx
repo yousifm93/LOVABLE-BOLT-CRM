@@ -100,10 +100,15 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
 
     setLoading(true);
     try {
+      // Normalize date to avoid timezone issues
+      const normalizedDueDate = formData.due_date ? 
+        formData.due_date : 
+        null;
+
       const createdTask = await databaseService.createTask({
         title: formData.title,
         description: formData.description || null,
-        due_date: formData.due_date || null,
+        due_date: normalizedDueDate,
         priority: "Medium" as any,
         status: "Working on it" as any,
         assignee_id: formData.assignee_id || null,

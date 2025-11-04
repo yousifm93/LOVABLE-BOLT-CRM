@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +63,21 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
       )}
       </div>
     ),
+    sortable: true,
+  },
+  {
+    accessorKey: "created_at",
+    header: "Creation Log",
+    cell: ({ row }) => {
+      const date = row.original.created_at ? new Date(row.original.created_at) : null;
+      if (!date) return <span className="text-muted-foreground">-</span>;
+      return (
+        <div className="text-sm">
+          <div>{format(date, 'MMM dd, yyyy')}</div>
+          <div className="text-xs text-muted-foreground">{format(date, 'h:mm a')}</div>
+        </div>
+      );
+    },
     sortable: true,
   },
   {
@@ -141,7 +157,8 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
           <InlineEditDate
             value={row.original.due_date}
             onValueChange={(date) => {
-              const dateStr = date ? date.toISOString().split('T')[0] : null;
+              // Store date as-is to avoid timezone conversion
+              const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
               handleUpdate(row.original.id, "due_date", dateStr);
             }}
             placeholder="No date"

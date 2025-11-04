@@ -1194,6 +1194,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         onTaskCreated={() => {
           setShowCreateTaskModal(false);
           loadLeadTasks();
+          loadActivities(); // Refresh activity feed to show task creation log
           toast({
             title: "Success",
             description: "Task created successfully",
