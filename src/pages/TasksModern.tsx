@@ -34,7 +34,15 @@ interface ModernTask {
   created_at: string;
   updated_at: string;
   assignee?: { first_name: string; last_name: string; email: string };
-  borrower?: { first_name: string; last_name: string };
+  borrower?: { 
+    first_name: string; 
+    last_name: string;
+    pipeline_stage?: {
+      id: string;
+      name: string;
+      order_index: number;
+    } | null;
+  };
 }
 
 const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[], users: any[]): ColumnDef<ModernTask>[] => [
@@ -97,12 +105,36 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     sortable: true,
   },
   {
+    accessorKey: "borrower.pipeline_stage.name",
+    header: "Borrower Stage",
+    cell: ({ row }) => {
+      const stage = row.original.borrower?.pipeline_stage?.name;
+      if (!row.original.borrower_id) {
+        return <span className="text-muted-foreground text-sm">-</span>;
+      }
+      if (!stage) {
+        return (
+          <div className="flex justify-center">
+            <StatusBadge status="New" />
+          </div>
+        );
+      }
+      return (
+        <div className="flex justify-center">
+          <StatusBadge status={stage} />
+        </div>
+      );
+    },
+    sortable: true,
+  },
+  {
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
       <InlineEditSelect
         value={row.original.priority}
         options={[
+          { value: "Critical", label: "ASAP" },
           { value: "High", label: "High" },
           { value: "Medium", label: "Medium" },
           { value: "Low", label: "Low" }

@@ -357,7 +357,12 @@ export const databaseService = {
       .select(`
         id, title, description, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
+        borrower:leads!tasks_borrower_id_fkey(
+          id, 
+          first_name, 
+          last_name,
+          pipeline_stage:pipeline_stages(id, name, order_index)
+        )
       `)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });

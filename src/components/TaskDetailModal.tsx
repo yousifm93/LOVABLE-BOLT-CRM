@@ -189,10 +189,10 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
-                      <SelectItem value="Low">Low</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Critical">ASAP</SelectItem>
                       <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Urgent">Urgent</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
