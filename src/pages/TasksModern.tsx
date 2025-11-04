@@ -36,13 +36,6 @@ interface ModernTask {
   borrower?: { first_name: string; last_name: string };
 }
 
-const USERS = [
-  { id: "b06a12ea-00b9-4725-b368-e8a416d4028d", first_name: "Yousif", last_name: "Mohamed", email: "yousif@mortgagebolt.com" },
-  { id: "159376ae-30e9-4997-b61f-76ab8d7f224b", first_name: "Salma", last_name: "Mohamed", email: "salma@mortgagebolt.com" },
-  { id: "fa92a4c6-890d-4d69-99a8-c3adc6c904ee", first_name: "Herman", last_name: "Daza", email: "herman@mortgagebolt.com" },
-  { id: "e9f3c8b7-4a2d-4e1f-9b5a-8c7d6e5f4a3b", first_name: "Juan", last_name: "Furtado", email: "juan@mortgagebolt.com" }
-];
-
 const columns = (handleUpdate: (taskId: string, field: string, value: any) => void, leads: any[], users: any[]): ColumnDef<ModernTask>[] => [
   {
     accessorKey: "status",
@@ -127,6 +120,7 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
         users={users}
         onValueChange={(userId) => handleUpdate(row.original.id, 'assignee_id', userId)}
         className="w-32"
+        showNameText={false}
       />
     ),
     sortable: true,
@@ -136,8 +130,11 @@ const columns = (handleUpdate: (taskId: string, field: string, value: any) => vo
     header: "Due Date",
     cell: ({ row }) => {
       const date = row.original.due_date ? new Date(row.original.due_date) : null;
-      const isOverdue = date && date < new Date() && row.original.status !== "Done";
-      const isDueSoon = date && date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDate = date ? new Date(date) : null;
+      if (dueDate) dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate && dueDate.getTime() < today.getTime() && row.original.status !== "Done";
       
       return (
         <div className={isOverdue ? "text-destructive" : ""}>
@@ -181,10 +178,14 @@ export default function TasksModern() {
   const [selectedTask, setSelectedTask] = useState<ModernTask | null>(null);
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [userFilter, setUserFilter] = useState<string>("");
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { toast } = useToast();
+
+  // Get assignable users
+  const assignableUsers = users.filter(u => u.is_active === true && u.is_assignable !== false);
 
   // Filter columns definition for the filter builder
   const filterColumns = [
@@ -204,7 +205,7 @@ export default function TasksModern() {
       value: 'assignee_id', 
       label: 'Assigned To', 
       type: 'select' as const, 
-      options: USERS.map(u => u.first_name)
+      options: assignableUsers.map(u => u.first_name)
     },
     { 
       value: 'due_date', 
@@ -218,7 +219,8 @@ export default function TasksModern() {
       setLoading(true);
       const results = await Promise.allSettled([
         databaseService.getTasks(),
-        databaseService.getLeads()
+        databaseService.getLeads(),
+        databaseService.getUsers()
       ]);
       
       // Handle tasks result
@@ -242,6 +244,14 @@ export default function TasksModern() {
       } else {
         console.error("Error loading leads:", results[1].reason);
         setLeads([]);
+      }
+
+      // Handle users result
+      if (results[2].status === 'fulfilled') {
+        setUsers(results[2].value);
+      } else {
+        console.error("Error loading users:", results[2].reason);
+        setUsers([]);
       }
     } catch (error) {
       console.error("Unexpected error loading tasks:", error);
@@ -297,7 +307,7 @@ export default function TasksModern() {
             taskValue = task.status;
             break;
           case 'assignee_id':
-            const assignee = USERS.find(u => u.id === task.assignee_id);
+            const assignee = assignableUsers.find(u => u.id === task.assignee_id);
             taskValue = assignee?.first_name || '';
             break;
           case 'due_date':
@@ -389,7 +399,10 @@ export default function TasksModern() {
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
     const dueDate = new Date(task.due_date);
-    return dueDate < new Date();
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dueDate.getTime() < today.getTime();
   }).length;
 
   return (
@@ -400,7 +413,7 @@ export default function TasksModern() {
           {completedTasks} completed • {overdueTasks} overdue • {filteredTasks.length - completedTasks} remaining
           {userFilter && (
             <span className="ml-2 text-primary">
-              • Filtered by {USERS.find(u => u.id === userFilter)?.first_name}
+              • Filtered by {assignableUsers.find(u => u.id === userFilter)?.first_name}
             </span>
           )}
           {filters.length > 0 && (
@@ -470,7 +483,7 @@ export default function TasksModern() {
             </div>
             {/* User Filter Icons */}
             <div className="flex items-center gap-2">
-              {USERS.map((user) => (
+              {assignableUsers.map((user) => (
                 <Button
                   key={user.id}
                   variant={userFilter === user.id ? "default" : "outline"}
@@ -532,7 +545,7 @@ export default function TasksModern() {
             </div>
           ) : (
             <DataTable
-              columns={columns(handleUpdate, leads, USERS)}
+              columns={columns(handleUpdate, leads, assignableUsers)}
               data={filteredTasks}
               searchTerm={searchTerm}
               onViewDetails={handleViewDetails}

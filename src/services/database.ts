@@ -416,6 +416,35 @@ export const databaseService = {
     return data;
   },
 
+  async createTaskActivityLog(taskData: {
+    lead_id: string;
+    task_id: string;
+    task_title: string;
+    assignee_name?: string;
+    due_date?: string;
+    author_id: string;
+  }) {
+    const noteBody = `Task created: ${taskData.task_title}${
+      taskData.assignee_name ? `\nAssigned to: ${taskData.assignee_name}` : ''
+    }${taskData.due_date ? `\nDue: ${new Date(taskData.due_date).toLocaleDateString()}` : ''}`;
+    
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        lead_id: taskData.lead_id,
+        author_id: taskData.author_id,
+        body: noteBody,
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Task activity log error:', error);
+      throw error;
+    }
+    return data;
+  },
+
   async updateTask(id: string, updates: TaskUpdate) {
     const { data, error } = await supabase
       .from('tasks')

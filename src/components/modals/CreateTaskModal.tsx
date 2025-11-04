@@ -100,7 +100,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
 
     setLoading(true);
     try {
-      await databaseService.createTask({
+      const createdTask = await databaseService.createTask({
         title: formData.title,
         description: formData.description || null,
         due_date: formData.due_date || null,
@@ -112,6 +112,26 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
         created_by: user.id,
         creation_log: [],
       });
+
+      // Log task creation in activity feed if borrower is selected
+      if (formData.borrower_id && createdTask) {
+        const assignedUser = users.find(u => u.id === formData.assignee_id);
+        const assigneeName = assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim() : undefined;
+        
+        try {
+          await databaseService.createTaskActivityLog({
+            lead_id: formData.borrower_id,
+            task_id: createdTask.id,
+            task_title: formData.title,
+            assignee_name: assigneeName,
+            due_date: formData.due_date,
+            author_id: user.id,
+          });
+        } catch (logError) {
+          console.error('Failed to create task activity log:', logError);
+          // Don't fail the whole operation if logging fails
+        }
+      }
 
       toast({
         title: "Success",

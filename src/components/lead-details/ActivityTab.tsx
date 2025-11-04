@@ -9,12 +9,13 @@ import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 
 interface Activity {
   id: number;
-  type: 'call' | 'email' | 'sms' | 'note';
+  type: 'call' | 'email' | 'sms' | 'note' | 'task';
   title: string;
   description?: string;
   timestamp: string;
   user: string;
   author_id?: string;
+  task_id?: string;
 }
 
 interface ActivityTabProps {
@@ -24,6 +25,7 @@ interface ActivityTabProps {
   onEmailClick?: () => void;
   onNoteClick?: () => void;
   onTaskClick?: () => void;
+  onTaskActivityClick?: (activity: Activity) => void;
   onActivityUpdated?: () => void;
 }
 
@@ -37,6 +39,8 @@ const getActivityIcon = (type: Activity['type']) => {
       return <MessageSquare className="h-3 w-3" />;
     case 'note':
       return <FileText className="h-3 w-3" />;
+    case 'task':
+      return <Plus className="h-3 w-3" />;
     default:
       return <Circle className="h-3 w-3" />;
   }
@@ -52,12 +56,14 @@ const getActivityBadgeVariant = (type: Activity['type']) => {
       return 'outline';
     case 'note':
       return 'secondary';
+    case 'task':
+      return 'default';
     default:
       return 'default';
   }
 };
 
-export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onActivityUpdated }: ActivityTabProps) {
+export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: ActivityTabProps) {
   const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
 
@@ -105,7 +111,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .toUpperCase()
             .slice(0, 2);
 
-          const isClickable = ['note', 'email', 'sms'].includes(activity.type);
+          const isClickable = ['note', 'email', 'sms', 'task'].includes(activity.type);
 
           return (
             <div 
@@ -113,8 +119,12 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
               className={`flex items-start gap-3 pb-3 border-b last:border-0 ${isClickable ? 'cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors' : ''}`}
               onClick={() => {
                 if (isClickable) {
-                  setSelectedNote(activity);
-                  setShowNoteDetailModal(true);
+                  if (activity.type === 'task' && onTaskActivityClick) {
+                    onTaskActivityClick(activity);
+                  } else {
+                    setSelectedNote(activity);
+                    setShowNoteDetailModal(true);
+                  }
                 }
               }}
             >

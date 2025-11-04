@@ -117,18 +117,26 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     try {
       const fetchedActivities = await databaseService.getLeadActivities(leadId);
       // Transform to match Activity interface
-        const transformedActivities = fetchedActivities.map((activity: any) => ({
-          id: activity.id,
-          type: activity.type,
-          title: activity.type === 'note' ? 'Note added' : 
-                 activity.type === 'call' ? 'Call logged' :
-                 activity.type === 'sms' ? 'SMS sent' : 'Email sent',
-          description: activity.body || activity.notes || '',
-          timestamp: activity.created_at,
-          user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
-                activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
-          author_id: activity.author_id || activity.user_id
-        }));
+        const transformedActivities = fetchedActivities.map((activity: any) => {
+          // Detect task creation logs
+          const isTaskLog = activity.type === 'note' && activity.body?.startsWith('Task created:');
+          const taskTitle = isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null;
+          
+          return {
+            id: activity.id,
+            type: isTaskLog ? 'task' : activity.type,
+            title: isTaskLog ? 'Task created' :
+                   activity.type === 'note' ? 'Note added' : 
+                   activity.type === 'call' ? 'Call logged' :
+                   activity.type === 'sms' ? 'SMS sent' : 'Email sent',
+            description: activity.body || activity.notes || '',
+            timestamp: activity.created_at,
+            user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
+                  activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+            author_id: activity.author_id || activity.user_id,
+            task_id: taskTitle // Store task title to find task later
+          };
+        });
       setActivities(transformedActivities);
     } catch (error) {
       console.error('Error loading activities:', error);
@@ -542,6 +550,38 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     }
   };
 
+  const handleTaskActivityClick = async (activity: any) => {
+    // Extract task title from activity description
+    // Format: "Task created: [title]\nAssigned to: [name]\nDue: [date]"
+    const taskTitle = activity.task_id; // We stored the task title in task_id field
+    
+    if (!leadId || !taskTitle) return;
+
+    try {
+      // Find the task by title and lead_id
+      const tasks = await databaseService.getLeadTasks(leadId);
+      const matchingTask = tasks.find(t => t.title === taskTitle);
+      
+      if (matchingTask) {
+        setSelectedTask(matchingTask);
+        setShowTaskDetailModal(true);
+      } else {
+        toast({
+          title: "Task Not Found",
+          description: "The task may have been deleted or moved.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error finding task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open task details",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleTaskToggle = async (taskId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === "Done" ? "To Do" : "Done";
@@ -856,6 +896,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 setShowAddNoteModal(true);
               }}
               onTaskClick={() => setShowCreateTaskModal(true)}
+              onTaskActivityClick={handleTaskActivityClick}
             />
           </div>
 
