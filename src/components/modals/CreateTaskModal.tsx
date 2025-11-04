@@ -20,12 +20,6 @@ interface CreateTaskModalProps {
   preselectedBorrowerId?: string;
 }
 
-const ASSIGNABLE_USERS = [
-  "Yousif Mohamed",
-  "Salma Mohamed", 
-  "Herman Daza",
-  "Juan Furtado"
-];
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
   const { user } = useAuth();
@@ -62,6 +56,11 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
       setLeads(leadsData);
     } catch (error) {
       console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users and borrowers",
+        variant: "destructive",
+      });
     }
   };
 
@@ -244,10 +243,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
                 </SelectTrigger>
                 <SelectContent className="bg-popover">
                   {users
-                    .filter(u => {
-                      const fullName = `${u.first_name} ${u.last_name}`;
-                      return ASSIGNABLE_USERS.includes(fullName);
-                    })
+                    .filter(u => u.is_active === true && u.is_assignable !== false)
                     .map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.first_name} {user.last_name}

@@ -355,9 +355,8 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('tasks')
       .select(`
-        *,
+        id, title, description, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        created_by_user:users!tasks_created_by_fkey(*),
         borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
       .is('deleted_at', null)

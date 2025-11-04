@@ -230,7 +230,7 @@ export default function TasksModern() {
       console.error("Error loading tasks:", error);
       toast({
         title: "Error",
-        description: "Failed to load tasks",
+        description: error instanceof Error ? error.message : "Failed to load tasks",
         variant: "destructive",
       });
     } finally {
