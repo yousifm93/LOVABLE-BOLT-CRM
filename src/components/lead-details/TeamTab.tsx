@@ -38,8 +38,6 @@ interface TeamTabProps {
 const TEAM_ROLES = [
   { key: 'lender', label: 'Lender', type: 'lender' },
   { key: 'account_executive', label: 'Account Executive', type: 'readonly' },
-  { key: 'title_company', label: 'Title Company', type: 'contact' },
-  { key: 'insurance_provider', label: 'Insurance Provider', type: 'contact' },
 ];
 
 function TeamRoleRow({ 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Calendar, User, AlertCircle, FileText, DollarSign, Home, Shield, CreditCard, FileCheck, FileBox, Building } from "lucide-react";
+import { Plus, Edit, Trash2, Calendar, User, AlertCircle, FileText, DollarSign, Home, Shield, CreditCard, FileCheck, FileBox, Building, Paperclip, X, Upload } from "lucide-react";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
@@ -254,6 +254,70 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  const handleAttachDocument = async (conditionId: string) => {
+    if (!leadId) return;
+    
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+    
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+      
+      try {
+        // Upload document to documents table
+        const document = await databaseService.uploadLeadDocument(leadId, file);
+        
+        if (!document?.id) {
+          throw new Error('Failed to upload document');
+        }
+        
+        // Link document to condition
+        await databaseService.updateLeadCondition(conditionId, { document_id: document.id });
+        
+        // Reload conditions to show the attached document
+        await loadConditions();
+        
+        toast({
+          title: "Success",
+          description: "Document attached to condition",
+        });
+      } catch (error) {
+        console.error("Error attaching document:", error);
+        toast({
+          title: "Error",
+          description: "Failed to attach document",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    input.click();
+  };
+
+  const handleRemoveDocument = async (conditionId: string) => {
+    if (!confirm("Remove document from this condition?")) return;
+    
+    try {
+      await databaseService.updateLeadCondition(conditionId, { document_id: null });
+      await loadConditions();
+      
+      toast({
+        title: "Success",
+        description: "Document removed from condition",
+      });
+    } catch (error) {
+      console.error("Error removing document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove document",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const statusConfig = STATUSES.find(s => s.value === status);
     return statusConfig?.color || "bg-gray-100 text-gray-800";
@@ -289,11 +353,12 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[22%]">Condition</TableHead>
-                <TableHead className="w-[18%]">Condition Status</TableHead>
-                <TableHead className="w-[12%]">ETA</TableHead>
-                <TableHead className="w-[13%]">Last updated</TableHead>
-                <TableHead className="w-[30%]">Team Notes</TableHead>
+                <TableHead className="w-[20%]">Condition</TableHead>
+                <TableHead className="w-[16%]">Condition Status</TableHead>
+                <TableHead className="w-[10%]">ETA</TableHead>
+                <TableHead className="w-[11%]">Last updated</TableHead>
+                <TableHead className="w-[25%]">Team Notes</TableHead>
+                <TableHead className="w-[13%]">Document</TableHead>
                 <TableHead className="w-[5%]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -352,6 +417,36 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                         placeholder="Add notes..."
                         className="max-w-[300px]"
                       />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {(condition as any).document_id ? (
+                          <>
+                            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                              Document attached
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveDocument(condition.id)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAttachDocument(condition.id)}
+                            className="h-7 text-xs"
+                          >
+                            <Paperclip className="h-3 w-3 mr-1" />
+                            Attach
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     
                     <TableCell>
@@ -462,27 +557,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   }
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="assigned_to">Assigned To</Label>
-              <Select
-                value={formData.assigned_to || "unassigned"}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, assigned_to: value === "unassigned" ? "" : value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.first_name} {user.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>

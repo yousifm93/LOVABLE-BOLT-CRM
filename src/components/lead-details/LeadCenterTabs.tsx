@@ -4,8 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, FileText, User, DollarSign, Users, List, CheckCircle } from "lucide-react";
 import { ActivityTab } from "./ActivityTab";
 import { DetailsTab } from "./DetailsTab";
-import { BorrowerInfoTab } from "./BorrowerInfoTab";
-import { FinancialInfoTab } from "./FinancialInfoTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { ConditionsTab } from "./ConditionsTab";
 import { AllFieldsTab } from "./AllFieldsTab";
@@ -35,7 +33,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
         <Tabs defaultValue="activity" className="w-full h-full">
-          <TabsList className="grid w-full grid-cols-7 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="activity" className="text-xs flex items-center gap-1">
               <Activity className="h-3 w-3" />
               Activity
@@ -43,14 +41,6 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
             <TabsTrigger value="loan-property" className="text-xs flex items-center gap-1">
               <User className="h-3 w-3" />
               Loan & Property
-            </TabsTrigger>
-            <TabsTrigger value="borrower" className="text-xs flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              Borrower Info
-            </TabsTrigger>
-            <TabsTrigger value="financial" className="text-xs flex items-center gap-1">
-              <DollarSign className="h-3 w-3" />
-              Financial Info
             </TabsTrigger>
             <TabsTrigger value="documents" className="text-xs flex items-center gap-1">
               <FileText className="h-3 w-3" />
@@ -81,14 +71,6 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
           
           <TabsContent value="loan-property" className="mt-0 h-[calc(100%-56px)] overflow-auto">
             <DetailsTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
-          </TabsContent>
-          
-          <TabsContent value="borrower" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <BorrowerInfoTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
-          </TabsContent>
-          
-          <TabsContent value="financial" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <FinancialInfoTab client={client} leadId={leadId} onLeadUpdated={onLeadUpdated} />
           </TabsContent>
           
           <TabsContent value="documents" className="mt-0 h-[calc(100%-56px)] overflow-auto">

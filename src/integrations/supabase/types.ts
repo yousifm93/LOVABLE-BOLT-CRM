@@ -1661,6 +1661,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string
+          document_id: string | null
           due_date: string | null
           id: string
           lead_id: string
@@ -1677,6 +1678,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description: string
+          document_id?: string | null
           due_date?: string | null
           id?: string
           lead_id: string
@@ -1693,6 +1695,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string
+          document_id?: string | null
           due_date?: string | null
           id?: string
           lead_id?: string
@@ -1721,6 +1724,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_conditions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
           {
