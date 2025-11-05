@@ -328,7 +328,7 @@ serve(async (req) => {
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
           // Try simple screenshot to assist debugging
           try { const s = await page.screenshot({ encoding: 'base64', fullPage: true }); console.log('Screenshot (base64, first 120):', s.substring(0,120)+'...'); } catch(e){}
-          throw new Error(`Failed to extract valid pricing results. Rate: ${results.rate}, Payment: ${results.monthly_payment}, Debug text: ${results.debug_text}`);
+          throw new Error('Failed to extract valid pricing results. Rate: ' + results.rate + ', Payment: ' + results.monthly_payment + ', Debug text: ' + results.debug_text);
         }
         
         return results;
