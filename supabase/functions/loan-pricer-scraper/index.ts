@@ -174,26 +174,27 @@ serve(async (req) => {
         
         // Helper: click and type into number display next to sliders
         async function fillNumberDisplayByLabel(labelText, value) {
-          console.log(\`Filling number display for \${labelText} with \${value}\`);
+          console.log('Filling number display for ' + labelText + ' with ' + value);
           
           try {
             // Wait for the label to exist
-            await page.waitForXPath(\`//label[contains(text(), "\${labelText}")]\`, { timeout: 5000 });
+            const labelXPath = '//label[contains(text(), "' + labelText + '")]';
+            await page.waitForXPath(labelXPath, { timeout: 5000 });
             
             // Try multiple XPath patterns to find the number display element
             const displaySelectors = [
               // Look for spans/divs with common value/number classes after the label
-              \`//label[contains(text(), "\${labelText}")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]\`,
-              \`//label[contains(text(), "\${labelText}")]/following::div[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]\`,
+              '//label[contains(text(), "' + labelText + '")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
+              '//label[contains(text(), "' + labelText + '")]/following::div[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
               
               // Look for any element containing only digits (and possibly commas/decimals)
-              \`//label[contains(text(), "\${labelText}")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]\`,
+              '//label[contains(text(), "' + labelText + '")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]',
               
               // Look in parent's sibling container
-              \`//label[contains(text(), "\${labelText}")]/../following-sibling::*//span[string-length(translate(text(), "0123456789,.", "")) = 0][1]\`,
+              '//label[contains(text(), "' + labelText + '")]/../following-sibling::*//span[string-length(translate(text(), "0123456789,.", "")) = 0][1]',
               
               // Look for any nearby contenteditable or editable element
-              \`//label[contains(text(), "\${labelText}")]/following::*[@contenteditable="true"][1]\`
+              '//label[contains(text(), "' + labelText + '")]/following::*[@contenteditable="true"][1]'
             ];
             
             for (const selector of displaySelectors) {
@@ -220,7 +221,7 @@ serve(async (req) => {
                     return el.innerText || el.textContent || el.value || el.getAttribute('aria-valuenow');
                   }, elements[0]);
                   
-                  console.log(\`✓ Read back \${labelText}: \${newValue}\`);
+                  console.log('✓ Read back ' + labelText + ': ' + newValue);
                   return true;
                 }
               } catch (selectorError) {
@@ -229,10 +230,10 @@ serve(async (req) => {
               }
             }
             
-            console.warn(\`Could not find number display for \${labelText}\`);
+            console.warn('Could not find number display for ' + labelText);
             return false;
           } catch (error) {
-            console.error(\`Error filling number display for \${labelText}:\`, error.message);
+            console.error('Error filling number display for ' + labelText + ':', error.message);
             return false;
           }
         }
