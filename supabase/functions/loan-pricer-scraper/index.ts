@@ -206,15 +206,11 @@ serve(async (req) => {
         }
         
         if (!responseBoxFound) {
-          // Take a screenshot for debugging
-          console.log('Response box not found with any selector, taking screenshot...');
-          const screenshot = await page.screenshot({ encoding: 'base64' });
-          console.log('Screenshot captured (base64):', screenshot.substring(0, 100) + '...');
-          throw new Error('Could not find pricing results on page. The form may not have been filled correctly or results did not load.');
+          throw new Error('Could not find pricing results container on page');
         }
         
         // Extra wait for results to fully populate
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Extract real pricing results from the page
         console.log('Extracting pricing results...');
@@ -229,40 +225,83 @@ serve(async (req) => {
           }
           
           // Get all text from the response area
-          const allText = responseBox.innerText || responseBox.textContent;
-          console.log('Response box text:', allText);
+          const allText = responseBox.innerText || responseBox.textContent || '';
+          console.log('Response box full text:', allText);
+          console.log('Response box HTML:', responseBox.innerHTML.substring(0, 500));
           
-          // Extract rate (pattern: X.XXX% or X.XX%)
-          const rateMatch = allText.match(/(\d+\.\d{2,3})%/);
-          const rate = rateMatch ? rateMatch[1] : 'N/A';
+          // Check if response box has any meaningful content
+          if (!allText || allText.trim().length < 5) {
+            throw new Error('Response box is empty or has no content. HTML: ' + responseBox.innerHTML.substring(0, 200));
+          }
           
-          // Extract monthly payment (pattern: $X,XXX.XX)
-          const paymentMatch = allText.match(/\$[\d,]+\.\d{2}/);
-          const monthly_payment = paymentMatch ? paymentMatch[0].replace('$', '').replace(/,/g, '') : 'N/A';
+          // More flexible extraction patterns
+          // Extract rate - try multiple patterns
+          let rate = 'N/A';
+          const ratePatterns = [
+            /(\d+\.\d{2,3})\s*%/,  // "6.125 %" or "6.125%"
+            /rate.*?(\d+\.\d{2,3})/i,  // "Rate: 6.125"
+            /(\d+\.\d{2,3})/  // Just the number as fallback
+          ];
           
-          // Extract discount points/lender credit (pattern: -X.XXX or X.XXX)
-          const creditMatches = allText.match(/-?\d+\.\d{3}/g);
+          for (const pattern of ratePatterns) {
+            const match = allText.match(pattern);
+            if (match && match[1]) {
+              rate = match[1];
+              console.log('Found rate with pattern:', pattern, '=> ', rate);
+              break;
+            }
+          }
+          
+          // Extract monthly payment
+          let monthly_payment = 'N/A';
+          const paymentPatterns = [
+            /\$\s*([\d,]+\.\d{2})/,  // "$6,257.08" or "$ 6,257.08"
+            /payment.*?\$\s*([\d,]+\.\d{2})/i,  // "Monthly Payment: $6,257.08"
+            /([\d,]+\.\d{2})/  // Just number with decimals as fallback
+          ];
+          
+          for (const pattern of paymentPatterns) {
+            const match = allText.match(pattern);
+            if (match && match[1]) {
+              monthly_payment = match[1].replace(/,/g, '');
+              console.log('Found payment with pattern:', pattern, '=> ', monthly_payment);
+              break;
+            }
+          }
+          
+          // Extract discount points/lender credit
           let discount_points = 'N/A';
-          if (creditMatches && creditMatches.length > 0) {
-            // Filter out the rate if it appears in this format
-            discount_points = creditMatches.find(m => m !== rate) || creditMatches[0];
+          const creditPatterns = [
+            /([-]?\d+\.\d{3})/,  // "-0.135" or "0.135"
+            /credit.*?([-]?\d+\.\d{2,3})/i,  // "Lender Credit: -0.135"
+            /points.*?([-]?\d+\.\d{2,3})/i  // "Discount Points: 0.125"
+          ];
+          
+          for (const pattern of creditPatterns) {
+            const match = allText.match(pattern);
+            if (match && match[1] && match[1] !== rate) {
+              discount_points = match[1];
+              console.log('Found points with pattern:', pattern, '=> ', discount_points);
+              break;
+            }
           }
           
           return {
             rate: rate,
             monthly_payment: monthly_payment,
-            apr: rate, // Using rate as APR for now
+            apr: rate,
             discount_points: discount_points,
             program_name: 'Quick Pricer Result',
-            priced_at: new Date().toISOString()
+            priced_at: new Date().toISOString(),
+            debug_text: allText.substring(0, 500)  // Include for debugging
           };
         });
         
-        console.log('Extracted results:', results);
+        console.log('Extracted results:', JSON.stringify(results));
         
         // Validate that we got real data
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          throw new Error('Failed to extract valid pricing results. Rate: ' + results.rate + ', Payment: ' + results.monthly_payment);
+          throw new Error(\`Failed to extract valid pricing results. Rate: \${results.rate}, Payment: \${results.monthly_payment}, Debug text: \${results.debug_text}\`);
         }
         
         return results;
