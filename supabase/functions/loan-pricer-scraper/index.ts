@@ -172,6 +172,71 @@ serve(async (req) => {
           return false;
         }
         
+        // Helper: click and type into number display next to sliders
+        async function fillNumberDisplayByLabel(labelText, value) {
+          console.log(\`Filling number display for \${labelText} with \${value}\`);
+          
+          try {
+            // Wait for the label to exist
+            await page.waitForXPath(\`//label[contains(text(), "\${labelText}")]\`, { timeout: 5000 });
+            
+            // Try multiple XPath patterns to find the number display element
+            const displaySelectors = [
+              // Look for spans/divs with common value/number classes after the label
+              \`//label[contains(text(), "\${labelText}")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]\`,
+              \`//label[contains(text(), "\${labelText}")]/following::div[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]\`,
+              
+              // Look for any element containing only digits (and possibly commas/decimals)
+              \`//label[contains(text(), "\${labelText}")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]\`,
+              
+              // Look in parent's sibling container
+              \`//label[contains(text(), "\${labelText}")]/../following-sibling::*//span[string-length(translate(text(), "0123456789,.", "")) = 0][1]\`,
+              
+              // Look for any nearby contenteditable or editable element
+              \`//label[contains(text(), "\${labelText}")]/following::*[@contenteditable="true"][1]\`
+            ];
+            
+            for (const selector of displaySelectors) {
+              try {
+                const elements = await page.$x(selector);
+                if (elements.length > 0 && elements[0]) {
+                  // Scroll into view
+                  await elements[0].scrollIntoView();
+                  await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 100));
+                  
+                  // Triple-click to select all content
+                  await elements[0].click({ clickCount: 3 });
+                  await new Promise(resolve => setTimeout(resolve, 150));
+                  
+                  // Type the new value
+                  await page.keyboard.type(String(value), { delay: 50 });
+                  
+                  // Press Tab to confirm and move focus
+                  await page.keyboard.press('Tab');
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  
+                  // Try to read back the value to confirm it was set
+                  const newValue = await page.evaluate(el => {
+                    return el.innerText || el.textContent || el.value || el.getAttribute('aria-valuenow');
+                  }, elements[0]);
+                  
+                  console.log(\`✓ Read back \${labelText}: \${newValue}\`);
+                  return true;
+                }
+              } catch (selectorError) {
+                // Try next selector
+                continue;
+              }
+            }
+            
+            console.warn(\`Could not find number display for \${labelText}\`);
+            return false;
+          } catch (error) {
+            console.error(\`Error filling number display for \${labelText}:\`, error.message);
+            return false;
+          }
+        }
+        
         // Helper: dismiss consent overlays
         async function dismissConsent() {
           try {
@@ -214,12 +279,26 @@ serve(async (req) => {
           await fillFieldByLabel('Income Type', scenarioData.income_type, 'dropdown');
         }
         
-        await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
+        // Try number display first (for slider), fallback to input field
+        let ficoFilled = await fillNumberDisplayByLabel('FICO', scenarioData.fico_score);
+        if (!ficoFilled) {
+          console.log('Falling back to input field for FICO');
+          ficoFilled = await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
+        }
         
-        // CRITICAL FIX: Use LTV instead of CLTV, with fallback
-        await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
+        // Try number display first (for slider), fallback to input field
+        let ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
+        if (!ltvFilled) {
+          console.log('Falling back to input field for LTV');
+          ltvFilled = await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
+        }
         
-        await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
+        // Try number display first (for slider), fallback to input field
+        let loanAmountFilled = await fillNumberDisplayByLabel('Loan Amount', scenarioData.loan_amount);
+        if (!loanAmountFilled) {
+          console.log('Falling back to input field for Loan Amount');
+          loanAmountFilled = await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
+        }
         
         // NEW: Fill Lock Period (was missing before)
         const lockValue = scenarioData.lock_period + ' Days';
