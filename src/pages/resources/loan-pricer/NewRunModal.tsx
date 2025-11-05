@@ -15,51 +15,60 @@ interface NewRunModalProps {
 
 interface ScenarioData {
   // Borrower Info
-  fico_score: number;
-  dti_ratio: number;
-  location: {
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
+  fico_score: number; // Slider 620-850
+  citizenship: string; // "US Citizen / Permanent Resident" | "Non-Permanent Resident"
+  dti: string; // Dropdown "DTI <=40%" etc.
+  
+  // Property Info
+  property_type: string; // "1 Unit SFR" | "Condo" | "2-4 Unit"
+  num_units: number; // 1, 2, 3, 4
+  occupancy: string; // "Primary Residence" | "Second Home" | "Investment"
+  state: string; // Always "FL" for Florida
   
   // Loan Details
-  loan_type: string;
-  loan_purpose: string;
+  program_type: string; // "Conventional" | "Non-QM" | "Prime Jumbo" | "FHA" | "VA"
+  loan_type: string; // "Fixed" | "ARM"
+  amortization_type: string; // "30 Year Fixed" | "25 Year" | "20 Year" | "15 Year"
+  loan_purpose: string; // "Purchase" | "Rate and Term Refinance" | "Cash Out"
   loan_amount: number;
-  property_value: number;
-  down_payment: number;
-  loan_term: number;
+  ltv: number; // Slider 55-97
   
-  // Other Options
-  lock_period: number;
-  providers: string[];
-  borrower_type: string;
-  occupancy: string;
-  property_type: string;
+  // Additional Options
+  lock_period: number; // 30, 45, 60, 90
+  broker_compensation: string; // "BPC" | percentage options
+  admin_fee_buyout: boolean;
+  escrow_waiver: boolean;
+  high_balance: boolean;
+  sub_financing: boolean;
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
-  fico_score: 740,
-  dti_ratio: 30,
-  location: {
-    street: "",
-    city: "",
-    state: "",
-    zip: ""
-  },
-  loan_type: "Conventional",
+  // Borrower
+  fico_score: 720,
+  citizenship: "US Citizen / Permanent Resident",
+  dti: "DTI <=40%",
+  
+  // Property
+  property_type: "1 Unit SFR",
+  num_units: 1,
+  occupancy: "Primary Residence",
+  state: "FL", // Always Florida
+  
+  // Loan
+  program_type: "Conventional",
+  loan_type: "Fixed",
+  amortization_type: "30 Year Fixed",
   loan_purpose: "Purchase",
   loan_amount: 400000,
-  property_value: 500000,
-  down_payment: 100000,
-  loan_term: 30,
+  ltv: 80,
+  
+  // Additional
   lock_period: 45,
-  providers: ["arrive", "lenderprice"],
-  borrower_type: "First Time Buyer",
-  occupancy: "Primary Residence",
-  property_type: "Single Family"
+  broker_compensation: "BPC",
+  admin_fee_buyout: false,
+  escrow_waiver: false,
+  high_balance: false,
+  sub_financing: false
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId }: NewRunModalProps) {
@@ -96,28 +105,14 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId }: NewRun
 
       if (runError) throw runError;
 
-      // Create provider entries
-      const providerEntries = scenarioData.providers.map(provider => ({
-        run_id: pricingRun.id,
-        provider,
-        status: 'queued'
-      }));
-
-      const { error: providersError } = await supabase
-        .from('pricing_run_providers')
-        .insert(providerEntries);
-
-      if (providersError) throw providersError;
-
-      // Call edge function to start processing
-      const { error: functionError } = await supabase.functions.invoke('pricing-run-manager', {
-        body: { run_id: pricingRun.id }
-      });
-
-      if (functionError) {
-        console.warn('Edge function call failed:', functionError);
-        // Don't fail the whole operation if edge function fails
-      }
+      // Call edge function to start processing (will be implemented in Phase 2)
+      // const { error: functionError } = await supabase.functions.invoke('loan-pricer-scraper', {
+      //   body: { run_id: pricingRun.id }
+      // });
+      
+      // if (functionError) {
+      //   console.warn('Edge function call failed:', functionError);
+      // }
 
       toast({
         title: "Pricing run started",
@@ -142,11 +137,11 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId }: NewRun
   const getStepTitle = () => {
     switch (currentStep) {
       case 1:
-        return "Borrower Information";
+        return "Loan Program & Property";
       case 2:
-        return "Loan Details";
+        return "Loan Amounts & Borrower";
       case 3:
-        return "Review & Submit";
+        return "Additional Options & Review";
       default:
         return "";
     }
