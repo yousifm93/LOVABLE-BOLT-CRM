@@ -87,27 +87,50 @@ serve(async (req) => {
       export default async ({ page, context }) => {
         const scenarioData = context.scenarioData;
         
-        // Helper function to fill field by label
+        // Helper: try multiple label synonyms for the same field
+        async function fillAnyOfLabels(labelSynonyms, value, fieldType = 'input') {
+          for (const labelText of labelSynonyms) {
+            const success = await fillFieldByLabel(labelText, value, fieldType);
+            if (success) {
+              console.log(\`Successfully filled using label: \${labelText}\`);
+              return true;
+            }
+          }
+          console.warn(\`Could not fill any of: \${labelSynonyms.join(', ')}\`);
+          return false;
+        }
+        
+        // Helper function to fill field by label with enhanced robustness
         async function fillFieldByLabel(labelText, value, fieldType = 'input') {
           console.log(\`Filling \${labelText} with \${value} (type: \${fieldType})\`);
           
           try {
             if (fieldType === 'dropdown') {
-              // Wait for label and click dropdown
+              // Wait for label
               await page.waitForXPath(\`//label[contains(text(), "\${labelText}")]\`, { timeout: 5000 });
+              
+              // Random delay to avoid bot detection
+              await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 200));
+              
+              // Try clicking dropdown button
               const buttonSelector = \`//label[contains(text(), "\${labelText}")]/following::div[@role="button"][1]\`;
               const buttons = await page.$x(buttonSelector);
               if (buttons[0]) {
+                await buttons[0].scrollIntoView();
                 await buttons[0].click();
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // Click option
-                const optionSelector = \`//li[@role="option" and contains(text(), "\${value}")]\`;
+                // Normalize value for matching (extract key part)
+                const valueSnippet = String(value).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                
+                // Click option - use contains for flexible matching
+                const optionSelector = \`//li[@role="option" and contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "\${valueSnippet.toLowerCase()}")]\`;
                 await page.waitForXPath(optionSelector, { timeout: 3000 });
                 const options = await page.$x(optionSelector);
                 if (options[0]) {
                   await options[0].click();
                   await new Promise(resolve => setTimeout(resolve, 300));
+                  return true;
                 }
               }
             } else if (fieldType === 'input') {
@@ -115,8 +138,20 @@ serve(async (req) => {
               await page.waitForXPath(inputSelector, { timeout: 5000 });
               const inputs = await page.$x(inputSelector);
               if (inputs[0]) {
+                await inputs[0].scrollIntoView();
                 await inputs[0].click({ clickCount: 3 });
-                await inputs[0].type(String(value));
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await inputs[0].type(String(value), { delay: 50 });
+                
+                // Fire blur and Tab to trigger onChange
+                await page.keyboard.press('Tab');
+                await page.evaluate(el => { el.blur(); }, inputs[0]);
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Read back value to verify
+                const filledValue = await page.evaluate(el => el.value, inputs[0]);
+                console.log(\`Read back \${labelText}: \${filledValue}\`);
+                return true;
               }
             } else if (fieldType === 'checkbox') {
               const checkboxSelector = \`//span[contains(text(), "\${labelText}")]/preceding::input[@type="checkbox"][1]\`;
@@ -125,19 +160,49 @@ serve(async (req) => {
                 const isChecked = await page.evaluate((el) => el.checked, checkboxes[0]);
                 if (!isChecked) {
                   await checkboxes[0].click();
+                  await new Promise(resolve => setTimeout(resolve, 200));
                 }
+                return true;
               }
             }
           } catch (error) {
             console.error(\`Error filling \${labelText}:\`, error.message);
+            return false;
+          }
+          return false;
+        }
+        
+        // Helper: dismiss consent overlays
+        async function dismissConsent() {
+          try {
+            const consentSelectors = [
+              '//button[contains(., "Accept")]',
+              '//button[contains(., "Agree")]',
+              '//button[contains(., "I Consent")]',
+              '//button[contains(., "OK")]'
+            ];
+            for (const sel of consentSelectors) {
+              const btns = await page.$x(sel);
+              if (btns[0]) {
+                await btns[0].click();
+                console.log('Dismissed consent overlay');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return;
+              }
+            }
+          } catch (e) {
+            // No consent needed
           }
         }
         
         // Navigate to pricer
         await page.goto('https://pricer.admortgage.com/', { waitUntil: 'networkidle2' });
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        // Fill form fields
+        // Dismiss any consent overlays
+        await dismissConsent();
+        
+        // Fill form fields with enhanced logic
         await fillFieldByLabel('Program', scenarioData.program_type, 'dropdown');
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -150,8 +215,15 @@ serve(async (req) => {
         }
         
         await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
-        await fillFieldByLabel('CLTV', scenarioData.ltv.toString(), 'input');
+        
+        // CRITICAL FIX: Use LTV instead of CLTV, with fallback
+        await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
+        
         await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
+        
+        // NEW: Fill Lock Period (was missing before)
+        const lockValue = scenarioData.lock_period + ' Days';
+        await fillAnyOfLabels(['Lock Period', 'Rate Lock', 'Lock Term'], lockValue, 'dropdown');
         
         await fillFieldByLabel('State', scenarioData.state, 'dropdown');
         await fillFieldByLabel('Property Type', scenarioData.property_type, 'dropdown');
@@ -182,155 +254,179 @@ serve(async (req) => {
           await fillFieldByLabel('Sub Financing', true, 'checkbox');
         }
         
-        // Wait for form to fully process and results to appear
-        console.log('Waiting for pricing results to load...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Try multiple selectors to find the response box
-        let responseBoxFound = false;
-        const selectors = [
-          'div.quickPricerBody_response',
-          '[class*="quickPricer"][class*="response"]',
-          '[class*="response"]'
+        // NEW: Explicitly trigger pricing
+        console.log('Triggering pricing calculation...');
+        let priceButtonClicked = false;
+        const priceButtonSelectors = [
+          '//button[contains(., "Price")]',
+          '//button[contains(., "Get Pricing")]',
+          '//button[contains(., "Search")]',
+          '//button[contains(., "Calculate")]',
+          '//div[@role="button" and contains(., "Price")]'
         ];
         
-        for (const selector of selectors) {
+        for (const sel of priceButtonSelectors) {
           try {
-            await page.waitForSelector(selector, { timeout: 5000 });
-            console.log(\`Found results using selector: \${selector}\`);
-            responseBoxFound = true;
-            break;
+            const btns = await page.$x(sel);
+            if (btns[0]) {
+              await btns[0].scrollIntoView();
+              await btns[0].click();
+              console.log(\`Clicked pricing button: \${sel}\`);
+              priceButtonClicked = true;
+              await new Promise(resolve => setTimeout(resolve, 4000));
+              break;
+            }
           } catch (e) {
-            console.log(\`Selector \${selector} not found, trying next...\`);
+            // Try next
           }
         }
         
-        if (!responseBoxFound) {
-          throw new Error('Could not find pricing results container on page');
+        if (!priceButtonClicked) {
+          console.log('No explicit price button found, simulating Enter key');
+          await page.keyboard.press('Enter');
+          await new Promise(resolve => setTimeout(resolve, 4000));
         }
         
-        // Extra wait for results to fully populate
+        // Wait for results with content pattern checks
+        console.log('Waiting for pricing results with content patterns...');
+        let foundResults = false;
+        
+        try {
+          // Wait for either percentage or currency patterns in the page
+          await page.waitForFunction(() => {
+            const text = document.body.innerText || '';
+            return /\\d+\\.\\d{2,3}\\s*%/.test(text) || /\\$\\s*[\\d,]+\\.\\d{2}/.test(text);
+          }, { timeout: 12000 });
+          foundResults = true;
+          console.log('Found content patterns matching results');
+        } catch (e) {
+          console.warn('Content pattern wait timed out, will try extraction anyway');
+        }
+        
+        // Extra wait for results to stabilize
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Extract real pricing results from the page
-        console.log('Extracting pricing results...');
-        const results = await page.evaluate(() => {
-          // Try multiple ways to find the response container
-          let responseBox = document.querySelector('div.quickPricerBody_response') ||
-                           document.querySelector('[class*="quickPricer"][class*="response"]') ||
-                           document.querySelector('[class*="response"]');
+        // Extract results from main document
+        console.log('Extracting pricing results from main document...');
+        let results = await page.evaluate(() => {
+          const responseBox = document.querySelector('div.quickPricerBody_response') ||
+                              document.querySelector('[class*="quickPricer"][class*="response"]') ||
+                              document.querySelector('[class*="response"]');
           
-          if (!responseBox) {
-            throw new Error('Response box not found in DOM');
+          let allText = '';
+          if (responseBox) {
+            allText = responseBox.innerText || responseBox.textContent || '';
+          } else {
+            // Fallback to body
+            allText = document.body.innerText || '';
           }
           
-          // Get all text from the response area
-          const allText = responseBox.innerText || responseBox.textContent || '';
-          console.log('Response box full text:', allText);
-          console.log('Response box HTML:', responseBox.innerHTML.substring(0, 500));
+          const out = {
+            rate: 'N/A',
+            monthly_payment: 'N/A',
+            discount_points: 'N/A',
+            apr: 'N/A',
+            program_name: 'Quick Pricer Result',
+            priced_at: new Date().toISOString(),
+            debug_text: allText.substring(0, 800)
+          };
           
-          // Check if response box has any meaningful content
-          if (!allText || allText.trim().length < 5) {
-            throw new Error('Response box is empty or has no content. HTML: ' + responseBox.innerHTML.substring(0, 200));
-          }
-          
-          // More flexible extraction patterns
-          // Extract rate - try multiple patterns
-          let rate = 'N/A';
+          // Rate extraction
           const ratePatterns = [
-            /(\\d+\\.\\d{2,3})\\s*%/,  // "6.125 %" or "6.125%"
-            /rate.*?(\\d+\\.\\d{2,3})/i,  // "Rate: 6.125"
-            /(\\d+\\.\\d{2,3})/  // Just the number as fallback
+            /(\\d+\\.\\d{2,3})\\s*%/,
+            /rate[^\\d]*(\\d+\\.\\d{2,3})/i,
+            /(\\d+\\.\\d{2,3})/
           ];
           
           for (const pattern of ratePatterns) {
             const match = allText.match(pattern);
             if (match && match[1]) {
-              rate = match[1];
-              console.log('Found rate with pattern:', pattern, '=> ', rate);
+              out.rate = match[1];
+              out.apr = match[1];
               break;
             }
           }
           
-          // Extract monthly payment
-          let monthly_payment = 'N/A';
+          // Payment extraction
           const paymentPatterns = [
-            /\\$\\s*([\\d,]+\\.\\d{2})/,  // "$6,257.08" or "$ 6,257.08"
-            /payment.*?\\$\\s*([\\d,]+\\.\\d{2})/i,  // "Monthly Payment: $6,257.08"
-            /([\\d,]+\\.\\d{2})/  // Just number with decimals as fallback
+            /\\$\\s*([\\d,]+\\.\\d{2})/,
+            /payment[^\\d$]*\\$?\\s*([\\d,]+\\.\\d{2})/i
           ];
           
           for (const pattern of paymentPatterns) {
             const match = allText.match(pattern);
             if (match && match[1]) {
-              monthly_payment = match[1].replace(/,/g, '');
-              console.log('Found payment with pattern:', pattern, '=> ', monthly_payment);
+              out.monthly_payment = match[1].replace(/,/g, '');
               break;
             }
           }
           
-          // Extract discount points/lender credit
-          let discount_points = 'N/A';
+          // Points/credit extraction
           const creditPatterns = [
-            /([\\-]?\\d+\\.\\d{3})/,  // "-0.135" or "0.135"
-            /credit.*?([\\-]?\\d+\\.\\d{2,3})/i,  // "Lender Credit: -0.135"
-            /points.*?([\\-]?\\d+\\.\\d{2,3})/i  // "Discount Points: 0.125"
+            /([\\-]?\\d+\\.\\d{3})/,
+            /credit[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i,
+            /points[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i
           ];
           
           for (const pattern of creditPatterns) {
             const match = allText.match(pattern);
-            if (match && match[1] && match[1] !== rate) {
-              discount_points = match[1];
-              console.log('Found points with pattern:', pattern, '=> ', discount_points);
+            if (match && match[1] && match[1] !== out.rate) {
+              out.discount_points = match[1];
               break;
             }
           }
           
-          return {
-            rate: rate,
-            monthly_payment: monthly_payment,
-            apr: rate,
-            discount_points: discount_points,
-            program_name: 'Quick Pricer Result',
-            priced_at: new Date().toISOString(),
-            debug_text: allText.substring(0, 500)  // Include for debugging
-          };
+          return out;
         });
         
-        console.log('Extracted results:', JSON.stringify(results));
+        console.log('Main document extraction:', JSON.stringify(results));
         
-        // Validate or fallback to whole document parsing
+        // If main doc failed, try iframes
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          const fallback = await page.evaluate(() => {
-            const allText = (document.body?.innerText || document.body?.textContent || '').trim();
-            function parse(allText) {
-              const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: '' };
-              if (!allText) return out;
-              out.debug_text = allText.substring(0,800);
-              const r1 = allText.match(/Rate[^\\d]*(\\d+(?:\\.\\d{2,3})?)\\s*%/i) || allText.match(/(\\d+(?:\\.\\d{2,3})?)\\s*%/);
-              const p1 = allText.match(/Monthly\\s*Payment[^\\d$]*\\$?\\s*([\\d,]+\\.\\d{2})/i) || allText.match(/\\$\\s*([\\d,]+\\.\\d{2})/);
-              const d1 = allText.match(/(Lender\\s*Credit|Discount\\s*Points)[^\\d-]*(\\-?\\d+\\.\\d{2,3})%?/i) || allText.match(/\\-?\\d+\\.\\d{3}/);
-              if (r1) out.rate = (r1[1] || r1[0]).replace('%','');
-              if (p1) out.monthly_payment = (p1[1] || p1[0]).replace(/,/g,'').replace('$','');
-              if (d1) out.discount_points = (d1[2] || d1[0]).replace('%','');
-              return out;
+          console.log('Checking iframes for results...');
+          const frames = page.frames();
+          for (let i = 0; i < frames.length; i++) {
+            try {
+              const frameResults = await frames[i].evaluate(() => {
+                const text = document.body?.innerText || '';
+                const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: text.substring(0, 800) };
+                
+                const r = text.match(/(\\d+\\.\\d{2,3})\\s*%/);
+                const p = text.match(/\\$\\s*([\\d,]+\\.\\d{2})/);
+                const d = text.match(/([\\-]?\\d+\\.\\d{3})/);
+                
+                if (r) out.rate = r[1];
+                if (p) out.monthly_payment = p[1].replace(/,/g, '');
+                if (d && d[1] !== out.rate) out.discount_points = d[1];
+                
+                return out;
+              });
+              
+              if (frameResults.rate !== 'N/A' && frameResults.monthly_payment !== 'N/A') {
+                console.log(\`Found results in iframe \${i}\`);
+                results = { ...results, ...frameResults };
+                break;
+              }
+            } catch (e) {
+              // Frame access error, skip
             }
-            const parsed = parse(allText);
-            return { ...parsed, apr: parsed.rate, program_name: 'Quick Pricer Result', priced_at: new Date().toISOString(), from: 'body' };
-          });
-          console.log('Fallback extraction:', JSON.stringify(fallback));
-          if (fallback.rate !== 'N/A' && fallback.monthly_payment !== 'N/A') {
-            results = fallback;
           }
         }
         
         // Final validation
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          // Try simple screenshot to assist debugging
-          try { const s = await page.screenshot({ encoding: 'base64', fullPage: true }); console.log('Screenshot (base64, first 120):', s.substring(0,120)+'...'); } catch(e){}
+          // Take screenshot for debugging
+          try {
+            const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true });
+            console.log('Screenshot (base64 prefix):', screenshot.substring(0, 120) + '...');
+          } catch (e) {
+            console.error('Screenshot failed:', e.message);
+          }
+          
           throw new Error('Failed to extract valid pricing results. Rate: ' + results.rate + ', Payment: ' + results.monthly_payment + ', Debug text: ' + results.debug_text);
         }
         
+        console.log('Final extracted results:', JSON.stringify(results));
         return results;
       };
     `;
