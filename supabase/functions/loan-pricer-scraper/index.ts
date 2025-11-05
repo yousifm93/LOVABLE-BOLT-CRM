@@ -238,9 +238,9 @@ serve(async (req) => {
           // Extract rate - try multiple patterns
           let rate = 'N/A';
           const ratePatterns = [
-            /(\d+\.\d{2,3})\s*%/,  // "6.125 %" or "6.125%"
-            /rate.*?(\d+\.\d{2,3})/i,  // "Rate: 6.125"
-            /(\d+\.\d{2,3})/  // Just the number as fallback
+            /(\\d+\\.\\d{2,3})\\s*%/,  // "6.125 %" or "6.125%"
+            /rate.*?(\\d+\\.\\d{2,3})/i,  // "Rate: 6.125"
+            /(\\d+\\.\\d{2,3})/  // Just the number as fallback
           ];
           
           for (const pattern of ratePatterns) {
@@ -255,9 +255,9 @@ serve(async (req) => {
           // Extract monthly payment
           let monthly_payment = 'N/A';
           const paymentPatterns = [
-            /\$\s*([\d,]+\.\d{2})/,  // "$6,257.08" or "$ 6,257.08"
-            /payment.*?\$\s*([\d,]+\.\d{2})/i,  // "Monthly Payment: $6,257.08"
-            /([\d,]+\.\d{2})/  // Just number with decimals as fallback
+            /\\$\\s*([\\d,]+\\.\\d{2})/,  // "$6,257.08" or "$ 6,257.08"
+            /payment.*?\\$\\s*([\\d,]+\\.\\d{2})/i,  // "Monthly Payment: $6,257.08"
+            /([\\d,]+\\.\\d{2})/  // Just number with decimals as fallback
           ];
           
           for (const pattern of paymentPatterns) {
@@ -272,9 +272,9 @@ serve(async (req) => {
           // Extract discount points/lender credit
           let discount_points = 'N/A';
           const creditPatterns = [
-            /([-]?\d+\.\d{3})/,  // "-0.135" or "0.135"
-            /credit.*?([-]?\d+\.\d{2,3})/i,  // "Lender Credit: -0.135"
-            /points.*?([-]?\d+\.\d{2,3})/i  // "Discount Points: 0.125"
+            /([\\-]?\\d+\\.\\d{3})/,  // "-0.135" or "0.135"
+            /credit.*?([\\-]?\\d+\\.\\d{2,3})/i,  // "Lender Credit: -0.135"
+            /points.*?([\\-]?\\d+\\.\\d{2,3})/i  // "Discount Points: 0.125"
           ];
           
           for (const pattern of creditPatterns) {
@@ -307,9 +307,9 @@ serve(async (req) => {
               const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: '' };
               if (!allText) return out;
               out.debug_text = allText.substring(0,800);
-              const r1 = allText.match(/Rate[^\d]*(\d+(?:\.\d{2,3})?)\s*%/i) || allText.match(/(\d+(?:\.\d{2,3})?)\s*%/);
-              const p1 = allText.match(/Monthly\s*Payment[^\d$]*\$?\s*([\d,]+\.\d{2})/i) || allText.match(/\$\s*([\d,]+\.\d{2})/);
-              const d1 = allText.match(/(Lender\s*Credit|Discount\s*Points)[^\d-]*(\-?\d+\.\d{2,3})%?/i) || allText.match(/-?\d+\.\d{3}/);
+              const r1 = allText.match(/Rate[^\\d]*(\\d+(?:\\.\\d{2,3})?)\\s*%/i) || allText.match(/(\\d+(?:\\.\\d{2,3})?)\\s*%/);
+              const p1 = allText.match(/Monthly\\s*Payment[^\\d$]*\\$?\\s*([\\d,]+\\.\\d{2})/i) || allText.match(/\\$\\s*([\\d,]+\\.\\d{2})/);
+              const d1 = allText.match(/(Lender\\s*Credit|Discount\\s*Points)[^\\d-]*(\\-?\\d+\\.\\d{2,3})%?/i) || allText.match(/\\-?\\d+\\.\\d{3}/);
               if (r1) out.rate = (r1[1] || r1[0]).replace('%','');
               if (p1) out.monthly_payment = (p1[1] || p1[0]).replace(/,/g,'').replace('$','');
               if (d1) out.discount_points = (d1[2] || d1[0]).replace('%','');
