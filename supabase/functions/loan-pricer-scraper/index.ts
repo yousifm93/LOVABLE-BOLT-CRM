@@ -46,13 +46,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Parse body once before try block to avoid "Body already consumed" error
+  const { run_id } = await req.json();
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { run_id } = await req.json();
     console.log('[loan-pricer-scraper] Starting run:', run_id);
 
     // Fetch the pricing run
@@ -83,8 +84,8 @@ serve(async (req) => {
     
     // Create the browser automation script
     const browserScript = `
-      module.exports = async ({ page }) => {
-        const scenarioData = ${JSON.stringify(scenarioData)};
+      export default async ({ page, context }) => {
+        const scenarioData = context.scenarioData;
         
         // Helper function to fill field by label
         async function fillFieldByLabel(labelText, value, fieldType = 'input') {
@@ -210,7 +211,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         code: browserScript,
-        context: {},
+        context: {
+          scenarioData: scenarioData
+        },
       }),
     });
 
@@ -255,10 +258,6 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
-      // Parse the run_id from the original request
-      const bodyText = await req.text();
-      const body = JSON.parse(bodyText);
-      
       await supabase
         .from('pricing_runs')
         .update({
@@ -266,7 +265,7 @@ serve(async (req) => {
           error_message: error.message,
           completed_at: new Date().toISOString()
         })
-        .eq('id', body.run_id);
+        .eq('id', run_id);
     } catch (updateError) {
       console.error('[loan-pricer-scraper] Error updating failed status:', updateError);
     }
