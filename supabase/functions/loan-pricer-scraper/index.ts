@@ -99,7 +99,7 @@ serve(async (req) => {
               const buttons = await page.$x(buttonSelector);
               if (buttons[0]) {
                 await buttons[0].click();
-                await page.waitForTimeout(500);
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 // Click option
                 const optionSelector = \`//li[@role="option" and contains(text(), "\${value}")]\`;
@@ -107,7 +107,7 @@ serve(async (req) => {
                 const options = await page.$x(optionSelector);
                 if (options[0]) {
                   await options[0].click();
-                  await page.waitForTimeout(300);
+                  await new Promise(resolve => setTimeout(resolve, 300));
                 }
               }
             } else if (fieldType === 'input') {
@@ -135,11 +135,11 @@ serve(async (req) => {
         
         // Navigate to pricer
         await page.goto('https://pricer.admortgage.com/', { waitUntil: 'networkidle2' });
-        await page.waitForTimeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Fill form fields
         await fillFieldByLabel('Program', scenarioData.program_type, 'dropdown');
-        await page.waitForTimeout(500);
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         await fillFieldByLabel('Citizenship', scenarioData.citizenship, 'dropdown');
         await fillFieldByLabel('Occupancy', scenarioData.occupancy, 'dropdown');
@@ -186,7 +186,7 @@ serve(async (req) => {
         const submitButton = await page.$('button[type="submit"]');
         if (submitButton) {
           await submitButton.click();
-          await page.waitForTimeout(3000);
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
         
         // Extract results (placeholder - adjust selectors based on actual page)
