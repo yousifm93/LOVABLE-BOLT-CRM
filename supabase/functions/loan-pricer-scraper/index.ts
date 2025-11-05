@@ -182,26 +182,58 @@ serve(async (req) => {
           await fillFieldByLabel('Sub Financing', true, 'checkbox');
         }
         
-        // Wait for the dynamic response box to appear with pricing results
-        console.log('Waiting for response box to load...');
-        await page.waitForSelector('div.quickPricerBody_response', { timeout: 15000 });
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait for form to fully process and results to appear
+        console.log('Waiting for pricing results to load...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Try multiple selectors to find the response box
+        let responseBoxFound = false;
+        const selectors = [
+          'div.quickPricerBody_response',
+          '[class*="quickPricer"][class*="response"]',
+          '[class*="response"]'
+        ];
+        
+        for (const selector of selectors) {
+          try {
+            await page.waitForSelector(selector, { timeout: 5000 });
+            console.log(\`Found results using selector: \${selector}\`);
+            responseBoxFound = true;
+            break;
+          } catch (e) {
+            console.log(\`Selector \${selector} not found, trying next...\`);
+          }
+        }
+        
+        if (!responseBoxFound) {
+          // Take a screenshot for debugging
+          console.log('Response box not found with any selector, taking screenshot...');
+          const screenshot = await page.screenshot({ encoding: 'base64' });
+          console.log('Screenshot captured (base64):', screenshot.substring(0, 100) + '...');
+          throw new Error('Could not find pricing results on page. The form may not have been filled correctly or results did not load.');
+        }
+        
+        // Extra wait for results to fully populate
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Extract real pricing results from the page
         console.log('Extracting pricing results...');
         const results = await page.evaluate(() => {
-          const responseBox = document.querySelector('div.quickPricerBody_response');
+          // Try multiple ways to find the response container
+          let responseBox = document.querySelector('div.quickPricerBody_response') ||
+                           document.querySelector('[class*="quickPricer"][class*="response"]') ||
+                           document.querySelector('[class*="response"]');
           
           if (!responseBox) {
-            throw new Error('Response box not found');
+            throw new Error('Response box not found in DOM');
           }
           
-          // Find all text nodes in the response box
-          const allText = responseBox.innerText;
+          // Get all text from the response area
+          const allText = responseBox.innerText || responseBox.textContent;
           console.log('Response box text:', allText);
           
-          // Extract rate (pattern: X.XXX%)
-          const rateMatch = allText.match(/(\d+\.\d+)%/);
+          // Extract rate (pattern: X.XXX% or X.XX%)
+          const rateMatch = allText.match(/(\d+\.\d{2,3})%/);
           const rate = rateMatch ? rateMatch[1] : 'N/A';
           
           // Extract monthly payment (pattern: $X,XXX.XX)
@@ -209,7 +241,6 @@ serve(async (req) => {
           const monthly_payment = paymentMatch ? paymentMatch[0].replace('$', '').replace(/,/g, '') : 'N/A';
           
           // Extract discount points/lender credit (pattern: -X.XXX or X.XXX)
-          // Look for a number that's not the rate or payment
           const creditMatches = allText.match(/-?\d+\.\d{3}/g);
           let discount_points = 'N/A';
           if (creditMatches && creditMatches.length > 0) {
@@ -231,7 +262,7 @@ serve(async (req) => {
         
         // Validate that we got real data
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          throw new Error('Failed to extract valid pricing results from page');
+          throw new Error('Failed to extract valid pricing results. Rate: ' + results.rate + ', Payment: ' + results.monthly_payment);
         }
         
         return results;
