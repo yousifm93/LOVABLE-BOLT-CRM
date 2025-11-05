@@ -182,22 +182,57 @@ serve(async (req) => {
           await fillFieldByLabel('Sub Financing', true, 'checkbox');
         }
         
-        // Submit form
-        const submitButton = await page.$('button[type="submit"]');
-        if (submitButton) {
-          await submitButton.click();
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
+        // Wait for the dynamic response box to appear with pricing results
+        console.log('Waiting for response box to load...');
+        await page.waitForSelector('div.quickPricerBody_response', { timeout: 15000 });
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Extract results (placeholder - adjust selectors based on actual page)
-        const results = {
-          rate: '6.750',
-          monthly_payment: '2594.00',
-          apr: '6.812',
-          discount_points: '0.125',
-          program_name: \`\${scenarioData.program_type} \${scenarioData.amortization_type}\`,
-          priced_at: new Date().toISOString()
-        };
+        // Extract real pricing results from the page
+        console.log('Extracting pricing results...');
+        const results = await page.evaluate(() => {
+          const responseBox = document.querySelector('div.quickPricerBody_response');
+          
+          if (!responseBox) {
+            throw new Error('Response box not found');
+          }
+          
+          // Find all text nodes in the response box
+          const allText = responseBox.innerText;
+          console.log('Response box text:', allText);
+          
+          // Extract rate (pattern: X.XXX%)
+          const rateMatch = allText.match(/(\d+\.\d+)%/);
+          const rate = rateMatch ? rateMatch[1] : 'N/A';
+          
+          // Extract monthly payment (pattern: $X,XXX.XX)
+          const paymentMatch = allText.match(/\$[\d,]+\.\d{2}/);
+          const monthly_payment = paymentMatch ? paymentMatch[0].replace('$', '').replace(/,/g, '') : 'N/A';
+          
+          // Extract discount points/lender credit (pattern: -X.XXX or X.XXX)
+          // Look for a number that's not the rate or payment
+          const creditMatches = allText.match(/-?\d+\.\d{3}/g);
+          let discount_points = 'N/A';
+          if (creditMatches && creditMatches.length > 0) {
+            // Filter out the rate if it appears in this format
+            discount_points = creditMatches.find(m => m !== rate) || creditMatches[0];
+          }
+          
+          return {
+            rate: rate,
+            monthly_payment: monthly_payment,
+            apr: rate, // Using rate as APR for now
+            discount_points: discount_points,
+            program_name: 'Quick Pricer Result',
+            priced_at: new Date().toISOString()
+          };
+        });
+        
+        console.log('Extracted results:', results);
+        
+        // Validate that we got real data
+        if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
+          throw new Error('Failed to extract valid pricing results from page');
+        }
         
         return results;
       };
