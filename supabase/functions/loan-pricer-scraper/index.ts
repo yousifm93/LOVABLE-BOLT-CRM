@@ -203,7 +203,7 @@ serve(async (req) => {
     `;
 
     // Call Browserless /function endpoint
-    const browserlessResponse = await fetch(`https://chrome.browserless.io/function?token=${browserlessKey}`, {
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/function?token=${browserlessKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
