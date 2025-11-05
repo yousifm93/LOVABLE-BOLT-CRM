@@ -3,11 +3,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Clock, CheckCircle, XCircle, Download, Eye } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Clock, CheckCircle, XCircle, Download, Eye, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { NewRunModal } from "./loan-pricer/NewRunModal";
+import { ResultsModal } from "./loan-pricer/ResultsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/formatters";
 
 interface PricingRun {
   id: string;
@@ -16,6 +20,9 @@ interface PricingRun {
   started_at: string;
   completed_at: string | null;
   scenario_json: any;
+  results_json: any;
+  error_message: string | null;
+  retry_count: number;
   leads?: {
     first_name: string;
     last_name: string;
@@ -24,13 +31,52 @@ interface PricingRun {
 
 export function LoanPricer() {
   const [isNewRunModalOpen, setIsNewRunModalOpen] = useState(false);
+  const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<PricingRun | null>(null);
   const [pricingRuns, setPricingRuns] = useState<PricingRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [prefilledScenario, setPrefilledScenario] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchPricingRuns();
-  }, []);
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('pricing_runs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'pricing_runs'
+        },
+        (payload) => {
+          console.log('Pricing run updated:', payload);
+          fetchPricingRuns();
+
+          // Show toast notification on completion
+          if (payload.new.status === 'completed') {
+            const rate = payload.new.results_json?.rate;
+            toast({
+              title: "✓ Pricing Run Completed",
+              description: rate ? `Rate: ${rate}%` : "Results are ready to view",
+            });
+          } else if (payload.new.status === 'failed') {
+            toast({
+              title: "Pricing Run Failed",
+              description: payload.new.error_message || "An error occurred during pricing",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
 
   const fetchPricingRuns = async () => {
     try {
@@ -59,6 +105,37 @@ export function LoanPricer() {
     }
   };
 
+  const handleViewResults = (run: PricingRun) => {
+    setSelectedRun(run);
+    setIsResultsModalOpen(true);
+  };
+
+  const handleRunAgain = (scenarioData: any) => {
+    setPrefilledScenario(scenarioData);
+    setIsNewRunModalOpen(true);
+  };
+
+  const handleRetry = async (run: PricingRun) => {
+    try {
+      const { error } = await supabase.functions.invoke('loan-pricer-scraper', {
+        body: { run_id: run.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Retry started",
+        description: "The pricing run is being retried.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error retrying run",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -66,7 +143,7 @@ export function LoanPricer() {
       case 'failed':
         return <XCircle className="h-4 w-4 text-destructive" />;
       case 'running':
-        return <Clock className="h-4 w-4 text-warning animate-spin" />;
+        return <Loader2 className="h-4 w-4 text-warning animate-spin" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
@@ -160,11 +237,14 @@ export function LoanPricer() {
                 <TableRow>
                   <TableHead>Status</TableHead>
                   <TableHead>Borrower</TableHead>
-                  <TableHead>Loan Type</TableHead>
+                  <TableHead>Program</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Monthly Payment</TableHead>
+                  <TableHead>Disc. Points</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Duration</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -173,7 +253,33 @@ export function LoanPricer() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(run.status)}
-                        {getStatusBadge(run.status)}
+                        {run.status === 'failed' && run.error_message ? (
+                          <HoverCard>
+                            <HoverCardTrigger>
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(run.status)}
+                                {run.retry_count > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({run.retry_count}/3)
+                                  </span>
+                                )}
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                                <div className="space-y-1">
+                                  <p className="text-sm font-medium">Error Details</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {run.error_message}
+                                  </p>
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        ) : (
+                          getStatusBadge(run.status)
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -183,29 +289,86 @@ export function LoanPricer() {
                       }
                     </TableCell>
                     <TableCell>
-                      {run.scenario_json?.loan_type || 'N/A'}
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-medium">
+                          {run.scenario_json?.program_type || 'N/A'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {run.scenario_json?.loan_type || ''}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {run.scenario_json?.loan_amount ? 
-                        `$${Number(run.scenario_json.loan_amount).toLocaleString()}` : 
+                        formatCurrency(run.scenario_json.loan_amount) : 
                         'N/A'
                       }
                     </TableCell>
                     <TableCell>
-                      {format(new Date(run.started_at), 'MMM d, h:mm a')}
+                      {run.results_json?.rate ? (
+                        <span className="font-medium text-primary">{run.results_json.rate}%</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {run.results_json?.monthly_payment ? (
+                        <span className="font-medium">{formatCurrency(run.results_json.monthly_payment)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {run.results_json?.discount_points ? (
+                        <span className="font-medium">{run.results_json.discount_points}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        <div className="text-sm">
+                          {format(new Date(run.started_at), 'MMM d')}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(run.started_at), 'h:mm a')}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {run.completed_at ? 
                         `${Math.round((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s` :
-                        run.status === 'running' ? 'In progress...' : '-'
+                        run.status === 'running' ? (
+                          <span className="text-muted-foreground animate-pulse">
+                            {Math.round((new Date().getTime() - new Date(run.started_at).getTime()) / 1000)}s...
+                          </span>
+                        ) : '-'
                       }
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" disabled={run.status !== 'completed'}>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          disabled={run.status !== 'completed'}
+                          onClick={() => handleViewResults(run)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" disabled={run.status !== 'completed'}>
+                        {run.status === 'failed' && run.retry_count < 3 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRetry(run)}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          disabled={run.status !== 'completed'}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -220,8 +383,21 @@ export function LoanPricer() {
 
       <NewRunModal
         open={isNewRunModalOpen}
-        onOpenChange={setIsNewRunModalOpen}
+        onOpenChange={(open) => {
+          setIsNewRunModalOpen(open);
+          if (!open) {
+            setPrefilledScenario(null);
+          }
+        }}
         onRunCreated={fetchPricingRuns}
+        prefilledScenario={prefilledScenario}
+      />
+
+      <ResultsModal
+        open={isResultsModalOpen}
+        onOpenChange={setIsResultsModalOpen}
+        run={selectedRun}
+        onRunAgain={handleRunAgain}
       />
     </div>
   );

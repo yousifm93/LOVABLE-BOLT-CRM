@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -11,6 +11,7 @@ interface NewRunModalProps {
   onOpenChange: (open: boolean) => void;
   onRunCreated: () => void;
   leadId?: string;
+  prefilledScenario?: ScenarioData | null;
 }
 
 interface ScenarioData {
@@ -71,11 +72,18 @@ const INITIAL_SCENARIO: ScenarioData = {
   sub_financing: false
 };
 
-export function NewRunModal({ open, onOpenChange, onRunCreated, leadId }: NewRunModalProps) {
+export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [scenarioData, setScenarioData] = useState<ScenarioData>(INITIAL_SCENARIO);
+  const [scenarioData, setScenarioData] = useState<ScenarioData>(prefilledScenario || INITIAL_SCENARIO);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Update scenario data when prefilled scenario changes
+  useEffect(() => {
+    if (prefilledScenario) {
+      setScenarioData(prefilledScenario);
+    }
+  }, [prefilledScenario]);
 
   const handleNext = () => {
     if (currentStep < 3) {
