@@ -177,24 +177,18 @@ serve(async (req) => {
           console.log('Filling number display for ' + labelText + ' with ' + value);
           
           try {
-            // Wait for the label to exist
-            const labelXPath = '//label[contains(text(), "' + labelText + '")]';
-            await page.waitForXPath(labelXPath, { timeout: 5000 });
-            
             // Try multiple XPath patterns to find the number display element
             const displaySelectors = [
-              // Look for spans/divs with common value/number classes after the label
+              // label-based selectors
               '//label[contains(text(), "' + labelText + '")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
               '//label[contains(text(), "' + labelText + '")]/following::div[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
-              
-              // Look for any element containing only digits (and possibly commas/decimals)
               '//label[contains(text(), "' + labelText + '")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]',
-              
-              // Look in parent's sibling container
               '//label[contains(text(), "' + labelText + '")]/../following-sibling::*//span[string-length(translate(text(), "0123456789,.", "")) = 0][1]',
-              
-              // Look for any nearby contenteditable or editable element
-              '//label[contains(text(), "' + labelText + '")]/following::*[@contenteditable="true"][1]'
+              '//label[contains(text(), "' + labelText + '")]/following::*[@contenteditable="true"][1]',
+              // generic text-based selectors (if not a <label>)
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[@contenteditable="true"][1]'
             ];
             
             for (const selector of displaySelectors) {
@@ -238,6 +232,54 @@ serve(async (req) => {
           }
         }
         
+        // Helper: find and fill nearest numeric/text input by label
+        async function fillNearestNumericInputByLabel(labelText, value) {
+          try {
+            const inputXPaths = [
+              '//label[contains(text(), "' + labelText + '")]/following::input[@type="number"][1]',
+              '//label[contains(text(), "' + labelText + '")]/following::input[@type="text"][1]',
+              '//label[contains(text(), "' + labelText + '")]/following::*[@role="spinbutton"][1]',
+              '//label[contains(text(), "' + labelText + '")]/following::*[contains(@class,"input") or contains(@class,"MuiInput") or contains(@class,"TextField")]//input[1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="number"][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="text"][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[@role="spinbutton"][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[contains(@class,"input") or contains(@class,"MuiInput") or contains(@class,"TextField")]//input[1]'
+            ];
+            for (const xp of inputXPaths) {
+              const els = await page.$x(xp);
+              if (els.length > 0) {
+                await els[0].scrollIntoView();
+                await els[0].click({ clickCount: 3 });
+                await new Promise(r => setTimeout(r, 100));
+                await page.evaluate((el, v) => {
+                  const setVal = (node, val) => {
+                    const proto = Object.getPrototypeOf(node);
+                    const desc = Object.getOwnPropertyDescriptor(proto, 'value');
+                    if (desc && typeof desc.set === 'function') {
+                      desc.set.call(node, String(val));
+                    } else {
+                      node.value = String(val);
+                    }
+                    node.dispatchEvent(new Event('input', { bubbles: true }));
+                    node.dispatchEvent(new Event('change', { bubbles: true }));
+                  };
+                  setVal(el, v);
+                }, els[0], String(value));
+                await page.keyboard.press('Tab');
+                await new Promise(r => setTimeout(r, 200));
+                const filledValue = await page.evaluate(el => el.value, els[0]);
+                console.log('✓ Read back input for ' + labelText + ': ' + filledValue);
+                return true;
+              }
+            }
+            console.warn('No numeric/text input found for ' + labelText);
+            return false;
+          } catch (e) {
+            console.error('Error in fillNearestNumericInputByLabel for ' + labelText + ':', e.message);
+            return false;
+          }
+        }
+        
         // Helper: dismiss consent overlays
         async function dismissConsent() {
           try {
@@ -258,6 +300,7 @@ serve(async (req) => {
             }
           } catch (e) {
             // No consent needed
+          }
           }
         }
         
@@ -280,26 +323,44 @@ serve(async (req) => {
           await fillFieldByLabel('Income Type', scenarioData.income_type, 'dropdown');
         }
         
-        // Try number display first (for slider), fallback to input field
+        // Try number display first (for slider), with layered fallbacks
         let ficoFilled = await fillNumberDisplayByLabel('FICO', scenarioData.fico_score);
         if (!ficoFilled) {
           console.log('Falling back to input field for FICO');
           ficoFilled = await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
         }
-        
-        // Try number display first (for slider), fallback to input field
-        let ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
-        if (!ltvFilled) {
-          console.log('Falling back to input field for LTV');
-          ltvFilled = await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
+        if (!ficoFilled) {
+          console.log('Falling back to nearest numeric input for FICO');
+          ficoFilled = await fillNearestNumericInputByLabel('FICO', scenarioData.fico_score);
         }
         
-        // Try number display first (for slider), fallback to input field
+        // LTV/CLTV with robust fallbacks
+        let ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
+        if (!ltvFilled) {
+          ltvFilled = await fillNumberDisplayByLabel('CLTV', scenarioData.ltv);
+        }
+        if (!ltvFilled) {
+          console.log('Falling back to input field for LTV/CLTV');
+          ltvFilled = await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
+        }
+        if (!ltvFilled) {
+          console.log('Falling back to nearest numeric input for LTV/CLTV');
+          ltvFilled = await fillNearestNumericInputByLabel('LTV', scenarioData.ltv) || await fillNearestNumericInputByLabel('CLTV', scenarioData.ltv);
+        }
+        
+        // Loan Amount with robust fallbacks
         let loanAmountFilled = await fillNumberDisplayByLabel('Loan Amount', scenarioData.loan_amount);
         if (!loanAmountFilled) {
           console.log('Falling back to input field for Loan Amount');
           loanAmountFilled = await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
         }
+        if (!loanAmountFilled) {
+          console.log('Falling back to nearest numeric input for Loan Amount');
+          loanAmountFilled = await fillNearestNumericInputByLabel('Loan Amount', scenarioData.loan_amount);
+        }
+        
+        // Small pause to let UI react to numeric inputs
+        await new Promise(resolve => setTimeout(resolve, 600));
         
         // NEW: Fill Lock Period (was missing before)
         const lockValue = scenarioData.lock_period + ' Days';
