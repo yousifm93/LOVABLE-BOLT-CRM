@@ -26,6 +26,11 @@ interface ScenarioData {
   escrow_waiver: boolean;
   high_balance: boolean;
   sub_financing: boolean;
+  
+  // Non-QM specific fields (optional)
+  income_type?: string;
+  mortgage_history?: string;
+  credit_events?: string;
 }
 
 interface ScenarioFormProps {
@@ -95,6 +100,32 @@ const BROKER_COMPENSATION_OPTIONS = [
 ];
 
 const LOCK_PERIODS = [30, 45, 60, 90];
+
+const INCOME_TYPES = [
+  "2-Year Full Doc",
+  "1-Year Full Doc",
+  "24-Month Bank Statement",
+  "12-Month Bank Statement",
+  "2-Year P&L",
+  "1-Year P&L",
+  "Asset Utilization",
+  "WVOE",
+  "1099",
+  "DSCR ≥1.25",
+  "DSCR 1.0-1.24",
+  "DSCR 0.75-0.99",
+  "DSCR <0.75"
+];
+
+const MORTGAGE_HISTORY_OPTIONS = [
+  "0x30x12",
+  "0x60x12"
+];
+
+const CREDIT_EVENTS_OPTIONS = [
+  "48+ months",
+  "<48 months"
+];
 
 export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps) {
   const updateData = (field: keyof ScenarioData, value: any) => {
@@ -345,6 +376,76 @@ export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps)
             </SelectContent>
           </Select>
         </div>
+
+        {/* Non-QM Specific Fields */}
+        {data.program_type === "Non-QM" && (
+          <div className="col-span-2">
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+              <Label className="text-base font-semibold mb-4 block text-blue-900 dark:text-blue-100">
+                Non-QM Additional Requirements
+              </Label>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Income Type</Label>
+                  <Select
+                    value={data.income_type || ""}
+                    onValueChange={(value) => updateData('income_type', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select income type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INCOME_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Mortgage History</Label>
+                  <Select
+                    value={data.mortgage_history || ""}
+                    onValueChange={(value) => updateData('mortgage_history', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select mortgage history" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MORTGAGE_HISTORY_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2 mt-4">
+                <Label>Credit Events</Label>
+                <Select
+                  value={data.credit_events || ""}
+                  onValueChange={(value) => updateData('credit_events', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select credit events" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CREDIT_EVENTS_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -526,6 +627,31 @@ export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps)
                 </div>
               </div>
             </div>
+            
+            {/* Non-QM Details in Summary */}
+            {data.program_type === "Non-QM" && (
+              <div className="mt-6 pt-4 border-t">
+                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Non-QM Details</h4>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Income Type:</span>
+                        <span className="font-medium">{data.income_type || "Not set"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Mortgage History:</span>
+                        <span className="font-medium">{data.mortgage_history || "Not set"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Credit Events:</span>
+                        <span className="font-medium">{data.credit_events || "Not set"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {(data.admin_fee_buyout || data.escrow_waiver || data.high_balance || data.sub_financing) && (
               <div className="mt-6 pt-4 border-t">

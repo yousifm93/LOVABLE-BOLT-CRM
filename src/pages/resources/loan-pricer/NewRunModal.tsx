@@ -41,6 +41,11 @@ interface ScenarioData {
   escrow_waiver: boolean;
   high_balance: boolean;
   sub_financing: boolean;
+  
+  // Non-QM specific fields (optional)
+  income_type?: string;
+  mortgage_history?: string;
+  credit_events?: string;
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
@@ -69,7 +74,12 @@ const INITIAL_SCENARIO: ScenarioData = {
   admin_fee_buyout: false,
   escrow_waiver: false,
   high_balance: false,
-  sub_financing: false
+  sub_financing: false,
+  
+  // Non-QM specific
+  income_type: undefined,
+  mortgage_history: undefined,
+  credit_events: undefined
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {
@@ -98,6 +108,18 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
   };
 
   const handleSubmit = async () => {
+    // Validate Non-QM fields
+    if (scenarioData.program_type === "Non-QM") {
+      if (!scenarioData.income_type || !scenarioData.mortgage_history || !scenarioData.credit_events) {
+        toast({
+          title: "Missing Non-QM Fields",
+          description: "Please fill in all Non-QM specific fields (Income Type, Mortgage History, Credit Events)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     try {
       // Create the pricing run

@@ -206,6 +206,27 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
               </div>
             </div>
           </Card>
+
+          {/* Non-QM Details Card */}
+          {scenario?.program_type === "Non-QM" && (
+            <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+              <h3 className="font-semibold mb-3 text-sm text-blue-900 dark:text-blue-100">Non-QM Details</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Income Type:</span>
+                  <Badge variant="secondary">{scenario.income_type || 'N/A'}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mortgage History:</span>
+                  <Badge variant="secondary">{scenario.mortgage_history || 'N/A'}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Credit Events:</span>
+                  <Badge variant="secondary">{scenario.credit_events || 'N/A'}</Badge>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Additional Options Card */}

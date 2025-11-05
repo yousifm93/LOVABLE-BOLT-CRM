@@ -33,6 +33,11 @@ interface ScenarioData {
   escrow_waiver: boolean;
   high_balance: boolean;
   sub_financing: boolean;
+  
+  // Non-QM specific (optional)
+  income_type?: string;
+  mortgage_history?: string;
+  credit_events?: string;
 }
 
 serve(async (req) => {
@@ -72,20 +77,53 @@ serve(async (req) => {
       })
       .eq('id', run_id);
 
-    // TODO: Replace this with actual web scraping
-    // For now, we'll return mock data to demonstrate the flow
+    // TODO: Replace this with actual web scraping using Browserless.io
+    // 
+    // Implementation steps:
+    // 1. Sign up for Browserless.io (recommended) - https://www.browserless.io/
+    // 2. Add BROWSERLESS_API_KEY secret to Supabase Edge Functions
+    // 3. Connect to Browserless: wss://chrome.browserless.io?token=${BROWSERLESS_API_KEY}
+    // 4. Navigate to https://pricer.admortgage.com/
+    // 5. Fill in all form fields using CSS selectors
+    // 6. For Non-QM scenarios, check if program_type === "Non-QM" and fill additional fields:
+    //    - income_type (wait for selector to appear after selecting Non-QM)
+    //    - mortgage_history
+    //    - credit_events
+    // 7. Submit form and extract results
+    //
+    // Pseudocode for Non-QM handling:
+    // if (scenarioData.program_type === "Non-QM") {
+    //   await page.waitForSelector('#income-type-selector', { timeout: 5000 });
+    //   if (scenarioData.income_type) {
+    //     await page.select('#income-type-selector', scenarioData.income_type);
+    //   }
+    //   if (scenarioData.mortgage_history) {
+    //     await page.select('#mortgage-history-selector', scenarioData.mortgage_history);
+    //   }
+    //   if (scenarioData.credit_events) {
+    //     await page.select('#credit-events-selector', scenarioData.credit_events);
+    //   }
+    // }
     
     console.log('[loan-pricer-scraper] Note: Using mock data - web scraping not yet implemented');
-    console.log('[loan-pricer-scraper] To implement: Use Browserless.io, BrowserBase, or similar service');
+    console.log('[loan-pricer-scraper] Scenario data:', JSON.stringify(scenarioData, null, 2));
     
     // Mock results (replace with actual scraping)
     const mockResults = {
-      rate: '6.750',
-      monthly_payment: '2594.00',
+      rate: scenarioData.program_type === "Non-QM" ? '7.250' : '6.750',
+      monthly_payment: scenarioData.program_type === "Non-QM" ? '2735.00' : '2594.00',
       discount_points: '0.125',
-      apr: '6.812',
+      apr: scenarioData.program_type === "Non-QM" ? '7.312' : '6.812',
       program_name: `${scenarioData.program_type} ${scenarioData.amortization_type}`,
-      priced_at: new Date().toISOString()
+      priced_at: new Date().toISOString(),
+      // Include Non-QM details in results for debugging
+      ...(scenarioData.program_type === "Non-QM" && {
+        non_qm_details: {
+          income_type: scenarioData.income_type,
+          mortgage_history: scenarioData.mortgage_history,
+          credit_events: scenarioData.credit_events
+        }
+      })
     };
 
     // Update with results
