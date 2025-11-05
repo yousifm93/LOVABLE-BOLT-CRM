@@ -105,14 +105,16 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId }: NewRun
 
       if (runError) throw runError;
 
-      // Call edge function to start processing (will be implemented in Phase 2)
-      // const { error: functionError } = await supabase.functions.invoke('loan-pricer-scraper', {
-      //   body: { run_id: pricingRun.id }
-      // });
+      // Trigger the scraper edge function
+      console.log('Triggering loan pricer scraper for run:', pricingRun.id);
+      const { error: functionError } = await supabase.functions.invoke('loan-pricer-scraper', {
+        body: { run_id: pricingRun.id }
+      });
       
-      // if (functionError) {
-      //   console.warn('Edge function call failed:', functionError);
-      // }
+      if (functionError) {
+        console.error('Error invoking scraper function:', functionError);
+        // Don't throw - the run was created successfully, scraping will be retried
+      }
 
       toast({
         title: "Pricing run started",

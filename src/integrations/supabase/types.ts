@@ -3117,8 +3117,11 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          error_message: string | null
           id: string
           lead_id: string | null
+          results_json: Json | null
+          retry_count: number | null
           scenario_json: Json
           started_at: string
           status: string
@@ -3128,8 +3131,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          error_message?: string | null
           id?: string
           lead_id?: string | null
+          results_json?: Json | null
+          retry_count?: number | null
           scenario_json?: Json
           started_at?: string
           status?: string
@@ -3139,8 +3145,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          error_message?: string | null
           id?: string
           lead_id?: string | null
+          results_json?: Json | null
+          retry_count?: number | null
           scenario_json?: Json
           started_at?: string
           status?: string

@@ -1,5 +1,8 @@
 project_id = "zpsvatonxakysnbqnfcc"
 
+[functions.loan-pricer-scraper]
+verify_jwt = true
+
 [functions.income-ocr]
 verify_jwt = true
 
