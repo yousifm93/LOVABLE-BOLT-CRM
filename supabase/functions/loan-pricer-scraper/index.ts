@@ -301,7 +301,6 @@ serve(async (req) => {
           } catch (e) {
             // No consent needed
           }
-          }
         }
         
         // Navigate to pricer
