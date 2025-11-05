@@ -299,9 +299,36 @@ serve(async (req) => {
         
         console.log('Extracted results:', JSON.stringify(results));
         
-        // Validate that we got real data
+        // Validate or fallback to whole document parsing
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          throw new Error(\`Failed to extract valid pricing results. Rate: \${results.rate}, Payment: \${results.monthly_payment}, Debug text: \${results.debug_text}\`);
+          const fallback = await page.evaluate(() => {
+            const allText = (document.body?.innerText || document.body?.textContent || '').trim();
+            function parse(allText) {
+              const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: '' };
+              if (!allText) return out;
+              out.debug_text = allText.substring(0,800);
+              const r1 = allText.match(/Rate[^\d]*(\d+(?:\.\d{2,3})?)\s*%/i) || allText.match(/(\d+(?:\.\d{2,3})?)\s*%/);
+              const p1 = allText.match(/Monthly\s*Payment[^\d$]*\$?\s*([\d,]+\.\d{2})/i) || allText.match(/\$\s*([\d,]+\.\d{2})/);
+              const d1 = allText.match(/(Lender\s*Credit|Discount\s*Points)[^\d-]*(\-?\d+\.\d{2,3})%?/i) || allText.match(/-?\d+\.\d{3}/);
+              if (r1) out.rate = (r1[1] || r1[0]).replace('%','');
+              if (p1) out.monthly_payment = (p1[1] || p1[0]).replace(/,/g,'').replace('$','');
+              if (d1) out.discount_points = (d1[2] || d1[0]).replace('%','');
+              return out;
+            }
+            const parsed = parse(allText);
+            return { ...parsed, apr: parsed.rate, program_name: 'Quick Pricer Result', priced_at: new Date().toISOString(), from: 'body' };
+          });
+          console.log('Fallback extraction:', JSON.stringify(fallback));
+          if (fallback.rate !== 'N/A' && fallback.monthly_payment !== 'N/A') {
+            results = fallback;
+          }
+        }
+        
+        // Final validation
+        if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
+          // Try simple screenshot to assist debugging
+          try { const s = await page.screenshot({ encoding: 'base64', fullPage: true }); console.log('Screenshot (base64, first 120):', s.substring(0,120)+'...'); } catch(e){}
+          throw new Error(`Failed to extract valid pricing results. Rate: ${results.rate}, Payment: ${results.monthly_payment}, Debug text: ${results.debug_text}`);
         }
         
         return results;
