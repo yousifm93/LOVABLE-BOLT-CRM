@@ -133,67 +133,68 @@ serve(async (req) => {
         
         // Helper: directly type into visible number input field
         async function fillNumberInput(labelText, value) {
-          console.log('[NUMBER INPUT] Filling ' + labelText + ' with ' + value);
-          
           try {
-            // Try multiple strategies to find the visible number input
+            // More precise selectors - look for inputs specifically near the label
             const inputSelectors = [
-              // Strategy 1: Find input near label
-              '//label[contains(text(), "' + labelText + '")]/following-sibling::*//input[@type="number"]',
+              // Look in parent container of label
+              '//label[contains(text(), "' + labelText + '")]/..//input[@type="number"]',
+              // Look in following sibling containers  
+              '//label[contains(text(), "' + labelText + '")]/following-sibling::*[1]//input[@type="number"]',
+              // Look in next element after label
               '//label[contains(text(), "' + labelText + '")]/following::input[@type="number"][1]',
-              '//label[contains(text(), "' + labelText + '")]/preceding::input[@type="number"][1]',
-              
-              // Strategy 2: Find any text that contains label and nearby input
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="number"][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/..//input[@type="number"]',
-              
-              // Strategy 3: Generic number inputs (as fallback, be careful)
-              '//input[@type="number"]'
+              // Look for div containing label text and its input
+              '//div[.//label[contains(text(), "' + labelText + '")]]//input[@type="number"]'
             ];
             
+            let foundInput = null;
             for (const selector of inputSelectors) {
               try {
                 const inputs = await page.$x(selector);
                 if (inputs.length > 0) {
-                  const input = inputs[0];
-                  
-                  // Scroll into view
-                  await input.scrollIntoView();
-                  await new Promise(r => setTimeout(r, 150));
-                  
-                  // Click to focus
-                  await input.click();
-                  await new Promise(r => setTimeout(r, 100));
-                  
-                  // Select all existing text (Ctrl+A)
-                  await page.keyboard.down('Control');
-                  await page.keyboard.press('KeyA');
-                  await page.keyboard.up('Control');
-                  await new Promise(r => setTimeout(r, 50));
-                  
-                  // Type new value
-                  await page.keyboard.type(String(value), { delay: 50 });
-                  await new Promise(r => setTimeout(r, 100));
-                  
-                  // Press Tab to trigger change and move to next field
-                  await page.keyboard.press('Tab');
-                  await new Promise(r => setTimeout(r, 200));
-                  
-                  // Verify the value was set
-                  const filledValue = await page.evaluate(el => el.value, input);
-                  console.log('[NUMBER INPUT] ✓ ' + labelText + ' set to: ' + filledValue);
-                  return true;
+                  foundInput = inputs[0];
+                  break;
                 }
-              } catch (selectorError) {
-                // Try next selector
+              } catch (e) {
                 continue;
               }
             }
             
-            console.warn('[NUMBER INPUT] Could not find input for ' + labelText);
-            return false;
+            if (!foundInput) {
+              console.error('Could not find input for: ' + labelText);
+              return false;
+            }
+            
+            // Get current value before changing
+            const oldValue = await page.evaluate(el => el.value, foundInput);
+            console.log(labelText + ' current value: ' + oldValue);
+            
+            // Scroll into view and focus
+            await foundInput.scrollIntoView();
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Triple-click to select all
+            await foundInput.click({ clickCount: 3 });
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Type the new value
+            await page.keyboard.type(String(value), { delay: 80 });
+            await new Promise(r => setTimeout(r, 150));
+            
+            // Press Tab to commit the change
+            await page.keyboard.press('Tab');
+            await new Promise(r => setTimeout(r, 300));
+            
+            // Verify the change
+            const newValue = await page.evaluate(el => el.value, foundInput);
+            console.log(labelText + ' NEW value: ' + newValue + ' (expected: ' + value + ')');
+            
+            if (String(newValue) !== String(value)) {
+              console.warn('WARNING: ' + labelText + ' value mismatch! Set to ' + newValue + ' but expected ' + value);
+            }
+            
+            return true;
           } catch (error) {
-            console.error('[NUMBER INPUT] Error filling ' + labelText + ':', error.message);
+            console.error('Error filling ' + labelText + ':', error.message);
             return false;
           }
         }
