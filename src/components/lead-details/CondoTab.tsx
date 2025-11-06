@@ -23,12 +23,22 @@ const condoStatusOptions = [
   { value: "Approved", label: "Approved" }
 ];
 
+const condoApprovalTypeOptions = [
+  { value: "Limited", label: "Limited" },
+  { value: "Full", label: "Full" },
+  { value: "Non-Warrantable Full", label: "Non-Warrantable Full" },
+  { value: "Non-Warrantable Limited", label: "Non-Warrantable Limited" }
+];
+
 export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: Status / Document */}
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Status</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Building2 className="h-3 w-3" />
+          Condo
+        </Label>
         <InlineEditSelect
           value={data.condo_status}
           onValueChange={(value) => onUpdate('condo_status', value)}
@@ -69,10 +79,13 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           <Award className="h-3 w-3" />
           Approval Type
         </Label>
-        <InlineEditText
+        <InlineEditSelect
           value={data.condo_approval_type}
           onValueChange={(value) => onUpdate('condo_approval_type', value)}
-          placeholder="Limited Review, Full Review, etc."
+          options={condoApprovalTypeOptions}
+          placeholder="Select approval type"
+          showAsStatusBadge={false}
+          className="text-sm"
         />
       </div>
 

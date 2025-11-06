@@ -44,7 +44,10 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: Status / Document */}
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Status</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <ClipboardCheck className="h-3 w-3" />
+          Appraisal
+        </Label>
         <InlineEditSelect
           value={data.appraisal_status}
           onValueChange={(value) => onUpdate('appraisal_status', value)}
@@ -55,7 +58,10 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Document</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileText className="h-3 w-3" />
+          Document
+        </Label>
         <FileUploadButton
           leadId={leadId}
           fieldName="appraisal_file"
@@ -95,7 +101,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <DollarSign className="h-3 w-3" />
-          Value
+          Appraised Value
         </Label>
         <InlineEditCurrency
           value={data.appraisal_value}

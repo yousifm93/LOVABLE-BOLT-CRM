@@ -37,7 +37,10 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: Status / Documents */}
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Status</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Shield className="h-3 w-3" />
+          HOI
+        </Label>
         <InlineEditSelect
           value={data.hoi_status}
           onValueChange={(value) => onUpdate('hoi_status', value)}

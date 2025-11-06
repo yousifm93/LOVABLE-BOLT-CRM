@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, FileText, CheckCircle, MessageSquare, Mail } from "lucide-react";
+import { Calendar, Clock, FileText, CheckCircle, FileCheck, MessageSquare, Mail } from "lucide-react";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
@@ -39,7 +39,10 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: Status / Document */}
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Status</Label>
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileCheck className="h-3 w-3" />
+          Title
+        </Label>
         <InlineEditSelect
           value={data.title_status}
           onValueChange={(value) => onUpdate('title_status', value)}
@@ -72,7 +75,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
         <InlineEditDate
           value={data.title_ordered_date}
           onValueChange={(value) => onUpdate('title_ordered_date', value)}
-          placeholder="Select date"
+          placeholder="-"
         />
       </div>
       <div className="flex flex-col gap-2">
