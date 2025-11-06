@@ -14,6 +14,8 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
+import { LeadAttachmentUpload } from "@/components/ui/lead-attachment-upload";
 
 interface CreateLeadModalProps {
   open: boolean;
@@ -34,6 +36,8 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   });
   const [loading, setLoading] = useState(false);
   const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -50,6 +54,14 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     } catch (error) {
       console.error('Error loading buyer agents:', error);
     }
+  };
+
+  const handleTranscriptionComplete = (text: string) => {
+    const separator = formData.notes.trim() ? '\n\n---\n\n' : '';
+    setFormData(prev => ({
+      ...prev,
+      notes: prev.notes + separator + text
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,6 +117,36 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         }
       }
 
+      // Upload attached files
+      if (selectedFiles.length > 0 && newLead.id) {
+        setUploadingFiles(true);
+        try {
+          for (const file of selectedFiles) {
+            await databaseService.uploadLeadDocument(
+              newLead.id,
+              file,
+              { 
+                title: "Lead Attachment",
+                notes: "Uploaded during lead creation"
+              }
+            );
+          }
+          toast({
+            title: "Success",
+            description: `${selectedFiles.length} file(s) attached to lead`
+          });
+        } catch (uploadError) {
+          console.error('Error uploading files:', uploadError);
+          toast({
+            title: 'Warning',
+            description: 'Lead created but some files could not be uploaded',
+            variant: 'destructive',
+          });
+        } finally {
+          setUploadingFiles(false);
+        }
+      }
+
       setFormData({
         first_name: "",
         last_name: "",
@@ -115,6 +157,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         buyer_agent_id: null,
         task_eta: new Date(),
       });
+      setSelectedFiles([]);
       
       onLeadCreated();
       onOpenChange(false);
@@ -270,22 +313,35 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1"
-            >
-              {loading ? "Creating..." : "Create Lead"}
-            </Button>
+          <LeadAttachmentUpload
+            files={selectedFiles}
+            onFilesChange={setSelectedFiles}
+            disabled={loading || uploadingFiles}
+          />
+
+          <div className="flex justify-between items-center gap-3 pt-4">
+            <div className="flex gap-2">
+              <VoiceRecorder
+                onTranscriptionComplete={handleTranscriptionComplete}
+                disabled={loading || uploadingFiles}
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || uploadingFiles}
+              >
+                {loading ? "Creating..." : uploadingFiles ? "Uploading..." : "Create Lead"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
