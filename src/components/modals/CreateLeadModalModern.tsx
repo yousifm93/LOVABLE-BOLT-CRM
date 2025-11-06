@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CalendarIcon, ChevronDown, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { databaseService } from "@/services/database";
@@ -15,7 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/ui/voice-recorder";
-import { LeadAttachmentUpload } from "@/components/ui/lead-attachment-upload";
 
 interface CreateLeadModalProps {
   open: boolean;
@@ -38,6 +38,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -206,100 +207,112 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="Enter phone number"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Enter email address"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="buyer_agent">Real Estate Agent</Label>
+              <Select
+                value={formData.buyer_agent_id || ""}
+                onValueChange={(value) => setFormData({ ...formData, buyer_agent_id: value || null })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {buyerAgents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.first_name} {agent.last_name}
+                      {agent.brokerage ? ` - ${agent.brokerage}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="task_eta">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.task_eta && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.task_eta ? format(formData.task_eta, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.task_eta}
+                    onSelect={(date) => date && setFormData({ ...formData, task_eta: date })}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="buyer_agent">Real Estate Agent</Label>
-            <Select
-              value={formData.buyer_agent_id || ""}
-              onValueChange={(value) => setFormData({ ...formData, buyer_agent_id: value || null })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select an agent" />
-              </SelectTrigger>
-              <SelectContent>
-                {buyerAgents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.first_name} {agent.last_name}
-                    {agent.brokerage ? ` - ${agent.brokerage}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="task_eta">Due Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.task_eta && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.task_eta ? format(formData.task_eta, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.task_eta}
-                  onSelect={(date) => date && setFormData({ ...formData, task_eta: date })}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lead_on_date">Lead On Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.lead_on_date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.lead_on_date ? format(formData.lead_on_date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.lead_on_date}
-                  onSelect={(date) => date && setFormData({ ...formData, lead_on_date: date })}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-accent/50 px-2 rounded-md transition-colors">
+              <span className="text-sm font-medium">Advanced Options</span>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", isAdvancedOpen && "rotate-180")} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="lead_on_date">Lead On Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.lead_on_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.lead_on_date ? format(formData.lead_on_date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.lead_on_date}
+                      onSelect={(date) => date && setFormData({ ...formData, lead_on_date: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
@@ -312,18 +325,120 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             />
           </div>
 
-          <LeadAttachmentUpload
-            files={selectedFiles}
-            onFilesChange={setSelectedFiles}
-            disabled={loading || uploadingFiles}
+          {/* Hidden file input */}
+          <input
+            id="lead-file-input"
+            type="file"
+            multiple
+            accept=".png,.jpg,.jpeg,.pdf"
+            onChange={(e) => {
+              const newFiles = Array.from(e.target.files || []);
+              const validFiles: File[] = [];
+              
+              for (const file of newFiles) {
+                if (file.size > 10 * 1024 * 1024) {
+                  toast({
+                    title: 'File Too Large',
+                    description: `${file.name} exceeds 10MB limit.`,
+                    variant: 'destructive',
+                  });
+                  continue;
+                }
+                
+                const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+                if (!['.png', '.jpg', '.jpeg', '.pdf'].includes(extension)) {
+                  toast({
+                    title: 'Invalid File Type',
+                    description: `${file.name} must be PNG, JPG, JPEG, or PDF.`,
+                    variant: 'destructive',
+                  });
+                  continue;
+                }
+                
+                validFiles.push(file);
+              }
+              
+              const newFileList = [...selectedFiles, ...validFiles].slice(0, 5);
+              if (selectedFiles.length + validFiles.length > 5) {
+                toast({
+                  title: 'Too Many Files',
+                  description: `Maximum 5 files allowed.`,
+                  variant: 'destructive',
+                });
+              }
+              
+              setSelectedFiles(newFileList);
+              e.target.value = '';
+            }}
+            className="hidden"
           />
+
+          {/* File previews */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2 bg-muted/30 rounded-md p-3">
+              <p className="text-xs text-muted-foreground font-medium">Attachments ({selectedFiles.length})</p>
+              <div className="grid grid-cols-1 gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between gap-3 bg-background rounded-md p-2 border"
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {file.type.startsWith('image/') ? (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {file.size < 1024 ? file.size + ' B' : 
+                           file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + ' KB' : 
+                           (file.size / (1024 * 1024)).toFixed(1) + ' MB'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedFiles(selectedFiles.filter((_, i) => i !== index))}
+                      className="h-8 w-8 flex-shrink-0"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-between items-center gap-3 pt-4">
             <div className="flex gap-2">
+              {/* Record button - Green circle position */}
               <VoiceRecorder
                 onTranscriptionComplete={handleTranscriptionComplete}
                 disabled={loading || uploadingFiles}
               />
+              
+              {/* Upload button - Purple circle position */}
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => document.getElementById('lead-file-input')?.click()}
+                disabled={loading || uploadingFiles || selectedFiles.length >= 5}
+                className="rounded-full w-10 h-10"
+                title="Attach files"
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
             </div>
             
             <div className="flex gap-3">
