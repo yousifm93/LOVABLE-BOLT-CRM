@@ -20,6 +20,7 @@ import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/compon
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
+import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPartyItemsCard";
 import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
 import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
@@ -743,6 +744,9 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               leadId={leadId}
               onLeadUpdated={onLeadUpdated}
             />
+
+            {/* Third Party Items */}
+            <LeadThirdPartyItemsCard leadId={leadId || ""} />
 
             {/* Team / Contacts / Dates */}
             <LeadTeamContactsDatesCard leadId={leadId || ""} />
