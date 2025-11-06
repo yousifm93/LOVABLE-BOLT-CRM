@@ -11,7 +11,7 @@ import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
-import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
+import { CreateLeadModalModern } from "@/components/modals/CreateLeadModalModern";
 import { databaseService, type Lead as DatabaseLead, type User, type BuyerAgent } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -1311,10 +1311,13 @@ export default function Leads() {
         </div>
       )}
 
-      <CreateLeadModal
+      <CreateLeadModalModern
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
-        onLeadCreated={handleLeadCreated}
+        onLeadCreated={() => {
+          handleLeadCreated();
+          loadLeads();
+        }}
       />
 
       {selectedClient && (
