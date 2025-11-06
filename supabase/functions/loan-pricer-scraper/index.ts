@@ -198,6 +198,102 @@ serve(async (req) => {
           }
         }
         
+        // Helper: try multiple label synonyms for the same field
+        async function fillAnyOfLabels(labelSynonyms, value, fieldType = 'input') {
+          for (const labelText of labelSynonyms) {
+            const success = await fillFieldByLabel(labelText, value, fieldType);
+            if (success) {
+              console.log('Successfully filled using label: ' + labelText);
+              return true;
+            }
+          }
+          console.warn('Could not fill any of: ' + labelSynonyms.join(', '));
+          return false;
+        }
+        
+        // Helper function to fill field by label with enhanced robustness and synonym support
+        async function fillFieldByLabel(labelText, value, fieldType = 'input', fieldName = null) {
+          console.log('Filling ' + labelText + ' with ' + value + ' (type: ' + fieldType + ')');
+          
+          try {
+            if (fieldType === 'dropdown') {
+              // Wait for label
+              await page.waitForXPath('//label[contains(text(), "' + labelText + '")]', { timeout: 5000 });
+              
+              // Random delay to avoid bot detection
+              await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 200));
+              
+              // Try clicking dropdown button
+              const buttonSelector = '//label[contains(text(), "' + labelText + '")]/following::div[@role="button"][1]';
+              const buttons = await page.$x(buttonSelector);
+              if (buttons[0]) {
+                await buttons[0].scrollIntoView();
+                await buttons[0].click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Get synonyms if fieldName provided
+                const valuesToTry = fieldName ? getSynonyms(fieldName, value) : [String(value)];
+                console.log('Trying synonyms for ' + labelText + ': ' + valuesToTry.join(', '));
+                
+                // Try each synonym
+                for (const tryValue of valuesToTry) {
+                  const valueSnippet = String(tryValue).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                  const optionSelector = '//li[@role="option" and contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "' + valueSnippet.toLowerCase() + '")]';
+                  
+                  try {
+                    await page.waitForXPath(optionSelector, { timeout: 1500 });
+                    const options = await page.$x(optionSelector);
+                    if (options[0]) {
+                      await options[0].click();
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                      console.log('✓ Selected option using synonym: ' + tryValue);
+                      return true;
+                    }
+                  } catch (e) {
+                    // Try next synonym
+                    continue;
+                  }
+                }
+              }
+            } else if (fieldType === 'input') {
+              const inputSelector = '//label[contains(text(), "' + labelText + '")]/following::input[1]';
+              await page.waitForXPath(inputSelector, { timeout: 5000 });
+              const inputs = await page.$x(inputSelector);
+              if (inputs[0]) {
+                await inputs[0].scrollIntoView();
+                await inputs[0].click({ clickCount: 3 });
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await inputs[0].type(String(value), { delay: 50 });
+                
+                // Fire blur and Tab to trigger onChange
+                await page.keyboard.press('Tab');
+                await page.evaluate(el => { el.blur(); }, inputs[0]);
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Read back value to verify
+                const filledValue = await page.evaluate(el => el.value, inputs[0]);
+                console.log('Read back ' + labelText + ': ' + filledValue);
+                return true;
+              }
+            } else if (fieldType === 'checkbox') {
+              const checkboxSelector = '//span[contains(text(), "' + labelText + '")]/preceding::input[@type="checkbox"][1]';
+              const checkboxes = await page.$x(checkboxSelector);
+              if (checkboxes[0] && value === true) {
+                const isChecked = await page.evaluate((el) => el.checked, checkboxes[0]);
+                if (!isChecked) {
+                  await checkboxes[0].click();
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                return true;
+              }
+            }
+          } catch (error) {
+            console.error('Error filling ' + labelText + ':', error.message);
+            return false;
+          }
+          return false;
+        }
+        
         // Helper: dismiss consent overlays
         async function dismissConsent() {
           try {
