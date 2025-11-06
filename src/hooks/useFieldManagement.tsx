@@ -14,6 +14,7 @@ export const useFieldManagement = () => {
     const { data, error } = await supabase
       .from('crm_fields')
       .select('*')
+      .order('section', { ascending: true })
       .order('sort_order', { ascending: true });
     
     if (error) {

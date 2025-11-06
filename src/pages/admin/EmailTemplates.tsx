@@ -21,9 +21,16 @@ interface EmailTemplate {
 // Helper function to categorize fields with contact relationships
 const categorizeFieldsByType = (fields: any[]) => {
   const categories: Record<string, Array<{ tag: string; label: string }>> = {
-    'Borrower Information': [],
-    'Loan & Property': [],
-    'Financial Information': [],
+    'Names & Identity': [],
+    'Contact Information': [],
+    'Dates & Deadlines': [],
+    'Financial & Currency': [],
+    'Status & Progress': [],
+    'Loan Details': [],
+    'Property Information': [],
+    'Documents & Files': [],
+    'Team & Contacts': [],
+    'Other Information': [],
     "Buyer's Agent": [
       { tag: '{{buyer_agent_first_name}}', label: 'First Name' },
       { tag: '{{buyer_agent_last_name}}', label: 'Last Name' },
@@ -48,9 +55,6 @@ const categorizeFieldsByType = (fields: any[]) => {
       { tag: '{{account_executive_email}}', label: 'AE Email' },
       { tag: '{{account_executive_phone}}', label: 'AE Phone' },
     ],
-    'Dates & Timeline': [],
-    'Status & Operations': [],
-    'Other Fields': []
   };
   
   fields.forEach(field => {
