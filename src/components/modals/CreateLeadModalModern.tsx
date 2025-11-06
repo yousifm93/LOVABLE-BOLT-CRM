@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/ui/voice-recorder";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 
 interface CreateLeadModalProps {
   open: boolean;
@@ -33,9 +34,13 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     lead_on_date: new Date(),
     buyer_agent_id: null as string | null,
     task_eta: new Date(),
+    teammate_assigned: "",
+    referred_via: "none" as any,
+    source: "none" as any,
   });
   const [loading, setLoading] = useState(false);
   const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -44,16 +49,20 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
 
   useEffect(() => {
     if (open) {
-      loadBuyerAgents();
+      loadData();
     }
   }, [open]);
 
-  const loadBuyerAgents = async () => {
+  const loadData = async () => {
     try {
-      const agents = await databaseService.getBuyerAgents();
-      setBuyerAgents(agents || []);
+      const [agentsData, usersData] = await Promise.all([
+        databaseService.getBuyerAgents(),
+        databaseService.getUsers(),
+      ]);
+      setBuyerAgents(agentsData || []);
+      setUsers(usersData || []);
     } catch (error) {
-      console.error('Error loading buyer agents:', error);
+      console.error('Error loading data:', error);
     }
   };
 
@@ -89,7 +98,9 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         buyer_agent_id: formData.buyer_agent_id,
         task_eta: `${formData.task_eta.getFullYear()}-${String(formData.task_eta.getMonth() + 1).padStart(2, '0')}-${String(formData.task_eta.getDate()).padStart(2, '0')}`,
         status: 'Working on it',
-        teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d', // Yousif Mohamed
+        teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+        referred_via: formData.referred_via === 'none' ? null : formData.referred_via,
+        referral_source: formData.source === 'none' ? null : formData.source,
         interest_rate: 7.0,
         term: 360,
         loan_type: 'Purchase',
@@ -157,6 +168,9 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
         lead_on_date: new Date(),
         buyer_agent_id: null,
         task_eta: new Date(),
+        teammate_assigned: "",
+        referred_via: "none",
+        source: "none",
       });
       setSelectedFiles([]);
       
@@ -178,9 +192,9 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl font-semibold">
-            Create New Lead
-          </DialogTitle>
+        <DialogTitle className="text-left text-xl font-semibold">
+          Create New Lead
+        </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -233,22 +247,16 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="buyer_agent">Real Estate Agent</Label>
-              <Select
-                value={formData.buyer_agent_id || ""}
-                onValueChange={(value) => setFormData({ ...formData, buyer_agent_id: value || null })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {buyerAgents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.first_name} {agent.last_name}
-                      {agent.brokerage ? ` - ${agent.brokerage}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <InlineEditAgent
+                value={buyerAgents.find(a => a.id === formData.buyer_agent_id) || null}
+                agents={buyerAgents}
+                onValueChange={(agent) => setFormData({ 
+                  ...formData, 
+                  buyer_agent_id: agent?.id || null 
+                })}
+                placeholder="Select agent (optional)"
+                className="w-full border rounded-md"
+              />
             </div>
 
             <div className="space-y-2">
@@ -285,31 +293,63 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
               <ChevronDown className={cn("h-4 w-4 transition-transform", isAdvancedOpen && "rotate-180")} />
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-2">
+              {/* Assign User - Full Width */}
               <div className="space-y-2">
-                <Label htmlFor="lead_on_date">Lead On Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.lead_on_date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.lead_on_date ? format(formData.lead_on_date, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.lead_on_date}
-                      onSelect={(date) => date && setFormData({ ...formData, lead_on_date: date })}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="teammate_assigned">Assign User</Label>
+                <Select
+                  value={formData.teammate_assigned}
+                  onValueChange={(value) => setFormData({ ...formData, teammate_assigned: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.filter(u => u.is_assignable !== false).map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Referral Method and Referral Source - 2 Column Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="referred_via">Referral Method</Label>
+                  <Select
+                    value={formData.referred_via || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, referred_via: value === "none" ? null : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Phone">Phone</SelectItem>
+                      <SelectItem value="Referral">Referral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="source">Referral Source</Label>
+                  <Select
+                    value={formData.source || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, source: value === "none" ? null : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="Agent">Agent</SelectItem>
+                      <SelectItem value="Website">Website</SelectItem>
+                      <SelectItem value="Social Media">Social Media</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
