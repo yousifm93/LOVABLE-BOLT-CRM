@@ -131,214 +131,57 @@ serve(async (req) => {
           return [String(value)];
         }
         
-        // Helper: set slider by label using ARIA
-        async function setSliderByLabel(labelText, targetValue) {
-          console.log(\`Setting slider \${labelText} to \${targetValue}\`);
-          try {
-            // Find label and its associated slider
-            const labelElements = await page.$x(\`//label[contains(text(), "\${labelText}")]\`);
-            if (!labelElements[0]) {
-              console.warn(\`Label not found: \${labelText}\`);
-              return false;
-            }
-            
-            // Find nearest slider element by role
-            const sliderSelector = \`//label[contains(text(), "\${labelText}")]/following::*[@role="slider"][1]\`;
-            const sliders = await page.$x(sliderSelector);
-            if (!sliders[0]) {
-              console.warn(\`Slider not found for: \${labelText}\`);
-              return false;
-            }
-            
-            // Get current value and range
-            const ariaValue = await page.evaluate(el => ({
-              current: parseFloat(el.getAttribute('aria-valuenow')) || 0,
-              min: parseFloat(el.getAttribute('aria-valuemin')) || 0,
-              max: parseFloat(el.getAttribute('aria-valuemax')) || 100
-            }), sliders[0]);
-            
-            console.log(\`Current slider state: \${JSON.stringify(ariaValue)}\`);
-            
-            // Calculate steps needed
-            const target = parseFloat(targetValue);
-            const diff = target - ariaValue.current;
-            const steps = Math.abs(Math.round(diff));
-            const direction = diff > 0 ? 'ArrowRight' : 'ArrowLeft';
-            
-            // Focus slider
-            await sliders[0].scrollIntoView();
-            await sliders[0].click();
-            await new Promise(r => setTimeout(r, 200));
-            
-            // Send arrow keys to adjust slider (max 200 steps to prevent infinite loops)
-            for (let i = 0; i < Math.min(steps, 200); i++) {
-              await page.keyboard.press(direction);
-              await new Promise(r => setTimeout(r, 20));
-              
-              // Check value every 10 steps
-              if (i % 10 === 0) {
-                const currentVal = await page.evaluate(el => parseFloat(el.getAttribute('aria-valuenow')), sliders[0]);
-                if (Math.abs(currentVal - target) < 1) {
-                  console.log(\`✓ Reached target value: \${currentVal}\`);
-                  break;
-                }
-              }
-            }
-            
-            // Commit with Tab
-            await page.keyboard.press('Tab');
-            await new Promise(r => setTimeout(r, 400));
-            
-            // Verify final value
-            const finalValue = await page.evaluate(el => parseFloat(el.getAttribute('aria-valuenow')), sliders[0]);
-            console.log(\`Final slider value: \${finalValue}\`);
-            return true;
-          } catch (e) {
-            console.error(\`Error setting slider \${labelText}:\`, e.message);
-            return false;
-          }
-        }
-        
-        // Helper: try multiple label synonyms for the same field
-        async function fillAnyOfLabels(labelSynonyms, value, fieldType = 'input') {
-          for (const labelText of labelSynonyms) {
-            const success = await fillFieldByLabel(labelText, value, fieldType);
-            if (success) {
-              console.log(\`Successfully filled using label: \${labelText}\`);
-              return true;
-            }
-          }
-          console.warn(\`Could not fill any of: \${labelSynonyms.join(', ')}\`);
-          return false;
-        }
-        
-        // Helper function to fill field by label with enhanced robustness and synonym support
-        async function fillFieldByLabel(labelText, value, fieldType = 'input', fieldName = null) {
-          console.log(\`Filling \${labelText} with \${value} (type: \${fieldType})\`);
+        // Helper: directly type into visible number input field
+        async function fillNumberInput(labelText, value) {
+          console.log('[NUMBER INPUT] Filling ' + labelText + ' with ' + value);
           
           try {
-            if (fieldType === 'dropdown') {
-              // Wait for label
-              await page.waitForXPath(\`//label[contains(text(), "\${labelText}")]\`, { timeout: 5000 });
+            // Try multiple strategies to find the visible number input
+            const inputSelectors = [
+              // Strategy 1: Find input near label
+              '//label[contains(text(), "' + labelText + '")]/following-sibling::*//input[@type="number"]',
+              '//label[contains(text(), "' + labelText + '")]/following::input[@type="number"][1]',
+              '//label[contains(text(), "' + labelText + '")]/preceding::input[@type="number"][1]',
               
-              // Random delay to avoid bot detection
-              await new Promise(resolve => setTimeout(resolve, 150 + Math.random() * 200));
+              // Strategy 2: Find any text that contains label and nearby input
+              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="number"][1]',
+              '//*[contains(normalize-space(.), "' + labelText + '")]/..//input[@type="number"]',
               
-              // Try clicking dropdown button
-              const buttonSelector = \`//label[contains(text(), "\${labelText}")]/following::div[@role="button"][1]\`;
-              const buttons = await page.$x(buttonSelector);
-              if (buttons[0]) {
-                await buttons[0].scrollIntoView();
-                await buttons[0].click();
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Get synonyms if fieldName provided
-                const valuesToTry = fieldName ? getSynonyms(fieldName, value) : [String(value)];
-                console.log(\`Trying synonyms for \${labelText}: \${valuesToTry.join(', ')}\`);
-                
-                // Try each synonym
-                for (const tryValue of valuesToTry) {
-                  const valueSnippet = String(tryValue).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                  const optionSelector = \`//li[@role="option" and contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "\${valueSnippet.toLowerCase()}")]\`;
-                  
-                  try {
-                    await page.waitForXPath(optionSelector, { timeout: 1500 });
-                    const options = await page.$x(optionSelector);
-                    if (options[0]) {
-                      await options[0].click();
-                      await new Promise(resolve => setTimeout(resolve, 300));
-                      console.log(\`✓ Selected option using synonym: \${tryValue}\`);
-                      return true;
-                    }
-                  } catch (e) {
-                    // Try next synonym
-                    continue;
-                  }
-                }
-              }
-            } else if (fieldType === 'input') {
-              const inputSelector = \`//label[contains(text(), "\${labelText}")]/following::input[1]\`;
-              await page.waitForXPath(inputSelector, { timeout: 5000 });
-              const inputs = await page.$x(inputSelector);
-              if (inputs[0]) {
-                await inputs[0].scrollIntoView();
-                await inputs[0].click({ clickCount: 3 });
-                await new Promise(resolve => setTimeout(resolve, 100));
-                await inputs[0].type(String(value), { delay: 50 });
-                
-                // Fire blur and Tab to trigger onChange
-                await page.keyboard.press('Tab');
-                await page.evaluate(el => { el.blur(); }, inputs[0]);
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
-                // Read back value to verify
-                const filledValue = await page.evaluate(el => el.value, inputs[0]);
-                console.log(\`Read back \${labelText}: \${filledValue}\`);
-                return true;
-              }
-            } else if (fieldType === 'checkbox') {
-              const checkboxSelector = \`//span[contains(text(), "\${labelText}")]/preceding::input[@type="checkbox"][1]\`;
-              const checkboxes = await page.$x(checkboxSelector);
-              if (checkboxes[0] && value === true) {
-                const isChecked = await page.evaluate((el) => el.checked, checkboxes[0]);
-                if (!isChecked) {
-                  await checkboxes[0].click();
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                }
-                return true;
-              }
-            }
-          } catch (error) {
-            console.error(\`Error filling \${labelText}:\`, error.message);
-            return false;
-          }
-          return false;
-        }
-        
-        // Helper: click and type into number display next to sliders
-        async function fillNumberDisplayByLabel(labelText, value) {
-          console.log('Filling number display for ' + labelText + ' with ' + value);
-          
-          try {
-            // Try multiple XPath patterns to find the number display element
-            const displaySelectors = [
-              // label-based selectors
-              '//label[contains(text(), "' + labelText + '")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::div[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]',
-              '//label[contains(text(), "' + labelText + '")]/../following-sibling::*//span[string-length(translate(text(), "0123456789,.", "")) = 0][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::*[@contenteditable="true"][1]',
-              // generic text-based selectors (if not a <label>)
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::span[contains(@class, "value") or contains(@class, "number") or contains(@class, "display")][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[string-length(translate(text(), "0123456789,.", "")) = 0 and string-length(text()) > 0][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[@contenteditable="true"][1]'
+              // Strategy 3: Generic number inputs (as fallback, be careful)
+              '//input[@type="number"]'
             ];
             
-            for (const selector of displaySelectors) {
+            for (const selector of inputSelectors) {
               try {
-                const elements = await page.$x(selector);
-                if (elements.length > 0 && elements[0]) {
+                const inputs = await page.$x(selector);
+                if (inputs.length > 0) {
+                  const input = inputs[0];
+                  
                   // Scroll into view
-                  await elements[0].scrollIntoView();
-                  await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 100));
+                  await input.scrollIntoView();
+                  await new Promise(r => setTimeout(r, 150));
                   
-                  // Triple-click to select all content
-                  await elements[0].click({ clickCount: 3 });
-                  await new Promise(resolve => setTimeout(resolve, 150));
+                  // Click to focus
+                  await input.click();
+                  await new Promise(r => setTimeout(r, 100));
                   
-                  // Type the new value
+                  // Select all existing text (Ctrl+A)
+                  await page.keyboard.down('Control');
+                  await page.keyboard.press('KeyA');
+                  await page.keyboard.up('Control');
+                  await new Promise(r => setTimeout(r, 50));
+                  
+                  // Type new value
                   await page.keyboard.type(String(value), { delay: 50 });
+                  await new Promise(r => setTimeout(r, 100));
                   
-                  // Press Tab to confirm and move focus
+                  // Press Tab to trigger change and move to next field
                   await page.keyboard.press('Tab');
-                  await new Promise(resolve => setTimeout(resolve, 300));
+                  await new Promise(r => setTimeout(r, 200));
                   
-                  // Try to read back the value to confirm it was set
-                  const newValue = await page.evaluate(el => {
-                    return el.innerText || el.textContent || el.value || el.getAttribute('aria-valuenow');
-                  }, elements[0]);
-                  
-                  console.log('✓ Read back ' + labelText + ': ' + newValue);
+                  // Verify the value was set
+                  const filledValue = await page.evaluate(el => el.value, input);
+                  console.log('[NUMBER INPUT] ✓ ' + labelText + ' set to: ' + filledValue);
                   return true;
                 }
               } catch (selectorError) {
@@ -347,58 +190,10 @@ serve(async (req) => {
               }
             }
             
-            console.warn('Could not find number display for ' + labelText);
+            console.warn('[NUMBER INPUT] Could not find input for ' + labelText);
             return false;
           } catch (error) {
-            console.error('Error filling number display for ' + labelText + ':', error.message);
-            return false;
-          }
-        }
-        
-        // Helper: find and fill nearest numeric/text input by label
-        async function fillNearestNumericInputByLabel(labelText, value) {
-          try {
-            const inputXPaths = [
-              '//label[contains(text(), "' + labelText + '")]/following::input[@type="number"][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::input[@type="text"][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::*[@role="spinbutton"][1]',
-              '//label[contains(text(), "' + labelText + '")]/following::*[contains(@class,"input") or contains(@class,"MuiInput") or contains(@class,"TextField")]//input[1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="number"][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::input[@type="text"][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[@role="spinbutton"][1]',
-              '//*[contains(normalize-space(.), "' + labelText + '")]/following::*[contains(@class,"input") or contains(@class,"MuiInput") or contains(@class,"TextField")]//input[1]'
-            ];
-            for (const xp of inputXPaths) {
-              const els = await page.$x(xp);
-              if (els.length > 0) {
-                await els[0].scrollIntoView();
-                await els[0].click({ clickCount: 3 });
-                await new Promise(r => setTimeout(r, 100));
-                await page.evaluate((el, v) => {
-                  const setVal = (node, val) => {
-                    const proto = Object.getPrototypeOf(node);
-                    const desc = Object.getOwnPropertyDescriptor(proto, 'value');
-                    if (desc && typeof desc.set === 'function') {
-                      desc.set.call(node, String(val));
-                    } else {
-                      node.value = String(val);
-                    }
-                    node.dispatchEvent(new Event('input', { bubbles: true }));
-                    node.dispatchEvent(new Event('change', { bubbles: true }));
-                  };
-                  setVal(el, v);
-                }, els[0], String(value));
-                await page.keyboard.press('Tab');
-                await new Promise(r => setTimeout(r, 200));
-                const filledValue = await page.evaluate(el => el.value, els[0]);
-                console.log('✓ Read back input for ' + labelText + ': ' + filledValue);
-                return true;
-              }
-            }
-            console.warn('No numeric/text input found for ' + labelText);
-            return false;
-          } catch (e) {
-            console.error('Error in fillNearestNumericInputByLabel for ' + labelText + ':', e.message);
+            console.error('[NUMBER INPUT] Error filling ' + labelText + ':', error.message);
             return false;
           }
         }
@@ -448,56 +243,14 @@ serve(async (req) => {
           await fillFieldByLabel('Income Type', scenarioData.income_type, 'dropdown');
         }
         
-        // Try slider with ARIA first, then fallbacks
-        let ficoFilled = await setSliderByLabel('FICO', scenarioData.fico_score);
-        if (!ficoFilled) {
-          ficoFilled = await fillNumberDisplayByLabel('FICO', scenarioData.fico_score);
-        }
-        if (!ficoFilled) {
-          console.log('Falling back to input field for FICO');
-          ficoFilled = await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
-        }
-        if (!ficoFilled) {
-          console.log('Falling back to nearest numeric input for FICO');
-          ficoFilled = await fillNearestNumericInputByLabel('FICO', scenarioData.fico_score);
-        }
+        // Fill numeric inputs directly by typing into visible number fields
+        console.log('Filling numeric inputs (FICO, LTV, Loan Amount)...');
+        await fillNumberInput('FICO', scenarioData.fico_score);
+        await fillNumberInput('LTV', scenarioData.ltv);
+        await fillNumberInput('Loan Amount', scenarioData.loan_amount);
         
-        // LTV/CLTV with slider + fallbacks
-        let ltvFilled = await setSliderByLabel('LTV', scenarioData.ltv);
-        if (!ltvFilled) {
-          ltvFilled = await setSliderByLabel('CLTV', scenarioData.ltv);
-        }
-        if (!ltvFilled) {
-          ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
-        }
-        if (!ltvFilled) {
-          ltvFilled = await fillNumberDisplayByLabel('CLTV', scenarioData.ltv);
-        }
-        if (!ltvFilled) {
-          console.log('Falling back to input field for LTV/CLTV');
-          ltvFilled = await fillAnyOfLabels(['LTV', 'CLTV'], scenarioData.ltv.toString(), 'input');
-        }
-        if (!ltvFilled) {
-          console.log('Falling back to nearest numeric input for LTV/CLTV');
-          ltvFilled = await fillNearestNumericInputByLabel('LTV', scenarioData.ltv) || await fillNearestNumericInputByLabel('CLTV', scenarioData.ltv);
-        }
-        
-        // Loan Amount with slider + fallbacks
-        let loanAmountFilled = await setSliderByLabel('Loan Amount', scenarioData.loan_amount);
-        if (!loanAmountFilled) {
-          loanAmountFilled = await fillNumberDisplayByLabel('Loan Amount', scenarioData.loan_amount);
-        }
-        if (!loanAmountFilled) {
-          console.log('Falling back to input field for Loan Amount');
-          loanAmountFilled = await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
-        }
-        if (!loanAmountFilled) {
-          console.log('Falling back to nearest numeric input for Loan Amount');
-          loanAmountFilled = await fillNearestNumericInputByLabel('Loan Amount', scenarioData.loan_amount);
-        }
-        
-        // Small pause to let UI react to numeric inputs
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // Small pause to let UI react (results update dynamically)
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         // NEW: Fill Lock Period (was missing before)
         const lockValue = scenarioData.lock_period + ' Days';
@@ -533,71 +286,46 @@ serve(async (req) => {
           await fillFieldByLabel('Sub Financing', true, 'checkbox');
         }
         
-        // NEW: Explicitly trigger pricing
-        console.log('Triggering pricing calculation...');
-        let priceButtonClicked = false;
-        const priceButtonSelectors = [
-          '//button[contains(., "Price")]',
-          '//button[contains(., "Get Pricing")]',
-          '//button[contains(., "Search")]',
-          '//button[contains(., "Calculate")]',
-          '//div[@role="button" and contains(., "Price")]'
-        ];
+        // Wait for results to update dynamically (no button click needed)
+        console.log('Waiting for dynamic results to update...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        for (const sel of priceButtonSelectors) {
-          try {
-            const btns = await page.$x(sel);
-            if (btns[0]) {
-              await btns[0].scrollIntoView();
-              await btns[0].click();
-              console.log(\`Clicked pricing button: \${sel}\`);
-              priceButtonClicked = true;
-              
-              // Wait for network to idle after clicking
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              try {
-                await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 });
-              } catch (e) {
-                console.log('Network idle timeout, continuing...');
-              }
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              break;
-            }
-          } catch (e) {
-            // Try next
-          }
-        }
-        
-        if (!priceButtonClicked) {
-          console.log('No explicit price button found, simulating Enter key');
-          await page.keyboard.press('Enter');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          try {
-            await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 });
-          } catch (e) {
-            console.log('Network idle timeout after Enter, continuing...');
-          }
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-        
-        // Wait for results with content pattern checks
-        console.log('Waiting for pricing results with content patterns...');
-        let foundResults = false;
-        
+        // Verify results are present
         try {
-          // Wait for either percentage or currency patterns in the page
           await page.waitForFunction(() => {
             const text = document.body.innerText || '';
-            return /\\d+\\.\\d{2,3}\\s*%/.test(text) || /\\$\\s*[\\d,]+\\.\\d{2}/.test(text);
-          }, { timeout: 12000 });
-          foundResults = true;
-          console.log('Found content patterns matching results');
+            return /\d+\.\d{2,3}\s*%/.test(text) && /\$\s*[\d,]+\.\d{2}/.test(text);
+          }, { timeout: 3000 });
+          console.log('✓ Results detected on page');
         } catch (e) {
-          console.warn('Content pattern wait timed out, will try extraction anyway');
+          console.warn('Results wait timed out, attempting extraction anyway...');
+          // Wait a bit more and try
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
         
-        // Extra wait for results to stabilize
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Verify input values were set correctly
+        console.log('Verifying input values...');
+        const verification = await page.evaluate(() => {
+          const getInputValue = (labelText) => {
+            const labels = Array.from(document.querySelectorAll('label'));
+            const label = labels.find(l => l.textContent?.includes(labelText));
+            if (!label) return 'NOT_FOUND';
+            
+            // Find nearby number input
+            const container = label.parentElement || label;
+            const input = container.querySelector('input[type="number"]') ||
+                         label.nextElementSibling?.querySelector('input[type="number"]');
+            
+            return input ? input.value : 'NO_INPUT';
+          };
+          
+          return {
+            fico: getInputValue('FICO'),
+            ltv: getInputValue('LTV'),
+            loanAmount: getInputValue('Loan Amount')
+          };
+        });
+        console.log('Input verification:', JSON.stringify(verification));
         
         // Helper: extract value by label
         function extractByLabel(container, labelText, pattern) {
