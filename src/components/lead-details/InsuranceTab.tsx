@@ -46,7 +46,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
           onValueChange={(value) => onUpdate('hoi_status', value)}
           options={hoiStatusOptions}
           placeholder="Select status"
-          showAsStatusBadge={true}
+          showAsStatusBadge={false}
           className="text-sm"
         />
       </div>

@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Building2, Shield, FileCheck } from "lucide-react";
+import { Home, Building2, Shield, FileCheck, ChevronDown, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 import { AppraisalTab } from "./AppraisalTab";
 import { TitleTab } from "./TitleTab";
 import { InsuranceTab } from "./InsuranceTab";
@@ -16,6 +18,7 @@ interface LeadThirdPartyItemsCardProps {
 
 export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps) {
   const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState(true);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead-third-party', leadId],
@@ -68,87 +71,98 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base font-medium">Third Party Items</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="appraisal" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="appraisal" className="text-xs flex items-center gap-1">
-              <Home className="h-3 w-3" />
-              Appraisal
-            </TabsTrigger>
-            <TabsTrigger value="title" className="text-xs flex items-center gap-1">
-              <FileCheck className="h-3 w-3" />
-              Title
-            </TabsTrigger>
-            <TabsTrigger value="insurance" className="text-xs flex items-center gap-1">
-              <Shield className="h-3 w-3" />
-              Insurance
-            </TabsTrigger>
-            <TabsTrigger value="condo" className="text-xs flex items-center gap-1">
-              <Building2 className="h-3 w-3" />
-              Condo
-            </TabsTrigger>
-          </TabsList>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader className="pb-3">
+          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity w-full">
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <CardTitle className="text-base font-medium">Third Party Items</CardTitle>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent>
+            <Tabs defaultValue="appraisal" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="appraisal" className="text-xs flex items-center gap-1">
+                  <Home className="h-3 w-3" />
+                  Appraisal
+                </TabsTrigger>
+                <TabsTrigger value="title" className="text-xs flex items-center gap-1">
+                  <FileCheck className="h-3 w-3" />
+                  Title
+                </TabsTrigger>
+                <TabsTrigger value="insurance" className="text-xs flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  Insurance
+                </TabsTrigger>
+                <TabsTrigger value="condo" className="text-xs flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Condo
+                </TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="appraisal" className="mt-4">
-            <AppraisalTab 
-              leadId={leadId}
-              data={{
-                appr_date_time: lead.appr_date_time,
-                appr_eta: lead.appr_eta,
-                appraisal_value: lead.appraisal_value,
-                appraisal_file: lead.appraisal_file,
-                appraisal_status: lead.appraisal_status,
-                appraisal_notes: lead.appraisal_notes
-              }}
-              onUpdate={handleUpdate}
-            />
-          </TabsContent>
+              <TabsContent value="appraisal" className="mt-4">
+                <AppraisalTab 
+                  leadId={leadId}
+                  data={{
+                    appr_date_time: lead.appr_date_time,
+                    appr_eta: lead.appr_eta,
+                    appraisal_value: lead.appraisal_value,
+                    appraisal_file: lead.appraisal_file,
+                    appraisal_status: lead.appraisal_status,
+                    appraisal_notes: lead.appraisal_notes
+                  }}
+                  onUpdate={handleUpdate}
+                />
+              </TabsContent>
 
-          <TabsContent value="title" className="mt-4">
-            <TitleTab 
-              leadId={leadId}
-              data={{
-                title_ordered_date: lead.title_ordered_date,
-                title_eta: lead.title_eta,
-                title_file: lead.title_file,
-                title_status: lead.title_status,
-                title_notes: lead.title_notes
-              }}
-              onUpdate={handleUpdate}
-            />
-          </TabsContent>
+              <TabsContent value="title" className="mt-4">
+                <TitleTab 
+                  leadId={leadId}
+                  data={{
+                    title_ordered_date: lead.title_ordered_date,
+                    title_eta: lead.title_eta,
+                    title_file: lead.title_file,
+                    title_status: lead.title_status,
+                    title_notes: lead.title_notes
+                  }}
+                  onUpdate={handleUpdate}
+                />
+              </TabsContent>
 
-          <TabsContent value="insurance" className="mt-4">
-            <InsuranceTab 
-              leadId={leadId}
-              data={{
-                hoi_status: lead.hoi_status,
-                insurance_policy_file: lead.insurance_policy_file,
-                insurance_inspection_file: lead.insurance_inspection_file,
-                insurance_notes: lead.insurance_notes
-              }}
-              onUpdate={handleUpdate}
-            />
-          </TabsContent>
+              <TabsContent value="insurance" className="mt-4">
+                <InsuranceTab 
+                  leadId={leadId}
+                  data={{
+                    hoi_status: lead.hoi_status,
+                    insurance_policy_file: lead.insurance_policy_file,
+                    insurance_inspection_file: lead.insurance_inspection_file,
+                    insurance_notes: lead.insurance_notes
+                  }}
+                  onUpdate={handleUpdate}
+                />
+              </TabsContent>
 
-          <TabsContent value="condo" className="mt-4">
-            <CondoTab 
-              leadId={leadId}
-              data={{
-                condo_name: lead.condo_name,
-                condo_docs_file: lead.condo_docs_file,
-                condo_status: lead.condo_status,
-                condo_approval_type: lead.condo_approval_type,
-                condo_notes: lead.condo_notes
-              }}
-              onUpdate={handleUpdate}
-            />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
+              <TabsContent value="condo" className="mt-4">
+                <CondoTab 
+                  leadId={leadId}
+                  data={{
+                    condo_name: lead.condo_name,
+                    condo_docs_file: lead.condo_docs_file,
+                    condo_status: lead.condo_status,
+                    condo_approval_type: lead.condo_approval_type,
+                    condo_notes: lead.condo_notes
+                  }}
+                  onUpdate={handleUpdate}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

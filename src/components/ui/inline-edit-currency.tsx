@@ -21,7 +21,7 @@ export function InlineEditCurrency({
   const [editValue, setEditValue] = React.useState(value?.toString() || "");
 
   const formatCurrency = (amount: number | null) => {
-    if (!amount) return "$0";
+    if (!amount) return "-";
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',

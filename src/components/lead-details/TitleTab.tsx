@@ -48,7 +48,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           onValueChange={(value) => onUpdate('title_status', value)}
           options={titleStatusOptions}
           placeholder="Select status"
-          showAsStatusBadge={true}
+          showAsStatusBadge={false}
           className="text-sm"
         />
       </div>

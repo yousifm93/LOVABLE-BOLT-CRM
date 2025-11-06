@@ -44,7 +44,7 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           onValueChange={(value) => onUpdate('condo_status', value)}
           options={condoStatusOptions}
           placeholder="Select status"
-          showAsStatusBadge={true}
+          showAsStatusBadge={false}
           className="text-sm"
         />
       </div>
@@ -71,7 +71,7 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
         <InlineEditText
           value={data.condo_name}
           onValueChange={(value) => onUpdate('condo_name', value)}
-          placeholder="Enter condo name"
+          placeholder="-"
         />
       </div>
       <div className="flex flex-col gap-2">

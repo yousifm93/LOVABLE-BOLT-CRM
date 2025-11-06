@@ -53,7 +53,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
           onValueChange={(value) => onUpdate('appraisal_status', value)}
           options={appraisalStatusOptions}
           placeholder="Select status"
-          showAsStatusBadge={true}
+          showAsStatusBadge={false}
           className="text-sm"
         />
       </div>
@@ -106,7 +106,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
         <InlineEditCurrency
           value={data.appraisal_value}
           onValueChange={(value) => onUpdate('appraisal_value', value)}
-          placeholder="$0"
+          placeholder="-"
         />
       </div>
       <div className="flex items-end justify-start">
