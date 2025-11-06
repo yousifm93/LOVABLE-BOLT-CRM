@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Settings, Database, Users, FileText, BarChart3, Shield, Plus, Edit, Trash2, Check, X, Search, Filter, FileQuestion } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, Database, Users, FileText, Activity, Shield, Plus, Edit, Trash2, Check, X, Search, Filter, FileQuestion } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import PasswordsVault from "@/pages/PasswordsVault";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
@@ -15,13 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { useFieldManagement } from "@/hooks/useFieldManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-const systemStats = [
-  { label: "Total Records", value: "1,247", icon: Database, color: "text-primary" },
-  { label: "Active Users", value: "23", icon: Users, color: "text-success" },
-  { label: "Custom Fields", value: "72", icon: FileText, color: "text-warning" },
-  { label: "System Health", value: "98%", icon: BarChart3, color: "text-info" },
-];
-
 export default function Admin() {
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldDisplayName, setNewFieldDisplayName] = useState("");
@@ -32,6 +26,14 @@ export default function Admin() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<any>(null);
   
+  // Dashboard stats
+  const [stats, setStats] = useState({
+    totalLeads: 0,
+    activeUsers: 0,
+    customFields: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
@@ -40,6 +42,44 @@ export default function Admin() {
   const [showInactiveFields, setShowInactiveFields] = useState(true);
 
   const { fields, loading, addField, updateField, deleteField } = useFieldManagement();
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      
+      try {
+        // Fetch total leads (all pipeline stages)
+        const { count: leadsCount } = await supabase
+          .from('leads')
+          .select('*', { count: 'exact', head: true });
+        
+        // Fetch active users
+        const { count: usersCount } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true);
+        
+        // Fetch custom fields in use
+        const { count: fieldsCount } = await supabase
+          .from('crm_fields')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_in_use', true);
+        
+        setStats({
+          totalLeads: leadsCount || 0,
+          activeUsers: usersCount || 0,
+          customFields: fieldsCount || 0,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    
+    fetchStats();
+  }, []);
 
   // Apply filters
   const filteredFields = fields.filter(field => {
@@ -57,6 +97,33 @@ export default function Admin() {
   // Get unique sections and types for filter dropdowns
   const uniqueSections = Array.from(new Set(fields.map(f => f.section))).sort();
   const uniqueTypes = Array.from(new Set(fields.map(f => f.field_type))).sort();
+
+  const systemStats = [
+    { 
+      label: "Total Pipeline Records", 
+      value: loadingStats ? "..." : stats.totalLeads.toLocaleString(), 
+      icon: Database, 
+      color: "text-primary" 
+    },
+    { 
+      label: "Active Users", 
+      value: loadingStats ? "..." : stats.activeUsers.toString(), 
+      icon: Users, 
+      color: "text-success" 
+    },
+    { 
+      label: "Custom Fields", 
+      value: loadingStats ? "..." : stats.customFields.toString(), 
+      icon: FileText, 
+      color: "text-warning" 
+    },
+    { 
+      label: "System Status", 
+      value: "Operational", 
+      icon: Activity, 
+      color: "text-success" 
+    },
+  ];
 
   const handleAddField = async () => {
     if (!newFieldName || !newFieldDisplayName) return;

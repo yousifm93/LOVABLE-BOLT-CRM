@@ -154,6 +154,7 @@ export default function EmailTemplates() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [crmFields, setCrmFields] = useState<any[]>([]);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [editorMode, setEditorMode] = useState<'plain' | 'html'>('plain');
   const { toast } = useToast();
 
@@ -353,43 +354,109 @@ export default function EmailTemplates() {
               </div>
 
               <div>
-                <Label>Merge Tags</Label>
-                <div className="space-y-3 mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
-                  {Object.entries(categorizeFieldsByType(crmFields))
-                    .filter(([_, fields]) => fields.length > 0)
-                    .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => (
-                      <div key={category} className="space-y-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpandedSections(prev => ({ ...prev, [category]: !prev[category] }))}
-                          type="button"
-                          className="w-full justify-between h-auto p-2"
-                        >
-                          <h4 className="text-sm font-semibold text-foreground">{category}</h4>
-                          <span className="text-xs text-muted-foreground">
-                            {expandedSections[category] ? 'Collapse' : 'Expand'} ({fields.length} fields)
-                          </span>
-                        </Button>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Merge Tags</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const allCategories = Object.keys(categorizeFieldsByType(crmFields));
+                        const newState: Record<string, boolean> = {};
+                        allCategories.forEach(cat => newState[cat] = true);
+                        setExpandedSections(newState);
+                      }}
+                      type="button"
+                      className="text-xs h-7"
+                    >
+                      Expand All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpandedSections({})}
+                      type="button"
+                      className="text-xs h-7"
+                    >
+                      Collapse All
+                    </Button>
+                  </div>
+                </div>
+                
+                <Input
+                  placeholder="Search merge tags..."
+                  value={mergeTagSearch}
+                  onChange={(e) => setMergeTagSearch(e.target.value)}
+                  className="mb-2"
+                />
+                
+                <div className="mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(categorizeFieldsByType(crmFields))
+                      .filter(([category, fields]) => {
+                        if (!mergeTagSearch) return fields.length > 0;
                         
-                        {expandedSections[category] && (
-                          <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-md">
-                            {fields.map(({ tag, label }: { tag: string; label: string }) => (
-                              <Button
-                                key={tag}
-                                variant="outline"
-                                size="sm"
-                                onClick={() => insertMergeTag(tag)}
-                                type="button"
-                                className="text-xs h-auto py-1"
-                              >
-                                {label}
-                              </Button>
-                            ))}
+                        // Filter based on search
+                        const searchLower = mergeTagSearch.toLowerCase();
+                        const categoryMatch = category.toLowerCase().includes(searchLower);
+                        const fieldsMatch = fields.some(f => 
+                          f.label.toLowerCase().includes(searchLower) || 
+                          f.tag.toLowerCase().includes(searchLower)
+                        );
+                        
+                        return (categoryMatch || fieldsMatch) && fields.length > 0;
+                      })
+                      .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => {
+                        // Filter fields based on search
+                        const filteredFields = mergeTagSearch 
+                          ? fields.filter(f => 
+                              f.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) || 
+                              f.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
+                            )
+                          : fields;
+                        
+                        if (filteredFields.length === 0) return null;
+                        
+                        return (
+                          <div key={category} className="border rounded-md p-2 bg-card">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedSections(prev => ({ 
+                                ...prev, 
+                                [category]: !prev[category] 
+                              }))}
+                              type="button"
+                              className="w-full justify-between h-auto p-2"
+                            >
+                              <h4 className="text-xs font-semibold text-foreground">
+                                {category}
+                              </h4>
+                              <span className="text-xs text-muted-foreground">
+                                {expandedSections[category] ? '−' : '+'} {filteredFields.length}
+                              </span>
+                            </Button>
+                            
+                            {expandedSections[category] && (
+                              <div className="flex flex-wrap gap-1.5 p-2 bg-muted rounded-md mt-2">
+                                {filteredFields.map(({ tag, label }: { tag: string; label: string }) => (
+                                  <Button
+                                    key={tag}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => insertMergeTag(tag)}
+                                    type="button"
+                                    className="text-xs h-auto py-1 px-2"
+                                  >
+                                    {label}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
 
