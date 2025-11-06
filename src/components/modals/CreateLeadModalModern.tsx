@@ -205,7 +205,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 id="first_name"
                 value={formData.first_name}
                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                placeholder="Enter first name"
+                placeholder="-"
                 required
               />
             </div>
@@ -216,7 +216,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 id="last_name"
                 value={formData.last_name}
                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                placeholder="Enter last name"
+                placeholder="-"
               />
             </div>
           </div>
@@ -228,7 +228,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Enter phone number"
+                placeholder="-"
               />
             </div>
 
@@ -239,7 +239,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter email address"
+                placeholder="-"
               />
             </div>
           </div>
@@ -254,7 +254,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                   ...formData, 
                   buyer_agent_id: agent?.id || null 
                 })}
-                placeholder="Select agent (optional)"
+                placeholder="-"
                 className="w-full border rounded-md"
               />
             </div>
