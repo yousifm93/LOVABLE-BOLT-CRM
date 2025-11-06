@@ -41,9 +41,9 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4">
       {/* Top Section: Status Left, Documents Right */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b">
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <InlineEditSelect
@@ -109,7 +109,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       </div>
 
       {/* Bottom Section: Notes + Follow Up Button */}
-      <div className="pt-6 border-t space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-xs text-muted-foreground flex items-center gap-2">
             <MessageSquare className="h-3 w-3" />

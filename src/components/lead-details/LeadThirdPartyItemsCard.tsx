@@ -69,25 +69,25 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Third Party Items</CardTitle>
+        <CardTitle className="text-base font-medium">Third Party Items</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="appraisal" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="appraisal" className="flex items-center gap-2">
-              <Home className="h-4 w-4" />
+            <TabsTrigger value="appraisal" className="text-xs flex items-center gap-1">
+              <Home className="h-3 w-3" />
               Appraisal
             </TabsTrigger>
-            <TabsTrigger value="title" className="flex items-center gap-2">
-              <FileCheck className="h-4 w-4" />
+            <TabsTrigger value="title" className="text-xs flex items-center gap-1">
+              <FileCheck className="h-3 w-3" />
               Title
             </TabsTrigger>
-            <TabsTrigger value="insurance" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
+            <TabsTrigger value="insurance" className="text-xs flex items-center gap-1">
+              <Shield className="h-3 w-3" />
               Insurance
             </TabsTrigger>
-            <TabsTrigger value="condo" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
+            <TabsTrigger value="condo" className="text-xs flex items-center gap-1">
+              <Building2 className="h-3 w-3" />
               Condo
             </TabsTrigger>
           </TabsList>
