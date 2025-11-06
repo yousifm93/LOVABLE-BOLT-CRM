@@ -237,7 +237,6 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
                 {buyerAgents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
                     {agent.first_name} {agent.last_name}
