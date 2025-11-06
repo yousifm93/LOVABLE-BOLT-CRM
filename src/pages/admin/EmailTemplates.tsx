@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, Trash2, Eye, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +18,109 @@ interface EmailTemplate {
   created_at: string;
 }
 
-// Merge tags are now dynamically loaded from crm_fields table
+// Helper function to categorize fields by logical type
+const categorizeFieldsByType = (fields: any[]) => {
+  const categories: Record<string, Array<{ tag: string; label: string }>> = {
+    'Names & Identity': [],
+    'Contact Information': [],
+    'Dates & Deadlines': [],
+    'Financial & Currency': [],
+    'Status & Progress': [],
+    'Loan Details': [],
+    'Property Information': [],
+    'Documents & Files': [],
+    'Team & Contacts': [],
+    'Other Information': []
+  };
+  
+  fields.forEach(field => {
+    const fieldName = field.field_name.toLowerCase();
+    const tag = `{{${field.field_name}}}`;
+    const item = { tag, label: field.display_name };
+    
+    // Categorize based on field name patterns and types
+    if (
+      fieldName.includes('first_name') || 
+      fieldName.includes('last_name') || 
+      fieldName.includes('middle_name') ||
+      fieldName.includes('borrower_name') ||
+      fieldName.includes('dob') ||
+      fieldName === 'name'
+    ) {
+      categories['Names & Identity'].push(item);
+    } else if (
+      fieldName.includes('email') || 
+      fieldName.includes('phone')
+    ) {
+      categories['Contact Information'].push(item);
+    } else if (
+      field.field_type === 'date' || 
+      field.field_type === 'datetime' ||
+      fieldName.includes('_at') ||
+      fieldName.includes('_date') ||
+      fieldName.includes('_eta')
+    ) {
+      categories['Dates & Deadlines'].push(item);
+    } else if (
+      field.field_type === 'currency' ||
+      fieldName.includes('amount') ||
+      fieldName.includes('price') ||
+      fieldName.includes('payment') ||
+      fieldName.includes('income') ||
+      fieldName.includes('assets') ||
+      fieldName.includes('liabilities') ||
+      fieldName.includes('dues') ||
+      fieldName.includes('insurance') ||
+      fieldName.includes('rate') ||
+      fieldName.includes('piti') ||
+      fieldName.includes('principal') ||
+      fieldName.includes('taxes') ||
+      fieldName.includes('hoa')
+    ) {
+      categories['Financial & Currency'].push(item);
+    } else if (
+      fieldName.includes('status') ||
+      fieldName.includes('converted')
+    ) {
+      categories['Status & Progress'].push(item);
+    } else if (
+      fieldName.includes('loan_') ||
+      fieldName.includes('program') ||
+      fieldName.includes('term') ||
+      fieldName.includes('residency') ||
+      fieldName.includes('occupancy') ||
+      fieldName.includes('pr_type')
+    ) {
+      categories['Loan Details'].push(item);
+    } else if (
+      fieldName.includes('property_') ||
+      fieldName.includes('subject_') ||
+      fieldName.includes('address') ||
+      fieldName.includes('city') ||
+      fieldName.includes('state') ||
+      fieldName.includes('zip') ||
+      fieldName.includes('appraisal_value')
+    ) {
+      categories['Property Information'].push(item);
+    } else if (
+      field.field_type === 'file' ||
+      fieldName.includes('_file')
+    ) {
+      categories['Documents & Files'].push(item);
+    } else if (
+      fieldName.includes('agent') ||
+      fieldName.includes('lender') ||
+      fieldName.includes('teammate') ||
+      fieldName.includes('assigned')
+    ) {
+      categories['Team & Contacts'].push(item);
+    } else {
+      categories['Other Information'].push(item);
+    }
+  });
+  
+  return categories;
+};
 
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -181,6 +284,11 @@ export default function EmailTemplates() {
       preview = preview.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
     });
     
+    // Convert newlines to <br> tags if in plain text mode
+    if (editorMode === 'plain') {
+      preview = preview.replace(/\n/g, '<br>');
+    }
+    
     setPreviewHtml(preview);
   };
 
@@ -223,35 +331,24 @@ export default function EmailTemplates() {
               <div>
                 <Label>Merge Tags</Label>
                 <div className="space-y-3 mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
-                  {Object.entries(
-                    crmFields.reduce((acc, field) => {
-                      if (!acc[field.section]) {
-                        acc[field.section] = [];
-                      }
-                      acc[field.section].push({
-                        tag: `{{${field.field_name}}}`,
-                        label: field.display_name,
-                      });
-                      return acc;
-                    }, {} as Record<string, Array<{ tag: string; label: string }>>)
-                  )
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([section, fields]: [string, Array<{ tag: string; label: string }>]) => (
-                      <div key={section} className="space-y-2">
+                  {Object.entries(categorizeFieldsByType(crmFields))
+                    .filter(([_, fields]) => fields.length > 0)
+                    .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => (
+                      <div key={category} className="space-y-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))}
+                          onClick={() => setExpandedSections(prev => ({ ...prev, [category]: !prev[category] }))}
                           type="button"
                           className="w-full justify-between h-auto p-2"
                         >
-                          <h4 className="text-sm font-semibold text-foreground">{section}</h4>
+                          <h4 className="text-sm font-semibold text-foreground">{category}</h4>
                           <span className="text-xs text-muted-foreground">
-                            {expandedSections[section] ? 'Collapse' : 'Expand'} ({fields.length} fields)
+                            {expandedSections[category] ? 'Collapse' : 'Expand'} ({fields.length} fields)
                           </span>
                         </Button>
                         
-                        {expandedSections[section] && (
+                        {expandedSections[category] && (
                           <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-md">
                             {fields.map(({ tag, label }: { tag: string; label: string }) => (
                               <Button
@@ -317,7 +414,7 @@ export default function EmailTemplates() {
                 <div>
                   <Label>Preview</Label>
                   <div
-                    className="mt-2 p-4 border rounded-md bg-background"
+                    className="mt-2 p-4 border rounded-md bg-background whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 </div>
@@ -343,39 +440,44 @@ export default function EmailTemplates() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {templates.map((template) => (
-          <Card key={template.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">{template.name}</CardTitle>
-              <CardDescription>
-                Created {new Date(template.created_at).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleEdit(template)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(template.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {templates.length === 0 && (
+{templates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">No email templates yet. Create your first template!</p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Template Name</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.map((template) => (
+                <TableRow key={template.id}>
+                  <TableCell className="font-medium">{template.name}</TableCell>
+                  <TableCell>{new Date(template.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(template)}>
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(template.id)}>
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );
