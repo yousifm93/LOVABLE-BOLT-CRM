@@ -1,8 +1,10 @@
 import { Label } from "@/components/ui/label";
-import { Shield, FileText, ClipboardCheck, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, FileText, ClipboardCheck, MessageSquare, Mail } from "lucide-react";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
+import { useToast } from "@/hooks/use-toast";
 
 interface InsuranceTabProps {
   leadId: string;
@@ -22,29 +24,33 @@ const hoiStatusOptions = [
 ];
 
 export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        {/* Left Column */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Shield className="h-3 w-3" />
-              HOI Status
-            </Label>
-            <InlineEditSelect
-              value={data.hoi_status}
-              onValueChange={(value) => onUpdate('hoi_status', value)}
-              options={hoiStatusOptions}
-              placeholder="Select status"
-            />
-          </div>
+  const { toast } = useToast();
 
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <FileText className="h-3 w-3" />
-              Policy Document
-            </Label>
+  const handleFollowUp = () => {
+    toast({
+      title: "Follow Up",
+      description: "Email template functionality coming soon",
+    });
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Top Section: Status Left, Documents Right */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground">Status</Label>
+          <InlineEditSelect
+            value={data.hoi_status}
+            onValueChange={(value) => onUpdate('hoi_status', value)}
+            options={hoiStatusOptions}
+            placeholder="Select status"
+            showAsStatusBadge={true}
+            className="text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground">Documents</Label>
+          <div className="flex gap-2">
             <FileUploadButton
               leadId={leadId}
               fieldName="insurance_policy_file"
@@ -55,16 +61,6 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
                 allowed_types: ['.pdf']
               }}
             />
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <ClipboardCheck className="h-3 w-3" />
-              Inspection Report
-            </Label>
             <FileUploadButton
               leadId={leadId}
               fieldName="insurance_inspection_file"
@@ -79,12 +75,23 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         </div>
       </div>
 
-      {/* Notes Section */}
-      <div className="pt-4 border-t">
-        <Label className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-          <MessageSquare className="h-3 w-3" />
-          Insurance Notes
-        </Label>
+      {/* Bottom Section: Notes + Follow Up Button */}
+      <div className="pt-6 border-t space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground flex items-center gap-2">
+            <MessageSquare className="h-3 w-3" />
+            Notes
+          </Label>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleFollowUp}
+            className="gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            Follow Up
+          </Button>
+        </div>
         <InlineEditNotes
           value={data.insurance_notes}
           onValueChange={(value) => onUpdate('insurance_notes', value)}

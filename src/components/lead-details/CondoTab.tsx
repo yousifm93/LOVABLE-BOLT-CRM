@@ -25,74 +25,67 @@ const condoStatusOptions = [
 
 export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        {/* Left Column */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Building2 className="h-3 w-3" />
-              Condo Name
-            </Label>
-            <InlineEditText
-              value={data.condo_name}
-              onValueChange={(value) => onUpdate('condo_name', value)}
-              placeholder="Enter condo name"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <FileText className="h-3 w-3" />
-              Condo Documents
-            </Label>
-            <FileUploadButton
-              leadId={leadId}
-              fieldName="condo_docs_file"
-              currentFile={data.condo_docs_file}
-              onUpload={(url) => onUpdate('condo_docs_file', url)}
-              config={{
-                storage_path: 'files/{lead_id}/condo/',
-                allowed_types: ['.pdf', '.zip']
-              }}
-            />
-          </div>
+    <div className="space-y-6 p-6">
+      {/* Top Section: Status Left, Documents Right */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground">Status</Label>
+          <InlineEditSelect
+            value={data.condo_status}
+            onValueChange={(value) => onUpdate('condo_status', value)}
+            options={condoStatusOptions}
+            placeholder="Select status"
+            showAsStatusBadge={true}
+            className="text-sm"
+          />
         </div>
-
-        {/* Right Column */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle className="h-3 w-3" />
-              Condo Status
-            </Label>
-            <InlineEditSelect
-              value={data.condo_status}
-              onValueChange={(value) => onUpdate('condo_status', value)}
-              options={condoStatusOptions}
-              placeholder="Select status"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Award className="h-3 w-3" />
-              Approval Type
-            </Label>
-            <InlineEditText
-              value={data.condo_approval_type}
-              onValueChange={(value) => onUpdate('condo_approval_type', value)}
-              placeholder="Limited Review, Full Review, etc."
-            />
-          </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground">Documents</Label>
+          <FileUploadButton
+            leadId={leadId}
+            fieldName="condo_docs_file"
+            currentFile={data.condo_docs_file}
+            onUpload={(url) => onUpdate('condo_docs_file', url)}
+            config={{
+              storage_path: 'files/{lead_id}/condo/',
+              allowed_types: ['.pdf', '.zip']
+            }}
+          />
         </div>
       </div>
 
-      {/* Notes Section */}
-      <div className="pt-4 border-t">
-        <Label className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+      {/* Middle Section: Details in Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Building2 className="h-3 w-3" />
+            Condo Name
+          </Label>
+          <InlineEditText
+            value={data.condo_name}
+            onValueChange={(value) => onUpdate('condo_name', value)}
+            placeholder="Enter condo name"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Award className="h-3 w-3" />
+            Approval Type
+          </Label>
+          <InlineEditText
+            value={data.condo_approval_type}
+            onValueChange={(value) => onUpdate('condo_approval_type', value)}
+            placeholder="Limited Review, Full Review, etc."
+          />
+        </div>
+      </div>
+
+      {/* Bottom Section: Notes */}
+      <div className="pt-6 border-t space-y-3">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
-          Condo Notes
+          Notes
         </Label>
         <InlineEditNotes
           value={data.condo_notes}

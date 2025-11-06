@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronsUpDown, X, Plus, Building, User, Phone, Mail } from "lucide-react";
+import { Check, ChevronsUpDown, X, Plus, Building, User, Phone, Mail, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ const CONTACT_TYPES = [
   { key: 'listing_agent', label: 'Listing Agent', icon: Building },
   { key: 'title', label: 'Title Company', icon: Building },
   { key: 'insurance', label: 'Insurance Provider', icon: Building },
+  { key: 'appraisal', label: 'Appraisal Company', icon: ClipboardCheck },
 ];
 
 function ContactRow({ type, label, icon: Icon, assignment, contacts, onAssign, onRemove, onAddNew }: {
