@@ -131,70 +131,139 @@ serve(async (req) => {
           return [String(value)];
         }
         
-        // Helper: directly type into visible number input field
-        async function fillNumberInput(labelText, value) {
+        // Label synonyms for numeric inputs
+        const NUMERIC_LABEL_SYNONYMS = {
+          'FICO': ['FICO', 'Credit Score', 'FICO Score'],
+          'LTV': ['LTV', 'LTV %', 'CLTV', 'Loan to Value'],
+          'Loan Amount': ['Loan Amount', 'Base Loan Amount', 'Loan Amt']
+        };
+        
+        // Helper: directly type into visible number input field with enhanced selectors and retry
+        async function fillNumberInput(labelText, value, retryCount = 0) {
           try {
-            // More precise selectors - look for inputs specifically near the label
-            const inputSelectors = [
-              // Look in parent container of label
-              '//label[contains(text(), "' + labelText + '")]/..//input[@type="number"]',
-              // Look in following sibling containers  
-              '//label[contains(text(), "' + labelText + '")]/following-sibling::*[1]//input[@type="number"]',
-              // Look in next element after label
-              '//label[contains(text(), "' + labelText + '")]/following::input[@type="number"][1]',
-              // Look for div containing label text and its input
-              '//div[.//label[contains(text(), "' + labelText + '")]]//input[@type="number"]'
-            ];
+            const maxRetries = 2;
+            const labelSynonyms = NUMERIC_LABEL_SYNONYMS[labelText] || [labelText];
+            
+            console.log('Filling ' + labelText + ' with value: ' + value + ' (attempt ' + (retryCount + 1) + ')');
             
             let foundInput = null;
-            for (const selector of inputSelectors) {
-              try {
-                const inputs = await page.$x(selector);
-                if (inputs.length > 0) {
-                  foundInput = inputs[0];
-                  break;
+            let usedLabel = labelText;
+            
+            // Try each synonym
+            for (const synonym of labelSynonyms) {
+              // Expanded selectors to handle different input types
+              const inputSelectors = [
+                // Standard number input in parent
+                '//label[contains(text(), "' + synonym + '")]/..//input[@type="number"]',
+                // Text input with numeric mode
+                '//label[contains(text(), "' + synonym + '")]/..//input[@type="text"]',
+                '//label[contains(text(), "' + synonym + '")]/..//input[@inputmode="numeric"]',
+                // Contenteditable div
+                '//label[contains(text(), "' + synonym + '")]/..//div[@contenteditable="true"]',
+                // Following sibling containers
+                '//label[contains(text(), "' + synonym + '")]/following-sibling::*[1]//input[@type="number"]',
+                '//label[contains(text(), "' + synonym + '")]/following-sibling::*[1]//input[@type="text"]',
+                '//label[contains(text(), "' + synonym + '")]/following-sibling::*[1]//input[@inputmode="numeric"]',
+                // Next input after label
+                '//label[contains(text(), "' + synonym + '")]/following::input[@type="number"][1]',
+                '//label[contains(text(), "' + synonym + '")]/following::input[@type="text"][1]',
+                // Input with aria-label
+                '//input[contains(@aria-label, "' + synonym + '")]',
+                // Special case for LTV - prioritize inputs near % symbol
+                labelText === 'LTV' ? '//label[contains(text(), "%")]/..//input' : null
+              ].filter(Boolean);
+              
+              for (const selector of inputSelectors) {
+                try {
+                  const inputs = await page.$x(selector);
+                  if (inputs.length > 0) {
+                    foundInput = inputs[0];
+                    usedLabel = synonym;
+                    console.log('Found input using label: ' + synonym + ' with selector');
+                    break;
+                  }
+                } catch (e) {
+                  continue;
                 }
-              } catch (e) {
-                continue;
               }
+              
+              if (foundInput) break;
             }
             
             if (!foundInput) {
-              console.error('Could not find input for: ' + labelText);
+              console.error('Could not find input for: ' + labelText + ' (tried synonyms: ' + labelSynonyms.join(', ') + ')');
               return false;
             }
             
             // Get current value before changing
-            const oldValue = await page.evaluate(el => el.value, foundInput);
-            console.log(labelText + ' current value: ' + oldValue);
+            const oldValue = await page.evaluate(el => el.value || el.textContent || '', foundInput);
+            console.log(labelText + ' current value: "' + oldValue + '"');
             
             // Scroll into view and focus
             await foundInput.scrollIntoView();
-            await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => setTimeout(r, 150));
             
             // Triple-click to select all
             await foundInput.click({ clickCount: 3 });
-            await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => setTimeout(r, 120));
             
             // Type the new value
-            await page.keyboard.type(String(value), { delay: 80 });
-            await new Promise(r => setTimeout(r, 150));
+            await page.keyboard.type(String(value), { delay: 60 });
+            await new Promise(r => setTimeout(r, 200));
             
             // Press Tab to commit the change
             await page.keyboard.press('Tab');
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
             
-            // Verify the change
-            const newValue = await page.evaluate(el => el.value, foundInput);
-            console.log(labelText + ' NEW value: ' + newValue + ' (expected: ' + value + ')');
+            // Verify the change - check both input value and visible display
+            const verification = await page.evaluate((el, lbl) => {
+              const inputValue = el.value || el.textContent || '';
+              
+              // Also check for visible display near label
+              const labels = Array.from(document.querySelectorAll('label'));
+              const label = labels.find(l => l.textContent?.includes(lbl));
+              let displayValue = inputValue;
+              
+              if (label) {
+                const container = label.parentElement;
+                const visibleText = container?.textContent || '';
+                // Extract number from visible text
+                const match = visibleText.match(/(\d+(?:\.\d+)?)/);
+                if (match) displayValue = match[1];
+              }
+              
+              return { inputValue, displayValue };
+            }, foundInput, usedLabel);
             
-            if (String(newValue) !== String(value)) {
-              console.warn('WARNING: ' + labelText + ' value mismatch! Set to ' + newValue + ' but expected ' + value);
+            console.log(labelText + ' verification: input="' + verification.inputValue + '", display="' + verification.displayValue + '", expected="' + value + '"');
+            
+            // Check if value matches (allow for display value as fallback)
+            const inputMatches = String(verification.inputValue).trim() === String(value);
+            const displayMatches = String(verification.displayValue).trim() === String(value);
+            
+            if (!inputMatches && !displayMatches) {
+              console.warn('WARNING: ' + labelText + ' value mismatch!');
+              
+              // Retry with next synonym or give up
+              if (retryCount < maxRetries) {
+                console.log('Retrying ' + labelText + '...');
+                await new Promise(r => setTimeout(r, 500));
+                return await fillNumberInput(labelText, value, retryCount + 1);
+              } else {
+                console.error('Failed to set ' + labelText + ' after ' + maxRetries + ' retries');
+                return false;
+              }
             }
             
+            console.log('✓ ' + labelText + ' successfully set to ' + value);
             return true;
           } catch (error) {
             console.error('Error filling ' + labelText + ':', error.message);
+            
+            if (retryCount < 2) {
+              await new Promise(r => setTimeout(r, 500));
+              return await fillNumberInput(labelText, value, retryCount + 1);
+            }
             return false;
           }
         }
@@ -367,7 +436,13 @@ serve(async (req) => {
           }
         }
         
-        await fillFieldByLabel('DTI', scenarioData.dti, 'input');
+        // DTI is a dropdown, not a text input
+        const dtiSynonyms = {
+          'DTI <=40%': ['DTI <=40%', '<= 40%', 'DTI <= 40%', '40% or less'],
+          'DTI >40%': ['DTI >40%', '> 40%', 'DTI > 40%', 'greater than 40%']
+        };
+        const dtiOptions = dtiSynonyms[scenarioData.dti] || [scenarioData.dti];
+        await fillAnyOfLabels(['DTI', 'Debt to Income', 'DTI Ratio'], dtiOptions[0], 'dropdown');
         await fillFieldByLabel('Broker Compensation', scenarioData.broker_compensation, 'dropdown', 'broker_compensation');
         
         if (scenarioData.admin_fee_buyout) {
@@ -385,18 +460,23 @@ serve(async (req) => {
         
         // Wait for results to update dynamically (no button click needed)
         console.log('Waiting for dynamic results to update...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Verify results are present
+        // Verify results are present with stronger checks
+        console.log('Verifying results presence...');
         try {
           await page.waitForFunction(() => {
             const text = document.body.innerText || '';
-            return /\d+\.\d{2,3}\s*%/.test(text) && /\$\s*[\d,]+\.\d{2}/.test(text);
-          }, { timeout: 3000 });
+            // Check for both percentage (rate) and dollar (payment) values
+            const hasRate = /\d+\.\d{2,3}\s*%/.test(text);
+            const hasPayment = /\$\s*[\d,]+\.\d{2}/.test(text);
+            console.log('Results check: hasRate=' + hasRate + ', hasPayment=' + hasPayment);
+            return hasRate && hasPayment;
+          }, { timeout: 4000 });
           console.log('✓ Results detected on page');
         } catch (e) {
-          console.warn('Results wait timed out, attempting extraction anyway...');
-          // Wait a bit more and try
+          console.warn('Results wait timed out, waiting extra time and trying extraction...');
+          // Wait additional time for slower loading
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
         
@@ -424,10 +504,42 @@ serve(async (req) => {
         });
         console.log('Input verification:', JSON.stringify(verification));
         
-        // Helper: extract value by label
+        // Helper: extract value by label with DOM-based sibling checking
         function extractByLabel(container, labelText, pattern) {
           try {
-            // Find elements containing the label
+            // Strategy 1: Find label element and check its siblings/children
+            const labels = Array.from(container.querySelectorAll('*'));
+            for (const el of labels) {
+              const text = el.textContent || '';
+              if (text.toLowerCase().includes(labelText.toLowerCase()) && text.length < 50) {
+                // Found the label, now check siblings and children
+                const parent = el.parentElement;
+                if (parent) {
+                  const siblings = Array.from(parent.children);
+                  for (const sibling of siblings) {
+                    const sibText = sibling.textContent || '';
+                    const match = sibText.match(pattern);
+                    if (match && match[1]) {
+                      console.log('Extracted ' + labelText + ' from sibling: ' + match[1]);
+                      return match[1];
+                    }
+                  }
+                }
+                
+                // Check next sibling directly
+                let next = el.nextElementSibling;
+                if (next) {
+                  const nextText = next.textContent || '';
+                  const match = nextText.match(pattern);
+                  if (match && match[1]) {
+                    console.log('Extracted ' + labelText + ' from next sibling: ' + match[1]);
+                    return match[1];
+                  }
+                }
+              }
+            }
+            
+            // Strategy 2: Line-by-line text extraction (original method)
             const allText = container.innerText || container.textContent || '';
             const lines = allText.split('\\n');
             
@@ -438,6 +550,7 @@ serve(async (req) => {
                 for (let j = i; j < Math.min(i + 4, lines.length); j++) {
                   const match = lines[j].match(pattern);
                   if (match && match[1]) {
+                    console.log('Extracted ' + labelText + ' from line: ' + match[1]);
                     return match[1];
                   }
                 }
@@ -446,8 +559,12 @@ serve(async (req) => {
             
             // Fallback: search entire container
             const match = allText.match(pattern);
+            if (match && match[1]) {
+              console.log('Extracted ' + labelText + ' from full text: ' + match[1]);
+            }
             return match ? match[1] : null;
           } catch (e) {
+            console.error('extractByLabel error:', e.message);
             return null;
           }
         }
@@ -574,15 +691,32 @@ serve(async (req) => {
         
         // Final validation
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          // Capture debug artifacts
+          // Capture debug artifacts with cropped screenshots
           let screenshot = null;
+          let resultsScreenshot = null;
           let htmlContent = null;
           
           try {
             console.log('Capturing debug artifacts...');
-            screenshot = await page.screenshot({ encoding: 'base64', fullPage: true });
+            screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
+            
+            // Try to capture just the results area
+            try {
+              const resultsBox = await page.$('div.quickPricerBody_response');
+              if (resultsBox) {
+                resultsScreenshot = await resultsBox.screenshot({ encoding: 'base64' });
+              }
+            } catch (e) {
+              console.log('Could not capture results box screenshot');
+            }
+            
             htmlContent = await page.content();
+            
+            // Get comprehensive page text for debugging
+            const fullPageText = await page.evaluate(() => document.body.innerText);
+            
             console.log('Debug artifacts captured successfully');
+            console.log('Full page text sample: ' + fullPageText.substring(0, 1000));
           } catch (e) {
             console.error('Failed to capture debug artifacts:', e.message);
           }
@@ -592,7 +726,9 @@ serve(async (req) => {
             rate: results.rate,
             payment: results.monthly_payment,
             debug_text: results.debug_text,
-            screenshot: screenshot ? screenshot.substring(0, 100) + '...' : null,
+            input_verification: verification,
+            screenshot: screenshot ? screenshot.substring(0, 150) + '...' : null,
+            results_screenshot: resultsScreenshot ? resultsScreenshot.substring(0, 150) + '...' : null,
             html_length: htmlContent ? htmlContent.length : null
           }));
         }
