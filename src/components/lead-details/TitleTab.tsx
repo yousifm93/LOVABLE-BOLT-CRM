@@ -1,115 +1,105 @@
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Building2, User, Phone, Mail, Calendar, FileText, DollarSign } from "lucide-react";
+import { Calendar, Clock, FileText, CheckCircle, MessageSquare } from "lucide-react";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { FileUploadButton } from "@/components/ui/file-upload-button";
 
 interface TitleTabProps {
   leadId: string;
+  data: {
+    title_ordered_date: string | null;
+    title_eta: string | null;
+    title_file: string | null;
+    title_status: string | null;
+    title_notes: string | null;
+  };
+  onUpdate: (field: string, value: any) => void;
 }
 
-export function TitleTab({ leadId }: TitleTabProps) {
+const titleStatusOptions = [
+  { value: "Requested", label: "Requested" },
+  { value: "Received", label: "Received" },
+  { value: "On Hold", label: "On Hold" }
+];
+
+export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
   return (
-    <>
-      {/* Left Column */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Title Company</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Building2 className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter company" 
-              className="h-8"
-              disabled
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        {/* Left Column */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="h-3 w-3" />
+              Ordered Date
+            </Label>
+            <InlineEditDate
+              value={data.title_ordered_date}
+              onValueChange={(value) => onUpdate('title_ordered_date', value)}
+              placeholder="Select date"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              Title ETA
+            </Label>
+            <InlineEditDate
+              value={data.title_eta}
+              onValueChange={(value) => onUpdate('title_eta', value)}
+              placeholder="Select ETA date"
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Title Officer</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter name" 
-              className="h-8"
-              disabled
+        {/* Right Column */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3 w-3" />
+              Title File
+            </Label>
+            <FileUploadButton
+              leadId={leadId}
+              fieldName="title_file"
+              currentFile={data.title_file}
+              onUpload={(url) => onUpdate('title_file', url)}
+              config={{
+                storage_path: 'files/{lead_id}/title/',
+                allowed_types: ['.pdf']
+              }}
             />
           </div>
-        </div>
 
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Officer Phone</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="(555) 555-5555" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Officer Email</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Mail className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="email@example.com" 
-              className="h-8"
-              disabled
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <CheckCircle className="h-3 w-3" />
+              Title Status
+            </Label>
+            <InlineEditSelect
+              value={data.title_status}
+              onValueChange={(value) => onUpdate('title_status', value)}
+              options={titleStatusOptions}
+              placeholder="Select status"
             />
           </div>
         </div>
       </div>
 
-      {/* Right Column */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Ordered Date</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Select date" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Commitment Date</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Select date" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Policy Number</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <FileText className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter policy number" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Premium Amount</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <DollarSign className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="$0" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
+      {/* Notes Section */}
+      <div className="pt-4 border-t">
+        <Label className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Title Notes
+        </Label>
+        <InlineEditNotes
+          value={data.title_notes}
+          onValueChange={(value) => onUpdate('title_notes', value)}
+          placeholder="Add notes about title work..."
+        />
       </div>
-    </>
+    </div>
   );
 }

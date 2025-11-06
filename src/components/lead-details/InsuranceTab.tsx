@@ -1,115 +1,96 @@
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Shield, User, Phone, Mail, FileText, DollarSign, Calendar } from "lucide-react";
+import { Shield, FileText, ClipboardCheck, MessageSquare } from "lucide-react";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { FileUploadButton } from "@/components/ui/file-upload-button";
 
 interface InsuranceTabProps {
   leadId: string;
+  data: {
+    hoi_status: string | null;
+    insurance_policy_file: string | null;
+    insurance_inspection_file: string | null;
+    insurance_notes: string | null;
+  };
+  onUpdate: (field: string, value: any) => void;
 }
 
-export function InsuranceTab({ leadId }: InsuranceTabProps) {
+const hoiStatusOptions = [
+  { value: "Quoted", label: "Quoted" },
+  { value: "Ordered", label: "Ordered" },
+  { value: "Received", label: "Received" }
+];
+
+export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
   return (
-    <>
-      {/* Left Column */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Insurance Company</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Shield className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter company" 
-              className="h-8"
-              disabled
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        {/* Left Column */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Shield className="h-3 w-3" />
+              HOI Status
+            </Label>
+            <InlineEditSelect
+              value={data.hoi_status}
+              onValueChange={(value) => onUpdate('hoi_status', value)}
+              options={hoiStatusOptions}
+              placeholder="Select status"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <FileText className="h-3 w-3" />
+              Policy Document
+            </Label>
+            <FileUploadButton
+              leadId={leadId}
+              fieldName="insurance_policy_file"
+              currentFile={data.insurance_policy_file}
+              onUpload={(url) => onUpdate('insurance_policy_file', url)}
+              config={{
+                storage_path: 'files/{lead_id}/insurance/',
+                allowed_types: ['.pdf']
+              }}
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Agent Name</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter name" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Agent Phone</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="(555) 555-5555" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Agent Email</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Mail className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="email@example.com" 
-              className="h-8"
-              disabled
+        {/* Right Column */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <ClipboardCheck className="h-3 w-3" />
+              Inspection Report
+            </Label>
+            <FileUploadButton
+              leadId={leadId}
+              fieldName="insurance_inspection_file"
+              currentFile={data.insurance_inspection_file}
+              onUpload={(url) => onUpdate('insurance_inspection_file', url)}
+              config={{
+                storage_path: 'files/{lead_id}/insurance/',
+                allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
+              }}
             />
           </div>
         </div>
       </div>
 
-      {/* Right Column */}
-      <div className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Policy Number</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <FileText className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Enter policy number" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Coverage Amount</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <DollarSign className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="$0" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Annual Premium</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <DollarSign className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="$0" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs text-muted-foreground">Effective Date</Label>
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <Input 
-              placeholder="Select date" 
-              className="h-8"
-              disabled
-            />
-          </div>
-        </div>
+      {/* Notes Section */}
+      <div className="pt-4 border-t">
+        <Label className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Insurance Notes
+        </Label>
+        <InlineEditNotes
+          value={data.insurance_notes}
+          onValueChange={(value) => onUpdate('insurance_notes', value)}
+          placeholder="Add notes about insurance..."
+        />
       </div>
-    </>
+    </div>
   );
 }

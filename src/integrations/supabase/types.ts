@@ -1844,6 +1844,7 @@ export type Database = {
           appr_date_time: string | null
           appr_eta: string | null
           appraisal_file: string | null
+          appraisal_notes: string | null
           appraisal_status:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -1862,6 +1863,10 @@ export type Database = {
           checking_account: number | null
           close_date: string | null
           closed_at: string | null
+          condo_approval_type: string | null
+          condo_docs_file: string | null
+          condo_name: string | null
+          condo_notes: string | null
           condo_status: Database["public"]["Enums"]["condo_status"] | null
           contract_file: string | null
           converted: Database["public"]["Enums"]["converted_status"] | null
@@ -1891,6 +1896,9 @@ export type Database = {
           income_type: string | null
           initial_approval_file: string | null
           insurance_file: string | null
+          insurance_inspection_file: string | null
+          insurance_notes: string | null
+          insurance_policy_file: string | null
           interest_rate: number | null
           investment_accounts: number | null
           is_closed: boolean | null
@@ -1963,6 +1971,9 @@ export type Database = {
           time_at_current_address_months: number | null
           time_at_current_address_years: number | null
           title_eta: string | null
+          title_file: string | null
+          title_notes: string | null
+          title_ordered_date: string | null
           title_status: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income: number | null
           updated_at: string
@@ -1974,6 +1985,7 @@ export type Database = {
           appr_date_time?: string | null
           appr_eta?: string | null
           appraisal_file?: string | null
+          appraisal_notes?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -1992,6 +2004,10 @@ export type Database = {
           checking_account?: number | null
           close_date?: string | null
           closed_at?: string | null
+          condo_approval_type?: string | null
+          condo_docs_file?: string | null
+          condo_name?: string | null
+          condo_notes?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
           contract_file?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
@@ -2021,6 +2037,9 @@ export type Database = {
           income_type?: string | null
           initial_approval_file?: string | null
           insurance_file?: string | null
+          insurance_inspection_file?: string | null
+          insurance_notes?: string | null
+          insurance_policy_file?: string | null
           interest_rate?: number | null
           investment_accounts?: number | null
           is_closed?: boolean | null
@@ -2095,6 +2114,9 @@ export type Database = {
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null
           title_eta?: string | null
+          title_file?: string | null
+          title_notes?: string | null
+          title_ordered_date?: string | null
           title_status?: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income?: number | null
           updated_at?: string
@@ -2106,6 +2128,7 @@ export type Database = {
           appr_date_time?: string | null
           appr_eta?: string | null
           appraisal_file?: string | null
+          appraisal_notes?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -2124,6 +2147,10 @@ export type Database = {
           checking_account?: number | null
           close_date?: string | null
           closed_at?: string | null
+          condo_approval_type?: string | null
+          condo_docs_file?: string | null
+          condo_name?: string | null
+          condo_notes?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
           contract_file?: string | null
           converted?: Database["public"]["Enums"]["converted_status"] | null
@@ -2153,6 +2180,9 @@ export type Database = {
           income_type?: string | null
           initial_approval_file?: string | null
           insurance_file?: string | null
+          insurance_inspection_file?: string | null
+          insurance_notes?: string | null
+          insurance_policy_file?: string | null
           interest_rate?: number | null
           investment_accounts?: number | null
           is_closed?: boolean | null
@@ -2227,6 +2257,9 @@ export type Database = {
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null
           title_eta?: string | null
+          title_file?: string | null
+          title_notes?: string | null
+          title_ordered_date?: string | null
           title_status?: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income?: number | null
           updated_at?: string
