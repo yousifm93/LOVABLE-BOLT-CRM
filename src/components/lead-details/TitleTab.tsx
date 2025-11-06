@@ -83,13 +83,13 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
         <InlineEditDate
           value={data.title_eta}
           onValueChange={(value) => onUpdate('title_eta', value)}
-          placeholder="Select ETA date"
+          placeholder="-"
         />
       </div>
 
       {/* Row 3: Empty / Follow Up Button */}
       <div className="hidden md:block" />
-      <div className="flex items-end md:items-center justify-start md:justify-end">
+      <div className="flex items-end justify-start">
         <Button 
           variant="outline" 
           size="sm"
@@ -102,10 +102,10 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       </div>
 
       {/* Row 4: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2">
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
-          Notes
+          Title Notes
         </Label>
         <InlineEditNotes
           value={data.title_notes}

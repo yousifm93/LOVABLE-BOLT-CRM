@@ -77,10 +77,10 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
       </div>
 
       {/* Row 3: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2">
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
-          Notes
+          Condo Notes
         </Label>
         <InlineEditNotes
           value={data.condo_notes}

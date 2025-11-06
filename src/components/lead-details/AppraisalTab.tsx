@@ -87,7 +87,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
         <InlineEditDate
           value={data.appr_eta}
           onValueChange={(value) => onUpdate('appr_eta', value)}
-          placeholder="Select ETA date"
+          placeholder="-"
         />
       </div>
 
@@ -103,7 +103,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
           placeholder="$0"
         />
       </div>
-      <div className="flex items-end md:items-center justify-start md:justify-end">
+      <div className="flex items-end justify-start">
         <Button 
           variant="outline" 
           size="sm"
@@ -116,10 +116,10 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       </div>
 
       {/* Row 4: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2">
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
-          Notes
+          Appraisal Notes
         </Label>
         <InlineEditNotes
           value={data.appraisal_notes}

@@ -48,34 +48,22 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Documents</Label>
-        <div className="flex gap-2">
-          <FileUploadButton
-            leadId={leadId}
-            fieldName="insurance_policy_file"
-            currentFile={data.insurance_policy_file}
-            onUpload={(url) => onUpdate('insurance_policy_file', url)}
-            config={{
-              storage_path: 'files/{lead_id}/insurance/',
-              allowed_types: ['.pdf']
-            }}
-          />
-          <FileUploadButton
-            leadId={leadId}
-            fieldName="insurance_inspection_file"
-            currentFile={data.insurance_inspection_file}
-            onUpload={(url) => onUpdate('insurance_inspection_file', url)}
-            config={{
-              storage_path: 'files/{lead_id}/insurance/',
-              allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
-            }}
-          />
-        </div>
+        <Label className="text-xs text-muted-foreground">Document</Label>
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="insurance_policy_file"
+          currentFile={data.insurance_policy_file}
+          onUpload={(url) => onUpdate('insurance_policy_file', url)}
+          config={{
+            storage_path: 'files/{lead_id}/insurance/',
+            allowed_types: ['.pdf']
+          }}
+        />
       </div>
 
       {/* Row 2: Empty / Follow Up Button */}
       <div className="hidden md:block" />
-      <div className="flex items-end md:items-center justify-start md:justify-end">
+      <div className="flex items-end justify-start">
         <Button 
           variant="outline" 
           size="sm"
@@ -88,10 +76,10 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       </div>
 
       {/* Row 3: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2">
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
-          Notes
+          Insurance Notes
         </Label>
         <InlineEditNotes
           value={data.insurance_notes}
