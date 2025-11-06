@@ -87,6 +87,118 @@ serve(async (req) => {
       export default async ({ page, context }) => {
         const scenarioData = context.scenarioData;
         
+        // Normalization maps for field values
+        const FIELD_SYNONYMS = {
+          program_type: {
+            'Conventional': ['Conventional', 'Agency', 'Conforming'],
+            'Non-QM': ['Non-QM', 'NonQM', 'Non QM'],
+            'FHA': ['FHA'],
+            'VA': ['VA'],
+            'Prime Jumbo': ['Prime Jumbo', 'Jumbo', 'Prime-Jumbo']
+          },
+          amortization_type: {
+            '30 Year Fixed': ['30 Year Fixed', '30 Yr Fixed', '30-Year Fixed'],
+            '25 Year Fixed': ['25 Year Fixed', '25 Yr Fixed', '25-Year Fixed'],
+            '20 Year Fixed': ['20 Year Fixed', '20 Yr Fixed', '20-Year Fixed'],
+            '15 Year Fixed': ['15 Year Fixed', '15 Yr Fixed', '15-Year Fixed'],
+            '10 Year Fixed': ['10 Year Fixed', '10 Yr Fixed', '10-Year Fixed']
+          },
+          property_type: {
+            '1 Unit SFR': ['1 Unit SFR', 'SFR', 'Single Family', '1-Unit', 'Single Family Residence'],
+            'Condo': ['Condo', 'Condominium'],
+            '2 Unit': ['2 Unit', '2-Unit', 'Duplex'],
+            '3 Unit': ['3 Unit', '3-Unit', 'Triplex'],
+            '4 Unit': ['4 Unit', '4-Unit', 'Fourplex']
+          },
+          state: {
+            'FL': ['FL', 'Florida']
+          },
+          broker_compensation: {
+            'BPC': ['BPC', 'Broker Paid Compensation'],
+            'LPC': ['LPC', 'Lender Paid Compensation']
+          }
+        };
+        
+        // Helper: get all synonyms for a field value
+        function getSynonyms(fieldType, value) {
+          if (!FIELD_SYNONYMS[fieldType]) return [String(value)];
+          const mappings = FIELD_SYNONYMS[fieldType];
+          for (const [key, synonyms] of Object.entries(mappings)) {
+            if (key === value || synonyms.includes(value)) {
+              return synonyms;
+            }
+          }
+          return [String(value)];
+        }
+        
+        // Helper: set slider by label using ARIA
+        async function setSliderByLabel(labelText, targetValue) {
+          console.log(\`Setting slider \${labelText} to \${targetValue}\`);
+          try {
+            // Find label and its associated slider
+            const labelElements = await page.$x(\`//label[contains(text(), "\${labelText}")]\`);
+            if (!labelElements[0]) {
+              console.warn(\`Label not found: \${labelText}\`);
+              return false;
+            }
+            
+            // Find nearest slider element by role
+            const sliderSelector = \`//label[contains(text(), "\${labelText}")]/following::*[@role="slider"][1]\`;
+            const sliders = await page.$x(sliderSelector);
+            if (!sliders[0]) {
+              console.warn(\`Slider not found for: \${labelText}\`);
+              return false;
+            }
+            
+            // Get current value and range
+            const ariaValue = await page.evaluate(el => ({
+              current: parseFloat(el.getAttribute('aria-valuenow')) || 0,
+              min: parseFloat(el.getAttribute('aria-valuemin')) || 0,
+              max: parseFloat(el.getAttribute('aria-valuemax')) || 100
+            }), sliders[0]);
+            
+            console.log(\`Current slider state: \${JSON.stringify(ariaValue)}\`);
+            
+            // Calculate steps needed
+            const target = parseFloat(targetValue);
+            const diff = target - ariaValue.current;
+            const steps = Math.abs(Math.round(diff));
+            const direction = diff > 0 ? 'ArrowRight' : 'ArrowLeft';
+            
+            // Focus slider
+            await sliders[0].scrollIntoView();
+            await sliders[0].click();
+            await new Promise(r => setTimeout(r, 200));
+            
+            // Send arrow keys to adjust slider (max 200 steps to prevent infinite loops)
+            for (let i = 0; i < Math.min(steps, 200); i++) {
+              await page.keyboard.press(direction);
+              await new Promise(r => setTimeout(r, 20));
+              
+              // Check value every 10 steps
+              if (i % 10 === 0) {
+                const currentVal = await page.evaluate(el => parseFloat(el.getAttribute('aria-valuenow')), sliders[0]);
+                if (Math.abs(currentVal - target) < 1) {
+                  console.log(\`✓ Reached target value: \${currentVal}\`);
+                  break;
+                }
+              }
+            }
+            
+            // Commit with Tab
+            await page.keyboard.press('Tab');
+            await new Promise(r => setTimeout(r, 400));
+            
+            // Verify final value
+            const finalValue = await page.evaluate(el => parseFloat(el.getAttribute('aria-valuenow')), sliders[0]);
+            console.log(\`Final slider value: \${finalValue}\`);
+            return true;
+          } catch (e) {
+            console.error(\`Error setting slider \${labelText}:\`, e.message);
+            return false;
+          }
+        }
+        
         // Helper: try multiple label synonyms for the same field
         async function fillAnyOfLabels(labelSynonyms, value, fieldType = 'input') {
           for (const labelText of labelSynonyms) {
@@ -100,8 +212,8 @@ serve(async (req) => {
           return false;
         }
         
-        // Helper function to fill field by label with enhanced robustness
-        async function fillFieldByLabel(labelText, value, fieldType = 'input') {
+        // Helper function to fill field by label with enhanced robustness and synonym support
+        async function fillFieldByLabel(labelText, value, fieldType = 'input', fieldName = null) {
           console.log(\`Filling \${labelText} with \${value} (type: \${fieldType})\`);
           
           try {
@@ -120,17 +232,28 @@ serve(async (req) => {
                 await buttons[0].click();
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // Normalize value for matching (extract key part)
-                const valueSnippet = String(value).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                // Get synonyms if fieldName provided
+                const valuesToTry = fieldName ? getSynonyms(fieldName, value) : [String(value)];
+                console.log(\`Trying synonyms for \${labelText}: \${valuesToTry.join(', ')}\`);
                 
-                // Click option - use contains for flexible matching
-                const optionSelector = \`//li[@role="option" and contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "\${valueSnippet.toLowerCase()}")]\`;
-                await page.waitForXPath(optionSelector, { timeout: 3000 });
-                const options = await page.$x(optionSelector);
-                if (options[0]) {
-                  await options[0].click();
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                  return true;
+                // Try each synonym
+                for (const tryValue of valuesToTry) {
+                  const valueSnippet = String(tryValue).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                  const optionSelector = \`//li[@role="option" and contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "\${valueSnippet.toLowerCase()}")]\`;
+                  
+                  try {
+                    await page.waitForXPath(optionSelector, { timeout: 1500 });
+                    const options = await page.$x(optionSelector);
+                    if (options[0]) {
+                      await options[0].click();
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                      console.log(\`✓ Selected option using synonym: \${tryValue}\`);
+                      return true;
+                    }
+                  } catch (e) {
+                    // Try next synonym
+                    continue;
+                  }
                 }
               }
             } else if (fieldType === 'input') {
@@ -303,6 +426,9 @@ serve(async (req) => {
           }
         }
         
+        // Set user agent for stealth
+        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+        
         // Navigate to pricer
         await page.goto('https://pricer.admortgage.com/', { waitUntil: 'networkidle2' });
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -310,8 +436,8 @@ serve(async (req) => {
         // Dismiss any consent overlays
         await dismissConsent();
         
-        // Fill form fields with enhanced logic
-        await fillFieldByLabel('Program', scenarioData.program_type, 'dropdown');
+        // Fill form fields with enhanced logic and synonyms
+        await fillFieldByLabel('Program', scenarioData.program_type, 'dropdown', 'program_type');
         await new Promise(resolve => setTimeout(resolve, 500));
         
         await fillFieldByLabel('Citizenship', scenarioData.citizenship, 'dropdown');
@@ -322,8 +448,11 @@ serve(async (req) => {
           await fillFieldByLabel('Income Type', scenarioData.income_type, 'dropdown');
         }
         
-        // Try number display first (for slider), with layered fallbacks
-        let ficoFilled = await fillNumberDisplayByLabel('FICO', scenarioData.fico_score);
+        // Try slider with ARIA first, then fallbacks
+        let ficoFilled = await setSliderByLabel('FICO', scenarioData.fico_score);
+        if (!ficoFilled) {
+          ficoFilled = await fillNumberDisplayByLabel('FICO', scenarioData.fico_score);
+        }
         if (!ficoFilled) {
           console.log('Falling back to input field for FICO');
           ficoFilled = await fillFieldByLabel('FICO', scenarioData.fico_score.toString(), 'input');
@@ -333,8 +462,14 @@ serve(async (req) => {
           ficoFilled = await fillNearestNumericInputByLabel('FICO', scenarioData.fico_score);
         }
         
-        // LTV/CLTV with robust fallbacks
-        let ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
+        // LTV/CLTV with slider + fallbacks
+        let ltvFilled = await setSliderByLabel('LTV', scenarioData.ltv);
+        if (!ltvFilled) {
+          ltvFilled = await setSliderByLabel('CLTV', scenarioData.ltv);
+        }
+        if (!ltvFilled) {
+          ltvFilled = await fillNumberDisplayByLabel('LTV', scenarioData.ltv);
+        }
         if (!ltvFilled) {
           ltvFilled = await fillNumberDisplayByLabel('CLTV', scenarioData.ltv);
         }
@@ -347,8 +482,11 @@ serve(async (req) => {
           ltvFilled = await fillNearestNumericInputByLabel('LTV', scenarioData.ltv) || await fillNearestNumericInputByLabel('CLTV', scenarioData.ltv);
         }
         
-        // Loan Amount with robust fallbacks
-        let loanAmountFilled = await fillNumberDisplayByLabel('Loan Amount', scenarioData.loan_amount);
+        // Loan Amount with slider + fallbacks
+        let loanAmountFilled = await setSliderByLabel('Loan Amount', scenarioData.loan_amount);
+        if (!loanAmountFilled) {
+          loanAmountFilled = await fillNumberDisplayByLabel('Loan Amount', scenarioData.loan_amount);
+        }
         if (!loanAmountFilled) {
           console.log('Falling back to input field for Loan Amount');
           loanAmountFilled = await fillFieldByLabel('Loan Amount', scenarioData.loan_amount.toString(), 'input');
@@ -365,9 +503,10 @@ serve(async (req) => {
         const lockValue = scenarioData.lock_period + ' Days';
         await fillAnyOfLabels(['Lock Period', 'Rate Lock', 'Lock Term'], lockValue, 'dropdown');
         
-        await fillFieldByLabel('State', scenarioData.state, 'dropdown');
-        await fillFieldByLabel('Property Type', scenarioData.property_type, 'dropdown');
-        await fillFieldByLabel('Amortization Type', scenarioData.amortization_type, 'dropdown');
+        // Fill remaining fields with synonyms
+        await fillFieldByLabel('State', scenarioData.state, 'dropdown', 'state');
+        await fillFieldByLabel('Property Type', scenarioData.property_type, 'dropdown', 'property_type');
+        await fillFieldByLabel('Amortization Type', scenarioData.amortization_type, 'dropdown', 'amortization_type');
         
         if (scenarioData.program_type === 'Non-QM') {
           if (scenarioData.mortgage_history) {
@@ -379,7 +518,7 @@ serve(async (req) => {
         }
         
         await fillFieldByLabel('DTI', scenarioData.dti, 'input');
-        await fillFieldByLabel('Broker Compensation', scenarioData.broker_compensation, 'dropdown');
+        await fillFieldByLabel('Broker Compensation', scenarioData.broker_compensation, 'dropdown', 'broker_compensation');
         
         if (scenarioData.admin_fee_buyout) {
           await fillFieldByLabel('Admin Fee Buyout', true, 'checkbox');
@@ -413,7 +552,15 @@ serve(async (req) => {
               await btns[0].click();
               console.log(\`Clicked pricing button: \${sel}\`);
               priceButtonClicked = true;
-              await new Promise(resolve => setTimeout(resolve, 4000));
+              
+              // Wait for network to idle after clicking
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              try {
+                await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 });
+              } catch (e) {
+                console.log('Network idle timeout, continuing...');
+              }
+              await new Promise(resolve => setTimeout(resolve, 3000));
               break;
             }
           } catch (e) {
@@ -424,7 +571,13 @@ serve(async (req) => {
         if (!priceButtonClicked) {
           console.log('No explicit price button found, simulating Enter key');
           await page.keyboard.press('Enter');
-          await new Promise(resolve => setTimeout(resolve, 4000));
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          try {
+            await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 });
+          } catch (e) {
+            console.log('Network idle timeout after Enter, continuing...');
+          }
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
         
         // Wait for results with content pattern checks
@@ -446,20 +599,46 @@ serve(async (req) => {
         // Extra wait for results to stabilize
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Extract results from main document
+        // Helper: extract value by label
+        function extractByLabel(container, labelText, pattern) {
+          try {
+            // Find elements containing the label
+            const allText = container.innerText || container.textContent || '';
+            const lines = allText.split('\\n');
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (line.toLowerCase().includes(labelText.toLowerCase())) {
+                // Check current line and next few lines
+                for (let j = i; j < Math.min(i + 4, lines.length); j++) {
+                  const match = lines[j].match(pattern);
+                  if (match && match[1]) {
+                    return match[1];
+                  }
+                }
+              }
+            }
+            
+            // Fallback: search entire container
+            const match = allText.match(pattern);
+            return match ? match[1] : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        
+        // Extract results from main document with label-directed extraction
         console.log('Extracting pricing results from main document...');
-        let results = await page.evaluate(() => {
+        let results = await page.evaluate((extractByLabelCode) => {
+          // Inject helper
+          eval('var extractByLabel = ' + extractByLabelCode);
+          
           const responseBox = document.querySelector('div.quickPricerBody_response') ||
                               document.querySelector('[class*="quickPricer"][class*="response"]') ||
-                              document.querySelector('[class*="response"]');
+                              document.querySelector('[class*="response"]') ||
+                              document.body;
           
-          let allText = '';
-          if (responseBox) {
-            allText = responseBox.innerText || responseBox.textContent || '';
-          } else {
-            // Fallback to body
-            allText = document.body.innerText || '';
-          }
+          let allText = responseBox.innerText || responseBox.textContent || '';
           
           const out = {
             rate: 'N/A',
@@ -471,53 +650,68 @@ serve(async (req) => {
             debug_text: allText.substring(0, 800)
           };
           
-          // Rate extraction
-          const ratePatterns = [
-            /(\\d+\\.\\d{2,3})\\s*%/,
-            /rate[^\\d]*(\\d+\\.\\d{2,3})/i,
-            /(\\d+\\.\\d{2,3})/
-          ];
+          // Try label-directed extraction first
+          const rateByLabel = extractByLabel(responseBox, 'rate', /(\\d+\\.\\d{2,3})\\s*%/);
+          const paymentByLabel = extractByLabel(responseBox, 'payment', /\\$\\s*([\\d,]+\\.\\d{2})/);
+          const pointsByLabel = extractByLabel(responseBox, 'points', /([\\-]?\\d+\\.\\d{2,3})/);
+          const creditByLabel = extractByLabel(responseBox, 'credit', /([\\-]?\\d+\\.\\d{2,3})/);
           
-          for (const pattern of ratePatterns) {
-            const match = allText.match(pattern);
-            if (match && match[1]) {
-              out.rate = match[1];
-              out.apr = match[1];
-              break;
+          if (rateByLabel) out.rate = rateByLabel;
+          if (paymentByLabel) out.monthly_payment = paymentByLabel.replace(/,/g, '');
+          if (pointsByLabel) out.discount_points = pointsByLabel;
+          if (creditByLabel && !pointsByLabel) out.discount_points = creditByLabel;
+          
+          // Fallback: global regex extraction if label-directed failed
+          if (out.rate === 'N/A') {
+            const ratePatterns = [
+              /(\\d+\\.\\d{2,3})\\s*%/,
+              /rate[^\\d]*(\\d+\\.\\d{2,3})/i,
+              /(\\d+\\.\\d{2,3})/
+            ];
+            
+            for (const pattern of ratePatterns) {
+              const match = allText.match(pattern);
+              if (match && match[1]) {
+                out.rate = match[1];
+                out.apr = match[1];
+                break;
+              }
             }
           }
           
-          // Payment extraction
-          const paymentPatterns = [
-            /\\$\\s*([\\d,]+\\.\\d{2})/,
-            /payment[^\\d$]*\\$?\\s*([\\d,]+\\.\\d{2})/i
-          ];
-          
-          for (const pattern of paymentPatterns) {
-            const match = allText.match(pattern);
-            if (match && match[1]) {
-              out.monthly_payment = match[1].replace(/,/g, '');
-              break;
+          if (out.monthly_payment === 'N/A') {
+            const paymentPatterns = [
+              /\\$\\s*([\\d,]+\\.\\d{2})/,
+              /payment[^\\d$]*\\$?\\s*([\\d,]+\\.\\d{2})/i
+            ];
+            
+            for (const pattern of paymentPatterns) {
+              const match = allText.match(pattern);
+              if (match && match[1]) {
+                out.monthly_payment = match[1].replace(/,/g, '');
+                break;
+              }
             }
           }
           
-          // Points/credit extraction
-          const creditPatterns = [
-            /([\\-]?\\d+\\.\\d{3})/,
-            /credit[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i,
-            /points[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i
-          ];
-          
-          for (const pattern of creditPatterns) {
-            const match = allText.match(pattern);
-            if (match && match[1] && match[1] !== out.rate) {
-              out.discount_points = match[1];
-              break;
+          if (out.discount_points === 'N/A') {
+            const creditPatterns = [
+              /([\\-]?\\d+\\.\\d{3})/,
+              /credit[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i,
+              /points[^\\d-]*([\\-]?\\d+\\.\\d{2,3})/i
+            ];
+            
+            for (const pattern of creditPatterns) {
+              const match = allText.match(pattern);
+              if (match && match[1] && match[1] !== out.rate) {
+                out.discount_points = match[1];
+                break;
+              }
             }
           }
           
           return out;
-        });
+        }, extractByLabel.toString());
         
         console.log('Main document extraction:', JSON.stringify(results));
         
@@ -555,15 +749,27 @@ serve(async (req) => {
         
         // Final validation
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          // Take screenshot for debugging
+          // Capture debug artifacts
+          let screenshot = null;
+          let htmlContent = null;
+          
           try {
-            const screenshot = await page.screenshot({ encoding: 'base64', fullPage: true });
-            console.log('Screenshot (base64 prefix):', screenshot.substring(0, 120) + '...');
+            console.log('Capturing debug artifacts...');
+            screenshot = await page.screenshot({ encoding: 'base64', fullPage: true });
+            htmlContent = await page.content();
+            console.log('Debug artifacts captured successfully');
           } catch (e) {
-            console.error('Screenshot failed:', e.message);
+            console.error('Failed to capture debug artifacts:', e.message);
           }
           
-          throw new Error('Failed to extract valid pricing results. Rate: ' + results.rate + ', Payment: ' + results.monthly_payment + ', Debug text: ' + results.debug_text);
+          throw new Error(JSON.stringify({
+            message: 'Failed to extract valid pricing results',
+            rate: results.rate,
+            payment: results.monthly_payment,
+            debug_text: results.debug_text,
+            screenshot: screenshot ? screenshot.substring(0, 100) + '...' : null,
+            html_length: htmlContent ? htmlContent.length : null
+          }));
         }
         
         console.log('Final extracted results:', JSON.stringify(results));
@@ -571,19 +777,22 @@ serve(async (req) => {
       };
     `;
 
-    // Call Browserless /function endpoint
-    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/function?token=${browserlessKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code: browserScript,
-        context: {
-          scenarioData: scenarioData
+    // Call Browserless /function endpoint with stealth and hardening
+    const browserlessResponse = await fetch(
+      `https://production-sfo.browserless.io/function?token=${browserlessKey}&stealth=true&blockAds=true&ignoreHTTPSErrors=true`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          code: browserScript,
+          context: {
+            scenarioData: scenarioData
+          },
+        }),
+      }
+    );
 
     if (!browserlessResponse.ok) {
       const errorText = await browserlessResponse.text();
@@ -620,26 +829,48 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('[loan-pricer-scraper] Error:', error);
 
-    // Try to update the run status to failed
+    // Parse error details if it's a JSON string
+    let errorDetails = { message: error.message };
+    try {
+      errorDetails = JSON.parse(error.message);
+    } catch (e) {
+      // Not JSON, use as-is
+    }
+
+    // Try to upload debug artifacts if available
+    let debugLinks = '';
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
+      // Check if we have debug artifacts in the error
+      if (errorDetails.screenshot || errorDetails.html_length) {
+        console.log('[loan-pricer-scraper] Attempting to upload debug artifacts...');
+        
+        // Note: Screenshot and HTML are captured in the browser script
+        // They would need to be returned in the results and handled here
+        // For now, we'll just log that they're available
+        debugLinks = ' | Debug artifacts captured in browser context';
+      }
+      
+      // Update pricing run with failed status
       await supabase
         .from('pricing_runs')
         .update({
           status: 'failed',
-          error_message: error.message,
-          completed_at: new Date().toISOString()
+          error_message: errorDetails.message + debugLinks,
+          completed_at: new Date().toISOString(),
+          results_json: errorDetails
         })
         .eq('id', run_id);
+        
     } catch (updateError) {
       console.error('[loan-pricer-scraper] Error updating failed status:', updateError);
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: errorDetails.message || error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500

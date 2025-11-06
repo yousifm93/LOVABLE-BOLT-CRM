@@ -256,7 +256,7 @@ export function LoanPricer() {
                         {run.status === 'failed' && run.error_message ? (
                           <HoverCard>
                             <HoverCardTrigger>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 cursor-help">
                                 {getStatusBadge(run.status)}
                                 {run.retry_count > 0 && (
                                   <span className="text-xs text-muted-foreground">
@@ -265,14 +265,22 @@ export function LoanPricer() {
                                 )}
                               </div>
                             </HoverCardTrigger>
-                            <HoverCardContent className="w-80">
+                            <HoverCardContent className="w-96 max-h-96 overflow-auto">
                               <div className="flex items-start gap-2">
-                                <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
-                                <div className="space-y-1">
+                                <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                                <div className="space-y-2 flex-1">
                                   <p className="text-sm font-medium">Error Details</p>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">
                                     {run.error_message}
                                   </p>
+                                  {run.results_json?.debug_text && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium mb-1">Debug Output:</p>
+                                      <pre className="text-xs text-muted-foreground bg-muted p-2 rounded overflow-auto max-h-40">
+                                        {run.results_json.debug_text}
+                                      </pre>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </HoverCardContent>
