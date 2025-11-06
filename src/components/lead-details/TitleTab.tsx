@@ -36,79 +36,77 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Top Section: Status Left, Documents Right */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Status</Label>
-          <InlineEditSelect
-            value={data.title_status}
-            onValueChange={(value) => onUpdate('title_status', value)}
-            options={titleStatusOptions}
-            placeholder="Select status"
-            showAsStatusBadge={true}
-            className="text-sm"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Document</Label>
-          <FileUploadButton
-            leadId={leadId}
-            fieldName="title_file"
-            currentFile={data.title_file}
-            onUpload={(url) => onUpdate('title_file', url)}
-            config={{
-              storage_path: 'files/{lead_id}/title/',
-              allowed_types: ['.pdf']
-            }}
-          />
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 1: Status / Document */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Status</Label>
+        <InlineEditSelect
+          value={data.title_status}
+          onValueChange={(value) => onUpdate('title_status', value)}
+          options={titleStatusOptions}
+          placeholder="Select status"
+          showAsStatusBadge={true}
+          className="text-sm"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Document</Label>
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="title_file"
+          currentFile={data.title_file}
+          onUpload={(url) => onUpdate('title_file', url)}
+          config={{
+            storage_path: 'files/{lead_id}/title/',
+            allowed_types: ['.pdf']
+          }}
+        />
       </div>
 
-      {/* Middle Section: Details in Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Ordered Date
-          </Label>
-          <InlineEditDate
-            value={data.title_ordered_date}
-            onValueChange={(value) => onUpdate('title_ordered_date', value)}
-            placeholder="Select date"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Clock className="h-3 w-3" />
-            Title ETA
-          </Label>
-          <InlineEditDate
-            value={data.title_eta}
-            onValueChange={(value) => onUpdate('title_eta', value)}
-            placeholder="Select ETA date"
-          />
-        </div>
+      {/* Row 2: Ordered Date / Title ETA */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          Ordered Date
+        </Label>
+        <InlineEditDate
+          value={data.title_ordered_date}
+          onValueChange={(value) => onUpdate('title_ordered_date', value)}
+          placeholder="Select date"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          Title ETA
+        </Label>
+        <InlineEditDate
+          value={data.title_eta}
+          onValueChange={(value) => onUpdate('title_eta', value)}
+          placeholder="Select ETA date"
+        />
       </div>
 
-      {/* Bottom Section: Notes + Follow Up Button */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground flex items-center gap-2">
-            <MessageSquare className="h-3 w-3" />
-            Notes
-          </Label>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFollowUp}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Follow Up
-          </Button>
-        </div>
+      {/* Row 3: Empty / Follow Up Button */}
+      <div className="hidden md:block" />
+      <div className="flex items-end md:items-center justify-start md:justify-end">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleFollowUp}
+          className="gap-2"
+        >
+          <Mail className="h-4 w-4" />
+          Follow Up
+        </Button>
+      </div>
+
+      {/* Row 4: Notes (spanning both columns) */}
+      <div className="md:col-span-2 space-y-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Notes
+        </Label>
         <InlineEditNotes
           value={data.title_notes}
           onValueChange={(value) => onUpdate('title_notes', value)}

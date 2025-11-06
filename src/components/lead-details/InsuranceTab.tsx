@@ -34,64 +34,65 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Top Section: Status Left, Documents Right */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Status</Label>
-          <InlineEditSelect
-            value={data.hoi_status}
-            onValueChange={(value) => onUpdate('hoi_status', value)}
-            options={hoiStatusOptions}
-            placeholder="Select status"
-            showAsStatusBadge={true}
-            className="text-sm"
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 1: Status / Documents */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Status</Label>
+        <InlineEditSelect
+          value={data.hoi_status}
+          onValueChange={(value) => onUpdate('hoi_status', value)}
+          options={hoiStatusOptions}
+          placeholder="Select status"
+          showAsStatusBadge={true}
+          className="text-sm"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Documents</Label>
+        <div className="flex gap-2">
+          <FileUploadButton
+            leadId={leadId}
+            fieldName="insurance_policy_file"
+            currentFile={data.insurance_policy_file}
+            onUpload={(url) => onUpdate('insurance_policy_file', url)}
+            config={{
+              storage_path: 'files/{lead_id}/insurance/',
+              allowed_types: ['.pdf']
+            }}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Documents</Label>
-          <div className="flex gap-2">
-            <FileUploadButton
-              leadId={leadId}
-              fieldName="insurance_policy_file"
-              currentFile={data.insurance_policy_file}
-              onUpload={(url) => onUpdate('insurance_policy_file', url)}
-              config={{
-                storage_path: 'files/{lead_id}/insurance/',
-                allowed_types: ['.pdf']
-              }}
-            />
-            <FileUploadButton
-              leadId={leadId}
-              fieldName="insurance_inspection_file"
-              currentFile={data.insurance_inspection_file}
-              onUpload={(url) => onUpdate('insurance_inspection_file', url)}
-              config={{
-                storage_path: 'files/{lead_id}/insurance/',
-                allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
-              }}
-            />
-          </div>
+          <FileUploadButton
+            leadId={leadId}
+            fieldName="insurance_inspection_file"
+            currentFile={data.insurance_inspection_file}
+            onUpload={(url) => onUpdate('insurance_inspection_file', url)}
+            config={{
+              storage_path: 'files/{lead_id}/insurance/',
+              allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
+            }}
+          />
         </div>
       </div>
 
-      {/* Bottom Section: Notes + Follow Up Button */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground flex items-center gap-2">
-            <MessageSquare className="h-3 w-3" />
-            Notes
-          </Label>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFollowUp}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Follow Up
-          </Button>
-        </div>
+      {/* Row 2: Empty / Follow Up Button */}
+      <div className="hidden md:block" />
+      <div className="flex items-end md:items-center justify-start md:justify-end">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleFollowUp}
+          className="gap-2"
+        >
+          <Mail className="h-4 w-4" />
+          Follow Up
+        </Button>
+      </div>
+
+      {/* Row 3: Notes (spanning both columns) */}
+      <div className="md:col-span-2 space-y-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Notes
+        </Label>
         <InlineEditNotes
           value={data.insurance_notes}
           onValueChange={(value) => onUpdate('insurance_notes', value)}

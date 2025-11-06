@@ -41,90 +41,86 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Top Section: Status Left, Documents Right */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Status</Label>
-          <InlineEditSelect
-            value={data.appraisal_status}
-            onValueChange={(value) => onUpdate('appraisal_status', value)}
-            options={appraisalStatusOptions}
-            placeholder="Select status"
-            showAsStatusBadge={true}
-            className="text-sm"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground">Document</Label>
-          <FileUploadButton
-            leadId={leadId}
-            fieldName="appraisal_file"
-            currentFile={data.appraisal_file}
-            onUpload={(url) => onUpdate('appraisal_file', url)}
-            config={{
-              storage_path: 'files/{lead_id}/appraisal/',
-              allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
-            }}
-          />
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Row 1: Status / Document */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Status</Label>
+        <InlineEditSelect
+          value={data.appraisal_status}
+          onValueChange={(value) => onUpdate('appraisal_status', value)}
+          options={appraisalStatusOptions}
+          placeholder="Select status"
+          showAsStatusBadge={true}
+          className="text-sm"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground">Document</Label>
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="appraisal_file"
+          currentFile={data.appraisal_file}
+          onUpload={(url) => onUpdate('appraisal_file', url)}
+          config={{
+            storage_path: 'files/{lead_id}/appraisal/',
+            allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
+          }}
+        />
       </div>
 
-      {/* Middle Section: Details in Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Date/Time
-          </Label>
-          <InlineEditDateTime
-            value={data.appr_date_time}
-            onValueChange={(value) => onUpdate('appr_date_time', value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Clock className="h-3 w-3" />
-            ETA
-          </Label>
-          <InlineEditDate
-            value={data.appr_eta}
-            onValueChange={(value) => onUpdate('appr_eta', value)}
-            placeholder="Select ETA date"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <DollarSign className="h-3 w-3" />
-            Value
-          </Label>
-          <InlineEditCurrency
-            value={data.appraisal_value}
-            onValueChange={(value) => onUpdate('appraisal_value', value)}
-            placeholder="$0"
-          />
-        </div>
+      {/* Row 2: Date/Time / ETA */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          Date/Time
+        </Label>
+        <InlineEditDateTime
+          value={data.appr_date_time}
+          onValueChange={(value) => onUpdate('appr_date_time', value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          ETA
+        </Label>
+        <InlineEditDate
+          value={data.appr_eta}
+          onValueChange={(value) => onUpdate('appr_eta', value)}
+          placeholder="Select ETA date"
+        />
       </div>
 
-      {/* Bottom Section: Notes + Follow Up Button */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground flex items-center gap-2">
-            <MessageSquare className="h-3 w-3" />
-            Notes
-          </Label>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFollowUp}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Follow Up
-          </Button>
-        </div>
+      {/* Row 3: Value / Follow Up Button */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <DollarSign className="h-3 w-3" />
+          Value
+        </Label>
+        <InlineEditCurrency
+          value={data.appraisal_value}
+          onValueChange={(value) => onUpdate('appraisal_value', value)}
+          placeholder="$0"
+        />
+      </div>
+      <div className="flex items-end md:items-center justify-start md:justify-end">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleFollowUp}
+          className="gap-2"
+        >
+          <Mail className="h-4 w-4" />
+          Follow Up
+        </Button>
+      </div>
+
+      {/* Row 4: Notes (spanning both columns) */}
+      <div className="md:col-span-2 space-y-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Notes
+        </Label>
         <InlineEditNotes
           value={data.appraisal_notes}
           onValueChange={(value) => onUpdate('appraisal_notes', value)}
