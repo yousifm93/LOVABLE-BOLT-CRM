@@ -97,89 +97,119 @@ Deno.serve(async (req) => {
 
     // Define new lenders to create
     const newLenders = [
-      { lender_name: 'UWM', account_id: defaultAccountId },
-      { lender_name: 'REMN', account_id: defaultAccountId },
-      { lender_name: 'A&D MORTGAGE LLC', account_id: defaultAccountId },
-      { lender_name: 'PennyMac Loan Services, LLC', account_id: defaultAccountId },
-      { lender_name: 'Sierra Pacific Mortgage Company, Inc.', account_id: defaultAccountId },
-      { lender_name: 'JMAC Lending, Inc.', account_id: defaultAccountId },
+      { lender_name: 'UWM', lender_type: 'Conventional', status: 'Active' },
+      { lender_name: 'REMN', lender_type: 'Conventional', status: 'Active' },
+      { lender_name: 'A&D MORTGAGE LLC', lender_type: 'Conventional', status: 'Active' },
+      { lender_name: 'PennyMac Loan Services, LLC', lender_type: 'Conventional', status: 'Active' },
+      { lender_name: 'Sierra Pacific Mortgage Company, Inc.', lender_type: 'Conventional', status: 'Active' },
+      { lender_name: 'JMAC Lending, Inc.', lender_type: 'Conventional', status: 'Active' },
     ];
 
     // Define new agents to create
     const newAgents = [
-      { first_name: 'Jamie', last_name: 'Austin', account_id: defaultAccountId },
-      { first_name: 'Simo', last_name: 'Labriti', account_id: defaultAccountId },
-      { first_name: 'Candy', last_name: 'Del Valle', account_id: defaultAccountId },
-      { first_name: 'Jonathan', last_name: 'Cedeno', account_id: defaultAccountId },
-      { first_name: 'Nelly', last_name: 'Macias', account_id: defaultAccountId },
-      { first_name: 'Richard', last_name: 'Corrales', account_id: defaultAccountId },
-      { first_name: 'Jessica', last_name: 'Turner', account_id: defaultAccountId },
-      { first_name: 'Piermassimo', last_name: 'Picchiura', account_id: defaultAccountId },
-      { first_name: 'Elizabeth', last_name: 'Zuleta', account_id: defaultAccountId },
-      { first_name: 'Sandeep', last_name: 'Sakinala', account_id: defaultAccountId },
-      { first_name: 'Cristian', last_name: 'Consuegra', account_id: defaultAccountId },
-      { first_name: 'Cristina', last_name: 'Cesana', account_id: defaultAccountId },
-      { first_name: 'Debbie', last_name: 'Potts', account_id: defaultAccountId },
-      { first_name: 'Ursula', last_name: 'Apaestegui', account_id: defaultAccountId },
-      { first_name: 'Silvio', last_name: 'De Cardenas', account_id: defaultAccountId },
-      { first_name: 'Roman', last_name: 'Semykin', account_id: defaultAccountId },
-      { first_name: 'Drew', last_name: 'Hutcheson', account_id: defaultAccountId },
-      { first_name: 'Fatma', last_name: 'Serhan', account_id: defaultAccountId },
-      { first_name: 'Graziella', last_name: 'Offen', account_id: defaultAccountId },
-      { first_name: 'Ohad', last_name: 'Einhorn', account_id: defaultAccountId },
-      { first_name: 'Cherie', last_name: 'Callahan', account_id: defaultAccountId },
-      { first_name: 'Nakarid', last_name: 'Melean', account_id: defaultAccountId },
-      { first_name: 'Joanne', last_name: 'Rudowski', account_id: defaultAccountId },
-      { first_name: 'Yamile', last_name: 'Zayed', account_id: defaultAccountId },
-      { first_name: 'Francois', last_name: 'Lopez', account_id: defaultAccountId },
+      { first_name: 'Jamie', last_name: 'Austin' },
+      { first_name: 'Simo', last_name: 'Labriti' },
+      { first_name: 'Candy', last_name: 'Del Valle' },
+      { first_name: 'Jonathan', last_name: 'Cedeno' },
+      { first_name: 'Nelly', last_name: 'Macias' },
+      { first_name: 'Richard', last_name: 'Corrales' },
+      { first_name: 'Jessica', last_name: 'Turner' },
+      { first_name: 'Piermassimo', last_name: 'Picchiura' },
+      { first_name: 'Elizabeth', last_name: 'Zuleta' },
+      { first_name: 'Sandeep', last_name: 'Sakinala' },
+      { first_name: 'Cristian', last_name: 'Consuegra' },
+      { first_name: 'Cristina', last_name: 'Cesana' },
+      { first_name: 'Debbie', last_name: 'Potts' },
+      { first_name: 'Ursula', last_name: 'Apaestegui' },
+      { first_name: 'Silvio', last_name: 'De Cardenas' },
+      { first_name: 'Roman', last_name: 'Semykin' },
+      { first_name: 'Drew', last_name: 'Hutcheson' },
+      { first_name: 'Fatma', last_name: 'Serhan' },
+      { first_name: 'Graziella', last_name: 'Offen' },
+      { first_name: 'Ohad', last_name: 'Einhorn' },
+      { first_name: 'Cherie', last_name: 'Callahan' },
+      { first_name: 'Nakarid', last_name: 'Melean' },
+      { first_name: 'Joanne', last_name: 'Rudowski' },
+      { first_name: 'Yamile', last_name: 'Zayed' },
+      { first_name: 'Francois', last_name: 'Lopez' },
     ];
 
     // Create lenders
     let createdLenders: any[] = [];
     if (isApplyMode) {
-      const { data: lenderData, error: lenderError } = await supabase
-        .from('approved_lenders')
-        .upsert(newLenders, { onConflict: 'lender_name,account_id' })
-        .select();
+      // Fetch existing lenders first
+      const { data: existingLenders } = await supabase
+        .from('lenders')
+        .select('*');
+      
+      const existingLenderNames = new Set(existingLenders?.map(l => l.lender_name.toLowerCase()) || []);
+      
+      // Filter to only new lenders that don't exist
+      const lendersToCreate = newLenders.filter(
+        l => !existingLenderNames.has(l.lender_name.toLowerCase())
+      );
+      
+      if (lendersToCreate.length > 0) {
+        const { data: lenderData, error: lenderError } = await supabase
+          .from('lenders')
+          .insert(lendersToCreate)
+          .select();
 
-      if (lenderError) {
-        throw new Error(`Failed to create lenders: ${lenderError.message}`);
+        if (lenderError) {
+          throw new Error(`Failed to create lenders: ${lenderError.message}`);
+        }
+        console.log(`Created ${lenderData?.length || 0} new lenders`);
+      } else {
+        console.log('All lenders already exist');
       }
-      createdLenders = lenderData || [];
-      console.log(`Created/updated ${createdLenders.length} lenders`);
     } else {
-      console.log(`PREVIEW: Would create/update ${newLenders.length} lenders`);
+      console.log(`PREVIEW: Would check and create up to ${newLenders.length} lenders`);
     }
 
     // Fetch all lenders for lookup
     const { data: allLenders } = await supabase
-      .from('approved_lenders')
-      .select('*')
-      .eq('account_id', defaultAccountId);
+      .from('lenders')
+      .select('*');
     createdLenders = allLenders || [];
 
     // Create agents
     let createdAgents: any[] = [];
     if (isApplyMode) {
-      const { data: agentData, error: agentError } = await supabase
+      // Fetch existing agents first
+      const { data: existingAgents } = await supabase
         .from('buyer_agents')
-        .upsert(newAgents, { onConflict: 'first_name,last_name,account_id' })
-        .select();
+        .select('*');
+      
+      const existingAgentKeys = new Set(
+        existingAgents?.map(a => `${a.first_name?.toLowerCase()}_${a.last_name?.toLowerCase()}`) || []
+      );
+      
+      // Filter to only new agents that don't exist
+      const agentsToCreate = newAgents.filter(
+        a => !existingAgentKeys.has(`${a.first_name.toLowerCase()}_${a.last_name.toLowerCase()}`)
+      );
+      
+      if (agentsToCreate.length > 0) {
+        const { data: agentData, error: agentError } = await supabase
+          .from('buyer_agents')
+          .insert(agentsToCreate)
+          .select();
 
-      if (agentError) {
-        throw new Error(`Failed to create agents: ${agentError.message}`);
+        if (agentError) {
+          throw new Error(`Failed to create agents: ${agentError.message}`);
+        }
+        console.log(`Created ${agentData?.length || 0} new agents`);
+      } else {
+        console.log('All agents already exist');
       }
-      createdAgents = agentData || [];
-      console.log(`Created/updated ${createdAgents.length} agents`);
     } else {
-      console.log(`PREVIEW: Would create/update ${newAgents.length} agents`);
+      console.log(`PREVIEW: Would check and create up to ${newAgents.length} agents`);
     }
 
     // Fetch all agents for lookup
     const { data: allAgents } = await supabase
       .from('buyer_agents')
-      .select('*')
-      .eq('account_id', defaultAccountId);
+      .select('*');
     createdAgents = allAgents || [];
 
     // Helper to get agent ID
