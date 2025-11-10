@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2 } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
@@ -10,6 +9,7 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 // Mock data for charts
 const monthlyVolumeData = [
@@ -43,47 +43,6 @@ const rankingData = [
   { month: 'Feb', rank: 12 },
 ];
 
-// Mock all leads and applications
-const allLeads = [
-  { name: "Sarah Johnson", phone: "(555) 123-4567", email: "sarah@email.com", date: "2025-01-15" },
-  { name: "Mike Chen", phone: "(555) 234-5678", email: "mike@email.com", date: "2025-01-15" },
-  { name: "Lisa Rodriguez", phone: "(555) 345-6789", email: "lisa@email.com", date: "2025-01-15" },
-  { name: "Amanda Wilson", phone: "(555) 111-2222", email: "amanda@email.com", date: "2025-01-10" },
-  { name: "David Park", phone: "(555) 222-3333", email: "david@email.com", date: "2025-01-12" },
-  { name: "Maria Garcia", phone: "(555) 333-4444", email: "maria@email.com", date: "2025-01-08" },
-  { name: "James Thompson", phone: "(555) 444-5555", email: "james@email.com", date: "2025-01-14" },
-  { name: "Emily Davis", phone: "(555) 555-6666", email: "emily@email.com", date: "2025-01-11" },
-  { name: "Chris Rodriguez", phone: "(555) 666-7777", email: "chris@email.com", date: "2025-01-09" },
-  { name: "Sophie Chen", phone: "(555) 777-8888", email: "sophie@email.com", date: "2025-01-13" },
-  { name: "Michael Torres", phone: "(555) 888-9999", email: "michael@email.com", date: "2025-01-07" },
-  { name: "Jennifer Wang", phone: "(555) 999-0000", email: "jennifer@email.com", date: "2025-01-05" },
-  { name: "Robert Brown", phone: "(555) 000-1111", email: "robert@email.com", date: "2025-01-03" },
-  { name: "Ashley Martinez", phone: "(555) 111-2222", email: "ashley@email.com", date: "2025-01-01" },
-  { name: "Kevin Lee", phone: "(555) 222-3333", email: "kevin@email.com", date: "2024-12-28" },
-  { name: "Nicole Taylor", phone: "(555) 333-4444", email: "nicole@email.com", date: "2024-12-25" },
-];
-
-const allApplications = [
-  { name: "Robert Kim", appliedOn: "2025-01-15" },
-  { name: "Jennifer Martinez", appliedOn: "2025-01-15" },
-  { name: "John Anderson", appliedOn: "2025-01-10" },
-  { name: "Susan Miller", appliedOn: "2025-01-12" },
-  { name: "Tom Wilson", appliedOn: "2025-01-08" },
-  { name: "Lisa Park", appliedOn: "2025-01-14" },
-  { name: "Mark Thompson", appliedOn: "2025-01-11" },
-  { name: "Jennifer Davis", appliedOn: "2025-01-09" },
-  { name: "Carlos Rodriguez", appliedOn: "2025-01-06" },
-  { name: "Diana Chen", appliedOn: "2025-01-04" },
-  { name: "Frank Johnson", appliedOn: "2025-01-02" },
-  { name: "Grace Wilson", appliedOn: "2024-12-30" },
-  { name: "Henry Kim", appliedOn: "2024-12-27" },
-  { name: "Isabella Garcia", appliedOn: "2024-12-24" },
-];
-
-// Sparkline data for mini charts
-const leadSparklineData = [12, 15, 18, 14, 20, 17, 25];
-const appSparklineData = [8, 12, 10, 15, 18, 16, 22];
-
 // Recent clients data and status colors for dashboard section
 const recentClients = [
   { name: "Sarah Johnson", status: "Pre-approval", amount: "$450,000", date: "2 hours ago" },
@@ -101,6 +60,19 @@ const statusColors = {
 
 
 export default function DashboardTabs() {
+  const {
+    thisMonthLeads,
+    yesterdayLeads,
+    allLeads,
+    thisMonthApps,
+    yesterdayApps,
+    allApplications,
+    isLoading,
+  } = useDashboardData();
+
+  const leadsGoal = 100;
+  const appsGoal = 30;
+
   return (
     <div className="space-y-4">
       {/* Header Section */}
@@ -125,88 +97,100 @@ export default function DashboardTabs() {
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">
-          {/* Top 4 Large Stats Cards with Progress */}
-          <div className="grid grid-cols-4 gap-4">
-            <ModernStatsCard
-              title="This Month's Leads"
-              value="67"
-              icon={<Target />}
-              size="large"
-              progress={67}
-            />
-            <ModernStatsCard
-              title="Yesterday's Leads"
-              value="3"
-              icon={<TrendingUp />}
-              size="large"
-            />
-            <ModernStatsCard
-              title="This Month's Apps"
-              value="22"
-              icon={<FileText />}
-              size="large"
-              progress={73}
-            />
-            <ModernStatsCard
-              title="Yesterday's Apps"
-              value="1"
-              icon={<Activity />}
-              size="large"
-            />
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {/* Top 4 Large Stats Cards with Progress */}
+              <div className="grid grid-cols-4 gap-4">
+                <ModernStatsCard
+                  title="This Month's Leads"
+                  value={thisMonthLeads.length}
+                  icon={<Target />}
+                  size="large"
+                  progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
+                />
+                <ModernStatsCard
+                  title="Yesterday's Leads"
+                  value={yesterdayLeads.length}
+                  icon={<TrendingUp />}
+                  size="large"
+                />
+                <ModernStatsCard
+                  title="This Month's Apps"
+                  value={thisMonthApps.length}
+                  icon={<FileText />}
+                  size="large"
+                  progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
+                />
+                <ModernStatsCard
+                  title="Yesterday's Apps"
+                  value={yesterdayApps.length}
+                  icon={<Activity />}
+                  size="large"
+                />
+              </div>
 
-          {/* Collapsible Lists Section */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Left Side - All Leads */}
-            <div className="space-y-4">
-              <CollapsibleSection 
-                title="All Leads" 
-                count={allLeads.length}
-                data={allLeads}
-                renderItem={(lead, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground hover:text-warning transition-colors">{lead.name}</p>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
+              {/* Collapsible Lists Section */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left Side - All Leads */}
+                <div className="space-y-4">
+                  <CollapsibleSection 
+                    title="All Leads" 
+                    count={allLeads.length}
+                    data={allLeads}
+                    renderItem={(lead, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground hover:text-warning transition-colors">
+                            {lead.first_name} {lead.last_name}
+                          </p>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {lead.phone || '-'}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {lead.email || '-'}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {lead.email}
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(lead.lead_on_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {lead.date}
-                    </div>
-                  </div>
-                )}
-              />
-            </div>
+                    )}
+                  />
+                </div>
 
-            {/* Right Side - All Applications */}
-            <div className="space-y-4">
-              <CollapsibleSection 
-                title="All Applications" 
-                count={allApplications.length}
-                data={allApplications}
-                renderItem={(app, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground hover:text-warning transition-colors">{app.name}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      Applied: {app.appliedOn}
-                    </div>
-                  </div>
-                )}
-              />
-            </div>
-          </div>
+                {/* Right Side - All Applications */}
+                <div className="space-y-4">
+                  <CollapsibleSection 
+                    title="All Applications" 
+                    count={allApplications.length}
+                    data={allApplications}
+                    renderItem={(app, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground hover:text-warning transition-colors">
+                            {app.first_name} {app.last_name}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                        </div>
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="active" className="space-y-6">
