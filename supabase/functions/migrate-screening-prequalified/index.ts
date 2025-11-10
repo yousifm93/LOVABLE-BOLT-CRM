@@ -380,7 +380,17 @@ serve(async (req) => {
       insertedAgents?.forEach(a => agentMap.set(`${a.first_name} ${a.last_name}`, a.id));
     }
 
-    // Insert Screening leads
+    // Helper function to convert string boolean values
+    const toBool = (val: any): boolean | null => {
+      if (val === null || val === undefined) return null;
+      if (typeof val === 'boolean') return val;
+      const str = String(val).toUpperCase();
+      if (str === 'YES' || str === 'Y' || str === 'TRUE') return true;
+      if (str === 'NO' || str === 'N' || str === 'FALSE') return false;
+      return null;
+    };
+
+    // Insert Screening leads with all fields
     const screeningInserts = screeningLeads.map(lead => ({
       first_name: lead.first_name,
       last_name: lead.last_name,
@@ -394,7 +404,29 @@ serve(async (req) => {
       buyer_agent_id: lead.agent_name ? agentMap.get(lead.agent_name) : null,
       pipeline_stage_id: SCREENING_STAGE_ID,
       account_id: defaults.account_id,
-      created_by: defaults.created_by
+      created_by: defaults.created_by,
+      // Additional fields from Excel
+      status: lead.status,
+      pr_type: lead.pr_type,
+      loan_amount: lead.loan_amount,
+      ltv: lead.ltv,
+      term: lead.term,
+      property_type: lead.property_type,
+      occupancy: lead.occupancy,
+      subject_address_1: lead.subject_address_1,
+      subject_city: lead.subject_city,
+      subject_state: lead.subject_state,
+      subject_zip: lead.subject_zip,
+      borrower_current_address: lead.borrower_current_address,
+      total_monthly_income: lead.total_monthly_income,
+      dti: lead.dti,
+      program: lead.program,
+      escrows: lead.escrows,
+      reo: toBool(lead.reo),
+      interest_rate: lead.interest_rate,
+      piti: lead.piti,
+      estimated_fico: lead.estimated_fico,
+      income_type: lead.income_type
     }));
 
     const { error: insertScreeningError } = await supabase
@@ -404,7 +436,7 @@ serve(async (req) => {
     if (insertScreeningError) throw insertScreeningError;
     console.log(`Inserted ${screeningLeads.length} Screening leads`);
 
-    // Insert Pre-Qualified leads
+    // Insert Pre-Qualified leads with all fields
     const prequalifiedInserts = prequalifiedLeads.map(lead => ({
       first_name: lead.first_name,
       last_name: lead.last_name,
@@ -423,12 +455,29 @@ serve(async (req) => {
       occupancy: lead.occupancy,
       pr_type: lead.pr_type,
       income_type: lead.income_type,
-      reo: lead.reo,
+      reo: toBool(lead.reo),
       task_eta: lead.task_eta,
       buyer_agent_id: lead.agent_name ? agentMap.get(lead.agent_name) : null,
       pipeline_stage_id: PREQUALIFIED_STAGE_ID,
       account_id: defaults.account_id,
-      created_by: defaults.created_by
+      created_by: defaults.created_by,
+      // Additional fields from Excel
+      estimated_fico: lead.estimated_fico,
+      escrows: lead.escrows,
+      phone: lead.phone,
+      email: lead.email,
+      subject_city: lead.subject_city,
+      subject_state: lead.subject_state,
+      subject_zip: lead.subject_zip,
+      term: lead.term,
+      total_monthly_income: lead.total_monthly_income,
+      dob: lead.dob,
+      borrower_current_address: lead.borrower_current_address,
+      dti: lead.dti,
+      ltv: lead.ltv,
+      piti: lead.piti,
+      monthly_liabilities: lead.monthly_liabilities,
+      subject_address_1: lead.subject_address_1
     }));
 
     const { error: insertPrequalifiedError } = await supabase
