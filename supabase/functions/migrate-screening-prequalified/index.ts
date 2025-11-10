@@ -34,19 +34,23 @@ serve(async (req) => {
 
     const defaults = existingLead || { created_by: null, account_id: null };
 
-    // Step 2: Define 11 new buyer agents
+    // Step 2: Define buyer agents from Excel data
     const newAgents = [
-      { first_name: 'Victoria', last_name: 'Cheng', brokerage: 'Unknown' },
-      { first_name: 'Sam', last_name: 'Mogannam', brokerage: 'Unknown' },
-      { first_name: 'Yaniv', last_name: 'Shemesh', brokerage: 'Unknown' },
-      { first_name: 'Robert', last_name: 'Slavin', brokerage: 'Unknown' },
-      { first_name: 'Flavio', last_name: 'Pentagna', brokerage: 'Unknown' },
-      { first_name: 'Jeff', last_name: 'Lichtenstein', brokerage: 'Unknown' },
-      { first_name: 'Marilyn', last_name: 'Arango', brokerage: 'Unknown' },
-      { first_name: 'Kristine', last_name: 'Brown', brokerage: 'Unknown' },
-      { first_name: 'Livia', last_name: 'Ballou', brokerage: 'Unknown' },
-      { first_name: 'Paul', last_name: 'Scutaro', brokerage: 'Unknown' },
-      { first_name: 'Aura', last_name: 'Caruso', brokerage: 'Unknown' }
+      { first_name: 'Annie', last_name: 'Lopez', brokerage: 'Unknown' },
+      { first_name: 'Russell', last_name: "O'Brien", brokerage: 'Unknown' },
+      { first_name: 'Daniel', last_name: 'Hernandez', brokerage: 'Unknown' },
+      { first_name: 'Anastasia', last_name: 'Benedeti', brokerage: 'Unknown' },
+      { first_name: 'Madison', last_name: 'Clivilles', brokerage: 'Unknown' },
+      { first_name: 'Hugo', last_name: 'Barragan', brokerage: 'Unknown' },
+      { first_name: 'Yalexis', last_name: '', brokerage: 'Unknown' },
+      { first_name: 'Jason', last_name: 'Bishop', brokerage: 'Unknown' },
+      { first_name: 'Gian', last_name: 'Peixoto', brokerage: 'Unknown' },
+      { first_name: 'Nei', last_name: 'Andreani', brokerage: 'Unknown' },
+      { first_name: 'Isabel', last_name: '', brokerage: 'Unknown' },
+      { first_name: 'Sandra', last_name: '', brokerage: 'Unknown' },
+      { first_name: 'Teresa', last_name: 'Garcia', brokerage: 'Unknown' },
+      { first_name: 'Juan Carlos', last_name: 'Perez', brokerage: 'Unknown' },
+      { first_name: 'Evan', last_name: 'Schechtman', brokerage: 'Unknown' }
     ];
 
     // Check which agents already exist
@@ -69,155 +73,228 @@ serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('pipeline_stage_id', PREQUALIFIED_STAGE_ID);
 
-    // Define 3 Screening leads
+    // Define 3 Screening leads from Excel
     const screeningLeads = [
       {
-        first_name: 'Jake', last_name: 'Levin',
-        lead_on_date: '2024-08-27', pending_app_at: '2024-09-03T00:00:00Z', app_complete_at: '2024-10-17T00:00:00Z',
-        arrive_loan_number: '104037', email: 'jakelevin15@gmail.com', phone: '+1 954 494 4070',
-        task_eta: '2024-10-31', agent_name: 'Victoria Cheng'
+        first_name: 'Saravanan', last_name: 'Nachimuthiah',
+        lead_on_date: '2025-10-29', pending_app_at: '2025-10-29T00:00:00Z', app_complete_at: '2025-10-29T00:00:00Z',
+        arrive_loan_number: '15367791', email: 'saran.nachi@gmail.com', phone: '+1 940 390 4534',
+        task_eta: '2025-11-04', agent_name: null,
+        status: 'JUST APPLIED', pr_type: 'R', loan_amount: 320500, ltv: 78.171, term: 360,
+        property_type: 'SingleFamily', occupancy: 'Investment', subject_address_1: '14596 West Sand Hills Road',
+        subject_city: 'Sun City West', subject_state: 'AZ', subject_zip: '85387',
+        borrower_current_address: '2233 Sullenberger Way', total_monthly_income: 16666.66, dti: '0%',
+        program: 'Conventional', escrows: 'None Waived'
       },
       {
-        first_name: 'Andrea', last_name: 'Weiss',
-        lead_on_date: '2024-09-16', pending_app_at: '2024-09-30T00:00:00Z', app_complete_at: '2024-10-29T00:00:00Z',
-        arrive_loan_number: '104085', email: 'andreaweiss55@gmail.com', phone: null,
-        task_eta: '2024-11-01', agent_name: null
+        first_name: 'Cullen', last_name: '1MM REFI',
+        lead_on_date: '2025-10-03', pending_app_at: '2025-11-05T00:00:00Z', app_complete_at: '2025-11-07T00:00:00Z',
+        arrive_loan_number: '15222124', email: 'cullen@soduscapital.com', phone: '+1 305 849 3959',
+        task_eta: '2025-11-07', agent_name: null,
+        status: 'SCREENING', pr_type: 'R', reo: 'YES', loan_amount: 960000, ltv: 71.111,
+        interest_rate: 6.625, term: 360, piti: 9304.13, property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        subject_address_1: '377 22ND AVE SE', subject_city: 'St. Petersburg', subject_state: 'FL', subject_zip: '337053703',
+        borrower_current_address: '377 22nd Avenue SE', total_monthly_income: 4000000, dti: '0.23%',
+        program: 'Conventional', estimated_fico: '740-779', escrows: 'All Waived'
       },
       {
-        first_name: 'Itamar', last_name: 'Melzer',
-        lead_on_date: '2024-10-14', pending_app_at: '2024-10-22T00:00:00Z', app_complete_at: '2024-11-10T00:00:00Z',
-        arrive_loan_number: '104132', email: null, phone: null,
-        task_eta: '2024-11-10', agent_name: null
+        first_name: 'Mohamed', last_name: 'Rasmy',
+        lead_on_date: '2025-11-04', pending_app_at: '2025-11-10T00:00:00Z', app_complete_at: '2025-11-10T00:00:00Z',
+        arrive_loan_number: null, email: null, phone: null,
+        task_eta: '2025-11-10', agent_name: null,
+        status: 'JUST APPLIED', pr_type: 'HELOC', income_type: 'SALARY', reo: 'YES',
+        property_type: 'SFR', occupancy: 'Primary Residence', program: 'CONVENTONAL', estimated_fico: '780+'
       }
     ];
 
-    // Define 18 Pre-Qualified leads with comprehensive data
+    // Define 18 Pre-Qualified leads with comprehensive data from Excel
     const prequalifiedLeads = [
       {
-        first_name: 'Denis', last_name: 'Esptein',
-        lead_on_date: '2023-12-19', pending_app_at: '2023-12-22T00:00:00Z', app_complete_at: '2024-01-15T00:00:00Z', pre_qualified_at: '2024-01-19T00:00:00Z',
-        arrive_loan_number: '103279', loan_amount: 850000, sales_price: 1100000, down_pmt: 250000, interest_rate: 6.750,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-04-30', agent_name: 'Sam Mogannam'
+        first_name: 'Lucja', last_name: 'Baldwin',
+        lead_on_date: '2025-07-03', pending_app_at: null, app_complete_at: '2025-07-12T00:00:00Z', pre_qualified_at: '2025-07-18T00:00:00Z',
+        arrive_loan_number: '14621107', loan_amount: 800000, sales_price: 1000000, down_pmt: 200000, ltv: 80,
+        monthly_pmt_goal: 3000, program: 'CONVENTONAL', property_type: 'CONDO', occupancy: 'Second Home',
+        pr_type: 'P', income_type: 'NON QM', reo: 'YES', estimated_fico: '740-779', escrows: 'NONE WAIVED',
+        task_eta: '2025-10-21', agent_name: 'Annie Lopez', phone: '+1 786 527 5137', email: 'krzak.lucja@gmail.com',
+        subject_city: 'Miami', subject_state: 'FL', term: 360, total_monthly_income: 12000, dob: '1989-08-05',
+        borrower_current_address: '17 Drifting Shadow Way Las Vegas NV 89135', dti: '0.00%'
       },
       {
-        first_name: 'Roman', last_name: 'Dvorkin',
-        lead_on_date: '2024-02-07', pending_app_at: '2024-02-08T00:00:00Z', app_complete_at: '2024-02-10T00:00:00Z', pre_qualified_at: '2024-02-19T00:00:00Z',
-        arrive_loan_number: '103336', loan_amount: 2320000, sales_price: 2900000, down_pmt: 580000, interest_rate: 7.625,
-        monthly_pmt_goal: null, program: 'Conventional', property_type: 'SFR', occupancy: 'Primary',
-        pr_type: null, income_type: 'W2', reo: 'N', task_eta: '2024-10-17', agent_name: 'Yaniv Shemesh'
+        first_name: 'Darwin', last_name: 'Justiniano',
+        lead_on_date: '2025-07-07', pending_app_at: null, app_complete_at: '2025-07-08T00:00:00Z', pre_qualified_at: '2025-07-22T00:00:00Z',
+        arrive_loan_number: '14621467', loan_amount: 297000, sales_price: 307000, down_pmt: 10000, ltv: 96.743,
+        monthly_pmt_goal: 2500, program: 'CONVENTONAL', property_type: 'CONDO', occupancy: 'Primary Residence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '620-659', escrows: 'NONE WAIVED',
+        task_eta: '2025-10-21', agent_name: "Russell O'Brien", phone: '+1 305 790 9586', email: 'josedarw@hotmail.com',
+        subject_city: 'Miami Beach', subject_state: 'FL', subject_zip: '33139', term: 360, total_monthly_income: 6000,
+        dob: '1981-03-25', borrower_current_address: '401 Ocean Drive Apt 922 Miami Beach FL 33139', dti: '0.00%'
       },
       {
-        first_name: 'Enno', last_name: 'Schultze',
-        lead_on_date: '2024-02-14', pending_app_at: '2024-02-15T00:00:00Z', app_complete_at: '2024-02-20T00:00:00Z', pre_qualified_at: '2024-02-28T00:00:00Z',
-        arrive_loan_number: '103357', loan_amount: 1850000, sales_price: 2310000, down_pmt: 460000, interest_rate: 7.750,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'N', task_eta: '2024-10-31', agent_name: 'Robert Slavin'
+        first_name: 'Arife', last_name: 'Colak',
+        lead_on_date: '2025-07-21', pending_app_at: null, app_complete_at: '2025-07-22T00:00:00Z', pre_qualified_at: '2025-07-30T00:00:00Z',
+        arrive_loan_number: '14706043', loan_amount: 240000, sales_price: 360000, down_pmt: 120000, ltv: 66.667,
+        monthly_pmt_goal: 0, program: 'CONVENTONAL', property_type: 'SFR', occupancy: 'Primary Residence',
+        pr_type: 'P', income_type: 'S/E', reo: 'YES', estimated_fico: '580-619', escrows: 'NONE WAIVED',
+        task_eta: null, agent_name: 'Daniel Hernandez', phone: '+1 214 836 0275', email: 'nextplazausa@gmail.com',
+        subject_city: 'Little Haiti', subject_state: 'FL', term: 360, total_monthly_income: 10000,
+        dob: '1989-05-05', borrower_current_address: 'Oviedo 29 # 1, Coral Gables, FL 33134, USA', dti: '0.00%'
       },
       {
-        first_name: 'Itay', last_name: 'Cohen',
-        lead_on_date: '2024-03-03', pending_app_at: '2024-03-05T00:00:00Z', app_complete_at: '2024-03-10T00:00:00Z', pre_qualified_at: '2024-03-13T00:00:00Z',
-        arrive_loan_number: '103391', loan_amount: 650000, sales_price: 830000, down_pmt: 180000, interest_rate: 7.375,
-        monthly_pmt_goal: null, program: 'DSCR', property_type: 'SFR', occupancy: 'Investment',
-        pr_type: null, income_type: null, reo: 'Y', task_eta: '2024-10-31', agent_name: 'Flavio Pentagna'
+        first_name: 'Wesley', last_name: 'Magalhaes Rangel',
+        lead_on_date: '2025-06-12', pending_app_at: null, app_complete_at: '2025-06-30T00:00:00Z', pre_qualified_at: '2025-07-31T00:00:00Z',
+        arrive_loan_number: '14581137', loan_amount: 715000, sales_price: 750000, down_pmt: 35000, ltv: 95.333,
+        monthly_pmt_goal: 0, program: 'CONVENTONAL', property_type: 'SFR', occupancy: 'Primary Residence',
+        pr_type: 'P', income_type: null, reo: null, estimated_fico: '660-699', escrows: 'NONE WAIVED',
+        task_eta: '2025-10-21', agent_name: 'Anastasia Benedeti', phone: '+1 786 208 3057', email: 'wesleyrangel@gmail.com',
+        subject_city: 'Doral', subject_state: 'FL', subject_zip: '33178', term: 360, total_monthly_income: 0,
+        dob: '1985-11-11', borrower_current_address: '7930 Northwest 108th Place DoralFL 33178'
       },
       {
-        first_name: 'Zoe', last_name: 'Sayegh',
-        lead_on_date: '2024-03-06', pending_app_at: '2024-03-07T00:00:00Z', app_complete_at: '2024-03-13T00:00:00Z', pre_qualified_at: '2024-03-18T00:00:00Z',
-        arrive_loan_number: '103393', loan_amount: 605000, sales_price: 775000, down_pmt: 170000, interest_rate: 7.500,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'SFR', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-23', agent_name: 'Jeff Lichtenstein'
+        first_name: 'Jeffrey', last_name: 'Newsome',
+        lead_on_date: '2025-07-25', pending_app_at: null, app_complete_at: '2025-07-28T00:00:00Z', pre_qualified_at: '2025-08-04T00:00:00Z',
+        arrive_loan_number: '14739586', loan_amount: 840000, sales_price: 1050000, down_pmt: 210000, ltv: 80,
+        monthly_pmt_goal: 6500, program: 'CONVENTONAL', property_type: 'SFR', occupancy: 'Primary Residence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'YES', estimated_fico: '700-739', escrows: 'NONE WAIVED',
+        task_eta: '2025-11-21', agent_name: null, phone: '+1 727 348 8635', email: 'jnewsome94@yahoo.com',
+        interest_rate: 6.99, subject_city: 'St. Petersburg', subject_state: 'FL', subject_zip: '33702', term: 360,
+        total_monthly_income: 19949.99, monthly_liabilities: 1000, dob: '1994-07-02',
+        borrower_current_address: '7675 8th Street North St. Petersburg FL 33702', dti: '5.01%'
       },
       {
-        first_name: 'Celia', last_name: 'Pelayo',
-        lead_on_date: '2024-03-25', pending_app_at: '2024-03-25T00:00:00Z', app_complete_at: '2024-03-27T00:00:00Z', pre_qualified_at: '2024-04-02T00:00:00Z',
-        arrive_loan_number: '103434', loan_amount: 515000, sales_price: 660000, down_pmt: 145000, interest_rate: 7.500,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'SFR', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'N', task_eta: '2024-10-17', agent_name: 'Marilyn Arango'
+        first_name: 'Diego', last_name: 'Herrera',
+        lead_on_date: '2025-08-08', pending_app_at: '2025-08-08T00:00:00Z', app_complete_at: '2025-08-10T00:00:00Z', pre_qualified_at: '2025-08-19T00:00:00Z',
+        arrive_loan_number: '14818806', loan_amount: 950000, sales_price: 1000000, down_pmt: 50000, ltv: 95,
+        monthly_pmt_goal: null, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '780+', escrows: 'None Waived',
+        task_eta: '2025-10-21', agent_name: 'Anastasia Benedeti', phone: '+1 720 325 8541', email: 'diego.herrera93@gmail.com',
+        subject_city: 'Miami', subject_state: 'FL', term: 360, total_monthly_income: 14583.33,
+        dob: '1993-07-23', borrower_current_address: '1865 Brickell Avenue', dti: '0.00%'
       },
       {
-        first_name: 'Andrea', last_name: 'Da Silva',
-        lead_on_date: '2024-05-05', pending_app_at: '2024-05-06T00:00:00Z', app_complete_at: '2024-05-13T00:00:00Z', pre_qualified_at: '2024-05-14T00:00:00Z',
-        arrive_loan_number: '103548', loan_amount: 500000, sales_price: 625000, down_pmt: 125000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-23', agent_name: 'Kristine Brown'
+        first_name: 'Wafaa', last_name: '',
+        lead_on_date: '2025-08-27', pending_app_at: '2025-09-03T00:00:00Z', app_complete_at: '2025-09-04T00:00:00Z', pre_qualified_at: '2025-09-08T00:00:00Z',
+        arrive_loan_number: '14964002', loan_amount: 250000, sales_price: 500000, down_pmt: 50, ltv: 50,
+        monthly_pmt_goal: 2500, program: 'CONVENTONAL', property_type: 'Condominium', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '700-739', escrows: 'None',
+        task_eta: '2026-01-01', agent_name: 'Madison Clivilles', phone: null, email: null,
+        interest_rate: 7.125, term: 360, piti: 2415, total_monthly_income: 8235, monthly_liabilities: 530,
+        estimated_fico: '700', dti: '35.76%'
       },
       {
-        first_name: 'Shahin', last_name: 'Vafai',
-        lead_on_date: '2024-05-06', pending_app_at: '2024-05-08T00:00:00Z', app_complete_at: '2024-05-13T00:00:00Z', pre_qualified_at: '2024-05-17T00:00:00Z',
-        arrive_loan_number: '103552', loan_amount: 715000, sales_price: 895000, down_pmt: 180000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-17', agent_name: 'Livia Ballou'
+        first_name: 'Catalina', last_name: 'Delgado',
+        lead_on_date: '2025-09-18', pending_app_at: '2025-09-19T00:00:00Z', app_complete_at: '2025-09-18T00:00:00Z', pre_qualified_at: '2025-09-26T00:00:00Z',
+        arrive_loan_number: '15103665', loan_amount: 428000, sales_price: 535000, down_pmt: 107600, ltv: 80,
+        monthly_pmt_goal: 2500, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: null, reo: null, estimated_fico: null, escrows: 'None Waived',
+        task_eta: '2025-11-04', agent_name: 'Hugo Barragan', phone: '+1 305 417 0824', email: 'catalinadelgador@gmail.com',
+        interest_rate: 5.99, subject_city: 'Miami', subject_state: 'FL', subject_zip: '33129', term: 360, piti: 3629,
+        total_monthly_income: 10946.67813, monthly_liabilities: 2300,
+        borrower_current_address: '2150 Southwest 16th Avenue', dti: '54.16%'
       },
       {
-        first_name: 'Osvaldo', last_name: 'Soto',
-        lead_on_date: '2024-05-09', pending_app_at: '2024-05-10T00:00:00Z', app_complete_at: '2024-05-17T00:00:00Z', pre_qualified_at: '2024-05-17T00:00:00Z',
-        arrive_loan_number: '103557', loan_amount: 530000, sales_price: 670000, down_pmt: 140000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-31', agent_name: 'Kristine Brown'
+        first_name: 'Leyter', last_name: 'Fernandez',
+        lead_on_date: '2025-10-03', pending_app_at: '2025-10-03T00:00:00Z', app_complete_at: '2025-10-03T00:00:00Z', pre_qualified_at: '2025-10-08T00:00:00Z',
+        arrive_loan_number: '15195985', loan_amount: 525000, sales_price: 700000, down_pmt: 175000, ltv: 75,
+        monthly_pmt_goal: 3200, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'S/E', reo: 'YES', estimated_fico: '740-779', escrows: 'ALL WAIVED',
+        task_eta: '2025-10-29', agent_name: 'Yalexis', phone: '+1 786 554 6667', email: 'lorenzos12125@hotmail.com',
+        interest_rate: 6.375, subject_city: 'Palmetto Bay', subject_state: 'FL', subject_zip: '33157', term: 360,
+        piti: 3275.32, total_monthly_income: 44683, borrower_current_address: '665 Northeast 25th Street',
+        estimated_fico: '665', dti: '7.33%'
       },
       {
-        first_name: 'Amanda', last_name: 'Lichtenstein',
-        lead_on_date: '2024-05-10', pending_app_at: '2024-05-13T00:00:00Z', app_complete_at: '2024-05-20T00:00:00Z', pre_qualified_at: '2024-05-28T00:00:00Z',
-        arrive_loan_number: '103563', loan_amount: 1050000, sales_price: 1315000, down_pmt: 265000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Conventional', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: 'W2', reo: 'N', task_eta: '2024-10-31', agent_name: 'Jeff Lichtenstein'
+        first_name: 'Jacob', last_name: 'Rico',
+        lead_on_date: '2025-10-09', pending_app_at: '2025-10-09T00:00:00Z', app_complete_at: '2025-10-09T00:00:00Z', pre_qualified_at: '2025-10-10T00:00:00Z',
+        arrive_loan_number: '15237910', loan_amount: 280000, sales_price: 300000, down_pmt: 20000, ltv: 93.333,
+        monthly_pmt_goal: 2800, program: 'Conventional', property_type: 'CONDO', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'YES', estimated_fico: '780+', escrows: 'None Waived',
+        task_eta: '2025-10-20', agent_name: 'Jason Bishop', phone: '+1 620 260 0366', email: 'jacobprico@gmail.com',
+        interest_rate: 6.375, subject_city: 'Miami', subject_state: 'FL', subject_zip: '33133', term: 360,
+        piti: 3259.34, total_monthly_income: 10100, monthly_liabilities: 500,
+        borrower_current_address: '2700 Southwest 27th Avenue', dti: '37.22%'
       },
       {
-        first_name: 'Roshanak', last_name: 'Izadshenas',
-        lead_on_date: '2024-05-12', pending_app_at: '2024-05-13T00:00:00Z', app_complete_at: '2024-05-20T00:00:00Z', pre_qualified_at: '2024-05-28T00:00:00Z',
-        arrive_loan_number: '103567', loan_amount: 1050000, sales_price: 1315000, down_pmt: 265000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Conventional', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: 'W2', reo: 'N', task_eta: '2024-10-17', agent_name: 'Jeff Lichtenstein'
+        first_name: 'angelo', last_name: 'gian',
+        lead_on_date: '2025-10-20', pending_app_at: '2025-10-22T00:00:00Z', app_complete_at: '2025-10-22T00:00:00Z', pre_qualified_at: '2025-10-22T00:00:00Z',
+        arrive_loan_number: '15307118', loan_amount: 495000, sales_price: 550000, down_pmt: 55000, ltv: 90,
+        monthly_pmt_goal: 3500, program: 'CONVENTONAL', property_type: 'SFR', occupancy: 'Primary Residence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '780+', escrows: 'ALL WAIVED',
+        task_eta: '2025-11-10', agent_name: 'Gian Peixoto', phone: null, email: null,
+        interest_rate: 5.99, term: 360, piti: 4081, total_monthly_income: 10833, monthly_liabilities: 500,
+        estimated_fico: '780', dti: '42.29%'
       },
       {
-        first_name: 'Gustavo', last_name: 'Coutinho',
-        lead_on_date: '2024-05-28', pending_app_at: '2024-05-29T00:00:00Z', app_complete_at: '2024-06-05T00:00:00Z', pre_qualified_at: '2024-06-10T00:00:00Z',
-        arrive_loan_number: '103601', loan_amount: 485000, sales_price: 607000, down_pmt: 122000, interest_rate: 7.250,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-23', agent_name: 'Paul Scutaro'
+        first_name: 'Caio', last_name: 'Quadrado',
+        lead_on_date: '2025-02-06', pending_app_at: '2025-04-08T00:00:00Z', app_complete_at: '2025-10-20T00:00:00Z', pre_qualified_at: '2025-10-23T00:00:00Z',
+        arrive_loan_number: '15301937', loan_amount: 0, sales_price: null, down_pmt: 0, ltv: 0,
+        monthly_pmt_goal: null, program: 'NON-QM', property_type: 'SingleFamily', occupancy: 'Investment',
+        pr_type: 'R', income_type: 'DSCR', reo: 'YES', estimated_fico: null, escrows: 'None Waived',
+        task_eta: '2025-11-07', agent_name: 'Nei Andreani', phone: '+1 954 805 3436', email: 'caiorq@gmail.com',
+        subject_address_1: '2493 Poinciana Drive', subject_city: 'Weston', subject_state: 'FL', subject_zip: '333271414',
+        term: 360, borrower_current_address: '1 Franklin Street'
       },
       {
-        first_name: 'Fabio', last_name: 'Neves',
-        lead_on_date: '2024-05-29', pending_app_at: '2024-05-31T00:00:00Z', app_complete_at: '2024-06-06T00:00:00Z', pre_qualified_at: '2024-06-11T00:00:00Z',
-        arrive_loan_number: '103609', loan_amount: 550000, sales_price: 690000, down_pmt: 140000, interest_rate: 7.125,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-23', agent_name: 'Paul Scutaro'
+        first_name: 'Sergio', last_name: 'Otero',
+        lead_on_date: '2025-10-22', pending_app_at: '2025-10-23T00:00:00Z', app_complete_at: '2025-10-23T00:00:00Z', pre_qualified_at: '2025-10-29T00:00:00Z',
+        arrive_loan_number: '15323778', loan_amount: 262500, sales_price: 350000, down_pmt: 60000, ltv: 75,
+        monthly_pmt_goal: null, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'Investment',
+        pr_type: 'P', income_type: null, reo: null, estimated_fico: null, escrows: 'None Waived',
+        task_eta: '2025-11-24', agent_name: 'Isabel', phone: '+1 786 616 7039', email: 'se_otero@yahoo.es',
+        interest_rate: 8.125, subject_city: 'Miami', subject_state: 'FL', subject_zip: '33131', term: 360,
+        piti: 1975.51, total_monthly_income: 16250, monthly_liabilities: 618,
+        borrower_current_address: '1111 N Milwaukee Ave', dti: '15.96%'
       },
       {
-        first_name: 'Erez', last_name: 'Dahari',
-        lead_on_date: '2024-06-03', pending_app_at: '2024-06-04T00:00:00Z', app_complete_at: '2024-06-11T00:00:00Z', pre_qualified_at: '2024-06-17T00:00:00Z',
-        arrive_loan_number: '103619', loan_amount: 575000, sales_price: 720000, down_pmt: 145000, interest_rate: 7.125,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-17', agent_name: 'Aura Caruso'
+        first_name: 'Gustavo', last_name: 'Mariela',
+        lead_on_date: '2025-10-28', pending_app_at: '2025-10-28T00:00:00Z', app_complete_at: '2025-10-28T00:00:00Z', pre_qualified_at: '2025-10-30T00:00:00Z',
+        arrive_loan_number: '15360789', loan_amount: 624000, sales_price: 780000, down_pmt: 156000, ltv: 80,
+        monthly_pmt_goal: 3000, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'Investment',
+        pr_type: 'P', income_type: 'SALARY', reo: null, estimated_fico: null, escrows: 'None Waived',
+        task_eta: '2025-11-14', agent_name: 'Sandra', phone: '+1 305 469 7012', email: 'mkbullor@hotmail.com',
+        subject_address_1: '1901 Miami Road', subject_city: 'Fort Lauderdale', subject_state: 'FL', subject_zip: '333163561',
+        term: 360, total_monthly_income: 33666.6745, borrower_current_address: '4485 Ficus Street', dti: '0.00%'
       },
       {
-        first_name: 'Roger', last_name: 'Tapia',
-        lead_on_date: '2024-06-17', pending_app_at: '2024-06-18T00:00:00Z', app_complete_at: '2024-06-25T00:00:00Z', pre_qualified_at: '2024-07-01T00:00:00Z',
-        arrive_loan_number: '103657', loan_amount: 450000, sales_price: 565000, down_pmt: 115000, interest_rate: 7.125,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-23', agent_name: 'Livia Ballou'
+        first_name: 'Ashley', last_name: 'Soto',
+        lead_on_date: '2025-10-20', pending_app_at: '2025-10-30T00:00:00Z', app_complete_at: '2025-10-30T00:00:00Z', pre_qualified_at: '2025-10-31T00:00:00Z',
+        arrive_loan_number: '15375404', loan_amount: 315000, sales_price: 350000, down_pmt: 35000, ltv: 90,
+        monthly_pmt_goal: 2900, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '780+', escrows: 'None Waived',
+        task_eta: '2025-11-10', agent_name: 'Teresa Garcia', phone: '+1 954 284 3100', email: 'acsoto93@gmail.com',
+        interest_rate: 5.625, subject_city: 'Pembroke Pines', subject_state: 'FL', subject_zip: '33025', term: 360,
+        piti: 2710, total_monthly_income: 7785.42, monthly_liabilities: 500, estimated_fico: '780',
+        borrower_current_address: '911 Southwest 111th Avenue', dti: '41.23%'
       },
       {
-        first_name: 'Dennis', last_name: 'Bielich',
-        lead_on_date: '2024-07-16', pending_app_at: '2024-07-17T00:00:00Z', app_complete_at: '2024-07-24T00:00:00Z', pre_qualified_at: '2024-07-29T00:00:00Z',
-        arrive_loan_number: '103755', loan_amount: 470000, sales_price: 590000, down_pmt: 120000, interest_rate: 6.875,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-31', agent_name: 'Aura Caruso'
+        first_name: 'Ryan', last_name: 'Rached',
+        lead_on_date: '2025-10-27', pending_app_at: '2025-10-28T00:00:00Z', app_complete_at: '2025-10-29T00:00:00Z', pre_qualified_at: '2025-11-03T00:00:00Z',
+        arrive_loan_number: '15362307', loan_amount: 420000, sales_price: 600000, down_pmt: 150000, ltv: 70,
+        monthly_pmt_goal: null, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'NON QM', reo: 'NO', estimated_fico: '740-779', escrows: 'None Waived',
+        task_eta: '2025-11-10', agent_name: 'Juan Carlos Perez', phone: '+1 786 657 0455', email: 'ryanrached@gmail.com',
+        subject_city: 'Miami', subject_state: 'FL', subject_zip: '33130', term: 360, total_monthly_income: 1240,
+        monthly_liabilities: 766, borrower_current_address: '325 South Dixie Highway', dti: '61.77%'
       },
       {
-        first_name: 'Miriam', last_name: 'Sasson',
-        lead_on_date: '2024-07-19', pending_app_at: '2024-07-22T00:00:00Z', app_complete_at: '2024-07-29T00:00:00Z', pre_qualified_at: '2024-08-02T00:00:00Z',
-        arrive_loan_number: '103771', loan_amount: 450000, sales_price: 565000, down_pmt: 115000, interest_rate: 6.750,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-31', agent_name: 'Aura Caruso'
+        first_name: 'Jason', last_name: 'Herald',
+        lead_on_date: '2025-11-06', pending_app_at: '2025-11-07T00:00:00Z', app_complete_at: '2025-11-06T00:00:00Z', pre_qualified_at: '2025-11-07T00:00:00Z',
+        arrive_loan_number: '15417922', loan_amount: 387500, sales_price: 500000, down_pmt: 112500, ltv: 77.5,
+        monthly_pmt_goal: null, program: 'Conventional', property_type: 'Condominium', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '780+', escrows: 'None Waived',
+        task_eta: '2025-11-10', agent_name: 'Evan Schechtman', phone: '+1 984 303 8175', email: 'thejasonjerald@gmail.com',
+        subject_city: 'Miami', subject_state: 'FL', term: 360, total_monthly_income: 12765.8,
+        borrower_current_address: '230 Northeast 4th Street', dti: '0.00%'
       },
       {
-        first_name: 'Roger', last_name: 'Khafif',
-        lead_on_date: '2024-08-12', pending_app_at: '2024-08-13T00:00:00Z', app_complete_at: '2024-08-20T00:00:00Z', pre_qualified_at: '2024-08-26T00:00:00Z',
-        arrive_loan_number: '103887', loan_amount: 2250000, sales_price: 2810000, down_pmt: 560000, interest_rate: 6.750,
-        monthly_pmt_goal: null, program: 'Bank Statement', property_type: 'Condo', occupancy: 'Primary',
-        pr_type: null, income_type: '1099', reo: 'Y', task_eta: '2024-10-31', agent_name: 'Aura Caruso'
+        first_name: 'Karina', last_name: 'Perera',
+        lead_on_date: '2025-11-06', pending_app_at: '2025-11-06T00:00:00Z', app_complete_at: '2025-11-06T00:00:00Z', pre_qualified_at: '2025-11-10T00:00:00Z',
+        arrive_loan_number: '15420274', loan_amount: 306700, sales_price: 600000, down_pmt: 76675, ltv: 75,
+        monthly_pmt_goal: 1500, program: 'Conventional', property_type: 'SingleFamily', occupancy: 'PrimaryResidence',
+        pr_type: 'P', income_type: 'SALARY', reo: 'NO', estimated_fico: '700-739', escrows: 'ALL WAIVED',
+        task_eta: '2025-11-07', agent_name: null, phone: '+1 305 205 8382', email: 'karina_perera@yahoo.com',
+        interest_rate: 6.125, subject_address_1: '551 West 79th Street', subject_city: 'Hialeah', subject_state: 'FL',
+        subject_zip: '330144224', term: 360, piti: 2075, total_monthly_income: 7750, monthly_liabilities: 800,
+        estimated_fico: '708', borrower_current_address: '551 West 79th Street', dti: '37.10%'
       }
     ];
 
