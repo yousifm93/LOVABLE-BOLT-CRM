@@ -57,6 +57,7 @@ interface DataTableProps<T> {
   defaultSortDirection?: "asc" | "desc";
   lockSort?: boolean;
   storageKey?: string;
+  showRowNumbers?: boolean;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -233,6 +234,7 @@ export function DataTable<T extends Record<string, any>>({
   defaultSortDirection = "asc",
   lockSort = false,
   storageKey,
+  showRowNumbers = false,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
@@ -421,7 +423,7 @@ export function DataTable<T extends Record<string, any>>({
           <TableHeader>
             <TableRow>
               {selectable && (
-                <TableHead className="w-[50px] h-8 px-2">
+                <TableHead className="w-[50px] h-8 px-2"> {/* Fixed width for consistency across all boards */}
                   <div className="flex justify-center">
                     <Checkbox
                       checked={isAllSelected}
@@ -430,6 +432,11 @@ export function DataTable<T extends Record<string, any>>({
                       className={isSomeSelected ? "data-[state=checked]:bg-primary/50" : ""}
                     />
                   </div>
+                </TableHead>
+              )}
+              {showRowNumbers && (
+                <TableHead className="w-[50px] h-8 px-2 text-center">
+                  <span className="text-xs font-medium">#</span>
                 </TableHead>
               )}
               <SortableContext
@@ -472,7 +479,7 @@ export function DataTable<T extends Record<string, any>>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {selectable && (
-                      <TableCell className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="py-2 px-2 w-[50px]" onClick={(e) => e.stopPropagation()}> {/* Match header width */}
                         <div className="flex justify-center">
                           <Checkbox
                             checked={isSelected}
@@ -480,6 +487,11 @@ export function DataTable<T extends Record<string, any>>({
                             aria-label={`Select lead ${rowId}`}
                           />
                         </div>
+                      </TableCell>
+                    )}
+                    {showRowNumbers && (
+                      <TableCell className="py-2 px-2 w-[50px] text-center" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-xs text-muted-foreground">{index + 1}</span>
                       </TableCell>
                     )}
                     {columns.map((column) => (

@@ -194,11 +194,10 @@ const allAvailableColumns = useMemo(() => {
     loadView(viewName);
   };
 
-  // Auto-load Main View on initial mount
+  // Auto-load Main View on every page navigation
   useEffect(() => {
-    const hasCustomization = localStorage.getItem('screening-columns');
-    
-    if (!activeView && !hasCustomization) {
+    // Reset to Main View whenever the component mounts (user navigates to this page)
+    if (activeView !== "Main View") {
       const orderedMainColumns = MAIN_VIEW_COLUMNS
         .map(id => columnVisibility.find(col => col.id === id))
         .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
@@ -992,6 +991,7 @@ const allAvailableColumns = useMemo(() => {
             selectedIds={selectedLeadIds}
             onSelectionChange={setSelectedLeadIds}
             getRowId={(row) => row.id}
+            showRowNumbers={true}
           />
         </CardContent>
       </Card>
