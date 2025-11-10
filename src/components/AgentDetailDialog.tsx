@@ -224,7 +224,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 <Calendar className="h-4 w-4" />
                 Activity Tracking
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Call</label>
                   <InlineEditDateTime
@@ -237,6 +237,13 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   <InlineEditDateTime
                     value={agent.next_agent_call}
                     onValueChange={(value) => handleFieldUpdate('next_agent_call', value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Face-to-Face Meeting</label>
+                  <InlineEditDateTime
+                    value={agent.face_to_face_meeting}
+                    onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
                   />
                 </div>
               </div>
