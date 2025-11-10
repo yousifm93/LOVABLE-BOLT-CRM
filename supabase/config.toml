@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.voice-transcribe]
 verify_jwt = false
+
+[functions.migrate-screening-prequalified]
+verify_jwt = false
