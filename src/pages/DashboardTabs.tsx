@@ -78,6 +78,10 @@ export default function DashboardTabs() {
     yesterdayMeetings,
     todayMeetings,
     allMeetings,
+    thisMonthCalls,
+    yesterdayCalls,
+    todayCalls,
+    allCalls,
     recentStageChanges,
     pipelineStageCounts,
     isLoading,
@@ -114,171 +118,185 @@ export default function DashboardTabs() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Leads Section */}
+            <div className="grid grid-cols-4 gap-4">
+              {/* COLUMN 1 - LEADS */}
               <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" />
                     Leads
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <ModernStatsCard
-                      title="This Month's Leads"
-                      value={thisMonthLeads.length}
-                      icon={<Target />}
-                      size="large"
-                      progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
-                    />
-                    <ModernStatsCard
-                      title="Yesterday's Leads"
-                      value={yesterdayLeads.length}
-                      icon={<TrendingUp />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Today's Leads"
-                      value={todayLeads.length}
-                      icon={<TrendingUp />}
-                      size="large"
-                    />
-                  </div>
-
+                <CardContent className="space-y-3">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthLeads.length}
+                    icon={<Target />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                  
                   <CollapsibleSection 
                     title="All Leads" 
                     count={allLeads.length}
                     data={allLeads}
                     renderItem={(lead, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground hover:text-warning transition-colors">
-                            {lead.first_name} {lead.last_name}
-                          </p>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {lead.phone || '-'}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {lead.email || '-'}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
+                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <p className="font-medium text-sm">
+                          {lead.first_name} {lead.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
                           {formatLocalDate(lead.lead_on_date)}
-                        </div>
+                        </p>
                       </div>
                     )}
                   />
                 </CardContent>
               </Card>
 
-              {/* Apps Section */}
+              {/* COLUMN 2 - APPLICATIONS */}
               <Card className="border-green-500/30 bg-green-500/5">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <FileText className="h-4 w-4 text-green-600" />
                     Applications
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <ModernStatsCard
-                      title="This Month's Apps"
-                      value={thisMonthApps.length}
-                      icon={<FileText />}
-                      size="large"
-                      progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
-                    />
-                    <ModernStatsCard
-                      title="Yesterday's Apps"
-                      value={yesterdayApps.length}
-                      icon={<Activity />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Today's Apps"
-                      value={todayApps.length}
-                      icon={<Activity />}
-                      size="large"
-                    />
-                  </div>
-
+                <CardContent className="space-y-3">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthApps.length}
+                    icon={<FileText />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
+                  
                   <CollapsibleSection 
                     title="All Applications" 
                     count={allApplications.length}
                     data={allApplications}
                     renderItem={(app, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground hover:text-warning transition-colors">
-                            {app.first_name} {app.last_name}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                        </div>
+                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <p className="font-medium text-sm">
+                          {app.first_name} {app.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString() : '-'}
+                        </p>
                       </div>
                     )}
                   />
                 </CardContent>
               </Card>
 
-              {/* Face-to-Face Meetings Section */}
+              {/* COLUMN 3 - FACE-TO-FACE MEETINGS */}
               <Card className="border-purple-500/30 bg-purple-500/5">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Users className="h-4 w-4 text-purple-600" />
                     Face-to-Face Meetings
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <ModernStatsCard
-                      title="This Month's Meetings"
-                      value={thisMonthMeetings.length}
-                      icon={<Users />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Yesterday's Meetings"
-                      value={yesterdayMeetings.length}
-                      icon={<Users />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Today's Meetings"
-                      value={todayMeetings.length}
-                      icon={<Users />}
-                      size="large"
-                    />
-                  </div>
-
+                <CardContent className="space-y-3">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
+                  
                   <CollapsibleSection 
-                    title="All Face-to-Face Meetings" 
+                    title="All Meetings" 
                     count={allMeetings.length}
                     data={allMeetings}
                     renderItem={(meeting, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground hover:text-warning transition-colors">
-                            {meeting.first_name} {meeting.last_name}
-                          </p>
-                          {meeting.brokerage && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {meeting.brokerage}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(meeting.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
+                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <p className="font-medium text-sm">
+                          {meeting.first_name} {meeting.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(meeting.face_to_face_meeting).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* COLUMN 4 - CALLS */}
+              <Card className="border-orange-500/30 bg-orange-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-orange-600" />
+                    Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                  />
+                  
+                  <CollapsibleSection 
+                    title="All Calls" 
+                    count={allCalls.length}
+                    data={allCalls}
+                    renderItem={(call, index) => (
+                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <p className="font-medium text-sm">
+                          {call.first_name} {call.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(call.last_agent_call).toLocaleDateString()}
+                        </p>
                       </div>
                     )}
                   />

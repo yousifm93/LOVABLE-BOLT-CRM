@@ -21,6 +21,16 @@ export interface DashboardFaceToFaceMeeting {
   face_to_face_meeting: string;
 }
 
+export interface DashboardCall {
+  id: string;
+  first_name: string;
+  last_name: string;
+  brokerage: string | null;
+  email: string | null;
+  phone: string | null;
+  last_agent_call: string;
+}
+
 export const useDashboardData = () => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -264,6 +274,89 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // This Month's Calls
+  const { data: thisMonthCalls, isLoading: isLoadingThisMonthCalls } = useQuery({
+    queryKey: ['calls', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const startOfMonthTimestamp = startOfMonth.toISOString();
+      const startOfNextMonthTimestamp = startOfNextMonth.toISOString();
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .not('last_agent_call', 'is', null)
+        .gte('last_agent_call', startOfMonthTimestamp)
+        .lt('last_agent_call', startOfNextMonthTimestamp)
+        .order('last_agent_call', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardCall[];
+    },
+    staleTime: 30000,
+  });
+
+  // Yesterday's Calls
+  const { data: yesterdayCalls, isLoading: isLoadingYesterdayCalls } = useQuery({
+    queryKey: ['calls', 'yesterday', formatDate(yesterday)],
+    queryFn: async () => {
+      const yesterdayStart = new Date(yesterday);
+      yesterdayStart.setHours(0, 0, 0, 0);
+      const yesterdayEnd = new Date(yesterday);
+      yesterdayEnd.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .not('last_agent_call', 'is', null)
+        .gte('last_agent_call', yesterdayStart.toISOString())
+        .lte('last_agent_call', yesterdayEnd.toISOString())
+        .order('last_agent_call', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardCall[];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Calls
+  const { data: todayCalls, isLoading: isLoadingTodayCalls } = useQuery({
+    queryKey: ['calls', 'today', formatDate(today)],
+    queryFn: async () => {
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .not('last_agent_call', 'is', null)
+        .gte('last_agent_call', todayStart.toISOString())
+        .lte('last_agent_call', todayEnd.toISOString())
+        .order('last_agent_call', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardCall[];
+    },
+    staleTime: 30000,
+  });
+
+  // All Calls
+  const { data: allCalls, isLoading: isLoadingAllCalls } = useQuery({
+    queryKey: ['calls', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .not('last_agent_call', 'is', null)
+        .order('last_agent_call', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardCall[];
+    },
+    staleTime: 30000,
+  });
+
   // Recent Stage Changes
   const { data: recentStageChanges, isLoading: isLoadingStageChanges } = useQuery({
     queryKey: ['recentStageChanges'],
@@ -338,6 +431,10 @@ export const useDashboardData = () => {
     isLoadingYesterdayMeetings ||
     isLoadingTodayMeetings ||
     isLoadingAllMeetings ||
+    isLoadingThisMonthCalls ||
+    isLoadingYesterdayCalls ||
+    isLoadingTodayCalls ||
+    isLoadingAllCalls ||
     isLoadingStageChanges ||
     isLoadingStageCounts;
 
@@ -354,6 +451,10 @@ export const useDashboardData = () => {
     yesterdayMeetings: yesterdayMeetings || [],
     todayMeetings: todayMeetings || [],
     allMeetings: allMeetings || [],
+    thisMonthCalls: thisMonthCalls || [],
+    yesterdayCalls: yesterdayCalls || [],
+    todayCalls: todayCalls || [],
+    allCalls: allCalls || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],
     isLoading,
