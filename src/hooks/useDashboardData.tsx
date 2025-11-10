@@ -132,13 +132,64 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Recent Stage Changes
+  const { data: recentStageChanges, isLoading: isLoadingStageChanges } = useQuery({
+    queryKey: ['recentStageChanges'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stage_history')
+        .select(`
+          id,
+          changed_at,
+          lead_id,
+          from_stage:pipeline_stages!stage_history_from_stage_id_fkey(name),
+          to_stage:pipeline_stages!stage_history_to_stage_id_fkey(name),
+          lead:leads!inner(first_name, last_name)
+        `)
+        .order('changed_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Pipeline Stage Counts
+  const { data: pipelineStageCounts, isLoading: isLoadingStageCounts } = useQuery({
+    queryKey: ['pipelineStageCounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pipeline_stages')
+        .select(`
+          id,
+          name,
+          leads:leads(count)
+        `);
+      
+      if (error) throw error;
+      
+      // Transform data and sort by stage order
+      const stageOrder = ['Leads', 'Pending App', 'Screening', 'Pre-Qualified', 'Pre-Approved', 'Active', 'Past Clients'];
+      return (data || [])
+        .map(stage => ({
+          stage_name: stage.name,
+          count: Array.isArray(stage.leads) && stage.leads.length > 0 ? stage.leads[0].count : 0
+        }))
+        .sort((a, b) => stageOrder.indexOf(a.stage_name) - stageOrder.indexOf(b.stage_name));
+    },
+    staleTime: 30000,
+  });
+
   const isLoading = 
     isLoadingThisMonthLeads || 
     isLoadingYesterdayLeads || 
     isLoadingAllLeads || 
     isLoadingThisMonthApps || 
     isLoadingYesterdayApps || 
-    isLoadingAllApps;
+    isLoadingAllApps ||
+    isLoadingStageChanges ||
+    isLoadingStageCounts;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -147,6 +198,8 @@ export const useDashboardData = () => {
     thisMonthApps: thisMonthApps || [],
     yesterdayApps: yesterdayApps || [],
     allApplications: allApplications || [],
+    recentStageChanges: recentStageChanges || [],
+    pipelineStageCounts: pipelineStageCounts || [],
     isLoading,
   };
 };
