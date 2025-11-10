@@ -314,6 +314,7 @@ Deno.serve(async (req) => {
 
     // Step 10: Define 18 Active leads with comprehensive data
     const defaultAccountId = '47e707c5-62d0-4ee9-99a3-76572c73a8e1'; // Default account for all leads
+    const defaultUserId = '08e73d69-4707-4773-84a4-69ce2acd6a11'; // Default user for created_by
     
     const activeLeads = [
       {
@@ -1390,13 +1391,17 @@ Deno.serve(async (req) => {
       },
     ];
 
-    // Step 11: Insert leads with account_id
+    // Step 11: Insert leads with account_id and created_by
     let insertedLeadsCount = 0;
 
     if (confirm) {
       for (const lead of activeLeads) {
-        // Ensure account_id is set for all leads
-        const leadWithAccount = { ...lead, account_id: defaultAccountId };
+        // Ensure account_id and created_by are set for all leads
+        const leadWithAccount = { 
+          ...lead, 
+          account_id: defaultAccountId,
+          created_by: defaultUserId
+        };
         const { error } = await supabase.from('leads').insert(leadWithAccount);
 
         if (error) {
