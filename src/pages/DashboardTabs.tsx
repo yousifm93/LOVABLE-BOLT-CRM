@@ -110,117 +110,116 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Leads Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">Leads</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Leads Stats - 3 boxes */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <ModernStatsCard
-                      title="This Month's Leads"
-                      value={thisMonthLeads.length}
-                      icon={<Target />}
-                      size="large"
-                      progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
-                    />
-                    <ModernStatsCard
-                      title="Yesterday's Leads"
-                      value={yesterdayLeads.length}
-                      icon={<TrendingUp />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Today's Leads"
-                      value={todayLeads.length}
-                      icon={<TrendingUp />}
-                      size="large"
-                    />
+              {/* Stats Row - All 6 boxes in one line */}
+              <div className="space-y-4">
+                {/* Section Headers */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Leads</h3>
                   </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Apps</h3>
+                  </div>
+                </div>
+                
+                {/* Stat Boxes - 6 in one row */}
+                <div className="grid grid-cols-6 gap-4">
+                  {/* Left 3: Leads */}
+                  <ModernStatsCard
+                    title="This Month's Leads"
+                    value={thisMonthLeads.length}
+                    icon={<Target />}
+                    size="large"
+                    progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday's Leads"
+                    value={yesterdayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today's Leads"
+                    value={todayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                  
+                  {/* Right 3: Apps */}
+                  <ModernStatsCard
+                    title="This Month's Apps"
+                    value={thisMonthApps.length}
+                    icon={<FileText />}
+                    size="large"
+                    progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday's Apps"
+                    value={yesterdayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today's Apps"
+                    value={todayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
+                </div>
+              </div>
 
-                  {/* All Leads Collapsible */}
-                  <CollapsibleSection 
-                    title="All Leads" 
-                    count={allLeads.length}
-                    data={allLeads}
-                    renderItem={(lead, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground hover:text-warning transition-colors">
-                            {lead.first_name} {lead.last_name}
-                          </p>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {lead.phone || '-'}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {lead.email || '-'}
-                            </div>
+              {/* Collapsible Sections - Side by Side */}
+              <div className="grid grid-cols-2 gap-6 mt-6">
+                {/* All Leads */}
+                <CollapsibleSection 
+                  title="All Leads" 
+                  count={allLeads.length}
+                  data={allLeads}
+                  renderItem={(lead, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground hover:text-warning transition-colors">
+                          {lead.first_name} {lead.last_name}
+                        </p>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {lead.phone || '-'}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {lead.email || '-'}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {formatLocalDate(lead.lead_on_date)}
-                        </div>
                       </div>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Apps Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold">Apps</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Apps Stats - 3 boxes */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <ModernStatsCard
-                      title="This Month's Apps"
-                      value={thisMonthApps.length}
-                      icon={<FileText />}
-                      size="large"
-                      progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
-                    />
-                    <ModernStatsCard
-                      title="Yesterday's Apps"
-                      value={yesterdayApps.length}
-                      icon={<Activity />}
-                      size="large"
-                    />
-                    <ModernStatsCard
-                      title="Today's Apps"
-                      value={todayApps.length}
-                      icon={<Activity />}
-                      size="large"
-                    />
-                  </div>
-
-                  {/* All Applications Collapsible */}
-                  <CollapsibleSection 
-                    title="All Applications" 
-                    count={allApplications.length}
-                    data={allApplications}
-                    renderItem={(app, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground hover:text-warning transition-colors">
-                            {app.first_name} {app.last_name}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                        </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatLocalDate(lead.lead_on_date)}
                       </div>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+                    </div>
+                  )}
+                />
+                
+                {/* All Applications */}
+                <CollapsibleSection 
+                  title="All Applications" 
+                  count={allApplications.length}
+                  data={allApplications}
+                  renderItem={(app, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground hover:text-warning transition-colors">
+                          {app.first_name} {app.last_name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
             </>
           )}
         </TabsContent>
