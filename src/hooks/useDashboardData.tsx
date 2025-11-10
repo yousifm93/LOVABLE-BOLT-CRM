@@ -56,6 +56,22 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Today's Leads
+  const { data: todayLeads, isLoading: isLoadingTodayLeads } = useQuery({
+    queryKey: ['leads', 'today', formatDate(today)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .eq('lead_on_date', formatDate(today))
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
   // All Leads
   const { data: allLeads, isLoading: isLoadingAllLeads } = useQuery({
     queryKey: ['leads', 'all'],
@@ -108,6 +124,29 @@ export const useDashboardData = () => {
         .not('pending_app_at', 'is', null)
         .gte('pending_app_at', yesterdayStart.toISOString())
         .lte('pending_app_at', yesterdayEnd.toISOString())
+        .order('pending_app_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Apps
+  const { data: todayApps, isLoading: isLoadingTodayApps } = useQuery({
+    queryKey: ['applications', 'today', formatDate(today)],
+    queryFn: async () => {
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .not('pending_app_at', 'is', null)
+        .gte('pending_app_at', todayStart.toISOString())
+        .lte('pending_app_at', todayEnd.toISOString())
         .order('pending_app_at', { ascending: false });
       
       if (error) throw error;
@@ -177,6 +216,7 @@ export const useDashboardData = () => {
           if (error) throw error;
           
           return {
+            stage_id: stage.id,
             stage_name: stage.name,
             count: count || 0
           };
@@ -195,9 +235,11 @@ export const useDashboardData = () => {
   const isLoading = 
     isLoadingThisMonthLeads || 
     isLoadingYesterdayLeads || 
+    isLoadingTodayLeads ||
     isLoadingAllLeads || 
     isLoadingThisMonthApps || 
     isLoadingYesterdayApps || 
+    isLoadingTodayApps ||
     isLoadingAllApps ||
     isLoadingStageChanges ||
     isLoadingStageCounts;
@@ -205,9 +247,11 @@ export const useDashboardData = () => {
   return {
     thisMonthLeads: thisMonthLeads || [],
     yesterdayLeads: yesterdayLeads || [],
+    todayLeads: todayLeads || [],
     allLeads: allLeads || [],
     thisMonthApps: thisMonthApps || [],
     yesterdayApps: yesterdayApps || [],
+    todayApps: todayApps || [],
     allApplications: allApplications || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],

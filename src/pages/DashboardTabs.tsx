@@ -9,6 +9,7 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
+import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 // Mock data for charts
@@ -60,9 +61,11 @@ export default function DashboardTabs() {
   const {
     thisMonthLeads,
     yesterdayLeads,
+    todayLeads,
     allLeads,
     thisMonthApps,
     yesterdayApps,
+    todayApps,
     allApplications,
     recentStageChanges,
     pipelineStageCounts,
@@ -100,8 +103,8 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Top 4 Large Stats Cards with Progress */}
-              <div className="grid grid-cols-4 gap-4">
+              {/* Top Stats - Leads */}
+              <div className="grid grid-cols-3 gap-4">
                 <ModernStatsCard
                   title="This Month's Leads"
                   value={thisMonthLeads.length}
@@ -116,6 +119,16 @@ export default function DashboardTabs() {
                   size="large"
                 />
                 <ModernStatsCard
+                  title="Today's Leads"
+                  value={todayLeads.length}
+                  icon={<TrendingUp />}
+                  size="large"
+                />
+              </div>
+
+              {/* Bottom Stats - Apps */}
+              <div className="grid grid-cols-3 gap-4">
+                <ModernStatsCard
                   title="This Month's Apps"
                   value={thisMonthApps.length}
                   icon={<FileText />}
@@ -125,6 +138,12 @@ export default function DashboardTabs() {
                 <ModernStatsCard
                   title="Yesterday's Apps"
                   value={yesterdayApps.length}
+                  icon={<Activity />}
+                  size="large"
+                />
+                <ModernStatsCard
+                  title="Today's Apps"
+                  value={todayApps.length}
                   icon={<Activity />}
                   size="large"
                 />
@@ -371,62 +390,31 @@ export default function DashboardTabs() {
 
       {/* Recent Activity Section */}
       <div className="grid gap-2 md:grid-cols-2 mb-3">
-        <Card className="bg-gradient-card shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentStageChanges.length > 0 ? (
-                recentStageChanges.map((change: any) => (
-                  <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-                    <div className="flex-1 space-y-1">
-                      <p className="font-medium text-foreground">
-                        {change.lead?.first_name} {change.lead?.last_name}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{change.from_stage?.name || 'New'}</span>
-                        <ArrowRight className="h-3 w-3" />
-                        <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {formatRelativeTime(change.changed_at)}
-                    </Badge>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No recent activity</p>
-              )}
+        <CollapsibleSection
+          title="Recent Activity"
+          count={recentStageChanges.length}
+          data={recentStageChanges}
+          defaultOpen={true}
+          renderItem={(change: any, index) => (
+            <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+              <div className="flex-1 space-y-1">
+                <p className="font-medium text-foreground">
+                  {change.lead?.first_name} {change.lead?.last_name}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>{change.from_stage?.name || 'New'}</span>
+                  <ArrowRight className="h-3 w-3" />
+                  <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {formatRelativeTime(change.changed_at)}
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        />
 
-        <Card className="bg-gradient-card shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
-              Pipeline Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pipelineStageCounts.length > 0 ? (
-                pipelineStageCounts.map((stage: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-                    <span className="text-sm font-medium">{stage.stage_name}</span>
-                    <span className="text-sm text-muted-foreground">{stage.count} {stage.count === 1 ? 'client' : 'clients'}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No pipeline data</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
       </div>
 
       {/* Additional Analytics Components */}
