@@ -110,52 +110,36 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Stats - All 6 boxes in one row */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <ModernStatsCard
-                  title="This Month's Leads"
-                  value={thisMonthLeads.length}
-                  icon={<Target />}
-                  size="large"
-                  progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
-                />
-                <ModernStatsCard
-                  title="Yesterday's Leads"
-                  value={yesterdayLeads.length}
-                  icon={<TrendingUp />}
-                  size="large"
-                />
-                <ModernStatsCard
-                  title="Today's Leads"
-                  value={todayLeads.length}
-                  icon={<TrendingUp />}
-                  size="large"
-                />
-                <ModernStatsCard
-                  title="This Month's Apps"
-                  value={thisMonthApps.length}
-                  icon={<FileText />}
-                  size="large"
-                  progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
-                />
-                <ModernStatsCard
-                  title="Yesterday's Apps"
-                  value={yesterdayApps.length}
-                  icon={<Activity />}
-                  size="large"
-                />
-                <ModernStatsCard
-                  title="Today's Apps"
-                  value={todayApps.length}
-                  icon={<Activity />}
-                  size="large"
-                />
-              </div>
+              {/* Leads Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-semibold">Leads</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Leads Stats - 3 boxes */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <ModernStatsCard
+                      title="This Month's Leads"
+                      value={thisMonthLeads.length}
+                      icon={<Target />}
+                      size="large"
+                      progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
+                    />
+                    <ModernStatsCard
+                      title="Yesterday's Leads"
+                      value={yesterdayLeads.length}
+                      icon={<TrendingUp />}
+                      size="large"
+                    />
+                    <ModernStatsCard
+                      title="Today's Leads"
+                      value={todayLeads.length}
+                      icon={<TrendingUp />}
+                      size="large"
+                    />
+                  </div>
 
-              {/* Collapsible Lists Section */}
-              <div className="grid grid-cols-2 gap-6">
-                {/* Left Side - All Leads */}
-                <div className="space-y-4">
+                  {/* All Leads Collapsible */}
                   <CollapsibleSection 
                     title="All Leads" 
                     count={allLeads.length}
@@ -184,10 +168,39 @@ export default function DashboardTabs() {
                       </div>
                     )}
                   />
-                </div>
+                </CardContent>
+              </Card>
 
-                {/* Right Side - All Applications */}
-                <div className="space-y-4">
+              {/* Apps Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-semibold">Apps</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Apps Stats - 3 boxes */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <ModernStatsCard
+                      title="This Month's Apps"
+                      value={thisMonthApps.length}
+                      icon={<FileText />}
+                      size="large"
+                      progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
+                    />
+                    <ModernStatsCard
+                      title="Yesterday's Apps"
+                      value={yesterdayApps.length}
+                      icon={<Activity />}
+                      size="large"
+                    />
+                    <ModernStatsCard
+                      title="Today's Apps"
+                      value={todayApps.length}
+                      icon={<Activity />}
+                      size="large"
+                    />
+                  </div>
+
+                  {/* All Applications Collapsible */}
                   <CollapsibleSection 
                     title="All Applications" 
                     count={allApplications.length}
@@ -206,8 +219,8 @@ export default function DashboardTabs() {
                       </div>
                     )}
                   />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </>
           )}
         </TabsContent>
@@ -308,6 +321,12 @@ export default function DashboardTabs() {
               size="compact"
               centered={true}
             />
+          </div>
+
+          {/* Activity Monitoring & Conversion Analytics */}
+          <div className="space-y-6 mt-6">
+            <ActivityMonitor />
+            <ConversionAnalytics />
           </div>
         </TabsContent>
 
@@ -439,12 +458,6 @@ export default function DashboardTabs() {
         />
 
         <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
-      </div>
-
-      {/* Additional Analytics Components */}
-      <div className="space-y-6 mt-8">
-        <ActivityMonitor />
-        <ConversionAnalytics />
       </div>
     </div>
   );
