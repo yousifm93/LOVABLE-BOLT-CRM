@@ -104,6 +104,28 @@ const columns: ColumnDef<any>[] = [
     },
     sortable: true,
   },
+  {
+    accessorKey: "face_to_face_meeting",
+    header: "F2F Meeting",
+    cell: ({ row }) => {
+      const date = row.original.face_to_face_meeting;
+      if (!date) return <span className="text-muted-foreground text-sm">—</span>;
+      
+      const meetingDate = new Date(date);
+      const isUpcoming = meetingDate > new Date();
+      
+      return (
+        <span className={cn(
+          "text-sm",
+          isUpcoming && "text-success font-medium",
+          !isUpcoming && "text-muted-foreground"
+        )}>
+          {meetingDate.toLocaleDateString()}
+        </span>
+      );
+    },
+    sortable: true,
+  },
 ];
 
 export default function AgentList() {

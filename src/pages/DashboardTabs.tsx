@@ -101,10 +101,11 @@ export default function DashboardTabs() {
       </div>
 
       <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 h-9">
+        <TabsList className="grid w-full grid-cols-4 h-9">
           <TabsTrigger value="sales" className="text-sm">Sales</TabsTrigger>
           <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
           <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
+          <TabsTrigger value="miscellaneous" className="text-sm">Miscellaneous</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">
@@ -114,90 +115,32 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Stats Row - All 6 boxes in one line */}
+              {/* Leads Section */}
               <div className="space-y-4">
-            {/* Section Headers */}
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Leads</h3>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Apps</h3>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Face-to-Face Meetings</h3>
-              </div>
-            </div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Leads</h3>
                 
-            {/* Stat Boxes - 9 in one row */}
-            <div className="grid grid-cols-9 gap-4">
-              {/* Left 3: Leads */}
-              <ModernStatsCard
-                title="This Month's Leads"
-                value={thisMonthLeads.length}
-                icon={<Target />}
-                size="large"
-                progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
-              />
-              <ModernStatsCard
-                title="Yesterday's Leads"
-                value={yesterdayLeads.length}
-                icon={<TrendingUp />}
-                size="large"
-              />
-              <ModernStatsCard
-                title="Today's Leads"
-                value={todayLeads.length}
-                icon={<TrendingUp />}
-                size="large"
-              />
-              
-              {/* Middle 3: Apps */}
-              <ModernStatsCard
-                title="This Month's Apps"
-                value={thisMonthApps.length}
-                icon={<FileText />}
-                size="large"
-                progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
-              />
-              <ModernStatsCard
-                title="Yesterday's Apps"
-                value={yesterdayApps.length}
-                icon={<Activity />}
-                size="large"
-              />
-              <ModernStatsCard
-                title="Today's Apps"
-                value={todayApps.length}
-                icon={<Activity />}
-                size="large"
-              />
-              
-              {/* Right 3: Face-to-Face Meetings */}
-              <ModernStatsCard
-                title="This Month's Meetings"
-                value={thisMonthMeetings.length}
-                icon={<Users />}
-                size="large"
-              />
-              <ModernStatsCard
-                title="Yesterday's Meetings"
-                value={yesterdayMeetings.length}
-                icon={<Users />}
-                size="large"
-              />
-              <ModernStatsCard
-                title="Today's Meetings"
-                value={todayMeetings.length}
-                icon={<Users />}
-                size="large"
-              />
-            </div>
-              </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <ModernStatsCard
+                    title="This Month's Leads"
+                    value={thisMonthLeads.length}
+                    icon={<Target />}
+                    size="large"
+                    progress={Math.min(Math.round((thisMonthLeads.length / leadsGoal) * 100), 100)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday's Leads"
+                    value={yesterdayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today's Leads"
+                    value={todayLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                  />
+                </div>
 
-              {/* Collapsible Sections - Side by Side */}
-              <div className="grid grid-cols-2 gap-6 mt-6">
-                {/* All Leads */}
                 <CollapsibleSection 
                   title="All Leads" 
                   count={allLeads.length}
@@ -226,52 +169,103 @@ export default function DashboardTabs() {
                     </div>
                   )}
                 />
+              </div>
+
+              {/* Face-to-Face Meetings Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Face-to-Face Meetings</h3>
                 
-            {/* All Applications */}
-            <CollapsibleSection 
-              title="All Applications" 
-              count={allApplications.length}
-              data={allApplications}
-              renderItem={(app, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground hover:text-warning transition-colors">
-                      {app.first_name} {app.last_name}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                  </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <ModernStatsCard
+                    title="This Month's Meetings"
+                    value={thisMonthMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday's Meetings"
+                    value={yesterdayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today's Meetings"
+                    value={todayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                  />
                 </div>
-              )}
-            />
-            
-            {/* All Face-to-Face Meetings */}
-            <CollapsibleSection 
-              title="All Face-to-Face Meetings" 
-              count={allMeetings.length}
-              data={allMeetings}
-              renderItem={(meeting, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground hover:text-warning transition-colors">
-                      {meeting.first_name} {meeting.last_name}
-                    </p>
-                    {meeting.brokerage && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {meeting.brokerage}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(meeting.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
+
+                <CollapsibleSection 
+                  title="All Face-to-Face Meetings" 
+                  count={allMeetings.length}
+                  data={allMeetings}
+                  renderItem={(meeting, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground hover:text-warning transition-colors">
+                          {meeting.first_name} {meeting.last_name}
+                        </p>
+                        {meeting.brokerage && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {meeting.brokerage}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(meeting.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
+
+              {/* Apps Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Apps</h3>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <ModernStatsCard
+                    title="This Month's Apps"
+                    value={thisMonthApps.length}
+                    icon={<FileText />}
+                    size="large"
+                    progress={Math.min(Math.round((thisMonthApps.length / appsGoal) * 100), 100)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday's Apps"
+                    value={yesterdayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
+                  <ModernStatsCard
+                    title="Today's Apps"
+                    value={todayApps.length}
+                    icon={<Activity />}
+                    size="large"
+                  />
                 </div>
-              )}
-            />
-          </div>
+
+                <CollapsibleSection 
+                  title="All Applications" 
+                  count={allApplications.length}
+                  data={allApplications}
+                  renderItem={(app, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground hover:text-warning transition-colors">
+                          {app.first_name} {app.last_name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        Applied: {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
+                      </div>
+                    </div>
+                  )}
+                />
+              </div>
             </>
           )}
         </TabsContent>
@@ -374,11 +368,6 @@ export default function DashboardTabs() {
             />
           </div>
 
-          {/* Activity Monitoring & Conversion Analytics */}
-          <div className="space-y-6 mt-6">
-            <ActivityMonitor />
-            <ConversionAnalytics />
-          </div>
         </TabsContent>
 
         <TabsContent value="closed" className="space-y-6">
@@ -459,57 +448,57 @@ export default function DashboardTabs() {
             />
           </div>
         </TabsContent>
-      </Tabs>
 
-      {/* Recent Activity Section */}
-      <div className="grid gap-2 md:grid-cols-2 mb-3">
-        <CollapsibleSection
-          title="Recent Activity"
-          count={recentStageChanges.length}
-          data={recentStageChanges}
-          defaultOpen={true}
-          renderItem={(change: any, index) => {
-            // Determine if this is a lead creation event
-            const isLeadCreation = !change.from_stage;
-            const isGoingToLeads = change.to_stage?.name === 'Leads';
-            
-            return (
-              <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-                <div className="flex-1 space-y-1">
-                  <p className="font-medium text-foreground">
-                    {change.lead?.first_name} {change.lead?.last_name}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {isLeadCreation && isGoingToLeads ? (
-                      // Just created as a new lead
-                      <span className="text-primary font-medium">Created</span>
-                    ) : isLeadCreation ? (
-                      // Created and assigned to a different stage
-                      <>
-                        <span>New</span>
-                        <ArrowRight className="h-3 w-3" />
-                        <span className="text-primary font-medium">{change.to_stage?.name}</span>
-                      </>
-                    ) : (
-                      // Normal stage transition
-                      <>
-                        <span>{change.from_stage?.name}</span>
-                        <ArrowRight className="h-3 w-3" />
-                        <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
-                      </>
-                    )}
+        <TabsContent value="miscellaneous" className="space-y-6">
+          {/* Recent Activity Section */}
+          <CollapsibleSection
+            title="Recent Activity"
+            count={recentStageChanges.length}
+            data={recentStageChanges}
+            defaultOpen={true}
+            renderItem={(change: any, index) => {
+              const isLeadCreation = !change.from_stage;
+              const isGoingToLeads = change.to_stage?.name === 'Leads';
+              
+              return (
+                <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+                  <div className="flex-1 space-y-1">
+                    <p className="font-medium text-foreground">
+                      {change.lead?.first_name} {change.lead?.last_name}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {isLeadCreation && isGoingToLeads ? (
+                        <span className="text-primary font-medium">Created</span>
+                      ) : isLeadCreation ? (
+                        <>
+                          <span>New</span>
+                          <ArrowRight className="h-3 w-3" />
+                          <span className="text-primary font-medium">{change.to_stage?.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{change.from_stage?.name}</span>
+                          <ArrowRight className="h-3 w-3" />
+                          <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
+                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                    {formatDateTime(change.changed_at)}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                  {formatDateTime(change.changed_at)}
-                </Badge>
-              </div>
-            );
-          }}
-        />
+              );
+            }}
+          />
 
-        <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
-      </div>
+          <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
+
+          <ActivityMonitor />
+          
+          <ConversionAnalytics />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
