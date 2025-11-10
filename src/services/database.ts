@@ -344,6 +344,29 @@ export const databaseService = {
 
       if (error) throw error;
       console.log('[DEBUG] Lead created successfully:', data);
+
+      // Create stage_history record for the new lead
+      try {
+        const { error: stageHistoryError } = await supabase
+          .from('stage_history')
+          .insert({
+            lead_id: data.id,
+            from_stage_id: null, // New lead has no previous stage
+            to_stage_id: data.pipeline_stage_id,
+            changed_by: userId,
+            changed_at: new Date().toISOString(),
+          });
+
+        if (stageHistoryError) {
+          console.warn('[DEBUG] Failed to create stage_history record:', stageHistoryError);
+          // Don't throw - lead was created successfully, just log the warning
+        } else {
+          console.log('[DEBUG] Stage history record created for new lead');
+        }
+      } catch (stageHistoryErr) {
+        console.warn('[DEBUG] Stage history creation error:', stageHistoryErr);
+      }
+
       return data;
     } catch (error: any) {
       console.error('[DEBUG] createLead error:', {

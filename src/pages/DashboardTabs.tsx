@@ -57,6 +57,13 @@ const formatDateTime = (timestamp: string) => {
   });
 };
 
+// Format date-only strings as local dates (avoid timezone issues)
+const formatLocalDate = (dateString: string) => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export default function DashboardTabs() {
   const {
     thisMonthLeads,
@@ -103,8 +110,8 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Top Stats - Leads */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Stats - All 6 boxes in one row */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <ModernStatsCard
                   title="This Month's Leads"
                   value={thisMonthLeads.length}
@@ -124,10 +131,6 @@ export default function DashboardTabs() {
                   icon={<TrendingUp />}
                   size="large"
                 />
-              </div>
-
-              {/* Bottom Stats - Apps */}
-              <div className="grid grid-cols-3 gap-4">
                 <ModernStatsCard
                   title="This Month's Apps"
                   value={thisMonthApps.length}
@@ -176,7 +179,7 @@ export default function DashboardTabs() {
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
-                          {new Date(lead.lead_on_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {formatLocalDate(lead.lead_on_date)}
                         </div>
                       </div>
                     )}
