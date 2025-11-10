@@ -44,17 +44,17 @@ const rankingData = [
   { month: 'Feb', rank: 12 },
 ];
 
-// Utility function to format relative time
-const formatRelativeTime = (timestamp: string) => {
+// Format date and time for activity display
+const formatDateTime = (timestamp: string) => {
   const date = new Date(timestamp);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 };
 
 export default function DashboardTabs() {
@@ -395,23 +395,44 @@ export default function DashboardTabs() {
           count={recentStageChanges.length}
           data={recentStageChanges}
           defaultOpen={true}
-          renderItem={(change: any, index) => (
-            <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-              <div className="flex-1 space-y-1">
-                <p className="font-medium text-foreground">
-                  {change.lead?.first_name} {change.lead?.last_name}
-                </p>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{change.from_stage?.name || 'New'}</span>
-                  <ArrowRight className="h-3 w-3" />
-                  <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+          renderItem={(change: any, index) => {
+            // Determine if this is a lead creation event
+            const isLeadCreation = !change.from_stage;
+            const isGoingToLeads = change.to_stage?.name === 'Leads';
+            
+            return (
+              <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+                <div className="flex-1 space-y-1">
+                  <p className="font-medium text-foreground">
+                    {change.lead?.first_name} {change.lead?.last_name}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {isLeadCreation && isGoingToLeads ? (
+                      // Just created as a new lead
+                      <span className="text-primary font-medium">Created</span>
+                    ) : isLeadCreation ? (
+                      // Created and assigned to a different stage
+                      <>
+                        <span>New</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="text-primary font-medium">{change.to_stage?.name}</span>
+                      </>
+                    ) : (
+                      // Normal stage transition
+                      <>
+                        <span>{change.from_stage?.name}</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
+                <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                  {formatDateTime(change.changed_at)}
+                </Badge>
               </div>
-              <Badge variant="secondary" className="text-xs">
-                {formatRelativeTime(change.changed_at)}
-              </Badge>
-            </div>
-          )}
+            );
+          }}
         />
 
         <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
