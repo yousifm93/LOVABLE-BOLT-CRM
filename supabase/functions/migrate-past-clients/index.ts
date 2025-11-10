@@ -107,31 +107,31 @@ Deno.serve(async (req) => {
 
     // Define new agents to create
     const newAgents = [
-      { first_name: 'Jamie', last_name: 'Austin' },
-      { first_name: 'Simo', last_name: 'Labriti' },
-      { first_name: 'Candy', last_name: 'Del Valle' },
-      { first_name: 'Jonathan', last_name: 'Cedeno' },
-      { first_name: 'Nelly', last_name: 'Macias' },
-      { first_name: 'Richard', last_name: 'Corrales' },
-      { first_name: 'Jessica', last_name: 'Turner' },
-      { first_name: 'Piermassimo', last_name: 'Picchiura' },
-      { first_name: 'Elizabeth', last_name: 'Zuleta' },
-      { first_name: 'Sandeep', last_name: 'Sakinala' },
-      { first_name: 'Cristian', last_name: 'Consuegra' },
-      { first_name: 'Cristina', last_name: 'Cesana' },
-      { first_name: 'Debbie', last_name: 'Potts' },
-      { first_name: 'Ursula', last_name: 'Apaestegui' },
-      { first_name: 'Silvio', last_name: 'De Cardenas' },
-      { first_name: 'Roman', last_name: 'Semykin' },
-      { first_name: 'Drew', last_name: 'Hutcheson' },
-      { first_name: 'Fatma', last_name: 'Serhan' },
-      { first_name: 'Graziella', last_name: 'Offen' },
-      { first_name: 'Ohad', last_name: 'Einhorn' },
-      { first_name: 'Cherie', last_name: 'Callahan' },
-      { first_name: 'Nakarid', last_name: 'Melean' },
-      { first_name: 'Joanne', last_name: 'Rudowski' },
-      { first_name: 'Yamile', last_name: 'Zayed' },
-      { first_name: 'Francois', last_name: 'Lopez' },
+      { first_name: 'Jamie', last_name: 'Austin', brokerage: 'Various' },
+      { first_name: 'Simo', last_name: 'Labriti', brokerage: 'Various' },
+      { first_name: 'Candy', last_name: 'Del Valle', brokerage: 'Various' },
+      { first_name: 'Jonathan', last_name: 'Cedeno', brokerage: 'Various' },
+      { first_name: 'Nelly', last_name: 'Macias', brokerage: 'Various' },
+      { first_name: 'Richard', last_name: 'Corrales', brokerage: 'Various' },
+      { first_name: 'Jessica', last_name: 'Turner', brokerage: 'Various' },
+      { first_name: 'Piermassimo', last_name: 'Picchiura', brokerage: 'Various' },
+      { first_name: 'Elizabeth', last_name: 'Zuleta', brokerage: 'Various' },
+      { first_name: 'Sandeep', last_name: 'Sakinala', brokerage: 'Various' },
+      { first_name: 'Cristian', last_name: 'Consuegra', brokerage: 'Various' },
+      { first_name: 'Cristina', last_name: 'Cesana', brokerage: 'Various' },
+      { first_name: 'Debbie', last_name: 'Potts', brokerage: 'Various' },
+      { first_name: 'Ursula', last_name: 'Apaestegui', brokerage: 'Various' },
+      { first_name: 'Silvio', last_name: 'De Cardenas', brokerage: 'Various' },
+      { first_name: 'Roman', last_name: 'Semykin', brokerage: 'Various' },
+      { first_name: 'Drew', last_name: 'Hutcheson', brokerage: 'Various' },
+      { first_name: 'Fatma', last_name: 'Serhan', brokerage: 'Various' },
+      { first_name: 'Graziella', last_name: 'Offen', brokerage: 'Various' },
+      { first_name: 'Ohad', last_name: 'Einhorn', brokerage: 'Various' },
+      { first_name: 'Cherie', last_name: 'Callahan', brokerage: 'Various' },
+      { first_name: 'Nakarid', last_name: 'Melean', brokerage: 'Various' },
+      { first_name: 'Joanne', last_name: 'Rudowski', brokerage: 'Various' },
+      { first_name: 'Yamile', last_name: 'Zayed', brokerage: 'Various' },
+      { first_name: 'Francois', last_name: 'Lopez', brokerage: 'Various' },
     ];
 
     // Create lenders
@@ -242,6 +242,43 @@ Deno.serve(async (req) => {
         l.lender_name?.toLowerCase() === fullName.toLowerCase()
       );
       return lender?.id || null;
+    };
+
+    // Helper to clean lead data before insertion
+    const cleanLeadData = (lead: any): any => {
+      const {
+        // Remove invalid fields that don't exist in database
+        appr_ordered_date,
+        hoi_bound_date,
+        hoi_quote_req_date,
+        condo_docs_ord_date,
+        condo_doc_recd_date,
+        cd_sent_date,
+        cd_signed_date,
+        cd_ready_date,
+        initial_closing_pkg_sent_date,
+        final_closing_pkg_sent_date,
+        last_call_date,
+        lender_loan_number,
+        ltv,
+        // Fix field names (extract with wrong names, re-add with correct names)
+        subject_address,
+        subject_address2,
+        city,
+        state,
+        zip,
+        ...cleanedLead
+      } = lead;
+      
+      // Add back fields with correct names
+      return {
+        ...cleanedLead,
+        subject_address_1: subject_address || null,
+        subject_address_2: subject_address2 || null,
+        subject_city: city || null,
+        subject_state: state || null,
+        subject_zip: zip || null,
+      };
     };
 
     // Define all 22 past clients data
@@ -1429,7 +1466,8 @@ Deno.serve(async (req) => {
     let insertedCount = 0;
     const errors: any[] = [];
 
-    for (const lead of pastClientsData) {
+    for (const leadData of pastClientsData) {
+      const lead = cleanLeadData(leadData);
       const { data, error } = await supabase
         .from('leads')
         .insert(lead)
