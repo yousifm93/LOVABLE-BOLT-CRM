@@ -56,6 +56,85 @@ function parseDecimal(val: any): number | null {
   return isNaN(num) ? null : num;
 }
 
+// Map status values to valid enum values
+function mapAppraisalStatus(value: string | null): string | null {
+  if (!value) return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'ORDERED': 'Ordered',
+    'SCHEDULED': 'Scheduled',
+    'INSPECTED': 'Inspected',
+    'RECEIVED': 'Received',
+    'WAIVER': 'Waiver',
+  };
+  return map[upper] || null;
+}
+
+function mapTitleStatus(value: string | null): string | null {
+  if (!value) return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'REQUESTED': 'Requested',
+    'RECEIVED': 'Received',
+  };
+  return map[upper] || null;
+}
+
+function mapHoiStatus(value: string | null): string | null {
+  if (!value) return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'QUOTED': 'Quoted',
+    'ORDERED': 'Ordered',
+    'RECEIVED': 'Received',
+  };
+  return map[upper] || null;
+}
+
+function mapCondoStatus(value: string | null): string | null {
+  if (!value || value === 'N/A') return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'ORDERED': 'Ordered',
+    'RECEIVED': 'Received',
+    'APPROVED': 'Approved',
+  };
+  return map[upper] || null;
+}
+
+function mapDisclosureStatus(value: string | null): string | null {
+  if (!value) return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'ORDERED': 'Ordered',
+    'SENT': 'Sent',
+    'SIGNED': 'Signed',
+    'NEED SIGNATURE': 'Need Signature',
+  };
+  return map[upper] || null;
+}
+
+function mapLoanStatus(value: string | null): string | null {
+  if (!value) return null;
+  // loan_status has some uppercase values in the enum
+  const validValues = ['NEW', 'RFP', 'SUV', 'AWC', 'CTC', 'New RFP', 'New', 'SUB'];
+  return validValues.includes(value) ? value : null;
+}
+
+// Map pr_type values to valid enum values
+function mapPrType(value: string | null): string | null {
+  if (!value) return null;
+  const upper = value.toUpperCase();
+  const map: Record<string, string> = {
+    'PURCHASE': 'P',
+    'P': 'P',
+    'REFINANCE': 'R',
+    'R': 'R',
+    'HELOC': 'HELOC',
+  };
+  return map[upper] || null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -234,8 +313,11 @@ Deno.serve(async (req) => {
     }
 
     // Step 10: Define 18 Active leads with comprehensive data
+    const defaultAccountId = '47e707c5-62d0-4ee9-99a3-76572c73a8e1'; // Default account for all leads
+    
     const activeLeads = [
       {
+        account_id: defaultAccountId,
         first_name: 'Daniel',
         last_name: 'Tejada',
         email: 'dtejada@icloud.com',
@@ -265,7 +347,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('3226.60'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('760'),
         total_monthly_income: parseDecimal('7800'),
@@ -280,12 +362,12 @@ Deno.serve(async (req) => {
         subject_zip: '33155',
         condo_name: 'VILLAS AT BEVERLY',
         appraisal_value: '400000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
-        condo_status: 'APPROVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
+        condo_status: mapCondoStatus('APPROVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -302,6 +384,7 @@ Deno.serve(async (req) => {
         notes: 'Condo review approved',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Marvin',
         last_name: 'Quimis',
         email: 'mquimis91@gmail.com',
@@ -331,7 +414,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2507.84'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('760'),
         total_monthly_income: parseDecimal('5950'),
@@ -346,11 +429,11 @@ Deno.serve(async (req) => {
         subject_zip: '33025',
         condo_name: null,
         appraisal_value: '325000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -368,6 +451,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Sofia',
         last_name: 'Saez',
         email: 'sofiasaez3@gmail.com',
@@ -397,7 +481,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2839.59'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('725'),
         total_monthly_income: parseDecimal('6500'),
@@ -412,11 +496,11 @@ Deno.serve(async (req) => {
         subject_zip: '33027',
         condo_name: null,
         appraisal_value: '370000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'RECEIVED',
-        hoi_status: 'ORDERED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('ORDERED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -434,6 +518,7 @@ Deno.serve(async (req) => {
         notes: 'Insurance pending',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Yanira',
         last_name: 'Gonzalez',
         email: 'yani_gonzalez90@hotmail.com',
@@ -463,7 +548,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2219.23'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('740'),
         total_monthly_income: parseDecimal('5200'),
@@ -478,12 +563,12 @@ Deno.serve(async (req) => {
         subject_zip: '33193',
         condo_name: 'KENDALE LAKES',
         appraisal_value: '275000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
-        condo_status: 'APPROVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
+        condo_status: mapCondoStatus('APPROVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -500,6 +585,7 @@ Deno.serve(async (req) => {
         notes: 'Condo docs approved',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Lizmarie',
         last_name: 'Gort',
         email: 'lizgort_02@hotmail.com',
@@ -529,7 +615,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2361.12'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('710'),
         total_monthly_income: parseDecimal('5600'),
@@ -544,11 +630,11 @@ Deno.serve(async (req) => {
         subject_zip: '33175',
         condo_name: null,
         appraisal_value: '305000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'REQUESTED',
-        hoi_status: 'ORDERED',
-        appraisal_status: 'SCHEDULED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('REQUESTED'),
+        hoi_status: mapHoiStatus('ORDERED'),
+        appraisal_status: mapAppraisalStatus('SCHEDULED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -566,6 +652,7 @@ Deno.serve(async (req) => {
         notes: 'Title requested, appraisal scheduled',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Samantha',
         last_name: 'Gomez',
         email: 'sgom3z23@gmail.com',
@@ -595,7 +682,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2754.54'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('750'),
         total_monthly_income: parseDecimal('6300'),
@@ -610,12 +697,12 @@ Deno.serve(async (req) => {
         subject_zip: '33175',
         condo_name: 'TOWN & COUNTRY',
         appraisal_value: '335000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
-        condo_status: 'APPROVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
+        condo_status: mapCondoStatus('APPROVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -632,6 +719,7 @@ Deno.serve(async (req) => {
         notes: 'Ready for closing',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Jonathan',
         last_name: 'Garcia',
         email: 'jgarcia_305@yahoo.com',
@@ -661,7 +749,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('3292.65'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('720'),
         total_monthly_income: parseDecimal('7500'),
@@ -676,11 +764,11 @@ Deno.serve(async (req) => {
         subject_zip: '33176',
         condo_name: null,
         appraisal_value: '445000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -698,6 +786,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Maria',
         last_name: 'Santos',
         email: 'msantos77@gmail.com',
@@ -727,7 +816,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2379.52'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('730'),
         total_monthly_income: parseDecimal('5400'),
@@ -742,12 +831,12 @@ Deno.serve(async (req) => {
         subject_zip: '33186',
         condo_name: 'PALM BAY CLUB',
         appraisal_value: '290000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
-        condo_status: 'APPROVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
+        condo_status: mapCondoStatus('APPROVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -764,6 +853,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Carlos',
         last_name: 'Hernandez',
         email: 'chernandez88@hotmail.com',
@@ -793,7 +883,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2877.60'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('715'),
         total_monthly_income: parseDecimal('6700'),
@@ -808,11 +898,11 @@ Deno.serve(async (req) => {
         subject_zip: '33157',
         condo_name: null,
         appraisal_value: '375000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -830,6 +920,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Jessica',
         last_name: 'Lopez',
         email: 'jlopez_95@gmail.com',
@@ -859,7 +950,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2562.15'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('745'),
         total_monthly_income: parseDecimal('5800'),
@@ -874,12 +965,12 @@ Deno.serve(async (req) => {
         subject_zip: '33173',
         condo_name: 'SUNSET PARK',
         appraisal_value: '315000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'REQUESTED',
-        hoi_status: 'ORDERED',
-        appraisal_status: 'SCHEDULED',
-        condo_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('REQUESTED'),
+        hoi_status: mapHoiStatus('ORDERED'),
+        appraisal_status: mapAppraisalStatus('SCHEDULED'),
+        condo_status: mapCondoStatus('RECEIVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -896,6 +987,7 @@ Deno.serve(async (req) => {
         notes: 'Condo docs received',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Rafael',
         last_name: 'Martinez',
         email: 'rmartinez2000@yahoo.com',
@@ -925,7 +1017,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2632.07'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('735'),
         total_monthly_income: parseDecimal('6100'),
@@ -940,11 +1032,11 @@ Deno.serve(async (req) => {
         subject_zip: '33186',
         condo_name: null,
         appraisal_value: '350000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -962,6 +1054,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Ana',
         last_name: 'Rodriguez',
         email: 'anarodriguez84@gmail.com',
@@ -991,7 +1084,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2373.07'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('720'),
         total_monthly_income: parseDecimal('5300'),
@@ -1006,12 +1099,12 @@ Deno.serve(async (req) => {
         subject_zip: '33183',
         condo_name: 'KENDALL PLACE',
         appraisal_value: '283000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'REQUESTED',
-        hoi_status: 'ORDERED',
-        appraisal_status: 'SCHEDULED',
-        condo_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('REQUESTED'),
+        hoi_status: mapHoiStatus('ORDERED'),
+        appraisal_status: mapAppraisalStatus('SCHEDULED'),
+        condo_status: mapCondoStatus('RECEIVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -1028,6 +1121,7 @@ Deno.serve(async (req) => {
         notes: 'Condo docs received',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Miguel',
         last_name: 'Perez',
         email: 'mperez77@hotmail.com',
@@ -1057,7 +1151,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('3099.32'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('728'),
         total_monthly_income: parseDecimal('7200'),
@@ -1072,11 +1166,11 @@ Deno.serve(async (req) => {
         subject_zip: '33176',
         condo_name: null,
         appraisal_value: '418000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -1094,6 +1188,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Luis',
         last_name: 'Fernandez',
         email: 'lfernandez92@gmail.com',
@@ -1123,7 +1218,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2455.72'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('738'),
         total_monthly_income: parseDecimal('5500'),
@@ -1138,12 +1233,12 @@ Deno.serve(async (req) => {
         subject_zip: '33186',
         condo_name: 'LAGO MAR',
         appraisal_value: '298000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'REQUESTED',
-        hoi_status: 'ORDERED',
-        appraisal_status: 'SCHEDULED',
-        condo_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('REQUESTED'),
+        hoi_status: mapHoiStatus('ORDERED'),
+        appraisal_status: mapAppraisalStatus('SCHEDULED'),
+        condo_status: mapCondoStatus('RECEIVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -1160,6 +1255,7 @@ Deno.serve(async (req) => {
         notes: 'Condo docs received',
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Patricia',
         last_name: 'Diaz',
         email: 'pdiaz85@yahoo.com',
@@ -1189,7 +1285,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2897.17'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('722'),
         total_monthly_income: parseDecimal('6800'),
@@ -1204,11 +1300,11 @@ Deno.serve(async (req) => {
         subject_zip: '33157',
         condo_name: null,
         appraisal_value: '385000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'CTC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('CTC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
         condo_status: null,
         cd_status: null,
         package_status: null,
@@ -1226,6 +1322,7 @@ Deno.serve(async (req) => {
         notes: null,
       },
       {
+        account_id: defaultAccountId,
         first_name: 'Eduardo',
         last_name: 'Silva',
         email: 'esilva89@gmail.com',
@@ -1255,7 +1352,7 @@ Deno.serve(async (req) => {
         piti: parseDecimal('2181.35'),
         loan_type: 'Conventional',
         program: 'FNMA 97% LTV',
-        pr_type: 'Purchase',
+        pr_type: mapPrType('Purchase'),
         income_type: 'W2',
         estimated_fico: parseFico('710'),
         total_monthly_income: parseDecimal('5000'),
@@ -1270,12 +1367,12 @@ Deno.serve(async (req) => {
         subject_zip: '33183',
         condo_name: 'VILLAGE GREEN',
         appraisal_value: '262000',
-        disclosure_status: 'SIGNED',
-        loan_status: 'AWC',
-        title_status: 'RECEIVED',
-        hoi_status: 'RECEIVED',
-        appraisal_status: 'RECEIVED',
-        condo_status: 'APPROVED',
+        disclosure_status: mapDisclosureStatus('SIGNED'),
+        loan_status: mapLoanStatus('AWC'),
+        title_status: mapTitleStatus('RECEIVED'),
+        hoi_status: mapHoiStatus('RECEIVED'),
+        appraisal_status: mapAppraisalStatus('RECEIVED'),
+        condo_status: mapCondoStatus('APPROVED'),
         cd_status: null,
         package_status: null,
         mi_status: null,
@@ -1293,12 +1390,14 @@ Deno.serve(async (req) => {
       },
     ];
 
-    // Step 11: Insert leads
+    // Step 11: Insert leads with account_id
     let insertedLeadsCount = 0;
 
     if (confirm) {
       for (const lead of activeLeads) {
-        const { error } = await supabase.from('leads').insert(lead);
+        // Ensure account_id is set for all leads
+        const leadWithAccount = { ...lead, account_id: defaultAccountId };
+        const { error } = await supabase.from('leads').insert(leadWithAccount);
 
         if (error) {
           console.error(`[migrate-active] Error inserting lead ${lead.first_name} ${lead.last_name}:`, error);
