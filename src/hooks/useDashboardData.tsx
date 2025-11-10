@@ -11,6 +11,16 @@ export interface DashboardLead {
   pending_app_at: string | null;
 }
 
+export interface DashboardFaceToFaceMeeting {
+  id: string;
+  first_name: string;
+  last_name: string;
+  brokerage: string | null;
+  email: string | null;
+  phone: string | null;
+  face_to_face_meeting: string;
+}
+
 export const useDashboardData = () => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -171,6 +181,89 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // This Month's Face-to-Face Meetings
+  const { data: thisMonthMeetings, isLoading: isLoadingThisMonthMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const startOfMonthTimestamp = startOfMonth.toISOString();
+      const startOfNextMonthTimestamp = startOfNextMonth.toISOString();
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .not('face_to_face_meeting', 'is', null)
+        .gte('face_to_face_meeting', startOfMonthTimestamp)
+        .lt('face_to_face_meeting', startOfNextMonthTimestamp)
+        .order('face_to_face_meeting', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
+  // Yesterday's Face-to-Face Meetings
+  const { data: yesterdayMeetings, isLoading: isLoadingYesterdayMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'yesterday', formatDate(yesterday)],
+    queryFn: async () => {
+      const yesterdayStart = new Date(yesterday);
+      yesterdayStart.setHours(0, 0, 0, 0);
+      const yesterdayEnd = new Date(yesterday);
+      yesterdayEnd.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .not('face_to_face_meeting', 'is', null)
+        .gte('face_to_face_meeting', yesterdayStart.toISOString())
+        .lte('face_to_face_meeting', yesterdayEnd.toISOString())
+        .order('face_to_face_meeting', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Face-to-Face Meetings
+  const { data: todayMeetings, isLoading: isLoadingTodayMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'today', formatDate(today)],
+    queryFn: async () => {
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .not('face_to_face_meeting', 'is', null)
+        .gte('face_to_face_meeting', todayStart.toISOString())
+        .lte('face_to_face_meeting', todayEnd.toISOString())
+        .order('face_to_face_meeting', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
+  // All Face-to-Face Meetings
+  const { data: allMeetings, isLoading: isLoadingAllMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .not('face_to_face_meeting', 'is', null)
+        .order('face_to_face_meeting', { ascending: false });
+      
+      if (error) throw error;
+      return data as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
   // Recent Stage Changes
   const { data: recentStageChanges, isLoading: isLoadingStageChanges } = useQuery({
     queryKey: ['recentStageChanges'],
@@ -241,6 +334,10 @@ export const useDashboardData = () => {
     isLoadingYesterdayApps || 
     isLoadingTodayApps ||
     isLoadingAllApps ||
+    isLoadingThisMonthMeetings ||
+    isLoadingYesterdayMeetings ||
+    isLoadingTodayMeetings ||
+    isLoadingAllMeetings ||
     isLoadingStageChanges ||
     isLoadingStageCounts;
 
@@ -253,6 +350,10 @@ export const useDashboardData = () => {
     yesterdayApps: yesterdayApps || [],
     todayApps: todayApps || [],
     allApplications: allApplications || [],
+    thisMonthMeetings: thisMonthMeetings || [],
+    yesterdayMeetings: yesterdayMeetings || [],
+    todayMeetings: todayMeetings || [],
+    allMeetings: allMeetings || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],
     isLoading,

@@ -295,6 +295,14 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     className="mt-1"
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Face-to-Face Meeting</label>
+                  <InlineEditDateTime
+                    value={agent.face_to_face_meeting}
+                    onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
+                    className="mt-1"
+                  />
+                </div>
               </CardContent>
             </Card>
 

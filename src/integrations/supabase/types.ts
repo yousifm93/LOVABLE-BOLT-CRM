@@ -372,6 +372,7 @@ export type Database = {
           brokerage: string
           created_at: string
           email: string | null
+          face_to_face_meeting: string | null
           first_name: string
           id: string
           last_agent_call: string | null
@@ -387,6 +388,7 @@ export type Database = {
           brokerage: string
           created_at?: string
           email?: string | null
+          face_to_face_meeting?: string | null
           first_name: string
           id?: string
           last_agent_call?: string | null
@@ -402,6 +404,7 @@ export type Database = {
           brokerage?: string
           created_at?: string
           email?: string | null
+          face_to_face_meeting?: string | null
           first_name?: string
           id?: string
           last_agent_call?: string | null
