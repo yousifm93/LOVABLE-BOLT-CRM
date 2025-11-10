@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.migrate-pre-approved]
 verify_jwt = false
+
+[functions.migrate-active]
+verify_jwt = false
