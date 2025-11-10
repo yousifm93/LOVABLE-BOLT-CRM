@@ -329,6 +329,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-09-17'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -380,6 +381,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-09-15'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -431,6 +433,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-09-12'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -482,6 +485,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-28'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -534,6 +538,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-27'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -637,6 +642,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-21'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -688,6 +694,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-19'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -740,6 +747,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-18'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -791,6 +799,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-13'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -843,6 +852,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-05'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -895,6 +905,7 @@ Deno.serve(async (req) => {
         closed_at: parseDate('2025-08-01'),
         is_closed: true,
         pipeline_stage_id: pastClientsPipelineStageId,
+        pipeline_section: 'Closed',
         account_id: defaultAccountId,
         created_by: defaultUserId,
         escrows: null,
@@ -1435,7 +1446,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // APPLY MODE: Delete existing past clients
+    // APPLY MODE: Fix existing Past Clients with missing pipeline_section
+    console.log('Fixing existing Past Clients with NULL pipeline_section...');
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({ pipeline_section: 'Closed' })
+      .eq('is_closed', true)
+      .is('pipeline_section', null);
+    
+    if (updateError) {
+      console.error('Error updating existing Past Clients:', updateError);
+    } else {
+      console.log('✅ Updated existing Past Clients with pipeline_section = Closed');
+    }
+
+    // Delete existing past clients
     const { data: existingLeads } = await supabase
       .from('leads')
       .select('id')
@@ -1467,7 +1492,10 @@ Deno.serve(async (req) => {
     const errors: any[] = [];
 
     for (const leadData of pastClientsData) {
-      const lead = cleanLeadData(leadData);
+      const lead = cleanLeadData({
+        ...leadData,
+        pipeline_section: 'Closed',
+      });
       const { data, error } = await supabase
         .from('leads')
         .insert(lead)
