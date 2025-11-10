@@ -403,7 +403,26 @@ serve(async (req) => {
       else console.log(`Deleted tasks for ${leadIds.length} Pre-Approved leads`);
     }
 
-    // Step 2: Delete existing Pre-Approved leads
+    // Step 2: Delete borrowers for Pre-Approved leads (to avoid foreign key constraint)
+    if (preApprovedLeadIds && preApprovedLeadIds.length > 0) {
+      const leadIds = preApprovedLeadIds.map(l => l.id);
+      const { data: borrowersToDelete } = await supabase
+        .from('borrowers')
+        .select('id')
+        .in('lead_id', leadIds);
+      
+      if (borrowersToDelete && borrowersToDelete.length > 0) {
+        const { error: deleteBorrowersError } = await supabase
+          .from('borrowers')
+          .delete()
+          .in('id', borrowersToDelete.map(b => b.id));
+        
+        if (deleteBorrowersError) console.error('Error deleting borrowers:', deleteBorrowersError);
+        else console.log(`Deleted ${borrowersToDelete.length} borrowers for Pre-Approved leads`);
+      }
+    }
+
+    // Step 3: Delete existing Pre-Approved leads
     const { error: deletePreApprovedError } = await supabase
       .from('leads')
       .delete()
@@ -412,16 +431,22 @@ serve(async (req) => {
     if (deletePreApprovedError) throw deletePreApprovedError;
     console.log(`Deleted ${preApprovedCount} existing Pre-Approved leads`);
 
-    // Step 3: Insert new buyer agents
+    // Step 4: Insert new buyer agents
     let insertedAgents = null;
     if (agentsToInsert.length > 0) {
+      const agentsData = agentsToInsert.map(a => ({
+        first_name: a.first_name,
+        last_name: a.last_name,
+        email: a.email,
+        phone: a.phone,
+        brokerage: 'Unknown' // Default brokerage value for migrated agents
+      }));
+      
+      console.log('Inserting agents:', JSON.stringify(agentsData[0])); // Log first agent for debugging
+      
       const { data, error: insertAgentsError } = await supabase
         .from('buyer_agents')
-        .insert(agentsToInsert.map(a => ({
-          ...a,
-          is_active: true,
-          created_at: new Date().toISOString()
-        })))
+        .insert(agentsData)
         .select();
 
       if (insertAgentsError) throw insertAgentsError;
@@ -429,7 +454,7 @@ serve(async (req) => {
       console.log(`Inserted ${agentsToInsert.length} new buyer agents`);
     }
 
-    // Step 4: Build agent name -> ID map
+    // Step 5: Build agent name -> ID map
     const { data: allAgents } = await supabase
       .from('buyer_agents')
       .select('id, first_name, last_name')
@@ -453,7 +478,7 @@ serve(async (req) => {
       return null;
     };
 
-    // Step 5: Insert Pre-Approved leads with all fields
+    // Step 6: Insert Pre-Approved leads with all fields
     const preApprovedInserts = preApprovedLeads.map(lead => ({
       first_name: lead.first_name,
       last_name: lead.last_name,
@@ -477,7 +502,6 @@ serve(async (req) => {
       loan_amount: lead.loan_amount,
       sales_price: lead.sales_price,
       down_pmt: lead.down_pmt,
-      ltv: lead.ltv,
       monthly_pmt_goal: lead.monthly_pmt_goal,
       interest_rate: lead.interest_rate,
       term: lead.term,
