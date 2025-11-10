@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.migrate-active]
 verify_jwt = false
+
+[functions.migrate-past-clients]
+verify_jwt = false
