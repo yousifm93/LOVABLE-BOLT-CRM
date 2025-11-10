@@ -183,6 +183,13 @@ export const databaseService = {
 
   async getNewLeads() {
     try {
+      // Get the "Leads" pipeline stage ID
+      const { data: leadsStage } = await supabase
+        .from('pipeline_stages')
+        .select('id')
+        .eq('name', 'Leads')
+        .single();
+
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -191,7 +198,7 @@ export const databaseService = {
           teammate:users!fk_leads_teammate_assigned(*),
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
-        .is('pipeline_stage_id', null)
+        .eq('pipeline_stage_id', leadsStage?.id || '')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -301,13 +308,20 @@ export const databaseService = {
       // Prepare input date
       const inputLeadOnDate: any = (lead as any).lead_on_date;
 
+      // Get the "Leads" pipeline stage ID
+      const { data: leadsStage } = await supabase
+        .from('pipeline_stages')
+        .select('id')
+        .eq('name', 'Leads')
+        .single();
+
       // Build insert payload explicitly
       const leadPayload: any = {
         ...lead,
         created_by: userId,
         account_id: accountId,
         teammate_assigned: (lead as any).teammate_assigned ?? teammateId ?? null,
-        pipeline_stage_id: null, // NULL for "New" page filter
+        pipeline_stage_id: leadsStage?.id || null, // Set to "Leads" stage
         pipeline_section: null, // Don't put in Active section
         lead_on_date:
           inputLeadOnDate instanceof Date

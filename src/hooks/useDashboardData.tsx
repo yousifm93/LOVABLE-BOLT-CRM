@@ -159,24 +159,35 @@ export const useDashboardData = () => {
   const { data: pipelineStageCounts, isLoading: isLoadingStageCounts } = useQuery({
     queryKey: ['pipelineStageCounts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get all pipeline stages
+      const { data: stages, error: stagesError } = await supabase
         .from('pipeline_stages')
-        .select(`
-          id,
-          name,
-          leads:leads(count)
-        `);
+        .select('id, name');
       
-      if (error) throw error;
+      if (stagesError) throw stagesError;
       
-      // Transform data and sort by stage order
+      // Then, get count of leads for each stage
+      const stageCounts = await Promise.all(
+        (stages || []).map(async (stage) => {
+          const { count, error } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('pipeline_stage_id', stage.id);
+          
+          if (error) throw error;
+          
+          return {
+            stage_name: stage.name,
+            count: count || 0
+          };
+        })
+      );
+      
+      // Sort by stage order
       const stageOrder = ['Leads', 'Pending App', 'Screening', 'Pre-Qualified', 'Pre-Approved', 'Active', 'Past Clients'];
-      return (data || [])
-        .map(stage => ({
-          stage_name: stage.name,
-          count: Array.isArray(stage.leads) && stage.leads.length > 0 ? stage.leads[0].count : 0
-        }))
-        .sort((a, b) => stageOrder.indexOf(a.stage_name) - stageOrder.indexOf(b.stage_name));
+      return stageCounts.sort((a, b) => 
+        stageOrder.indexOf(a.stage_name) - stageOrder.indexOf(b.stage_name)
+      );
     },
     staleTime: 30000,
   });

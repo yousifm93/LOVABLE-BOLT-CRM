@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3, Lock, Unlock } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
+import { fixUnclassifiedLeads } from "@/utils/fixUnclassifiedLeads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -908,6 +909,8 @@ export default function Leads() {
     
     const fetchData = async () => {
       if (isMounted) {
+        // Fix any unclassified leads before loading (one-time fix)
+        await fixUnclassifiedLeads();
         await loadLeads();
         await loadUsers();
         await loadAgents();
@@ -952,11 +955,18 @@ export default function Leads() {
     try {
       setLoading(true);
       
-      // Fetch leads without a pipeline stage (new leads)
+      // Get the "Leads" pipeline stage ID
+      const { data: leadsStage } = await supabase
+        .from('pipeline_stages')
+        .select('id')
+        .eq('name', 'Leads')
+        .single();
+      
+      // Fetch leads in the "Leads" pipeline stage
       const { data: dbLeads, error: leadsError } = await supabase
         .from('leads')
         .select('*')
-        .is('pipeline_stage_id', null)
+        .eq('pipeline_stage_id', leadsStage?.id || '')
         .order('created_at', { ascending: false });
       
       if (leadsError) throw leadsError;
