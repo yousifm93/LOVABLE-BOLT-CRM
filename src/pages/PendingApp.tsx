@@ -759,6 +759,7 @@ const allAvailableColumns = useMemo(() => {
               fetchLeads();
             }}
             showAsStatusBadge={true}
+            fillCell={true}
             fixedWidth="w-36"
           />
         </div>

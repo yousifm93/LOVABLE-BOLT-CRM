@@ -20,6 +20,7 @@ interface InlineEditSelectProps {
   disabled?: boolean;
   forceGrayBadge?: boolean;
   fixedWidth?: string;
+  fillCell?: boolean;
 }
 
 export function InlineEditSelect({
@@ -31,7 +32,8 @@ export function InlineEditSelect({
   showAsStatusBadge = false,
   disabled = false,
   forceGrayBadge = false,
-  fixedWidth
+  fixedWidth,
+  fillCell = false
 }: InlineEditSelectProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -47,7 +49,8 @@ export function InlineEditSelect({
     return showAsStatusBadge ? (
       <StatusBadge 
         status={displayValue} 
-        forceGray={forceGrayBadge} 
+        forceGray={forceGrayBadge}
+        fillCell={fillCell}
         className={cn(fixedWidth, "justify-center", className)}
       />
     ) : (
@@ -63,6 +66,7 @@ export function InlineEditSelect({
             <StatusBadge 
               status={displayValue} 
               forceGray={forceGrayBadge}
+              fillCell={fillCell}
               className={cn(fixedWidth, "justify-center", className)}
             />
           </div>

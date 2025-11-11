@@ -720,6 +720,7 @@ const allAvailableColumns = useMemo(() => {
               fetchLeads();
             }}
             showAsStatusBadge={true}
+            fillCell={true}
             fixedWidth="w-36"
           />
         </div>
@@ -766,6 +767,7 @@ const allAvailableColumns = useMemo(() => {
               fetchLeads();
             }}
             showAsStatusBadge={true}
+            fillCell={true}
             fixedWidth="w-32"
           />
         </div>

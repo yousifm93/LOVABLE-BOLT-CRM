@@ -7,6 +7,7 @@ interface StatusBadgeProps {
   className?: string;
   onClick?: () => void;
   forceGray?: boolean;
+  fillCell?: boolean;
 }
 
 const getStatusColor = (status: string): string => {
@@ -68,7 +69,7 @@ const getStatusColor = (status: string): string => {
   return 'bg-muted text-muted-foreground';
 };
 
-export function StatusBadge({ status, variant = "square", className, onClick, forceGray = false }: StatusBadgeProps) {
+export function StatusBadge({ status, variant = "square", className, onClick, forceGray = false, fillCell = false }: StatusBadgeProps) {
   const colorClass = forceGray ? 'bg-muted text-muted-foreground' : getStatusColor(status);
   const isGrayPriority = ['high', 'medium', 'low'].includes(status.toLowerCase());
   const isTaskStatus = ['working on it', 'done', 'need help'].includes(status.toLowerCase());
@@ -78,8 +79,9 @@ export function StatusBadge({ status, variant = "square", className, onClick, fo
       className={cn(
         "inline-flex items-center px-2 py-1 text-xs font-medium transition-colors",
         variant === "square" ? "rounded" : "rounded-full",
-        isGrayPriority ? "w-16 justify-center" : "", // Consistent width for priorities
-        isTaskStatus ? "w-28 justify-center" : "", // Consistent width for task statuses
+        fillCell && "w-full justify-center",
+        isGrayPriority ? "w-16 justify-center" : "",
+        isTaskStatus ? "w-28 justify-center" : "",
         colorClass,
         onClick && "cursor-pointer hover:opacity-80",
         className

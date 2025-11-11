@@ -292,15 +292,16 @@ const createColumns = (
     header: "P/R",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.pr_type}
-          options={prTypeOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "pr_type", value)
-          }
-          showAsStatusBadge
-          className="w-12"
-        />
+      <InlineEditSelect
+        value={row.original.pr_type}
+        options={prTypeOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "pr_type", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-12"
+      />
       </div>
     ),
     sortable: true,
@@ -321,6 +322,7 @@ const createColumns = (
             handleUpdate(row.original.id, "occupancy", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-32"
         />
       </div>
@@ -373,6 +375,7 @@ const createColumns = (
             handleUpdate(row.original.id, "disclosure_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-16"
         />
       </div>
@@ -406,6 +409,7 @@ const createColumns = (
             handleUpdate(row.original.id, "loan_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-14"
         />
       </div>
@@ -424,6 +428,7 @@ const createColumns = (
             handleUpdate(row.original.id, "appraisal_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-18"
         />
       </div>
@@ -442,6 +447,7 @@ const createColumns = (
             handleUpdate(row.original.id, "title_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-20"
         />
       </div>
@@ -460,6 +466,7 @@ const createColumns = (
             handleUpdate(row.original.id, "hoi_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-14"
         />
       </div>
@@ -478,6 +485,7 @@ const createColumns = (
             handleUpdate(row.original.id, "condo_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-16"
         />
       </div>
@@ -496,6 +504,7 @@ const createColumns = (
             handleUpdate(row.original.id, "cd_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-16"
         />
       </div>
@@ -514,6 +523,7 @@ const createColumns = (
             handleUpdate(row.original.id, "package_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-12"
         />
       </div>
@@ -547,6 +557,7 @@ const createColumns = (
             handleUpdate(row.original.id, "ba_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-16"
         />
       </div>
@@ -565,6 +576,7 @@ const createColumns = (
             handleUpdate(row.original.id, "epo_status", value)
           }
           showAsStatusBadge
+          fillCell={true}
           className="w-16"
         />
       </div>

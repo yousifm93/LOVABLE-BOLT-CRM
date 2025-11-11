@@ -28,6 +28,7 @@ import { PipelineStageBar } from "@/components/PipelineStageBar";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern } from "@/utils/dateUtils";
 
@@ -1352,9 +1353,44 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         <div className="flex-1">
                           <p className="font-medium">{stage.label}</p>
                           {stage.date ? (
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(stage.date), 'MMM d, yyyy h:mm a')} EST - {stage.daysAgo} days ago
-                            </p>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <InlineEditDate
+                                value={stage.date}
+                                onValueChange={(newDate) => {
+                                  const fieldMap: Record<string, string> = {
+                                    'leads': 'created_at',
+                                    'pending-app': 'pending_app_at',
+                                    'screening': 'app_complete_at',
+                                    'pre-qualified': 'pre_qualified_at',
+                                    'pre-approved': 'pre_approved_at',
+                                    'active': 'active_at'
+                                  };
+                                  const dbField = fieldMap[stage.key];
+                                  if (dbField && leadId) {
+                                    databaseService.updateLead(leadId, { [dbField]: newDate })
+                                      .then(() => {
+                                        if (onLeadUpdated) onLeadUpdated();
+                                        toast({
+                                          title: "Success",
+                                          description: "Stage date updated",
+                                        });
+                                      })
+                                      .catch((error) => {
+                                        console.error('Error updating stage date:', error);
+                                        toast({
+                                          title: "Error",
+                                          description: "Failed to update stage date",
+                                          variant: "destructive",
+                                        });
+                                      });
+                                  }
+                                }}
+                                className="text-xs"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {stage.daysAgo} days ago
+                              </p>
+                            </div>
                           ) : (
                             <p className="text-xs text-muted-foreground">-</p>
                           )}

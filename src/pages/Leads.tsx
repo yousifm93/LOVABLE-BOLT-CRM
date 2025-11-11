@@ -809,6 +809,7 @@ export default function Leads() {
               handleFieldUpdate(row.original.id, "converted", value)
             }
             showAsStatusBadge
+            fillCell={true}
             fixedWidth="w-36"
           />
         </div>
@@ -844,6 +845,7 @@ export default function Leads() {
               handleFieldUpdate(row.original.id, "referredVia", value)
             }
             showAsStatusBadge
+            fillCell={true}
             forceGrayBadge={true}
             fixedWidth="w-24"
           />
@@ -863,6 +865,7 @@ export default function Leads() {
               handleFieldUpdate(row.original.id, "referralSource", value)
             }
             showAsStatusBadge
+            fillCell={true}
             fixedWidth="w-32"
           />
         </div>
@@ -881,6 +884,7 @@ export default function Leads() {
               handleFieldUpdate(row.original.id, "leadStrength", value)
             }
             showAsStatusBadge
+            fillCell={true}
             fixedWidth="w-20"
           />
         </div>

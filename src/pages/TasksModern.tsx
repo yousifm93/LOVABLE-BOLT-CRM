@@ -149,6 +149,7 @@ const columns = (
         ]}
         onValueChange={(value) => handleUpdate(row.original.id, "priority", value)}
         showAsStatusBadge
+        fillCell={true}
       />
     ),
     sortable: true,
@@ -221,6 +222,7 @@ const columns = (
         ]}
         onValueChange={(value) => handleUpdate(row.original.id, "status", value)}
         showAsStatusBadge
+        fillCell={true}
       />
     ),
     sortable: true,

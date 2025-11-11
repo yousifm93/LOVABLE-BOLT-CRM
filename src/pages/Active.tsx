@@ -343,15 +343,16 @@ const createColumns = (
       header: "P/R",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditSelect
-            value={row.original.pr_type}
-            options={prTypeOptions}
-            onValueChange={(value) => 
-              handleUpdate(row.original.id, "pr_type", value)
-            }
-            showAsStatusBadge
-            className="w-12"
-          />
+        <InlineEditSelect
+          value={row.original.pr_type}
+          options={prTypeOptions}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "pr_type", value)
+          }
+          showAsStatusBadge
+          fillCell={true}
+          className="w-12"
+        />
         </div>
       ),
       sortable: true,
@@ -361,19 +362,20 @@ const createColumns = (
       header: "Occupancy",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditSelect
-            value={row.original.occupancy}
-            options={[
-              { value: 'Primary Residence', label: 'PRIMARY' },
-              { value: 'Investment Property', label: 'INVESTMENT' },
-              { value: 'Second Home', label: 'SECOND HOME' },
-            ]}
-            onValueChange={(value) => 
-              handleUpdate(row.original.id, "occupancy", value)
-            }
-            showAsStatusBadge
-            className="w-32"
-          />
+        <InlineEditSelect
+          value={row.original.occupancy}
+          options={[
+            { value: 'Primary Residence', label: 'PRIMARY' },
+            { value: 'Investment Property', label: 'INVESTMENT' },
+            { value: 'Second Home', label: 'SECOND HOME' },
+          ]}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "occupancy", value)
+          }
+          showAsStatusBadge
+          fillCell={true}
+          className="w-32"
+        />
         </div>
       ),
       sortable: true,
@@ -417,15 +419,16 @@ const createColumns = (
     header: "DISC",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.disclosure_status}
-          options={disclosureStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "disclosure_status", value)
-          }
-          showAsStatusBadge
-          className="w-16"
-        />
+      <InlineEditSelect
+        value={row.original.disclosure_status}
+        options={disclosureStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "disclosure_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-16"
+      />
       </div>
     ),
     sortable: true,
@@ -450,15 +453,16 @@ const createColumns = (
     header: "Loan Status",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.loan_status}
-          options={loanStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "loan_status", value)
-          }
-          showAsStatusBadge
-          className="w-14"
-        />
+      <InlineEditSelect
+        value={row.original.loan_status}
+        options={loanStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "loan_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-14"
+      />
       </div>
     ),
     sortable: true,
@@ -468,15 +472,16 @@ const createColumns = (
     header: "Appraisal",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.appraisal_status}
-          options={appraisalStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "appraisal_status", value)
-          }
-          showAsStatusBadge
-          className="w-18"
-        />
+      <InlineEditSelect
+        value={row.original.appraisal_status}
+        options={appraisalStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "appraisal_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-18"
+      />
       </div>
     ),
     sortable: true,
@@ -486,15 +491,16 @@ const createColumns = (
     header: "Title",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.title_status}
-          options={titleStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "title_status", value)
-          }
-          showAsStatusBadge
-          className="w-20"
-        />
+      <InlineEditSelect
+        value={row.original.title_status}
+        options={titleStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "title_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-20"
+      />
       </div>
     ),
     sortable: true,
@@ -504,15 +510,16 @@ const createColumns = (
     header: "HOI",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.hoi_status}
-          options={hoiStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "hoi_status", value)
-          }
-          showAsStatusBadge
-          className="w-14"
-        />
+      <InlineEditSelect
+        value={row.original.hoi_status}
+        options={hoiStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "hoi_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-14"
+      />
       </div>
     ),
     sortable: true,
@@ -522,15 +529,16 @@ const createColumns = (
     header: "Condo",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.condo_status}
-          options={condoStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "condo_status", value)
-          }
-          showAsStatusBadge
-          className="w-16"
-        />
+      <InlineEditSelect
+        value={row.original.condo_status}
+        options={condoStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "condo_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-16"
+      />
       </div>
     ),
     sortable: true,
@@ -540,15 +548,16 @@ const createColumns = (
     header: "CD",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.cd_status}
-          options={cdStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "cd_status", value)
-          }
-          showAsStatusBadge
-          className="w-16"
-        />
+      <InlineEditSelect
+        value={row.original.cd_status}
+        options={cdStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "cd_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-16"
+      />
       </div>
     ),
     sortable: true,
@@ -558,15 +567,16 @@ const createColumns = (
     header: "Package",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.package_status}
-          options={packageStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "package_status", value)
-          }
-          showAsStatusBadge
-          className="w-12"
-        />
+      <InlineEditSelect
+        value={row.original.package_status}
+        options={packageStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "package_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-12"
+      />
       </div>
     ),
     sortable: true,
@@ -591,15 +601,16 @@ const createColumns = (
     header: "BA",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.ba_status}
-          options={baStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "ba_status", value)
-          }
-          showAsStatusBadge
-          className="w-16"
-        />
+      <InlineEditSelect
+        value={row.original.ba_status}
+        options={baStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "ba_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-16"
+      />
       </div>
     ),
     sortable: true,
@@ -609,15 +620,16 @@ const createColumns = (
     header: "EPO",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditSelect
-          value={row.original.epo_status}
-          options={epoStatusOptions}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "epo_status", value)
-          }
-          showAsStatusBadge
-          className="w-16"
-        />
+      <InlineEditSelect
+        value={row.original.epo_status}
+        options={epoStatusOptions}
+        onValueChange={(value) => 
+          handleUpdate(row.original.id, "epo_status", value)
+        }
+        showAsStatusBadge
+        fillCell={true}
+        className="w-16"
+      />
       </div>
     ),
     sortable: true,
