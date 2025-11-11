@@ -1286,11 +1286,52 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         { key: 'ctc', label: 'CTC', date: '', daysAgo: null }
                       ];
                     } else if (pipelineType === 'past-clients') {
+                      // Live data for past clients - same as leads pipeline
+                      const leadOnDate = (client as any).lead_on_date || null;
+                      const createdAt = leadOnDate || (client as any).created_at;
+                      const pendingAppAt = (client as any).pending_app_at;
+                      const appCompleteAt = (client as any).app_complete_at;
+                      const preQualifiedAt = (client as any).pre_qualified_at;
+                      const preApprovedAt = (client as any).pre_approved_at;
+                      const activeAt = (client as any).active_at;
+                      
                       return [
-                        { key: 'stage1', label: '', date: '', daysAgo: null },
-                        { key: 'stage2', label: '', date: '', daysAgo: null },
-                        { key: 'stage3', label: '', date: '', daysAgo: null },
-                        { key: 'stage4', label: '', date: '', daysAgo: null }
+                        { 
+                          key: 'leads', 
+                          label: 'New', 
+                          date: createdAt, 
+                          daysAgo: calculateDaysAgo(createdAt) 
+                        },
+                        { 
+                          key: 'pending-app', 
+                          label: 'Pending App', 
+                          date: pendingAppAt, 
+                          daysAgo: calculateDaysAgo(pendingAppAt) 
+                        },
+                        { 
+                          key: 'screening', 
+                          label: 'Screening', 
+                          date: appCompleteAt, 
+                          daysAgo: calculateDaysAgo(appCompleteAt) 
+                        },
+                        { 
+                          key: 'pre-qualified', 
+                          label: 'Pre-Qualified', 
+                          date: preQualifiedAt, 
+                          daysAgo: calculateDaysAgo(preQualifiedAt) 
+                        },
+                        { 
+                          key: 'pre-approved', 
+                          label: 'Pre-Approved', 
+                          date: preApprovedAt, 
+                          daysAgo: calculateDaysAgo(preApprovedAt) 
+                        },
+                        { 
+                          key: 'active', 
+                          label: 'Active', 
+                          date: activeAt, 
+                          daysAgo: calculateDaysAgo(activeAt) 
+                        }
                       ];
                     } else {
                       // Live data for leads pipeline
