@@ -30,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { getDatabaseFieldName } from "@/types/crm";
-import { formatDateModern } from "@/utils/dateUtils";
+import { formatDateModern, formatDateForInput } from "@/utils/dateUtils";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -1261,11 +1261,18 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 {(() => {
                   const calculateDaysAgo = (dateString: string | null): number | null => {
                     if (!dateString) return null;
-                    const date = new Date(dateString);
-                    // Validate the date
+                    let date: Date;
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                      const [y, m, d] = dateString.split('-').map(Number);
+                      date = new Date(y, m - 1, d);
+                    } else {
+                      date = new Date(dateString);
+                    }
                     if (isNaN(date.getTime())) return null;
                     const now = new Date();
-                    const diffMs = now.getTime() - date.getTime();
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    const diffMs = startOfToday.getTime() - targetStart.getTime();
                     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
                   };
                   
@@ -1287,7 +1294,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                       ];
                     } else {
                       // Live data for leads pipeline
-                      const createdAt = (client as any).created_at;
+                      const leadOnDate = (client as any).lead_on_date || null;
+                      const createdAt = leadOnDate || (client as any).created_at;
                       const pendingAppAt = (client as any).pending_app_at;
                       const appCompleteAt = (client as any).app_complete_at;
                       const preQualifiedAt = (client as any).pre_qualified_at;
@@ -1360,7 +1368,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                                 value={stage.date}
                                 onValueChange={(newDate) => {
                                   const fieldMap: Record<string, string> = {
-                                    'leads': 'created_at',
+                                    'leads': 'lead_on_date',
                                     'pending-app': 'pending_app_at',
                                     'screening': 'app_complete_at',
                                     'pre-qualified': 'pre_qualified_at',
@@ -1369,8 +1377,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                                   };
                                    const dbField = fieldMap[stage.key];
                                   if (dbField && leadId) {
-                                    // Convert Date to ISO string for database storage
-                                    const dateValue = newDate ? newDate.toISOString() : null;
+                                    let dateValue: string | null = null;
+                                    if (dbField === 'lead_on_date') {
+                                      dateValue = newDate ? formatDateForInput(newDate) : null;
+                                    } else {
+                                      dateValue = newDate ? newDate.toISOString() : null;
+                                    }
                                     databaseService.updateLead(leadId, { [dbField]: dateValue })
                                       .then(() => {
                                         if (onLeadUpdated) onLeadUpdated();

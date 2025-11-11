@@ -162,6 +162,7 @@ export function transformLeadToClient(lead: any): any {
     // Timestamps for Stage History
     updated_at: lead.updated_at || null,
     created_at: lead.created_at || null,
+    lead_on_date: lead.lead_on_date || null,
     pending_app_at: lead.pending_app_at || null,
     app_complete_at: lead.app_complete_at || null,
     pre_qualified_at: lead.pre_qualified_at || null,
