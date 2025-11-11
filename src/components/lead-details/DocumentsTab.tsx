@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Eye, File, Upload, Trash2, X } from "lucide-react";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { Button } from "@/components/ui/button";
 import { formatDistance } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -171,6 +172,27 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
     }
   };
 
+  const handleRename = async (doc: Document, newTitle: string) => {
+    try {
+      await databaseService.updateLeadDocument(doc.id, { 
+        title: newTitle.trim() || null 
+      });
+      
+      toast({
+        title: "Renamed",
+        description: "Document name updated successfully"
+      });
+      
+      onDocumentsChange();
+    } catch (error: any) {
+      toast({
+        title: "Rename Failed",
+        description: error.message || "Could not rename document",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!leadId) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -282,9 +304,12 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-sm font-medium text-foreground truncate">
-                      {doc.file_name}
-                    </h4>
+                    <InlineEditText
+                      value={doc.title || doc.file_name}
+                      onValueChange={(newValue) => handleRename(doc, newValue)}
+                      placeholder="Enter document name"
+                      className="flex-1"
+                    />
                     <Badge variant="outline" className="text-xs">
                       {getFileTypeBadge(doc.mime_type)}
                     </Badge>
@@ -296,6 +321,14 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
                     <span>
                       Uploaded {formatDistance(new Date(doc.created_at), new Date(), { addSuffix: true })}
                     </span>
+                    {doc.title && (
+                      <>
+                        <span>•</span>
+                        <span className="truncate" title={doc.file_name}>
+                          Original: {doc.file_name}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 

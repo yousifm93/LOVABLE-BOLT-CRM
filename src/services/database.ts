@@ -1428,6 +1428,24 @@ export const databaseService = {
     return data;
   },
 
+  async updateLeadDocument(
+    documentId: string,
+    updates: { title?: string; notes?: string }
+  ) {
+    const { data, error } = await supabase
+      .from('documents')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', documentId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   async deleteLeadDocument(documentId: string, storagePath: string) {
     // 1. Delete from storage
     const { error: storageError } = await supabase.storage
