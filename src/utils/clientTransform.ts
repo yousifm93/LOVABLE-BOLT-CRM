@@ -197,5 +197,10 @@ export function transformLeadToClient(lead: any): any {
     time_at_current_address_years: lead.time_at_current_address_years || null,
     time_at_current_address_months: lead.time_at_current_address_months || null,
     military_veteran: lead.military_veteran || false,
+    
+    // Latest File Updates with metadata
+    latest_file_updates: lead.latest_file_updates || null,
+    latest_file_updates_updated_at: lead.latest_file_updates_updated_at || null,
+    latest_file_updates_updated_by: lead.latest_file_updates_updated_by || null,
   };
 }

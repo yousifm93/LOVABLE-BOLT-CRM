@@ -120,7 +120,13 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
   const handlePreview = async (doc: Document) => {
     try {
       const signedUrl = await databaseService.getDocumentSignedUrl(doc.file_url);
-      window.open(signedUrl, '_blank');
+      const res = await fetch(signedUrl);
+      if (!res.ok) throw new Error('Failed to fetch file');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
+      const win = window.open(url, '_blank');
+      if (!win) throw new Error('Popup blocked');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (error: any) {
       toast({
         title: "Preview Failed",

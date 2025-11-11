@@ -387,6 +387,13 @@ const allAvailableColumns = useMemo(() => {
     const dbField = fieldMapping[field] || field;
     const updateData: any = { [dbField]: value };
     
+    // Set metadata when updating Latest File Updates
+    if (dbField === 'latest_file_updates') {
+      const { data: { user } } = await supabase.auth.getUser();
+      updateData.latest_file_updates_updated_by = user?.id || null;
+      updateData.latest_file_updates_updated_at = new Date().toISOString();
+    }
+    
     // Automation: When App Complete, move to Screening board
     if (field === 'converted' && value === 'App Complete') {
       updateData.pipeline_stage_id = 'a4e162e0-5421-4d17-8ad5-4b1195bbc995'; // Screening
