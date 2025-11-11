@@ -900,7 +900,6 @@ serve(async (req) => {
             rate: results.rate,
             payment: results.monthly_payment,
             debug_text: results.debug_text,
-            input_verification: inputVerification,
             dom_survey: {
               frame_count: domSurvey.frames.length,
               frames: domSurvey.frames.map(f => ({
