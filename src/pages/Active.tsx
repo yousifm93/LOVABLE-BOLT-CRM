@@ -40,7 +40,8 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 // Main view default columns
-const DEFAULT_MAIN_VIEW_COLUMNS = [
+// Full view - comprehensive columns
+const DEFAULT_FULL_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
@@ -59,12 +60,27 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "package_status",
   "lock_expiration_date",
   "ba_status",
-  "real_estate_agent",
-  "listing_agent",
-  "buyer_agent_id"
+  "buyer_agent",
+  "listing_agent"
+];
+
+// Main view - streamlined columns (default)
+const DEFAULT_MAIN_VIEW_COLUMNS = [
+  "borrower_name",
+  "team",
+  "lender",
+  "lender_loan_number",
+  "loan_amount",
+  "close_date",
+  "loan_status",
+  "disclosure_status",
+  "lock_expiration_date",
+  "buyer_agent",
+  "listing_agent"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
+const FULL_VIEW_STORAGE_KEY = 'active_full_view_custom';
 
 interface ActiveLoan {
   id: string;
@@ -782,21 +798,67 @@ export default function Active() {
   // Auto-load Main View on initial mount
   useEffect(() => {
     const hasCustomization = localStorage.getItem('active-pipeline-columns');
+    const existingViews = views;
     
-    if (!activeView && !hasCustomization) {
-      const orderedMainColumns = mainViewColumns
+    // Check if "Main View" and "Full View" exist in saved views
+    const hasMainView = existingViews.some(v => v.name === "Main View");
+    const hasFullView = existingViews.some(v => v.name === "Full View");
+    
+    // If no Main View exists, create it with the new default configuration
+    if (!hasMainView) {
+      const orderedMainColumns = DEFAULT_MAIN_VIEW_COLUMNS
         .map(id => columnVisibility.find(col => col.id === id))
         .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
         .map(col => ({ ...col, visible: true }));
       
-      const existingIds = new Set(mainViewColumns);
+      const existingMainIds = new Set(DEFAULT_MAIN_VIEW_COLUMNS);
       const remainingColumns = columnVisibility
-        .filter(col => !existingIds.has(col.id))
+        .filter(col => !existingMainIds.has(col.id))
         .map(col => ({ ...col, visible: false }));
       
-      const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-      setColumns(newColumnOrder);
-      setActiveView("Main View");
+      const mainViewColumnOrder = [...orderedMainColumns, ...remainingColumns];
+      
+      // Temporarily set columns and save as "Main View"
+      setColumns(mainViewColumnOrder);
+      setTimeout(() => {
+        saveView("Main View");
+        setActiveView("Main View");
+      }, 100);
+    }
+    
+    // If no Full View exists, create it
+    if (!hasFullView) {
+      const orderedFullColumns = DEFAULT_FULL_VIEW_COLUMNS
+        .map(id => columnVisibility.find(col => col.id === id))
+        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+        .map(col => ({ ...col, visible: true }));
+      
+      const existingFullIds = new Set(DEFAULT_FULL_VIEW_COLUMNS);
+      const remainingColumns = columnVisibility
+        .filter(col => !existingFullIds.has(col.id))
+        .map(col => ({ ...col, visible: false }));
+      
+      const fullViewColumnOrder = [...orderedFullColumns, ...remainingColumns];
+      
+      // Save "Full View" (but don't activate it)
+      const currentColumns = columnVisibility;
+      setTimeout(() => {
+        setColumns(fullViewColumnOrder);
+        setTimeout(() => {
+          saveView("Full View");
+          // Restore Main View if it exists
+          if (hasMainView) {
+            loadView("Main View");
+          } else {
+            setColumns(currentColumns);
+          }
+        }, 100);
+      }, 200);
+    }
+    
+    // If both views exist and no active view is set, load Main View
+    if (!activeView && hasMainView && !hasCustomization) {
+      loadView("Main View");
     }
   }, []);
 
