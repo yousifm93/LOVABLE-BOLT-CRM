@@ -56,6 +56,8 @@ interface DataTableProps<T> {
   defaultSortColumn?: string;
   defaultSortDirection?: "asc" | "desc";
   lockSort?: boolean;
+  lockReorder?: boolean;
+  lockResize?: boolean;
   storageKey?: string;
   showRowNumbers?: boolean;
 }
@@ -69,6 +71,8 @@ interface DraggableTableHeadProps<T> {
   onResize: (columnKey: string, newWidth: number) => void;
   onAutoFit: (columnKey: string) => void;
   lockSort?: boolean;
+  lockReorder?: boolean;
+  lockResize?: boolean;
 }
 
 interface ResizeHandleProps {
@@ -144,7 +148,9 @@ function DraggableTableHead<T>({
   width,
   onResize,
   onAutoFit,
-  lockSort = false
+  lockSort = false,
+  lockReorder = false,
+  lockResize = false
 }: DraggableTableHeadProps<T>) {
   const {
     attributes,
@@ -178,15 +184,17 @@ function DraggableTableHead<T>({
         "flex items-center gap-1",
         column.headerClassName?.includes("text-left") ? "justify-start" : "justify-center"
       )}>
-        {/* Drag Handle */}
-        <div
-          {...attributes}
-          {...listeners}
-          className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3 w-3 text-muted-foreground" />
-        </div>
+        {/* Drag Handle - only show when not locked */}
+        {!lockReorder && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3 w-3 text-muted-foreground" />
+          </div>
+        )}
         
         {/* Column Header Text */}
         <div 
@@ -205,14 +213,16 @@ function DraggableTableHead<T>({
         </div>
       </div>
       
-      {/* Resize Handle */}
-      <ResizeHandle 
-        columnKey={column.accessorKey}
-        onResize={onResize}
-        onAutoFit={onAutoFit}
-        minWidth={column.minWidth}
-        maxWidth={column.maxWidth}
-      />
+      {/* Resize Handle - only show when not locked */}
+      {!lockResize && (
+        <ResizeHandle 
+          columnKey={column.accessorKey}
+          onResize={onResize}
+          onAutoFit={onAutoFit}
+          minWidth={column.minWidth}
+          maxWidth={column.maxWidth}
+        />
+      )}
     </TableHead>
   );
 }
@@ -233,6 +243,8 @@ export function DataTable<T extends Record<string, any>>({
   defaultSortColumn = "",
   defaultSortDirection = "asc",
   lockSort = false,
+  lockReorder = false,
+  lockResize = false,
   storageKey,
   showRowNumbers = false,
 }: DataTableProps<T>) {
@@ -418,7 +430,7 @@ export function DataTable<T extends Record<string, any>>({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragEnd={lockReorder ? undefined : handleDragEnd}
         >
           <TableHeader>
             <TableRow>
@@ -454,6 +466,8 @@ export function DataTable<T extends Record<string, any>>({
                     onResize={handleResize}
                     onAutoFit={handleAutoFit}
                     lockSort={lockSort}
+                    lockReorder={lockReorder}
+                    lockResize={lockResize}
                   />
                 ))}
               </SortableContext>

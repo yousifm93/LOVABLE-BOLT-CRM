@@ -924,11 +924,13 @@ const allAvailableColumns = useMemo(() => {
                 setSortLocked(newValue);
                 localStorage.setItem('pendingapp-sort-locked', JSON.stringify(newValue));
                 toast({
-                  title: newValue ? "Sort Locked" : "Sort Unlocked",
-                  description: newValue ? "Applications will stay in creation order" : "You can now sort by any column",
+                  title: newValue ? "View Locked" : "View Unlocked",
+                  description: newValue 
+                    ? "Sorting, resizing, and reordering are now locked" 
+                    : "You can now sort, resize, and reorder columns",
                 });
               }}
-              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+              title={sortLocked ? "Unlock view customization" : "Lock view customization"}
             >
               {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
             </Button>
@@ -1015,6 +1017,8 @@ const allAvailableColumns = useMemo(() => {
             data={displayData}
             searchTerm={searchTerm}
             lockSort={sortLocked}
+            lockReorder={sortLocked}
+            lockResize={sortLocked}
             storageKey="pending-app-table"
             onRowClick={(row) => {
               const lead = leads.find(l => l.id === row.id);

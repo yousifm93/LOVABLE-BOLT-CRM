@@ -190,6 +190,7 @@ export default function Leads() {
     { id: "status", label: "Lead Status", visible: true },
     { id: "dueDate", label: "Task ETA", visible: true },
     { id: "user", label: "Team", visible: true },
+    { id: "notes", label: "About the Borrower", visible: true },
   ];
 
   // Load ALL database fields for Hide/Show modal
@@ -1209,11 +1210,13 @@ export default function Leads() {
                 setSortLocked(newValue);
                 localStorage.setItem('leads-sort-locked', JSON.stringify(newValue));
                 toast({
-                  title: newValue ? "Sort Locked" : "Sort Unlocked",
-                  description: newValue ? "Leads will stay in creation order" : "You can now sort by any column",
+                  title: newValue ? "View Locked" : "View Unlocked",
+                  description: newValue 
+                    ? "Sorting, resizing, and reordering are now locked" 
+                    : "You can now sort, resize, and reorder columns",
                 });
               }}
-              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
+              title={sortLocked ? "Unlock view customization" : "Lock view customization"}
             >
               {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
             </Button>
@@ -1317,6 +1320,8 @@ export default function Leads() {
             defaultSortColumn="createdAtTs"
             defaultSortDirection="desc"
             lockSort={sortLocked}
+            lockReorder={sortLocked}
+            lockResize={sortLocked}
             showRowNumbers
           />
         </CardContent>
