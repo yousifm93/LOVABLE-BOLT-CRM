@@ -8,6 +8,7 @@ import { formatDistance } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
 
 interface Document {
   id: string;
@@ -55,6 +56,12 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; url: string | null; mimeType: string }>({ 
+    name: '', 
+    url: null, 
+    mimeType: '' 
+  });
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -123,10 +130,14 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
       const res = await fetch(signedUrl);
       if (!res.ok) throw new Error('Failed to fetch file');
       const blob = await res.blob();
-      const url = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
-      const win = window.open(url, '_blank');
-      if (!win) throw new Error('Popup blocked');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
+      
+      setPreviewDoc({
+        name: doc.title || doc.file_name,
+        url: blobUrl,
+        mimeType: doc.mime_type,
+      });
+      setPreviewOpen(true);
     } catch (error: any) {
       toast({
         title: "Preview Failed",
@@ -134,6 +145,15 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
         variant: "destructive"
       });
     }
+  };
+
+  const handlePreviewClose = (open: boolean) => {
+    if (!open && previewDoc.url) {
+      // Clean up blob URL when modal closes
+      URL.revokeObjectURL(previewDoc.url);
+      setPreviewDoc({ name: '', url: null, mimeType: '' });
+    }
+    setPreviewOpen(open);
   };
 
   const handleDownload = async (doc: Document) => {
@@ -372,6 +392,14 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
           </div>
         </ScrollArea>
       )}
+
+      <DocumentPreviewModal
+        open={previewOpen}
+        onOpenChange={handlePreviewClose}
+        documentName={previewDoc.name}
+        documentUrl={previewDoc.url}
+        mimeType={previewDoc.mimeType}
+      />
     </div>
   );
 }
