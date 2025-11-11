@@ -3,7 +3,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Phone, Mail, MessageSquare, FileText, Circle, Plus } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 
@@ -83,6 +84,17 @@ const getActivityBadgeVariant = (type: Activity['type']) => {
 export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: ActivityTabProps) {
   const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
+  const [expandedActivities, setExpandedActivities] = React.useState<Set<number>>(new Set());
+
+  const toggleActivity = (id: number) => {
+    const newExpanded = new Set(expandedActivities);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedActivities(newExpanded);
+  };
 
   return (
     <div className="space-y-4">
@@ -129,53 +141,72 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .slice(0, 2);
 
           const isClickable = ['note', 'email', 'sms', 'call', 'task'].includes(activity.type);
+          const isExpanded = expandedActivities.has(activity.id);
 
           return (
-            <div 
-              key={activity.id} 
-              className={`flex items-start gap-3 pb-3 border-b last:border-0 ${isClickable ? 'cursor-pointer hover:bg-white/50 rounded p-2 -m-2 transition-colors' : ''}`}
-              onClick={() => {
-                if (isClickable) {
-                  if (activity.type === 'task' && onTaskActivityClick) {
-                    onTaskActivityClick(activity);
-                  } else {
-                    setSelectedNote(activity);
-                    setShowNoteDetailModal(true);
-                  }
-                }
-              }}
+            <Collapsible
+              key={activity.id}
+              open={isExpanded}
+              onOpenChange={() => toggleActivity(activity.id)}
+              className="pb-3 border-b last:border-0"
             >
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge 
-                    variant={getActivityBadgeVariant(activity.type)} 
-                    className="text-xs flex items-center gap-1"
-                  >
-                    {getActivityIcon(activity.type)}
-                    {getActivityBadgeLabel(activity.type)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
-                  </span>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-start gap-3 p-2 -m-2 cursor-pointer hover:bg-muted/50 rounded transition-colors">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 space-y-1 min-w-0 text-left">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge 
+                        variant={getActivityBadgeVariant(activity.type)} 
+                        className="text-xs flex items-center gap-1"
+                      >
+                        {getActivityIcon(activity.type)}
+                        {getActivityBadgeLabel(activity.type)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      by {activity.user}
+                    </p>
+                  </div>
                 </div>
-                
-                {activity.description && (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {activity.description}
-                  </p>
-                )}
-                
-                <p className="text-xs text-muted-foreground">
-                  by {activity.user}
-                </p>
-              </div>
-            </div>
+              </CollapsibleTrigger>
+              
+              {activity.description && (
+                <CollapsibleContent>
+                  <div className="pl-11 pr-2 pt-2">
+                    <p 
+                      className="text-sm text-muted-foreground whitespace-pre-wrap cursor-pointer hover:text-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isClickable) {
+                          if (activity.type === 'task' && onTaskActivityClick) {
+                            onTaskActivityClick(activity);
+                          } else {
+                            setSelectedNote(activity);
+                            setShowNoteDetailModal(true);
+                          }
+                        }
+                      }}
+                    >
+                      {activity.description}
+                    </p>
+                  </div>
+                </CollapsibleContent>
+              )}
+            </Collapsible>
           );
         })}
           </div>
