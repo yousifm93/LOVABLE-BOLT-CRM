@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,38 +12,6 @@ import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
-
-// Mock data for charts
-const monthlyVolumeData = [
-  { month: 'Jan', volume: 2400000, units: 12 },
-  { month: 'Feb', volume: 2100000, units: 10 },
-  { month: 'Mar', volume: 2800000, units: 14 },
-  { month: 'Apr', volume: 3200000, units: 16 },
-  { month: 'May', volume: 2900000, units: 15 },
-  { month: 'Jun', volume: 3500000, units: 18 },
-  { month: 'Jul', volume: 3800000, units: 19 },
-  { month: 'Aug', volume: 4200000, units: 21 },
-  { month: 'Sep', volume: 3900000, units: 20 },
-  { month: 'Oct', volume: 4100000, units: 22 },
-  { month: 'Nov', volume: 3700000, units: 19 },
-  { month: 'Dec', volume: 4500000, units: 24 },
-];
-
-// Sort ranking data by rank (best performance first)
-const rankingData = [
-  { month: 'Aug', rank: 1 },
-  { month: 'Oct', rank: 1 },
-  { month: 'Dec', rank: 1 },
-  { month: 'Jul', rank: 2 },
-  { month: 'Sep', rank: 2 },
-  { month: 'Jun', rank: 3 },
-  { month: 'Nov', rank: 3 },
-  { month: 'Apr', rank: 4 },
-  { month: 'Mar', rank: 6 },
-  { month: 'May', rank: 7 },
-  { month: 'Jan', rank: 8 },
-  { month: 'Feb', rank: 12 },
-];
 
 // Format date and time for activity display
 const formatDateTime = (timestamp: string) => {
@@ -88,8 +57,47 @@ export default function DashboardTabs() {
     currentMonthPending,
     nextMonthPending,
     thisWeekClosing,
+    closedYtdMetrics,
+    closedMonthlyVolume,
+    closedMonthlyUnits,
     isLoading,
   } = useDashboardData();
+
+  // Combine monthly volume and units into a single array for charts
+  const monthlyData = useMemo(() => {
+    if (!closedMonthlyVolume || !closedMonthlyUnits || !Array.isArray(closedMonthlyVolume) || !Array.isArray(closedMonthlyUnits)) return [];
+    
+    // Create a map of all months (Jan-Dec)
+    const monthMap = new Map<number, { month: string; volume: number; units: number }>();
+    
+    // Initialize all 12 months with 0 values
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    monthNames.forEach((name, idx) => {
+      monthMap.set(idx + 1, { month: name, volume: 0, units: 0 });
+    });
+    
+    // Fill in volume data
+    if (Array.isArray(closedMonthlyVolume)) {
+      closedMonthlyVolume.forEach((row: any) => {
+        const existing = monthMap.get(row.month_num);
+        if (existing) {
+          existing.volume = Number(row.volume) || 0;
+        }
+      });
+    }
+    
+    // Fill in units data
+    if (Array.isArray(closedMonthlyUnits)) {
+      closedMonthlyUnits.forEach((row: any) => {
+        const existing = monthMap.get(row.month_num);
+        if (existing) {
+          existing.units = Number(row.units) || 0;
+        }
+      });
+    }
+    
+    return Array.from(monthMap.values());
+  }, [closedMonthlyVolume, closedMonthlyUnits]);
 
   const leadsGoal = 100;
   const appsGoal = 30;
@@ -443,82 +451,76 @@ export default function DashboardTabs() {
         </TabsContent>
 
         <TabsContent value="closed" className="space-y-6">
-          {/* Top Row */}
-          <div className="grid grid-cols-2 gap-6">
-            <ModernStatsCard
-              title="2025 YTD Volume"
-              value="$19,323,335"
-              icon={<DollarSign />}
-              size="large"
-              centered={true}
-            />
-            <ModernStatsCard
-              title="2025 YTD Units"
-              value="39"
-              icon={<Users />}
-              size="large"
-              centered={true}
-            />
-          </div>
+          {!closedYtdMetrics || !closedMonthlyVolume || !closedMonthlyUnits ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {/* Top Row */}
+              <div className="grid grid-cols-2 gap-6">
+                <ModernStatsCard
+                  title="2025 YTD Volume"
+                  value={new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(closedYtdMetrics.ytd_volume)}
+                  icon={<DollarSign />}
+                  size="large"
+                  centered={true}
+                />
+                <ModernStatsCard
+                  title="2025 YTD Units"
+                  value={closedYtdMetrics.ytd_units.toString()}
+                  icon={<Users />}
+                  size="large"
+                  centered={true}
+                />
+              </div>
 
-          {/* Second Row - Charts */}
-          <div className="grid grid-cols-2 gap-6">
-            <ModernChartCard
-              title="2025 Volume by Month"
-              data={monthlyVolumeData}
-              type="bar"
-              dataKey="volume"
-              height={240}
-              color="hsl(var(--primary))"
-              showValueLabels={true}
-              formatValue={(value) => `$${(value / 1000000).toFixed(1)}M`}
-            />
-            <ModernChartCard
-              title="2025 Units by Month"
-              data={monthlyVolumeData}
-              type="bar"
-              dataKey="units"
-              height={240}
-              color="hsl(var(--primary))"
-              showValueLabels={true}
-            />
-          </div>
+              {/* Second Row - Charts */}
+              <div className="grid grid-cols-2 gap-6">
+                <ModernChartCard
+                  title="2025 Volume by Month"
+                  data={monthlyData}
+                  type="bar"
+                  dataKey="volume"
+                  height={240}
+                  color="hsl(var(--primary))"
+                  showValueLabels={true}
+                  formatValue={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                />
+                <ModernChartCard
+                  title="2025 Units by Month"
+                  data={monthlyData}
+                  type="bar"
+                  dataKey="units"
+                  height={240}
+                  color="hsl(var(--primary))"
+                  showValueLabels={true}
+                />
+              </div>
 
-          {/* Third Row - Full Width */}
-          <div className="w-full">
-            <ModernStatsCard
-              title="Average Loan Amount"
-              value="$495,470.128"
-              icon={<BarChart3 />}
-              size="large"
-              className="w-full"
-              centered={true}
-            />
-          </div>
-
-          {/* Bottom Row - Ranking Charts */}
-          <div className="grid grid-cols-2 gap-6">
-            <ModernChartCard
-              title="2025 Volume Rank"
-              data={rankingData}
-              type="bar"
-              dataKey="rank"
-              height={200}
-              color="hsl(var(--accent))"
-              showValueLabels={true}
-              formatValue={(value) => `#${value}`}
-            />
-            <ModernChartCard
-              title="2025 Units Rank"
-              data={rankingData}
-              type="bar"
-              dataKey="rank"
-              height={200}
-              color="hsl(var(--accent))"
-              showValueLabels={true}
-              formatValue={(value) => `#${value}`}
-            />
-          </div>
+              {/* Third Row - Full Width */}
+              <div className="w-full">
+                <ModernStatsCard
+                  title="Average Loan Amount"
+                  value={new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(closedYtdMetrics.avg_loan_amount)}
+                  icon={<BarChart3 />}
+                  size="large"
+                  className="w-full"
+                  centered={true}
+                />
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="miscellaneous" className="space-y-6">

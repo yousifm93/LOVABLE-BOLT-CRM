@@ -558,6 +558,92 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Closed/Past Clients metrics - 2025 YTD
+  const { data: closedYtdMetrics, isLoading: isLoadingClosedYtd } = useQuery({
+    queryKey: ['closedMetrics', 'ytd2025'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount')
+        .eq('is_closed', true)
+        .gte('closed_at', '2025-01-01T00:00:00')
+        .lt('closed_at', '2026-01-01T00:00:00');
+      
+      if (error) throw error;
+      
+      const ytdUnits = data?.length || 0;
+      const ytdVolume = data?.reduce((sum, lead) => sum + (lead.loan_amount || 0), 0) || 0;
+      const avgLoanAmount = ytdUnits > 0 ? ytdVolume / ytdUnits : 0;
+      
+      return {
+        ytd_units: ytdUnits,
+        ytd_volume: ytdVolume,
+        avg_loan_amount: avgLoanAmount,
+      };
+    },
+    staleTime: 30000,
+  });
+
+  // Closed - 2025 Monthly Volume
+  const { data: closedMonthlyVolume, isLoading: isLoadingClosedVolume } = useQuery({
+    queryKey: ['closedMetrics', 'monthlyVolume2025'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount, closed_at')
+        .eq('is_closed', true)
+        .gte('closed_at', '2025-01-01T00:00:00')
+        .lt('closed_at', '2026-01-01T00:00:00');
+      
+      if (error) throw error;
+      
+      // Group by month
+      const monthlyMap = new Map<number, number>();
+      data?.forEach(lead => {
+        if (lead.closed_at) {
+          const month = new Date(lead.closed_at).getMonth() + 1;
+          monthlyMap.set(month, (monthlyMap.get(month) || 0) + (lead.loan_amount || 0));
+        }
+      });
+      
+      return Array.from(monthlyMap.entries()).map(([month_num, volume]) => ({
+        month_num,
+        volume,
+      }));
+    },
+    staleTime: 30000,
+  });
+
+  // Closed - 2025 Monthly Units
+  const { data: closedMonthlyUnits, isLoading: isLoadingClosedUnits } = useQuery({
+    queryKey: ['closedMetrics', 'monthlyUnits2025'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('closed_at')
+        .eq('is_closed', true)
+        .gte('closed_at', '2025-01-01T00:00:00')
+        .lt('closed_at', '2026-01-01T00:00:00');
+      
+      if (error) throw error;
+      
+      // Group by month
+      const monthlyMap = new Map<number, number>();
+      data?.forEach(lead => {
+        if (lead.closed_at) {
+          const month = new Date(lead.closed_at).getMonth() + 1;
+          monthlyMap.set(month, (monthlyMap.get(month) || 0) + 1);
+        }
+      });
+      
+      return Array.from(monthlyMap.entries()).map(([month_num, units]) => ({
+        month_num,
+        units,
+      }));
+    },
+    staleTime: 30000,
+  });
+
   const isLoading = 
     isLoadingThisMonthLeads || 
     isLoadingYesterdayLeads || 
@@ -580,7 +666,10 @@ export const useDashboardData = () => {
     isLoadingActiveMetrics ||
     isLoadingCurrentMonth ||
     isLoadingNextMonth ||
-    isLoadingThisWeek;
+    isLoadingThisWeek ||
+    isLoadingClosedYtd ||
+    isLoadingClosedVolume ||
+    isLoadingClosedUnits;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -605,6 +694,9 @@ export const useDashboardData = () => {
     currentMonthPending: currentMonthPending || { current_month_units: 0, current_month_volume: 0 },
     nextMonthPending: nextMonthPending || { next_month_units: 0, next_month_volume: 0 },
     thisWeekClosing: thisWeekClosing || { this_week_units: 0, this_week_volume: 0 },
+    closedYtdMetrics: closedYtdMetrics || { ytd_units: 0, ytd_volume: 0, avg_loan_amount: 0 },
+    closedMonthlyVolume: closedMonthlyVolume || [],
+    closedMonthlyUnits: closedMonthlyUnits || [],
     isLoading,
   };
 };
