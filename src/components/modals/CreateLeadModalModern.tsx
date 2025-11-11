@@ -74,6 +74,63 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     }));
   };
 
+  const handleImagePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Check if clipboard contains image data
+    const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'));
+    
+    if (imageItems.length === 0) {
+      // No images in clipboard, allow normal paste behavior
+      return;
+    }
+
+    // Prevent default paste behavior for images
+    e.preventDefault();
+
+    for (const item of imageItems) {
+      const blob = item.getAsFile();
+      if (!blob) continue;
+
+      // Validate file size (10MB limit)
+      if (blob.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'Image Too Large',
+          description: 'Pasted image exceeds 10MB limit.',
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      // Check if we've reached the 5 file limit
+      if (selectedFiles.length >= 5) {
+        toast({
+          title: 'Too Many Files',
+          description: 'Maximum 5 files allowed.',
+          variant: 'destructive',
+        });
+        break;
+      }
+
+      // Generate filename based on timestamp and MIME type
+      const timestamp = Date.now();
+      const extension = blob.type.split('/')[1] || 'png';
+      const filename = `pasted-image-${timestamp}.${extension}`;
+
+      // Create File object from blob
+      const file = new File([blob], filename, { type: blob.type });
+
+      // Add to selectedFiles
+      setSelectedFiles(prev => [...prev, file]);
+
+      toast({
+        title: 'Image Attached',
+        description: `Image pasted and added to attachments.`,
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -360,7 +417,8 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Enter any notes about this lead"
+              onPaste={handleImagePaste}
+              placeholder="Enter any notes about this lead (you can also paste images here)"
               rows={3}
             />
           </div>
