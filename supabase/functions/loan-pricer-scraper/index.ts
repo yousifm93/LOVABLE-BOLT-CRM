@@ -514,200 +514,250 @@ serve(async (req) => {
           await fillFieldByLabel('Sub Financing', true, 'checkbox');
         }
         
-        // ========== STEP 4: SMARTER READINESS WAIT ==========
-        console.log('Waiting for results to appear...');
-        const allFrames = [page, ...page.frames()];
+        // ========== STEP 4: CLICK VIEW RATES & HANDLE PASSWORD ==========
+        console.log('Clicking View Rates button...');
+        await new Promise(r => setTimeout(r, 1000));
         
-        // Wait for "Pricing as of" or results wrapper
-        let resultsFound = false;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          for (const frame of allFrames) {
-            try {
-              const hasIndicator = await frame.evaluate(() => {
-                const text = document.body?.innerText || '';
-                return text.toLowerCase().includes('pricing as of') || 
-                       text.toLowerCase().includes('rate') ||
-                       text.toLowerCase().includes('monthly payment');
-              });
-              
-              if (hasIndicator) {
-                console.log('Results indicator detected');
-                resultsFound = true;
+        // Find and click "View Rates" button
+        const viewRatesSelectors = [
+          '//button[contains(text(), "View Rates")]',
+          '//button[contains(., "View Rates")]',
+          '//div[@role="button" and contains(., "View Rates")]',
+          'button:has-text("View Rates")'
+        ];
+        
+        let viewRatesClicked = false;
+        for (const selector of viewRatesSelectors) {
+          try {
+            if (selector.startsWith('//')) {
+              const buttons = await page.$x(selector);
+              if (buttons.length > 0) {
+                await buttons[0].scrollIntoView();
+                await new Promise(r => setTimeout(r, 300));
+                await buttons[0].click();
+                console.log('✓ View Rates button clicked');
+                viewRatesClicked = true;
                 break;
+              }
+            }
+          } catch (e) {
+            console.log(\`Failed with selector: \${selector}\`);
+          }
+        }
+        
+        if (!viewRatesClicked) {
+          throw new Error('Could not find or click View Rates button');
+        }
+        
+        await new Promise(r => setTimeout(r, 1500));
+        
+        // Wait for and handle password modal
+        console.log('Waiting for password modal...');
+        try {
+          await page.waitForSelector('input[type="password"]', { timeout: 5000 });
+          console.log('✓ Password modal detected');
+          await new Promise(r => setTimeout(r, 500));
+          
+          // Enter password
+          console.log('Entering password...');
+          const passwordInput = await page.$('input[type="password"]');
+          if (!passwordInput) {
+            throw new Error('Password input not found');
+          }
+          
+          await passwordInput.click();
+          await new Promise(r => setTimeout(r, 200));
+          await passwordInput.type('admrates', { delay: 80 });
+          await new Promise(r => setTimeout(r, 400));
+          console.log('✓ Password entered');
+          
+          // Submit password - try multiple button selectors
+          console.log('Submitting password...');
+          const submitSelectors = [
+            'button[type="submit"]',
+            '//button[contains(text(), "Submit")]',
+            '//button[contains(text(), "OK")]',
+            '//button[contains(text(), "Enter")]',
+            '//button[contains(., "Submit")]'
+          ];
+          
+          let submitted = false;
+          for (const selector of submitSelectors) {
+            try {
+              if (selector.startsWith('//')) {
+                const buttons = await page.$x(selector);
+                if (buttons.length > 0) {
+                  await buttons[0].click();
+                  submitted = true;
+                  break;
+                }
+              } else {
+                const button = await page.$(selector);
+                if (button) {
+                  await button.click();
+                  submitted = true;
+                  break;
+                }
               }
             } catch (e) {}
           }
           
-          if (resultsFound) break;
-          await new Promise(r => setTimeout(r, 2000));
+          if (!submitted) {
+            // Try pressing Enter as fallback
+            console.log('No submit button found, trying Enter key...');
+            await page.keyboard.press('Enter');
+          }
+          
+          console.log('✓ Password submitted');
+          await new Promise(r => setTimeout(r, 2500));
+          
+        } catch (e) {
+          console.error('Password modal handling failed:', e.message);
+          throw new Error(\`Failed to handle password modal: \${e.message}\`);
         }
         
-        // Wait for both percentage and dollar
+        // ========== STEP 5: WAIT FOR RESULTS ==========
+        console.log('Waiting for results to populate...');
+        const allFrames = [page, ...page.frames()];
+        
+        // Wait for results box with clear labels to appear
+        console.log('Waiting for results box with Rate, Lender Credit, Monthly Payment...');
         try {
           await page.waitForFunction(() => {
             const text = document.body?.innerText || '';
-            const hasRate = /\d+\.\d{2,3}\s*%/.test(text);
-            const hasPayment = /\$\s*[\d,]+\.\d{2}/.test(text);
-            console.log('Results check: hasRate=' + hasRate + ', hasPayment=' + hasPayment);
-            return hasRate && hasPayment;
-          }, { timeout: 4000 });
-          console.log('✓ Results detected');
+            const hasRateLabel = text.includes('Rate, %') || text.includes('Rate,%');
+            const hasLenderCredit = text.includes('Lender Credit');
+            const hasMonthlyPayment = text.includes('Monthly Payment');
+            console.log('Results labels check: Rate=' + hasRateLabel + ', Credit=' + hasLenderCredit + ', Payment=' + hasMonthlyPayment);
+            return hasRateLabel && hasLenderCredit && hasMonthlyPayment;
+          }, { timeout: 8000 });
+          console.log('✓ Results section detected with clear labels');
         } catch (e) {
-          console.warn('Results wait timed out, waiting extra 2s...');
+          console.warn('Clear labels wait timed out, proceeding with extraction...');
           await new Promise(r => setTimeout(r, 2000));
         }
         
-        // ========== STEP 5: FRAME-AWARE RESULTS EXTRACTION ==========
-        console.log('Extracting results across all frames...');
         
-        // Verify inputs
-        const inputVerification = await page.evaluate(() => {
-          const getInputValue = (labelText) => {
-            const labels = Array.from(document.querySelectorAll('label'));
-            const label = labels.find(l => l.textContent?.includes(labelText));
-            if (!label) return 'NOT_FOUND';
-            
-            const container = label.parentElement || label;
-            const input = container.querySelector('input[type="number"]') ||
-                         container.querySelector('input[type="text"]') ||
-                         label.nextElementSibling?.querySelector('input');
-            
-            return input ? input.value : 'NO_INPUT';
-          };
-          
-          return {
-            fico: getInputValue('FICO'),
-            ltv: getInputValue('LTV'),
-            loanAmount: getInputValue('Loan Amount')
-          };
-        });
-        console.log('Input verification:', JSON.stringify(inputVerification));
+        // ========== STEP 6: EXTRACT FROM LABELED FIELDS ==========
+        console.log('Extracting from clearly-labeled results fields...');
         
-        // Extract helper (label-directed + siblings)
-        function extractByLabel(container, labelText, pattern) {
-          try {
-            // Find label element
-            const elements = Array.from(container.querySelectorAll('*'));
-            for (const el of elements) {
+        // Enhanced extraction function that looks for specific labels
+        const extractResults = await page.evaluate(() => {
+          const extractValueByLabel = (labelText) => {
+            // Find all text nodes and elements
+            const allElements = Array.from(document.querySelectorAll('*'));
+            
+            for (const el of allElements) {
               const text = el.textContent || '';
-              if (text.toLowerCase().includes(labelText.toLowerCase()) && text.length < 50) {
-                // Check siblings
+              
+              // Check if this element contains our label
+              if (text.includes(labelText) && text.length < 100) {
+                // Found the label, now look for the value
+                // Try 1: Check immediate siblings
+                let current = el;
+                for (let i = 0; i < 5; i++) {
+                  const next = current.nextElementSibling;
+                  if (next) {
+                    const value = next.textContent?.trim();
+                    if (value && value !== labelText && value.length < 30) {
+                      console.log(\`Found "\${labelText}" value via sibling: \${value}\`);
+                      return value;
+                    }
+                    current = next;
+                  } else {
+                    break;
+                  }
+                }
+                
+                // Try 2: Check parent's children
                 const parent = el.parentElement;
                 if (parent) {
-                  const siblings = Array.from(parent.children);
-                  for (const sibling of siblings) {
-                    const sibText = sibling.textContent || '';
-                    const match = sibText.match(pattern);
-                    if (match && match[1]) {
-                      console.log('Extracted ' + labelText + ' from sibling: ' + match[1]);
-                      return match[1];
+                  const children = Array.from(parent.children);
+                  for (const child of children) {
+                    const childText = child.textContent?.trim();
+                    if (childText && !childText.includes(labelText) && childText.length < 30) {
+                      // Check if it looks like a value (has numbers)
+                      if (/[\d.%$,]/.test(childText)) {
+                        console.log(\`Found "\${labelText}" value via parent child: \${childText}\`);
+                        return childText;
+                      }
                     }
                   }
                 }
                 
-                // Next sibling
-                let next = el.nextElementSibling;
-                if (next) {
-                  const nextText = next.textContent || '';
-                  const match = nextText.match(pattern);
-                  if (match && match[1]) {
-                    console.log('Extracted ' + labelText + ' from next sibling: ' + match[1]);
-                    return match[1];
+                // Try 3: Look in containing div/section
+                const container = el.closest('div');
+                if (container) {
+                  const containerText = container.textContent || '';
+                  const lines = containerText.split('\\n').map(l => l.trim()).filter(l => l);
+                  
+                  // Find the line with our label
+                  for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].includes(labelText)) {
+                      // Check same line first
+                      const sameLine = lines[i].replace(labelText, '').trim();
+                      if (sameLine && /[\d.%$,]/.test(sameLine)) {
+                        console.log(\`Found "\${labelText}" value on same line: \${sameLine}\`);
+                        return sameLine;
+                      }
+                      
+                      // Check next line
+                      if (i + 1 < lines.length) {
+                        const nextLine = lines[i + 1];
+                        if (nextLine && /[\d.%$,]/.test(nextLine)) {
+                          console.log(\`Found "\${labelText}" value on next line: \${nextLine}\`);
+                          return nextLine;
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
             
-            // Line-by-line
-            const allText = container.innerText || container.textContent || '';
-            const lines = allText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-              if (lines[i].toLowerCase().includes(labelText.toLowerCase())) {
-                for (let j = i; j < Math.min(i + 4, lines.length); j++) {
-                  const match = lines[j].match(pattern);
-                  if (match && match[1]) return match[1];
-                }
-              }
+            return null;
+          };
+          
+          // Extract the three main fields
+          const rateRaw = extractValueByLabel('Rate, %') || extractValueByLabel('Rate,%');
+          const lenderCreditRaw = extractValueByLabel('Lender Credit');
+          const monthlyPaymentRaw = extractValueByLabel('Monthly Payment, $') || extractValueByLabel('Monthly Payment,$') || extractValueByLabel('Monthly Payment');
+          
+          // Clean up values
+          const rate = rateRaw ? rateRaw.replace('%', '').replace(/[^0-9.]/g, '').trim() : 'N/A';
+          const discount_points = lenderCreditRaw ? lenderCreditRaw.replace(/[$,]/g, '').trim() : 'N/A';
+          const monthly_payment = monthlyPaymentRaw ? monthlyPaymentRaw.replace(/[$,]/g, '').trim() : 'N/A';
+          
+          // Also try to get APR if visible
+          const aprRaw = extractValueByLabel('APR');
+          const apr = aprRaw ? aprRaw.replace('%', '').replace(/[^0-9.]/g, '').trim() : 'N/A';
+          
+          console.log('Extracted values:');
+          console.log('  Rate: ' + rate + ' (from: ' + rateRaw + ')');
+          console.log('  Lender Credit: ' + discount_points + ' (from: ' + lenderCreditRaw + ')');
+          console.log('  Monthly Payment: ' + monthly_payment + ' (from: ' + monthlyPaymentRaw + ')');
+          console.log('  APR: ' + apr + ' (from: ' + aprRaw + ')');
+          
+          return {
+            rate,
+            discount_points,
+            monthly_payment,
+            apr,
+            program_name: 'A&D Mortgage Quick Pricer',
+            priced_at: new Date().toISOString(),
+            raw_values: {
+              rate: rateRaw,
+              lender_credit: lenderCreditRaw,
+              monthly_payment: monthlyPaymentRaw,
+              apr: aprRaw
             }
-            
-            return null;
-          } catch (e) {
-            console.error('extractByLabel error:', e.message);
-            return null;
-          }
-        }
+          };
+        });
         
-        let results = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', apr: 'N/A', program_name: 'Quick Pricer Result', priced_at: new Date().toISOString() };
+        console.log('Extraction results:', JSON.stringify(extractResults));
+        let results = extractResults;
         
-        // Try main document
-        const mainResults = await page.evaluate((extractFn) => {
-          eval('var extractByLabel = ' + extractFn);
-          
-          const responseBox = document.querySelector('div.quickPricerBody_response') ||
-                              document.querySelector('[class*="quickPricer"][class*="response"]') ||
-                              document.body;
-          
-          const allText = responseBox.innerText || responseBox.textContent || '';
-          const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: allText.substring(0, 800) };
-          
-          const rateByLabel = extractByLabel(responseBox, 'rate', /(\d+\.\d{2,3})\s*%/);
-          const paymentByLabel = extractByLabel(responseBox, 'payment', /\$\s*([\d,]+\.\d{2})/);
-          const creditByLabel = extractByLabel(responseBox, 'credit', /([\-]?\d+\.\d{2,3})/);
-          
-          if (rateByLabel) out.rate = rateByLabel;
-          if (paymentByLabel) out.monthly_payment = paymentByLabel.replace(/,/g, '');
-          if (creditByLabel) out.discount_points = creditByLabel;
-          
-          // Fallback regex
-          if (out.rate === 'N/A') {
-            const rateMatch = allText.match(/(\d+\.\d{2,3})\s*%/);
-            if (rateMatch) out.rate = rateMatch[1];
-          }
-          if (out.monthly_payment === 'N/A') {
-            const paymentMatch = allText.match(/\$\s*([\d,]+\.\d{2})/);
-            if (paymentMatch) out.monthly_payment = paymentMatch[1].replace(/,/g, '');
-          }
-          if (out.discount_points === 'N/A') {
-            const creditMatch = allText.match(/([\-]?\d+\.\d{3})/);
-            if (creditMatch && creditMatch[1] !== out.rate) out.discount_points = creditMatch[1];
-          }
-          
-          return out;
-        }, extractByLabel.toString());
-        
-        console.log('Main document results:', JSON.stringify(mainResults));
-        results = { ...results, ...mainResults };
-        
-        // Try iframes if main failed
-        if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          console.log('Checking iframes...');
-          for (let i = 1; i < allFrames.length; i++) {
-            try {
-              const frameResults = await allFrames[i].evaluate(() => {
-                const text = document.body?.innerText || '';
-                const out = { rate: 'N/A', monthly_payment: 'N/A', discount_points: 'N/A', debug_text: text.substring(0, 800) };
-                
-                const rateMatch = text.match(/(\d+\.\d{2,3})\s*%/);
-                const paymentMatch = text.match(/\$\s*([\d,]+\.\d{2})/);
-                const creditMatch = text.match(/([\-]?\d+\.\d{3})/);
-                
-                if (rateMatch) out.rate = rateMatch[1];
-                if (paymentMatch) out.monthly_payment = paymentMatch[1].replace(/,/g, '');
-                if (creditMatch && creditMatch[1] !== out.rate) out.discount_points = creditMatch[1];
-                
-                return out;
-              });
-              
-              if (frameResults.rate !== 'N/A' && frameResults.monthly_payment !== 'N/A') {
-                console.log(\`Found results in iframe \${i}\`);
-                results = { ...results, ...frameResults };
-                break;
-              }
-            } catch (e) {}
-          }
-        }
-        
-        // ========== STEP 6: EXPANDED FAILURE DIAGNOSTICS ==========
+        // ========== STEP 7: EXPANDED FAILURE DIAGNOSTICS ==========
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
           console.error('Failed to extract results, capturing diagnostics...');
           
