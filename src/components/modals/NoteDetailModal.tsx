@@ -76,7 +76,7 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
           await databaseService.updateSmsLog(note.id as string, { body: editedContent });
           break;
         case 'email':
-          await databaseService.updateEmailLog(note.id as string, { body: editedContent });
+          await databaseService.updateEmailLog(note.id as string, { snippet: editedContent });
           break;
       }
       

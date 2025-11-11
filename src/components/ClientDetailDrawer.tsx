@@ -155,7 +155,24 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         const transformedActivities = fetchedActivities.map((activity: any) => {
           // Detect task creation logs
           const isTaskLog = activity.type === 'note' && activity.body?.startsWith('Task created:');
-          const taskTitle = isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null;
+          
+          // Get description based on activity type
+          let description = '';
+          if (activity.type === 'email') {
+            description = activity.snippet || '';
+          } else if (activity.type === 'call') {
+            description = activity.notes || '';
+          } else if (activity.type === 'sms') {
+            description = activity.body || '';
+          } else if (activity.type === 'note') {
+            if (isTaskLog) {
+              // Format task details on multiple lines
+              const lines = activity.body.split('\n');
+              description = lines.join('\n');
+            } else {
+              description = activity.body || '';
+            }
+          }
           
           return {
             id: activity.id,
@@ -163,13 +180,13 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             title: isTaskLog ? 'Task created' :
                    activity.type === 'note' ? 'Note added' : 
                    activity.type === 'call' ? 'Call logged' :
-                   activity.type === 'sms' ? 'SMS sent' : 'Email sent',
-            description: activity.body || activity.notes || '',
+                   activity.type === 'sms' ? 'SMS logged' : 'Email logged',
+            description,
             timestamp: activity.created_at,
             user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` :
                   activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
             author_id: activity.author_id || activity.user_id,
-            task_id: taskTitle // Store task title to find task later
+            task_id: isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null
           };
         });
       setActivities(transformedActivities);

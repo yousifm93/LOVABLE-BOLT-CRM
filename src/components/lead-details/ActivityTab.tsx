@@ -46,6 +46,23 @@ const getActivityIcon = (type: Activity['type']) => {
   }
 };
 
+const getActivityBadgeLabel = (type: Activity['type']): string => {
+  switch (type) {
+    case 'call':
+      return 'CALL LOGGED';
+    case 'email':
+      return 'EMAIL LOGGED';
+    case 'sms':
+      return 'SMS LOGGED';
+    case 'note':
+      return 'NOTE ADDED';
+    case 'task':
+      return 'TASK CREATED';
+    default:
+      return 'ACTIVITY';
+  }
+};
+
 const getActivityBadgeVariant = (type: Activity['type']) => {
   switch (type) {
     case 'call':
@@ -111,7 +128,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .toUpperCase()
             .slice(0, 2);
 
-          const isClickable = ['note', 'email', 'sms', 'task'].includes(activity.type);
+          const isClickable = ['note', 'email', 'sms', 'call', 'task'].includes(activity.type);
 
           return (
             <div 
@@ -141,19 +158,15 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                     className="text-xs flex items-center gap-1"
                   >
                     {getActivityIcon(activity.type)}
-                    {activity.type.toUpperCase()}
+                    {getActivityBadgeLabel(activity.type)}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                   </span>
                 </div>
                 
-                <h4 className="text-sm font-medium text-foreground">
-                  {activity.title}
-                </h4>
-                
                 {activity.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {activity.description}
                   </p>
                 )}

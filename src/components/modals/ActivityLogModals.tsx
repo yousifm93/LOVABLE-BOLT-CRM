@@ -101,8 +101,6 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              disabled
-              className="bg-muted"
             />
           </div>
 
@@ -217,8 +215,6 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              disabled
-              className="bg-muted"
             />
           </div>
 
@@ -334,8 +330,6 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData(prev => ({ ...prev, timestamp: e.target.value }))}
-              disabled
-              className="bg-muted"
             />
           </div>
 

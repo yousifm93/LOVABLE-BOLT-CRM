@@ -783,7 +783,7 @@ export const databaseService = {
   },
 
   // Update email log
-  async updateEmailLog(emailLogId: string, updates: { body?: string; subject?: string }) {
+  async updateEmailLog(emailLogId: string, updates: { body?: string; subject?: string; snippet?: string }) {
     const { data, error } = await supabase
       .from('email_logs')
       .update(updates)
