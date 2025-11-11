@@ -107,7 +107,7 @@ const transformLeadToDisplay = (
   return {
     id: dbLead.id,
     name: `${dbLead.first_name || ''} ${dbLead.last_name || ''}`.trim() || 'Unnamed Lead',
-    createdOn: dbLead.created_at,
+    createdOn: dbLead.lead_on_date || dbLead.created_at,
     createdAtTs: new Date(dbLead.created_at).getTime(),
     phone: dbLead.phone || '',
     email: dbLead.email || '',
@@ -169,6 +169,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'referred_via': 'referredVia',
   'referral_source': 'referralSource',
   'lead_strength': 'leadStrength',
+  'lead_on_date': 'createdOn',
   'created_at': 'createdOn',
   'loan_type': 'loanType',
   'loan_amount': 'loanAmount',
