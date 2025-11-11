@@ -42,16 +42,50 @@ const formatLocalDate = (dateString: string) => {
 // Helper to check if a date is today
 const isToday = (date: string | Date) => {
   const today = new Date();
-  const compareDate = typeof date === 'string' ? new Date(date) : date;
-  return compareDate.toDateString() === today.toDateString();
+  today.setHours(0, 0, 0, 0);
+  
+  let compareDate: Date;
+  if (typeof date === 'string') {
+    // Check if it's a date-only string (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      // Parse as local date, not UTC
+      const [year, month, day] = date.split('-').map(Number);
+      compareDate = new Date(year, month - 1, day);
+    } else {
+      // It's a full timestamp, parse normally
+      compareDate = new Date(date);
+    }
+  } else {
+    compareDate = date;
+  }
+  
+  compareDate.setHours(0, 0, 0, 0);
+  return compareDate.getTime() === today.getTime();
 };
 
 // Helper to check if a date is yesterday
 const isYesterday = (date: string | Date) => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const compareDate = typeof date === 'string' ? new Date(date) : date;
-  return compareDate.toDateString() === yesterday.toDateString();
+  yesterday.setHours(0, 0, 0, 0);
+  
+  let compareDate: Date;
+  if (typeof date === 'string') {
+    // Check if it's a date-only string (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      // Parse as local date, not UTC
+      const [year, month, day] = date.split('-').map(Number);
+      compareDate = new Date(year, month - 1, day);
+    } else {
+      // It's a full timestamp, parse normally
+      compareDate = new Date(date);
+    }
+  } else {
+    compareDate = date;
+  }
+  
+  compareDate.setHours(0, 0, 0, 0);
+  return compareDate.getTime() === yesterday.getTime();
 };
 
 // Helper to get highlight classes based on date

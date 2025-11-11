@@ -42,3 +42,6 @@ verify_jwt = false
 [functions.fix-past-clients-section]
 verify_jwt = false
 
+[functions.add-new-agents]
+verify_jwt = false
+
