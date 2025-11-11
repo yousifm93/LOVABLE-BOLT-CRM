@@ -35,16 +35,34 @@ export interface DashboardCall {
 }
 
 export const useDashboardData = () => {
+  // Get current date in local timezone
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
+  // For DATE comparisons (lead_on_date), use date-only strings
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
+
+  // For TIMESTAMPTZ comparisons, use UTC boundaries that align with local dates
+  const getUTCDayBoundaries = (date: Date) => {
+    // Create a new date at midnight local time
+    const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const localEndOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+    
+    // Get the UTC timestamps for these local times
+    return {
+      start: localMidnight.toISOString(),
+      end: localEndOfDay.toISOString()
+    };
+  };
+
+  const todayBoundaries = getUTCDayBoundaries(today);
+  const yesterdayBoundaries = getUTCDayBoundaries(yesterday);
+
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
 
   // This Month's Leads
   const { data: thisMonthLeads, isLoading: isLoadingThisMonthLeads } = useQuery({
@@ -136,17 +154,12 @@ export const useDashboardData = () => {
   const { data: yesterdayApps, isLoading: isLoadingYesterdayApps } = useQuery({
     queryKey: ['applications', 'yesterday', formatDate(yesterday)],
     queryFn: async () => {
-      const yesterdayStart = new Date(yesterday);
-      yesterdayStart.setHours(0, 0, 0, 0);
-      const yesterdayEnd = new Date(yesterday);
-      yesterdayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .not('app_complete_at', 'is', null)
-        .gte('app_complete_at', yesterdayStart.toISOString())
-        .lte('app_complete_at', yesterdayEnd.toISOString())
+        .gte('app_complete_at', yesterdayBoundaries.start)
+        .lte('app_complete_at', yesterdayBoundaries.end)
         .order('app_complete_at', { ascending: false });
       
       if (error) throw error;
@@ -159,17 +172,12 @@ export const useDashboardData = () => {
   const { data: todayApps, isLoading: isLoadingTodayApps } = useQuery({
     queryKey: ['applications', 'today', formatDate(today)],
     queryFn: async () => {
-      const todayStart = new Date(today);
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .not('app_complete_at', 'is', null)
-        .gte('app_complete_at', todayStart.toISOString())
-        .lte('app_complete_at', todayEnd.toISOString())
+        .gte('app_complete_at', todayBoundaries.start)
+        .lte('app_complete_at', todayBoundaries.end)
         .order('app_complete_at', { ascending: false });
       
       if (error) throw error;
@@ -219,17 +227,12 @@ export const useDashboardData = () => {
   const { data: yesterdayMeetings, isLoading: isLoadingYesterdayMeetings } = useQuery({
     queryKey: ['faceToFaceMeetings', 'yesterday', formatDate(yesterday)],
     queryFn: async () => {
-      const yesterdayStart = new Date(yesterday);
-      yesterdayStart.setHours(0, 0, 0, 0);
-      const yesterdayEnd = new Date(yesterday);
-      yesterdayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('buyer_agents')
         .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
-        .gte('face_to_face_meeting', yesterdayStart.toISOString())
-        .lte('face_to_face_meeting', yesterdayEnd.toISOString())
+        .gte('face_to_face_meeting', yesterdayBoundaries.start)
+        .lte('face_to_face_meeting', yesterdayBoundaries.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
@@ -242,17 +245,12 @@ export const useDashboardData = () => {
   const { data: todayMeetings, isLoading: isLoadingTodayMeetings } = useQuery({
     queryKey: ['faceToFaceMeetings', 'today', formatDate(today)],
     queryFn: async () => {
-      const todayStart = new Date(today);
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('buyer_agents')
         .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
-        .gte('face_to_face_meeting', todayStart.toISOString())
-        .lte('face_to_face_meeting', todayEnd.toISOString())
+        .gte('face_to_face_meeting', todayBoundaries.start)
+        .lte('face_to_face_meeting', todayBoundaries.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
@@ -302,17 +300,12 @@ export const useDashboardData = () => {
   const { data: yesterdayCalls, isLoading: isLoadingYesterdayCalls } = useQuery({
     queryKey: ['calls', 'yesterday', formatDate(yesterday)],
     queryFn: async () => {
-      const yesterdayStart = new Date(yesterday);
-      yesterdayStart.setHours(0, 0, 0, 0);
-      const yesterdayEnd = new Date(yesterday);
-      yesterdayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('buyer_agents')
         .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
-        .gte('last_agent_call', yesterdayStart.toISOString())
-        .lte('last_agent_call', yesterdayEnd.toISOString())
+        .gte('last_agent_call', yesterdayBoundaries.start)
+        .lte('last_agent_call', yesterdayBoundaries.end)
         .order('last_agent_call', { ascending: false });
       
       if (error) throw error;
@@ -325,17 +318,12 @@ export const useDashboardData = () => {
   const { data: todayCalls, isLoading: isLoadingTodayCalls } = useQuery({
     queryKey: ['calls', 'today', formatDate(today)],
     queryFn: async () => {
-      const todayStart = new Date(today);
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59, 999);
-      
       const { data, error } = await supabase
         .from('buyer_agents')
         .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
-        .gte('last_agent_call', todayStart.toISOString())
-        .lte('last_agent_call', todayEnd.toISOString())
+        .gte('last_agent_call', todayBoundaries.start)
+        .lte('last_agent_call', todayBoundaries.end)
         .order('last_agent_call', { ascending: false });
       
       if (error) throw error;
