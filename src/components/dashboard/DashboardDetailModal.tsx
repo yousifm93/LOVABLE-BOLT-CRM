@@ -19,11 +19,11 @@ interface Lead {
 const STAGE_ID_TO_NAME: Record<string, string> = {
   'c54f417b-3f67-43de-80f5-954cf260d571': 'Leads',
   '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
-  '24eff8b7-ad28-4085-8507-dc133179c07d': 'Screening',
-  'd0733afe-9fce-4e30-9e6a-07207b6cc6c4': 'Pre-Qualified',
-  'efc8ff8c-71fb-4e79-8e59-e7e7be1b3a40': 'Pre-Approved',
-  '77dd193b-aa1d-407f-b84f-d9e07a61d883': 'Active',
-  '60fca0c6-fc4a-40d1-9681-d11f56e3d07a': 'Past Clients'
+  'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+  '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+  '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+  '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+  'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Clients'
 };
 
 interface Agent {
