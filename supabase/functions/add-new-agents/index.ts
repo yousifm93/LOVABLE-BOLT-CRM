@@ -7,123 +7,25 @@ const corsHeaders = {
 
 const AGENTS_DATA = [
   {
-    first_name: 'Jonathan',
-    last_name: 'Cedeno',
-    email: 'Cedenosells@Luxehomes.com',
-    brokerage: '',
-    last_agent_call: '2025-11-06'
-  },
-  {
-    first_name: 'Angel',
-    last_name: 'Cuan',
-    email: 'Angel@keyssmithgroup.com',
-    brokerage: '',
-    last_agent_call: '2025-11-06'
-  },
-  {
-    first_name: 'Sonja',
-    last_name: 'Cajuste',
-    email: 'homeswithonja@gmail.com',
-    brokerage: '',
-    last_agent_call: '2025-11-04'
-  },
-  {
-    first_name: 'Edein',
-    last_name: 'Meza',
-    email: 'edein.meza@compass.com',
-    brokerage: '',
-    last_agent_call: '2025-11-05'
-  },
-  {
-    first_name: 'Lori',
-    last_name: 'Prepsent',
-    email: 'lori.prepsent@compass.com',
-    brokerage: '',
-    last_agent_call: '2025-11-06'
-  },
-  {
-    first_name: 'Lori',
-    last_name: 'Warriner',
-    email: 'lori@teamfourcorners.com',
-    brokerage: '',
-    last_agent_call: '2025-11-03'
-  },
-  {
-    first_name: 'Francois',
-    last_name: 'Lopez',
-    email: 'francois@bergrilli.com',
-    brokerage: '',
-    last_agent_call: '2025-11-10'
-  },
-  {
-    first_name: 'Nakarid',
-    last_name: 'Melean',
-    email: 'nakaridmelean@gmail.com',
-    brokerage: '',
-    last_agent_call: '2025-11-10'
-  },
-  {
-    first_name: 'Silvy',
-    last_name: 'Souza',
-    email: 'Property.miami@yahoo.com',
-    brokerage: '',
-    last_agent_call: '2025-11-05'
-  },
-  {
-    first_name: 'Elisa',
-    last_name: 'Da Silva',
-    email: 'ceo@thebestrealtyagency.com',
-    brokerage: '',
-    last_agent_call: '2025-11-03'
-  },
-  {
-    first_name: 'Julian',
-    last_name: 'Acosta',
-    email: 'Julian.acosta@compass.com',
-    brokerage: '',
-    last_agent_call: '2025-11-10'
-  },
-  {
-    first_name: 'Matt',
-    last_name: 'Edwards',
+    first_name: 'Mariana',
+    last_name: 'Ramirez',
     email: null,
     brokerage: '',
-    last_agent_call: '2025-11-04'
+    face_to_face_meeting: '2025-11-04'
   },
   {
-    first_name: 'Cinthia Pamela',
-    last_name: 'Montufar',
-    email: 'Cinthia.montufar@gmail.com',
+    first_name: 'Sebastian',
+    last_name: 'Acosta',
+    email: null,
     brokerage: '',
-    last_agent_call: '2025-11-10'
+    face_to_face_meeting: '2025-11-10'
   },
   {
-    first_name: 'Kent',
-    last_name: 'Campbell',
-    email: 'kent.campbell@selmier.com',
+    first_name: 'Suzana',
+    last_name: 'Moura',
+    email: null,
     brokerage: '',
-    last_agent_call: '2025-11-10'
-  },
-  {
-    first_name: 'Benjamin',
-    last_name: 'Gonzalez',
-    email: 'bgrealestatepremiun@gmail.com',
-    brokerage: '',
-    last_agent_call: '2025-11-04'
-  },
-  {
-    first_name: 'Peter',
-    last_name: 'Green',
-    email: 'pgreen@tflr.com',
-    brokerage: '',
-    last_agent_call: '2025-11-10'
-  },
-  {
-    first_name: 'Gian',
-    last_name: 'Peixoto',
-    email: 'gianpeixoto@gmail.com',
-    brokerage: '',
-    last_agent_call: '2025-11-05'
+    face_to_face_meeting: '2025-11-10'
   }
 ];
 
@@ -171,11 +73,11 @@ Deno.serve(async (req) => {
       }
 
       if (existing) {
-        // Update last_agent_call if agent exists
-        console.log(`Agent exists, updating last_agent_call: ${existing.id}`);
+        // Update face_to_face_meeting if agent exists
+        console.log(`Agent exists, updating face_to_face_meeting: ${existing.id}`);
         const { error: updateError } = await supabaseClient
           .from('buyer_agents')
-          .update({ last_agent_call: agent.last_agent_call })
+          .update({ face_to_face_meeting: agent.face_to_face_meeting })
           .eq('id', existing.id);
         
         if (updateError) {
