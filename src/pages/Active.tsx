@@ -1397,6 +1397,38 @@ export default function Active() {
         />
       </div>
 
+      {/* Sum Row Footer */}
+      <Card className="mt-4 border-primary bg-primary/5">
+        <CardContent className="py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-foreground">
+              Total Active Pipeline
+            </div>
+            <div className="flex items-center gap-8">
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Total Volume</div>
+                <div className="text-lg font-bold text-foreground">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(
+                    activeLoans.reduce((sum, loan) => sum + (loan.loan_amount || 0), 0)
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Total Units</div>
+                <div className="text-lg font-bold text-foreground">
+                  {activeLoans.length}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {selectedClient && (
         <ClientDetailDrawer
           client={selectedClient}

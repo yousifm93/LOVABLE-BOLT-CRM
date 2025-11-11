@@ -84,6 +84,10 @@ export default function DashboardTabs() {
     allCalls,
     recentStageChanges,
     pipelineStageCounts,
+    activeMetrics,
+    currentMonthPending,
+    nextMonthPending,
+    thisWeekClosing,
     isLoading,
   } = useDashboardData();
 
@@ -307,103 +311,135 @@ export default function DashboardTabs() {
         </TabsContent>
 
         <TabsContent value="active" className="space-y-6">
-          {/* Top Row */}
-          <div className="grid grid-cols-2 gap-6">
-            <ModernStatsCard
-              title="Total Active Volume"
-              value="$5,345,260"
-              icon={<DollarSign />}
-              size="large"
-              centered={true}
-            />
-            <ModernStatsCard
-              title="Total Active Units"
-              value="16"
-              icon={<Users />}
-              size="large"
-              centered={true}
-            />
-          </div>
-
-          {/* Second & Third Rows */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {/* Top Row */}
+              <div className="grid grid-cols-2 gap-6">
                 <ModernStatsCard
-                  title="Current Month Pending Volume"
-                  value="$0"
-                  icon={<CalendarDays />}
+                  title="Total Active Volume"
+                  value={new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(activeMetrics.total_volume)}
+                  icon={<DollarSign />}
+                  size="large"
                   centered={true}
                 />
                 <ModernStatsCard
-                  title="Next Month Pending Volume"
-                  value="$3,615,510"
-                  icon={<CalendarDays />}
+                  title="Total Active Units"
+                  value={activeMetrics.total_units.toString()}
+                  icon={<Users />}
+                  size="large"
                   centered={true}
                 />
               </div>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Second & Third Rows */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <ModernStatsCard
+                      title="Current Month Pending Volume"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(currentMonthPending.current_month_volume)}
+                      icon={<CalendarDays />}
+                      centered={true}
+                    />
+                    <ModernStatsCard
+                      title="Next Month Pending Volume"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(nextMonthPending.next_month_volume)}
+                      icon={<CalendarDays />}
+                      centered={true}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <ModernStatsCard
+                      title="Current Month Pending Units"
+                      value={currentMonthPending.current_month_units.toString()}
+                      icon={<Users />}
+                      centered={true}
+                    />
+                    <ModernStatsCard
+                      title="Next Month Pending Units"
+                      value={nextMonthPending.next_month_units.toString()}
+                      icon={<Users />}
+                      centered={true}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Row */}
+              <div className="grid grid-cols-2 gap-6">
                 <ModernStatsCard
-                  title="Current Month Pending Units"
-                  value="0"
-                  icon={<Users />}
+                  title="Closing This Week (Volume)"
+                  value={new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(thisWeekClosing.this_week_volume)}
+                  icon={<TrendingUp />}
+                  size="large"
                   centered={true}
                 />
                 <ModernStatsCard
-                  title="Next Month Pending Units"
-                  value="12"
-                  icon={<Users />}
+                  title="Closing This Week (Units)"
+                  value={thisWeekClosing.this_week_units.toString()}
+                  icon={<TrendingUp />}
+                  size="large"
                   centered={true}
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Bottom Row */}
-          <div className="grid grid-cols-2 gap-6">
-            <ModernStatsCard
-              title="Closing This Week (Volume)"
-              value="$0"
-              icon={<TrendingUp />}
-              size="large"
-              centered={true}
-            />
-            <ModernStatsCard
-              title="Closing This Week (Units)"
-              value="0"
-              icon={<TrendingUp />}
-              size="large"
-              centered={true}
-            />
-          </div>
-
-          {/* Extra Metrics */}
-          <div className="grid grid-cols-3 gap-4">
-            <ModernStatsCard
-              title="Average Processing Time"
-              value="23 days"
-              icon={<Clock />}
-              size="compact"
-              centered={true}
-            />
-            <ModernStatsCard
-              title="Average Time to Submission"
-              value="5 days"
-              icon={<Activity />}
-              size="compact"
-              centered={true}
-            />
-            <ModernStatsCard
-              title="Average Clear-to-Close Time"
-              value="18 days"
-              icon={<FileText />}
-              size="compact"
-              centered={true}
-            />
-          </div>
-
+              {/* Extra Metrics */}
+              <div className="grid grid-cols-3 gap-4">
+                <ModernStatsCard
+                  title="Average Interest Rate"
+                  value={`${activeMetrics.avg_interest_rate.toFixed(3)}%`}
+                  icon={<BarChart3 />}
+                  size="compact"
+                  centered={true}
+                />
+                <ModernStatsCard
+                  title="Average Loan Amount"
+                  value={new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(activeMetrics.avg_loan_amount)}
+                  icon={<DollarSign />}
+                  size="compact"
+                  centered={true}
+                />
+                <ModernStatsCard
+                  title="Average Clear-to-Close Time"
+                  value={activeMetrics.avg_ctc_days !== null ? `${Math.round(activeMetrics.avg_ctc_days)} days` : "—"}
+                  icon={<FileText />}
+                  size="compact"
+                  centered={true}
+                />
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="closed" className="space-y-6">

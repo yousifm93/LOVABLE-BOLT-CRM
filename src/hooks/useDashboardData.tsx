@@ -418,6 +418,146 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Helper functions for date ranges
+  const getCurrentWeekRange = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0, 0, 0, 0);
+    
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+    
+    return { monday, friday };
+  };
+
+  const getMonthRanges = () => {
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthAfterNextStart = new Date(now.getFullYear(), now.getMonth() + 2, 1);
+    
+    return { currentMonthStart, nextMonthStart, monthAfterNextStart };
+  };
+
+  // Active pipeline metrics - Active stage ID
+  const ACTIVE_STAGE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+
+  // Total Active Volume & Units
+  const { data: activeMetrics, isLoading: isLoadingActiveMetrics } = useQuery({
+    queryKey: ['activeMetrics', 'totals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount, interest_rate, submitted_at, ctc_at')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false);
+      
+      if (error) throw error;
+      
+      const totalUnits = data?.length || 0;
+      const totalVolume = data?.reduce((sum, lead) => sum + (lead.loan_amount || 0), 0) || 0;
+      const avgInterestRate = data?.length 
+        ? data.reduce((sum, lead) => sum + (lead.interest_rate || 0), 0) / data.filter(l => l.interest_rate).length
+        : 0;
+      const avgLoanAmount = totalUnits > 0 ? totalVolume / totalUnits : 0;
+      
+      // Calculate average clear-to-close time (in days)
+      const ctcLeads = data?.filter(lead => lead.submitted_at && lead.ctc_at) || [];
+      const avgCtcDays = ctcLeads.length > 0
+        ? ctcLeads.reduce((sum, lead) => {
+            const days = Math.floor(
+              (new Date(lead.ctc_at!).getTime() - new Date(lead.submitted_at!).getTime()) / (1000 * 60 * 60 * 24)
+            );
+            return sum + days;
+          }, 0) / ctcLeads.length
+        : null;
+      
+      return {
+        total_units: totalUnits,
+        total_volume: totalVolume,
+        avg_interest_rate: avgInterestRate,
+        avg_loan_amount: avgLoanAmount,
+        avg_ctc_days: avgCtcDays,
+      };
+    },
+    staleTime: 30000,
+  });
+
+  // Current Month Pending (Volume & Units)
+  const { data: currentMonthPending, isLoading: isLoadingCurrentMonth } = useQuery({
+    queryKey: ['activeMetrics', 'currentMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const { currentMonthStart, nextMonthStart } = getMonthRanges();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', currentMonthStart.toISOString().split('T')[0])
+        .lt('close_date', nextMonthStart.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      
+      return {
+        current_month_units: data?.length || 0,
+        current_month_volume: data?.reduce((sum, lead) => sum + (lead.loan_amount || 0), 0) || 0,
+      };
+    },
+    staleTime: 30000,
+  });
+
+  // Next Month Pending (Volume & Units)
+  const { data: nextMonthPending, isLoading: isLoadingNextMonth } = useQuery({
+    queryKey: ['activeMetrics', 'nextMonth', formatDate(startOfNextMonth)],
+    queryFn: async () => {
+      const { nextMonthStart, monthAfterNextStart } = getMonthRanges();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', nextMonthStart.toISOString().split('T')[0])
+        .lt('close_date', monthAfterNextStart.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      
+      return {
+        next_month_units: data?.length || 0,
+        next_month_volume: data?.reduce((sum, lead) => sum + (lead.loan_amount || 0), 0) || 0,
+      };
+    },
+    staleTime: 30000,
+  });
+
+  // Closing This Week (Volume & Units)
+  const { data: thisWeekClosing, isLoading: isLoadingThisWeek } = useQuery({
+    queryKey: ['activeMetrics', 'thisWeek'],
+    queryFn: async () => {
+      const { monday, friday } = getCurrentWeekRange();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', monday.toISOString().split('T')[0])
+        .lte('close_date', friday.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      
+      return {
+        this_week_units: data?.length || 0,
+        this_week_volume: data?.reduce((sum, lead) => sum + (lead.loan_amount || 0), 0) || 0,
+      };
+    },
+    staleTime: 30000,
+  });
+
   const isLoading = 
     isLoadingThisMonthLeads || 
     isLoadingYesterdayLeads || 
@@ -436,7 +576,11 @@ export const useDashboardData = () => {
     isLoadingTodayCalls ||
     isLoadingAllCalls ||
     isLoadingStageChanges ||
-    isLoadingStageCounts;
+    isLoadingStageCounts ||
+    isLoadingActiveMetrics ||
+    isLoadingCurrentMonth ||
+    isLoadingNextMonth ||
+    isLoadingThisWeek;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -457,6 +601,10 @@ export const useDashboardData = () => {
     allCalls: allCalls || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],
+    activeMetrics: activeMetrics || { total_units: 0, total_volume: 0, avg_interest_rate: 0, avg_loan_amount: 0, avg_ctc_days: null },
+    currentMonthPending: currentMonthPending || { current_month_units: 0, current_month_volume: 0 },
+    nextMonthPending: nextMonthPending || { next_month_units: 0, next_month_volume: 0 },
+    thisWeekClosing: thisWeekClosing || { this_week_units: 0, this_week_volume: 0 },
     isLoading,
   };
 };

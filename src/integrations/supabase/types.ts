@@ -1876,6 +1876,7 @@ export type Database = {
           created_at: string
           created_by: string
           credit_card_debt: number | null
+          ctc_at: string | null
           disc_file: string | null
           disclosure_status:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -1968,6 +1969,7 @@ export type Database = {
           subject_city: string | null
           subject_state: string | null
           subject_zip: string | null
+          submitted_at: string | null
           task_eta: string | null
           teammate_assigned: string | null
           term: number | null
@@ -2017,6 +2019,7 @@ export type Database = {
           created_at?: string
           created_by: string
           credit_card_debt?: number | null
+          ctc_at?: string | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -2111,6 +2114,7 @@ export type Database = {
           subject_city?: string | null
           subject_state?: string | null
           subject_zip?: string | null
+          submitted_at?: string | null
           task_eta?: string | null
           teammate_assigned?: string | null
           term?: number | null
@@ -2160,6 +2164,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           credit_card_debt?: number | null
+          ctc_at?: string | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -2254,6 +2259,7 @@ export type Database = {
           subject_city?: string | null
           subject_state?: string | null
           subject_zip?: string | null
+          submitted_at?: string | null
           task_eta?: string | null
           teammate_assigned?: string | null
           term?: number | null
