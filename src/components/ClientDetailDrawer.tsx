@@ -1403,54 +1403,53 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                         </div>
                         <div className="flex-1">
                           <p className="font-medium">{stage.label}</p>
-                          {stage.date ? (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <InlineEditDate
-                                value={stage.date}
-                                onValueChange={(newDate) => {
-                                  const fieldMap: Record<string, string> = {
-                                    'leads': 'lead_on_date',
-                                    'pending-app': 'pending_app_at',
-                                    'screening': 'app_complete_at',
-                                    'pre-qualified': 'pre_qualified_at',
-                                    'pre-approved': 'pre_approved_at',
-                                    'active': 'active_at'
-                                  };
-                                   const dbField = fieldMap[stage.key];
-                                  if (dbField && leadId) {
-                                    let dateValue: string | null = null;
-                                    if (dbField === 'lead_on_date') {
-                                      dateValue = newDate ? formatDateForInput(newDate) : null;
-                                    } else {
-                                      dateValue = newDate ? newDate.toISOString() : null;
-                                    }
-                                    databaseService.updateLead(leadId, { [dbField]: dateValue })
-                                      .then(() => {
-                                        if (onLeadUpdated) onLeadUpdated();
-                                        toast({
-                                          title: "Success",
-                                          description: "Stage date updated",
-                                        });
-                                      })
-                                      .catch((error) => {
-                                        console.error('Error updating stage date:', error);
-                                        toast({
-                                          title: "Error",
-                                          description: "Failed to update stage date",
-                                          variant: "destructive",
-                                        });
-                                      });
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <InlineEditDate
+                              value={stage.date}
+                              onValueChange={(newDate) => {
+                                const fieldMap: Record<string, string> = {
+                                  'leads': 'lead_on_date',
+                                  'pending-app': 'pending_app_at',
+                                  'screening': 'app_complete_at',
+                                  'pre-qualified': 'pre_qualified_at',
+                                  'pre-approved': 'pre_approved_at',
+                                  'active': 'active_at'
+                                };
+                                const dbField = fieldMap[stage.key];
+                                if (dbField && leadId) {
+                                  let dateValue: string | null = null;
+                                  if (dbField === 'lead_on_date') {
+                                    dateValue = newDate ? formatDateForInput(newDate) : null;
+                                  } else {
+                                    dateValue = newDate ? newDate.toISOString() : null;
                                   }
-                                }}
-                                className="text-xs"
-                              />
+                                  databaseService.updateLead(leadId, { [dbField]: dateValue })
+                                    .then(() => {
+                                      if (onLeadUpdated) onLeadUpdated();
+                                      toast({
+                                        title: "Success",
+                                        description: "Stage date updated",
+                                      });
+                                    })
+                                    .catch((error) => {
+                                      console.error('Error updating stage date:', error);
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to update stage date",
+                                        variant: "destructive",
+                                      });
+                                    });
+                                }
+                              }}
+                              className="text-xs"
+                              placeholder="Set date"
+                            />
+                            {stage.date && stage.daysAgo !== null && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                {stage.daysAgo !== null ? `${stage.daysAgo} days ago` : '-'}
+                                {stage.daysAgo} days ago
                               </p>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">-</p>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
