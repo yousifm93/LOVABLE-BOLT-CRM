@@ -39,6 +39,36 @@ const formatLocalDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// Helper to check if a date is today
+const isToday = (date: string | Date) => {
+  const today = new Date();
+  const compareDate = typeof date === 'string' ? new Date(date) : date;
+  return compareDate.toDateString() === today.toDateString();
+};
+
+// Helper to check if a date is yesterday
+const isYesterday = (date: string | Date) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const compareDate = typeof date === 'string' ? new Date(date) : date;
+  return compareDate.toDateString() === yesterday.toDateString();
+};
+
+// Helper to get highlight classes based on date
+const getHighlightClasses = (date: string | Date | null | undefined): string => {
+  if (!date) return '';
+  
+  if (isToday(date)) {
+    return 'bg-green-50 border-green-200 hover:bg-green-100';
+  }
+  
+  if (isYesterday(date)) {
+    return 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100';
+  }
+  
+  return '';
+};
+
 const STAGE_ID_TO_NAME: Record<string, string> = {
   'c54f417b-3f67-43de-80f5-954cf260d571': 'Leads',
   '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
@@ -227,21 +257,27 @@ export default function DashboardTabs() {
                     title="All Leads" 
                     count={allLeads.length}
                     data={allLeads}
-                    renderItem={(lead, index) => (
-                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {lead.first_name} {lead.last_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatLocalDate(lead.lead_on_date)}
-                          </p>
+                    renderItem={(lead, index) => {
+                      const highlightClass = getHighlightClasses(lead.lead_on_date);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                        >
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {lead.first_name} {lead.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatLocalDate(lead.lead_on_date)}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {STAGE_ID_TO_NAME[lead.pipeline_stage_id] || "Unknown"}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {STAGE_ID_TO_NAME[lead.pipeline_stage_id] || "Unknown"}
-                        </Badge>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </CardContent>
               </Card>
@@ -284,21 +320,27 @@ export default function DashboardTabs() {
                     title="All Applications" 
                     count={allApplications.length}
                     data={allApplications}
-                    renderItem={(app, index) => (
-                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {app.first_name} {app.last_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {app.app_complete_at ? new Date(app.app_complete_at).toLocaleDateString() : '-'}
-                          </p>
+                    renderItem={(app, index) => {
+                      const highlightClass = getHighlightClasses(app.app_complete_at);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                        >
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {app.first_name} {app.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {app.app_complete_at ? new Date(app.app_complete_at).toLocaleDateString() : '-'}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {STAGE_ID_TO_NAME[app.pipeline_stage_id] || "Unknown"}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {STAGE_ID_TO_NAME[app.pipeline_stage_id] || "Unknown"}
-                        </Badge>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </CardContent>
               </Card>
@@ -341,21 +383,27 @@ export default function DashboardTabs() {
                     title="All Meetings" 
                     count={allMeetings.length}
                     data={allMeetings}
-                    renderItem={(meeting, index) => (
-                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {meeting.first_name} {meeting.last_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(meeting.face_to_face_meeting).toLocaleDateString()}
+                    renderItem={(meeting, index) => {
+                      const highlightClass = getHighlightClasses(meeting.face_to_face_meeting);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                        >
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {meeting.first_name} {meeting.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(meeting.face_to_face_meeting).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
+                            {meeting.notes || "No notes"}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
-                          {meeting.notes || "No notes"}
-                        </p>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </CardContent>
               </Card>
@@ -398,21 +446,27 @@ export default function DashboardTabs() {
                     title="All Calls" 
                     count={allCalls.length}
                     data={allCalls}
-                    renderItem={(call, index) => (
-                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {call.first_name} {call.last_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(call.last_agent_call).toLocaleDateString()}
+                    renderItem={(call, index) => {
+                      const highlightClass = getHighlightClasses(call.last_agent_call);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                        >
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {call.first_name} {call.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(call.last_agent_call).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
+                            {call.notes || "No notes"}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
-                          {call.notes || "No notes"}
-                        </p>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </CardContent>
               </Card>
