@@ -34,6 +34,7 @@ interface Agent {
   email?: string | null;
   face_to_face_meeting?: string | null;
   last_agent_call?: string | null;
+  notes?: string | null;
 }
 
 interface DashboardDetailModalProps {
@@ -85,6 +86,10 @@ export function DashboardDetailModal({
     }
   };
 
+  const getThirdColumnTitle = () => {
+    return (type === "meetings" || type === "calls") ? "Notes" : "Current Stage";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -97,7 +102,7 @@ export function DashboardDetailModal({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>{getDateColumnTitle()}</TableHead>
-                <TableHead>Current Stage</TableHead>
+                <TableHead>{getThirdColumnTitle()}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,7 +125,9 @@ export function DashboardDetailModal({
                         {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">Agent</Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {item.notes || "—"}
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>

@@ -379,6 +379,7 @@ export type Database = {
           last_name: string
           license_number: string | null
           next_agent_call: string | null
+          notes: string | null
           phone: string | null
           updated_at: string
           years_experience: number | null
@@ -395,6 +396,7 @@ export type Database = {
           last_name: string
           license_number?: string | null
           next_agent_call?: string | null
+          notes?: string | null
           phone?: string | null
           updated_at?: string
           years_experience?: number | null
@@ -411,6 +413,7 @@ export type Database = {
           last_name?: string
           license_number?: string | null
           next_agent_call?: string | null
+          notes?: string | null
           phone?: string | null
           updated_at?: string
           years_experience?: number | null

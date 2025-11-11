@@ -247,6 +247,14 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   />
                 </div>
               </div>
+              <div className="mt-4">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notes</label>
+                <InlineEditText
+                  value={agent.notes}
+                  onValueChange={(value) => handleFieldUpdate('notes', value)}
+                  placeholder="Add notes about this agent..."
+                />
+              </div>
             </div>
           </div>
 

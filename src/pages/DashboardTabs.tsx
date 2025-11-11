@@ -39,6 +39,16 @@ const formatLocalDate = (dateString: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const STAGE_ID_TO_NAME: Record<string, string> = {
+  'c54f417b-3f67-43de-80f5-954cf260d571': 'Leads',
+  '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
+  'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+  '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+  '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+  '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+  'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Clients'
+};
+
 export default function DashboardTabs() {
   const {
     thisMonthLeads,
@@ -218,13 +228,18 @@ export default function DashboardTabs() {
                     count={allLeads.length}
                     data={allLeads}
                     renderItem={(lead, index) => (
-                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <p className="font-medium text-sm">
-                          {lead.first_name} {lead.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatLocalDate(lead.lead_on_date)}
-                        </p>
+                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {lead.first_name} {lead.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatLocalDate(lead.lead_on_date)}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {STAGE_ID_TO_NAME[lead.pipeline_stage_id] || "Unknown"}
+                        </Badge>
                       </div>
                     )}
                   />
@@ -270,13 +285,18 @@ export default function DashboardTabs() {
                     count={allApplications.length}
                     data={allApplications}
                     renderItem={(app, index) => (
-                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <p className="font-medium text-sm">
-                          {app.first_name} {app.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString() : '-'}
-                        </p>
+                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {app.first_name} {app.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString() : '-'}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          {STAGE_ID_TO_NAME[app.pipeline_stage_id] || "Unknown"}
+                        </Badge>
                       </div>
                     )}
                   />
@@ -322,12 +342,17 @@ export default function DashboardTabs() {
                     count={allMeetings.length}
                     data={allMeetings}
                     renderItem={(meeting, index) => (
-                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <p className="font-medium text-sm">
-                          {meeting.first_name} {meeting.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(meeting.face_to_face_meeting).toLocaleDateString()}
+                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {meeting.first_name} {meeting.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(meeting.face_to_face_meeting).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
+                          {meeting.notes || "No notes"}
                         </p>
                       </div>
                     )}
@@ -374,12 +399,17 @@ export default function DashboardTabs() {
                     count={allCalls.length}
                     data={allCalls}
                     renderItem={(call, index) => (
-                      <div key={index} className="flex flex-col gap-1 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
-                        <p className="font-medium text-sm">
-                          {call.first_name} {call.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(call.last_agent_call).toLocaleDateString()}
+                      <div key={index} className="flex items-center justify-between gap-2 p-2 rounded border border-border hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {call.first_name} {call.last_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(call.last_agent_call).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
+                          {call.notes || "No notes"}
                         </p>
                       </div>
                     )}

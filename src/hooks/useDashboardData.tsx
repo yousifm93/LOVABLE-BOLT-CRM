@@ -20,6 +20,7 @@ export interface DashboardFaceToFaceMeeting {
   email: string | null;
   phone: string | null;
   face_to_face_meeting: string;
+  notes?: string | null;
 }
 
 export interface DashboardCall {
@@ -30,6 +31,7 @@ export interface DashboardCall {
   email: string | null;
   phone: string | null;
   last_agent_call: string;
+  notes?: string | null;
 }
 
 export const useDashboardData = () => {
@@ -201,7 +203,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', startOfMonthTimestamp)
         .lt('face_to_face_meeting', startOfNextMonthTimestamp)
@@ -224,7 +226,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', yesterdayStart.toISOString())
         .lte('face_to_face_meeting', yesterdayEnd.toISOString())
@@ -247,7 +249,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', todayStart.toISOString())
         .lte('face_to_face_meeting', todayEnd.toISOString())
@@ -265,7 +267,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting')
+        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
         .not('face_to_face_meeting', 'is', null)
         .order('face_to_face_meeting', { ascending: false });
       
@@ -284,7 +286,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
         .gte('last_agent_call', startOfMonthTimestamp)
         .lt('last_agent_call', startOfNextMonthTimestamp)
@@ -307,7 +309,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
         .gte('last_agent_call', yesterdayStart.toISOString())
         .lte('last_agent_call', yesterdayEnd.toISOString())
@@ -330,7 +332,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
         .gte('last_agent_call', todayStart.toISOString())
         .lte('last_agent_call', todayEnd.toISOString())
@@ -348,7 +350,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call')
+        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
         .not('last_agent_call', 'is', null)
         .order('last_agent_call', { ascending: false });
       
