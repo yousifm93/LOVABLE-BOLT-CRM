@@ -47,8 +47,9 @@ const MAIN_VIEW_COLUMNS = [
   "pendingAppOn",
   "status",
   "realEstateAgent",
+  "user",
   "dueDate",
-  "user"
+  "latestFileUpdates"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -63,6 +64,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'loan_amount': 'loanAmount',
   'pending_app_at': 'pendingAppOn',
   'notes': 'notes',
+  'latest_file_updates': 'latestFileUpdates',
 };
 
 // Exclude legacy/computed alias fields from dynamic column generation
@@ -90,6 +92,7 @@ type DisplayLead = {
   loanAmount: number | null;
   creditScore: number;
   dueDate?: string;
+  latestFileUpdates: string;
   [key: string]: any; // Allow dynamic fields
 };
 
@@ -504,6 +507,7 @@ const allAvailableColumns = useMemo(() => {
     loanAmount: lead.loan_amount || null,
     creditScore: lead.estimated_fico || 0,
     dueDate: lead.task_eta || '',
+    latestFileUpdates: lead.latest_file_updates || '',
 // Add all database fields dynamically
     ...allFields
       .filter(f => f.is_in_use && !ALIAS_FIELD_NAMES.has(f.field_name) && f.field_type !== 'computed')
@@ -842,6 +846,16 @@ const allAvailableColumns = useMemo(() => {
             }}
             placeholder="Select date"
           />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "latestFileUpdates",
+      header: "Latest File Updates",
+      sortable: true,
+      cell: ({ row }) => (
+        <div className="max-w-md text-sm line-clamp-2" title={row.original.latestFileUpdates || ''}>
+          {row.original.latestFileUpdates || '—'}
         </div>
       ),
     },

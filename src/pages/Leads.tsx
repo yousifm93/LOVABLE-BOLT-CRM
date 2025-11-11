@@ -48,12 +48,11 @@ import {
 const MAIN_VIEW_COLUMNS = [
   "name",
   "createdOn",
-  "referredVia",
-  "referralSource",
   "realEstateAgent",
   "status",
   "user",
-  "dueDate"
+  "dueDate",
+  "notes"
 ];
 
 interface Lead {
@@ -743,6 +742,7 @@ export default function Leads() {
     {
       accessorKey: "createdOn",
       header: "Lead Created On",
+      className: "w-32",
       cell: ({ row }) => formatDateShort(row.original.createdOn),
       sortable: true,
     },
@@ -798,6 +798,7 @@ export default function Leads() {
     {
       accessorKey: "status",
       header: "Status",
+      className: "w-36",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditSelect
@@ -912,6 +913,16 @@ export default function Leads() {
       header: "Loan Amount",
       cell: ({ row }) => formatCurrency(row.original.loanAmount),
       sortable: true,
+    },
+    {
+      accessorKey: "notes",
+      header: "About the Borrower",
+      sortable: true,
+      cell: ({ row }) => (
+        <div className="max-w-md text-sm line-clamp-2" title={row.original.notes || ''}>
+          {row.original.notes || '—'}
+        </div>
+      ),
     },
   ];
 
@@ -1306,6 +1317,7 @@ export default function Leads() {
             defaultSortColumn="createdAtTs"
             defaultSortDirection="desc"
             lockSort={sortLocked}
+            showRowNumbers
           />
         </CardContent>
       </Card>

@@ -48,6 +48,10 @@ const MAIN_VIEW_COLUMNS = [
   "realEstateAgent",
   "status",
   "loanNumber",
+  "loanAmount",
+  "salesPrice",
+  "ltv",
+  "dti",
   "user",
   "dueDate",
   "baStatus"
@@ -839,6 +843,40 @@ const allAvailableColumns = useMemo(() => {
               fetchLeads();
             }}
             placeholder="$0"
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "ltv",
+      header: "LTV",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.ltv || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "ltv", value);
+              fetchLeads();
+            }}
+            decimals={1}
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "dti",
+      header: "DTI",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.dti || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "dti", value);
+              fetchLeads();
+            }}
+            decimals={1}
           />
         </div>
       )

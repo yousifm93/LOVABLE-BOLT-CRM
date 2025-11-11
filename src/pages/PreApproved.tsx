@@ -50,7 +50,11 @@ const MAIN_VIEW_COLUMNS = [
   "status",
   "realEstateAgent",
   "baStatus",
-  "dueDate"
+  "dueDate",
+  "loanAmount",
+  "salesPrice",
+  "ltv",
+  "dti"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -99,6 +103,7 @@ type DisplayLead = {
   dueDate?: string;
   dti: number | null;
   salesPrice: number | null;
+  ltv: number | null;
   [key: string]: any; // Allow dynamic fields
 };
 
@@ -489,6 +494,7 @@ const allAvailableColumns = useMemo(() => {
     dueDate: lead.task_eta || '',
     dti: lead.dti || 0,
     salesPrice: lead.sales_price || 0,
+    ltv: (lead as any).ltv || null,
     // Add all database fields dynamically
     ...Object.fromEntries(
       allFields
@@ -900,6 +906,23 @@ const allAvailableColumns = useMemo(() => {
               fetchLeads();
             }}
             placeholder="$0"
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "ltv",
+      header: "LTV",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.ltv || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "ltv", value);
+              fetchLeads();
+            }}
+            decimals={1}
           />
         </div>
       )

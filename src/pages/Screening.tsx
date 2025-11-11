@@ -46,9 +46,11 @@ const MAIN_VIEW_COLUMNS = [
   "appCompleteOn",
   "loanNumber",
   "realEstateAgent",
-  "status",
   "user",
-  "dueDate"
+  "dueDate",
+  "loanAmount",
+  "salesPrice",
+  "ltv"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -64,6 +66,8 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'app_complete_at': 'appCompleteOn',
   'arrive_loan_number': 'loanNumber',
   'notes': 'notes',
+  'sales_price': 'salesPrice',
+  'ltv': 'ltv',
 };
 
 // Exclude legacy/computed alias fields from dynamic column generation
@@ -91,6 +95,8 @@ type DisplayLead = {
   loanType: string;
   creditScore: number;
   loanAmount: number | null;
+  salesPrice: number | null;
+  ltv: number | null;
   dti: number | null;
   dueDate?: string;
   incomeType: string;
@@ -447,6 +453,8 @@ const allAvailableColumns = useMemo(() => {
     loanType: lead.loan_type || '',
     creditScore: lead.estimated_fico || 0,
     loanAmount: lead.loan_amount || 0,
+    salesPrice: lead.sales_price || 0,
+    ltv: (lead as any).ltv || null,
     dti: lead.dti || 0,
     dueDate: lead.task_eta || '',
     incomeType: lead.income_type || '',
@@ -834,6 +842,57 @@ const allAvailableColumns = useMemo(() => {
           />
         </div>
       ),
+    },
+    {
+      accessorKey: "loanAmount",
+      header: "Loan Amount",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.loanAmount}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "loan_amount", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "salesPrice",
+      header: "Sales Price",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditCurrency
+            value={row.original.salesPrice}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "sales_price", value);
+              fetchLeads();
+            }}
+            placeholder="$0"
+          />
+        </div>
+      )
+    },
+    {
+      accessorKey: "ltv",
+      header: "LTV",
+      sortable: true,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditPercentage
+            value={row.original.ltv || 0}
+            onValueChange={(value) => {
+              handleFieldUpdate(row.original.id, "ltv", value);
+              fetchLeads();
+            }}
+            decimals={1}
+          />
+        </div>
+      )
     },
   ];
 
