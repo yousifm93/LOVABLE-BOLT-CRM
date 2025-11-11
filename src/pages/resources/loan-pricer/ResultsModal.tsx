@@ -44,6 +44,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
   const hasDebugData = (run.debug_screenshots && run.debug_screenshots.length > 0) || 
                        (run.button_scan_results && run.button_scan_results.length > 0) ||
                        (run.debug_logs && run.debug_logs.length > 0);
+  const showDebugButton = run.status === 'failed' || hasDebugData;
 
   const handleRunAgain = () => {
     if (onRunAgain && scenario) {
@@ -292,7 +293,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 pt-4 border-t">
-          {hasDebugData && (
+          {showDebugButton && (
             <Button 
               onClick={() => setShowDebugModal(true)} 
               variant="outline" 

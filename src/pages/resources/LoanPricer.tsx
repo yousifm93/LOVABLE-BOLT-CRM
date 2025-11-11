@@ -358,7 +358,7 @@ export function LoanPricer() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          disabled={run.status !== 'completed'}
+                          disabled={run.status === 'running' || run.status === 'pending'}
                           onClick={() => handleViewResults(run)}
                         >
                           <Eye className="h-4 w-4" />
