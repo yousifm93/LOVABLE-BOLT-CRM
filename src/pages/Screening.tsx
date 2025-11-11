@@ -372,6 +372,7 @@ const allAvailableColumns = useMemo(() => {
     // Automation: When Pre-Qualified, move to Pre-Qualified board
     if (field === 'converted' && value === 'Pre-Qualified') {
       updateData.pipeline_stage_id = '09162eec-d2b2-48e5-86d0-9e66ee8b2af7'; // Pre-Qualified
+      updateData.pre_qualified_at = new Date().toISOString(); // Set timestamp
       toast({
         title: "Moving to Pre-Qualified",
         description: "Lead moved to Pre-Qualified board",
@@ -552,17 +553,28 @@ const allAvailableColumns = useMemo(() => {
         break;
       
       case 'datetime':
-        baseColumn.cell = ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <InlineEditDateTime
-              value={row.original[frontendFieldName]}
-              onValueChange={(value: string) => {
-                handleFieldUpdate(row.original.id, field.field_name, value);
-                fetchLeads();
-              }}
-            />
-          </div>
-        );
+        // Check if this is a timeline field
+        const timelineFields = ['pending_app_at', 'app_complete_at', 'pre_qualified_at', 'pre_approved_at', 'active_at'];
+        if (timelineFields.includes(field.field_name)) {
+          baseColumn.cell = ({ row }) => (
+            <span className="text-sm">
+              {formatDateShort(row.original[frontendFieldName])}
+            </span>
+          );
+        } else {
+          // Regular datetime fields remain editable
+          baseColumn.cell = ({ row }) => (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InlineEditDateTime
+                value={row.original[frontendFieldName]}
+                onValueChange={(value: string) => {
+                  handleFieldUpdate(row.original.id, field.field_name, value);
+                  fetchLeads();
+                }}
+              />
+            </div>
+          );
+        }
         break;
       
       case 'select':

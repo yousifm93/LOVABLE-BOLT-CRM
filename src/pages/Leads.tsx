@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -369,6 +370,7 @@ export default function Leads() {
           // When converted to "Converted", also set pipeline_stage_id to Pending App
           if (value === 'Converted') {
             updateData.pipeline_stage_id = '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945'; // Pending App
+            updateData.pending_app_at = new Date().toISOString(); // Set timestamp
           }
           break;
         case 'leadStrength':
@@ -658,6 +660,30 @@ export default function Leads() {
             />
           </div>
         );
+        break;
+      
+      case 'datetime':
+        // Check if this is a timeline field
+        const timelineFields = ['pending_app_at', 'app_complete_at', 'pre_qualified_at', 'pre_approved_at', 'active_at', 'lead_on_date', 'created_at'];
+        if (timelineFields.includes(field.field_name)) {
+          baseColumn.cell = ({ row }) => (
+            <span className="text-sm">
+              {formatDateShort((row.original as any)[frontendFieldName])}
+            </span>
+          );
+        } else {
+          // Regular datetime fields remain editable
+          baseColumn.cell = ({ row }) => (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InlineEditDateTime
+                value={(row.original as any)[frontendFieldName]}
+                onValueChange={(value: string) => {
+                  handleFieldUpdate(row.original.id, field.field_name, value);
+                }}
+              />
+            </div>
+          );
+        }
         break;
       
       case 'select':

@@ -409,6 +409,7 @@ const allAvailableColumns = useMemo(() => {
           updateData.pipeline_stage_id = '76eb2e82-e1d9-4f2d-a57d-2120a25696db'; // Active
           updateData.pipeline_section = 'Incoming';
           updateData.loan_status = 'New'; // Set initial loan status
+          updateData.active_at = new Date().toISOString(); // Set timestamp
           toast({
             title: "Moving to Active",
             description: "Lead moved to Active Pipeline with status 'New'",
@@ -583,17 +584,28 @@ const allAvailableColumns = useMemo(() => {
         break;
       
       case 'datetime':
-        baseColumn.cell = ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <InlineEditDateTime
-              value={row.original[frontendFieldName]}
-              onValueChange={(value: string) => {
-                handleFieldUpdate(row.original.id, field.field_name, value);
-                fetchLeads();
-              }}
-            />
-          </div>
-        );
+        // Check if this is a timeline field
+        const timelineFields = ['pending_app_at', 'app_complete_at', 'pre_qualified_at', 'pre_approved_at', 'active_at'];
+        if (timelineFields.includes(field.field_name)) {
+          baseColumn.cell = ({ row }) => (
+            <span className="text-sm">
+              {formatDateShort(row.original[frontendFieldName])}
+            </span>
+          );
+        } else {
+          // Regular datetime fields remain editable
+          baseColumn.cell = ({ row }) => (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InlineEditDateTime
+                value={row.original[frontendFieldName]}
+                onValueChange={(value: string) => {
+                  handleFieldUpdate(row.original.id, field.field_name, value);
+                  fetchLeads();
+                }}
+              />
+            </div>
+          );
+        }
         break;
       
       case 'select':
@@ -647,16 +659,9 @@ const allAvailableColumns = useMemo(() => {
       header: "Pre-Approved On",
       sortable: true,
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditDate
-            value={row.original.preApprovedOn || ''}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "pre_approved_at", value);
-              fetchLeads();
-            }}
-            placeholder="Set date"
-          />
-        </div>
+        <span className="text-sm">
+          {formatDateShort(row.original.preApprovedOn)}
+        </span>
       ),
     },
     {
