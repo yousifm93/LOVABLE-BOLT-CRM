@@ -1262,6 +1262,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                   const calculateDaysAgo = (dateString: string | null): number | null => {
                     if (!dateString) return null;
                     const date = new Date(dateString);
+                    // Validate the date
+                    if (isNaN(date.getTime())) return null;
                     const now = new Date();
                     const diffMs = now.getTime() - date.getTime();
                     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -1365,9 +1367,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                                     'pre-approved': 'pre_approved_at',
                                     'active': 'active_at'
                                   };
-                                  const dbField = fieldMap[stage.key];
+                                   const dbField = fieldMap[stage.key];
                                   if (dbField && leadId) {
-                                    databaseService.updateLead(leadId, { [dbField]: newDate })
+                                    // Convert Date to ISO string for database storage
+                                    const dateValue = newDate ? newDate.toISOString() : null;
+                                    databaseService.updateLead(leadId, { [dbField]: dateValue })
                                       .then(() => {
                                         if (onLeadUpdated) onLeadUpdated();
                                         toast({
@@ -1388,7 +1392,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                                 className="text-xs"
                               />
                               <p className="text-xs text-muted-foreground mt-1">
-                                {stage.daysAgo} days ago
+                                {stage.daysAgo !== null ? `${stage.daysAgo} days ago` : '-'}
                               </p>
                             </div>
                           ) : (

@@ -27,11 +27,27 @@ export function InlineEditDate({
 }: InlineEditDateProps) {
   const [open, setOpen] = React.useState(false);
   
-  const dateValue = value ? (typeof value === 'string' ? new Date(value + 'T00:00:00') : value) : undefined;
-  const displayValue = dateValue ? dateValue.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  }) : placeholder;
+  const dateValue = React.useMemo(() => {
+    if (!value) return undefined;
+    
+    if (typeof value === 'string') {
+      // If the string already contains a time component (has 'T' in it), parse it directly
+      if (value.includes('T')) {
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? undefined : parsed;
+      }
+      // For date-only strings like "2024-01-15", append time to ensure correct parsing
+      const parsed = new Date(value + 'T00:00:00');
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+    }
+    
+    // If it's already a Date object, validate it
+    return isNaN(value.getTime()) ? undefined : value;
+  }, [value]);
+
+  const displayValue = dateValue && !isNaN(dateValue.getTime()) 
+    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+    : placeholder;
 
   const handleSelect = (date: Date | undefined) => {
     onValueChange(date);
