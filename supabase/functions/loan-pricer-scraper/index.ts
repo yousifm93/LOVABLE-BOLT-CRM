@@ -602,9 +602,9 @@ serve(async (req) => {
             const clicked = await page.evaluate(() => {
               const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], a'));
               for (const btn of buttons) {
-                const text = (btn.textContent || (btn as HTMLInputElement).value || '').toLowerCase();
+                const text = (btn.textContent || btn.value || '').toLowerCase();
                 if (text.includes('view') && text.includes('rate')) {
-                  (btn as HTMLElement).click();
+                  btn.click();
                   return true;
                 }
               }
