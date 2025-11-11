@@ -13,6 +13,11 @@ import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics"
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardDetailModal } from "@/components/dashboard/DashboardDetailModal";
+import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { transformLeadToClient } from "@/utils/clientTransform";
+import { databaseService } from "@/services/database";
+import { CRMClient } from "@/types/crm";
+import { useToast } from "@/hooks/use-toast";
 
 // Format date and time for activity display
 const formatDateTime = (timestamp: string) => {
@@ -102,6 +107,7 @@ export default function DashboardTabs() {
 
   const leadsGoal = 100;
   const appsGoal = 30;
+  const { toast } = useToast();
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -109,12 +115,39 @@ export default function DashboardTabs() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls">("leads");
 
+  // Drawer state
+  const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   // Modal handlers
   const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls") => {
     setModalTitle(title);
     setModalData(data);
     setModalType(type);
     setModalOpen(true);
+  };
+
+  // Lead click handler - open drawer instead of navigate
+  const handleLeadClick = async (leadId: string) => {
+    try {
+      // Close the modal first
+      setModalOpen(false);
+      
+      // Fetch full lead data
+      const lead = await databaseService.getLeadByIdWithEmbeds(leadId);
+      if (lead) {
+        const crmClient = transformLeadToClient(lead);
+        setSelectedClient(crmClient);
+        setIsDrawerOpen(true);
+      }
+    } catch (error) {
+      console.error('Error loading lead details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load lead details",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -619,7 +652,24 @@ export default function DashboardTabs() {
         title={modalTitle}
         data={modalData}
         type={modalType}
+        onLeadClick={handleLeadClick}
       />
+
+      {selectedClient && (
+        <ClientDetailDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedClient(null);
+          }}
+          client={selectedClient}
+          onStageChange={() => {}}
+          pipelineType="leads"
+          onLeadUpdated={async () => {
+            // Optionally refresh dashboard data
+          }}
+        />
+      )}
     </div>
   );
 }

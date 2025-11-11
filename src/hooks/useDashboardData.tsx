@@ -9,6 +9,7 @@ export interface DashboardLead {
   email: string | null;
   lead_on_date: string;
   pending_app_at: string | null;
+  pipeline_stage_id?: string;
 }
 
 export interface DashboardFaceToFaceMeeting {
@@ -49,7 +50,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .gte('lead_on_date', formatDate(startOfMonth))
         .lt('lead_on_date', formatDate(startOfNextMonth))
         .order('lead_on_date', { ascending: false });
@@ -66,7 +67,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .eq('lead_on_date', formatDate(yesterday))
         .order('created_at', { ascending: false });
       
@@ -82,7 +83,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .eq('lead_on_date', formatDate(today))
         .order('created_at', { ascending: false });
       
@@ -98,7 +99,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .order('lead_on_date', { ascending: false })
         .order('created_at', { ascending: false });
       
@@ -117,7 +118,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .not('pending_app_at', 'is', null)
         .gte('pending_app_at', startOfMonthTimestamp)
         .lt('pending_app_at', startOfNextMonthTimestamp)
@@ -140,7 +141,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .not('pending_app_at', 'is', null)
         .gte('pending_app_at', yesterdayStart.toISOString())
         .lte('pending_app_at', yesterdayEnd.toISOString())
@@ -163,7 +164,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .not('pending_app_at', 'is', null)
         .gte('pending_app_at', todayStart.toISOString())
         .lte('pending_app_at', todayEnd.toISOString())
@@ -181,7 +182,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pending_app_at, pipeline_stage_id')
         .not('pending_app_at', 'is', null)
         .order('pending_app_at', { ascending: false });
       

@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateShort } from "@/utils/formatters";
-import { useNavigate } from "react-router-dom";
 
 interface Lead {
   id: string;
@@ -43,6 +42,7 @@ interface DashboardDetailModalProps {
   title: string;
   data: Lead[] | Agent[];
   type: "leads" | "applications" | "meetings" | "calls";
+  onLeadClick?: (leadId: string) => void;
 }
 
 export function DashboardDetailModal({
@@ -51,8 +51,8 @@ export function DashboardDetailModal({
   title,
   data,
   type,
+  onLeadClick,
 }: DashboardDetailModalProps) {
-  const navigate = useNavigate();
 
   const renderDate = (item: Lead | Agent) => {
     if (type === "leads" && "lead_on_date" in item) {
@@ -105,15 +105,23 @@ export function DashboardDetailModal({
                 <TableRow key={item.id}>
                   <TableCell 
                     className="font-medium cursor-pointer hover:text-primary hover:underline"
-                    onClick={() => navigate(`/leads/${item.id}`)}
+                    onClick={() => {
+                      if ('pipeline_stage_id' in item && onLeadClick) {
+                        onLeadClick(item.id);
+                      }
+                    }}
                   >
                     {item.first_name} {item.last_name}
                   </TableCell>
                   <TableCell>{renderDate(item)}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
-                    </Badge>
+                    {'pipeline_stage_id' in item ? (
+                      <Badge variant="secondary">
+                        {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Agent</Badge>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
