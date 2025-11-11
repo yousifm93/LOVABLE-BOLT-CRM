@@ -518,34 +518,112 @@ serve(async (req) => {
         console.log('Clicking View Rates button...');
         await new Promise(r => setTimeout(r, 1000));
         
+        // Wait a bit more for form to be ready
+        await new Promise(r => setTimeout(r, 1000));
+        
         // Find and click "View Rates" button
-        const viewRatesSelectors = [
-          '//button[contains(text(), "View Rates")]',
-          '//button[contains(., "View Rates")]',
-          '//div[@role="button" and contains(., "View Rates")]',
-          'button:has-text("View Rates")'
-        ];
+        console.log('Looking for View Rates button...');
         
         let viewRatesClicked = false;
-        for (const selector of viewRatesSelectors) {
+        
+        // Try XPath selectors first
+        const xpathSelectors = [
+          '//button[contains(text(), "View Rates")]',
+          '//button[contains(translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "view rates")]',
+          '//*[@role="button" and contains(text(), "View Rates")]',
+          '//input[@type="submit" and contains(@value, "View Rates")]',
+          '//a[contains(text(), "View Rates")]'
+        ];
+        
+        for (const xpath of xpathSelectors) {
           try {
-            if (selector.startsWith('//')) {
-              const buttons = await page.$x(selector);
-              if (buttons.length > 0) {
-                await buttons[0].scrollIntoView();
-                await new Promise(r => setTimeout(r, 300));
-                await buttons[0].click();
-                console.log('✓ View Rates button clicked');
-                viewRatesClicked = true;
-                break;
-              }
+            console.log(`Trying XPath: ${xpath}`);
+            const elements = await page.$x(xpath);
+            if (elements.length > 0) {
+              console.log(`Found ${elements.length} elements with XPath`);
+              const element = elements[0];
+              
+              // Scroll into view using page.evaluate
+              await page.evaluate((el) => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, element);
+              
+              await new Promise(r => setTimeout(r, 500));
+              await element.click();
+              console.log('✓ View Rates button clicked via XPath');
+              viewRatesClicked = true;
+              break;
             }
           } catch (e) {
-            console.log(\`Failed with selector: \${selector}\`);
+            console.log(`XPath failed: ${xpath} - ${e.message}`);
+          }
+        }
+        
+        // If XPath failed, try CSS selectors
+        if (!viewRatesClicked) {
+          const cssSelectors = [
+            'button[type="submit"]',
+            'input[type="submit"]',
+            'button.submit',
+            'button.btn-primary',
+            '[type="submit"]'
+          ];
+          
+          for (const selector of cssSelectors) {
+            try {
+              console.log(`Trying CSS: ${selector}`);
+              const element = await page.$(selector);
+              if (element) {
+                const text = await page.evaluate(el => el.textContent || el.value || '', element);
+                console.log(`Found button with text: "${text}"`);
+                
+                if (text.toLowerCase().includes('view') || text.toLowerCase().includes('rate')) {
+                  await page.evaluate((el) => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, element);
+                  
+                  await new Promise(r => setTimeout(r, 500));
+                  await element.click();
+                  console.log('✓ View Rates button clicked via CSS');
+                  viewRatesClicked = true;
+                  break;
+                }
+              }
+            } catch (e) {
+              console.log(`CSS failed: ${selector} - ${e.message}`);
+            }
+          }
+        }
+        
+        // Last resort: try to click via JavaScript
+        if (!viewRatesClicked) {
+          console.log('Trying JavaScript click as last resort...');
+          try {
+            const clicked = await page.evaluate(() => {
+              const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], a'));
+              for (const btn of buttons) {
+                const text = (btn.textContent || (btn as HTMLInputElement).value || '').toLowerCase();
+                if (text.includes('view') && text.includes('rate')) {
+                  (btn as HTMLElement).click();
+                  return true;
+                }
+              }
+              return false;
+            });
+            
+            if (clicked) {
+              console.log('✓ View Rates button clicked via JavaScript');
+              viewRatesClicked = true;
+            }
+          } catch (e) {
+            console.log(`JavaScript click failed: ${e.message}`);
           }
         }
         
         if (!viewRatesClicked) {
+          // Capture page content for debugging
+          const pageContent = await page.content();
+          console.error('Page HTML:', pageContent.substring(0, 2000));
           throw new Error('Could not find or click View Rates button');
         }
         
