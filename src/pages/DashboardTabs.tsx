@@ -291,7 +291,7 @@ export default function DashboardTabs() {
                             {app.first_name} {app.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {app.pending_app_at ? new Date(app.pending_app_at).toLocaleDateString() : '-'}
+                            {app.app_complete_at ? new Date(app.app_complete_at).toLocaleDateString() : '-'}
                           </p>
                         </div>
                         <Badge variant="secondary" className="text-xs shrink-0">
