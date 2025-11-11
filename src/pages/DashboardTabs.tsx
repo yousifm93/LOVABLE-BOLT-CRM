@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { DashboardDetailModal } from "@/components/dashboard/DashboardDetailModal";
 
 // Format date and time for activity display
 const formatDateTime = (timestamp: string) => {
@@ -102,6 +103,20 @@ export default function DashboardTabs() {
   const leadsGoal = 100;
   const appsGoal = 30;
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<any[]>([]);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls">("leads");
+
+  // Modal handlers
+  const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls") => {
+    setModalTitle(title);
+    setModalData(data);
+    setModalType(type);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Section */}
@@ -145,18 +160,24 @@ export default function DashboardTabs() {
                     value={thisMonthLeads.length}
                     icon={<Target />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads")}
                   />
                   <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayLeads.length}
                     icon={<TrendingUp />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Leads", yesterdayLeads, "leads")}
                   />
                   <ModernStatsCard
                     title="Today"
                     value={todayLeads.length}
                     icon={<TrendingUp />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Leads", todayLeads, "leads")}
                   />
                   
                   <CollapsibleSection 
@@ -191,18 +212,24 @@ export default function DashboardTabs() {
                     value={thisMonthApps.length}
                     icon={<FileText />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Applications", thisMonthApps, "applications")}
                   />
                   <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayApps.length}
                     icon={<Activity />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Applications", yesterdayApps, "applications")}
                   />
                   <ModernStatsCard
                     title="Today"
                     value={todayApps.length}
                     icon={<Activity />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Applications", todayApps, "applications")}
                   />
                   
                   <CollapsibleSection 
@@ -237,18 +264,24 @@ export default function DashboardTabs() {
                     value={thisMonthMeetings.length}
                     icon={<Users />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings")}
                   />
                   <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayMeetings.length}
                     icon={<Users />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Face-to-Face Meetings", yesterdayMeetings, "meetings")}
                   />
                   <ModernStatsCard
                     title="Today"
                     value={todayMeetings.length}
                     icon={<Users />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Face-to-Face Meetings", todayMeetings, "meetings")}
                   />
                   
                   <CollapsibleSection 
@@ -283,18 +316,24 @@ export default function DashboardTabs() {
                     value={thisMonthCalls.length}
                     icon={<Phone />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Calls", thisMonthCalls, "calls")}
                   />
                   <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayCalls.length}
                     icon={<Phone />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Calls", yesterdayCalls, "calls")}
                   />
                   <ModernStatsCard
                     title="Today"
                     value={todayCalls.length}
                     icon={<Phone />}
                     size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Calls", todayCalls, "calls")}
                   />
                   
                   <CollapsibleSection 
@@ -573,6 +612,14 @@ export default function DashboardTabs() {
           <ConversionAnalytics />
         </TabsContent>
       </Tabs>
+
+      <DashboardDetailModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title={modalTitle}
+        data={modalData}
+        type={modalType}
+      />
     </div>
   );
 }

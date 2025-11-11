@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, Loader2 } from 'l
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set worker from CDN to avoid bundling issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs`;
 
 interface PdfPreviewProps {
   data: ArrayBuffer;

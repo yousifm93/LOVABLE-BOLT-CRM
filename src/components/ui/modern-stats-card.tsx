@@ -11,6 +11,8 @@ interface ModernStatsCardProps {
   className?: string;
   size?: "default" | "compact" | "large";
   centered?: boolean; // For centered text alignment
+  onClick?: () => void; // Click handler
+  clickable?: boolean; // Whether the card is clickable
 }
 
 export function ModernStatsCard({ 
@@ -21,7 +23,9 @@ export function ModernStatsCard({
   sparklineData,
   className,
   size = "default",
-  centered = false
+  centered = false,
+  onClick,
+  clickable = false
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -29,11 +33,15 @@ export function ModernStatsCard({
   const iconSize = size === "compact" ? "h-4 w-4" : size === "large" ? "h-8 w-8" : "h-5 w-5";
 
   return (
-    <Card className={cn(
-      "bg-gradient-card shadow-soft border-0 hover:shadow-medium transition-all duration-200",
-      cardHeight,
-      className
-    )}>
+    <Card 
+      className={cn(
+        "bg-gradient-card shadow-soft border-0 hover:shadow-medium transition-all duration-200",
+        cardHeight,
+        clickable && "cursor-pointer hover:scale-105 hover:shadow-lg transition-transform",
+        className
+      )}
+      onClick={clickable ? onClick : undefined}
+    >
       <CardContent className="p-4 h-full flex flex-col justify-between">
         <div className={cn("flex items-start", centered ? "justify-center" : "justify-between")}>
           <div className={cn("flex-1 min-w-0", centered && "text-center")}>
