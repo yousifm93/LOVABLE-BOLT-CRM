@@ -105,8 +105,23 @@ export function LoanPricer() {
     }
   };
 
-  const handleViewResults = (run: PricingRun) => {
-    setSelectedRun(run);
+  const handleViewResults = async (run: PricingRun) => {
+    try {
+      const { data } = await supabase
+        .from('pricing_runs')
+        .select(`
+          *,
+          leads (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('id', run.id)
+        .maybeSingle();
+      setSelectedRun((data as any) || run);
+    } catch (e) {
+      setSelectedRun(run);
+    }
     setIsResultsModalOpen(true);
   };
 
