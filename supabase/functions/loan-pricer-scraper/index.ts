@@ -537,10 +537,10 @@ serve(async (req) => {
         
         for (const xpath of xpathSelectors) {
           try {
-            console.log(`Trying XPath: ${xpath}`);
+            console.log('Trying XPath: ' + xpath);
             const elements = await page.$x(xpath);
             if (elements.length > 0) {
-              console.log(`Found ${elements.length} elements with XPath`);
+              console.log('Found ' + elements.length + ' elements with XPath');
               const element = elements[0];
               
               // Scroll into view using page.evaluate
@@ -555,7 +555,7 @@ serve(async (req) => {
               break;
             }
           } catch (e) {
-            console.log(`XPath failed: ${xpath} - ${e.message}`);
+            console.log('XPath failed: ' + xpath + ' - ' + e.message);
           }
         }
         
@@ -571,11 +571,11 @@ serve(async (req) => {
           
           for (const selector of cssSelectors) {
             try {
-              console.log(`Trying CSS: ${selector}`);
+              console.log('Trying CSS: ' + selector);
               const element = await page.$(selector);
               if (element) {
                 const text = await page.evaluate(el => el.textContent || el.value || '', element);
-                console.log(`Found button with text: "${text}"`);
+                console.log('Found button with text: "' + text + '"');
                 
                 if (text.toLowerCase().includes('view') || text.toLowerCase().includes('rate')) {
                   await page.evaluate((el) => {
@@ -590,7 +590,7 @@ serve(async (req) => {
                 }
               }
             } catch (e) {
-              console.log(`CSS failed: ${selector} - ${e.message}`);
+              console.log('CSS failed: ' + selector + ' - ' + e.message);
             }
           }
         }
@@ -616,7 +616,7 @@ serve(async (req) => {
               viewRatesClicked = true;
             }
           } catch (e) {
-            console.log(`JavaScript click failed: ${e.message}`);
+            console.log('JavaScript click failed: ' + e.message);
           }
         }
         
