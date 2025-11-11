@@ -3159,9 +3159,14 @@ export type Database = {
       }
       pricing_runs: {
         Row: {
+          button_scan_results: Json | null
           completed_at: string | null
           created_at: string
           created_by: string | null
+          debug_html_snapshots: Json | null
+          debug_logs: string[] | null
+          debug_mode: boolean | null
+          debug_screenshots: Json | null
           error_message: string | null
           id: string
           lead_id: string | null
@@ -3173,9 +3178,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          button_scan_results?: Json | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          debug_html_snapshots?: Json | null
+          debug_logs?: string[] | null
+          debug_mode?: boolean | null
+          debug_screenshots?: Json | null
           error_message?: string | null
           id?: string
           lead_id?: string | null
@@ -3187,9 +3197,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          button_scan_results?: Json | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          debug_html_snapshots?: Json | null
+          debug_logs?: string[] | null
+          debug_mode?: boolean | null
+          debug_screenshots?: Json | null
           error_message?: string | null
           id?: string
           lead_id?: string | null

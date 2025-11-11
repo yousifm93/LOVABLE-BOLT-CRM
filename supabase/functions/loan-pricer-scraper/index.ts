@@ -38,6 +38,9 @@ interface ScenarioData {
   income_type?: string;
   mortgage_history?: string;
   credit_events?: string;
+  
+  // Debug
+  debug_mode?: boolean;
 }
 
 serve(async (req) => {
@@ -68,7 +71,11 @@ serve(async (req) => {
     }
 
     const scenarioData = pricingRun.scenario_json as ScenarioData;
+    const debugMode = pricingRun.debug_mode || scenarioData.debug_mode || false;
     console.log('[loan-pricer-scraper] Scenario:', scenarioData);
+    if (debugMode) {
+      console.log('[DEBUG MODE] Enabled - will capture screenshots and logs');
+    }
 
     // Update status to running
     await supabase
@@ -86,6 +93,14 @@ serve(async (req) => {
     const browserScript = `
       export default async ({ page, context }) => {
         const scenarioData = context.scenarioData;
+        const debugMode = context.debugMode;
+        let debugLogs = [];
+        
+        function log(message) {
+          const msg = '[' + new Date().toISOString() + '] ' + message;
+          console.log(msg);
+          if (debugMode) debugLogs.push(msg);
+        }
         
         // ========== STEP 1: DOM SURVEY ==========
         let domSurvey = { frames: [] };
@@ -837,11 +852,12 @@ serve(async (req) => {
         
         // ========== STEP 7: EXPANDED FAILURE DIAGNOSTICS ==========
         if (results.rate === 'N/A' || results.monthly_payment === 'N/A') {
-          console.error('Failed to extract results, capturing diagnostics...');
+          log('Failed to extract results, capturing diagnostics...');
           
           let screenshot = null;
           let resultsScreenshot = null;
           let textSamples = [];
+          let buttonScanResults = null;
           
           try {
             screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
@@ -858,8 +874,25 @@ serve(async (req) => {
                 textSamples.push({ frame: frameName, text });
               } catch (e) {}
             }
+            
+            // Scan all buttons if View Rates failed
+            buttonScanResults = await page.evaluate(() => {
+              const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], a[role="button"], a.btn'));
+              return buttons.slice(0, 30).map((btn, idx) => ({
+                index: idx,
+                tag: btn.tagName,
+                text: (btn.textContent || btn.value || '').trim().substring(0, 100),
+                type: btn.getAttribute('type'),
+                className: btn.className,
+                id: btn.id || null,
+                visible: btn.offsetParent !== null,
+                enabled: !btn.disabled,
+                ariaLabel: btn.getAttribute('aria-label') || null
+              }));
+            });
+            log('Scanned ' + buttonScanResults.length + ' buttons for debugging');
           } catch (e) {
-            console.error('Diagnostic capture error:', e.message);
+            log('Diagnostic capture error: ' + e.message);
           }
           
           throw new Error(JSON.stringify({
@@ -879,13 +912,18 @@ serve(async (req) => {
               }))
             },
             text_samples: textSamples,
+            button_scan_results: buttonScanResults,
             screenshot: screenshot ? screenshot.substring(0, 150) + '...' : null,
-            results_screenshot: resultsScreenshot ? resultsScreenshot.substring(0, 150) + '...' : null
+            results_screenshot: resultsScreenshot ? resultsScreenshot.substring(0, 150) + '...' : null,
+            debug_logs: debugLogs
           }));
         }
         
-        console.log('Final results:', JSON.stringify(results));
-        return results;
+        log('Final results: ' + JSON.stringify(results));
+        return {
+          ...results,
+          debug_logs: debugMode ? debugLogs : undefined
+        };
       };
     `;
 
@@ -900,7 +938,8 @@ serve(async (req) => {
         body: JSON.stringify({
           code: browserScript,
           context: {
-            scenarioData: scenarioData
+            scenarioData: scenarioData,
+            debugMode: debugMode
           },
         }),
       }
@@ -914,14 +953,25 @@ serve(async (req) => {
     const results = await browserlessResponse.json();
     console.log('[loan-pricer-scraper] Results:', results);
 
+    // Extract debug logs if present
+    const debugLogs = results.debug_logs || [];
+    const cleanResults = { ...results };
+    delete cleanResults.debug_logs;
+
     // Update with results
+    const updateData: any = {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      results_json: cleanResults
+    };
+    
+    if (debugMode && debugLogs.length > 0) {
+      updateData.debug_logs = debugLogs;
+    }
+
     const { error: updateError } = await supabase
       .from('pricing_runs')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        results_json: results
-      })
+      .update(updateData)
       .eq('id', run_id);
 
     if (updateError) {
@@ -949,32 +999,34 @@ serve(async (req) => {
       // Not JSON, use as-is
     }
 
-    // Try to upload debug artifacts if available
-    let debugLinks = '';
+    // Try to save debug data on failure
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
-      // Check if we have debug artifacts in the error
-      if (errorDetails.screenshot || errorDetails.html_length) {
-        console.log('[loan-pricer-scraper] Attempting to upload debug artifacts...');
-        
-        // Note: Screenshot and HTML are captured in the browser script
-        // They would need to be returned in the results and handled here
-        // For now, we'll just log that they're available
-        debugLinks = ' | Debug artifacts captured in browser context';
+      const updateData: any = {
+        status: 'failed',
+        error_message: errorDetails.message || error.message,
+        completed_at: new Date().toISOString(),
+        results_json: errorDetails
+      };
+      
+      // Store debug data if available
+      if (errorDetails.button_scan_results) {
+        updateData.button_scan_results = errorDetails.button_scan_results;
+        console.log('[loan-pricer-scraper] Stored button scan results');
       }
       
-      // Update pricing run with failed status
+      if (errorDetails.debug_logs) {
+        updateData.debug_logs = errorDetails.debug_logs;
+        console.log('[loan-pricer-scraper] Stored debug logs');
+      }
+      
+      // Update pricing run with failed status and debug data
       await supabase
         .from('pricing_runs')
-        .update({
-          status: 'failed',
-          error_message: errorDetails.message + debugLinks,
-          completed_at: new Date().toISOString(),
-          results_json: errorDetails
-        })
+        .update(updateData)
         .eq('id', run_id);
         
     } catch (updateError) {

@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, RefreshCw, X } from "lucide-react";
+import { Download, RefreshCw, X, Eye } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/utils/formatters";
 import { format } from "date-fns";
+import { DebugViewerModal } from "@/components/loan-pricer/DebugViewerModal";
 
 interface PricingRun {
   id: string;
@@ -15,6 +17,11 @@ interface PricingRun {
   scenario_json: any;
   results_json: any;
   error_message: string | null;
+  debug_mode?: boolean;
+  debug_screenshots?: any[];
+  debug_html_snapshots?: any[];
+  debug_logs?: string[];
+  button_scan_results?: any[];
   leads?: {
     first_name: string;
     last_name: string;
@@ -29,9 +36,14 @@ interface ResultsModalProps {
 }
 
 export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsModalProps) {
+  const [showDebugModal, setShowDebugModal] = useState(false);
+  
   if (!run) return null;
 
   const { scenario_json: scenario, results_json: results } = run;
+  const hasDebugData = (run.debug_screenshots && run.debug_screenshots.length > 0) || 
+                       (run.button_scan_results && run.button_scan_results.length > 0) ||
+                       (run.debug_logs && run.debug_logs.length > 0);
 
   const handleRunAgain = () => {
     if (onRunAgain && scenario) {
@@ -280,6 +292,21 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 pt-4 border-t">
+          {hasDebugData && (
+            <Button 
+              onClick={() => setShowDebugModal(true)} 
+              variant="outline" 
+              className="gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View Debug Data
+              <Badge variant="secondary" className="ml-1">
+                {(run.debug_screenshots?.length || 0) + 
+                 (run.debug_html_snapshots?.length || 0) + 
+                 (run.button_scan_results ? 1 : 0)}
+              </Badge>
+            </Button>
+          )}
           <Button onClick={handleRunAgain} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Run Again
@@ -294,6 +321,17 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
           </Button>
         </div>
       </DialogContent>
+      
+      {/* Debug Viewer Modal */}
+      <DebugViewerModal
+        open={showDebugModal}
+        onOpenChange={setShowDebugModal}
+        screenshots={run.debug_screenshots}
+        htmlSnapshots={run.debug_html_snapshots}
+        buttonScanResults={run.button_scan_results}
+        debugLogs={run.debug_logs}
+        errorMessage={run.error_message}
+      />
     </Dialog>
   );
 }

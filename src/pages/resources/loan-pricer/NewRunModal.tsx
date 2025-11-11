@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { ScenarioForm } from "./ScenarioForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 
 interface NewRunModalProps {
   open: boolean;
@@ -46,6 +49,9 @@ interface ScenarioData {
   income_type?: string;
   mortgage_history?: string;
   credit_events?: string;
+  
+  // Debug
+  debug_mode?: boolean;
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
@@ -79,7 +85,10 @@ const INITIAL_SCENARIO: ScenarioData = {
   // Non-QM specific
   income_type: undefined,
   mortgage_history: undefined,
-  credit_events: undefined
+  credit_events: undefined,
+  
+  // Debug
+  debug_mode: false
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {
@@ -218,6 +227,34 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
           onChange={setScenarioData}
           currentStep={currentStep}
         />
+
+        {/* Debug Mode Toggle - Step 3 only */}
+        {currentStep === 3 && (
+          <Card className="p-4 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="debug-mode"
+                checked={scenarioData.debug_mode || false}
+                onCheckedChange={(checked) => 
+                  setScenarioData({ ...scenarioData, debug_mode: checked as boolean })
+                }
+              />
+              <div className="flex-1">
+                <Label 
+                  htmlFor="debug-mode" 
+                  className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                >
+                  Enable Debug Mode
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Captures screenshots and HTML at each step for detailed troubleshooting. 
+                  Increases processing time but provides complete visibility into scraper behavior.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Navigation buttons */}
         <div className="flex justify-between pt-6 border-t">
