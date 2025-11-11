@@ -57,7 +57,13 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<{ name: string; url: string | null; mimeType: string }>({ 
+  const [previewDoc, setPreviewDoc] = useState<{ 
+    name: string; 
+    url: string | null; 
+    mimeType: string;
+    pdfData?: ArrayBuffer;
+    originalDoc?: Document;
+  }>({ 
     name: '', 
     url: null, 
     mimeType: '' 
@@ -129,14 +135,29 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
       const signedUrl = await databaseService.getDocumentSignedUrl(doc.file_url);
       const res = await fetch(signedUrl);
       if (!res.ok) throw new Error('Failed to fetch file');
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
       
-      setPreviewDoc({
-        name: doc.title || doc.file_name,
-        url: blobUrl,
-        mimeType: doc.mime_type,
-      });
+      // Handle PDFs differently - fetch as ArrayBuffer
+      if (doc.mime_type === 'application/pdf') {
+        const arrayBuffer = await res.arrayBuffer();
+        setPreviewDoc({
+          name: doc.title || doc.file_name,
+          url: null,
+          mimeType: doc.mime_type,
+          pdfData: arrayBuffer,
+          originalDoc: doc,
+        });
+      } else {
+        // For images and other files, use blob URL
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
+        setPreviewDoc({
+          name: doc.title || doc.file_name,
+          url: blobUrl,
+          mimeType: doc.mime_type,
+          originalDoc: doc,
+        });
+      }
+      
       setPreviewOpen(true);
     } catch (error: any) {
       toast({
@@ -148,12 +169,20 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
   };
 
   const handlePreviewClose = (open: boolean) => {
-    if (!open && previewDoc.url) {
-      // Clean up blob URL when modal closes
-      URL.revokeObjectURL(previewDoc.url);
+    if (!open) {
+      // Clean up blob URL when modal closes (for non-PDFs)
+      if (previewDoc.url) {
+        URL.revokeObjectURL(previewDoc.url);
+      }
       setPreviewDoc({ name: '', url: null, mimeType: '' });
     }
     setPreviewOpen(open);
+  };
+
+  const handlePreviewDownload = () => {
+    if (previewDoc.originalDoc) {
+      handleDownload(previewDoc.originalDoc);
+    }
   };
 
   const handleDownload = async (doc: Document) => {
@@ -399,6 +428,8 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
         documentName={previewDoc.name}
         documentUrl={previewDoc.url}
         mimeType={previewDoc.mimeType}
+        pdfData={previewDoc.pdfData}
+        onDownload={handlePreviewDownload}
       />
     </div>
   );
