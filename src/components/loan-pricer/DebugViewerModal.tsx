@@ -44,12 +44,16 @@ interface DebugViewerModalProps {
 export function DebugViewerModal({
   open,
   onOpenChange,
-  screenshots = [],
-  htmlSnapshots = [],
-  buttonScanResults = [],
-  debugLogs = [],
+  screenshots,
+  htmlSnapshots,
+  buttonScanResults,
+  debugLogs,
   errorMessage
 }: DebugViewerModalProps) {
+  const ss = Array.isArray(screenshots) ? screenshots : [];
+  const hs = Array.isArray(htmlSnapshots) ? htmlSnapshots : [];
+  const bs = Array.isArray(buttonScanResults) ? buttonScanResults : [];
+  const dl = Array.isArray(debugLogs) ? debugLogs : [];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
@@ -65,13 +69,13 @@ export function DebugViewerModal({
         <Tabs defaultValue="screenshots" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="screenshots">
-              Screenshots ({screenshots.length})
+              Screenshots ({ss.length})
             </TabsTrigger>
             <TabsTrigger value="html">
-              HTML Snapshots ({htmlSnapshots.length})
+              HTML Snapshots ({hs.length})
             </TabsTrigger>
             <TabsTrigger value="buttons">
-              Button Scan ({buttonScanResults.length})
+              Button Scan ({bs.length})
             </TabsTrigger>
             <TabsTrigger value="logs">
               Debug Logs
@@ -81,13 +85,13 @@ export function DebugViewerModal({
           {/* Screenshots Tab */}
           <TabsContent value="screenshots" className="mt-4">
             <ScrollArea className="h-[60vh]">
-              {screenshots.length === 0 ? (
+              {ss.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   No screenshots available. Enable debug mode when creating a pricing run.
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {screenshots.map((screenshot, idx) => (
+                  {ss.map((screenshot, idx) => (
                     <Card key={idx} className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -121,13 +125,13 @@ export function DebugViewerModal({
           {/* HTML Snapshots Tab */}
           <TabsContent value="html" className="mt-4">
             <ScrollArea className="h-[60vh]">
-              {htmlSnapshots.length === 0 ? (
+              {hs.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   No HTML snapshots available.
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {htmlSnapshots.map((html, idx) => (
+                  {hs.map((html, idx) => (
                     <Card key={idx} className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -156,16 +160,16 @@ export function DebugViewerModal({
           {/* Button Scan Tab */}
           <TabsContent value="buttons" className="mt-4">
             <ScrollArea className="h-[60vh]">
-              {buttonScanResults.length === 0 ? (
+              {bs.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   No button scan data available. This is captured when "View Rates" button fails.
                 </Card>
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground mb-4">
-                    {buttonScanResults.length} buttons found on page when "View Rates" button failed:
+                    {bs.length} buttons found on page when "View Rates" button failed:
                   </p>
-                  {buttonScanResults.map((button) => (
+                  {bs.map((button) => (
                     <Card key={button.index} className="p-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -207,14 +211,14 @@ export function DebugViewerModal({
                   <p className="text-sm font-mono">{errorMessage}</p>
                 </Card>
               )}
-              {debugLogs.length === 0 ? (
+              {dl.length === 0 ? (
                 <Card className="p-8 text-center text-muted-foreground">
                   No debug logs available.
                 </Card>
               ) : (
                 <Card className="p-4 bg-muted/30">
                   <pre className="text-xs font-mono whitespace-pre-wrap">
-                    {debugLogs.join('\n')}
+                    {dl.join('\n')}
                   </pre>
                 </Card>
               )}
