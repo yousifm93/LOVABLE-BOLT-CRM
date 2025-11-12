@@ -377,8 +377,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.applications)}
                   />
-                    progressMax={MONTHLY_GOALS.applications}
-                  />
                   <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayApps.length}
