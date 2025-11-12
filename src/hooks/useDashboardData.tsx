@@ -214,7 +214,7 @@ export const useDashboardData = () => {
         .from('buyer_agents')
         .select(`
           id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
-          agent_call_logs!agent_call_logs_agent_id_fkey(summary, logged_at, log_type)
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', startOfMonthTimestamp)
@@ -226,7 +226,9 @@ export const useDashboardData = () => {
       // Transform to include meeting_summary from the most recent meeting log
       return data.map(agent => ({
         ...agent,
-        meeting_summary: agent.agent_call_logs?.find((log: any) => log.log_type === 'meeting')?.summary || null
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
       })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
@@ -240,7 +242,7 @@ export const useDashboardData = () => {
         .from('buyer_agents')
         .select(`
           id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
-          agent_call_logs!agent_call_logs_agent_id_fkey(summary, logged_at, log_type)
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', yesterdayBoundaries.start)
@@ -252,7 +254,9 @@ export const useDashboardData = () => {
       // Transform to include meeting_summary from the most recent meeting log
       return data.map(agent => ({
         ...agent,
-        meeting_summary: agent.agent_call_logs?.find((log: any) => log.log_type === 'meeting')?.summary || null
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
       })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
@@ -266,7 +270,7 @@ export const useDashboardData = () => {
         .from('buyer_agents')
         .select(`
           id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
-          agent_call_logs!agent_call_logs_agent_id_fkey(summary, logged_at, log_type)
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', todayBoundaries.start)
@@ -278,7 +282,9 @@ export const useDashboardData = () => {
       // Transform to include meeting_summary from the most recent meeting log
       return data.map(agent => ({
         ...agent,
-        meeting_summary: agent.agent_call_logs?.find((log: any) => log.log_type === 'meeting')?.summary || null
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
       })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
@@ -292,7 +298,7 @@ export const useDashboardData = () => {
         .from('buyer_agents')
         .select(`
           id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
-          agent_call_logs!agent_call_logs_agent_id_fkey(summary, logged_at, log_type)
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
         .order('face_to_face_meeting', { ascending: false });
@@ -302,7 +308,9 @@ export const useDashboardData = () => {
       // Transform to include meeting_summary from the most recent meeting log
       return data.map(agent => ({
         ...agent,
-        meeting_summary: agent.agent_call_logs?.find((log: any) => log.log_type === 'meeting')?.summary || null
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
       })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
