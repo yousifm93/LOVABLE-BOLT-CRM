@@ -295,6 +295,9 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads")}
+                    showProgress={true}
+                    progressValue={thisMonthLeads.length}
+                    progressMax={MONTHLY_GOALS.leads}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -358,6 +361,9 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Applications", thisMonthApps, "applications")}
+                    showProgress={true}
+                    progressValue={thisMonthApps.length}
+                    progressMax={MONTHLY_GOALS.applications}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -421,6 +427,9 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings")}
+                    showProgress={true}
+                    progressValue={thisMonthMeetings.length}
+                    progressMax={MONTHLY_GOALS.meetings}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -484,6 +493,9 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Calls", thisMonthCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthCalls.length}
+                    progressMax={MONTHLY_GOALS.calls}
                   />
                   <ModernStatsCard
                     title="Yesterday"
