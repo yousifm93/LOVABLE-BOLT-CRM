@@ -374,7 +374,8 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
       </DialogContent>
 
       <AgentCallLogModal
-        agent={agent}
+        agentId={agent?.id}
+        agentName={fullName}
         isOpen={isCallLogModalOpen}
         onClose={() => setIsCallLogModalOpen(false)}
         onCallLogged={handleCallLogSaved}
