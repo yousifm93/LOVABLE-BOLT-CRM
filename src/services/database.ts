@@ -96,14 +96,16 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 // Database service functions
 export const databaseService = {
   // Agent Call Logs
-  async createAgentCallLog(agentId: string, summary: string, loggedBy: string) {
-    const { data, error } = await supabase
+  async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string) {
+    const { data, error} = await supabase
       .from('agent_call_logs')
       .insert({
         agent_id: agentId,
         summary,
         logged_by: loggedBy,
         logged_at: new Date().toISOString(),
+        log_type: logType || 'call',
+        meeting_location: meetingLocation || null,
       })
       .select()
       .single();
@@ -117,7 +119,7 @@ export const databaseService = {
       .from('agent_call_logs')
       .select(`
         *,
-        user:users!agent_call_logs_logged_by_fkey(id, full_name)
+        users!agent_call_logs_logged_by_fkey(id, first_name, last_name)
       `)
       .eq('agent_id', agentId)
       .order('logged_at', { ascending: false })

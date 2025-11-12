@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AgentMeetingLogModalProps {
   agent: {
@@ -37,13 +38,18 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
 
     setIsLoading(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       // Create meeting log
-      await databaseService.createAgentCallLog({
-        agent_id: agent.id,
-        summary: summary.trim(),
-        log_type: 'meeting',
-        meeting_location: location.trim() || undefined,
-      });
+      await databaseService.createAgentCallLog(
+        agent.id,
+        summary.trim(),
+        user.id,
+        'meeting',
+        location.trim() || undefined
+      );
 
       // Update agent's face_to_face_meeting timestamp
       await databaseService.updateBuyerAgent(agent.id, {

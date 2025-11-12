@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
+import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
 
 interface AgentDetailDialogProps {
   agent: any | null;
@@ -48,6 +49,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
   const [isCallLogModalOpen, setIsCallLogModalOpen] = useState(false);
+  const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
   const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
 
   useEffect(() => {
@@ -113,6 +115,11 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   };
 
   const handleCallLogSaved = () => {
+    loadCallLogs();
+    onAgentUpdated();
+  };
+
+  const handleMeetingLogSaved = () => {
     loadCallLogs();
     onAgentUpdated();
   };
@@ -286,26 +293,36 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
               </div>
             </div>
 
-            {/* Call History Section */}
+            {/* Activity History Section */}
             <Card className="border">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <Phone className="h-4 w-4" />
-                    Call History
+                    Activity History
                   </CardTitle>
-                  <Button 
-                    size="sm" 
-                    onClick={() => setIsCallLogModalOpen(true)}
-                    className="h-7"
-                  >
-                    Log Call
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setIsMeetingLogModalOpen(true)}
+                      className="h-7"
+                    >
+                      Log Meeting
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setIsCallLogModalOpen(true)}
+                      className="h-7"
+                    >
+                      Log Call
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {isLoadingCallLogs ? (
-                  <p className="text-xs text-muted-foreground">Loading call logs...</p>
+                  <p className="text-xs text-muted-foreground">Loading activity logs...</p>
                 ) : callLogs.length > 0 ? (
                   <div className="space-y-2">
                     {callLogs.map((log: any) => (
@@ -314,23 +331,33 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                         className="p-3 border rounded-md bg-background/50"
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {new Date(log.logged_at).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {new Date(log.logged_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                              })}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
+                            </span>
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             by {log.users?.first_name} {log.users?.last_name}
                           </span>
                         </div>
-                        <p className="text-sm">{log.summary}</p>
+                        {log.meeting_location && (
+                          <div className="text-xs text-muted-foreground mb-1">
+                            📍 {log.meeting_location}
+                          </div>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap">{log.summary}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No call logs yet.</p>
+                  <p className="text-xs text-muted-foreground">No activity logs yet.</p>
                 )}
               </CardContent>
             </Card>
