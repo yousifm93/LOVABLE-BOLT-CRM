@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export default function Admin() {
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldDisplayName, setNewFieldDisplayName] = useState("");
+  const [newFieldDescription, setNewFieldDescription] = useState("");
   const [newFieldType, setNewFieldType] = useState("text");
   const [newFieldSection, setNewFieldSection] = useState("LEAD");
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export default function Admin() {
     const success = await addField({
       field_name: newFieldName,
       display_name: newFieldDisplayName,
+      description: newFieldDescription || null,
       section: newFieldSection,
       field_type: newFieldType,
       is_required: false,
@@ -143,6 +145,7 @@ export default function Admin() {
     if (success) {
       setNewFieldName("");
       setNewFieldDisplayName("");
+      setNewFieldDescription("");
       setNewFieldType("text");
       setNewFieldSection("LEAD");
     }
@@ -152,6 +155,7 @@ export default function Admin() {
     setEditingField(field.id);
     setEditData({
       display_name: field.display_name,
+      description: field.description,
       section: field.section,
       field_type: field.field_type,
       is_required: field.is_required,
@@ -240,7 +244,7 @@ export default function Admin() {
             </CardHeader>
             <CardContent>
               {/* Add New Field Form */}
-              <div className="grid grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg mb-6">
+              <div className="grid grid-cols-7 gap-4 p-4 bg-muted/30 rounded-lg mb-6">
                 <div>
                   <Label htmlFor="fieldName">Field Name</Label>
                   <Input
@@ -257,6 +261,15 @@ export default function Admin() {
                     value={newFieldDisplayName}
                     onChange={(e) => setNewFieldDisplayName(e.target.value)}
                     placeholder="e.g. Middle Name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fieldDescription">Description</Label>
+                  <Input
+                    id="fieldDescription"
+                    value={newFieldDescription}
+                    onChange={(e) => setNewFieldDescription(e.target.value)}
+                    placeholder="e.g. Borrower's middle name"
                   />
                 </div>
                 <div>
@@ -400,6 +413,7 @@ export default function Admin() {
                     <TableRow>
                       <TableHead className="w-[150px]">Field Name</TableHead>
                       <TableHead className="w-[150px]">Display Name</TableHead>
+                      <TableHead className="w-[200px]">Description</TableHead>
                       <TableHead className="w-[100px]">Section</TableHead>
                       <TableHead className="w-[100px]">Type</TableHead>
                       <TableHead className="w-[80px]">Required</TableHead>
@@ -413,13 +427,13 @@ export default function Admin() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8">
+                        <TableCell colSpan={11} className="text-center py-8">
                           Loading fields...
                         </TableCell>
                       </TableRow>
                     ) : filteredFields.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           No fields found matching filters
                         </TableCell>
                       </TableRow>
@@ -436,6 +450,20 @@ export default function Admin() {
                               />
                             ) : (
                               field.display_name
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingField === field.id ? (
+                              <Input
+                                value={editData.description || ""}
+                                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                placeholder="Add description..."
+                                className="h-7"
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {field.description || "—"}
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
