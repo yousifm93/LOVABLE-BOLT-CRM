@@ -12,11 +12,13 @@ import { useToast } from "@/hooks/use-toast";
 interface AppraisalTabProps {
   leadId: string;
   data: {
+    appraisal_status: string | null;
+    appraisal_ordered_date: string | null;
+    appraisal_scheduled_date: string | null;
     appr_date_time: string | null;
     appr_eta: string | null;
     appraisal_value: number | null;
     appraisal_file: string | null;
-    appraisal_status: string | null;
     appraisal_notes: string | null;
   };
   onUpdate: (field: string, value: any) => void;
@@ -42,7 +44,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Row 1: Status / Document */}
+      {/* Row 1: Status / Appraised Value */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <ClipboardCheck className="h-3 w-3" />
@@ -59,6 +61,79 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       </div>
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <DollarSign className="h-3 w-3" />
+          Appraised Value
+        </Label>
+        <InlineEditCurrency
+          value={data.appraisal_value}
+          onValueChange={(value) => onUpdate('appraisal_value', value)}
+          placeholder="-"
+        />
+      </div>
+
+      {/* Row 2: Appraisal Ordered Date / Appraisal Scheduled Date */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          Appraisal Ordered Date
+        </Label>
+        <InlineEditDate
+          value={data.appraisal_ordered_date}
+          onValueChange={(value) => onUpdate('appraisal_ordered_date', value)}
+          placeholder="-"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          Appraisal Scheduled Date
+        </Label>
+        <InlineEditDate
+          value={data.appraisal_scheduled_date}
+          onValueChange={(value) => onUpdate('appraisal_scheduled_date', value)}
+          placeholder="-"
+        />
+      </div>
+
+      {/* Row 3: Date/Time / Appraisal ETA */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Calendar className="h-3 w-3" />
+          Date/Time
+        </Label>
+        <InlineEditDateTime
+          value={data.appr_date_time}
+          onValueChange={(value) => onUpdate('appr_date_time', value)}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          Appraisal ETA
+        </Label>
+        <InlineEditDate
+          value={data.appr_eta}
+          onValueChange={(value) => onUpdate('appr_eta', value)}
+          placeholder="-"
+        />
+      </div>
+
+      {/* Row 4: Notes (spanning both columns) */}
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Appraisal Notes
+        </Label>
+        <InlineEditNotes
+          value={data.appraisal_notes}
+          onValueChange={(value) => onUpdate('appraisal_notes', value)}
+          placeholder="Add notes about the appraisal..."
+        />
+      </div>
+
+      {/* Row 5: Document Upload / Follow Up Button */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
           Document
         </Label>
@@ -73,42 +148,6 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
           }}
         />
       </div>
-
-      {/* Row 2: Date/Time / ETA */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Date/Time
-        </Label>
-        <InlineEditDateTime
-          value={data.appr_date_time}
-          onValueChange={(value) => onUpdate('appr_date_time', value)}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Clock className="h-3 w-3" />
-          ETA
-        </Label>
-        <InlineEditDate
-          value={data.appr_eta}
-          onValueChange={(value) => onUpdate('appr_eta', value)}
-          placeholder="-"
-        />
-      </div>
-
-      {/* Row 3: Value / Follow Up Button */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <DollarSign className="h-3 w-3" />
-          Appraised Value
-        </Label>
-        <InlineEditCurrency
-          value={data.appraisal_value}
-          onValueChange={(value) => onUpdate('appraisal_value', value)}
-          placeholder="-"
-        />
-      </div>
       <div className="flex items-end justify-start">
         <Button 
           variant="outline" 
@@ -119,19 +158,6 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
           <Mail className="h-4 w-4" />
           Follow Up
         </Button>
-      </div>
-
-      {/* Row 4: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
-        <Label className="text-xs text-muted-foreground flex items-center gap-2">
-          <MessageSquare className="h-3 w-3" />
-          Appraisal Notes
-        </Label>
-        <InlineEditNotes
-          value={data.appraisal_notes}
-          onValueChange={(value) => onUpdate('appraisal_notes', value)}
-          placeholder="Add notes about the appraisal..."
-        />
       </div>
     </div>
   );

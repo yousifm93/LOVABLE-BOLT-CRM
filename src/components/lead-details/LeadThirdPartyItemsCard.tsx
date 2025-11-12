@@ -25,7 +25,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_status, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_name, condo_docs_file, condo_status, condo_approval_type, condo_notes')
+        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_name, condo_docs_file, condo_status, condo_approval_type, condo_notes')
         .eq('id', leadId)
         .single();
       if (error) throw error;
@@ -108,11 +108,13 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
                 <AppraisalTab 
                   leadId={leadId}
                   data={{
+                    appraisal_status: lead.appraisal_status,
+                    appraisal_ordered_date: lead.appraisal_ordered_date,
+                    appraisal_scheduled_date: lead.appraisal_scheduled_date,
                     appr_date_time: lead.appr_date_time,
                     appr_eta: lead.appr_eta,
                     appraisal_value: lead.appraisal_value,
                     appraisal_file: lead.appraisal_file,
-                    appraisal_status: lead.appraisal_status,
                     appraisal_notes: lead.appraisal_notes
                   }}
                   onUpdate={handleUpdate}
@@ -138,6 +140,9 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
                   leadId={leadId}
                   data={{
                     hoi_status: lead.hoi_status,
+                    insurance_quoted_date: lead.insurance_quoted_date,
+                    insurance_ordered_date: lead.insurance_ordered_date,
+                    insurance_received_date: lead.insurance_received_date,
                     insurance_policy_file: lead.insurance_policy_file,
                     insurance_inspection_file: lead.insurance_inspection_file,
                     insurance_notes: lead.insurance_notes

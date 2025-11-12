@@ -37,7 +37,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Row 1: Status / Document */}
+      {/* Row 1: Status */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileCheck className="h-3 w-3" />
@@ -52,25 +52,13 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           className="text-sm"
         />
       </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Document</Label>
-        <FileUploadButton
-          leadId={leadId}
-          fieldName="title_file"
-          currentFile={data.title_file}
-          onUpload={(url) => onUpdate('title_file', url)}
-          config={{
-            storage_path: 'files/{lead_id}/title/',
-            allowed_types: ['.pdf']
-          }}
-        />
-      </div>
+      <div />
 
-      {/* Row 2: Ordered Date / Title ETA */}
+      {/* Row 2: Title Ordered Date / Title ETA */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Ordered Date
+          Title Ordered Date
         </Label>
         <InlineEditDate
           value={data.title_ordered_date}
@@ -90,21 +78,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
         />
       </div>
 
-      {/* Row 3: Empty / Follow Up Button */}
-      <div className="hidden md:block" />
-      <div className="flex items-end justify-start">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleFollowUp}
-          className="gap-2"
-        >
-          <Mail className="h-4 w-4" />
-          Follow Up
-        </Button>
-      </div>
-
-      {/* Row 4: Notes (spanning both columns) */}
+      {/* Row 3: Notes (spanning both columns) */}
       <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
@@ -115,6 +89,35 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           onValueChange={(value) => onUpdate('title_notes', value)}
           placeholder="Add notes about title work..."
         />
+      </div>
+
+      {/* Row 4: Document Upload / Follow Up Button */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileText className="h-3 w-3" />
+          Document
+        </Label>
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="title_file"
+          currentFile={data.title_file}
+          onUpload={(url) => onUpdate('title_file', url)}
+          config={{
+            storage_path: 'files/{lead_id}/title/',
+            allowed_types: ['.pdf']
+          }}
+        />
+      </div>
+      <div className="flex items-end justify-start">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={handleFollowUp}
+          className="gap-2"
+        >
+          <Mail className="h-4 w-4" />
+          Follow Up
+        </Button>
       </div>
     </div>
   );

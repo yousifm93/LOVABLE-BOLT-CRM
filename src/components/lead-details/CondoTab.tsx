@@ -33,11 +33,11 @@ const condoApprovalTypeOptions = [
 export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Row 1: Status / Document */}
+      {/* Row 1: Status / Approval Type */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Building2 className="h-3 w-3" />
-          Condo
+          Condo Status
         </Label>
         <InlineEditSelect
           value={data.condo_status}
@@ -46,32 +46,6 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           placeholder="Select status"
           showAsStatusBadge={false}
           className="text-sm"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground">Documents</Label>
-        <FileUploadButton
-          leadId={leadId}
-          fieldName="condo_docs_file"
-          currentFile={data.condo_docs_file}
-          onUpload={(url) => onUpdate('condo_docs_file', url)}
-          config={{
-            storage_path: 'files/{lead_id}/condo/',
-            allowed_types: ['.pdf', '.zip']
-          }}
-        />
-      </div>
-
-      {/* Row 2: Condo Name / Approval Type */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Building2 className="h-3 w-3" />
-          Condo Name
-        </Label>
-        <InlineEditText
-          value={data.condo_name}
-          onValueChange={(value) => onUpdate('condo_name', value)}
-          placeholder="-"
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -89,6 +63,20 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
         />
       </div>
 
+      {/* Row 2: Condo Name */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Building2 className="h-3 w-3" />
+          Condo Name
+        </Label>
+        <InlineEditText
+          value={data.condo_name}
+          onValueChange={(value) => onUpdate('condo_name', value)}
+          placeholder="-"
+        />
+      </div>
+      <div />
+
       {/* Row 3: Notes (spanning both columns) */}
       <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
@@ -101,6 +89,25 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           placeholder="Add notes about condo approval..."
         />
       </div>
+
+      {/* Row 4: Document Upload */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileText className="h-3 w-3" />
+          Documents
+        </Label>
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="condo_docs_file"
+          currentFile={data.condo_docs_file}
+          onUpload={(url) => onUpdate('condo_docs_file', url)}
+          config={{
+            storage_path: 'files/{lead_id}/condo/',
+            allowed_types: ['.pdf', '.zip']
+          }}
+        />
+      </div>
+      <div />
     </div>
   );
 }

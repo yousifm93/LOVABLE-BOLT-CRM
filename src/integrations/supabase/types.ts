@@ -1851,6 +1851,8 @@ export type Database = {
           appr_eta: string | null
           appraisal_file: string | null
           appraisal_notes: string | null
+          appraisal_ordered_date: string | null
+          appraisal_scheduled_date: string | null
           appraisal_status:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -1905,7 +1907,10 @@ export type Database = {
           insurance_file: string | null
           insurance_inspection_file: string | null
           insurance_notes: string | null
+          insurance_ordered_date: string | null
           insurance_policy_file: string | null
+          insurance_quoted_date: string | null
+          insurance_received_date: string | null
           interest_rate: number | null
           investment_accounts: number | null
           is_closed: boolean | null
@@ -1994,6 +1999,8 @@ export type Database = {
           appr_eta?: string | null
           appraisal_file?: string | null
           appraisal_notes?: string | null
+          appraisal_ordered_date?: string | null
+          appraisal_scheduled_date?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -2048,7 +2055,10 @@ export type Database = {
           insurance_file?: string | null
           insurance_inspection_file?: string | null
           insurance_notes?: string | null
+          insurance_ordered_date?: string | null
           insurance_policy_file?: string | null
+          insurance_quoted_date?: string | null
+          insurance_received_date?: string | null
           interest_rate?: number | null
           investment_accounts?: number | null
           is_closed?: boolean | null
@@ -2139,6 +2149,8 @@ export type Database = {
           appr_eta?: string | null
           appraisal_file?: string | null
           appraisal_notes?: string | null
+          appraisal_ordered_date?: string | null
+          appraisal_scheduled_date?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
             | null
@@ -2193,7 +2205,10 @@ export type Database = {
           insurance_file?: string | null
           insurance_inspection_file?: string | null
           insurance_notes?: string | null
+          insurance_ordered_date?: string | null
           insurance_policy_file?: string | null
+          insurance_quoted_date?: string | null
+          insurance_received_date?: string | null
           interest_rate?: number | null
           investment_accounts?: number | null
           is_closed?: boolean | null
