@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +32,7 @@ export function AgentCallLogModal({
 }: AgentCallLogModalProps) {
   const { toast } = useToast();
   const [summary, setSummary] = useState("");
+  const [callDateTime, setCallDateTime] = useState(new Date().toISOString().slice(0, 16));
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
@@ -48,12 +51,12 @@ export function AgentCallLogModal({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // Create call log
-      await databaseService.createAgentCallLog(agentId, summary, user.id);
+      // Create call log with custom date/time
+      await databaseService.createAgentCallLog(agentId, summary, user.id, 'call', undefined, callDateTime);
 
-      // Update last_agent_call date on the agent
+      // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
-        last_agent_call: new Date().toISOString().split('T')[0], // Date only
+        last_agent_call: new Date(callDateTime).toISOString().split('T')[0], // Date only
       });
 
       toast({
@@ -90,6 +93,16 @@ export function AgentCallLogModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div>
+            <Label htmlFor="call-date">Call Date & Time</Label>
+            <Input
+              id="call-date"
+              type="datetime-local"
+              value={callDateTime}
+              onChange={(e) => setCallDateTime(e.target.value)}
+              className="mt-2"
+            />
+          </div>
           <div>
             <label className="text-sm font-medium mb-2 block">
               Call Summary *

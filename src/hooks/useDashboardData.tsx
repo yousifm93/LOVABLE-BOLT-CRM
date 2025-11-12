@@ -21,6 +21,7 @@ export interface DashboardFaceToFaceMeeting {
   phone: string | null;
   face_to_face_meeting: string;
   notes?: string | null;
+  meeting_summary?: string | null;
 }
 
 export interface DashboardCall {
@@ -211,14 +212,24 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', startOfMonthTimestamp)
         .lt('face_to_face_meeting', startOfNextMonthTimestamp)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
-      return data as DashboardFaceToFaceMeeting[];
+      
+      // Transform to include meeting_summary from the most recent meeting log
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
   });
@@ -229,14 +240,24 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', yesterdayBoundaries.start)
         .lte('face_to_face_meeting', yesterdayBoundaries.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
-      return data as DashboardFaceToFaceMeeting[];
+      
+      // Transform to include meeting_summary from the most recent meeting log
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
   });
@@ -247,14 +268,24 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', todayBoundaries.start)
         .lte('face_to_face_meeting', todayBoundaries.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
-      return data as DashboardFaceToFaceMeeting[];
+      
+      // Transform to include meeting_summary from the most recent meeting log
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
   });
@@ -265,12 +296,22 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
         .not('face_to_face_meeting', 'is', null)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
-      return data as DashboardFaceToFaceMeeting[];
+      
+      // Transform to include meeting_summary from the most recent meeting log
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
     },
     staleTime: 30000,
   });

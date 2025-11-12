@@ -96,14 +96,14 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 // Database service functions
 export const databaseService = {
   // Agent Call Logs
-  async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string) {
+  async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string, loggedAt?: string) {
     const { data, error} = await supabase
       .from('agent_call_logs')
       .insert({
         agent_id: agentId,
         summary,
         logged_by: loggedBy,
-        logged_at: new Date().toISOString(),
+        logged_at: loggedAt || new Date().toISOString(),
         log_type: logType || 'call',
         meeting_location: meetingLocation || null,
       })
