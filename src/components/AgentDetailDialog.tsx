@@ -49,6 +49,8 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
   const [isCallLogModalOpen, setIsCallLogModalOpen] = useState(false);
   const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [isLogDetailModalOpen, setIsLogDetailModalOpen] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
@@ -331,31 +333,35 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     {callLogs.map((log: any) => (
                       <div
                         key={log.id}
-                        className="p-3 border rounded-md bg-background/50"
+                        className="p-3 border rounded-md bg-background/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => handleViewLogDetail(log)}
                       >
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground">
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Left side - Log Type (prominent) */}
+                          <div className="flex-1">
+                            <div className="text-base font-semibold text-foreground mb-1">
+                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
+                            </div>
+                            {log.meeting_location && (
+                              <div className="text-xs text-muted-foreground mb-1">
+                                📍 {log.meeting_location}
+                              </div>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap mt-1">{log.summary}</p>
+                          </div>
+                          
+                          {/* Right side - User and Date */}
+                          <div className="text-right text-xs text-muted-foreground space-y-1 flex-shrink-0">
+                            <div>By: {log.users?.first_name} {log.users?.last_name}</div>
+                            <div className="font-medium">
                               {new Date(log.logged_at).toLocaleDateString('en-US', { 
                                 month: 'short', 
                                 day: 'numeric', 
                                 year: 'numeric' 
                               })}
-                            </span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
-                            </span>
+                            </div>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            by {log.users?.first_name} {log.users?.last_name}
-                          </span>
                         </div>
-                        {log.meeting_location && (
-                          <div className="text-xs text-muted-foreground mb-1">
-                            📍 {log.meeting_location}
-                          </div>
-                        )}
-                        <p className="text-sm whitespace-pre-wrap">{log.summary}</p>
                       </div>
                     ))}
                   </div>

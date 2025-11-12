@@ -123,6 +123,16 @@ const STAGE_ID_TO_NAME: Record<string, string> = {
 };
 
 export default function DashboardTabs() {
+  const { user } = useAuth();
+  
+  // Calculate expected progress based on day of month
+  const calculateExpectedProgress = (monthlyGoal: number): number => {
+    const now = new Date();
+    const currentDay = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return Math.round((currentDay / daysInMonth) * monthlyGoal);
+  };
+  
   const {
     thisMonthLeads,
     yesterdayLeads,
