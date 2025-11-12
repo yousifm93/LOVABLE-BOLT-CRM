@@ -95,6 +95,38 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 
 // Database service functions
 export const databaseService = {
+  // Agent Call Logs
+  async createAgentCallLog(agentId: string, summary: string, loggedBy: string) {
+    const { data, error } = await supabase
+      .from('agent_call_logs')
+      .insert({
+        agent_id: agentId,
+        summary,
+        logged_by: loggedBy,
+        logged_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAgentCallLogs(agentId: string, limit = 10) {
+    const { data, error } = await supabase
+      .from('agent_call_logs')
+      .select(`
+        *,
+        user:users!agent_call_logs_logged_by_fkey(id, full_name)
+      `)
+      .eq('agent_id', agentId)
+      .order('logged_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Lead Conditions operations
   async getLeadConditions(leadId: string) {
     const { data, error } = await supabase

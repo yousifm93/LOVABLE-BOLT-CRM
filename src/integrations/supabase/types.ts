@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_call_logs: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          logged_at: string
+          logged_by: string
+          summary: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          logged_at?: string
+          logged_by: string
+          summary: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          logged_at?: string
+          logged_by?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_call_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_call_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           answer: string

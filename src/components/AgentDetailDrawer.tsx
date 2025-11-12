@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText } from "lucide-react";
+import { X, Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText, MessageSquare, Plus } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -16,6 +16,10 @@ import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { Button } from "@/components/ui/button";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,10 +44,14 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const { toast } = useToast();
   const [associatedLeads, setAssociatedLeads] = useState<any[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+  const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
+  const [showCallLogModal, setShowCallLogModal] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
       loadAssociatedLeads();
+      loadCallLogs();
     }
   }, [agent?.id, isOpen]);
 
@@ -65,6 +73,20 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
       console.error('Error loading associated leads:', error);
     } finally {
       setIsLoadingLeads(false);
+    }
+  };
+
+  const loadCallLogs = async () => {
+    if (!agent?.id) return;
+    
+    setIsLoadingCallLogs(true);
+    try {
+      const logs = await databaseService.getAgentCallLogs(agent.id, 10);
+      setCallLogs(logs);
+    } catch (error) {
+      console.error('Error loading call logs:', error);
+    } finally {
+      setIsLoadingCallLogs(false);
     }
   };
 
@@ -281,17 +303,17 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Last Call</label>
-                  <InlineEditDateTime
+                  <InlineEditDate
                     value={agent.last_agent_call}
-                    onValueChange={(value) => handleFieldUpdate('last_agent_call', value)}
+                    onValueChange={(value) => handleFieldUpdate('last_agent_call', value?.toISOString().split('T')[0])}
                     className="mt-1"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Next Scheduled Call</label>
-                  <InlineEditDateTime
+                  <InlineEditDate
                     value={agent.next_agent_call}
-                    onValueChange={(value) => handleFieldUpdate('next_agent_call', value)}
+                    onValueChange={(value) => handleFieldUpdate('next_agent_call', value?.toISOString().split('T')[0])}
                     className="mt-1"
                   />
                 </div>
@@ -303,6 +325,67 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     className="mt-1"
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
+                  <InlineEditNotes
+                    value={agent.notes}
+                    onValueChange={(value) => handleFieldUpdate('notes', value)}
+                    placeholder="General notes about this agent..."
+                    className="mt-1"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Call History */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MessageSquare className="h-5 w-5" />
+                    Call History
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCallLogModal(true)}
+                    className="h-8"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Log Call
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingCallLogs ? (
+                  <p className="text-sm text-muted-foreground">Loading call history...</p>
+                ) : callLogs.length > 0 ? (
+                  <div className="space-y-3">
+                    {callLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="p-3 border rounded-lg bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.logged_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                          <p className="text-xs font-medium">
+                            {log.user?.full_name || 'Unknown User'}
+                          </p>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{log.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No call logs yet. Click "Log Call" to add one.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -343,6 +426,17 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
           </div>
         </div>
       </DrawerContent>
+
+      <AgentCallLogModal
+        agentId={agent.id}
+        agentName={fullName}
+        isOpen={showCallLogModal}
+        onClose={() => setShowCallLogModal(false)}
+        onCallLogged={() => {
+          loadCallLogs();
+          onAgentUpdated();
+        }}
+      />
     </Drawer>
   );
 }

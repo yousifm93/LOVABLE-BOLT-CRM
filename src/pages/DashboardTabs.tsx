@@ -8,6 +8,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
@@ -18,6 +19,14 @@ import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { CRMClient } from "@/types/crm";
 import { useToast } from "@/hooks/use-toast";
+
+// Monthly goals
+const MONTHLY_GOALS = {
+  leads: 70,
+  applications: 30,
+  meetings: 20,
+  calls: 110
+};
 
 // Format date and time for activity display
 const formatDateTime = (timestamp: string) => {
@@ -262,6 +271,18 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/* Progress Bar */}
+                  <div className="space-y-1 mb-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Monthly Goal Progress</span>
+                      <span>{thisMonthLeads.length} / {MONTHLY_GOALS.leads}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthLeads.length / MONTHLY_GOALS.leads) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthLeads.length}
@@ -325,6 +346,18 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/* Progress Bar */}
+                  <div className="space-y-1 mb-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Monthly Goal Progress</span>
+                      <span>{thisMonthApps.length} / {MONTHLY_GOALS.applications}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthApps.length / MONTHLY_GOALS.applications) * 100} 
+                      className="h-2 [&>div]:bg-green-600"
+                    />
+                  </div>
+
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthApps.length}
@@ -388,6 +421,18 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/* Progress Bar */}
+                  <div className="space-y-1 mb-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Monthly Goal Progress</span>
+                      <span>{thisMonthMeetings.length} / {MONTHLY_GOALS.meetings}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthMeetings.length / MONTHLY_GOALS.meetings) * 100} 
+                      className="h-2 [&>div]:bg-purple-600"
+                    />
+                  </div>
+
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthMeetings.length}
@@ -451,6 +496,18 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {/* Progress Bar */}
+                  <div className="space-y-1 mb-4">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Monthly Goal Progress</span>
+                      <span>{thisMonthCalls.length} / {MONTHLY_GOALS.calls}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthCalls.length / MONTHLY_GOALS.calls) * 100} 
+                      className="h-2 [&>div]:bg-orange-600"
+                    />
+                  </div>
+
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthCalls.length}
