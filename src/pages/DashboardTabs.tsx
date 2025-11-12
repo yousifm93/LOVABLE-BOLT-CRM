@@ -271,18 +271,6 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Progress Bar */}
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Monthly Goal Progress</span>
-                      <span>{thisMonthLeads.length} / {MONTHLY_GOALS.leads}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthLeads.length / MONTHLY_GOALS.leads) * 100} 
-                      className="h-2"
-                    />
-                  </div>
-
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthLeads.length}
@@ -307,8 +295,19 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Leads", todayLeads, "leads")}
                   />
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{thisMonthLeads.length} / {MONTHLY_GOALS.leads}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthLeads.length / MONTHLY_GOALS.leads) * 100} 
+                      className="h-2"
+                    />
+                  </div>
                   
-                  <CollapsibleSection 
+                  <CollapsibleSection
                     title="All Leads" 
                     count={allLeads.length}
                     data={allLeads}
@@ -346,18 +345,6 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Progress Bar */}
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Monthly Goal Progress</span>
-                      <span>{thisMonthApps.length} / {MONTHLY_GOALS.applications}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthApps.length / MONTHLY_GOALS.applications) * 100} 
-                      className="h-2 [&>div]:bg-green-600"
-                    />
-                  </div>
-
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthApps.length}
@@ -382,8 +369,19 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Applications", todayApps, "applications")}
                   />
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{thisMonthApps.length} / {MONTHLY_GOALS.applications}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthApps.length / MONTHLY_GOALS.applications) * 100} 
+                      className="h-2 [&>div]:bg-green-600"
+                    />
+                  </div>
                   
-                  <CollapsibleSection 
+                  <CollapsibleSection
                     title="All Applications" 
                     count={allApplications.length}
                     data={allApplications}
@@ -421,18 +419,6 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Progress Bar */}
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Monthly Goal Progress</span>
-                      <span>{thisMonthMeetings.length} / {MONTHLY_GOALS.meetings}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthMeetings.length / MONTHLY_GOALS.meetings) * 100} 
-                      className="h-2 [&>div]:bg-purple-600"
-                    />
-                  </div>
-
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthMeetings.length}
@@ -457,8 +443,19 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Face-to-Face Meetings", todayMeetings, "meetings")}
                   />
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{thisMonthMeetings.length} / {MONTHLY_GOALS.meetings}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthMeetings.length / MONTHLY_GOALS.meetings) * 100} 
+                      className="h-2 [&>div]:bg-purple-600"
+                    />
+                  </div>
                   
-                  <CollapsibleSection 
+                  <CollapsibleSection
                     title="All Meetings" 
                     count={allMeetings.length}
                     data={allMeetings}
@@ -496,18 +493,6 @@ export default function DashboardTabs() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {/* Progress Bar */}
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Monthly Goal Progress</span>
-                      <span>{thisMonthCalls.length} / {MONTHLY_GOALS.calls}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthCalls.length / MONTHLY_GOALS.calls) * 100} 
-                      className="h-2 [&>div]:bg-orange-600"
-                    />
-                  </div>
-
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthCalls.length}
@@ -532,8 +517,19 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Calls", todayCalls, "calls")}
                   />
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{thisMonthCalls.length} / {MONTHLY_GOALS.calls}</span>
+                    </div>
+                    <Progress 
+                      value={(thisMonthCalls.length / MONTHLY_GOALS.calls) * 100} 
+                      className="h-2 [&>div]:bg-orange-600"
+                    />
+                  </div>
                   
-                  <CollapsibleSection 
+                  <CollapsibleSection
                     title="All Calls" 
                     count={allCalls.length}
                     data={allCalls}
@@ -562,6 +558,52 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Recent Activity & Pipeline Summary */}
+            <div className="mt-8 space-y-6">
+              <CollapsibleSection
+                title="Recent Activity"
+                count={recentStageChanges.length}
+                data={recentStageChanges}
+                defaultOpen={true}
+                renderItem={(change: any, index) => {
+                  const isLeadCreation = !change.from_stage;
+                  const isGoingToLeads = change.to_stage?.name === 'Leads';
+                  
+                  return (
+                    <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium text-foreground">
+                          {change.lead?.first_name} {change.lead?.last_name}
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {isLeadCreation && isGoingToLeads ? (
+                            <span className="text-primary font-medium">Created</span>
+                          ) : isLeadCreation ? (
+                            <>
+                              <span>New</span>
+                              <ArrowRight className="h-3 w-3" />
+                              <span className="text-primary font-medium">{change.to_stage?.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{change.from_stage?.name}</span>
+                              <ArrowRight className="h-3 w-3" />
+                              <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                        {formatDateTime(change.changed_at)}
+                      </Badge>
+                    </div>
+                  );
+                }}
+              />
+
+              <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
+            </div>
           )}
         </TabsContent>
 
@@ -572,33 +614,29 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Top Row */}
+              {/* Top Row - Separated Volume and Units */}
               <div className="grid grid-cols-2 gap-6">
-                <ModernStatsCard
-                  title="Total Active Volume"
-                  value={new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(activeMetrics.total_volume)}
-                  icon={<DollarSign />}
-                  size="large"
-                  centered={true}
-                />
-                <ModernStatsCard
-                  title="Total Active Units"
-                  value={activeMetrics.total_units.toString()}
-                  icon={<Users />}
-                  size="large"
-                  centered={true}
-                />
-              </div>
-
-              {/* Second & Third Rows */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                {/* Volume Card */}
+                <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                      Volume Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ModernStatsCard
+                      title="Total Active Volume"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(activeMetrics.total_volume)}
+                      icon={<DollarSign />}
+                      size="large"
+                      centered={true}
+                    />
                     <ModernStatsCard
                       title="Current Month Pending Volume"
                       value={new Intl.NumberFormat('en-US', {
@@ -621,10 +659,36 @@ export default function DashboardTabs() {
                       icon={<CalendarDays />}
                       centered={true}
                     />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                    <ModernStatsCard
+                      title="Closing This Week (Volume)"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(thisWeekClosing.this_week_volume)}
+                      icon={<TrendingUp />}
+                      centered={true}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Units Card */}
+                <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      Unit Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ModernStatsCard
+                      title="Total Active Units"
+                      value={activeMetrics.total_units.toString()}
+                      icon={<Users />}
+                      size="large"
+                      centered={true}
+                    />
                     <ModernStatsCard
                       title="Current Month Pending Units"
                       value={currentMonthPending.current_month_units.toString()}
@@ -637,31 +701,14 @@ export default function DashboardTabs() {
                       icon={<Users />}
                       centered={true}
                     />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Row */}
-              <div className="grid grid-cols-2 gap-6">
-                <ModernStatsCard
-                  title="Closing This Week (Volume)"
-                  value={new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(thisWeekClosing.this_week_volume)}
-                  icon={<TrendingUp />}
-                  size="large"
-                  centered={true}
-                />
-                <ModernStatsCard
-                  title="Closing This Week (Units)"
-                  value={thisWeekClosing.this_week_units.toString()}
-                  icon={<TrendingUp />}
-                  size="large"
-                  centered={true}
-                />
+                    <ModernStatsCard
+                      title="Closing This Week (Units)"
+                      value={thisWeekClosing.this_week_units.toString()}
+                      icon={<TrendingUp />}
+                      centered={true}
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Extra Metrics */}
@@ -704,27 +751,61 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              {/* Top Row */}
+              {/* Top Row - Separated Volume and Units */}
               <div className="grid grid-cols-2 gap-6">
-                <ModernStatsCard
-                  title="2025 YTD Volume"
-                  value={new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(closedYtdMetrics.ytd_volume)}
-                  icon={<DollarSign />}
-                  size="large"
-                  centered={true}
-                />
-                <ModernStatsCard
-                  title="2025 YTD Units"
-                  value={closedYtdMetrics.ytd_units.toString()}
-                  icon={<Users />}
-                  size="large"
-                  centered={true}
-                />
+                {/* Volume Card */}
+                <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-blue-600" />
+                      Volume Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ModernStatsCard
+                      title="2025 YTD Volume"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(closedYtdMetrics.ytd_volume)}
+                      icon={<DollarSign />}
+                      size="large"
+                      centered={true}
+                    />
+                    <ModernStatsCard
+                      title="Average Loan Amount"
+                      value={new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(closedYtdMetrics.avg_loan_amount)}
+                      icon={<BarChart3 />}
+                      centered={true}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Units Card */}
+                <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20">
+                  <CardHeader>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      Unit Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <ModernStatsCard
+                      title="2025 YTD Units"
+                      value={closedYtdMetrics.ytd_units.toString()}
+                      icon={<Users />}
+                      size="large"
+                      centered={true}
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Second Row - Charts */}
@@ -749,72 +830,11 @@ export default function DashboardTabs() {
                   showValueLabels={true}
                 />
               </div>
-
-              {/* Third Row - Full Width */}
-              <div className="w-full">
-                <ModernStatsCard
-                  title="Average Loan Amount"
-                  value={new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(closedYtdMetrics.avg_loan_amount)}
-                  icon={<BarChart3 />}
-                  size="large"
-                  className="w-full"
-                  centered={true}
-                />
-              </div>
             </>
           )}
         </TabsContent>
 
         <TabsContent value="miscellaneous" className="space-y-6">
-          {/* Recent Activity Section */}
-          <CollapsibleSection
-            title="Recent Activity"
-            count={recentStageChanges.length}
-            data={recentStageChanges}
-            defaultOpen={true}
-            renderItem={(change: any, index) => {
-              const isLeadCreation = !change.from_stage;
-              const isGoingToLeads = change.to_stage?.name === 'Leads';
-              
-              return (
-                <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <p className="font-medium text-foreground">
-                      {change.lead?.first_name} {change.lead?.last_name}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {isLeadCreation && isGoingToLeads ? (
-                        <span className="text-primary font-medium">Created</span>
-                      ) : isLeadCreation ? (
-                        <>
-                          <span>New</span>
-                          <ArrowRight className="h-3 w-3" />
-                          <span className="text-primary font-medium">{change.to_stage?.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{change.from_stage?.name}</span>
-                          <ArrowRight className="h-3 w-3" />
-                          <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                    {formatDateTime(change.changed_at)}
-                  </Badge>
-                </div>
-              );
-            }}
-          />
-
-          <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
-
           <ActivityMonitor />
           
           <ConversionAnalytics />
