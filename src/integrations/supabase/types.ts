@@ -19,24 +19,30 @@ export type Database = {
           agent_id: string
           created_at: string
           id: string
+          log_type: string | null
           logged_at: string
           logged_by: string
+          meeting_location: string | null
           summary: string
         }
         Insert: {
           agent_id: string
           created_at?: string
           id?: string
+          log_type?: string | null
           logged_at?: string
           logged_by: string
+          meeting_location?: string | null
           summary: string
         }
         Update: {
           agent_id?: string
           created_at?: string
           id?: string
+          log_type?: string | null
           logged_at?: string
           logged_by?: string
+          meeting_location?: string | null
           summary?: string
         }
         Relationships: [
