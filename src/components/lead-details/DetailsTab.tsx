@@ -21,8 +21,10 @@ import {
   User,
   Users,
   Shield,
-  TrendingUp,
-  PiggyBank
+  Calculator,
+  Receipt,
+  Building2,
+  Wallet
 } from "lucide-react";
 import { 
   formatCurrency, 
@@ -56,7 +58,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     term: client.loan?.term || 360,
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
     fico_score: client.loan?.ficoScore || null,
-    piti: client.loan?.monthlyPayment || null,
+    piti: client.piti || null,
     
     // Borrower Info
     first_name: client.person?.firstName || "",
@@ -66,74 +68,49 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     occupancy: (client as any).occupancy || "",
     residency_type: (client as any).residency_type || "",
     marital_status: (client as any).marital_status || "",
-    number_of_dependents: (client as any).number_of_dependents || null,
     monthly_payment_goal: (client as any).monthly_payment_goal || null,
     cash_to_close_goal: (client as any).cash_to_close_goal || null,
     borrower_current_address: (client as any).borrower_current_address || "",
-    time_at_current_address_years: (client as any).time_at_current_address_years || null,
-    time_at_current_address_months: (client as any).time_at_current_address_months || null,
     military_veteran: (client as any).military_veteran || false,
     
-    // Financial Info
-    base_employment_income: (client as any).base_employment_income || null,
-    overtime_income: (client as any).overtime_income || null,
-    bonus_income: (client as any).bonus_income || null,
-    self_employment_income: (client as any).self_employment_income || null,
-    other_income: (client as any).other_income || null,
-    checking_account: (client as any).checking_account || null,
-    savings_account: (client as any).savings_account || null,
-    investment_accounts: (client as any).investment_accounts || null,
-    retirement_accounts: (client as any).retirement_accounts || null,
-    gift_funds: (client as any).gift_funds || null,
-    other_assets: (client as any).other_assets || null,
-    credit_card_debt: (client as any).credit_card_debt || null,
-    auto_loans: (client as any).auto_loans || null,
-    student_loans: (client as any).student_loans || null,
-    other_monthly_debts: (client as any).other_monthly_debts || null,
+    // Consolidated Financial Fields
+    total_monthly_income: (client as any).totalMonthlyIncome || null,
+    assets: (client as any).assets || null,
+    monthly_liabilities: (client as any).monthlyLiabilities || null,
+    
+    // Monthly Payment Breakdown
+    principal_interest: (client as any).principalInterest || null,
+    property_taxes: (client as any).propertyTaxes || null,
+    homeowners_insurance: (client as any).homeownersInsurance || null,
+    mortgage_insurance: (client as any).mortgageInsurance || null,
+    hoa_dues: (client as any).hoaDues || null,
   });
 
-  // Calculate totals for financial info
-  const calculateTotalIncome = () => {
-    const base = editData.base_employment_income || 0;
-    const overtime = editData.overtime_income || 0;
-    const bonus = editData.bonus_income || 0;
-    const selfEmp = editData.self_employment_income || 0;
-    const other = editData.other_income || 0;
-    return base + overtime + bonus + selfEmp + other;
+  // Helper function for PITI calculation
+  const calculatePITI = () => {
+    return (
+      (editData.principal_interest || 0) +
+      (editData.property_taxes || 0) +
+      (editData.homeowners_insurance || 0) +
+      (editData.mortgage_insurance || 0) +
+      (editData.hoa_dues || 0)
+    );
   };
 
-  const calculateTotalAssets = () => {
-    const checking = editData.checking_account || 0;
-    const savings = editData.savings_account || 0;
-    const investments = editData.investment_accounts || 0;
-    const retirement = editData.retirement_accounts || 0;
-    const gifts = editData.gift_funds || 0;
-    const otherAssets = editData.other_assets || 0;
-    return checking + savings + investments + retirement + gifts + otherAssets;
-  };
-
-  const calculateTotalDebts = () => {
-    const creditCard = editData.credit_card_debt || 0;
-    const auto = editData.auto_loans || 0;
-    const student = editData.student_loans || 0;
-    const other = editData.other_monthly_debts || 0;
-    return creditCard + auto + student + other;
-  };
-
-  // Auto-calculate monthly payment when loan amount, interest rate, or term changes
+  // Auto-calculate PITI when payment breakdown components change
   useEffect(() => {
-    if (isEditing && client.loan?.loanAmount) {
-      const calculatedPayment = calculateMonthlyPayment(
-        client.loan.loanAmount,
-        editData.interest_rate,
-        editData.term
-      );
-      
-      if (calculatedPayment !== null && calculatedPayment !== editData.piti) {
-        setEditData(prev => ({ ...prev, piti: calculatedPayment }));
-      }
+    if (isEditing) {
+      const calculatedPITI = calculatePITI();
+      setEditData(prev => ({ ...prev, piti: calculatedPITI }));
     }
-  }, [editData.interest_rate, editData.term, isEditing]);
+  }, [
+    isEditing, 
+    editData.principal_interest, 
+    editData.property_taxes, 
+    editData.homeowners_insurance, 
+    editData.mortgage_insurance, 
+    editData.hoa_dues
+  ]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -149,7 +126,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       term: client.loan?.term || 360,
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
       fico_score: client.loan?.ficoScore || null,
-      piti: client.loan?.monthlyPayment || null,
+      piti: client.piti || null,
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
       ssn: (client as any).ssn || "",
@@ -157,28 +134,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       occupancy: (client as any).occupancy || "",
       residency_type: (client as any).residency_type || "",
       marital_status: (client as any).marital_status || "",
-      number_of_dependents: (client as any).number_of_dependents || null,
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
       borrower_current_address: (client as any).borrower_current_address || "",
-      time_at_current_address_years: (client as any).time_at_current_address_years || null,
-      time_at_current_address_months: (client as any).time_at_current_address_months || null,
       military_veteran: (client as any).military_veteran || false,
-      base_employment_income: (client as any).base_employment_income || null,
-      overtime_income: (client as any).overtime_income || null,
-      bonus_income: (client as any).bonus_income || null,
-      self_employment_income: (client as any).self_employment_income || null,
-      other_income: (client as any).other_income || null,
-      checking_account: (client as any).checking_account || null,
-      savings_account: (client as any).savings_account || null,
-      investment_accounts: (client as any).investment_accounts || null,
-      retirement_accounts: (client as any).retirement_accounts || null,
-      gift_funds: (client as any).gift_funds || null,
-      other_assets: (client as any).other_assets || null,
-      credit_card_debt: (client as any).credit_card_debt || null,
-      auto_loans: (client as any).auto_loans || null,
-      student_loans: (client as any).student_loans || null,
-      other_monthly_debts: (client as any).other_monthly_debts || null,
+      total_monthly_income: (client as any).totalMonthlyIncome || null,
+      assets: (client as any).assets || null,
+      monthly_liabilities: (client as any).monthlyLiabilities || null,
+      principal_interest: (client as any).principalInterest || null,
+      property_taxes: (client as any).propertyTaxes || null,
+      homeowners_insurance: (client as any).homeownersInsurance || null,
+      mortgage_insurance: (client as any).mortgageInsurance || null,
+      hoa_dues: (client as any).hoaDues || null,
     });
   };
 
@@ -203,10 +170,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
     setIsSaving(true);
     try {
-      const totalIncome = calculateTotalIncome();
-      const totalAssets = calculateTotalAssets();
-      const totalDebts = calculateTotalDebts();
-
       await databaseService.updateLead(leadId, {
         // Loan & Property
         appraisal_value: editData.appraisal_value?.toString() || null,
@@ -225,33 +188,22 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         occupancy: editData.occupancy || null,
         residency_type: editData.residency_type || null,
         marital_status: editData.marital_status || null,
-        number_of_dependents: editData.number_of_dependents,
         monthly_pmt_goal: editData.monthly_payment_goal,
         cash_to_close_goal: editData.cash_to_close_goal,
         borrower_current_address: editData.borrower_current_address || null,
-        time_at_current_address_years: editData.time_at_current_address_years,
-        time_at_current_address_months: editData.time_at_current_address_months,
         military_veteran: editData.military_veteran,
         
-        // Financial Info
-        base_employment_income: editData.base_employment_income,
-        overtime_income: editData.overtime_income,
-        bonus_income: editData.bonus_income,
-        self_employment_income: editData.self_employment_income,
-        other_income: editData.other_income,
-        total_monthly_income: totalIncome,
-        checking_account: editData.checking_account,
-        savings_account: editData.savings_account,
-        investment_accounts: editData.investment_accounts,
-        retirement_accounts: editData.retirement_accounts,
-        gift_funds: editData.gift_funds,
-        other_assets: editData.other_assets,
-        assets: totalAssets,
-        credit_card_debt: editData.credit_card_debt,
-        auto_loans: editData.auto_loans,
-        student_loans: editData.student_loans,
-        other_monthly_debts: editData.other_monthly_debts,
-        monthly_liabilities: totalDebts,
+        // Consolidated Financial Fields
+        total_monthly_income: editData.total_monthly_income,
+        assets: editData.assets,
+        monthly_liabilities: editData.monthly_liabilities,
+        
+        // Monthly Payment Breakdown
+        principal_interest: editData.principal_interest,
+        property_taxes: editData.property_taxes,
+        homeowners_insurance: editData.homeowners_insurance,
+        mortgage_insurance: editData.mortgage_insurance,
+        hoa_dues: editData.hoa_dues,
       });
 
       setIsEditing(false);
@@ -370,20 +322,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
           className="h-8"
           placeholder="Credit score"
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
-      label: "Proposed Monthly Payment", 
-      value: client.loan?.monthlyPayment ? formatCurrency(client.loan.monthlyPayment) : "—",
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.piti ? formatCurrency(editData.piti) : "—"}
-          disabled
-          className="h-8 bg-muted cursor-not-allowed"
-          title="Automatically calculated"
         />
       ) : undefined
     }
@@ -505,21 +443,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: Users, 
-      label: "Number of Dependents", 
-      value: (client as any).number_of_dependents?.toString() || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.number_of_dependents || ""}
-          onChange={(e) => setEditData({ ...editData, number_of_dependents: parseInt(e.target.value) || null })}
-          className="h-8"
-          placeholder="0"
-          min="0"
-        />
-      ) : undefined
-    },
-    { 
       icon: DollarSign, 
       label: "Monthly Payment Goal", 
       value: (client as any).monthly_payment_goal ? formatCurrency((client as any).monthly_payment_goal) : "—",
@@ -563,35 +486,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: Home, 
-      label: "Time at Current Address", 
-      value: formatTimeAtAddress(
-        (client as any).time_at_current_address_years, 
-        (client as any).time_at_current_address_months
-      ),
-      editComponent: isEditing ? (
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            value={editData.time_at_current_address_years || ""}
-            onChange={(e) => setEditData({ ...editData, time_at_current_address_years: parseInt(e.target.value) || null })}
-            className="h-8 flex-1"
-            placeholder="Years"
-            min="0"
-          />
-          <Input
-            type="number"
-            value={editData.time_at_current_address_months || ""}
-            onChange={(e) => setEditData({ ...editData, time_at_current_address_months: parseInt(e.target.value) || null })}
-            className="h-8 flex-1"
-            placeholder="Months"
-            min="0"
-            max="11"
-          />
-        </div>
-      ) : undefined
-    },
-    { 
       icon: Shield, 
       label: "Military/Veteran", 
       value: formatYesNo((client as any).military_veteran),
@@ -612,197 +506,119 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   ];
 
-  // Financial Info data
-  const incomeData = [
-    { 
-      icon: DollarSign, 
-      label: "Gross Monthly Income", 
-      value: formatCurrency(calculateTotalIncome()),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={formatCurrency(calculateTotalIncome())}
-          disabled
-          className="h-8 opacity-60 bg-muted"
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
-      label: "Base Employment Income", 
-      value: formatCurrency((client as any).base_employment_income),
+  // Consolidated Financial Fields
+  const consolidatedFinancialData = [
+    {
+      icon: DollarSign,
+      label: "Total Monthly Income",
+      value: isEditing ? null : formatCurrency((client as any).totalMonthlyIncome),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.base_employment_income}
-          onValueChange={(value) => setEditData({ ...editData, base_employment_income: value })}
+          value={editData.total_monthly_income}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, total_monthly_income: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: DollarSign, 
-      label: "Overtime Income", 
-      value: formatCurrency((client as any).overtime_income),
+    {
+      icon: Wallet,
+      label: "Total Assets",
+      value: isEditing ? null : formatCurrency((client as any).assets),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.overtime_income}
-          onValueChange={(value) => setEditData({ ...editData, overtime_income: value })}
+          value={editData.assets}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, assets: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: DollarSign, 
-      label: "Bonus Income", 
-      value: formatCurrency((client as any).bonus_income),
+    {
+      icon: CreditCard,
+      label: "Total Monthly Liabilities",
+      value: isEditing ? null : formatCurrency((client as any).monthlyLiabilities),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.bonus_income}
-          onValueChange={(value) => setEditData({ ...editData, bonus_income: value })}
+          value={editData.monthly_liabilities}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, monthly_liabilities: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
-    },
-    { 
-      icon: Building, 
-      label: "Self Employment Income", 
-      value: formatCurrency((client as any).self_employment_income),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.self_employment_income}
-          onValueChange={(value) => setEditData({ ...editData, self_employment_income: value })}
-        />
-      ) : undefined
-    },
-    { 
-      icon: TrendingUp, 
-      label: "Other Income", 
-      value: formatCurrency((client as any).other_income),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.other_income}
-          onValueChange={(value) => setEditData({ ...editData, other_income: value })}
-        />
-      ) : undefined
+      ) : null
     }
   ];
 
-  const assetData = [
-    { 
-      icon: PiggyBank, 
-      label: "Checking Account", 
-      value: formatCurrency((client as any).checking_account),
+  // Monthly Payment Breakdown
+  const monthlyPaymentData = [
+    {
+      icon: Home,
+      label: "Principal & Interest",
+      value: isEditing ? null : formatCurrency((client as any).principalInterest),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.checking_account}
-          onValueChange={(value) => setEditData({ ...editData, checking_account: value })}
+          value={editData.principal_interest}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, principal_interest: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: PiggyBank, 
-      label: "Savings Account", 
-      value: formatCurrency((client as any).savings_account),
+    {
+      icon: Receipt,
+      label: "Property Taxes",
+      value: isEditing ? null : formatCurrency((client as any).propertyTaxes),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.savings_account}
-          onValueChange={(value) => setEditData({ ...editData, savings_account: value })}
+          value={editData.property_taxes}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, property_taxes: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: TrendingUp, 
-      label: "Investment Accounts", 
-      value: formatCurrency((client as any).investment_accounts),
+    {
+      icon: Shield,
+      label: "Monthly HOI",
+      value: isEditing ? null : formatCurrency((client as any).homeownersInsurance),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.investment_accounts}
-          onValueChange={(value) => setEditData({ ...editData, investment_accounts: value })}
+          value={editData.homeowners_insurance}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, homeowners_insurance: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: Building, 
-      label: "Retirement Accounts (401k/IRA)", 
-      value: formatCurrency((client as any).retirement_accounts),
+    {
+      icon: Shield,
+      label: "Monthly MI",
+      value: isEditing ? null : formatCurrency((client as any).mortgageInsurance),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.retirement_accounts}
-          onValueChange={(value) => setEditData({ ...editData, retirement_accounts: value })}
+          value={editData.mortgage_insurance}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, mortgage_insurance: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: DollarSign, 
-      label: "Gift Funds", 
-      value: formatCurrency((client as any).gift_funds),
+    {
+      icon: Building2,
+      label: "HOA Dues",
+      value: isEditing ? null : formatCurrency((client as any).hoaDues),
       editComponent: isEditing ? (
         <InlineEditCurrency
-          value={editData.gift_funds}
-          onValueChange={(value) => setEditData({ ...editData, gift_funds: value })}
+          value={editData.hoa_dues}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, hoa_dues: value || 0 }))}
+          className="w-full"
         />
-      ) : undefined
+      ) : null
     },
-    { 
-      icon: DollarSign, 
-      label: "Other Assets", 
-      value: formatCurrency((client as any).other_assets),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.other_assets}
-          onValueChange={(value) => setEditData({ ...editData, other_assets: value })}
-        />
-      ) : undefined
-    }
-  ];
-
-  const debtData = [
-    { 
-      icon: CreditCard, 
-      label: "Credit Card Debt", 
-      value: formatCurrency((client as any).credit_card_debt),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.credit_card_debt}
-          onValueChange={(value) => setEditData({ ...editData, credit_card_debt: value })}
-        />
-      ) : undefined
-    },
-    { 
-      icon: Building, 
-      label: "Auto Loans", 
-      value: formatCurrency((client as any).auto_loans),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.auto_loans}
-          onValueChange={(value) => setEditData({ ...editData, auto_loans: value })}
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
-      label: "Student Loans", 
-      value: formatCurrency((client as any).student_loans),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.student_loans}
-          onValueChange={(value) => setEditData({ ...editData, student_loans: value })}
-        />
-      ) : undefined
-    },
-    { 
-      icon: CreditCard, 
-      label: "Other Monthly Debts", 
-      value: formatCurrency((client as any).other_monthly_debts),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.other_monthly_debts}
-          onValueChange={(value) => setEditData({ ...editData, other_monthly_debts: value })}
-        />
-      ) : undefined
+    {
+      icon: Calculator,
+      label: "PITI (Total Monthly Payment)",
+      value: formatCurrency(isEditing ? calculatePITI() : ((client as any).piti || 0)),
+      isCalculated: true
     }
   ];
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-6">
+      <div className="space-y-6 p-1">
         {/* Single Edit/Save button set at top */}
         <div className="flex items-center justify-end gap-2">
           {isEditing ? (
@@ -840,52 +656,44 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <FourColumnDetailLayout items={borrowerData} />
         </div>
 
-        {/* Financial Information Section */}
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <DollarSign className="h-5 w-5 text-primary" />
-            <span>Monthly Income:</span>
-            <span className="text-emerald-600 font-bold">
-              {formatCurrency(calculateTotalIncome())}
-            </span>
-          </h3>
-          <FourColumnDetailLayout items={incomeData} />
+        {/* Consolidated Financial Information */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Financial Summary
+            </h3>
+          </div>
+          <FourColumnDetailLayout items={consolidatedFinancialData} />
         </div>
 
-        {/* Assets Section */}
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <PiggyBank className="h-5 w-5 text-primary" />
-            <span>Total Assets:</span>
-            <span className="text-purple-600 font-bold">
-              {formatCurrency(calculateTotalAssets())}
-            </span>
-          </h3>
-          <FourColumnDetailLayout items={assetData} />
+        {/* Monthly Payment Breakdown Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Monthly Payment Breakdown
+            </h3>
+          </div>
+          <FourColumnDetailLayout items={monthlyPaymentData} />
         </div>
 
-        {/* Debts Section */}
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <span>Monthly Liability:</span>
-            <span className="text-orange-600 font-bold">
-              {formatCurrency(calculateTotalDebts())}
-            </span>
-          </h3>
-          <FourColumnDetailLayout items={debtData} />
-          
-          {/* Show DTI if we have income and debts */}
-          {calculateTotalIncome() > 0 && (
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Debt-to-Income Ratio (DTI)</span>
-                <span className="text-sm font-bold">
-                  {formatPercentage((calculateTotalDebts() / calculateTotalIncome()) * 100)}
-                </span>
-              </div>
+        {/* DTI Calculation */}
+        <div className="space-y-4">
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-lg">Debt-to-Income Ratio (DTI):</span>
+              <span className="text-2xl font-bold text-primary">
+                {(() => {
+                  const totalIncome = isEditing ? (editData.total_monthly_income || 0) : ((client as any).totalMonthlyIncome || 0);
+                  const totalLiabilities = isEditing ? (editData.monthly_liabilities || 0) : ((client as any).monthlyLiabilities || 0);
+                  const piti = isEditing ? calculatePITI() : ((client as any).piti || 0);
+                  const dti = totalIncome > 0 ? ((totalLiabilities + piti) / totalIncome * 100) : 0;
+                  return `${dti.toFixed(2)}%`;
+                })()}
+              </span>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </ScrollArea>
