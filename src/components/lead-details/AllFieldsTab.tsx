@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useFields } from "@/contexts/FieldsContext";
-import { FIELD_NAME_MAP, getDatabaseFieldName } from "@/types/crm";
+import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
@@ -31,8 +31,41 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
   const [saving, setSaving] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [leadData, setLeadData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleFieldUpdate = async (fieldName: string, value: any) => {
+  useEffect(() => {
+    const fetchLeadData = async () => {
+      if (!leadId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('id', leadId)
+          .single();
+        
+        if (error) throw error;
+        setLeadData(data);
+      } catch (error) {
+        console.error('Error fetching lead data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load lead data",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeadData();
+  }, [leadId, toast]);
+
+  const handleFieldUpdate = async (dbFieldName: string, value: any) => {
     if (!leadId) {
       toast({
         title: "Error",
@@ -42,14 +75,12 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
       return;
     }
 
-    setSaving(fieldName);
+    setSaving(dbFieldName);
     try {
-      const dbFieldName = getDatabaseFieldName(fieldName);
       await databaseService.updateLead(leadId, { [dbFieldName]: value });
       
-      if (onClientPatched) {
-        onClientPatched({ [fieldName]: value });
-      }
+      // Update local state
+      setLeadData(prev => ({ ...prev, [dbFieldName]: value }));
       
       if (onLeadUpdated) {
         onLeadUpdated();
@@ -60,7 +91,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         description: "Field has been updated successfully.",
       });
     } catch (error) {
-      console.error(`Error updating ${fieldName}:`, error);
+      console.error(`Error updating ${dbFieldName}:`, error);
       toast({
         title: "Error",
         description: `Failed to update field.`,
@@ -72,8 +103,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
   };
 
   const renderFieldEditor = (field: any) => {
-    const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
-    const value = client[frontendFieldName];
+    const value = leadData?.[field.field_name];
 
     switch (field.field_type) {
       case 'text':
@@ -82,7 +112,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditText
             value={value || ''}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -90,7 +120,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditPhone
             value={value || ''}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -98,7 +128,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditNumber
             value={value ?? null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -106,7 +136,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditCurrency
             value={value ?? null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -114,7 +144,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditPercentage
             value={value ?? null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -122,7 +152,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditDate
             value={value || null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -130,7 +160,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditDateTime
             value={value || null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -138,7 +168,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
         return (
           <InlineEditBoolean
             value={value ?? null}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -147,7 +177,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditSelect
             value={value || null}
             options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
-            onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
+            onValueChange={(newValue) => handleFieldUpdate(field.field_name, newValue)}
           />
         );
       
@@ -214,6 +244,22 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
     }));
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <span className="text-sm text-muted-foreground">Loading fields...</span>
+      </div>
+    );
+  }
+
+  if (!leadData) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <span className="text-sm text-muted-foreground">No lead data available</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4">
       <div className="flex items-center gap-4 mb-6">
@@ -260,8 +306,7 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
                   <div className="p-4 pt-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {fields.map((field) => {
-                        const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
-                        const isSaving = saving === frontendFieldName;
+                        const isSaving = saving === field.field_name;
                         
                         return (
                           <div key={field.id} className="space-y-2">
