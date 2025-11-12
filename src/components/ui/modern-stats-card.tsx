@@ -111,7 +111,7 @@ export function ModernStatsCard({
 
         {/* Progress Bar at Bottom */}
         {showProgress && (
-          <div className="mt-3 space-y-1.5">
+          <div className="mt-3 space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{progressValue} / {progressMax}</span>
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
@@ -126,12 +126,15 @@ export function ModernStatsCard({
                 />
               )}
             </div>
-            {showExpectedProgress && expectedProgressValue !== undefined && (
-              <div className="text-xs text-muted-foreground text-center">
-                Expected: {Math.round(expectedProgressValue)} 
-                {progressValue >= expectedProgressValue ? ' ✓ On Pace' : ' ⚠ Behind'}
-              </div>
-            )}
+            {showExpectedProgress && expectedProgressValue !== undefined && (() => {
+              const behindCount = Math.max(0, Math.round(expectedProgressValue - progressValue));
+              const isOnPace = progressValue >= expectedProgressValue;
+              return (
+                <div className="text-xs text-muted-foreground text-center mt-1">
+                  {isOnPace ? '✓ On Pace' : `${behindCount} behind`}
+                </div>
+              );
+            })()}
           </div>
         )}
       </CardContent>
