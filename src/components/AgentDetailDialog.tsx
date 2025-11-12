@@ -1,28 +1,26 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
-import { databaseService } from "@/services/database";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
 import { ActivityLogDetailModal } from "@/components/modals/ActivityLogDetailModal";
-import { Phone, Users } from "lucide-react";
+import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
-import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
+import { Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText, Users } from "lucide-react";
 
 interface AgentDetailDialogProps {
   agent: any | null;
