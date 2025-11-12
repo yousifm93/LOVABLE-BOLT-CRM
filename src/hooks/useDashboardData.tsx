@@ -797,13 +797,41 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  const isLoading = 
-    isLoadingThisMonthLeads || 
-    isLoadingYesterdayLeads || 
+  // All leads across all pipeline stages
+  const { data: allPipelineLeads, isLoading: isLoadingAllPipelineLeads } = useQuery({
+    queryKey: ['allPipelineLeads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          lead_on_date,
+          created_at,
+          pipeline_stage_id,
+          pipeline_stages!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform to include stage name
+      return (data || []).map(lead => ({
+        ...lead,
+        stage_name: (lead.pipeline_stages as any)?.name || 'Unknown'
+      }));
+    },
+    staleTime: 30000,
+  });
+
+  const isLoading =
+    isLoadingThisMonthLeads ||
+    isLoadingYesterdayLeads ||
     isLoadingTodayLeads ||
-    isLoadingAllLeads || 
-    isLoadingThisMonthApps || 
-    isLoadingYesterdayApps || 
+    isLoadingAllLeads ||
+    isLoadingThisMonthApps ||
+    isLoadingYesterdayApps ||
     isLoadingTodayApps ||
     isLoadingAllApps ||
     isLoadingThisMonthMeetings ||
@@ -816,7 +844,6 @@ export const useDashboardData = () => {
     isLoadingAllCalls ||
     isLoadingStageChanges ||
     isLoadingStageCounts ||
-    isLoadingActiveMetrics ||
     isLoadingCurrentMonth ||
     isLoadingNextMonth ||
     isLoadingThisWeek ||
@@ -828,7 +855,8 @@ export const useDashboardData = () => {
     isLoadingClosedMonthlyLeads ||
     isLoadingClosedYtd ||
     isLoadingClosedVolume ||
-    isLoadingClosedUnits;
+    isLoadingClosedUnits ||
+    isLoadingAllPipelineLeads;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -862,6 +890,7 @@ export const useDashboardData = () => {
     closedYtdMetrics: closedYtdMetrics || { ytd_units: 0, ytd_volume: 0, avg_loan_amount: 0 },
     closedMonthlyVolume: closedMonthlyVolume || [],
     closedMonthlyUnits: closedMonthlyUnits || [],
+    allPipelineLeads: allPipelineLeads || [],
     isLoading,
   };
 };

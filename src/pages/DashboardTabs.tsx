@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { CRMClient } from "@/types/crm";
 import { useToast } from "@/hooks/use-toast";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 
 // Monthly goals
 const MONTHLY_GOALS = {
@@ -164,6 +165,7 @@ export default function DashboardTabs() {
     closedYtdMetrics,
     closedMonthlyVolume,
     closedMonthlyUnits,
+    allPipelineLeads,
     isLoading,
   } = useDashboardData();
 
@@ -238,6 +240,10 @@ export default function DashboardTabs() {
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // All tab state
+  const [allLeadsData, setAllLeadsData] = useState<any[]>([]);
+  const [selectedAllLeadIds, setSelectedAllLeadIds] = useState<string[]>([]);
+
   // Modal handlers
   const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls") => {
     setModalTitle(title);
@@ -258,6 +264,7 @@ export default function DashboardTabs() {
     try {
       // Close the modal first
       setModalOpen(false);
+      setVolumeModalOpen(false);
       
       // Fetch full lead data
       const lead = await databaseService.getLeadByIdWithEmbeds(leadId);
@@ -276,6 +283,93 @@ export default function DashboardTabs() {
     }
   };
 
+  // Transform all pipeline leads for table display
+  useEffect(() => {
+    if (allPipelineLeads) {
+      const transformed = allPipelineLeads.map((lead: any, index: number) => ({
+        id: lead.id,
+        number: index + 1,
+        borrowerName: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+        leadCreatedOn: lead.lead_on_date || lead.created_at?.split('T')[0],
+        currentStage: lead.stage_name,
+        _fullData: lead
+      }));
+      setAllLeadsData(transformed);
+    }
+  }, [allPipelineLeads]);
+
+  // Define table columns for All tab
+  const allLeadsColumns: ColumnDef<any>[] = useMemo(() => [
+    {
+      accessorKey: '_select',
+      header: '',
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          checked={selectedAllLeadIds.includes(row.original.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedAllLeadIds([...selectedAllLeadIds, row.original.id]);
+            } else {
+              setSelectedAllLeadIds(selectedAllLeadIds.filter(id => id !== row.original.id));
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-pointer"
+        />
+      ),
+      className: "w-12 text-center",
+    },
+    {
+      accessorKey: 'number',
+      header: '#',
+      className: "w-16 text-center",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.number}</span>
+      ),
+    },
+    {
+      accessorKey: 'borrowerName',
+      header: 'Borrower Name',
+      cell: ({ row }) => (
+        <div
+          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors font-medium"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLeadClick(row.original.id);
+          }}
+        >
+          {row.original.borrowerName || '—'}
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: 'leadCreatedOn',
+      header: 'Lead Created On',
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {row.original.leadCreatedOn 
+            ? formatLocalDate(row.original.leadCreatedOn) 
+            : '—'}
+        </span>
+      ),
+      className: "w-40",
+      sortable: true,
+    },
+    {
+      accessorKey: 'currentStage',
+      header: 'Current Stage',
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="text-xs">
+          {row.original.currentStage}
+        </Badge>
+      ),
+      className: "w-40",
+      sortable: true,
+    },
+  ], [selectedAllLeadIds, allLeadsData]);
+
   return (
     <div className="space-y-4">
       {/* Header Section */}
@@ -291,11 +385,12 @@ export default function DashboardTabs() {
       </div>
 
       <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 h-9">
+        <TabsList className="grid w-full grid-cols-5 h-9">
           <TabsTrigger value="sales" className="text-sm">Sales</TabsTrigger>
           <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
           <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
           <TabsTrigger value="miscellaneous" className="text-sm">Miscellaneous</TabsTrigger>
+          <TabsTrigger value="all" className="text-sm">All</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">
@@ -894,6 +989,35 @@ export default function DashboardTabs() {
           <ActivityMonitor />
           
           <ConversionAnalytics />
+        </TabsContent>
+
+        {/* All Tab - Unified View of All Leads */}
+        <TabsContent value="all" className="space-y-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold flex items-center justify-between">
+                  <span>All Pipeline Leads ({allLeadsData.length})</span>
+                  {selectedAllLeadIds.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {selectedAllLeadIds.length} selected
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  columns={allLeadsColumns}
+                  data={allLeadsData}
+                  showRowNumbers={false}
+                />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
