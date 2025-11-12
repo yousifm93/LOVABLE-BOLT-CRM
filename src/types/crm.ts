@@ -315,123 +315,152 @@ export const TEAM_MEMBERS = [
   'Herman Daza'
 ] as const;
 
-// Master field name mapping: Database field → Frontend display key
+// Complete database field name to frontend display key mapping (all 124+ fields)
 export const FIELD_NAME_MAP: Record<string, string> = {
-  // Core Identity Fields
+  // CONTACT INFO
   'first_name': 'firstName',
   'last_name': 'lastName',
   'middle_name': 'middleName',
   'email': 'email',
   'phone': 'phone',
   
-  // Agent Fields - Always use "buyersAgent" internally
-  'buyer_agent_id': 'buyersAgentId',
-  'real_estate_agent': 'buyersAgentId',
-  'listing_agent_id': 'listingAgentId',
+  // BORROWER INFO
+  'marital_status': 'maritalStatus',
+  'own_rent_current_address': 'ownRentCurrentAddress',
+  'reo': 'reo',
+  'military_veteran': 'militaryVeteran',
+  'search_stage': 'searchStage',
+  'assets': 'assets',
+  'borrower_current_address': 'borrowerCurrentAddress',
+  'cash_to_close_goal': 'cashToCloseGoal',
+  'dti': 'dti',
+  'fico_score': 'creditScore',
+  'income_type': 'incomeType',
+  'monthly_liabilities': 'monthlyLiabilities',
+  'monthly_pmt_goal': 'monthlyPmtGoal',
+  'residency_type': 'residencyType',
+  'ssn': 'ssn',
+  'total_monthly_income': 'totalMonthlyIncome',
+  'dob': 'dateOfBirth',
   
-  // Assignment and Status
-  'teammate_assigned': 'user',
-  'converted': 'status',
-  'task_eta': 'dueDate',
+  // LEAD INFO
   'referral_source': 'referralSource',
   'referred_via': 'referredVia',
+  'converted': 'status',
+  'lead_strength': 'leadStrength',
+  'likely_to_apply': 'likelyToApply',
+  'priority': 'priority',
+  'source': 'source',
   
-  // Loan Fields
-  'loan_type': 'loanType',
+  // LOAN INFO
+  'appraisal_value': 'appraisalValue',
+  'arrive_loan_number': 'arriveLoanNumber',
   'loan_amount': 'loanAmount',
   'sales_price': 'salesPrice',
-  'program': 'loanProgram',
+  'loan_type': 'loanType',
+  'property_type': 'propertyType',
   'interest_rate': 'interestRate',
   'term': 'term',
+  'piti': 'piti',
   'principal_interest': 'principalInterest',
   'property_taxes': 'propertyTaxes',
   'homeowners_insurance': 'homeownersInsurance',
   'mortgage_insurance': 'mortgageInsurance',
   'hoa_dues': 'hoaDues',
-  'piti': 'piti',
-  'dti': 'dti',
-  'escrows': 'escrows',
-  
-  // Property Fields
-  'property_type': 'propertyType',
-  'occupancy': 'occupancy',
-  'subject_address_1': 'subjectAddress1',
-  'subject_address_2': 'subjectAddress2',
-  'subject_city': 'subjectCity',
-  'subject_state': 'subjectState',
-  'subject_zip': 'subjectZip',
-  'appraisal_value': 'appraisalValue',
-  
-  // Borrower Info Fields
-  'income_type': 'incomeType',
-  'fico_score': 'creditScore',
-  'dob': 'dateOfBirth',
-  'borrower_current_address': 'currentAddress',
-  'own_rent_current_address': 'ownRentCurrentAddress',
-  'time_at_current_address_years': 'timeAtAddressYears',
-  'time_at_current_address_months': 'timeAtAddressMonths',
-  'military_veteran': 'militaryVeteran',
-  'reo': 'reo',
-  
-  // Financial Fields
-  'total_monthly_income': 'totalMonthlyIncome',
-  'monthly_liabilities': 'monthlyLiabilities',
-  'assets': 'assets',
+  'program': 'loanProgram',
   'down_pmt': 'downPayment',
+  'escrows': 'escrows',
+  'occupancy': 'occupancy',
+  'lender_loan_number': 'lenderLoanNumber',
+  'condo_name': 'condoName',
+  'condo_approval_type': 'condoApprovalType',
   
-  // Timeline Fields
-  'pending_app_at': 'pendingAppOn',
+  // OBJECT (relationship fields)
+  'buyer_agent_id': 'buyerAgentId',
+  'listing_agent_id': 'listingAgentId',
+  'lender_id': 'lenderId',
+  'approved_lender_id': 'approvedLenderId',
+  'teammate_assigned': 'teammateAssigned',
+  'condo_id': 'condoId',
+  
+  // DATE
+  'lead_on_date': 'leadOnDate',
+  'created_at': 'createdAt',
+  'updated_at': 'updatedAt',
+  'task_eta': 'taskEta',
+  'close_date': 'closeDate',
+  'lock_expiration_date': 'lockExpirationDate',
+  'title_eta': 'titleEta',
+  'appr_date_time': 'appraisalDateTime',
+  'appr_eta': 'appraisalEta',
+  'fin_cont': 'financingContingency',
+  'pending_app_at': 'pendingAppAt',
   'app_complete_at': 'appCompleteAt',
   'pre_qualified_at': 'preQualifiedAt',
   'pre_approved_at': 'preApprovedAt',
-  'close_date': 'closeDate',
+  'active_at': 'activeAt',
   'closed_at': 'closedAt',
-  'lock_expiration_date': 'lockExpirationDate',
-  'lead_on_date': 'leadDate',
-  'created_at': 'createdAt',
-  'updated_at': 'updatedAt',
+  'submitted_at': 'submittedAt',
+  'ctc_at': 'ctcAt',
+  'title_ordered_date': 'titleOrderedDate',
+  'appraisal_ordered_date': 'appraisalOrderedDate',
+  'appraisal_scheduled_date': 'appraisalScheduledDate',
+  'insurance_quoted_date': 'insuranceQuotedDate',
+  'insurance_ordered_date': 'insuranceOrderedDate',
+  'insurance_received_date': 'insuranceReceivedDate',
+  'notes_updated_at': 'notesUpdatedAt',
+  'latest_file_updates_updated_at': 'latestFileUpdatesUpdatedAt',
   
-  // Process Status Fields
-  'disclosure_status': 'disclosureStatus',
-  'loan_status': 'loanStatus',
+  // LOAN STATUS
   'appraisal_status': 'appraisalStatus',
   'title_status': 'titleStatus',
   'hoi_status': 'hoiStatus',
   'condo_status': 'condoStatus',
   'cd_status': 'cdStatus',
+  'disclosure_status': 'disclosureStatus',
+  'loan_status': 'loanStatus',
   'package_status': 'packageStatus',
   'ba_status': 'baStatus',
   'epo_status': 'epoStatus',
   'mi_status': 'miStatus',
   
-  // Document Fields
-  'les_file': 'lesFile',
-  'contract_file': 'contractFile',
-  'initial_approval_file': 'initialApprovalFile',
-  'disc_file': 'discFile',
-  'appraisal_file': 'appraisalFile',
-  'insurance_file': 'insuranceFile',
-  'icd_file': 'icdFile',
-  'fcp_file': 'fcpFile',
-  
-  // Additional Fields
+  // NOTES
   'notes': 'notes',
-  'pipeline_stage_id': 'pipelineStageId',
+  'condo_notes': 'condoNotes',
+  'insurance_notes': 'insuranceNotes',
+  'title_notes': 'titleNotes',
+  'appraisal_notes': 'appraisalNotes',
+  'latest_file_updates': 'latestFileUpdates',
+  
+  // FILE
+  'appraisal_file': 'appraisalFile',
+  'condo_docs_file': 'condoDocsFile',
+  'contract_file': 'contractFile',
+  'disc_file': 'discFile',
+  'fcp_file': 'fcpFile',
+  'icd_file': 'icdFile',
+  'initial_approval_file': 'initialApprovalFile',
+  'insurance_file': 'insuranceFile',
+  'insurance_inspection_file': 'insuranceInspectionFile',
+  'insurance_policy_file': 'insurancePolicyFile',
+  'les_file': 'lesFile',
+  'title_file': 'titleFile',
+  
+  // ADDRESS
+  'subject_address_1': 'subjectAddress1',
+  'subject_address_2': 'subjectAddress2',
+  'subject_city': 'subjectCity',
+  'subject_state': 'subjectState',
+  'subject_zip': 'subjectZip',
+  
+  // TRACKING DATA
   'pipeline_section': 'pipelineSection',
-  'arrive_loan_number': 'arriveLoanNumber',
-  'pr_type': 'prType',
-  'source': 'source',
-  'lead_strength': 'leadStrength',
+  'pipeline_stage_id': 'pipelineStageId',
   'is_closed': 'isClosed',
-  'search_stage': 'searchStage',
-  'title_eta': 'titleEta',
-  'appr_date_time': 'appraisalDateTime',
-  'appr_eta': 'appraisalEta',
-  'fin_cont': 'financingContingency',
-  'monthly_pmt_goal': 'monthlyPaymentGoal',
-  'cash_to_close_goal': 'cashToCloseGoal',
-  'likely_to_apply': 'likelyToApply',
-  'priority': 'priority',
+  'account_id': 'accountId',
+  'created_by': 'createdBy',
+  'notes_updated_by': 'notesUpdatedBy',
+  'latest_file_updates_updated_by': 'latestFileUpdatesUpdatedBy',
 };
 
 // Reverse mapping for lookup

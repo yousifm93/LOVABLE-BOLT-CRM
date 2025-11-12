@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Search, GripVertical } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, GripVertical, ChevronDown, ChevronRight } from "lucide-react";
+import { useFields } from "@/contexts/FieldsContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,8 @@ export function ColumnVisibilityModal({
 }: ColumnVisibilityModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewName, setViewName] = useState("");
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const { allFields } = useFields();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -112,12 +115,72 @@ export function ColumnVisibilityModal({
     })
   );
 
-  const filteredColumns = columns.filter(column =>
-    column.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Group columns by section
+  const groupedColumns = useMemo(() => {
+    const groups: Record<string, Column[]> = {};
+    
+    columns.forEach(col => {
+      const field = allFields.find(f => f.field_name === col.id);
+      const section = field?.section || 'OTHER';
+      
+      if (!groups[section]) {
+        groups[section] = [];
+      }
+      groups[section].push(col);
+    });
+    
+    // Sort sections by priority
+    const sectionOrder = [
+      'CONTACT INFO',
+      'BORROWER INFO',
+      'LEAD INFO',
+      'LOAN INFO',
+      'LOAN STATUS',
+      'ADDRESS',
+      'DATE',
+      'OBJECT',
+      'NOTES',
+      'FILE',
+      'TRACKING DATA'
+    ];
+    
+    const sortedGroups: Record<string, Column[]> = {};
+    sectionOrder.forEach(section => {
+      if (groups[section]) {
+        sortedGroups[section] = groups[section];
+      }
+    });
+    
+    // Add any remaining sections not in priority list
+    Object.keys(groups).forEach(section => {
+      if (!sectionOrder.includes(section)) {
+        sortedGroups[section] = groups[section];
+      }
+    });
+    
+    return sortedGroups;
+  }, [columns, allFields]);
+
+  const filteredColumns = searchTerm
+    ? columns.filter(column =>
+        column.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : null;
 
   const visibleCount = columns.filter(col => col.visible).length;
   const allVisible = visibleCount === columns.length;
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  };
 
   const handleSaveView = () => {
     if (viewName.trim()) {
@@ -173,28 +236,83 @@ export function ColumnVisibilityModal({
 
           <Separator />
 
-          {/* Column List with Drag and Drop */}
-          <div className="max-h-64 overflow-y-auto">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={filteredColumns.map(col => col.id)}
-                strategy={verticalListSortingStrategy}
+          {/* Column List with Section Grouping */}
+          <div className="max-h-96 overflow-y-auto">
+            {filteredColumns ? (
+              // Search results - flat list
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <div className="space-y-1">
-                  {filteredColumns.map((column) => (
-                    <SortableColumnItem
-                      key={column.id}
-                      column={column}
-                      onToggle={onColumnToggle}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={filteredColumns.map(col => col.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1">
+                    {filteredColumns.map((column) => (
+                      <SortableColumnItem
+                        key={column.id}
+                        column={column}
+                        onToggle={onColumnToggle}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              // Grouped by section
+              <div className="space-y-2">
+                {Object.entries(groupedColumns).map(([section, sectionColumns]) => {
+                  const isExpanded = expandedSections.has(section);
+                  const sectionVisibleCount = sectionColumns.filter(c => c.visible).length;
+                  
+                  return (
+                    <div key={section} className="border rounded-md">
+                      <button
+                        onClick={() => toggleSection(section)}
+                        className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          <span className="font-medium text-sm">{section}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({sectionVisibleCount}/{sectionColumns.length})
+                          </span>
+                        </div>
+                      </button>
+                      
+                      {isExpanded && (
+                        <div className="p-2 pt-0 space-y-1">
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <SortableContext
+                              items={sectionColumns.map(col => col.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {sectionColumns.map((column) => (
+                                <SortableColumnItem
+                                  key={column.id}
+                                  column={column}
+                                  onToggle={onColumnToggle}
+                                />
+                              ))}
+                            </SortableContext>
+                          </DndContext>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <Separator />

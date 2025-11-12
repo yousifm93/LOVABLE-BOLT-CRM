@@ -194,21 +194,22 @@ export default function Leads() {
     { id: "notes", label: "About the Borrower", visible: true },
   ];
 
-  // Load ALL database fields for Hide/Show modal
+  // Load ALL database fields for Hide/Show modal - showing all 124+ fields
   const allAvailableColumns = useMemo(() => {
+    // Get ALL active fields from database
     const dbColumns = allFields
-      .filter(f => f.is_in_use) // Show ALL 72 fields
+      .filter(f => f.is_in_use) // Only active fields
       .map(field => ({
-        id: FIELD_NAME_MAP[field.field_name] || field.field_name, // Use mapped frontend name
+        id: field.field_name, // Use DATABASE field name directly
         label: field.display_name,
-        visible: false // hidden by default for new fields
+        visible: false // hidden by default for non-core fields
       }));
     
-    // Merge: existing columns take precedence
-    const existingIds = new Set(coreColumns.map(c => c.id));
-    const newColumns = dbColumns.filter(c => !existingIds.has(c.id));
+    // Merge: core columns override database defaults
+    const coreColumnIds = new Set(coreColumns.map(c => c.id));
+    const additionalColumns = dbColumns.filter(c => !coreColumnIds.has(c.id));
     
-    return [...coreColumns, ...newColumns];
+    return [...coreColumns, ...additionalColumns];
   }, [allFields]);
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
