@@ -17,6 +17,8 @@ interface ModernStatsCardProps {
   showProgress?: boolean; // Show progress bar at bottom
   progressValue?: number; // Current progress value
   progressMax?: number; // Maximum progress value
+  showExpectedProgress?: boolean; // Show expected progress indicator
+  expectedProgressValue?: number; // Expected progress value
 }
 
 export function ModernStatsCard({ 
@@ -33,6 +35,8 @@ export function ModernStatsCard({
   showProgress = false,
   progressValue = 0,
   progressMax = 100,
+  showExpectedProgress = false,
+  expectedProgressValue = 0,
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -112,7 +116,22 @@ export function ModernStatsCard({
               <span>{progressValue} / {progressMax}</span>
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
             </div>
-            <Progress value={(progressValue / progressMax) * 100} className="h-2" />
+            <div className="relative">
+              <Progress value={(progressValue / progressMax) * 100} className="h-2" />
+              {showExpectedProgress && expectedProgressValue !== undefined && (
+                <div 
+                  className="absolute top-0 h-2 w-0.5 bg-foreground/60"
+                  style={{ left: `${(expectedProgressValue / progressMax) * 100}%` }}
+                  title={`Expected: ${Math.round(expectedProgressValue)} (${Math.round((expectedProgressValue / progressMax) * 100)}%)`}
+                />
+              )}
+            </div>
+            {showExpectedProgress && expectedProgressValue !== undefined && (
+              <div className="text-xs text-muted-foreground text-center">
+                Expected: {Math.round(expectedProgressValue)} 
+                {progressValue >= expectedProgressValue ? ' ✓ On Pace' : ' ⚠ Behind'}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

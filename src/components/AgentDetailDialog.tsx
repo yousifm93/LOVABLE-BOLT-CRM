@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
-import { Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
@@ -17,14 +13,14 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
+import { ActivityLogDetailModal } from "@/components/modals/ActivityLogDetailModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
-import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
+import { Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText, Users } from "lucide-react";
 
 interface AgentDetailDialogProps {
   agent: any | null;
@@ -49,6 +45,8 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
   const [isCallLogModalOpen, setIsCallLogModalOpen] = useState(false);
   const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [isLogDetailModalOpen, setIsLogDetailModalOpen] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
@@ -120,6 +118,11 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const handleMeetingLogSaved = () => {
     loadCallLogs();
     onAgentUpdated();
+  };
+
+  const handleViewLogDetail = (log: any) => {
+    setSelectedLog(log);
+    setIsLogDetailModalOpen(true);
   };
 
   if (!agent) return null;
@@ -326,31 +329,35 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     {callLogs.map((log: any) => (
                       <div
                         key={log.id}
-                        className="p-3 border rounded-md bg-background/50"
+                        className="p-3 border rounded-md bg-background/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => handleViewLogDetail(log)}
                       >
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground">
+                        <div className="flex items-start justify-between gap-3">
+                          {/* Left side - Log Type (prominent) */}
+                          <div className="flex-1">
+                            <div className="text-base font-semibold text-foreground mb-1">
+                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
+                            </div>
+                            {log.meeting_location && (
+                              <div className="text-xs text-muted-foreground mb-1">
+                                📍 {log.meeting_location}
+                              </div>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap mt-1">{log.summary}</p>
+                          </div>
+                          
+                          {/* Right side - User and Date */}
+                          <div className="text-right text-xs text-muted-foreground space-y-1 flex-shrink-0">
+                            <div>By: {log.users?.first_name} {log.users?.last_name}</div>
+                            <div className="font-medium">
                               {new Date(log.logged_at).toLocaleDateString('en-US', { 
                                 month: 'short', 
                                 day: 'numeric', 
                                 year: 'numeric' 
                               })}
-                            </span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
-                            </span>
+                            </div>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            by {log.users?.first_name} {log.users?.last_name}
-                          </span>
                         </div>
-                        {log.meeting_location && (
-                          <div className="text-xs text-muted-foreground mb-1">
-                            📍 {log.meeting_location}
-                          </div>
-                        )}
-                        <p className="text-sm whitespace-pre-wrap">{log.summary}</p>
                       </div>
                     ))}
                   </div>
@@ -412,6 +419,12 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         isOpen={isMeetingLogModalOpen}
         onClose={() => setIsMeetingLogModalOpen(false)}
         onMeetingSaved={handleMeetingLogSaved}
+      />
+      
+      <ActivityLogDetailModal
+        log={selectedLog}
+        isOpen={isLogDetailModalOpen}
+        onClose={() => setIsLogDetailModalOpen(false)}
       />
     </Dialog>
   );
