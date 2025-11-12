@@ -123,8 +123,6 @@ const STAGE_ID_TO_NAME: Record<string, string> = {
 };
 
 export default function DashboardTabs() {
-  const { user } = useAuth();
-  
   // Calculate expected progress based on day of month
   const calculateExpectedProgress = (monthlyGoal: number): number => {
     const now = new Date();
@@ -308,6 +306,8 @@ export default function DashboardTabs() {
                     showProgress={true}
                     progressValue={thisMonthLeads.length}
                     progressMax={MONTHLY_GOALS.leads}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.leads)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -373,6 +373,10 @@ export default function DashboardTabs() {
                     onClick={() => handleOpenModal("This Month's Applications", thisMonthApps, "applications")}
                     showProgress={true}
                     progressValue={thisMonthApps.length}
+                    progressMax={MONTHLY_GOALS.applications}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.applications)}
+                  />
                     progressMax={MONTHLY_GOALS.applications}
                   />
                   <ModernStatsCard
@@ -440,6 +444,8 @@ export default function DashboardTabs() {
                     showProgress={true}
                     progressValue={thisMonthMeetings.length}
                     progressMax={MONTHLY_GOALS.meetings}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.meetings)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -506,6 +512,8 @@ export default function DashboardTabs() {
                     showProgress={true}
                     progressValue={thisMonthCalls.length}
                     progressMax={MONTHLY_GOALS.calls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.calls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -560,7 +568,7 @@ export default function DashboardTabs() {
                   title="Recent Activity"
                   count={recentStageChanges.length}
                   data={recentStageChanges}
-                  defaultOpen={true}
+                  defaultOpen={false}
                   renderItem={(change: any, index) => {
                     const isLeadCreation = !change.from_stage;
                     const isGoingToLeads = change.to_stage?.name === 'Leads';

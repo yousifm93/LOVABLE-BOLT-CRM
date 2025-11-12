@@ -1,23 +1,21 @@
 import { useState, useEffect } from "react";
-import { Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
-import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { databaseService } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
+import { ActivityLogDetailModal } from "@/components/modals/ActivityLogDetailModal";
+import { Phone, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
