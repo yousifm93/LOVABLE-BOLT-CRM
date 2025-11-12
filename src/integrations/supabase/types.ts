@@ -19,24 +19,30 @@ export type Database = {
           agent_id: string
           created_at: string
           id: string
+          log_type: string | null
           logged_at: string
           logged_by: string
+          meeting_location: string | null
           summary: string
         }
         Insert: {
           agent_id: string
           created_at?: string
           id?: string
+          log_type?: string | null
           logged_at?: string
           logged_by: string
+          meeting_location?: string | null
           summary: string
         }
         Update: {
           agent_id?: string
           created_at?: string
           id?: string
+          log_type?: string | null
           logged_at?: string
           logged_by?: string
+          meeting_location?: string | null
           summary?: string
         }
         Relationships: [
@@ -776,6 +782,7 @@ export type Database = {
       crm_fields: {
         Row: {
           created_at: string | null
+          description: string | null
           display_name: string
           dropdown_options: Json | null
           field_name: string
@@ -793,6 +800,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           display_name: string
           dropdown_options?: Json | null
           field_name: string
@@ -810,6 +818,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           display_name?: string
           dropdown_options?: Json | null
           field_name?: string
