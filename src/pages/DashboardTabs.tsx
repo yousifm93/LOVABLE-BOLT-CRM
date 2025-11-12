@@ -560,8 +560,8 @@ export default function DashboardTabs() {
                 </Card>
               </div>
 
-              {/* Recent Activity & Pipeline Summary */}
-              <div className="mt-8 space-y-6">
+            {/* Recent Activity & Pipeline Summary */}
+            <div className="mt-8 grid grid-cols-2 gap-6">
                 <CollapsibleSection
                   title="Recent Activity"
                   count={recentStageChanges.length}
