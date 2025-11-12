@@ -55,7 +55,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     interest_rate: client.loan?.interestRate || 7.0,
     term: client.loan?.term || 360,
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-    estimated_fico: client.loan?.ficoScore || null,
+    fico_score: client.loan?.ficoScore || null,
     piti: client.loan?.monthlyPayment || null,
     
     // Borrower Info
@@ -148,7 +148,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       interest_rate: client.loan?.interestRate || 7.0,
       term: client.loan?.term || 360,
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-      estimated_fico: client.loan?.ficoScore || null,
+      fico_score: client.loan?.ficoScore || null,
       piti: client.loan?.monthlyPayment || null,
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
@@ -214,7 +214,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         interest_rate: editData.interest_rate,
         term: editData.term,
         escrows: editData.escrows || null,
-        estimated_fico: editData.estimated_fico,
+        fico_score: editData.fico_score,
         piti: editData.piti,
         
         // Borrower Info
@@ -366,8 +366,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       editComponent: isEditing ? (
         <Input
           type="number"
-          value={editData.estimated_fico || ""}
-          onChange={(e) => setEditData({ ...editData, estimated_fico: parseInt(e.target.value) || null })}
+          value={editData.fico_score || ""}
+          onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
           className="h-8"
           placeholder="Credit score"
         />

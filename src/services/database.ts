@@ -73,7 +73,7 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
   if (!lead.first_name?.trim()) errors.push("First name is required");
   if (!lead.last_name?.trim()) errors.push("Last name is required");
   
-  if (lead.estimated_fico && (lead.estimated_fico < 300 || lead.estimated_fico > 850)) {
+  if (lead.fico_score && (lead.fico_score < 300 || lead.fico_score > 850)) {
     errors.push("FICO score must be between 300 and 850");
   }
   

@@ -64,7 +64,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'task_eta': 'dueDate',
   'teammate_assigned': 'user',
   'converted': 'status',
-  'estimated_fico': 'fico',
+  'fico_score': 'fico',
   'loan_type': 'loanType',
   'loan_amount': 'loanAmount',
   'sales_price': 'salesPrice',
@@ -402,8 +402,8 @@ const allAvailableColumns = useMemo(() => {
     const fieldMapping: Record<string, string> = {
       'phone': 'phone',
       'email': 'email',
-      'estimated_fico': 'estimated_fico',
-      'fico': 'estimated_fico',
+      'fico_score': 'fico_score',
+      'fico': 'fico_score',
       'loan_amount': 'loan_amount',
       'loanAmount': 'loan_amount',
       'sales_price': 'sales_price',
@@ -501,7 +501,7 @@ const allAvailableColumns = useMemo(() => {
     realEstateAgentData: (lead as any).buyer_agent || null,
     status: lead.converted || 'Working on it',
     loanNumber: lead.arrive_loan_number?.toString() || '—',
-    fico: lead.estimated_fico || 0,
+    fico: lead.fico_score || 0,
     dti: lead.dti || 0,
     loanAmount: lead.loan_amount || 0,
     salesPrice: lead.sales_price || 0,
@@ -787,7 +787,7 @@ const allAvailableColumns = useMemo(() => {
           <InlineEditNumber
             value={row.original.fico}
             onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "estimated_fico", value);
+              handleFieldUpdate(row.original.id, "fico_score", value);
               fetchLeads();
             }}
             placeholder="0"

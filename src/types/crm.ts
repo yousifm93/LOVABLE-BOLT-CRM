@@ -364,7 +364,7 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   
   // Borrower Info Fields
   'income_type': 'incomeType',
-  'estimated_fico': 'creditScore',
+  'fico_score': 'creditScore',
   'dob': 'dateOfBirth',
   'borrower_current_address': 'currentAddress',
   'own_rent_current_address': 'ownRentCurrentAddress',

@@ -165,7 +165,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'task_eta': 'dueDate',
   'teammate_assigned': 'user',
   'converted': 'status',
-  'estimated_fico': 'creditScore',
+  'fico_score': 'creditScore',
   'referred_via': 'referredVia',
   'referral_source': 'referralSource',
   'lead_strength': 'leadStrength',

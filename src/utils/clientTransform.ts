@@ -124,7 +124,7 @@ export function transformLeadToClient(lead: any): any {
       interestRate: lead.interest_rate,
       term: lead.term,
       escrowWaiver: lead.escrows === 'Waived',
-      ficoScore: lead.estimated_fico,
+      ficoScore: lead.fico_score,
       monthlyPayment: lead.piti || calculateMonthlyPayment(lead.loan_amount, lead.interest_rate, lead.term),
       prType: lead.loan_type || 'Purchase',
     },

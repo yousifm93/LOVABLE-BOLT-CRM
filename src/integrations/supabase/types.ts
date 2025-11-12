@@ -1943,8 +1943,8 @@ export type Database = {
           email: string | null
           epo_status: Database["public"]["Enums"]["epo_status"] | null
           escrows: string | null
-          estimated_fico: number | null
           fcp_file: string | null
+          fico_score: number | null
           fin_cont: string | null
           first_name: string
           gift_funds: number | null
@@ -1972,6 +1972,7 @@ export type Database = {
           lead_on_date: string
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           lender_id: string | null
+          lender_loan_number: string | null
           les_file: string | null
           likely_to_apply: string | null
           listing_agent_id: string | null
@@ -2091,8 +2092,8 @@ export type Database = {
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
           escrows?: string | null
-          estimated_fico?: number | null
           fcp_file?: string | null
+          fico_score?: number | null
           fin_cont?: string | null
           first_name: string
           gift_funds?: number | null
@@ -2120,6 +2121,7 @@ export type Database = {
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
+          lender_loan_number?: string | null
           les_file?: string | null
           likely_to_apply?: string | null
           listing_agent_id?: string | null
@@ -2241,8 +2243,8 @@ export type Database = {
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
           escrows?: string | null
-          estimated_fico?: number | null
           fcp_file?: string | null
+          fico_score?: number | null
           fin_cont?: string | null
           first_name?: string
           gift_funds?: number | null
@@ -2270,6 +2272,7 @@ export type Database = {
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
+          lender_loan_number?: string | null
           les_file?: string | null
           likely_to_apply?: string | null
           listing_agent_id?: string | null
