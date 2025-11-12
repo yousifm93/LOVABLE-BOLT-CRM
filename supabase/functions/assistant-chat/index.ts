@@ -97,6 +97,33 @@ const TOOL_DEFINITIONS = [
   {
     type: "function",
     function: {
+      name: "search_agents",
+      description: "Search real estate agents (buyer agents and listing agents) in the buyer_agents table. Use this tool for ANY agent-related queries, NOT search_contacts.",
+      parameters: {
+        type: "object",
+        properties: {
+          search_term: { 
+            type: "string", 
+            description: "Search by agent name (first, last, or full name)" 
+          },
+          filters: {
+            type: "object",
+            description: "Optional filters for agents",
+            properties: {
+              brokerage: { type: "string", description: "Filter by brokerage/company name" },
+              agent_rank: { type: "string", enum: ["A", "B", "C", "D", "F"], description: "Filter by agent rank" },
+              has_email: { type: "boolean", description: "Filter agents with email" },
+              has_phone: { type: "boolean", description: "Filter agents with phone" }
+            }
+          },
+          limit: { type: "number", description: "Max results (default: 50)" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "get_lead_by_id",
       description: "Get complete details for a specific lead by ID, including ALL 124 fields",
       parameters: {
@@ -257,26 +284,72 @@ async function searchLeads(args: any, supabase: any): Promise<any> {
 }
 
 async function countLeads(args: any, supabase: any): Promise<any> {
+  console.log('========================================');
+  console.log('countLeads called with args:', JSON.stringify(args, null, 2));
+  console.log('========================================');
+  
   const { filters = {}, group_by } = args;
   
   let query = supabase.from('leads').select('*', { count: 'exact', head: !group_by });
   
-  if (filters.status) query = query.eq('status', filters.status);
-  if (filters.pipeline_stage_id) query = query.eq('pipeline_stage_id', filters.pipeline_stage_id);
-  if (filters.created_after) query = query.gte('created_at', filters.created_after);
-  if (filters.created_before) query = query.lte('created_at', filters.created_before);
-  if (filters.close_date_after) query = query.gte('close_date', filters.close_date_after);
-  if (filters.close_date_before) query = query.lte('close_date', filters.close_date_before);
-  if (filters.loan_amount_min) query = query.gte('loan_amount', filters.loan_amount_min);
-  if (filters.loan_amount_max) query = query.lte('loan_amount', filters.loan_amount_max);
-  if (filters.loan_type) query = query.eq('loan_type', filters.loan_type);
-  if (filters.property_type) query = query.eq('property_type', filters.property_type);
-  if (filters.teammate_assigned) query = query.eq('teammate_assigned', filters.teammate_assigned);
-  if (filters.is_closed !== undefined) query = query.eq('is_closed', filters.is_closed);
+  if (filters.status) {
+    console.log(`Applying status filter: ${filters.status}`);
+    query = query.eq('status', filters.status);
+  }
+  if (filters.pipeline_stage_id) {
+    console.log(`Applying pipeline_stage_id filter: ${filters.pipeline_stage_id}`);
+    query = query.eq('pipeline_stage_id', filters.pipeline_stage_id);
+  }
+  if (filters.created_after) {
+    console.log(`Applying created_after filter: ${filters.created_after}`);
+    query = query.gte('created_at', filters.created_after);
+  }
+  if (filters.created_before) {
+    console.log(`Applying created_before filter: ${filters.created_before}`);
+    query = query.lt('created_at', filters.created_before);
+  }
+  if (filters.close_date_after) {
+    console.log(`Applying close_date_after filter: ${filters.close_date_after}`);
+    query = query.gte('close_date', filters.close_date_after);
+  }
+  if (filters.close_date_before) {
+    console.log(`Applying close_date_before filter: ${filters.close_date_before}`);
+    query = query.lte('close_date', filters.close_date_before);
+  }
+  if (filters.loan_amount_min) {
+    console.log(`Applying loan_amount_min filter: ${filters.loan_amount_min}`);
+    query = query.gte('loan_amount', filters.loan_amount_min);
+  }
+  if (filters.loan_amount_max) {
+    console.log(`Applying loan_amount_max filter: ${filters.loan_amount_max}`);
+    query = query.lte('loan_amount', filters.loan_amount_max);
+  }
+  if (filters.loan_type) {
+    console.log(`Applying loan_type filter: ${filters.loan_type}`);
+    query = query.eq('loan_type', filters.loan_type);
+  }
+  if (filters.property_type) {
+    console.log(`Applying property_type filter: ${filters.property_type}`);
+    query = query.eq('property_type', filters.property_type);
+  }
+  if (filters.teammate_assigned) {
+    console.log(`Applying teammate_assigned filter: ${filters.teammate_assigned}`);
+    query = query.eq('teammate_assigned', filters.teammate_assigned);
+  }
+  if (filters.is_closed !== undefined) {
+    console.log(`Applying is_closed filter: ${filters.is_closed}`);
+    query = query.eq('is_closed', filters.is_closed);
+  }
   
   const { data, error, count } = await query;
   
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Error counting leads:', error);
+    return { error: error.message };
+  }
+  
+  console.log(`countLeads result: ${count} leads found`);
+  console.log('========================================');
   
   if (group_by && data) {
     const grouped = data.reduce((acc: any, lead: any) => {
@@ -325,6 +398,69 @@ async function searchContacts(args: any, supabase: any): Promise<any> {
     count: data.length,
     contacts: data,
     source: 'Contacts Database'
+  };
+}
+
+async function searchAgents(args: any, supabase: any): Promise<any> {
+  const { search_term, filters = {}, limit = 50 } = args;
+  
+  console.log('searchAgents called with:', JSON.stringify(args, null, 2));
+  
+  let query = supabase.from('buyer_agents').select('*');
+  
+  if (search_term) {
+    // Split search term for better name matching
+    const parts = search_term.trim().split(/\s+/);
+    
+    if (parts.length === 2) {
+      // Try "First Last" and "Last First" combinations
+      const [part1, part2] = parts;
+      query = query.or(
+        `and(first_name.ilike.%${part1}%,last_name.ilike.%${part2}%),` +
+        `and(first_name.ilike.%${part2}%,last_name.ilike.%${part1}%),` +
+        `first_name.ilike.%${search_term}%,last_name.ilike.%${search_term}%,` +
+        `email.ilike.%${search_term}%,phone.ilike.%${search_term}%,brokerage.ilike.%${search_term}%`
+      );
+    } else {
+      // Single term - search all fields
+      query = query.or(
+        `first_name.ilike.%${search_term}%,last_name.ilike.%${search_term}%,` +
+        `email.ilike.%${search_term}%,phone.ilike.%${search_term}%,brokerage.ilike.%${search_term}%`
+      );
+    }
+  }
+  
+  // Apply filters
+  if (filters.brokerage) {
+    query = query.ilike('brokerage', `%${filters.brokerage}%`);
+  }
+  if (filters.agent_rank) {
+    query = query.eq('agent_rank', filters.agent_rank);
+  }
+  if (filters.has_email) {
+    query = query.not('email', 'is', null);
+  }
+  if (filters.has_phone) {
+    query = query.not('phone', 'is', null);
+  }
+  
+  query = query.limit(Math.min(limit, 500));
+  query = query.order('first_name');
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error searching agents:', error);
+    return { error: error.message };
+  }
+  
+  console.log(`Found ${data.length} agents matching query`);
+  
+  return {
+    success: true,
+    count: data.length,
+    agents: data,
+    source: 'Real Estate Agents Database (buyer_agents table)'
   };
 }
 
@@ -522,6 +658,8 @@ async function executeTool(toolName: string, args: any, supabase: any): Promise<
         return await countLeads(args, supabase);
       case 'search_contacts':
         return await searchContacts(args, supabase);
+      case 'search_agents':
+        return await searchAgents(args, supabase);
       case 'get_lead_by_id':
         return await getLeadById(args.lead_id, supabase);
       case 'get_contact_by_id':
@@ -609,6 +747,25 @@ function generateMetadata(toolResults: any[]): any {
         }
       });
     }
+    
+    if (result.name === 'search_agents' && parsedResult.agents) {
+      parsedResult.agents.slice(0, 3).forEach((agent: any) => {
+        if (agent.phone) {
+          quickActions.push({
+            label: `Call ${agent.first_name} ${agent.last_name}`,
+            action: 'copy_phone',
+            data: agent.phone
+          });
+        }
+        if (agent.email) {
+          quickActions.push({
+            label: `Email ${agent.first_name} ${agent.last_name}`,
+            action: 'copy_email',
+            data: agent.email
+          });
+        }
+      });
+    }
   });
   
   return {
@@ -668,12 +825,52 @@ serve(async (req) => {
       content: msg.content
     })) || [];
 
+    // Calculate current date/time context
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // "2025-11-12"
+    const currentMonth = now.toISOString().substring(0, 7); // "2025-11"
+    const currentMonthStart = `${currentMonth}-01`;
+    
+    // Calculate next month for range queries
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const nextMonthStart = nextMonth.toISOString().split('T')[0];
+    
+    // Calculate start of current week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    const weekStart = startOfWeek.toISOString().split('T')[0];
+
     // System prompt with comprehensive CRM context
     const systemPrompt = `You are MortgageBolt Assistant, an intelligent AI helper for mortgage CRM users.
+
+**CRITICAL CONTEXT - ALWAYS USE THESE FOR DATE FILTERING:**
+- Current Date: ${currentDate}
+- Current Month: ${currentMonth} (${currentMonthStart} to ${nextMonthStart})
+- Current Week Start: ${weekStart}
+
+**Date Query Rules:**
+- "today" → created_after: '${currentDate}'
+- "this month" → created_after: '${currentMonthStart}', created_before: '${nextMonthStart}'
+- "this week" → created_after: '${weekStart}'
+- "yesterday" → created_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', created_before: '${currentDate}'
+
+**CRM Terminology:**
+- "Leads" = All records in the pipeline
+- "Applications" or "Apps" = Leads CREATED in "Pending App" pipeline stage (pipeline_stage_id: '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') in the given time period
+- "Active" = Leads in "Active" stage (pipeline_stage_id: '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
+
+**Data Sources:**
+- Leads: All borrowers and loan applications (leads table)
+- Contacts: General contact directory (contacts table)
+- Real Estate Agents: Buyer and listing agents (buyer_agents table) - **Use search_agents tool for agent queries**
+- Approved Lenders: Pre-approved lenders directory (contacts table with type filter)
+- Tasks: Team task management (tasks table)
+- Condos: Condo approval database (condos table)
 
 You have access to comprehensive CRM data including:
 - Leads (124 fields): All borrower, loan, property, and status information
 - Contacts: Agents, lenders, title companies, insurance providers
+- Real Estate Agents: Buyer agents and listing agents (use search_agents tool)
 - Tasks: Team task management and assignments
 - Condos: Condo approval database
 - Users: Team member information
@@ -684,6 +881,7 @@ Use the available tools to answer user questions accurately. When searching:
 - Apply appropriate filters (dates, statuses, stages, amounts)
 - Count records when asked "how many"
 - Return specific fields when asked for details (phone, email, etc.)
+- For agent queries, ALWAYS use the search_agents tool, NOT search_contacts
 - Provide context and suggestions for next steps
 
 Always cite your data sources and offer relevant quick actions. Be concise and professional.`;
