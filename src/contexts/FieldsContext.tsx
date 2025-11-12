@@ -5,6 +5,7 @@ export interface Field {
   id: string;
   field_name: string;
   display_name: string;
+  description?: string | null;
   section: string;
   field_type: string;
   is_required: boolean;
