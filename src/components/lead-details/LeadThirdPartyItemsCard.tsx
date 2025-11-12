@@ -25,7 +25,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_name, condo_docs_file, condo_status, condo_approval_type, condo_notes')
+        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_approval_type, condo_notes')
         .eq('id', leadId)
         .single();
       if (error) throw error;
@@ -155,8 +155,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
                 <CondoTab 
                   leadId={leadId}
                   data={{
-                    condo_name: lead.condo_name,
-                    condo_docs_file: lead.condo_docs_file,
+    condo_id: lead.condo_id,
                     condo_status: lead.condo_status,
                     condo_approval_type: lead.condo_approval_type,
                     condo_notes: lead.condo_notes

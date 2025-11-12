@@ -1924,6 +1924,7 @@ export type Database = {
           closed_at: string | null
           condo_approval_type: string | null
           condo_docs_file: string | null
+          condo_id: string | null
           condo_name: string | null
           condo_notes: string | null
           condo_status: Database["public"]["Enums"]["condo_status"] | null
@@ -2073,6 +2074,7 @@ export type Database = {
           closed_at?: string | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
+          condo_id?: string | null
           condo_name?: string | null
           condo_notes?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
@@ -2224,6 +2226,7 @@ export type Database = {
           closed_at?: string | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
+          condo_id?: string | null
           condo_name?: string | null
           condo_notes?: string | null
           condo_status?: Database["public"]["Enums"]["condo_status"] | null
@@ -2379,6 +2382,13 @@ export type Database = {
             columns: ["buyer_agent_id"]
             isOneToOne: false
             referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_condo_id_fkey"
+            columns: ["condo_id"]
+            isOneToOne: false
+            referencedRelation: "condos"
             referencedColumns: ["id"]
           },
           {
