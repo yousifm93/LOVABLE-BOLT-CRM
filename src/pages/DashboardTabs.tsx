@@ -261,7 +261,8 @@ export default function DashboardTabs() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-4">
+            <>
+              <div className="grid grid-cols-4 gap-4">
               {/* COLUMN 1 - LEADS */}
               <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
@@ -556,54 +557,55 @@ export default function DashboardTabs() {
                     }}
                   />
                 </CardContent>
-              </Card>
-            </div>
+                </Card>
+              </div>
 
-            {/* Recent Activity & Pipeline Summary */}
-            <div className="mt-8 space-y-6">
-              <CollapsibleSection
-                title="Recent Activity"
-                count={recentStageChanges.length}
-                data={recentStageChanges}
-                defaultOpen={true}
-                renderItem={(change: any, index) => {
-                  const isLeadCreation = !change.from_stage;
-                  const isGoingToLeads = change.to_stage?.name === 'Leads';
-                  
-                  return (
-                    <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-                      <div className="flex-1 space-y-1">
-                        <p className="font-medium text-foreground">
-                          {change.lead?.first_name} {change.lead?.last_name}
-                        </p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          {isLeadCreation && isGoingToLeads ? (
-                            <span className="text-primary font-medium">Created</span>
-                          ) : isLeadCreation ? (
-                            <>
-                              <span>New</span>
-                              <ArrowRight className="h-3 w-3" />
-                              <span className="text-primary font-medium">{change.to_stage?.name}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{change.from_stage?.name}</span>
-                              <ArrowRight className="h-3 w-3" />
-                              <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
-                            </>
-                          )}
+              {/* Recent Activity & Pipeline Summary */}
+              <div className="mt-8 space-y-6">
+                <CollapsibleSection
+                  title="Recent Activity"
+                  count={recentStageChanges.length}
+                  data={recentStageChanges}
+                  defaultOpen={true}
+                  renderItem={(change: any, index) => {
+                    const isLeadCreation = !change.from_stage;
+                    const isGoingToLeads = change.to_stage?.name === 'Leads';
+                    
+                    return (
+                      <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+                        <div className="flex-1 space-y-1">
+                          <p className="font-medium text-foreground">
+                            {change.lead?.first_name} {change.lead?.last_name}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            {isLeadCreation && isGoingToLeads ? (
+                              <span className="text-primary font-medium">Created</span>
+                            ) : isLeadCreation ? (
+                              <>
+                                <span>New</span>
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="text-primary font-medium">{change.to_stage?.name}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>{change.from_stage?.name}</span>
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
+                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                          {formatDateTime(change.changed_at)}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                        {formatDateTime(change.changed_at)}
-                      </Badge>
-                    </div>
-                  );
-                }}
-              />
+                    );
+                  }}
+                />
 
-              <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
-            </div>
+                <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
+              </div>
+            </>
           )}
         </TabsContent>
 
