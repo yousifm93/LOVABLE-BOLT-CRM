@@ -192,6 +192,22 @@ export default function DashboardTabs() {
   const appsGoal = 30;
   const { toast } = useToast();
 
+  const calculateAverageMonthlyUnits = (ytdUnits: number): string => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    
+    // Only calculate if we're in 2025
+    if (currentYear !== 2025) return "—";
+    
+    // Get number of months elapsed (1-12)
+    const monthsElapsed = currentDate.getMonth() + 1;
+    
+    if (monthsElapsed === 0) return "—";
+    
+    const average = ytdUnits / monthsElapsed;
+    return average.toFixed(1);
+  };
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any[]>([]);
@@ -296,17 +312,6 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Leads", todayLeads, "leads")}
                   />
-
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{thisMonthLeads.length} / {MONTHLY_GOALS.leads}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthLeads.length / MONTHLY_GOALS.leads) * 100} 
-                      className="h-2"
-                    />
-                  </div>
                   
                   <CollapsibleSection
                     title="All Leads" 
@@ -370,17 +375,6 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Applications", todayApps, "applications")}
                   />
-
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{thisMonthApps.length} / {MONTHLY_GOALS.applications}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthApps.length / MONTHLY_GOALS.applications) * 100} 
-                      className="h-2 [&>div]:bg-green-600"
-                    />
-                  </div>
                   
                   <CollapsibleSection
                     title="All Applications" 
@@ -444,17 +438,6 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Face-to-Face Meetings", todayMeetings, "meetings")}
                   />
-
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{thisMonthMeetings.length} / {MONTHLY_GOALS.meetings}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthMeetings.length / MONTHLY_GOALS.meetings) * 100} 
-                      className="h-2 [&>div]:bg-purple-600"
-                    />
-                  </div>
                   
                   <CollapsibleSection
                     title="All Meetings" 
@@ -518,17 +501,6 @@ export default function DashboardTabs() {
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Calls", todayCalls, "calls")}
                   />
-
-                  {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{thisMonthCalls.length} / {MONTHLY_GOALS.calls}</span>
-                    </div>
-                    <Progress 
-                      value={(thisMonthCalls.length / MONTHLY_GOALS.calls) * 100} 
-                      className="h-2 [&>div]:bg-orange-600"
-                    />
-                  </div>
                   
                   <CollapsibleSection
                     title="All Calls" 
@@ -803,6 +775,13 @@ export default function DashboardTabs() {
                       title="2025 YTD Units"
                       value={closedYtdMetrics.ytd_units.toString()}
                       icon={<Users />}
+                      size="large"
+                      centered={true}
+                    />
+                    <ModernStatsCard
+                      title="Average Monthly Units"
+                      value={calculateAverageMonthlyUnits(closedYtdMetrics.ytd_units)}
+                      icon={<TrendingUp />}
                       size="large"
                       centered={true}
                     />
