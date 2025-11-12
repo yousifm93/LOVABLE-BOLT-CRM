@@ -33,12 +33,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     occupancy: (client as any).occupancy || "",
     residency_type: (client as any).residency_type || "",
     marital_status: (client as any).marital_status || "",
-    number_of_dependents: (client as any).number_of_dependents || null,
     monthly_payment_goal: (client as any).monthly_payment_goal || null,
     cash_to_close_goal: (client as any).cash_to_close_goal || null,
     borrower_current_address: (client as any).borrower_current_address || "",
-    time_at_current_address_years: (client as any).time_at_current_address_years || null,
-    time_at_current_address_months: (client as any).time_at_current_address_months || null,
     military_veteran: (client as any).military_veteran || false,
   });
 
@@ -52,12 +49,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       occupancy: (client as any).occupancy || "",
       residency_type: (client as any).residency_type || "",
       marital_status: (client as any).marital_status || "",
-      number_of_dependents: (client as any).number_of_dependents || null,
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
       borrower_current_address: (client as any).borrower_current_address || "",
-      time_at_current_address_years: (client as any).time_at_current_address_years || null,
-      time_at_current_address_months: (client as any).time_at_current_address_months || null,
       military_veteran: (client as any).military_veteran || false,
     });
   };
@@ -95,12 +89,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
         occupancy: editData.occupancy || null,
         residency_type: editData.residency_type || null,
         marital_status: editData.marital_status || null,
-        number_of_dependents: editData.number_of_dependents,
         monthly_pmt_goal: editData.monthly_payment_goal, // Note: DB field is monthly_pmt_goal
         cash_to_close_goal: editData.cash_to_close_goal,
         borrower_current_address: editData.borrower_current_address || null,
-        time_at_current_address_years: editData.time_at_current_address_years,
-        time_at_current_address_months: editData.time_at_current_address_months,
         military_veteran: editData.military_veteran,
       });
 
@@ -239,21 +230,6 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       ) : undefined
     },
     { 
-      icon: Users, 
-      label: "Number of Dependents", 
-      value: (client as any).number_of_dependents?.toString() || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.number_of_dependents || ""}
-          onChange={(e) => setEditData({ ...editData, number_of_dependents: parseInt(e.target.value) || null })}
-          className="h-8"
-          placeholder="0"
-          min="0"
-        />
-      ) : undefined
-    },
-    { 
       icon: DollarSign, 
       label: "Monthly Payment Goal", 
       value: (client as any).monthly_payment_goal ? formatCurrency((client as any).monthly_payment_goal) : "—",
@@ -294,35 +270,6 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
           className="h-8"
           placeholder="Street, City, State, ZIP"
         />
-      ) : undefined
-    },
-    { 
-      icon: Home, 
-      label: "Time at Current Address", 
-      value: formatTimeAtAddress(
-        (client as any).time_at_current_address_years, 
-        (client as any).time_at_current_address_months
-      ),
-      editComponent: isEditing ? (
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            value={editData.time_at_current_address_years || ""}
-            onChange={(e) => setEditData({ ...editData, time_at_current_address_years: parseInt(e.target.value) || null })}
-            className="h-8 flex-1"
-            placeholder="Years"
-            min="0"
-          />
-          <Input
-            type="number"
-            value={editData.time_at_current_address_months || ""}
-            onChange={(e) => setEditData({ ...editData, time_at_current_address_months: parseInt(e.target.value) || null })}
-            className="h-8 flex-1"
-            placeholder="Months"
-            min="0"
-            max="11"
-          />
-        </div>
       ) : undefined
     },
     { 

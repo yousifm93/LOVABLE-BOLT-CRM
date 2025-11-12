@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Contact, Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Contact, Calendar, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TeamTab } from "./TeamTab";
 import { ContactsTab } from "./ContactsTab"; 
 import { DatesTab } from "./DatesTab";
+import { PITITab } from "./PITITab";
 
 interface LeadTeamContactsDatesCardProps {
   leadId: string;
@@ -24,13 +25,13 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">Team & Contacts</CardTitle>
+            <CardTitle className="text-base font-medium">Team, Contacts & Dates</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
           <CardContent>
             <Tabs defaultValue="team" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsList className="grid w-full grid-cols-4 mb-4">
                 <TabsTrigger value="team" className="text-xs flex items-center gap-1">
                   <Users className="h-3 w-3" />
                   Team
@@ -42,6 +43,10 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
                 <TabsTrigger value="dates" className="text-xs flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   Dates
+                </TabsTrigger>
+                <TabsTrigger value="piti" className="text-xs flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  PITI
                 </TabsTrigger>
               </TabsList>
               
@@ -61,6 +66,10 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
                 <div className="grid grid-cols-2 gap-x-4">
                   <DatesTab leadId={leadId} />
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="piti" className="mt-0 min-h-[280px]">
+                <PITITab leadId={leadId} />
               </TabsContent>
             </Tabs>
           </CardContent>

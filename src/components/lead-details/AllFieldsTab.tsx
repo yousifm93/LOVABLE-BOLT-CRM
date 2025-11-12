@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useFields } from "@/contexts/FieldsContext";
 import { FIELD_NAME_MAP, getDatabaseFieldName } from "@/types/crm";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -13,6 +14,9 @@ import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 interface AllFieldsTabProps {
   client: any;
@@ -25,6 +29,8 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
   const { allFields } = useFields();
   const { toast } = useToast();
   const [saving, setSaving] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const handleFieldUpdate = async (fieldName: string, value: any) => {
     if (!leadId) {
@@ -38,31 +44,26 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
 
     setSaving(fieldName);
     try {
-      // Get database field name
       const dbFieldName = getDatabaseFieldName(fieldName);
-      
-      // Update in database
       await databaseService.updateLead(leadId, { [dbFieldName]: value });
       
-      // Update local client state
       if (onClientPatched) {
         onClientPatched({ [fieldName]: value });
       }
       
-      // Refresh parent
       if (onLeadUpdated) {
         onLeadUpdated();
       }
       
       toast({
         title: "Field Updated",
-        description: `${fieldName} has been updated successfully.`,
+        description: "Field has been updated successfully.",
       });
     } catch (error) {
       console.error(`Error updating ${fieldName}:`, error);
       toast({
         title: "Error",
-        description: `Failed to update ${fieldName}.`,
+        description: `Failed to update field.`,
         variant: "destructive",
       });
     } finally {
@@ -70,7 +71,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
     }
   };
 
-  // Render appropriate editor based on field type
   const renderFieldEditor = (field: any) => {
     const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
     const value = client[frontendFieldName];
@@ -83,7 +83,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditText
             value={value || ''}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -92,7 +91,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditPhone
             value={value || ''}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -101,7 +99,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditNumber
             value={value ?? null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -110,7 +107,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditCurrency
             value={value ?? null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -119,7 +115,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditPercentage
             value={value ?? null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -128,7 +123,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditDate
             value={value || null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -137,7 +131,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditDateTime
             value={value || null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -146,7 +139,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
           <InlineEditBoolean
             value={value ?? null}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -156,7 +148,6 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
             value={value || null}
             options={(field.dropdown_options || []).map((opt: string) => ({ value: opt, label: opt }))}
             onValueChange={(newValue) => handleFieldUpdate(frontendFieldName, newValue)}
-            className="w-full"
           />
         );
       
@@ -165,46 +156,147 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
     }
   };
 
+  const activeFields = useMemo(() => {
+    return allFields
+      .filter(f => f.is_in_use)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [allFields]);
+
+  const filteredFields = useMemo(() => {
+    if (!searchQuery.trim()) return activeFields;
+    
+    const query = searchQuery.toLowerCase();
+    return activeFields.filter(field => 
+      field.display_name.toLowerCase().includes(query) ||
+      field.field_name.toLowerCase().includes(query) ||
+      field.section.toLowerCase().includes(query)
+    );
+  }, [activeFields, searchQuery]);
+
+  const groupedFields = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    filteredFields.forEach(field => {
+      if (!groups[field.section]) {
+        groups[field.section] = [];
+      }
+      groups[field.section].push(field);
+    });
+    return groups;
+  }, [filteredFields]);
+
+  const sectionOrder = [
+    'LEAD',
+    'BORROWER',
+    'LOAN_PROPERTY',
+    'MONTHLY_PAYMENT',
+    'OPERATIONS',
+    'TITLE',
+    'INSURANCE',
+    'CONDO',
+    'ACTIVE',
+    'PENDING APP',
+    'APP COMPLETE',
+    'PRE-APPROVED',
+    'SCREENING',
+    'PAST CLIENTS',
+    'SYSTEM',
+    'META'
+  ];
+
+  const sortedSections = Object.keys(groupedFields).sort((a, b) => {
+    const aIndex = sectionOrder.indexOf(a);
+    const bIndex = sectionOrder.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   return (
     <div className="space-y-4 p-4">
-      <div className="text-sm text-muted-foreground mb-4">
-        All {allFields.filter(f => f.is_in_use).length} fields for this lead. Edit any field to save changes.
+      <div className="flex items-center gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search fields by name, section, or database field..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="text-sm text-muted-foreground whitespace-nowrap">
+          {filteredFields.length} of {activeFields.length} fields
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {allFields
-          .filter(f => f.is_in_use)
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((field) => {
-            const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
-            const isSaving = saving === frontendFieldName;
-            
-            return (
-              <div key={field.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">
-                    {field.display_name}
-                    {field.is_required && <span className="text-destructive ml-1">*</span>}
-                  </Label>
-                  <span className="text-xs text-muted-foreground">
-                    {field.section}
+
+      <div className="space-y-3">
+        {sortedSections.map((section) => {
+          const fields = groupedFields[section];
+          const isOpen = openSections[section] ?? false;
+          
+          return (
+            <Card key={section} className="overflow-hidden">
+              <Collapsible open={isOpen} onOpenChange={() => toggleSection(section)}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    {isOpen ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {section.replace(/_/g, ' ')}
+                    </h3>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {fields.length} {fields.length === 1 ? 'field' : 'fields'}
                   </span>
-                </div>
+                </CollapsibleTrigger>
                 
-                <div className="flex items-center gap-2">
-                  {renderFieldEditor(field)}
-                  {isSaving && (
-                    <span className="text-xs text-muted-foreground">Saving...</span>
-                  )}
-                </div>
-                
-                <div className="text-xs text-muted-foreground mt-1">
-                  Field: {frontendFieldName} | DB: {field.field_name} | Type: {field.field_type}
-                </div>
-              </div>
-            );
-          })}
+                <CollapsibleContent>
+                  <div className="p-4 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {fields.map((field) => {
+                        const frontendFieldName = FIELD_NAME_MAP[field.field_name] || field.field_name;
+                        const isSaving = saving === frontendFieldName;
+                        
+                        return (
+                          <div key={field.id} className="space-y-2">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                              {field.display_name}
+                              {field.is_required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                            <div className="flex items-center gap-2">
+                              {renderFieldEditor(field)}
+                              {isSaving && (
+                                <span className="text-xs text-muted-foreground">...</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          );
+        })}
       </div>
+
+      {filteredFields.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-sm text-muted-foreground">No fields match your search.</p>
+        </div>
+      )}
     </div>
   );
 }
