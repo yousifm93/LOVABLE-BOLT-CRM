@@ -413,6 +413,7 @@ export default function Admin() {
                     <TableRow>
                       <TableHead className="w-[150px]">Field Name</TableHead>
                       <TableHead className="w-[150px]">Display Name</TableHead>
+                      <TableHead className="w-[200px]">Description</TableHead>
                       <TableHead className="w-[100px]">Section</TableHead>
                       <TableHead className="w-[100px]">Type</TableHead>
                       <TableHead className="w-[80px]">Required</TableHead>
@@ -426,13 +427,13 @@ export default function Admin() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8">
+                        <TableCell colSpan={11} className="text-center py-8">
                           Loading fields...
                         </TableCell>
                       </TableRow>
                     ) : filteredFields.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                           No fields found matching filters
                         </TableCell>
                       </TableRow>
@@ -449,6 +450,20 @@ export default function Admin() {
                               />
                             ) : (
                               field.display_name
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingField === field.id ? (
+                              <Input
+                                value={editData.description || ""}
+                                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                placeholder="Add description..."
+                                className="h-7"
+                              />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {field.description || "—"}
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
