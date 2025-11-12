@@ -18,132 +18,86 @@ interface EmailTemplate {
   created_at: string;
 }
 
-// Helper function to categorize fields with contact relationships
-const categorizeFieldsByType = (fields: any[]) => {
-  const categories: Record<string, Array<{ tag: string; label: string }>> = {
-    'Names & Identity': [],
-    'Contact Information': [],
-    'Dates & Deadlines': [],
-    'Financial & Currency': [],
-    'Status & Progress': [],
-    'Loan Details': [],
-    'Property Information': [],
-    'Documents & Files': [],
-    'Team & Contacts': [],
-    'Other Information': [],
-    "Buyer's Agent": [
-      { tag: '{{buyer_agent_first_name}}', label: 'First Name' },
-      { tag: '{{buyer_agent_last_name}}', label: 'Last Name' },
-      { tag: '{{buyer_agent_name}}', label: 'Full Name' },
-      { tag: '{{buyer_agent_email}}', label: 'Email' },
-      { tag: '{{buyer_agent_phone}}', label: 'Phone' },
-      { tag: '{{buyer_agent_brokerage}}', label: 'Brokerage' },
-    ],
-    'Listing Agent': [
-      { tag: '{{listing_agent_first_name}}', label: 'First Name' },
-      { tag: '{{listing_agent_last_name}}', label: 'Last Name' },
-      { tag: '{{listing_agent_name}}', label: 'Full Name' },
-      { tag: '{{listing_agent_email}}', label: 'Email' },
-      { tag: '{{listing_agent_phone}}', label: 'Phone' },
-      { tag: '{{listing_agent_company}}', label: 'Company' },
-    ],
-    'Lender & Account Executive': [
-      { tag: '{{lender_name}}', label: 'Lender Name' },
-      { tag: '{{account_executive_first_name}}', label: 'AE First Name' },
-      { tag: '{{account_executive_last_name}}', label: 'AE Last Name' },
-      { tag: '{{account_executive_name}}', label: 'AE Full Name' },
-      { tag: '{{account_executive_email}}', label: 'AE Email' },
-      { tag: '{{account_executive_phone}}', label: 'AE Phone' },
-    ],
-  };
+// Define section display order for email template UI
+const SECTION_DISPLAY_ORDER = [
+  'CONTACT INFO',
+  'BORROWER INFO',
+  'LOAN INFO',
+  'ADDRESS',
+  'DATE',
+  'LOAN STATUS',
+  'OBJECT',
+  'NOTES',
+  'FILE',
+  'TRACKING DATA',
+  'AGENT & LENDER FIELDS',
+  'OTHER'
+];
+
+// Helper function to group fields by their database section
+const groupFieldsBySection = (fields: any[]) => {
+  const sections: Record<string, Array<{ tag: string; label: string; fieldType: string }>> = {};
   
   fields.forEach(field => {
-    const fieldName = field.field_name.toLowerCase();
-    const tag = `{{${field.field_name}}}`;
-    const item = { tag, label: field.display_name };
-    
-    // Categorize based on field name patterns and types
-    if (
-      fieldName.includes('first_name') || 
-      fieldName.includes('last_name') || 
-      fieldName.includes('middle_name') ||
-      fieldName.includes('borrower_name') ||
-      fieldName.includes('dob') ||
-      fieldName === 'name'
-    ) {
-      categories['Names & Identity'].push(item);
-    } else if (
-      fieldName.includes('email') || 
-      fieldName.includes('phone')
-    ) {
-      categories['Contact Information'].push(item);
-    } else if (
-      field.field_type === 'date' || 
-      field.field_type === 'datetime' ||
-      fieldName.includes('_at') ||
-      fieldName.includes('_date') ||
-      fieldName.includes('_eta')
-    ) {
-      categories['Dates & Deadlines'].push(item);
-    } else if (
-      field.field_type === 'currency' ||
-      fieldName.includes('amount') ||
-      fieldName.includes('price') ||
-      fieldName.includes('payment') ||
-      fieldName.includes('income') ||
-      fieldName.includes('assets') ||
-      fieldName.includes('liabilities') ||
-      fieldName.includes('dues') ||
-      fieldName.includes('insurance') ||
-      fieldName.includes('rate') ||
-      fieldName.includes('piti') ||
-      fieldName.includes('principal') ||
-      fieldName.includes('taxes') ||
-      fieldName.includes('hoa')
-    ) {
-      categories['Financial & Currency'].push(item);
-    } else if (
-      fieldName.includes('status') ||
-      fieldName.includes('converted')
-    ) {
-      categories['Status & Progress'].push(item);
-    } else if (
-      fieldName.includes('loan_') ||
-      fieldName.includes('program') ||
-      fieldName.includes('term') ||
-      fieldName.includes('residency') ||
-      fieldName.includes('occupancy') ||
-      fieldName.includes('pr_type')
-    ) {
-      categories['Loan Details'].push(item);
-    } else if (
-      fieldName.includes('property_') ||
-      fieldName.includes('subject_') ||
-      fieldName.includes('address') ||
-      fieldName.includes('city') ||
-      fieldName.includes('state') ||
-      fieldName.includes('zip') ||
-      fieldName.includes('appraisal_value')
-    ) {
-      categories['Property Information'].push(item);
-    } else if (
-      field.field_type === 'file' ||
-      fieldName.includes('_file')
-    ) {
-      categories['Documents & Files'].push(item);
-    } else if (
-      fieldName.includes('agent') ||
-      fieldName.includes('lender') ||
-      fieldName.includes('teammate') ||
-      fieldName.includes('assigned')
-    ) {
-      categories['Team & Contacts'].push(item);
-    } else {
-      categories['Other Information'].push(item);
+    const section = field.section || 'OTHER';
+    if (!sections[section]) {
+      sections[section] = [];
+    }
+    sections[section].push({
+      tag: `{{${field.field_name}}}`,
+      label: field.display_name,
+      fieldType: field.field_type
+    });
+  });
+  
+  return sections;
+};
+
+// Helper to add contact relationship fields dynamically
+const addContactRelationshipFields = (sections: Record<string, Array<{ tag: string; label: string; fieldType: string }>>) => {
+  // Add relationship field templates that will be dynamically populated when sending emails
+  sections['AGENT & LENDER FIELDS'] = [
+    { tag: '{{buyer_agent_first_name}}', label: "Buyer's Agent First Name", fieldType: 'text' },
+    { tag: '{{buyer_agent_last_name}}', label: "Buyer's Agent Last Name", fieldType: 'text' },
+    { tag: '{{buyer_agent_name}}', label: "Buyer's Agent Full Name", fieldType: 'text' },
+    { tag: '{{buyer_agent_email}}', label: "Buyer's Agent Email", fieldType: 'email' },
+    { tag: '{{buyer_agent_phone}}', label: "Buyer's Agent Phone", fieldType: 'phone' },
+    { tag: '{{buyer_agent_brokerage}}', label: "Buyer's Agent Brokerage", fieldType: 'text' },
+    { tag: '{{listing_agent_first_name}}', label: 'Listing Agent First Name', fieldType: 'text' },
+    { tag: '{{listing_agent_last_name}}', label: 'Listing Agent Last Name', fieldType: 'text' },
+    { tag: '{{listing_agent_name}}', label: 'Listing Agent Full Name', fieldType: 'text' },
+    { tag: '{{listing_agent_email}}', label: 'Listing Agent Email', fieldType: 'email' },
+    { tag: '{{listing_agent_phone}}', label: 'Listing Agent Phone', fieldType: 'phone' },
+    { tag: '{{listing_agent_company}}', label: 'Listing Agent Company', fieldType: 'text' },
+    { tag: '{{lender_name}}', label: 'Lender Name', fieldType: 'text' },
+    { tag: '{{account_executive_first_name}}', label: 'Account Executive First Name', fieldType: 'text' },
+    { tag: '{{account_executive_last_name}}', label: 'Account Executive Last Name', fieldType: 'text' },
+    { tag: '{{account_executive_name}}', label: 'Account Executive Full Name', fieldType: 'text' },
+    { tag: '{{account_executive_email}}', label: 'Account Executive Email', fieldType: 'email' },
+    { tag: '{{account_executive_phone}}', label: 'Account Executive Phone', fieldType: 'phone' },
+  ];
+  
+  return sections;
+};
+
+// Helper to sort sections by priority
+const sortSectionsByPriority = (sections: Record<string, any[]>) => {
+  const sorted: Record<string, any[]> = {};
+  
+  SECTION_DISPLAY_ORDER.forEach(sectionName => {
+    if (sections[sectionName]) {
+      sorted[sectionName] = sections[sectionName];
     }
   });
   
-  return categories;
+  // Add any sections not in priority list at the end
+  Object.keys(sections).forEach(sectionName => {
+    if (!SECTION_DISPLAY_ORDER.includes(sectionName)) {
+      sorted[sectionName] = sections[sectionName];
+    }
+  });
+  
+  return sorted;
 };
 
 export default function EmailTemplates() {
@@ -153,6 +107,7 @@ export default function EmailTemplates() {
   const [formData, setFormData] = useState({ name: "", html: "" });
   const [previewHtml, setPreviewHtml] = useState("");
   const [crmFields, setCrmFields] = useState<any[]>([]);
+  const [categorizedFields, setCategorizedFields] = useState<Record<string, Array<{ tag: string; label: string; fieldType: string }>>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [editorMode, setEditorMode] = useState<'plain' | 'html'>('plain');
@@ -188,6 +143,12 @@ export default function EmailTemplates() {
       console.error('Error loading CRM fields:', error);
     } else {
       setCrmFields(data || []);
+      
+      // Group fields by section and add relationship fields
+      let sections = groupFieldsBySection(data || []);
+      sections = addContactRelationshipFields(sections);
+      sections = sortSectionsByPriority(sections);
+      setCategorizedFields(sections);
     }
   };
 
@@ -361,7 +322,7 @@ export default function EmailTemplates() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const allCategories = Object.keys(categorizeFieldsByType(crmFields));
+                        const allCategories = Object.keys(categorizedFields);
                         const newState: Record<string, boolean> = {};
                         allCategories.forEach(cat => newState[cat] = true);
                         setExpandedSections(newState);
@@ -392,7 +353,7 @@ export default function EmailTemplates() {
                 
                 <div className="mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Object.entries(categorizeFieldsByType(crmFields))
+                    {Object.entries(categorizedFields)
                       .filter(([category, fields]) => {
                         if (!mergeTagSearch) return fields.length > 0;
                         

@@ -184,32 +184,27 @@ export function AllFieldsTab({ client, leadId, onLeadUpdated, onClientPatched }:
     return groups;
   }, [filteredFields]);
 
-  const sectionOrder = [
-    'LEAD',
-    'BORROWER',
-    'LOAN_PROPERTY',
-    'MONTHLY_PAYMENT',
-    'OPERATIONS',
-    'TITLE',
-    'INSURANCE',
-    'CONDO',
-    'ACTIVE',
-    'PENDING APP',
-    'APP COMPLETE',
-    'PRE-APPROVED',
-    'SCREENING',
-    'PAST CLIENTS',
-    'SYSTEM',
-    'META'
-  ];
+  // Define section priority for consistent ordering
+  const SECTION_PRIORITY: Record<string, number> = {
+    'CONTACT INFO': 1,
+    'BORROWER INFO': 2,
+    'LOAN INFO': 3,
+    'ADDRESS': 4,
+    'DATE': 5,
+    'LOAN STATUS': 6,
+    'OBJECT': 7,
+    'NOTES': 8,
+    'FILE': 9,
+    'TRACKING DATA': 10,
+  };
 
   const sortedSections = Object.keys(groupedFields).sort((a, b) => {
-    const aIndex = sectionOrder.indexOf(a);
-    const bIndex = sectionOrder.indexOf(b);
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
+    const aIndex = SECTION_PRIORITY[a];
+    const bIndex = SECTION_PRIORITY[b];
+    if (aIndex !== undefined && bIndex !== undefined) return aIndex - bIndex;
+    if (aIndex !== undefined) return -1;
+    if (bIndex !== undefined) return 1;
+    return a.localeCompare(b);
   });
 
   const toggleSection = (section: string) => {
