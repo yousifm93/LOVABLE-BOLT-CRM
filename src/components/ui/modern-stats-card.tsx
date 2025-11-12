@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface ModernStatsCardProps {
@@ -13,6 +14,9 @@ interface ModernStatsCardProps {
   centered?: boolean; // For centered text alignment
   onClick?: () => void; // Click handler
   clickable?: boolean; // Whether the card is clickable
+  showProgress?: boolean; // Show progress bar at bottom
+  progressValue?: number; // Current progress value
+  progressMax?: number; // Maximum progress value
 }
 
 export function ModernStatsCard({ 
@@ -25,7 +29,10 @@ export function ModernStatsCard({
   size = "default",
   centered = false,
   onClick,
-  clickable = false
+  clickable = false,
+  showProgress = false,
+  progressValue = 0,
+  progressMax = 100,
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -95,6 +102,17 @@ export function ModernStatsCard({
                 }).join(' ')}
               />
             </svg>
+          </div>
+        )}
+
+        {/* Progress Bar at Bottom */}
+        {showProgress && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{progressValue} / {progressMax}</span>
+              <span>{Math.round((progressValue / progressMax) * 100)}%</span>
+            </div>
+            <Progress value={(progressValue / progressMax) * 100} className="h-2" />
           </div>
         )}
       </CardContent>
