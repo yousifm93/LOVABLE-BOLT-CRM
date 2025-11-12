@@ -35,6 +35,7 @@ interface Agent {
   face_to_face_meeting?: string | null;
   last_agent_call?: string | null;
   notes?: string | null;
+  meeting_summary?: string | null;
 }
 
 interface DashboardDetailModalProps {
@@ -126,7 +127,7 @@ export function DashboardDetailModal({
                       </Badge>
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        {item.notes || "—"}
+                        {('meeting_summary' in item && item.meeting_summary) || item.notes || "—"}
                       </span>
                     )}
                   </TableCell>
