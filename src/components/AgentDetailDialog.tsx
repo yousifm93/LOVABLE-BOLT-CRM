@@ -25,7 +25,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
-import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
 
 interface AgentDetailDialogProps {
   agent: any | null;
@@ -49,7 +48,6 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
   const [isCallLogModalOpen, setIsCallLogModalOpen] = useState(false);
-  const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
   const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
 
   useEffect(() => {
@@ -408,6 +406,12 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         isOpen={isCallLogModalOpen}
         onClose={() => setIsCallLogModalOpen(false)}
         onCallLogged={handleCallLogSaved}
+      />
+      <AgentMeetingLogModal
+        agent={agent}
+        isOpen={isMeetingLogModalOpen}
+        onClose={() => setIsMeetingLogModalOpen(false)}
+        onMeetingSaved={handleMeetingLogSaved}
       />
     </Dialog>
   );
