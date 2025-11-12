@@ -122,6 +122,11 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
     onAgentUpdated();
   };
 
+  const handleViewLogDetail = (log: any) => {
+    setSelectedLog(log);
+    setIsLogDetailModalOpen(true);
+  };
+
   if (!agent) return null;
 
   const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || 'Unknown Agent';
@@ -412,6 +417,12 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         isOpen={isMeetingLogModalOpen}
         onClose={() => setIsMeetingLogModalOpen(false)}
         onMeetingSaved={handleMeetingLogSaved}
+      />
+      
+      <ActivityLogDetailModal
+        log={selectedLog}
+        isOpen={isLogDetailModalOpen}
+        onClose={() => setIsLogDetailModalOpen(false)}
       />
     </Dialog>
   );
