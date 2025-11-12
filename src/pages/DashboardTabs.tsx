@@ -14,6 +14,7 @@ import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics"
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardDetailModal } from "@/components/dashboard/DashboardDetailModal";
+import { VolumeDetailModal } from "@/components/dashboard/VolumeDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
@@ -154,6 +155,12 @@ export default function DashboardTabs() {
     currentMonthPending,
     nextMonthPending,
     thisWeekClosing,
+    totalActiveLeads,
+    currentMonthLeads,
+    nextMonthLeads,
+    thisWeekLeads,
+    closedYtdLeads,
+    closedMonthlyLeads,
     closedYtdMetrics,
     closedMonthlyVolume,
     closedMonthlyUnits,
@@ -222,6 +229,11 @@ export default function DashboardTabs() {
   const [modalTitle, setModalTitle] = useState("");
   const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls">("leads");
 
+  // Volume modal state
+  const [volumeModalOpen, setVolumeModalOpen] = useState(false);
+  const [volumeModalData, setVolumeModalData] = useState<any[]>([]);
+  const [volumeModalTitle, setVolumeModalTitle] = useState("");
+
   // Drawer state
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -232,6 +244,13 @@ export default function DashboardTabs() {
     setModalData(data);
     setModalType(type);
     setModalOpen(true);
+  };
+
+  // Volume modal handler
+  const handleOpenVolumeModal = (title: string, data: any[]) => {
+    setVolumeModalTitle(title);
+    setVolumeModalData(data);
+    setVolumeModalOpen(true);
   };
 
   // Lead click handler - open drawer instead of navigate
@@ -295,7 +314,7 @@ export default function DashboardTabs() {
                     Leads
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthLeads.length}
@@ -308,6 +327,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.leads}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.leads)}
+                    progressColor="[&_.bg-primary]:bg-yellow-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -363,7 +383,7 @@ export default function DashboardTabs() {
                     Applications
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthApps.length}
@@ -376,6 +396,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.applications}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.applications)}
+                    progressColor="[&_.bg-primary]:bg-green-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -431,7 +452,7 @@ export default function DashboardTabs() {
                     Face-to-Face Meetings
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthMeetings.length}
@@ -444,6 +465,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.meetings}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.meetings)}
+                    progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -499,7 +521,7 @@ export default function DashboardTabs() {
                     Calls
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <ModernStatsCard
                     title="This Month"
                     value={thisMonthCalls.length}
@@ -512,6 +534,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.calls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.calls)}
+                    progressColor="[&_.bg-primary]:bg-orange-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -638,6 +661,8 @@ export default function DashboardTabs() {
                       icon={<DollarSign />}
                       size="large"
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("Total Active Volume", totalActiveLeads)}
                     />
                     <ModernStatsCard
                       title="Current Month Pending Volume"
@@ -649,6 +674,8 @@ export default function DashboardTabs() {
                       }).format(currentMonthPending.current_month_volume)}
                       icon={<CalendarDays />}
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("Current Month Pending Volume", currentMonthLeads)}
                     />
                     <ModernStatsCard
                       title="Next Month Pending Volume"
@@ -660,6 +687,8 @@ export default function DashboardTabs() {
                       }).format(nextMonthPending.next_month_volume)}
                       icon={<CalendarDays />}
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("Next Month Pending Volume", nextMonthLeads)}
                     />
                     <ModernStatsCard
                       title="Closing This Week (Volume)"
@@ -671,6 +700,8 @@ export default function DashboardTabs() {
                       }).format(thisWeekClosing.this_week_volume)}
                       icon={<TrendingUp />}
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("Closing This Week", thisWeekLeads)}
                     />
                   </CardContent>
                 </Card>
@@ -775,6 +806,8 @@ export default function DashboardTabs() {
                       icon={<DollarSign />}
                       size="large"
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("2025 YTD Closed Volume", closedYtdLeads)}
                     />
                     <ModernStatsCard
                       title="Average Loan Amount"
@@ -805,6 +838,8 @@ export default function DashboardTabs() {
                       icon={<Users />}
                       size="large"
                       centered={true}
+                      clickable={true}
+                      onClick={() => handleOpenVolumeModal("2025 YTD Closed Units", closedYtdLeads)}
                     />
                     <ModernStatsCard
                       title="Average Monthly Units"
@@ -828,6 +863,12 @@ export default function DashboardTabs() {
                   color="hsl(var(--primary))"
                   showValueLabels={true}
                   formatValue={(value) => `$${(value / 1000000).toFixed(1)}M`}
+                  onBarClick={(index) => {
+                    const monthNum = index + 1;
+                    const leadsInMonth = closedMonthlyLeads.get(monthNum) || [];
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    handleOpenVolumeModal(`${monthNames[index]} 2025 Closed Volume`, leadsInMonth);
+                  }}
                 />
                 <ModernChartCard
                   title="2025 Units by Month"
@@ -837,6 +878,12 @@ export default function DashboardTabs() {
                   height={240}
                   color="hsl(var(--primary))"
                   showValueLabels={true}
+                  onBarClick={(index) => {
+                    const monthNum = index + 1;
+                    const leadsInMonth = closedMonthlyLeads.get(monthNum) || [];
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    handleOpenVolumeModal(`${monthNames[index]} 2025 Closed Units`, leadsInMonth);
+                  }}
                 />
               </div>
             </>
@@ -856,6 +903,14 @@ export default function DashboardTabs() {
         title={modalTitle}
         data={modalData}
         type={modalType}
+        onLeadClick={handleLeadClick}
+      />
+
+      <VolumeDetailModal
+        open={volumeModalOpen}
+        onOpenChange={setVolumeModalOpen}
+        title={volumeModalTitle}
+        data={volumeModalData}
         onLeadClick={handleLeadClick}
       />
 

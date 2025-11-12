@@ -19,6 +19,7 @@ interface ModernStatsCardProps {
   progressMax?: number; // Maximum progress value
   showExpectedProgress?: boolean; // Show expected progress indicator
   expectedProgressValue?: number; // Expected progress value
+  progressColor?: string; // Custom color class for progress bar
 }
 
 export function ModernStatsCard({ 
@@ -37,6 +38,7 @@ export function ModernStatsCard({
   progressMax = 100,
   showExpectedProgress = false,
   expectedProgressValue = 0,
+  progressColor,
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -111,16 +113,19 @@ export function ModernStatsCard({
 
         {/* Progress Bar at Bottom */}
         {showProgress && (
-          <div className="mt-3 space-y-1">
+          <div className="mt-2 space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{progressValue} / {progressMax}</span>
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
             </div>
             <div className="relative">
-              <Progress value={(progressValue / progressMax) * 100} className="h-2" />
+              <Progress 
+                value={(progressValue / progressMax) * 100} 
+                className={cn("h-1.5", progressColor)}
+              />
               {showExpectedProgress && expectedProgressValue !== undefined && (
                 <div 
-                  className="absolute top-0 h-2 w-0.5 bg-foreground/60"
+                  className="absolute top-0 h-1.5 w-0.5 bg-foreground/60"
                   style={{ left: `${(expectedProgressValue / progressMax) * 100}%` }}
                   title={`Expected: ${Math.round(expectedProgressValue)} (${Math.round((expectedProgressValue / progressMax) * 100)}%)`}
                 />

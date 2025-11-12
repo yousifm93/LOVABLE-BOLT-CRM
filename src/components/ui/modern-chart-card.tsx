@@ -26,6 +26,7 @@ interface ModernChartCardProps {
   showGrid?: boolean;
   showValueLabels?: boolean;
   formatValue?: (value: number) => string;
+  onBarClick?: (dataIndex: number, dataItem: any) => void;
 }
 
 export function ModernChartCard({
@@ -39,7 +40,8 @@ export function ModernChartCard({
   color = "hsl(var(--primary))",
   showGrid = true,
   showValueLabels = false,
-  formatValue = (value: number) => value.toString()
+  formatValue = (value: number) => value.toString(),
+  onBarClick
 }: ModernChartCardProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -84,6 +86,8 @@ export function ModernChartCard({
                 dataKey={dataKey} 
                 fill={color}
                 radius={[2, 2, 0, 0]}
+                onClick={(data, index) => onBarClick?.(index, data)}
+                style={{ cursor: onBarClick ? 'pointer' : 'default' }}
               >
                 {showValueLabels && (
                   <LabelList 

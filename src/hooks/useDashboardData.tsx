@@ -477,6 +477,82 @@ export const useDashboardData = () => {
   // Active pipeline metrics - Active stage ID
   const ACTIVE_STAGE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
 
+  // Total Active Volume - Full Lead Data
+  const { data: totalActiveLeads, isLoading: isLoadingTotalActive } = useQuery({
+    queryKey: ['activeLeads', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Current Month Pending - Full Lead Data
+  const { data: currentMonthLeads, isLoading: isLoadingCurrentMonthLeads } = useQuery({
+    queryKey: ['activeLeads', 'currentMonth'],
+    queryFn: async () => {
+      const { currentMonthStart, nextMonthStart } = getMonthRanges();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', currentMonthStart.toISOString().split('T')[0])
+        .lt('close_date', nextMonthStart.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Next Month Pending - Full Lead Data
+  const { data: nextMonthLeads, isLoading: isLoadingNextMonthLeads } = useQuery({
+    queryKey: ['activeLeads', 'nextMonth'],
+    queryFn: async () => {
+      const { nextMonthStart, monthAfterNextStart } = getMonthRanges();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', nextMonthStart.toISOString().split('T')[0])
+        .lt('close_date', monthAfterNextStart.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // This Week Closing - Full Lead Data
+  const { data: thisWeekLeads, isLoading: isLoadingThisWeekLeads } = useQuery({
+    queryKey: ['activeLeads', 'thisWeek'],
+    queryFn: async () => {
+      const { monday, friday } = getCurrentWeekRange();
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, close_date')
+        .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
+        .eq('is_closed', false)
+        .gte('close_date', monday.toISOString().split('T')[0])
+        .lte('close_date', friday.toISOString().split('T')[0]);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
   // Total Active Volume & Units
   const { data: activeMetrics, isLoading: isLoadingActiveMetrics } = useQuery({
     queryKey: ['activeMetrics', 'totals'],
@@ -590,7 +666,24 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // Closed/Past Clients metrics - 2025 YTD
+  // Closed/Past Clients metrics - 2025 YTD (Full Lead Data)
+  const { data: closedYtdLeads, isLoading: isLoadingClosedYtdLeads } = useQuery({
+    queryKey: ['closedLeads', 'ytd2025'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, closed_at')
+        .eq('is_closed', true)
+        .gte('closed_at', '2025-01-01T00:00:00')
+        .lt('closed_at', '2026-01-01T00:00:00');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Closed YTD Metrics (aggregated)
   const { data: closedYtdMetrics, isLoading: isLoadingClosedYtd } = useQuery({
     queryKey: ['closedMetrics', 'ytd2025'],
     queryFn: async () => {
@@ -612,6 +705,34 @@ export const useDashboardData = () => {
         ytd_volume: ytdVolume,
         avg_loan_amount: avgLoanAmount,
       };
+    },
+    staleTime: 30000,
+  });
+
+  // Closed - 2025 Monthly Leads (Full Data)
+  const { data: closedMonthlyLeads, isLoading: isLoadingClosedMonthlyLeads } = useQuery({
+    queryKey: ['closedLeads', 'monthly2025'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, loan_amount, closed_at')
+        .eq('is_closed', true)
+        .gte('closed_at', '2025-01-01T00:00:00')
+        .lt('closed_at', '2026-01-01T00:00:00');
+      
+      if (error) throw error;
+      
+      // Group by month
+      const monthlyMap = new Map<number, any[]>();
+      data?.forEach(lead => {
+        if (lead.closed_at) {
+          const month = new Date(lead.closed_at).getMonth() + 1;
+          if (!monthlyMap.has(month)) monthlyMap.set(month, []);
+          monthlyMap.get(month)!.push(lead);
+        }
+      });
+      
+      return monthlyMap;
     },
     staleTime: 30000,
   });
@@ -699,6 +820,12 @@ export const useDashboardData = () => {
     isLoadingCurrentMonth ||
     isLoadingNextMonth ||
     isLoadingThisWeek ||
+    isLoadingTotalActive ||
+    isLoadingCurrentMonthLeads ||
+    isLoadingNextMonthLeads ||
+    isLoadingThisWeekLeads ||
+    isLoadingClosedYtdLeads ||
+    isLoadingClosedMonthlyLeads ||
     isLoadingClosedYtd ||
     isLoadingClosedVolume ||
     isLoadingClosedUnits;
@@ -726,6 +853,12 @@ export const useDashboardData = () => {
     currentMonthPending: currentMonthPending || { current_month_units: 0, current_month_volume: 0 },
     nextMonthPending: nextMonthPending || { next_month_units: 0, next_month_volume: 0 },
     thisWeekClosing: thisWeekClosing || { this_week_units: 0, this_week_volume: 0 },
+    totalActiveLeads: totalActiveLeads || [],
+    currentMonthLeads: currentMonthLeads || [],
+    nextMonthLeads: nextMonthLeads || [],
+    thisWeekLeads: thisWeekLeads || [],
+    closedYtdLeads: closedYtdLeads || [],
+    closedMonthlyLeads: closedMonthlyLeads || new Map(),
     closedYtdMetrics: closedYtdMetrics || { ytd_units: 0, ytd_volume: 0, avg_loan_amount: 0 },
     closedMonthlyVolume: closedMonthlyVolume || [],
     closedMonthlyUnits: closedMonthlyUnits || [],
