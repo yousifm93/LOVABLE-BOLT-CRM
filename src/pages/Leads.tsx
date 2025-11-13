@@ -1149,9 +1149,9 @@ export default function Leads() {
       <div className="pl-4 pr-0 pt-2 pb-0">
         <div className="flex justify-between items-center mb-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">New ({filteredLeads.length})</h1>
+            <h1 className="text-2xl font-bold text-foreground">Leads ({filteredLeads.length})</h1>
             <p className="text-xs italic text-muted-foreground/70">
-              New leads entering the pipeline
+              Leads entering the pipeline
               {filters.length > 0 && (
                 <span className="ml-2 text-primary">
                   • {filters.length} filter{filters.length > 1 ? 's' : ''} active

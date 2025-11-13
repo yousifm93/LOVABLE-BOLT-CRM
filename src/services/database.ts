@@ -1042,6 +1042,109 @@ export const databaseService = {
     return data || [];
   },
 
+  // Get all unified contacts from contacts, buyer_agents, lenders, and leads tables
+  async getAllUnifiedContacts() {
+    try {
+      // 1. Fetch from contacts table
+      const { data: contactsData } = await supabase
+        .from('contacts')
+        .select('*');
+      
+      // 2. Fetch from buyer_agents table
+      const { data: agentsData } = await supabase
+        .from('buyer_agents')
+        .select('*');
+      
+      // 3. Fetch from lenders table
+      const { data: lendersData } = await supabase
+        .from('lenders')
+        .select('*');
+      
+      // 4. Fetch from leads table
+      const { data: leadsData } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, pipeline_stage_id');
+      
+      // Transform all to unified format
+      const unifiedContacts = [
+        // Contacts (already in correct format)
+        ...(contactsData || []).map(c => ({
+          id: c.id,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          email: c.email,
+          phone: c.phone,
+          company: c.company,
+          type: c.type,
+          tags: c.tags || [],
+          notes: c.notes,
+          lead_created_date: c.lead_created_date,
+          source: 'contacts' as const,
+          source_id: c.id
+        })),
+        
+        // Buyer Agents
+        ...(agentsData || []).map(a => ({
+          id: a.id,
+          first_name: a.first_name,
+          last_name: a.last_name,
+          email: a.email,
+          phone: a.phone,
+          company: a.brokerage,
+          type: 'Agent',
+          tags: [] as string[],
+          notes: '',
+          lead_created_date: a.created_at,
+          source: 'buyer_agents' as const,
+          source_id: a.id
+        })),
+        
+        // Lenders (split account_executive name)
+        ...(lendersData || []).map(l => {
+          const nameParts = (l.account_executive || '').split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          return {
+            id: l.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: l.account_executive_email,
+            phone: l.account_executive_phone,
+            company: l.lender_name,
+            type: 'Lender',
+            tags: [l.lender_type].filter(Boolean),
+            notes: l.notes || '',
+            lead_created_date: l.created_at,
+            source: 'lenders' as const,
+            source_id: l.id
+          };
+        }),
+        
+        // Leads (as Borrowers)
+        ...(leadsData || []).map(lead => ({
+          id: lead.id,
+          first_name: lead.first_name,
+          last_name: lead.last_name,
+          email: lead.email,
+          phone: lead.phone,
+          company: null,
+          type: 'Borrower',
+          tags: [] as string[],
+          notes: '',
+          lead_created_date: lead.lead_on_date,
+          source: 'leads' as const,
+          source_id: lead.id,
+          pipeline_stage_id: lead.pipeline_stage_id
+        }))
+      ];
+      
+      return unifiedContacts;
+    } catch (error) {
+      console.error('Error fetching unified contacts:', error);
+      throw error;
+    }
+  },
+
   // Ensure a buyer_agents record exists for a contact (for listing_agent_id compatibility)
   async ensureBuyerAgentFromContact(contactId: string) {
     // First get the contact

@@ -10,67 +10,6 @@ import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
-const borrowerData: Contact[] = [
-  {
-    id: 1,
-    type: "borrower",
-    person: {
-      id: 1,
-      firstName: "John",
-      lastName: "Smith",
-      email: "john.smith@email.com",
-      phoneMobile: "(555) 123-4567",
-      phoneAlt: "(555) 987-6543",
-      company: "Tech Solutions Inc"
-    },
-    relationship: "Primary Borrower",
-    source: "Referral",
-    status: "Active",
-    tags: ["First-Time Buyer", "High-Income"],
-    notes: "Looking for luxury home in downtown area",
-    lastContact: "2024-01-15",
-    deals: 2
-  },
-  {
-    id: 2,
-    type: "borrower",
-    person: {
-      id: 2,
-      firstName: "Maria",
-      lastName: "Garcia",
-      email: "maria.g@email.com",
-      phoneMobile: "(555) 234-5678",
-      company: "Healthcare Solutions"
-    },
-    relationship: "Co-Borrower",
-    source: "Website",
-    status: "Prospect",
-    tags: ["Investment Property"],
-    notes: "Interested in rental property opportunities",
-    lastContact: "2024-01-12",
-    deals: 0
-  },
-  {
-    id: 3,
-    type: "borrower",
-    person: {
-      id: 3,
-      firstName: "David",
-      lastName: "Wilson",
-      email: "david.w@email.com",
-      phoneMobile: "(555) 345-6789",
-      company: "Wilson Consulting"
-    },
-    relationship: "Primary Borrower",
-    source: "Agent Referral",
-    status: "Inactive",
-    tags: ["Past Client", "Repeat Customer"],
-    notes: "Previous client, excellent experience",
-    lastContact: "2023-12-20",
-    deals: 3
-  }
-];
-
 const columns: ColumnDef<any>[] = [
   {
     accessorKey: "name",
@@ -195,6 +134,7 @@ export default function BorrowerList() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('All');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -203,43 +143,46 @@ export default function BorrowerList() {
 
   const loadContacts = async () => {
     try {
-      const allContacts = await databaseService.getContacts();
-      const borrowerContacts = allContacts.filter(contact => 
-        contact.type === 'Borrower' || contact.type === 'Prospect'
-      );
-      setContacts(borrowerContacts);
+      setIsLoading(true);
+      const allContacts = await databaseService.getAllUnifiedContacts();
+      setContacts(allContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast({
         title: "Error",
-        description: "Failed to load contacts. Using sample data.",
+        description: "Failed to load contacts.",
         variant: "destructive"
       });
-      setContacts(borrowerData); // Fallback to mock data
+      setContacts([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleContactCreated = (newContact: any) => {
-    setContacts(prev => [...prev, newContact]);
+    loadContacts(); // Reload all contacts to include the new one
   };
 
   const handleRowClick = (contact: any) => {
-    console.log("View borrower details:", contact);
+    console.log("View contact details:", contact);
   };
 
-  const displayData = contacts.length > 0 ? contacts : borrowerData;
-  const activeBorrowers = displayData.filter((contact: any) => contact.status === "Active").length;
-  const totalDeals = displayData.reduce((sum: number, contact: any) => sum + (contact.deals || 0), 0);
-  const prospects = displayData.filter((contact: any) => contact.status === "Prospect").length;
+  const filteredContacts = activeFilter === 'All' 
+    ? contacts 
+    : contacts.filter(c => c.type === activeFilter);
+
+  const displayData = filteredContacts;
+  const borrowerCount = contacts.filter((c: any) => c.type === 'Borrower').length;
+  const agentCount = contacts.filter((c: any) => c.type === 'Agent').length;
+  const lenderCount = contacts.filter((c: any) => c.type === 'Lender').length;
+  const otherCount = contacts.filter((c: any) => !['Borrower', 'Agent', 'Lender'].includes(c.type)).length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Master Contact List</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {displayData.length} total contacts • {activeBorrowers} active • {prospects} prospects
+          {contacts.length} total contacts • {borrowerCount} borrowers • {agentCount} agents • {lenderCount} lenders
         </p>
       </div>
 
@@ -248,8 +191,8 @@ export default function BorrowerList() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{displayData.length}</p>
-                <p className="text-sm text-muted-foreground">Total Borrowers</p>
+                <p className="text-2xl font-bold">{contacts.length}</p>
+                <p className="text-sm text-muted-foreground">Total Contacts</p>
               </div>
               <User className="h-8 w-8 text-primary" />
             </div>
@@ -260,10 +203,10 @@ export default function BorrowerList() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-success">{activeBorrowers}</p>
-                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-2xl font-bold text-success">{borrowerCount}</p>
+                <p className="text-sm text-muted-foreground">Borrowers</p>
               </div>
-              <Star className="h-8 w-8 text-success" />
+              <User className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -272,22 +215,22 @@ export default function BorrowerList() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-warning">{prospects}</p>
-                <p className="text-sm text-muted-foreground">Prospects</p>
+                <p className="text-2xl font-bold text-info">{agentCount}</p>
+                <p className="text-sm text-muted-foreground">Agents</p>
+              </div>
+              <Phone className="h-8 w-8 text-info" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-warning">{lenderCount}</p>
+                <p className="text-sm text-muted-foreground">Lenders</p>
               </div>
               <MapPin className="h-8 w-8 text-warning" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">{totalDeals}</p>
-                <p className="text-sm text-muted-foreground">Total Deals</p>
-              </div>
-              <Star className="h-8 w-8 text-info" />
             </div>
           </CardContent>
         </Card>
@@ -296,6 +239,23 @@ export default function BorrowerList() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
+          <div className="flex gap-2 mb-4">
+            {['All', 'Borrower', 'Agent', 'Lender', 'Other'].map(filter => (
+              <Button
+                key={filter}
+                variant={activeFilter === filter ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveFilter(filter)}
+              >
+                {filter}
+                {filter === 'All' && ` (${contacts.length})`}
+                {filter === 'Borrower' && ` (${borrowerCount})`}
+                {filter === 'Agent' && ` (${agentCount})`}
+                {filter === 'Lender' && ` (${lenderCount})`}
+                {filter === 'Other' && ` (${otherCount})`}
+              </Button>
+            ))}
+          </div>
           <div className="flex gap-2 items-center">
             <Button 
               size="sm" 

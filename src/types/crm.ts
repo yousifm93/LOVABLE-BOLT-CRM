@@ -287,7 +287,7 @@ export const PIPELINE_STAGES = [
 // Pipeline configurations for different stages
 export const PIPELINE_CONFIGS = {
   leads: [
-    { key: 'leads', label: 'New', icon: '📞' },
+    { key: 'leads', label: 'Leads', icon: '📞' },
     { key: 'pending-app', label: 'Pending App', icon: '📄' },
     { key: 'screening', label: 'Screening', icon: '🔍' },
     { key: 'pre-qualified', label: 'Pre-Qualified', icon: '✅' },

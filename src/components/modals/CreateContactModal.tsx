@@ -18,18 +18,26 @@ interface CreateContactModalProps {
 export function CreateContactModal({ open, onOpenChange, onContactCreated, defaultType = 'borrower' }: CreateContactModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    company: string;
+    type: "Agent" | "Borrower" | "Other" | "Prospect" | "Lender" | "Title Company" | "Insurance Agent" | "Appraiser" | "Referral Source" | "Third Party";
+    notes: string;
+  }>({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
     company: "",
-    type: defaultType === 'agent' ? 'Agent' as const : defaultType === 'borrower' ? 'Borrower' as const : 'Other' as const,
+    type: defaultType === 'agent' ? 'Agent' : defaultType === 'borrower' ? 'Borrower' : defaultType === 'lender' ? 'Lender' : 'Other',
     notes: ""
   });
 
   const resetForm = () => {
-    const mappedType = defaultType === 'agent' ? 'Agent' as const : defaultType === 'borrower' ? 'Borrower' as const : 'Other' as const;
+    const mappedType = defaultType === 'agent' ? 'Agent' : defaultType === 'borrower' ? 'Borrower' : defaultType === 'lender' ? 'Lender' : 'Other';
     setFormData({
       first_name: "",
       last_name: "",
@@ -43,7 +51,7 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
 
   useEffect(() => {
     if (open) {
-      const mappedType = defaultType === 'agent' ? 'Agent' : defaultType === 'borrower' ? 'Borrower' : 'Other';
+      const mappedType = defaultType === 'agent' ? 'Agent' : defaultType === 'borrower' ? 'Borrower' : defaultType === 'lender' ? 'Lender' : 'Other';
       setFormData(prev => ({ ...prev, type: mappedType }));
     }
   }, [open, defaultType]);
@@ -64,7 +72,7 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
 
       let contact;
       
-      // If agent type, insert into buyer_agents table
+      // If Agent, insert into buyer_agents table
       if (formData.type === 'Agent' || defaultType === 'agent') {
         contact = await databaseService.createBuyerAgent({
           first_name: formData.first_name,
@@ -73,9 +81,22 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
           phone: formData.phone || null,
           brokerage: formData.company || null,
         });
-      } else {
-        // Insert into contacts table for other types
-        contact = await databaseService.createContact(formData);
+      }
+      // If Lender, insert into lenders table
+      else if (formData.type === 'Lender') {
+        contact = await databaseService.createLender({
+          lender_name: formData.company || 'Unknown Lender',
+          account_executive: `${formData.first_name} ${formData.last_name}`,
+          account_executive_email: formData.email || null,
+          account_executive_phone: formData.phone || null,
+        });
+      }
+      // Otherwise insert into contacts table
+      else {
+        contact = await databaseService.createContact({
+          ...formData,
+          type: formData.type as any // Type assertion for compatibility with database
+        });
       }
       
       onContactCreated(contact);
@@ -126,8 +147,12 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Borrower">Borrower</SelectItem>
-                  <SelectItem value="Agent">Agent</SelectItem>
-                  <SelectItem value="Prospect">Prospect</SelectItem>
+                  <SelectItem value="Agent">Real Estate Agent</SelectItem>
+                  <SelectItem value="Lender">Lender</SelectItem>
+                  <SelectItem value="Title Company">Title Company</SelectItem>
+                  <SelectItem value="Insurance Agent">Insurance Agent</SelectItem>
+                  <SelectItem value="Appraiser">Appraiser</SelectItem>
+                  <SelectItem value="Referral Source">Referral Source</SelectItem>
                   <SelectItem value="Third Party">Third Party</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
@@ -179,15 +204,41 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="company">Company</Label>
-            <Input
-              id="company"
-              value={formData.company}
-              onChange={(e) => handleInputChange('company', e.target.value)}
-              placeholder="Company Name"
-            />
-          </div>
+          {formData.type === 'Agent' && (
+            <div className="space-y-2">
+              <Label htmlFor="brokerage">Brokerage</Label>
+              <Input
+                id="brokerage"
+                value={formData.company}
+                onChange={(e) => handleInputChange('company', e.target.value)}
+                placeholder="Brokerage Name"
+              />
+            </div>
+          )}
+
+          {formData.type === 'Lender' && (
+            <div className="space-y-2">
+              <Label htmlFor="lender_name">Lender Name</Label>
+              <Input
+                id="lender_name"
+                value={formData.company}
+                onChange={(e) => handleInputChange('company', e.target.value)}
+                placeholder="Lender Company Name"
+              />
+            </div>
+          )}
+
+          {!['Agent', 'Lender'].includes(formData.type) && (
+            <div className="space-y-2">
+              <Label htmlFor="company">Company</Label>
+              <Input
+                id="company"
+                value={formData.company}
+                onChange={(e) => handleInputChange('company', e.target.value)}
+                placeholder="Company Name"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
