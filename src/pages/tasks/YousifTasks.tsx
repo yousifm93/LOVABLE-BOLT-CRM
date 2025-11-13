@@ -6,13 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
-import { BulkCreateTasksModal } from "@/components/modals/BulkCreateTasksModal";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -256,12 +249,6 @@ export default function YousifTasks() {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onTaskCreated={handleTaskCreated}
-      />
-
-      <BulkCreateTasksModal
-        open={isBulkCreateModalOpen}
-        onOpenChange={setIsBulkCreateModalOpen}
-        onTasksCreated={handleTaskCreated}
       />
     </div>
   );
