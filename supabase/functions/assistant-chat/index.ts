@@ -246,6 +246,10 @@ const TOOL_DEFINITIONS = [
 async function searchLeads(args: any, supabase: any): Promise<any> {
   const { search_term, filters = {}, fields, limit = 50 } = args;
   
+  console.log('===========================================');
+  console.log('searchLeads called with:', JSON.stringify(args, null, 2));
+  console.log('===========================================');
+  
   let query = supabase.from('leads');
   
   const selectFields = fields && fields.length > 0 
@@ -255,9 +259,25 @@ async function searchLeads(args: any, supabase: any): Promise<any> {
   query = query.select(selectFields);
   
   if (search_term) {
-    query = query.or(
-      `first_name.ilike.%${search_term}%,last_name.ilike.%${search_term}%,email.ilike.%${search_term}%`
-    );
+    // Split-aware name matching for borrowers
+    const parts = search_term.trim().split(/\s+/);
+    
+    if (parts.length === 2) {
+      // Try "First Last" and "Last First" combinations
+      const [part1, part2] = parts;
+      query = query.or(
+        `and(first_name.ilike.%${part1}%,last_name.ilike.%${part2}%),` +
+        `and(first_name.ilike.%${part2}%,last_name.ilike.%${part1}%),` +
+        `first_name.ilike.%${search_term}%,last_name.ilike.%${search_term}%,` +
+        `email.ilike.%${search_term}%,phone.ilike.%${search_term}%`
+      );
+    } else {
+      // Single term - fuzzy search across all relevant fields
+      query = query.or(
+        `first_name.ilike.%${search_term}%,last_name.ilike.%${search_term}%,` +
+        `email.ilike.%${search_term}%,phone.ilike.%${search_term}%`
+      );
+    }
   }
   
   if (filters.status) query = query.eq('status', filters.status);
@@ -841,8 +861,133 @@ serve(async (req) => {
   }
 
   try {
+    const url = new URL(req.url);
+    const debugMode = url.searchParams.get('debug');
+    
+    // Debug endpoint for viewing prompt and tools (admin-only)
+    if (debugMode === 'prompt') {
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'No authorization header' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: { user }, error: userError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (userProfile?.role !== 'Admin') {
+        return new Response(JSON.stringify({ error: 'Admin access required' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Return system prompt and tools for debugging
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const currentMonth = now.toISOString().substring(0, 7);
+      const currentMonthStart = `${currentMonth}-01`;
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextMonthStart = nextMonth.toISOString().split('T')[0];
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      const weekStart = startOfWeek.toISOString().split('T')[0];
+
+      const debugSystemPrompt = `You are MortgageBolt Assistant, an intelligent AI helper for mortgage CRM users.
+
+**CRITICAL CONTEXT - ALWAYS USE THESE FOR DATE FILTERING:**
+- Current Date: ${currentDate}
+- Current Month: ${currentMonth} (${currentMonthStart} to ${nextMonthStart})
+- Current Week Start: ${weekStart}
+
+**Date Query Rules for "Leads Created":**
+- **IMPORTANT**: When asked about "leads created" or "leads we got", ALWAYS use lead_on_date_* filters, NOT created_*
+- "leads today" → { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
+- "leads this month" → { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
+- "leads this week" → { lead_on_date_after: '${weekStart}' }
+- "leads yesterday" → { lead_on_date_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', lead_on_date_before: '${currentDate}' }
+
+**CRM Terminology:**
+- "Leads" or "Leads Created" = All records created in pipeline based on lead_on_date field
+  **ALWAYS use lead_on_date_after and lead_on_date_before filters for lead creation questions**
+- "Applications" or "Apps" = Leads where app_complete_at field is set/not null in the time period
+  Use filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
+  Use count_leads or search_leads with these filters, NOT pipeline_stage_id
+- "Active" = Leads in "Active" stage (pipeline_stage_id: '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
+- "Face-to-Face Meetings" or "Meetings" = Agents where face_to_face_meeting date is set in the time period
+  Use search_agents with filters: { face_to_face_meeting_after: '${currentMonthStart}', face_to_face_meeting_before: '${nextMonthStart}' }
+- "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
+  Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
+
+**Borrower Lookup Strategy:**
+- For borrower name/phone/email lookups (e.g., "What is [Borrower Name]'s phone number?"), ALWAYS:
+  1. First call search_leads with search_term="[Full Name]" and limit=5
+  2. If no results found, then try search_contacts with search_term="[Name]"
+  3. Do NOT use search_agents for borrowers - that's for real estate agents only
+- Borrowers are stored in the leads table with first_name, last_name, phone, email fields
+
+**Agent Lookup Strategy:**
+- For agent name lookups (e.g., "What is [Agent Name]'s phone number?"), ALWAYS:
+  1. First try search_agents with search_term="[Name]" and limit=5
+  2. If no results found, then try search_contacts with search_term="[Name]"
+  3. Real estate agents live in buyer_agents table - prioritize search_agents for agent queries
+- For general contacts (lenders, title companies, etc.), use search_contacts
+
+**Data Sources:**
+- Leads: All borrowers and loan applications (leads table)
+- Contacts: General contact directory (contacts table)
+- Real Estate Agents: Buyer and listing agents (buyer_agents table) - **Use search_agents tool for agent queries**
+- Approved Lenders: Pre-approved lenders directory (contacts table with type filter)
+- Tasks: Team task management (tasks table)
+- Condos: Condo approval database (condos table)
+
+You have access to comprehensive CRM data including:
+- Leads (124 fields): All borrower, loan, property, and status information
+- Contacts: Agents, lenders, title companies, insurance providers
+- Real Estate Agents: Buyer agents and listing agents (use search_agents tool)
+- Tasks: Team task management and assignments
+- Condos: Condo approval database
+- Users: Team member information
+- Pipeline Stages: Workflow stages and counts
+
+Use the available tools to answer user questions accurately. When searching:
+- Use smart name matching (partial names, first/last combinations)
+- Apply appropriate filters (dates, statuses, stages, amounts)
+- Count records when asked "how many"
+- Return specific fields when asked for details (phone, email, etc.)
+- For borrower lookups, always use search_leads first
+- For agent name lookups, try search_agents first, then search_contacts as fallback
+- Provide context and suggestions for next steps
+
+Always cite your data sources and offer relevant quick actions. Be concise and professional.`;
+
+      return new Response(JSON.stringify({ 
+        systemPrompt: debugSystemPrompt,
+        tools: TOOL_DEFINITIONS 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { message, sessionId } = await req.json();
+    const { message, sessionId, devMode } = await req.json();
 
     console.log('Processing assistant query:', { message, sessionId });
 
@@ -924,8 +1069,15 @@ serve(async (req) => {
 - "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
   Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
 
-**Contact and Agent Lookup Strategy:**
-- For agent name lookups (e.g., "What is [Name]'s phone number?"), ALWAYS:
+**Borrower Lookup Strategy:**
+- For borrower name/phone/email lookups (e.g., "What is [Borrower Name]'s phone number?"), ALWAYS:
+  1. First call search_leads with search_term="[Full Name]" and limit=5
+  2. If no results found, then try search_contacts with search_term="[Name]"
+  3. Do NOT use search_agents for borrowers - that's for real estate agents only
+- Borrowers are stored in the leads table with first_name, last_name, phone, email fields
+
+**Agent Lookup Strategy:**
+- For agent name lookups (e.g., "What is [Agent Name]'s phone number?"), ALWAYS:
   1. First try search_agents with search_term="[Name]" and limit=5
   2. If no results found, then try search_contacts with search_term="[Name]"
   3. Real estate agents live in buyer_agents table - prioritize search_agents for agent queries
@@ -1002,6 +1154,7 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
     const assistantMessage = result.choices[0].message;
     let finalResponse = '';
     let metadata: any = { citations: [], quickActions: [] };
+    let toolTrace: any[] = [];
 
     // Check if GPT wants to use tools
     if (assistantMessage.tool_calls) {
@@ -1018,10 +1171,23 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
           name: toolName,
           content: JSON.stringify(toolResult)
         });
+        
+        // Build tool trace for dev mode
+        if (devMode) {
+          const resultParsed = typeof toolResult === 'string' ? JSON.parse(toolResult) : toolResult;
+          toolTrace.push({
+            tool: toolName,
+            args: toolArgs,
+            resultCount: resultParsed.count || resultParsed.leads?.length || resultParsed.contacts?.length || 0
+          });
+        }
       }
       
       // Generate metadata from tool results
       metadata = generateMetadata(toolResults);
+      if (devMode) {
+        metadata.toolTrace = toolTrace;
+      }
       
       // Call GPT again with tool results
       const finalApiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1077,7 +1243,10 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
         .limit(1);
     }
 
-    return new Response(JSON.stringify({ response: finalResponse, metadata }), {
+    return new Response(JSON.stringify({ 
+      response: finalResponse, 
+      metadata 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 

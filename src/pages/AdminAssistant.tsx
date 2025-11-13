@@ -5,12 +5,15 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bot, Send, Copy, ExternalLink, Plus, FileText, User, Phone, Mail, Shield } from 'lucide-react';
+import { Bot, Send, Copy, ExternalLink, Plus, FileText, User, Phone, Mail, Shield, ChevronDown, ChevronUp, Code2, Bug } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { VoiceRecorder } from '@/components/ui/voice-recorder';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Message {
   id: string;
@@ -20,6 +23,7 @@ interface Message {
     citations?: Array<{ source: string; url?: string; type: string }>;
     quickActions?: Array<{ label: string; action: string; data?: any }>;
     secretValue?: string;
+    toolTrace?: Array<{ tool: string; args: any; resultCount: number }>;
   };
   created_at: string;
 }
@@ -127,6 +131,10 @@ export default function AdminAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSecretModal, setShowSecretModal] = useState(false);
   const [pendingSecretRequest, setPendingSecretRequest] = useState<{ key: string; sessionId: string } | null>(null);
+  const [devMode, setDevMode] = useState(false);
+  const [showPromptViewer, setShowPromptViewer] = useState(false);
+  const [promptData, setPromptData] = useState<{ systemPrompt: string; tools: any[] } | null>(null);
+  const [loadingPrompt, setLoadingPrompt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -200,6 +208,40 @@ export default function AdminAssistant() {
     setCurrentSession(data.id);
   };
 
+  const loadPromptData = async () => {
+    setLoadingPrompt(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      if (!token) {
+        throw new Error('No auth token');
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat?debug=prompt`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch prompt data');
+      }
+
+      const data = await response.json();
+      setPromptData(data);
+    } catch (error) {
+      console.error('Error loading prompt data:', error);
+      toast({ title: 'Error', description: 'Failed to load prompt data', variant: 'destructive' });
+    } finally {
+      setLoadingPrompt(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentSession) return;
 
@@ -226,7 +268,8 @@ export default function AdminAssistant() {
       const response = await supabase.functions.invoke('assistant-chat', {
         body: {
           message: userMessage.content,
-          sessionId: currentSession
+          sessionId: currentSession,
+          devMode: devMode
         }
       });
 
@@ -442,6 +485,27 @@ export default function AdminAssistant() {
                             ))}
                           </div>
                         )}
+                        
+                        {/* Tool Trace (Dev Mode) */}
+                        {devMode && message.metadata?.toolTrace && message.metadata.toolTrace.length > 0 && (
+                          <Collapsible className="mt-3">
+                            <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+                              <Bug className="h-3 w-3" />
+                              <span>Tool Trace ({message.metadata.toolTrace.length} calls)</span>
+                              <ChevronDown className="h-3 w-3" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 p-2 bg-background/50 rounded border border-border/50 text-xs font-mono space-y-1">
+                              {message.metadata.toolTrace.map((trace, idx) => (
+                                <div key={idx} className="space-y-0.5">
+                                  <div className="font-bold text-primary">{trace.tool}</div>
+                                  <div className="text-muted-foreground">Args: {JSON.stringify(trace.args)}</div>
+                                  <div className="text-muted-foreground">Results: {trace.resultCount} records</div>
+                                  {idx < message.metadata!.toolTrace!.length - 1 && <Separator className="my-1" />}
+                                </div>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        )}
                       </div>
                     </div>
                     {message.role === 'user' && (
@@ -474,9 +538,71 @@ export default function AdminAssistant() {
               </div>
             </ScrollArea>
 
-            {/* Input */}
+            {/* Debug Controls */}
             <div className="border-t border-border/50 p-4 bg-card/50 backdrop-blur-sm">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto space-y-3">
+                {/* Dev Mode & Prompt Viewer */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      id="dev-mode" 
+                      checked={devMode}
+                      onCheckedChange={setDevMode}
+                    />
+                    <Label htmlFor="dev-mode" className="text-sm cursor-pointer">
+                      Dev Mode (Show Tool Trace)
+                    </Label>
+                  </div>
+                  
+                  <Collapsible open={showPromptViewer} onOpenChange={setShowPromptViewer}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => !promptData && !loadingPrompt && loadPromptData()}
+                      >
+                        <Code2 className="h-4 w-4 mr-2" />
+                        {showPromptViewer ? 'Hide' : 'View'} Prompt & Tools
+                        {showPromptViewer ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3">
+                      <Card className="border-primary/20">
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Code2 className="h-4 w-4" />
+                            System Prompt & Tool Definitions
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {loadingPrompt ? (
+                            <div className="text-sm text-muted-foreground">Loading...</div>
+                          ) : promptData ? (
+                            <>
+                              <div>
+                                <div className="text-xs font-semibold mb-1 text-primary">System Prompt:</div>
+                                <ScrollArea className="h-[200px] w-full rounded border border-border/50 bg-muted/30 p-3">
+                                  <pre className="text-xs whitespace-pre-wrap font-mono">{promptData.systemPrompt}</pre>
+                                </ScrollArea>
+                              </div>
+                              <Separator />
+                              <div>
+                                <div className="text-xs font-semibold mb-1 text-primary">Tool Definitions ({promptData.tools.length} tools):</div>
+                                <ScrollArea className="h-[200px] w-full rounded border border-border/50 bg-muted/30 p-3">
+                                  <pre className="text-xs whitespace-pre-wrap font-mono">{JSON.stringify(promptData.tools, null, 2)}</pre>
+                                </ScrollArea>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">Failed to load prompt data</div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+
+                {/* Input */}
                 <Card className="shadow-lg border-border/50">
                   <CardContent className="p-4">
                     <div className="flex gap-2 items-end">
