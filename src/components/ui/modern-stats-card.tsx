@@ -115,14 +115,14 @@ export function ModernStatsCard({
         {showProgress && (
           <div className="mt-1 space-y-0.5">
             {/* Percentage and "behind" text on same line */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-0.5">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
               {showExpectedProgress && expectedProgressValue !== undefined && (() => {
-                const behindCount = Math.max(0, Math.round(expectedProgressValue - progressValue));
-                const isOnPace = progressValue >= expectedProgressValue;
+                const difference = Math.round(progressValue - expectedProgressValue);
+                if (difference === 0) return null;
                 return (
-                  <span className="text-xs">
-                    {isOnPace ? '✓ On Pace' : `${behindCount} behind`}
+                  <span>
+                    ({difference > 0 ? '+' : ''}{difference})
                   </span>
                 );
               })()}
