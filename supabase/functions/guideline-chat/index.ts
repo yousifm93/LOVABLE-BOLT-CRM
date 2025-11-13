@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const N8N_WEBHOOK_URL = 'https://yousifmo93.app.n8n.cloud/webhook/chatbot-query';
+const N8N_WEBHOOK_URL = 'https://yousifmo93.app.n8n.cloud/webhook-test/chatbot-query';
 const TIMEOUT_MS = 60000; // 60 seconds - N8N RAG workflows can be slow
 
 serve(async (req) => {
