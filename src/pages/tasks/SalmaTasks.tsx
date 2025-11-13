@@ -6,6 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { BulkCreateTasksModal } from "@/components/modals/BulkCreateTasksModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -123,6 +130,7 @@ export default function SalmaTasks() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tasks, setTasks] = useState<ModernTask[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBulkCreateModalOpen, setIsBulkCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -212,13 +220,22 @@ export default function SalmaTasks() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <div className="flex gap-2 items-center">
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Task
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Task
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setIsCreateModalOpen(true)}>
+                  Create Single Task
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsBulkCreateModalOpen(true)}>
+                  Bulk Create Tasks
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -254,6 +271,12 @@ export default function SalmaTasks() {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onTaskCreated={handleTaskCreated}
+      />
+
+      <BulkCreateTasksModal
+        open={isBulkCreateModalOpen}
+        onOpenChange={setIsBulkCreateModalOpen}
+        onTasksCreated={handleTaskCreated}
       />
     </div>
   );
