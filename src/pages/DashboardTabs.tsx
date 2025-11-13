@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
@@ -243,6 +243,7 @@ export default function DashboardTabs() {
   // All tab state
   const [allLeadsData, setAllLeadsData] = useState<any[]>([]);
   const [selectedAllLeadIds, setSelectedAllLeadIds] = useState<string[]>([]);
+  const [allLeadsSearchTerm, setAllLeadsSearchTerm] = useState("");
 
   // Modal handlers
   const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls") => {
@@ -292,6 +293,8 @@ export default function DashboardTabs() {
         borrowerName: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
         leadCreatedOn: lead.lead_on_date || lead.created_at?.split('T')[0],
         currentStage: lead.stage_name,
+        notes: lead.notes || '',
+        latestFileUpdates: lead.latest_file_updates || '',
         _fullData: lead
       }));
       setAllLeadsData(transformed);
@@ -366,6 +369,26 @@ export default function DashboardTabs() {
         </Badge>
       ),
       className: "w-40",
+      sortable: true,
+    },
+    {
+      accessorKey: 'notes',
+      header: 'About the Borrower',
+      cell: ({ row }) => (
+        <div className="max-w-md text-sm line-clamp-2" title={row.original.notes || ''}>
+          {row.original.notes || '—'}
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: 'latestFileUpdates',
+      header: 'Latest File Updates',
+      cell: ({ row }) => (
+        <div className="max-w-md text-sm line-clamp-2" title={row.original.latestFileUpdates || ''}>
+          {row.original.latestFileUpdates || '—'}
+        </div>
+      ),
       sortable: true,
     },
   ], [selectedAllLeadIds, allLeadsData]);
@@ -1008,11 +1031,23 @@ export default function DashboardTabs() {
                     </Badge>
                   )}
                 </CardTitle>
+                <div className="mt-3">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search all leads..."
+                      value={allLeadsSearchTerm}
+                      onChange={(e) => setAllLeadsSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <DataTable
                   columns={allLeadsColumns}
                   data={allLeadsData}
+                  searchTerm={allLeadsSearchTerm}
                   showRowNumbers={false}
                 />
               </CardContent>
