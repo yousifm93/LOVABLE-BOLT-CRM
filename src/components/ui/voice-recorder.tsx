@@ -83,10 +83,6 @@ export function VoiceRecorder({ onTranscriptionComplete, disabled }: VoiceRecord
 
       if (data?.text) {
         onTranscriptionComplete(data.text);
-        toast({
-          title: 'Success',
-          description: 'Voice note transcribed and added to notes',
-        });
       } else {
         throw new Error('No transcription returned');
       }
