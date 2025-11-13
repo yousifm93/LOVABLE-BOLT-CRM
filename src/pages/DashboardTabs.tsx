@@ -1,21 +1,31 @@
 import { useMemo, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search, Filter, Lock, Unlock } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
 import { StatsCard } from "@/components/ui/stats-card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ActivityMonitor } from "@/components/dashboard/ActivityMonitor";
 import { ConversionAnalytics } from "@/components/dashboard/ConversionAnalytics";
 import { PipelineSummarySection } from "@/components/dashboard/PipelineSummarySection";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDynamicColumns } from "@/hooks/useDynamicColumns";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { useFields } from "@/contexts/FieldsContext";
 import { DashboardDetailModal } from "@/components/dashboard/DashboardDetailModal";
 import { VolumeDetailModal } from "@/components/dashboard/VolumeDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { CRMClient } from "@/types/crm";
@@ -244,6 +254,30 @@ export default function DashboardTabs() {
   const [allLeadsData, setAllLeadsData] = useState<any[]>([]);
   const [selectedAllLeadIds, setSelectedAllLeadIds] = useState<string[]>([]);
   const [allLeadsSearchTerm, setAllLeadsSearchTerm] = useState("");
+  const [allLeadsFilters, setAllLeadsFilters] = useState<FilterCondition[]>([]);
+  const [showBulkUpdateDialog, setShowBulkUpdateDialog] = useState(false);
+  const [lockedLeadIds, setLockedLeadIds] = useState<Set<string>>(new Set());
+  
+  // Get all fields for dynamic columns
+  const { allFields } = useFields();
+  
+  // Dynamic columns for All tab
+  const allSections = ['ADDRESS', 'BORROWER INFO', 'CONTACT INFO', 'DATE', 'FILE', 'LEAD INFO', 'LOAN INFO', 'LOAN STATUS', 'NOTES', 'OBJECT', 'TRACKING DATA'];
+  const dynamicColumnsConfig = useDynamicColumns(allSections, 'allPipelineLeads-columns');
+  
+  // Column visibility for All tab
+  const {
+    columns: allLeadsColumnsList,
+    visibleColumns: allLeadsVisibleColumns,
+    views: allLeadsViews,
+    activeView: allLeadsActiveView,
+    toggleColumn: toggleAllLeadsColumn,
+    toggleAll: toggleAllAllLeadsColumns,
+    saveView: saveAllLeadsView,
+    loadView: loadAllLeadsView,
+    deleteView: deleteAllLeadsView,
+    reorderColumns: reorderAllLeadsColumns,
+  } = useColumnVisibility(dynamicColumnsConfig, 'allPipelineLeads-columns');
 
   // Modal handlers
   const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls") => {
@@ -301,37 +335,38 @@ export default function DashboardTabs() {
     }
   }, [allPipelineLeads]);
 
-  // Define table columns for All tab
-  const allLeadsColumns: ColumnDef<any>[] = useMemo(() => [
-    {
+  // Define table columns for All tab - dynamically based on visible columns
+  const allLeadsColumns: ColumnDef<any>[] = useMemo(() => {
+    const cols: ColumnDef<any>[] = [];
+    
+    // Checkbox column for selection
+    cols.push({
       accessorKey: '_select',
       header: '',
       cell: ({ row }) => (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={selectedAllLeadIds.includes(row.original.id)}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedAllLeadIds([...selectedAllLeadIds, row.original.id]);
-            } else {
-              setSelectedAllLeadIds(selectedAllLeadIds.filter(id => id !== row.original.id));
-            }
+          onCheckedChange={(checked) => {
+            setSelectedAllLeadIds(prev =>
+              checked ? [...prev, row.original.id] : prev.filter(id => id !== row.original.id)
+            );
           }}
-          onClick={(e) => e.stopPropagation()}
-          className="cursor-pointer"
         />
       ),
-      className: "w-12 text-center",
-    },
-    {
+      className: "w-12",
+    });
+
+    // Core static columns
+    cols.push({
       accessorKey: 'number',
       header: '#',
       className: "w-16 text-center",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">{row.original.number}</span>
       ),
-    },
-    {
+    });
+
+    cols.push({
       accessorKey: 'borrowerName',
       header: 'Borrower Name',
       cell: ({ row }) => (
@@ -346,8 +381,9 @@ export default function DashboardTabs() {
         </div>
       ),
       sortable: true,
-    },
-    {
+    });
+
+    cols.push({
       accessorKey: 'leadCreatedOn',
       header: 'Lead Created On',
       cell: ({ row }) => (
@@ -359,8 +395,9 @@ export default function DashboardTabs() {
       ),
       className: "w-40",
       sortable: true,
-    },
-    {
+    });
+
+    cols.push({
       accessorKey: 'currentStage',
       header: 'Current Stage',
       cell: ({ row }) => (
@@ -370,28 +407,26 @@ export default function DashboardTabs() {
       ),
       className: "w-40",
       sortable: true,
-    },
-    {
-      accessorKey: 'notes',
-      header: 'About the Borrower',
-      cell: ({ row }) => (
-        <div className="max-w-md text-sm line-clamp-2" title={row.original.notes || ''}>
-          {row.original.notes || '—'}
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: 'latestFileUpdates',
-      header: 'Latest File Updates',
-      cell: ({ row }) => (
-        <div className="max-w-md text-sm line-clamp-2" title={row.original.latestFileUpdates || ''}>
-          {row.original.latestFileUpdates || '—'}
-        </div>
-      ),
-      sortable: true,
-    },
-  ], [selectedAllLeadIds, allLeadsData]);
+    });
+
+    // Add dynamic columns from visible columns list
+    allLeadsVisibleColumns.forEach(col => {
+      const field = allFields.find(f => f.field_name === col.id);
+      if (!field) return;
+
+      cols.push({
+        accessorKey: col.id,
+        header: col.label,
+        cell: ({ row }) => {
+          const value = row.original._fullData?.[col.id];
+          return <div className="text-sm">{value || '—'}</div>;
+        },
+        sortable: true,
+      });
+    });
+
+    return cols;
+  }, [allLeadsVisibleColumns, allFields, selectedAllLeadIds, allLeadsData]);
 
   return (
     <div className="space-y-4">
@@ -1023,14 +1058,33 @@ export default function DashboardTabs() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center justify-between">
-                  <span>All Pipeline Leads ({allLeadsData.length})</span>
+                <CardTitle className="text-lg font-semibold">
+                  All Pipeline Leads ({allLeadsData.length})
                   {selectedAllLeadIds.length > 0 && (
                     <Badge variant="secondary" className="ml-2">
                       {selectedAllLeadIds.length} selected
                     </Badge>
                   )}
                 </CardTitle>
+                
+                {/* Action Bar */}
+                <div className="flex gap-2 items-center mt-4">
+                  <ColumnVisibilityButton
+                    columns={allLeadsColumnsList}
+                    onColumnToggle={toggleAllLeadsColumn}
+                    onToggleAll={toggleAllAllLeadsColumns}
+                    onSaveView={saveAllLeadsView}
+                    onReorderColumns={reorderAllLeadsColumns}
+                  />
+                  <ViewPills
+                    views={allLeadsViews}
+                    activeView={allLeadsActiveView}
+                    onLoadView={loadAllLeadsView}
+                    onDeleteView={deleteAllLeadsView}
+                  />
+                </div>
+                
+                {/* Search Bar */}
                 <div className="mt-3">
                   <div className="relative max-w-sm">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -1053,6 +1107,7 @@ export default function DashboardTabs() {
               </CardContent>
             </Card>
           )}
+          
         </TabsContent>
       </Tabs>
 
