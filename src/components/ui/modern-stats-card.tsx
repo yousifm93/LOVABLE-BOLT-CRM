@@ -113,12 +113,23 @@ export function ModernStatsCard({
 
         {/* Progress Bar at Bottom */}
         {showProgress && (
-          <div className="mt-2 space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{progressValue} / {progressMax}</span>
+          <div className="mt-1 space-y-0.5">
+            {/* Percentage and "behind" text on same line */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-0.5">
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
+              {showExpectedProgress && expectedProgressValue !== undefined && (() => {
+                const behindCount = Math.max(0, Math.round(expectedProgressValue - progressValue));
+                const isOnPace = progressValue >= expectedProgressValue;
+                return (
+                  <span className="text-xs">
+                    {isOnPace ? '✓ On Pace' : `${behindCount} behind`}
+                  </span>
+                );
+              })()}
             </div>
-            <div className="relative">
+            
+            {/* Progress bar moved up with tighter spacing */}
+            <div className="relative mt-0.5">
               <Progress 
                 value={(progressValue / progressMax) * 100} 
                 className={cn("h-1.5", progressColor)}
@@ -131,15 +142,6 @@ export function ModernStatsCard({
                 />
               )}
             </div>
-            {showExpectedProgress && expectedProgressValue !== undefined && (() => {
-              const behindCount = Math.max(0, Math.round(expectedProgressValue - progressValue));
-              const isOnPace = progressValue >= expectedProgressValue;
-              return (
-                <div className="text-xs text-muted-foreground text-center mt-1">
-                  {isOnPace ? '✓ On Pace' : `${behindCount} behind`}
-                </div>
-              );
-            })()}
           </div>
         )}
       </CardContent>

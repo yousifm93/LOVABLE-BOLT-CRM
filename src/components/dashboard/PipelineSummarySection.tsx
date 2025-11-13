@@ -25,7 +25,7 @@ export function PipelineSummarySection({
 }: { 
   pipelineStageCounts: PipelineStage[] 
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
 
   const toggleStage = (stageId: string) => {
