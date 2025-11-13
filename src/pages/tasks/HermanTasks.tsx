@@ -6,13 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
-import { BulkCreateTasksModal } from "@/components/modals/BulkCreateTasksModal";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -220,36 +213,25 @@ export default function HermanTasks() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
-          <div className="flex gap-2 items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Task
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setIsCreateModalOpen(true)}>
-                  Create Single Task
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsBulkCreateModalOpen(true)}>
-                  Bulk Create Tasks
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search tasks..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex items-center justify-between">
+            <Input
+              placeholder="Search tasks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Task
+              </Button>
             </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -272,12 +254,6 @@ export default function HermanTasks() {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onTaskCreated={handleTaskCreated}
-      />
-
-      <BulkCreateTasksModal
-        open={isBulkCreateModalOpen}
-        onOpenChange={setIsBulkCreateModalOpen}
-        onTasksCreated={handleTaskCreated}
       />
     </div>
   );
