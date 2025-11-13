@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { VoiceRecorder } from '@/components/ui/voice-recorder';
 
 interface Message {
   id: string;
@@ -321,15 +322,17 @@ export default function AdminAssistant() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-subtle">
+    <div className="flex h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Sessions Sidebar */}
-      <div className="w-64 border-r border-border bg-card">
-        <div className="p-4 border-b border-border">
+      <div className="w-80 border-r border-border/50 bg-card/95 backdrop-blur-sm">
+        <div className="p-4 border-b border-border/50">
           <div className="flex items-center gap-2 mb-4">
-            <Bot className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">MortgageBolt Assistant</h2>
+            <div className="p-2 rounded-full bg-gradient-to-br from-primary/20 to-primary/10">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+            <h2 className="font-semibold">MortgageBolt AI</h2>
           </div>
-          <Button onClick={createNewSession} className="w-full" size="sm">
+          <Button onClick={createNewSession} className="w-full rounded-full" size="sm">
             <Plus className="h-4 w-4 mr-2" />
             New Chat
           </Button>
@@ -340,8 +343,8 @@ export default function AdminAssistant() {
               <button
                 key={session.id}
                 onClick={() => setCurrentSession(session.id)}
-                className={`w-full text-left p-2 rounded text-sm hover:bg-accent transition-colors ${
-                  currentSession === session.id ? 'bg-accent' : ''
+                className={`w-full text-left p-3 rounded-lg text-sm hover:bg-accent/50 transition-all ${
+                  currentSession === session.id ? 'bg-accent/80 shadow-sm' : ''
                 }`}
               >
                 <div className="font-medium truncate">{session.title}</div>
@@ -358,110 +361,150 @@ export default function AdminAssistant() {
       <div className="flex-1 flex flex-col">
         {currentSession ? (
           <>
+            {/* Header */}
+            <div className="text-center py-8 space-y-2 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Bot className="h-8 w-8 text-primary" />
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  MortgageBolt Assistant
+                </h1>
+              </div>
+              <p className="text-muted-foreground text-lg">
+                Your AI-powered CRM assistant with universal data access
+              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <span>Online</span>
+              </div>
+            </div>
+
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4 max-w-4xl mx-auto">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
+            <ScrollArea className="flex-1">
+              <div className="max-w-4xl mx-auto px-4 py-6">
+                <Card className="shadow-2xl border-border/50 backdrop-blur-sm bg-card/95">
+                  <CardContent className="p-6 space-y-6 min-h-[650px] max-h-[650px] overflow-y-auto">
+                {messages.map((message, index) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex items-start gap-3 animate-fade-in ${message.role === 'user' ? 'justify-end' : ''}`}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
                     {message.role === 'assistant' && (
-                      <Avatar className="h-8 w-8 bg-primary">
-                        <AvatarFallback>
-                          <Bot className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="flex-shrink-0 p-2.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                        <Bot className="h-4 w-4" />
+                      </div>
                     )}
                     <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                      <Card className={message.role === 'user' ? 'bg-primary text-primary-foreground' : ''}>
-                        <CardContent className="p-3">
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <div className={`rounded-2xl px-4 py-3 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                          : 'bg-muted text-foreground rounded-tl-sm'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                           
-                          {/* Secret value display */}
-                          {message.metadata?.secretValue && (
-                            <div className="mt-3 p-2 bg-muted rounded border">
-                              <div className="flex items-center justify-between">
-                                <code className="text-xs font-mono">{message.metadata.secretValue}</code>
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost"
-                                  onClick={() => copySecret(message.metadata!.secretValue!)}
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
+                        {/* Secret value display */}
+                        {message.metadata?.secretValue && (
+                          <div className="mt-3 p-2 bg-background/50 rounded border border-border/50">
+                            <div className="flex items-center justify-between">
+                              <code className="text-xs font-mono">{message.metadata.secretValue}</code>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => copySecret(message.metadata!.secretValue!)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
                             </div>
-                          )}
-                          
-                          {/* Citations */}
-                          {message.metadata?.citations && message.metadata.citations.length > 0 && (
-                            <div className="mt-3 space-y-1">
-                              <div className="text-xs font-medium">Sources:</div>
-                              {message.metadata.citations.map((citation, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs mr-1">
-                                  {citation.source}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Quick Actions */}
-                          {message.metadata?.quickActions && message.metadata.quickActions.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {message.metadata.quickActions.map((action, index) => (
-                                <QuickActionButton 
-                                  key={index} 
-                                  action={action} 
-                                  onAction={handleQuickAction} 
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
+                          </div>
+                        )}
+                        
+                        {/* Citations */}
+                        {message.metadata?.citations && message.metadata.citations.length > 0 && (
+                          <div className="mt-3 space-y-1">
+                            <div className="text-xs font-medium opacity-70">Sources:</div>
+                            {message.metadata.citations.map((citation, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs mr-1">
+                                {citation.source}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Quick Actions */}
+                        {message.metadata?.quickActions && message.metadata.quickActions.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {message.metadata.quickActions.map((action, index) => (
+                              <QuickActionButton 
+                                key={index} 
+                                action={action} 
+                                onAction={handleQuickAction} 
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {message.role === 'user' && (
-                      <Avatar className="h-8 w-8 bg-secondary">
-                        <AvatarFallback>
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="flex-shrink-0 p-2.5 rounded-full bg-primary text-primary-foreground">
+                        <User className="h-4 w-4" />
+                      </div>
                     )}
                   </div>
                 ))}
                 {isLoading && (
-                  <div className="flex gap-3">
-                    <Avatar className="h-8 w-8 bg-primary">
-                      <AvatarFallback>
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <Card>
-                      <CardContent className="p-3">
+                  <div className="flex items-start gap-3 animate-fade-in">
+                    <div className="flex-shrink-0 p-2.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <div className="bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground mr-2">MortgageBolt is thinking</span>
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} />
+                  </CardContent>
+                </Card>
               </div>
             </ScrollArea>
 
             {/* Input */}
-            <div className="border-t border-border p-4">
-              <div className="max-w-4xl mx-auto flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Ask about leads, contacts, tasks, or any CRM data..."
-                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  disabled={isLoading}
-                />
-                <Button onClick={sendMessage} disabled={isLoading || !newMessage.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
+            <div className="border-t border-border/50 p-4 bg-card/50 backdrop-blur-sm">
+              <div className="max-w-4xl mx-auto">
+                <Card className="shadow-lg border-border/50">
+                  <CardContent className="p-4">
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1 relative">
+                        <Input
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Ask about leads, contacts, tasks, or any CRM data..."
+                          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                          disabled={isLoading}
+                          className="pr-12 min-h-[44px]"
+                        />
+                      </div>
+                      <VoiceRecorder 
+                        onTranscriptionComplete={(text) => setNewMessage(text)}
+                        disabled={isLoading}
+                      />
+                      <Button 
+                        onClick={sendMessage} 
+                        disabled={isLoading || !newMessage.trim()}
+                        size="icon"
+                        className="h-11 w-11 rounded-full"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </>
