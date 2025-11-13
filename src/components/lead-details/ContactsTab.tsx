@@ -258,26 +258,8 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
   }, [leadId]);
 
   const loadAssignments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('lead_external_contacts')
-        .select(`
-          type,
-          contact_id,
-          contact:contacts(id, first_name, last_name, email, phone, company, type)
-        `)
-        .eq('lead_id', leadId);
-
-      if (error) throw error;
-      setAssignments(data || []);
-    } catch (error) {
-      console.error('Error loading external contacts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load external contacts",
-        variant: "destructive",
-      });
-    }
+    console.log('[DISABLED] External contacts feature - table deleted');
+    setAssignments([]);
   };
 
   const loadContacts = async () => {
@@ -302,57 +284,19 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
   };
 
   const handleAssign = async (type: string, contactId: string) => {
-    try {
-      const { error } = await supabase
-        .from('lead_external_contacts')
-        .upsert({
-          lead_id: leadId,
-          type,
-          contact_id: contactId,
-        }, {
-          onConflict: 'lead_id,type'
-        });
-
-      if (error) throw error;
-
-      await loadAssignments();
-      toast({
-        title: "Success",
-        description: "Contact linked successfully",
-      });
-    } catch (error) {
-      console.error('Error linking contact:', error);
-      toast({
-        title: "Error",
-        description: "Failed to link contact",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "External contacts table has been removed",
+      variant: "destructive",
+    });
   };
 
   const handleRemove = async (type: string) => {
-    try {
-      const { error } = await supabase
-        .from('lead_external_contacts')
-        .delete()
-        .eq('lead_id', leadId)
-        .eq('type', type);
-
-      if (error) throw error;
-
-      await loadAssignments();
-      toast({
-        title: "Success", 
-        description: "Contact removed successfully",
-      });
-    } catch (error) {
-      console.error('Error removing contact:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove contact",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "External contacts table has been removed",
+      variant: "destructive",
+    });
   };
 
   const handleAddNew = (type: string) => {

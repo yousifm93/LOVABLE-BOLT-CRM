@@ -130,64 +130,8 @@ export function TeamTab({ leadId }: TeamTabProps) {
   }, [leadId]);
 
   const loadAssignments = async () => {
-    try {
-      // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(leadId)) {
-        console.warn('Invalid UUID format for leadId:', leadId);
-        setAssignments([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('team_assignments')
-        .select(`
-          role,
-          user_id,
-          lender_id,
-          contact_id,
-          lender:lenders!team_assignments_lender_id_fkey(id, lender_name, lender_type, account_executive, account_executive_email),
-          contact:contacts!team_assignments_contact_id_fkey(id, first_name, last_name, company, email)
-        `)
-        .eq('lead_id', leadId);
-
-      if (error) throw error;
-      
-      // Transform data to TeamAssignment format
-      const transformedData: TeamAssignment[] = (data || []).map((assignment: any) => {
-        const result: TeamAssignment = {
-          role: assignment.role,
-          user_id: assignment.user_id,
-          lender_id: assignment.lender_id,
-          contact_id: assignment.contact_id,
-        };
-        
-        if (assignment.lender_id && assignment.lender) {
-          result.lender = assignment.lender;
-        }
-        
-        if (assignment.contact_id && assignment.contact) {
-          result.contact = {
-            id: assignment.contact.id,
-            first_name: assignment.contact.first_name,
-            last_name: assignment.contact.last_name,
-            company: assignment.contact.company,
-            email: assignment.contact.email
-          };
-        }
-        
-        return result;
-      });
-      
-      setAssignments(transformedData);
-    } catch (error) {
-      console.error('Error loading team assignments:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load team assignments",
-        variant: "destructive",
-      });
-    }
+    console.log('[DISABLED] Team assignments feature - table deleted');
+    setAssignments([]);
   };
 
   const loadLenders = async () => {
@@ -231,75 +175,19 @@ export function TeamTab({ leadId }: TeamTabProps) {
   };
 
   const handleAssign = async (role: string, entityId: string, entityType: 'lender' | 'contact') => {
-    try {
-      console.log('Attempting to assign:', { role, entityId, entityType, leadId });
-      
-      const assignmentData: any = {
-        lead_id: leadId,
-        role,
-        user_id: null,
-        lender_id: null,
-        contact_id: null,
-      };
-
-      if (entityType === 'lender') {
-        assignmentData.lender_id = entityId;
-      } else {
-        assignmentData.contact_id = entityId;
-      }
-
-      console.log('Assignment data:', assignmentData);
-
-      const { error } = await supabase
-        .from('team_assignments')
-        .upsert(assignmentData, {
-          onConflict: 'lead_id,role'
-        });
-
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
-
-      console.log('Assignment successful');
-      await loadAssignments();
-      toast({
-        title: "Success",
-        description: "Team member assigned successfully",
-      });
-    } catch (error) {
-      console.error('Error assigning team member:', error);
-      toast({
-        title: "Error",
-        description: "Failed to assign team member", 
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "Team assignments table has been removed",
+      variant: "destructive",
+    });
   };
 
   const handleRemove = async (role: string) => {
-    try {
-      const { error } = await supabase
-        .from('team_assignments')
-        .delete()
-        .eq('lead_id', leadId)
-        .eq('role', role);
-
-      if (error) throw error;
-
-      await loadAssignments();
-      toast({
-        title: "Success",
-        description: "Team member removed successfully",
-      });
-    } catch (error) {
-      console.error('Error removing team member:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove team member",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "Team assignments table has been removed",
+      variant: "destructive",
+    });
   };
 
   if (loading) {

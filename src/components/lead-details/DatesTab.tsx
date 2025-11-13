@@ -102,90 +102,24 @@ export function DatesTab({ leadId }: DatesTabProps) {
   }, [leadId]);
 
   const loadDates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('lead_dates')
-        .select('key, value_date')
-        .eq('lead_id', leadId);
-
-      if (error) throw error;
-
-      const dateMap: Record<string, Date | null> = {};
-      DATE_FIELDS.forEach(field => {
-        dateMap[field.key] = null;
-      });
-
-      data?.forEach(item => {
-        if (item.value_date) {
-          dateMap[item.key] = new Date(item.value_date);
-        }
-      });
-
-      setDates(dateMap);
-    } catch (error) {
-      console.error('Error loading dates:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load dates",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    console.log('[DISABLED] Lead dates feature - table deleted');
+    setLoading(false);
   };
 
   const handleDateChange = async (key: string, date: Date) => {
-    try {
-      const { error } = await supabase
-        .from('lead_dates')
-        .upsert({
-          lead_id: leadId,
-          key,
-          value_date: date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        }, {
-          onConflict: 'lead_id,key'
-        });
-
-      if (error) throw error;
-
-      setDates(prev => ({ ...prev, [key]: date }));
-      toast({
-        title: "Success",
-        description: "Date saved successfully",
-      });
-    } catch (error) {
-      console.error('Error saving date:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save date",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "Lead dates table has been removed",
+      variant: "destructive",
+    });
   };
 
   const handleDateClear = async (key: string) => {
-    try {
-      const { error } = await supabase
-        .from('lead_dates')
-        .delete()
-        .eq('lead_id', leadId)
-        .eq('key', key);
-
-      if (error) throw error;
-
-      setDates(prev => ({ ...prev, [key]: null }));
-      toast({
-        title: "Success",
-        description: "Date cleared successfully",
-      });
-    } catch (error) {
-      console.error('Error clearing date:', error);
-      toast({
-        title: "Error",
-        description: "Failed to clear date",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Feature Disabled",
+      description: "Lead dates table has been removed",
+      variant: "destructive",
+    });
   };
 
   if (loading) {
