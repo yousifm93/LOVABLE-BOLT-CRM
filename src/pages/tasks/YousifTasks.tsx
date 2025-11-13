@@ -1,50 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Task } from "@/types/crm";
+import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { BulkCreateTasksModal } from "@/components/modals/BulkCreateTasksModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/components/ui/use-toast";
 
-const yousifTasks: Task[] = [
-  {
-    id: 1,
-    title: "Follow up with Jessica Lee - Income verification",
-    description: "Need to collect updated W2 documents",
-    dueDate: "2024-01-20",
-    completed: false,
-    assignee: "Yousif",
-    priority: "High",
-    clientId: 1
-  },
-  {
-    id: 2,
-    title: "Schedule property appraisal for David Park",
-    description: "Contact appraiser for $350K refinance",
-    dueDate: "2024-01-18",
-    completed: true,
-    assignee: "Yousif",
-    priority: "Medium",
-    clientId: 2
-  },
-  {
-    id: 3,
-    title: "Review credit report anomalies",
-    description: "Client has questions about credit inquiries",
-    dueDate: "2024-01-22",
-    completed: false,
-    assignee: "Yousif",
-    priority: "Medium"
-  }
-];
+interface ModernTask {
+  id: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: string;
+  priority: string;
+  assignee_id?: string;
+  borrower_id?: string;
+  task_order: number;
+  assignee?: { first_name: string; last_name: string };
+  borrower?: { first_name: string; last_name: string };
+}
 
-const columns: ColumnDef<Task>[] = [
+const columns: ColumnDef<ModernTask>[] = [
   {
-    accessorKey: "completed",
+    accessorKey: "status",
     header: "",
     cell: ({ row }) => (
-      <Checkbox checked={row.original.completed} />
+      <Checkbox checked={row.original.status === "Done"} />
     ),
   },
   {
@@ -61,6 +52,19 @@ const columns: ColumnDef<Task>[] = [
     sortable: true,
   },
   {
+    accessorKey: "borrower",
+    header: "Borrower",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.borrower 
+          ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
+          : "No borrower"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
@@ -69,39 +73,100 @@ const columns: ColumnDef<Task>[] = [
     sortable: true,
   },
   {
-    accessorKey: "dueDate",
+    accessorKey: "task_order",
+    header: "Order",
+    cell: ({ row }) => (
+      <div className="text-sm">{row.original.task_order}</div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "assignee",
+    header: "Assigned To",
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.original.assignee 
+          ? `${row.original.assignee.first_name} ${row.original.assignee.last_name}`
+          : "Unassigned"
+        }
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "due_date",
     header: "Due Date",
     cell: ({ row }) => {
-      const date = new Date(row.original.dueDate || '');
-      const isOverdue = date < new Date() && !row.original.completed;
-      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && !row.original.completed;
+      if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
+      
+      const date = new Date(row.original.due_date);
+      const isOverdue = date < new Date() && row.original.status !== "Done";
+      const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
         <div className="flex items-center gap-2">
           {isOverdue && <AlertCircle className="h-4 w-4 text-destructive" />}
           {isDueSoon && !isOverdue && <Clock className="h-4 w-4 text-warning" />}
-          {row.original.completed && <CheckCircle className="h-4 w-4 text-success" />}
+          {row.original.status === "Done" && <CheckCircle className="h-4 w-4 text-success" />}
           <span className={isOverdue ? "text-destructive" : ""}>
-            {row.original.dueDate}
+            {row.original.due_date}
           </span>
         </div>
       );
     },
     sortable: true,
   },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status || "To Do"} />
+    ),
+    sortable: true,
+  },
 ];
-
 export default function YousifTasks() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [tasks, setTasks] = useState<ModernTask[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBulkCreateModalOpen, setIsBulkCreateModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleRowClick = (task: Task) => {
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const fetchedTasks = await databaseService.getTasks();
+      setTasks(fetchedTasks as ModernTask[]);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const handleRowClick = (task: ModernTask) => {
     console.log("View task details:", task);
   };
 
-  const completedTasks = yousifTasks.filter(task => task.completed).length;
-  const overdueTasks = yousifTasks.filter(task => {
-    const dueDate = new Date(task.dueDate || '');
-    return dueDate < new Date() && !task.completed;
+  const handleTaskCreated = () => {
+    loadTasks();
+  };
+
+  const completedTasks = tasks.filter(task => task.status === "Done").length;
+  const overdueTasks = tasks.filter(task => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDate = new Date(task.due_date);
+    return dueDate < new Date();
   }).length;
 
   return (
@@ -109,16 +174,17 @@ export default function YousifTasks() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Yousif's Tasks</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {completedTasks} completed • {overdueTasks} overdue • {yousifTasks.length - completedTasks} remaining
+          {completedTasks} completed • {overdueTasks} overdue • {tasks.length - completedTasks} remaining
         </p>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{yousifTasks.length - completedTasks}</p>
+                <p className="text-2xl font-bold">{tasks.length - completedTasks}</p>
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
@@ -171,14 +237,32 @@ export default function YousifTasks() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            columns={columns}
-            data={yousifTasks}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="text-muted-foreground">Loading tasks...</div>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tasks}
+              searchTerm={searchTerm}
+              onRowClick={handleRowClick}
+            />
+          )}
         </CardContent>
       </Card>
+
+      <CreateTaskModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onTaskCreated={handleTaskCreated}
+      />
+
+      <BulkCreateTasksModal
+        open={isBulkCreateModalOpen}
+        onOpenChange={setIsBulkCreateModalOpen}
+        onTasksCreated={handleTaskCreated}
+      />
     </div>
   );
 }
