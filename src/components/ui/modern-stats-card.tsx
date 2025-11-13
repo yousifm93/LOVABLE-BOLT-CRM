@@ -115,7 +115,7 @@ export function ModernStatsCard({
         {showProgress && (
           <div className="mt-1 space-y-0.5">
             {/* Percentage and "behind" text on same line */}
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+            <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground mb-0.5">
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
               {showExpectedProgress && expectedProgressValue !== undefined && (() => {
                 const difference = Math.round(progressValue - expectedProgressValue);
