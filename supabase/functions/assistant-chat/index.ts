@@ -43,7 +43,9 @@ const TOOL_DEFINITIONS = [
               loan_type: { type: "string" },
               property_type: { type: "string" },
               teammate_assigned: { type: "string", description: "UUID of assigned user" },
-              is_closed: { type: "boolean" }
+              is_closed: { type: "boolean" },
+              app_complete_at_after: { type: "string", description: "ISO date (YYYY-MM-DD) - filter leads with app completed on or after this date" },
+              app_complete_at_before: { type: "string", description: "ISO date (YYYY-MM-DD) - filter leads with app completed before this date" }
             }
           },
           fields: {
@@ -98,7 +100,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_agents",
-      description: "Search real estate agents (buyer agents and listing agents) in the buyer_agents table. Use this tool for ANY agent-related queries, NOT search_contacts.",
+      description: "Search real estate agents (buyer agents and listing agents) in the buyer_agents table. Use this tool for ANY agent-related queries, NOT search_contacts. Includes date filtering for meetings and calls.",
       parameters: {
         type: "object",
         properties: {
@@ -113,7 +115,11 @@ const TOOL_DEFINITIONS = [
               brokerage: { type: "string", description: "Filter by brokerage/company name" },
               agent_rank: { type: "string", enum: ["A", "B", "C", "D", "F"], description: "Filter by agent rank" },
               has_email: { type: "boolean", description: "Filter agents with email" },
-              has_phone: { type: "boolean", description: "Filter agents with phone" }
+              has_phone: { type: "boolean", description: "Filter agents with phone" },
+              face_to_face_meeting_after: { type: "string", description: "ISO date (YYYY-MM-DD) - filter agents with F2F meeting on or after this date" },
+              face_to_face_meeting_before: { type: "string", description: "ISO date (YYYY-MM-DD) - filter agents with F2F meeting before this date" },
+              last_agent_call_after: { type: "string", description: "ISO date (YYYY-MM-DD) - filter agents with call on or after this date" },
+              last_agent_call_before: { type: "string", description: "ISO date (YYYY-MM-DD) - filter agents with call before this date" }
             }
           },
           limit: { type: "number", description: "Max results (default: 50)" }
@@ -264,6 +270,8 @@ async function searchLeads(args: any, supabase: any): Promise<any> {
   if (filters.property_type) query = query.eq('property_type', filters.property_type);
   if (filters.teammate_assigned) query = query.eq('teammate_assigned', filters.teammate_assigned);
   if (filters.is_closed !== undefined) query = query.eq('is_closed', filters.is_closed);
+  if (filters.app_complete_at_after) query = query.gte('app_complete_at', filters.app_complete_at_after);
+  if (filters.app_complete_at_before) query = query.lt('app_complete_at', filters.app_complete_at_before);
   
   query = query.limit(Math.min(limit, 500));
   query = query.order('created_at', { ascending: false });
@@ -340,6 +348,14 @@ async function countLeads(args: any, supabase: any): Promise<any> {
     console.log(`Applying is_closed filter: ${filters.is_closed}`);
     query = query.eq('is_closed', filters.is_closed);
   }
+  if (filters.app_complete_at_after) {
+    console.log(`Applying app_complete_at_after filter: ${filters.app_complete_at_after}`);
+    query = query.gte('app_complete_at', filters.app_complete_at_after);
+  }
+  if (filters.app_complete_at_before) {
+    console.log(`Applying app_complete_at_before filter: ${filters.app_complete_at_before}`);
+    query = query.lt('app_complete_at', filters.app_complete_at_before);
+  }
   
   const { data, error, count } = await query;
   
@@ -404,7 +420,9 @@ async function searchContacts(args: any, supabase: any): Promise<any> {
 async function searchAgents(args: any, supabase: any): Promise<any> {
   const { search_term, filters = {}, limit = 50 } = args;
   
+  console.log('===========================================');
   console.log('searchAgents called with:', JSON.stringify(args, null, 2));
+  console.log('===========================================');
   
   let query = supabase.from('buyer_agents').select('*');
   
@@ -444,6 +462,24 @@ async function searchAgents(args: any, supabase: any): Promise<any> {
     query = query.not('phone', 'is', null);
   }
   
+  // NEW DATE FILTERS FOR MEETINGS AND CALLS
+  if (filters.face_to_face_meeting_after) {
+    console.log(`Applying face_to_face_meeting_after filter: ${filters.face_to_face_meeting_after}`);
+    query = query.gte('face_to_face_meeting', filters.face_to_face_meeting_after);
+  }
+  if (filters.face_to_face_meeting_before) {
+    console.log(`Applying face_to_face_meeting_before filter: ${filters.face_to_face_meeting_before}`);
+    query = query.lt('face_to_face_meeting', filters.face_to_face_meeting_before);
+  }
+  if (filters.last_agent_call_after) {
+    console.log(`Applying last_agent_call_after filter: ${filters.last_agent_call_after}`);
+    query = query.gte('last_agent_call', filters.last_agent_call_after);
+  }
+  if (filters.last_agent_call_before) {
+    console.log(`Applying last_agent_call_before filter: ${filters.last_agent_call_before}`);
+    query = query.lt('last_agent_call', filters.last_agent_call_before);
+  }
+  
   query = query.limit(Math.min(limit, 500));
   query = query.order('first_name');
   
@@ -454,7 +490,16 @@ async function searchAgents(args: any, supabase: any): Promise<any> {
     return { error: error.message };
   }
   
-  console.log(`Found ${data.length} agents matching query`);
+  console.log(`Found ${data.length} agents matching query for "${search_term}"`);
+  if (data.length > 0) {
+    console.log('First 3 results:', data.slice(0, 3).map(a => ({ 
+      first_name: a.first_name, 
+      last_name: a.last_name, 
+      phone: a.phone,
+      face_to_face_meeting: a.face_to_face_meeting,
+      last_agent_call: a.last_agent_call
+    })));
+  }
   
   return {
     success: true,
@@ -856,8 +901,14 @@ serve(async (req) => {
 
 **CRM Terminology:**
 - "Leads" = All records in the pipeline
-- "Applications" or "Apps" = Leads CREATED in "Pending App" pipeline stage (pipeline_stage_id: '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945') in the given time period
+- "Applications" or "Apps" = Leads where app_complete_at field is set/not null in the time period
+  Use filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
+  Use count_leads or search_leads with these filters, NOT pipeline_stage_id
 - "Active" = Leads in "Active" stage (pipeline_stage_id: '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
+- "Face-to-Face Meetings" or "Meetings" = Agents where face_to_face_meeting date is set in the time period
+  Use search_agents with filters: { face_to_face_meeting_after: '${currentMonthStart}', face_to_face_meeting_before: '${nextMonthStart}' }
+- "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
+  Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
 
 **Data Sources:**
 - Leads: All borrowers and loan applications (leads table)
