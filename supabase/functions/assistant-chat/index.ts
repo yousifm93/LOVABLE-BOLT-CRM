@@ -34,8 +34,10 @@ const TOOL_DEFINITIONS = [
             properties: {
               status: { type: "string" },
               pipeline_stage_id: { type: "string", description: "UUID of pipeline stage" },
-              created_after: { type: "string", description: "ISO date string (YYYY-MM-DD)" },
-              created_before: { type: "string", description: "ISO date string (YYYY-MM-DD)" },
+              created_after: { type: "string", description: "ISO date string (YYYY-MM-DD) - filters by created_at field" },
+              created_before: { type: "string", description: "ISO date string (YYYY-MM-DD) - filters by created_at field" },
+              lead_on_date_after: { type: "string", description: "ISO date (YYYY-MM-DD) - filter by lead_on_date (canonical lead creation date) on or after" },
+              lead_on_date_before: { type: "string", description: "ISO date (YYYY-MM-DD) - filter by lead_on_date (canonical lead creation date) before" },
               close_date_after: { type: "string" },
               close_date_before: { type: "string" },
               loan_amount_min: { type: "number" },
@@ -248,7 +250,7 @@ async function searchLeads(args: any, supabase: any): Promise<any> {
   
   const selectFields = fields && fields.length > 0 
     ? fields.join(', ')
-    : 'id, lead_number, first_name, last_name, phone, email, loan_amount, loan_type, status, close_date, pipeline_stage_id, created_at, is_closed';
+    : 'id, lead_number, first_name, last_name, phone, email, loan_amount, loan_type, status, close_date, pipeline_stage_id, created_at, lead_on_date, is_closed';
   
   query = query.select(selectFields);
   
@@ -262,6 +264,8 @@ async function searchLeads(args: any, supabase: any): Promise<any> {
   if (filters.pipeline_stage_id) query = query.eq('pipeline_stage_id', filters.pipeline_stage_id);
   if (filters.created_after) query = query.gte('created_at', filters.created_after);
   if (filters.created_before) query = query.lte('created_at', filters.created_before);
+  if (filters.lead_on_date_after) query = query.gte('lead_on_date', filters.lead_on_date_after);
+  if (filters.lead_on_date_before) query = query.lt('lead_on_date', filters.lead_on_date_before);
   if (filters.close_date_after) query = query.gte('close_date', filters.close_date_after);
   if (filters.close_date_before) query = query.lte('close_date', filters.close_date_before);
   if (filters.loan_amount_min) query = query.gte('loan_amount', filters.loan_amount_min);
@@ -347,6 +351,14 @@ async function countLeads(args: any, supabase: any): Promise<any> {
   if (filters.is_closed !== undefined) {
     console.log(`Applying is_closed filter: ${filters.is_closed}`);
     query = query.eq('is_closed', filters.is_closed);
+  }
+  if (filters.lead_on_date_after) {
+    console.log(`Applying lead_on_date_after filter: ${filters.lead_on_date_after}`);
+    query = query.gte('lead_on_date', filters.lead_on_date_after);
+  }
+  if (filters.lead_on_date_before) {
+    console.log(`Applying lead_on_date_before filter: ${filters.lead_on_date_before}`);
+    query = query.lt('lead_on_date', filters.lead_on_date_before);
   }
   if (filters.app_complete_at_after) {
     console.log(`Applying app_complete_at_after filter: ${filters.app_complete_at_after}`);
@@ -893,14 +905,16 @@ serve(async (req) => {
 - Current Month: ${currentMonth} (${currentMonthStart} to ${nextMonthStart})
 - Current Week Start: ${weekStart}
 
-**Date Query Rules:**
-- "today" → created_after: '${currentDate}'
-- "this month" → created_after: '${currentMonthStart}', created_before: '${nextMonthStart}'
-- "this week" → created_after: '${weekStart}'
-- "yesterday" → created_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', created_before: '${currentDate}'
+**Date Query Rules for "Leads Created":**
+- **IMPORTANT**: When asked about "leads created" or "leads we got", ALWAYS use lead_on_date_* filters, NOT created_*
+- "leads today" → { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
+- "leads this month" → { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
+- "leads this week" → { lead_on_date_after: '${weekStart}' }
+- "leads yesterday" → { lead_on_date_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', lead_on_date_before: '${currentDate}' }
 
 **CRM Terminology:**
-- "Leads" = All records in the pipeline
+- "Leads" or "Leads Created" = All records created in pipeline based on lead_on_date field
+  **ALWAYS use lead_on_date_after and lead_on_date_before filters for lead creation questions**
 - "Applications" or "Apps" = Leads where app_complete_at field is set/not null in the time period
   Use filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
   Use count_leads or search_leads with these filters, NOT pipeline_stage_id
@@ -909,6 +923,13 @@ serve(async (req) => {
   Use search_agents with filters: { face_to_face_meeting_after: '${currentMonthStart}', face_to_face_meeting_before: '${nextMonthStart}' }
 - "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
   Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
+
+**Contact and Agent Lookup Strategy:**
+- For agent name lookups (e.g., "What is [Name]'s phone number?"), ALWAYS:
+  1. First try search_agents with search_term="[Name]" and limit=5
+  2. If no results found, then try search_contacts with search_term="[Name]"
+  3. Real estate agents live in buyer_agents table - prioritize search_agents for agent queries
+- For general contacts (lenders, title companies, etc.), use search_contacts
 
 **Data Sources:**
 - Leads: All borrowers and loan applications (leads table)
@@ -932,7 +953,7 @@ Use the available tools to answer user questions accurately. When searching:
 - Apply appropriate filters (dates, statuses, stages, amounts)
 - Count records when asked "how many"
 - Return specific fields when asked for details (phone, email, etc.)
-- For agent queries, ALWAYS use the search_agents tool, NOT search_contacts
+- For agent name lookups, try search_agents first, then search_contacts as fallback
 - Provide context and suggestions for next steps
 
 Always cite your data sources and offer relevant quick actions. Be concise and professional.`;
