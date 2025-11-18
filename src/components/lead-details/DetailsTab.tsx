@@ -228,6 +228,46 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   };
 
+  const handleCloseLoan = async () => {
+    if (!leadId) {
+      toast({
+        title: "Error",
+        description: "Lead ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      await databaseService.updateLead(leadId, {
+        pipeline_stage_id: 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd', // Past Clients
+        is_closed: true,
+        closed_at: new Date().toISOString(),
+        converted: 'Closed',
+        loan_status: 'CTC' // Set loan status to Clear To Close
+      });
+      
+      toast({
+        title: "Loan Closed",
+        description: "Lead has been moved to Past Clients",
+      });
+      
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+    } catch (error: any) {
+      console.error('Error closing loan:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to close loan",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Loan & Property data
   const loanPropertyData = [
     { 
@@ -676,6 +716,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </h3>
           </div>
           <FourColumnDetailLayout items={monthlyPaymentData} />
+          
+          {/* Mark as Closed Button */}
+          <div className="flex justify-end mt-4">
+            <Button 
+              variant="default" 
+              onClick={handleCloseLoan}
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Mark as Closed
+            </Button>
+          </div>
         </div>
 
         {/* DTI Calculation */}

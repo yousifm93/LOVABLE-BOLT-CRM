@@ -373,6 +373,7 @@ export default function Leads() {
           if (value === 'Converted') {
             updateData.pipeline_stage_id = '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945'; // Pending App
             updateData.pending_app_at = new Date().toISOString(); // Set timestamp
+            updateData.converted = 'Pending App'; // Set status to "Pending App"
           }
           break;
         case 'leadStrength':

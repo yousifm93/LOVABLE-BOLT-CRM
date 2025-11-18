@@ -399,9 +399,10 @@ const allAvailableColumns = useMemo(() => {
     if (field === 'converted' && value === 'App Complete') {
       updateData.pipeline_stage_id = 'a4e162e0-5421-4d17-8ad5-4b1195bbc995'; // Screening
       updateData.app_complete_at = new Date().toISOString(); // Set timestamp
+      updateData.converted = 'Just Applied'; // Set status to "Just Applied"
       toast({
         title: "Moving to Screening",
-        description: "Lead moved to Screening board",
+        description: "Lead moved to Screening board with status 'Just Applied'",
       });
     }
     
