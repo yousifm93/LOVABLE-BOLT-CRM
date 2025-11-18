@@ -122,7 +122,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     status: string;
     due_date: string;
     priority: string;
-    assigned_to: string | null;
     notes: string;
   }>>([]);
 
@@ -655,29 +654,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium">Assigned To</label>
-                      <Select
-                        value={condition.assigned_to || "unassigned"}
-                        onValueChange={(value) => {
-                          const newConditions = [...bulkConditions];
-                          newConditions[index].assigned_to = value === "unassigned" ? null : value;
-                          setBulkConditions(newConditions);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {users.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.first_name} {user.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <div></div>
 
                     <div className="col-span-2">
                       <label className="text-sm font-medium">Notes</label>
@@ -789,25 +766,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Assigned To</label>
-                <Select
-                  value={formData.assigned_to || "unassigned"}
-                  onValueChange={(value) => setFormData({ ...formData, assigned_to: value === "unassigned" ? null : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.first_name} {user.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div></div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium">Notes</label>
@@ -837,7 +796,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                         status: "1_added",
                         due_date: "",
                         priority: "medium",
-                        assigned_to: null,
                         notes: "",
                       }
                     ]);
@@ -848,7 +806,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       status: "1_added",
                       due_date: "",
                       priority: "medium",
-                      assigned_to: null,
                       notes: "",
                     }]);
                   }
