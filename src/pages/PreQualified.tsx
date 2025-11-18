@@ -433,9 +433,10 @@ const allAvailableColumns = useMemo(() => {
     if (field === 'converted' && value === 'Pre-Approved') {
       updateData.pipeline_stage_id = '3cbf38ff-752e-4163-a9a3-1757499b4945'; // Pre-Approved
       updateData.pre_approved_at = new Date().toISOString(); // Set timestamp
+      updateData.converted = 'New'; // Set status to "New"
       toast({
         title: "Moving to Pre-Approved",
-        description: "Lead moved to Pre-Approved board",
+        description: "Lead moved to Pre-Approved board with status 'New'",
       });
     }
     

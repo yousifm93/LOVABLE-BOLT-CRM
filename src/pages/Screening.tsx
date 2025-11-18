@@ -45,6 +45,7 @@ const MAIN_VIEW_COLUMNS = [
   "name",
   "appCompleteOn",
   "loanNumber",
+  "status",
   "realEstateAgent",
   "user",
   "dueDate",
@@ -375,6 +376,11 @@ const allAvailableColumns = useMemo(() => {
     
     const dbField = fieldMapping[field] || field;
     const updateData: any = { [dbField]: value };
+    
+    // Automation: When App Complete, ensure status is "Just Applied"
+    if (field === 'converted' && value === 'App Complete') {
+      updateData.converted = 'Just Applied'; // Set status to "Just Applied"
+    }
     
     // Automation: When Pre-Qualified, move to Pre-Qualified board
     if (field === 'converted' && value === 'Pre-Qualified') {
