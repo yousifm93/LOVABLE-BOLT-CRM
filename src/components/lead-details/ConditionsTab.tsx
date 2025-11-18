@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -100,6 +101,10 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const [isGroup1Open, setIsGroup1Open] = useState(true);
   const [isGroup2Open, setIsGroup2Open] = useState(true);
 
+  // Detail modal state
+  const [selectedCondition, setSelectedCondition] = useState<Condition | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   // Single condition form data
   const [formData, setFormData] = useState({
     condition_type: "",
@@ -107,7 +112,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     status: "1_added",
     priority: "medium",
     due_date: "",
-    assigned_to: null as string | null,
     notes: "",
   });
 
@@ -183,9 +187,8 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         condition_type: condition.condition_type,
         description: condition.description,
         status: condition.status,
-        priority: condition.priority,
+        priority: condition.priority || "medium",
         due_date: condition.due_date || "",
-        assigned_to: condition.assigned_to,
         notes: condition.notes || "",
       });
     } else {
@@ -196,12 +199,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         status: "1_added",
         priority: "medium",
         due_date: "",
-        assigned_to: null,
         notes: "",
       });
     }
     setIsBulkMode(false);
     setIsDialogOpen(true);
+  };
+
+  const handleOpenConditionDetail = (condition: Condition) => {
+    setSelectedCondition(condition);
+    setIsDetailModalOpen(true);
   };
 
   const handleOpenBulkDialog = () => {
@@ -213,7 +220,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       status: "1_added",
       due_date: "",
       priority: "medium",
-      assigned_to: null,
       notes: "",
     }]);
     setIsDialogOpen(true);
@@ -376,10 +382,10 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[250px]">Description</TableHead>
+          <TableHead className="w-[300px]">Description</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[140px]"
+            className="cursor-pointer hover:bg-muted w-[160px]"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -389,22 +395,24 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[120px]">Documents</TableHead>
-          <TableHead className="w-[200px]">Team Notes</TableHead>
           <TableHead className="w-[100px]">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
               No conditions in this group
             </TableCell>
           </TableRow>
         ) : (
           conditionsList.map((condition) => {
             return (
-              <TableRow key={condition.id}>
+              <TableRow 
+                key={condition.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => handleOpenConditionDetail(condition)}
+              >
                 <TableCell>
                   <div>
                     <div className="font-medium">{condition.description}</div>
@@ -413,40 +421,43 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge 
-                    className={cn("cursor-default", getStatusColor(condition.status))}
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={condition.status}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
                   >
-                    {getStatusLabel(condition.status)}
-                  </Badge>
+                    <SelectTrigger className="w-[140px]">
+                      <Badge className={getStatusColor(condition.status)}>
+                        {getStatusLabel(condition.status)}
+                      </Badge>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          <Badge className={status.color}>{status.label}</Badge>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
-                <TableCell>
-                  <Input
-                    type="date"
-                    value={condition.due_date || ""}
-                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value || null)}
-                    className="h-8 text-sm"
-                  />
-                </TableCell>
-                <TableCell>
-                  {condition.document_id ? (
-                    <Badge variant="outline" className="gap-1">
-                      <FileText className="h-3 w-3" />
-                      Attached
-                    </Badge>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  {condition.due_date ? (
+                    <div className="text-sm">
+                      {format(new Date(condition.due_date), 'MMM dd')}
+                    </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">No docs</span>
+                    <span 
+                      className="cursor-pointer text-muted-foreground hover:text-foreground text-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInlineUpdate(condition.id, 'due_date', new Date().toISOString().split('T')[0]);
+                      }}
+                    >
+                      —
+                    </span>
                   )}
                 </TableCell>
-                <TableCell>
-                  <Textarea
-                    value={condition.notes || ""}
-                    onChange={(e) => handleInlineUpdate(condition.id, 'notes', e.target.value)}
-                    className="min-h-[60px] text-sm"
-                    placeholder="Add notes..."
-                  />
-                </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -694,7 +705,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   status: "1_added",
                   due_date: "",
                   priority: "medium",
-                  assigned_to: null,
                   notes: "",
                 }])}
               >
