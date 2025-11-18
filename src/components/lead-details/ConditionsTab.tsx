@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, FileText, X, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -376,15 +376,13 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-[250px]">Description</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
             className="cursor-pointer hover:bg-muted w-[140px]"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[200px]">Description</TableHead>
-          <TableHead className="w-[100px]">Priority</TableHead>
-          <TableHead className="w-[150px]">Assigned To</TableHead>
           <TableHead 
             onClick={() => handleSortClick('due_date')}
             className="cursor-pointer hover:bg-muted w-[120px]"
@@ -393,55 +391,34 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </TableHead>
           <TableHead className="w-[120px]">Documents</TableHead>
           <TableHead className="w-[200px]">Team Notes</TableHead>
-          <TableHead className="w-[140px]">Last Updated</TableHead>
-          <TableHead className="w-[80px]">Actions</TableHead>
+          <TableHead className="w-[100px]">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
               No conditions in this group
             </TableCell>
           </TableRow>
         ) : (
           conditionsList.map((condition) => {
-            const assignedUser = getUserById(condition.assigned_to);
             return (
               <TableRow key={condition.id}>
                 <TableCell>
-                  <Select
-                    value={condition.status}
-                    onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue>
-                        <Badge className={getStatusColor(condition.status)}>
-                          {getStatusLabel(condition.status)}
-                        </Badge>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map((status) => (
-                        <SelectItem key={status.value} value={status.value}>
-                          {status.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <div className="font-medium">{condition.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {CONDITION_TYPES.find(t => t.value === condition.condition_type)?.label || condition.condition_type}
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell className="text-sm">{condition.description}</TableCell>
                 <TableCell>
-                  <Badge className={
-                    condition.priority === 'high' ? 'bg-red-100 text-red-800' :
-                    condition.priority === 'medium' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }>
-                    {condition.priority}
+                  <Badge 
+                    className={cn("cursor-default", getStatusColor(condition.status))}
+                  >
+                    {getStatusLabel(condition.status)}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}` : "Unassigned"}
                 </TableCell>
                 <TableCell>
                   <Input
@@ -469,29 +446,15 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     placeholder="Add notes..."
                   />
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {condition.updated_at ? new Date(condition.updated_at).toLocaleDateString() : 
-                   new Date(condition.created_at).toLocaleDateString()}
-                </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenDialog(condition)}
-                      className="h-7 px-2"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteCondition(condition.id)}
-                      className="h-7 px-2 text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteCondition(condition.id)}
+                    className="h-7 px-2 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             );
@@ -513,29 +476,22 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <div className="space-y-4 p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Loan Conditions</h3>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Condition
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleOpenBulkDialog}>
-            <Plus className="h-4 w-4 mr-1" />
-            Multiple Conditions
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => handleOpenDialog()}>
+          <Plus className="h-4 w-4 mr-1" />
+          Add Condition
+        </Button>
       </div>
 
       <div className="space-y-3">
-        {/* Group 1: Active Conditions */}
+        {/* Group 1: Added and Requested */}
         <Collapsible open={isGroup1Open} onOpenChange={setIsGroup1Open}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-            <span className="font-semibold text-blue-900">
-              Active Conditions ({group1Conditions.length})
-            </span>
-            <ChevronDown className={cn(
-              "h-5 w-5 text-blue-900 transition-transform",
-              isGroup1Open && "rotate-180"
-            )} />
+          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+            {isGroup1Open ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-semibold">Added and Requested ({group1Conditions.length})</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
             <div className="border rounded-lg overflow-hidden">
@@ -544,16 +500,15 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Group 2: Completed Conditions */}
+        {/* Group 2: Collected and Cleared */}
         <Collapsible open={isGroup2Open} onOpenChange={setIsGroup2Open}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-            <span className="font-semibold text-green-900">
-              Completed Conditions ({group2Conditions.length})
-            </span>
-            <ChevronDown className={cn(
-              "h-5 w-5 text-green-900 transition-transform",
-              isGroup2Open && "rotate-180"
-            )} />
+          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+            {isGroup2Open ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-semibold">Collected and Cleared ({group2Conditions.length})</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
             <div className="border rounded-lg overflow-hidden">
@@ -857,12 +812,50 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={isBulkMode ? handleBulkSaveConditions : handleSaveCondition}>
-              {isBulkMode ? `Create ${bulkConditions.length} Conditions` : editingCondition ? "Update" : "Create"}
-            </Button>
+            <div className="flex items-center justify-between w-full">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => {
+                  if (!isBulkMode) {
+                    setIsBulkMode(true);
+                    setBulkConditions([
+                      formData,
+                      {
+                        condition_type: "",
+                        description: "",
+                        status: "1_added",
+                        due_date: "",
+                        priority: "medium",
+                        assigned_to: null,
+                        notes: "",
+                      }
+                    ]);
+                  } else {
+                    setBulkConditions([...bulkConditions, {
+                      condition_type: "",
+                      description: "",
+                      status: "1_added",
+                      due_date: "",
+                      priority: "medium",
+                      assigned_to: null,
+                      notes: "",
+                    }]);
+                  }
+                }}
+                className="text-sm"
+              >
+                + Add another condition
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={isBulkMode ? handleBulkSaveConditions : handleSaveCondition}>
+                  {isBulkMode ? `Create ${bulkConditions.length} Conditions` : editingCondition ? "Update" : "Create"}
+                </Button>
+              </div>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
