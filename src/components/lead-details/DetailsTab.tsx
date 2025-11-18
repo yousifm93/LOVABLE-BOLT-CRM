@@ -245,7 +245,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         is_closed: true,
         closed_at: new Date().toISOString(),
         converted: 'Closed',
-        loan_status: 'CTC' // Set loan status to Clear To Close
+        loan_status: 'CTC', // Set loan status to Clear To Close
+        pipeline_section: 'Closed' // Set pipeline_section to 'Closed'
       });
       
       toast({
