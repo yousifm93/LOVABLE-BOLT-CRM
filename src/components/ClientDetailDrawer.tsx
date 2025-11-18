@@ -962,6 +962,63 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             {/* Send Email Templates */}
             <SendEmailTemplatesCard leadId={leadId || ""} />
 
+            {/* Tasks - moved before About the Borrower */}
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <CardTitle className="text-sm font-bold flex items-center justify-between">
+                  Tasks
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowCreateTaskModal(true)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Task
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 bg-gray-50">
+                {loadingTasks ? (
+                  <p className="text-xs text-muted-foreground">Loading tasks...</p>
+                ) : leadTasks.length > 0 ? (
+                  leadTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-2">
+                      <Checkbox 
+                        checked={task.status === "Done"}
+                        onCheckedChange={() => handleTaskToggle(task.id, task.status)}
+                      />
+                      <div 
+                        className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
+                        onClick={() => {
+                          setSelectedTask(task);
+                          setShowTaskDetailModal(true);
+                        }}
+                      >
+                        <span className={cn(
+                          "text-xs block",
+                          task.status === "Done" && "line-through text-muted-foreground"
+                        )}>
+                          {task.title}
+                        </span>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>Due: {task.due_date ? formatDateModern(task.due_date) : "No date"}</span>
+                          {task.assignee && (
+                            <>
+                              <span>•</span>
+                              <span>{task.assignee.first_name} {task.assignee.last_name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">No tasks yet</p>
+                )}
+              </CardContent>
+            </Card>
+
             {/* About the Borrower Section */}
             <Card>
               <CardHeader className="pb-3 bg-white">
@@ -1208,63 +1265,6 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                       </>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Tasks - moved from left column */}
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-sm font-bold flex items-center justify-between">
-                  Tasks
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowCreateTaskModal(true)}
-                    className="h-6 px-2 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add Task
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 bg-gray-50">
-                {loadingTasks ? (
-                  <p className="text-xs text-muted-foreground">Loading tasks...</p>
-                ) : leadTasks.length > 0 ? (
-                  leadTasks.map((task) => (
-                    <div key={task.id} className="flex items-center gap-2">
-                      <Checkbox 
-                        checked={task.status === "Done"}
-                        onCheckedChange={() => handleTaskToggle(task.id, task.status)}
-                      />
-                      <div 
-                        className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1"
-                        onClick={() => {
-                          setSelectedTask(task);
-                          setShowTaskDetailModal(true);
-                        }}
-                      >
-                        <span className={cn(
-                          "text-xs block",
-                          task.status === "Done" && "line-through text-muted-foreground"
-                        )}>
-                          {task.title}
-                        </span>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>Due: {task.due_date ? formatDateModern(task.due_date) : "No date"}</span>
-                          {task.assignee && (
-                            <>
-                              <span>•</span>
-                              <span>{task.assignee.first_name} {task.assignee.last_name}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">No tasks yet</p>
                 )}
               </CardContent>
             </Card>

@@ -1,26 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, FileText, X, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Calendar, User, AlertCircle, FileText, DollarSign, Home, Shield, CreditCard, FileCheck, FileBox, Building, Paperclip, X, Upload } from "lucide-react";
-import { databaseService } from "@/services/database";
-import { useToast } from "@/hooks/use-toast";
-import { format, formatDistanceToNow } from "date-fns";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserAvatar } from "@/components/ui/user-avatar";
-import { InlineEditSelect } from "@/components/ui/inline-edit-select";
-import { InlineEditDate } from "@/components/ui/inline-edit-date";
-import { InlineEditText } from "@/components/ui/inline-edit-text";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,88 +17,122 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { databaseService } from "@/services/database";
+import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 interface Condition {
   id: string;
+  lead_id: string;
   condition_type: string;
   description: string;
   status: string;
-  due_date: string | null;
   priority: string;
+  due_date: string | null;
   assigned_to: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
   notes: string | null;
+  document_id: string | null;
   created_at: string;
-  updated_at: string;
-  assigned_user?: { first_name: string; last_name: string; email?: string } | null;
-  created_user?: { first_name: string; last_name: string; email?: string } | null;
+  created_by: string | null;
+  updated_at: string | null;
 }
 
 interface ConditionsTabProps {
-  leadId: string | null;
+  leadId: string;
   onConditionsChange?: () => void;
 }
 
 const CONDITION_TYPES = [
-  { value: "Title", label: "Title", icon: FileText },
-  { value: "Appraisal", label: "Appraisal", icon: DollarSign },
-  { value: "Insurance", label: "Insurance", icon: Shield },
-  { value: "Income Verification", label: "Income Verification", icon: FileCheck },
-  { value: "Credit Review", label: "Credit Review", icon: CreditCard },
-  { value: "Asset Documentation", label: "Asset Documentation", icon: FileBox },
-  { value: "Property Documents", label: "Property Documents", icon: Home },
-  { value: "Loan Documents", label: "Loan Documents", icon: FileText },
-  { value: "HOA Documents", label: "HOA Documents", icon: Building },
-  { value: "Other", label: "Other", icon: FileText },
+  { value: "credit_report", label: "Credit Report", icon: "📊" },
+  { value: "income_verification", label: "Income Verification", icon: "💰" },
+  { value: "asset_verification", label: "Asset Verification", icon: "🏦" },
+  { value: "employment_verification", label: "Employment Verification", icon: "💼" },
+  { value: "appraisal", label: "Appraisal", icon: "🏠" },
+  { value: "title_work", label: "Title Work", icon: "📋" },
+  { value: "insurance", label: "Insurance", icon: "🛡️" },
+  { value: "other", label: "Other", icon: "📄" },
 ];
 
 const STATUSES = [
-  { value: "1_added", label: "1. ADDED", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
-  { value: "2_requested", label: "2. REQUESTED", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
-  { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200" },
-  { value: "4_collected", label: "4. COLLECTED", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
-  { value: "5_sent_to_lender", label: "5. SENT TO LENDER", color: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200" },
-  { value: "6_cleared", label: "6. CLEARED", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" }
+  { value: "1_added", label: "1. Added", color: "bg-gray-100 text-gray-800" },
+  { value: "2_requested", label: "2. Requested", color: "bg-blue-100 text-blue-800" },
+  { value: "3_re_requested", label: "3. Re-requested", color: "bg-orange-100 text-orange-800" },
+  { value: "4_collected", label: "4. Collected", color: "bg-purple-100 text-purple-800" },
+  { value: "5_sent_to_lender", label: "5. Sent to Lender", color: "bg-yellow-100 text-yellow-800" },
+  { value: "6_cleared", label: "6. Cleared", color: "bg-green-100 text-green-800" },
 ];
 
 const PRIORITIES = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "critical", label: "Critical" },
+  { value: "low", label: "Low", color: "bg-gray-100 text-gray-800" },
+  { value: "medium", label: "Medium", color: "bg-blue-100 text-blue-800" },
+  { value: "high", label: "High", color: "bg-red-100 text-red-800" },
 ];
 
 export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps) {
+  const { toast } = useToast();
   const [conditions, setConditions] = useState<Condition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkMode, setIsBulkMode] = useState(false);
   const [editingCondition, setEditingCondition] = useState<Condition | null>(null);
   const [users, setUsers] = useState<any[]>([]);
-  const { toast } = useToast();
+  
+  // Sorting state
+  const [sortBy, setSortBy] = useState<'status' | 'due_date'>('status');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
+  // Group collapsible state
+  const [isGroup1Open, setIsGroup1Open] = useState(true);
+  const [isGroup2Open, setIsGroup2Open] = useState(true);
 
+  // Single condition form data
   const [formData, setFormData] = useState({
     condition_type: "",
     description: "",
     status: "1_added",
-    due_date: "",
     priority: "medium",
-    assigned_to: "",
+    due_date: "",
+    assigned_to: null as string | null,
     notes: "",
   });
 
+  // Bulk conditions data
+  const [bulkConditions, setBulkConditions] = useState<Array<{
+    condition_type: string;
+    description: string;
+    status: string;
+    due_date: string;
+    priority: string;
+    assigned_to: string | null;
+    notes: string;
+  }>>([]);
+
   useEffect(() => {
-    if (leadId) {
-      loadConditions();
-      loadUsers();
-    }
+    loadConditions();
+    loadUsers();
   }, [leadId]);
 
   const loadConditions = async () => {
-    if (!leadId) return;
     try {
-      setIsLoading(true);
+      setLoading(true);
       const data = await databaseService.getLeadConditions(leadId);
       setConditions(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading conditions:", error);
       toast({
         title: "Error",
@@ -117,23 +140,41 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const loadUsers = async () => {
     try {
       const data = await databaseService.getUsers();
-      // Filter to only include specific team members
-      const allowedNames = ['Youssef', 'Salma', 'Juan', 'Herman'];
-      const filteredUsers = (data || []).filter(user => 
-        allowedNames.includes(user.first_name)
-      );
-      setUsers(filteredUsers);
+      setUsers(data || []);
     } catch (error) {
       console.error("Error loading users:", error);
     }
   };
+
+  // Sort and group conditions
+  const sortedConditions = useMemo(() => {
+    return [...conditions].sort((a, b) => {
+      if (sortBy === 'status') {
+        const aNum = parseInt(a.status.split('_')[0]);
+        const bNum = parseInt(b.status.split('_')[0]);
+        return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+      } else {
+        const aDate = a.due_date ? new Date(a.due_date) : new Date(0);
+        const bDate = b.due_date ? new Date(b.due_date) : new Date(0);
+        return sortOrder === 'asc' ? aDate.getTime() - bDate.getTime() : bDate.getTime() - aDate.getTime();
+      }
+    });
+  }, [conditions, sortBy, sortOrder]);
+
+  const group1Conditions = sortedConditions.filter(c => 
+    ['1_added', '2_requested', '3_re_requested'].includes(c.status)
+  );
+  
+  const group2Conditions = sortedConditions.filter(c => 
+    ['4_collected', '5_sent_to_lender', '6_cleared'].includes(c.status)
+  );
 
   const handleOpenDialog = (condition?: Condition) => {
     if (condition) {
@@ -142,9 +183,9 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         condition_type: condition.condition_type,
         description: condition.description,
         status: condition.status,
-        due_date: condition.due_date || "",
         priority: condition.priority,
-        assigned_to: condition.assigned_to || "",
+        due_date: condition.due_date || "",
+        assigned_to: condition.assigned_to,
         notes: condition.notes || "",
       });
     } else {
@@ -153,17 +194,33 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         condition_type: "",
         description: "",
         status: "1_added",
-        due_date: "",
         priority: "medium",
-        assigned_to: "",
+        due_date: "",
+        assigned_to: null,
         notes: "",
       });
     }
+    setIsBulkMode(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenBulkDialog = () => {
+    setIsBulkMode(true);
+    setEditingCondition(null);
+    setBulkConditions([{
+      condition_type: "",
+      description: "",
+      status: "1_added",
+      due_date: "",
+      priority: "medium",
+      assigned_to: null,
+      notes: "",
+    }]);
     setIsDialogOpen(true);
   };
 
   const handleSaveCondition = async () => {
-    if (!leadId || !formData.condition_type || !formData.description) {
+    if (!formData.condition_type || !formData.description) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -173,55 +230,98 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
 
     try {
-      const conditionData = {
-        lead_id: leadId,
-        condition_type: formData.condition_type,
-        description: formData.description,
-        status: formData.status,
-        due_date: formData.due_date || null,
-        priority: formData.priority,
-        assigned_to: formData.assigned_to || null,
-        notes: formData.notes || null,
-      };
-
+      const { data: { user } } = await supabase.auth.getUser();
+      
       if (editingCondition) {
-        await databaseService.updateLeadCondition(editingCondition.id, conditionData);
+        await databaseService.updateLeadCondition(editingCondition.id, {
+          ...formData,
+          updated_at: new Date().toISOString(),
+        });
         toast({
           title: "Success",
           description: "Condition updated successfully",
         });
       } else {
-        await databaseService.createLeadCondition(conditionData);
+        await databaseService.createLeadCondition({
+          lead_id: leadId,
+          ...formData,
+          created_by: user?.id || null,
+        });
         toast({
           title: "Success",
           description: "Condition created successfully",
         });
       }
-
+      
+      await loadConditions();
       setIsDialogOpen(false);
-      setEditingCondition(null);
-      loadConditions();
-    } catch (error) {
+      if (onConditionsChange) onConditionsChange();
+    } catch (error: any) {
       console.error("Error saving condition:", error);
       toast({
         title: "Error",
-        description: "Failed to save condition",
+        description: error?.message || "Failed to save condition",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteCondition = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this condition?")) return;
+  const handleBulkSaveConditions = async () => {
+    // Validate all conditions
+    for (const condition of bulkConditions) {
+      if (!condition.condition_type || !condition.description) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields for each condition",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     try {
-      await databaseService.deleteLeadCondition(id);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      for (const conditionData of bulkConditions) {
+        await databaseService.createLeadCondition({
+          lead_id: leadId,
+          ...conditionData,
+          created_by: user?.id || null,
+        });
+      }
+      
+      toast({
+        title: "Success",
+        description: `${bulkConditions.length} conditions created successfully`,
+      });
+      
+      await loadConditions();
+      setIsDialogOpen(false);
+      setBulkConditions([]);
+      if (onConditionsChange) onConditionsChange();
+    } catch (error: any) {
+      console.error("Error creating bulk conditions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create conditions",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCondition = async (conditionId: string) => {
+    if (!confirm("Are you sure you want to delete this condition?")) {
+      return;
+    }
+
+    try {
+      await databaseService.deleteLeadCondition(conditionId);
       toast({
         title: "Success",
         description: "Condition deleted successfully",
       });
-      loadConditions();
-    } catch (error) {
+      await loadConditions();
+    } catch (error: any) {
       console.error("Error deleting condition:", error);
       toast({
         title: "Error",
@@ -233,18 +333,12 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
 
   const handleInlineUpdate = async (conditionId: string, field: string, value: any) => {
     try {
-      await databaseService.updateLeadCondition(conditionId, { [field]: value });
-      
-      // Update local state
-      setConditions(prev => 
-        prev.map(c => c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString() } : c)
-      );
-      
-      toast({
-        title: "Success",
-        description: "Condition updated successfully",
+      await databaseService.updateLeadCondition(conditionId, {
+        [field]: value,
+        updated_at: new Date().toISOString(),
       });
-    } catch (error) {
+      await loadConditions();
+    } catch (error: any) {
       console.error("Error updating condition:", error);
       toast({
         title: "Error",
@@ -254,73 +348,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
-  const handleAttachDocument = async (conditionId: string) => {
-    if (!leadId) return;
-    
-    // Create file input element
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-    
-    input.onchange = async (e: any) => {
-      const file = e.target?.files?.[0];
-      if (!file) return;
-      
-      try {
-        // Upload document to documents table
-        const document = await databaseService.uploadLeadDocument(leadId, file);
-        
-        if (!document?.id) {
-          throw new Error('Failed to upload document');
-        }
-        
-        // Link document to condition
-        await databaseService.updateLeadCondition(conditionId, { document_id: document.id });
-        
-        // Reload conditions to show the attached document
-        await loadConditions();
-        
-        toast({
-          title: "Success",
-          description: "Document attached to condition",
-        });
-      } catch (error) {
-        console.error("Error attaching document:", error);
-        toast({
-          title: "Error",
-          description: "Failed to attach document",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    input.click();
-  };
-
-  const handleRemoveDocument = async (conditionId: string) => {
-    if (!confirm("Remove document from this condition?")) return;
-    
-    try {
-      await databaseService.updateLeadCondition(conditionId, { document_id: null });
-      await loadConditions();
-      
-      toast({
-        title: "Success",
-        description: "Document removed from condition",
-      });
-    } catch (error) {
-      console.error("Error removing document:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove document",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getStatusColor = (status: string) => {
-    const statusConfig = STATUSES.find(s => s.value === status);
-    return statusConfig?.color || "bg-gray-100 text-gray-800";
+    const statusObj = STATUSES.find(s => s.value === status);
+    return statusObj?.color || "bg-gray-100 text-gray-800";
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusObj = STATUSES.find(s => s.value === status);
+    return statusObj?.label || status;
   };
 
   const getUserById = (userId: string | null) => {
@@ -328,160 +363,397 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     return users.find(u => u.id === userId);
   };
 
-  if (isLoading) {
-    return <div className="p-4 text-center text-muted-foreground">Loading conditions...</div>;
+  const handleSortClick = (column: 'status' | 'due_date') => {
+    if (sortBy === column) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const renderConditionsTable = (conditionsList: Condition[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead 
+            onClick={() => handleSortClick('status')}
+            className="cursor-pointer hover:bg-muted w-[140px]"
+          >
+            Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
+          <TableHead className="w-[200px]">Description</TableHead>
+          <TableHead className="w-[100px]">Priority</TableHead>
+          <TableHead className="w-[150px]">Assigned To</TableHead>
+          <TableHead 
+            onClick={() => handleSortClick('due_date')}
+            className="cursor-pointer hover:bg-muted w-[120px]"
+          >
+            ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
+          <TableHead className="w-[120px]">Documents</TableHead>
+          <TableHead className="w-[200px]">Team Notes</TableHead>
+          <TableHead className="w-[140px]">Last Updated</TableHead>
+          <TableHead className="w-[80px]">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {conditionsList.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              No conditions in this group
+            </TableCell>
+          </TableRow>
+        ) : (
+          conditionsList.map((condition) => {
+            const assignedUser = getUserById(condition.assigned_to);
+            return (
+              <TableRow key={condition.id}>
+                <TableCell>
+                  <Select
+                    value={condition.status}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue>
+                        <Badge className={getStatusColor(condition.status)}>
+                          {getStatusLabel(condition.status)}
+                        </Badge>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell className="text-sm">{condition.description}</TableCell>
+                <TableCell>
+                  <Badge className={
+                    condition.priority === 'high' ? 'bg-red-100 text-red-800' :
+                    condition.priority === 'medium' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }>
+                    {condition.priority}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm">
+                  {assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}` : "Unassigned"}
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="date"
+                    value={condition.due_date || ""}
+                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value || null)}
+                    className="h-8 text-sm"
+                  />
+                </TableCell>
+                <TableCell>
+                  {condition.document_id ? (
+                    <Badge variant="outline" className="gap-1">
+                      <FileText className="h-3 w-3" />
+                      Attached
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No docs</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Textarea
+                    value={condition.notes || ""}
+                    onChange={(e) => handleInlineUpdate(condition.id, 'notes', e.target.value)}
+                    className="min-h-[60px] text-sm"
+                    placeholder="Add notes..."
+                  />
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {condition.updated_at ? new Date(condition.updated_at).toLocaleDateString() : 
+                   new Date(condition.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenDialog(condition)}
+                      className="h-7 px-2"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteCondition(condition.id)}
+                      className="h-7 px-2 text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </TableBody>
+    </Table>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-muted-foreground">Loading conditions...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          Manage loan conditions and requirements for this borrower
-        </p>
-        <Button size="sm" onClick={() => handleOpenDialog()}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Condition
-        </Button>
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Loan Conditions</h3>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Condition
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleOpenBulkDialog}>
+            <Plus className="h-4 w-4 mr-1" />
+            Multiple Conditions
+          </Button>
+        </div>
       </div>
 
-      {conditions.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No conditions added yet. Click "Add Condition" to get started.
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[20%]">Condition</TableHead>
-                <TableHead className="w-[16%]">Condition Status</TableHead>
-                <TableHead className="w-[10%]">ETA</TableHead>
-                <TableHead className="w-[11%]">Last updated</TableHead>
-                <TableHead className="w-[25%]">Team Notes</TableHead>
-                <TableHead className="w-[13%]">Document</TableHead>
-                <TableHead className="w-[5%]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {conditions.map((condition) => {
-                const conditionType = CONDITION_TYPES.find(t => t.value === condition.condition_type);
-                const assignedUser = getUserById(condition.assigned_to);
-                const updatedAt = condition.updated_at ? new Date(condition.updated_at) : new Date(condition.created_at);
-                
-                return (
-                  <TableRow key={condition.id} className="hover:bg-muted/30">
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          {conditionType && (
-                            <conditionType.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <span className="font-medium text-sm">{condition.description || conditionType?.label}</span>
-                        </div>
-                        {condition.description && conditionType && (
-                          <span className="text-xs text-muted-foreground ml-6">{conditionType.label}</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <InlineEditSelect
-                        value={condition.status}
-                        options={STATUSES.map(s => ({ value: s.value, label: s.label }))}
-                        onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
-                        showAsStatusBadge={true}
-                        className={getStatusColor(condition.status)}
-                      />
-                    </TableCell>
-                    
-                    <TableCell>
-                      <InlineEditDate
-                        value={condition.due_date}
-                        onValueChange={(date) => handleInlineUpdate(condition.id, 'due_date', date ? format(date, 'yyyy-MM-dd') : null)}
-                        placeholder="Set date"
-                      />
-                    </TableCell>
-                    
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(updatedAt, { addSuffix: true })}
-                        </span>
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell>
-                      <InlineEditText
-                        value={condition.notes}
-                        onValueChange={(value) => handleInlineUpdate(condition.id, 'notes', value)}
-                        placeholder="Add notes..."
-                        className="max-w-[300px]"
-                      />
-                    </TableCell>
-                    
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {(condition as any).document_id ? (
-                          <>
-                            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-                              Document attached
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDocument(condition.id)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAttachDocument(condition.id)}
-                            className="h-7 text-xs"
-                          >
-                            <Paperclip className="h-3 w-3 mr-1" />
-                            Attach
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell>
+      <div className="space-y-3">
+        {/* Group 1: Active Conditions */}
+        <Collapsible open={isGroup1Open} onOpenChange={setIsGroup1Open}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+            <span className="font-semibold text-blue-900">
+              Active Conditions ({group1Conditions.length})
+            </span>
+            <ChevronDown className={cn(
+              "h-5 w-5 text-blue-900 transition-transform",
+              isGroup1Open && "rotate-180"
+            )} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="border rounded-lg overflow-hidden">
+              {renderConditionsTable(group1Conditions)}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Group 2: Completed Conditions */}
+        <Collapsible open={isGroup2Open} onOpenChange={setIsGroup2Open}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+            <span className="font-semibold text-green-900">
+              Completed Conditions ({group2Conditions.length})
+            </span>
+            <ChevronDown className={cn(
+              "h-5 w-5 text-green-900 transition-transform",
+              isGroup2Open && "rotate-180"
+            )} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <div className="border rounded-lg overflow-hidden">
+              {renderConditionsTable(group2Conditions)}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Add/Edit Condition Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {isBulkMode ? "Add Multiple Conditions" : editingCondition ? "Edit Condition" : "Add Condition"}
+            </DialogTitle>
+            <DialogDescription>
+              {isBulkMode ? "Create multiple conditions at once" : "Fill in the details for the loan condition"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isBulkMode ? (
+            <div className="space-y-4">
+              {bulkConditions.map((condition, index) => (
+                <Card key={index} className="p-4 bg-muted">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-semibold text-sm">Condition {index + 1}</span>
+                    {bulkConditions.length > 1 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteCondition(condition.id)}
+                        onClick={() => setBulkConditions(prev => prev.filter((_, i) => i !== index))}
+                        className="h-7 px-2"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                    )}
+                  </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCondition ? "Edit Condition" : "Add Condition"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Type *</label>
+                      <Select
+                        value={condition.condition_type}
+                        onValueChange={(value) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].condition_type = value;
+                          setBulkConditions(newConditions);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CONDITION_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.icon} {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium">Status</label>
+                      <Select
+                        value={condition.status}
+                        onValueChange={(value) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].status = value;
+                          setBulkConditions(newConditions);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUSES.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium">Description *</label>
+                      <Input
+                        value={condition.description}
+                        onChange={(e) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].description = e.target.value;
+                          setBulkConditions(newConditions);
+                        }}
+                        placeholder="Brief description of the condition"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium">Priority</label>
+                      <Select
+                        value={condition.priority}
+                        onValueChange={(value) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].priority = value;
+                          setBulkConditions(newConditions);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRIORITIES.map((priority) => (
+                            <SelectItem key={priority.value} value={priority.value}>
+                              {priority.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium">Due Date</label>
+                      <Input
+                        type="date"
+                        value={condition.due_date}
+                        onChange={(e) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].due_date = e.target.value;
+                          setBulkConditions(newConditions);
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium">Assigned To</label>
+                      <Select
+                        value={condition.assigned_to || "unassigned"}
+                        onValueChange={(value) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].assigned_to = value === "unassigned" ? null : value;
+                          setBulkConditions(newConditions);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.first_name} {user.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium">Notes</label>
+                      <Textarea
+                        value={condition.notes}
+                        onChange={(e) => {
+                          const newConditions = [...bulkConditions];
+                          newConditions[index].notes = e.target.value;
+                          setBulkConditions(newConditions);
+                        }}
+                        placeholder="Additional notes or instructions"
+                        className="min-h-[60px]"
+                      />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setBulkConditions(prev => [...prev, {
+                  condition_type: "",
+                  description: "",
+                  status: "1_added",
+                  due_date: "",
+                  priority: "medium",
+                  assigned_to: null,
+                  notes: "",
+                }])}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Another Condition
+              </Button>
+            </div>
+          ) : (
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="condition_type">Type *</Label>
+              <div>
+                <label className="text-sm font-medium">Type *</label>
                 <Select
                   value={formData.condition_type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, condition_type: value })
-                  }
+                  onValueChange={(value) => setFormData({ ...formData, condition_type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -489,14 +761,15 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   <SelectContent>
                     {CONDITION_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        {type.icon} {type.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+
+              <div>
+                <label className="text-sm font-medium">Status</label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value })}
@@ -505,34 +778,29 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                  {STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
+                    {STATUSES.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Describe the condition..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Description *</label>
+                <Input
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brief description of the condition"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Priority</label>
                 <Select
                   value={formData.priority}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, priority: value })
-                  }
+                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -546,35 +814,54 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="due_date">Due Date</Label>
+
+              <div>
+                <label className="text-sm font-medium">Due Date</label>
                 <Input
-                  id="due_date"
                   type="date"
                   value={formData.due_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, due_date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Assigned To</label>
+                <Select
+                  value={formData.assigned_to || "unassigned"}
+                  onValueChange={(value) => setFormData({ ...formData, assigned_to: value === "unassigned" ? null : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Notes</label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Additional notes or instructions"
+                  className="min-h-[80px]"
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes..."
-                rows={3}
-              />
-            </div>
-          </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveCondition}>
-              {editingCondition ? "Update" : "Create"}
+            <Button onClick={isBulkMode ? handleBulkSaveConditions : handleSaveCondition}>
+              {isBulkMode ? `Create ${bulkConditions.length} Conditions` : editingCondition ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
