@@ -443,11 +443,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const renderConditionsTable = (conditionsList: Condition[]) => (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="h-8">
           <TableHead className="w-[240px]">Condition</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[160px]"
+            className="cursor-pointer hover:bg-muted w-[160px] text-center"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -544,24 +544,24 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
 
   return (
     <div className="space-y-2 px-4 pb-4 pt-1">
-      <div className="flex items-center justify-end">
-        <Button size="sm" onClick={() => handleOpenDialog()}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add Condition
-        </Button>
-      </div>
-
       <div className="space-y-1">
         {/* Group 1: Added and Requested */}
         <Collapsible open={isGroup1Open} onOpenChange={setIsGroup1Open}>
-          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-            {isGroup1Open ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <span className="font-semibold">Added and Requested ({group1Conditions.length})</span>
-          </CollapsibleTrigger>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
+              {isGroup1Open ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span className="font-semibold">Added and Requested ({group1Conditions.length})</span>
+            </CollapsibleTrigger>
+            
+            <Button size="sm" onClick={() => handleOpenDialog()} className="h-7">
+              <Plus className="h-3 w-3 mr-1" />
+              Add Condition
+            </Button>
+          </div>
           <CollapsibleContent className="mt-2">
             <div className="border rounded-lg overflow-hidden">
               {renderConditionsTable(group1Conditions)}
