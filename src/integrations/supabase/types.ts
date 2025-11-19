@@ -3074,6 +3074,58 @@ export type Database = {
           },
         ]
       }
+      task_automation_executions: {
+        Row: {
+          automation_id: string
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          lead_id: string | null
+          success: boolean | null
+          task_id: string | null
+        }
+        Insert: {
+          automation_id: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          success?: boolean | null
+          task_id?: string | null
+        }
+        Update: {
+          automation_id?: string
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          lead_id?: string | null
+          success?: boolean | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_automation_executions_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "task_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_automation_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_automation_executions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_automations: {
         Row: {
           assigned_to_user_id: string | null

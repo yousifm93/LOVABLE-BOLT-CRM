@@ -33,6 +33,9 @@ interface TaskAutomation {
   task_priority: string;
   due_date_offset_days: number | null;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  execution_count?: number;
 }
 
 export function TaskAutomationsTable() {
@@ -146,6 +149,15 @@ export function TaskAutomationsTable() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading automations...</div>;
   }
@@ -168,27 +180,34 @@ export function TaskAutomationsTable() {
 
         <div className="border rounded-lg">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rule Name</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Task Name</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead className="text-center">Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Rule Name</TableHead>
+              <TableHead>Trigger</TableHead>
+              <TableHead>Task Name</TableHead>
+              <TableHead>Assigned To</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Created On</TableHead>
+              <TableHead>Updated On</TableHead>
+              <TableHead className="text-center">Times Run</TableHead>
+              <TableHead className="text-center">Active</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
             <TableBody>
               {automations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground">
                     No automations configured yet
                   </TableCell>
                 </TableRow>
               ) : (
-                automations.map((automation) => (
+                automations.map((automation, index) => (
                   <TableRow key={automation.id}>
+                    <TableCell className="text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
                     <TableCell className="font-medium">{automation.name}</TableCell>
                     <TableCell className="text-sm">{formatTrigger(automation)}</TableCell>
                     <TableCell>{automation.task_name}</TableCell>
@@ -200,6 +219,17 @@ export function TaskAutomationsTable() {
                     <TableCell>
                       <Badge variant={getPriorityColor(automation.task_priority)}>
                         {automation.task_priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(automation.created_at)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(automation.updated_at)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline">
+                        {automation.execution_count || 0}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
