@@ -3074,6 +3074,69 @@ export type Database = {
           },
         ]
       }
+      task_automations: {
+        Row: {
+          assigned_to_user_id: string | null
+          created_at: string | null
+          created_by: string | null
+          due_date_offset_days: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          task_description: string
+          task_name: string
+          task_priority: string | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date_offset_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          task_description: string
+          task_name: string
+          task_priority?: string | null
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          due_date_offset_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          task_description?: string
+          task_name?: string
+          task_priority?: string | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_automations_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_automations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null

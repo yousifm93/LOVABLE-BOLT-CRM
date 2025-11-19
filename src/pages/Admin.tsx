@@ -3,6 +3,7 @@ import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Chec
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
+import { TaskAutomationsTable } from "@/components/admin/TaskAutomationsTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -619,20 +620,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="task-automations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Task Automations
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Configure automated task creation and assignment rules</p>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Coming soon: Create automation rules to automatically generate tasks based on pipeline stage changes, dates, and other triggers.
-              </p>
-            </CardContent>
-          </Card>
+          <TaskAutomationsTable />
         </TabsContent>
 
         <TabsContent value="email-automations" className="space-y-4">
