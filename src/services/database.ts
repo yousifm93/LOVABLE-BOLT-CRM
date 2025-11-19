@@ -101,7 +101,7 @@ export const databaseService = {
 
     if (error) throw error;
     
-    // Get execution counts for each automation
+    // Get execution counts and last run time for each automation
     if (data) {
       const automationsWithCounts = await Promise.all(
         data.map(async (automation) => {
@@ -111,9 +111,19 @@ export const databaseService = {
             .eq('automation_id', automation.id)
             .eq('success', true);
           
+          // Get last execution time
+          const { data: lastExecution, error: lastError } = await supabase
+            .from('task_automation_executions')
+            .select('executed_at')
+            .eq('automation_id', automation.id)
+            .order('executed_at', { ascending: false })
+            .limit(1)
+            .single();
+          
           return {
             ...automation,
-            execution_count: countError ? 0 : (count || 0)
+            execution_count: countError ? 0 : (count || 0),
+            last_run_at: lastError || !lastExecution ? null : lastExecution.executed_at
           };
         })
       );

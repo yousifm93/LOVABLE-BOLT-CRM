@@ -36,7 +36,7 @@ interface TaskAutomation {
   due_date_offset_days: number | null;
   is_active: boolean;
   created_at: string;
-  updated_at: string;
+  last_run_at: string | null;
   execution_count?: number;
 }
 
@@ -58,7 +58,7 @@ export function TaskAutomationsTable() {
   const loadAutomations = async () => {
     try {
       const data = await databaseService.getTaskAutomations();
-      setAutomations(data || []);
+      setAutomations((data || []) as unknown as TaskAutomation[]);
     } catch (error) {
       console.error('Error loading automations:', error);
       toast({
@@ -128,7 +128,10 @@ export function TaskAutomationsTable() {
       case 'lead_created':
         return 'When lead is created';
       case 'status_changed':
-        return 'When status changes';
+        const field = automation.trigger_config.field || 'status';
+        const targetStatus = automation.trigger_config.target_status || '';
+        const fieldLabel = field === 'appraisal_status' ? 'Appraisal Status' : field;
+        return `When ${fieldLabel} changes to "${targetStatus}"`;
       case 'date_arrives':
         return `When ${automation.trigger_config.date_field} arrives`;
       case 'days_after_date':
@@ -185,7 +188,7 @@ export function TaskAutomationsTable() {
               <TableHead>Assigned To</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Created On</TableHead>
-              <TableHead>Updated On</TableHead>
+              <TableHead>Last Run On</TableHead>
               <TableHead className="text-center">Times Run</TableHead>
               <TableHead className="text-center">Active</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -217,12 +220,12 @@ export function TaskAutomationsTable() {
                         {automation.task_priority}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatDateTime(automation.created_at)}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatDateTime(automation.updated_at)}
-                </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {formatDateTime(automation.created_at)}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {automation.last_run_at ? formatDateTime(automation.last_run_at) : '—'}
+              </TableCell>
                 <TableCell className="text-center">
                   <Badge 
                     variant="outline" 

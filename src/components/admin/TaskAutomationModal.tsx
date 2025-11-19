@@ -29,7 +29,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const [formData, setFormData] = useState({
     name: '',
     trigger_type: 'lead_created',
-    trigger_config: {},
+    trigger_config: {} as { field?: string; target_status?: string },
     task_name: '',
     task_description: '',
     assigned_to_user_id: '',
@@ -201,10 +201,59 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                         </SelectItem>
                       ))}
                     </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status Changed Configuration */}
+          {formData.trigger_type === 'status_changed' && (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+              <h4 className="text-sm font-medium">Status Change Configuration</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status_field">Which field to monitor?</Label>
+                <Select
+                  value={formData.trigger_config.field || ''}
+                  onValueChange={(value) => setFormData({ 
+                    ...formData, 
+                    trigger_config: { ...formData.trigger_config, field: value, target_status: '' }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select field" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.trigger_config.field === 'appraisal_status' && (
+                <div className="space-y-2">
+                  <Label htmlFor="target_status">When status changes to:</Label>
+                  <Select
+                    value={formData.trigger_config.target_status || ''}
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      trigger_config: { ...formData.trigger_config, target_status: value }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ordered">Ordered</SelectItem>
+                      <SelectItem value="Scheduled">Scheduled</SelectItem>
+                      <SelectItem value="Inspected">Inspected</SelectItem>
+                      <SelectItem value="Received">Received</SelectItem>
+                      <SelectItem value="Waiver">Waiver</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
+              )}
+            </div>
+          )}
 
-                <div className="space-y-2">
+          <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select
                     value={formData.task_priority}
