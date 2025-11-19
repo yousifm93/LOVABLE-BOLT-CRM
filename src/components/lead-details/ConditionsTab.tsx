@@ -314,6 +314,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  const handleUploadDocument = async (conditionId: string) => {
+    // TODO: Implement document upload to Supabase Storage
+    toast({
+      title: "Document Upload",
+      description: "Document upload feature coming soon",
+    });
+  };
+
   const handleDeleteCondition = async (conditionId: string) => {
     if (!confirm("Are you sure you want to delete this condition?")) {
       return;
@@ -400,9 +408,9 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-              No conditions in this group
-            </TableCell>
+          <TableCell colSpan={4} className="text-center text-muted-foreground py-8 px-3">
+            No conditions in this group
+          </TableCell>
           </TableRow>
         ) : (
           conditionsList.map((condition) => {
@@ -412,15 +420,10 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{condition.description}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {CONDITION_TYPES.find(t => t.value === condition.condition_type)?.label || condition.condition_type}
-                    </div>
-                  </div>
+                <TableCell className="py-2 px-3">
+                  <div className="font-medium">{condition.description}</div>
                 </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={condition.status}
                     onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
@@ -439,24 +442,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {condition.due_date ? (
-                    <div className="text-sm">
-                      {format(new Date(condition.due_date), 'MMM dd')}
-                    </div>
-                  ) : (
-                    <span 
-                      className="cursor-pointer text-muted-foreground hover:text-foreground text-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleInlineUpdate(condition.id, 'due_date', new Date().toISOString().split('T')[0]);
-                      }}
-                    >
-                      —
-                    </span>
-                  )}
+                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    type="date"
+                    value={condition.due_date || ''}
+                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                    className="w-[130px] h-8 text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -527,6 +522,127 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </CollapsibleContent>
         </Collapsible>
       </div>
+
+      {/* Condition Detail Modal */}
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Condition Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedCondition && (
+            <div className="space-y-6">
+              {/* Header Info */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">{selectedCondition.description}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {CONDITION_TYPES.find(t => t.value === selectedCondition.condition_type)?.label}
+                </p>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Priority</label>
+                  <p className="text-sm font-semibold capitalize mt-1">{selectedCondition.priority}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Due Date (ETA)</label>
+                  <p className="text-sm font-semibold mt-1">
+                    {selectedCondition.due_date 
+                      ? format(new Date(selectedCondition.due_date), 'MMM dd, yyyy')
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Selector */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Status</label>
+                <Select
+                  value={selectedCondition.status}
+                  onValueChange={(value) => {
+                    handleInlineUpdate(selectedCondition.id, 'status', value);
+                    setSelectedCondition({ ...selectedCondition, status: value });
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        <div className="flex items-center gap-2">
+                          <Badge className={status.color}>{status.label}</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Team Notes */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Team Notes</label>
+                <Textarea
+                  value={selectedCondition.notes || ''}
+                  onChange={(e) => {
+                    handleInlineUpdate(selectedCondition.id, 'notes', e.target.value);
+                    setSelectedCondition({ ...selectedCondition, notes: e.target.value });
+                  }}
+                  placeholder="Add notes or instructions for the team..."
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              {/* Documents Section */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Documents</label>
+                <div className="space-y-3">
+                  {/* Upload Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUploadDocument(selectedCondition.id)}
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Upload Document
+                  </Button>
+
+                  {/* Document List (if any) */}
+                  {selectedCondition.document_id && (
+                    <div className="border rounded-lg p-3 flex items-center justify-between bg-muted/30">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Document attached</p>
+                          <p className="text-xs text-muted-foreground">Click to view or download</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">View</Button>
+                    </div>
+                  )}
+                  
+                  {!selectedCondition.document_id && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No documents uploaded yet
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Condition Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
