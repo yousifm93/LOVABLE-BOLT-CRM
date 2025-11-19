@@ -13,6 +13,7 @@ import Active from "@/pages/Active";
 import PastClients from "@/pages/PastClients";
 import Admin from "@/pages/Admin";
 import AdminAssistant from "@/pages/AdminAssistant";
+import AdminSettings from "@/pages/admin/AdminSettings";
 import NotFound from "@/pages/NotFound";
 import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
@@ -81,6 +82,7 @@ function AppRoutes() {
         <Route path="/past-clients" element={<PastClients />} />
         <Route path="/admin/assistant" element={<AdminAssistant />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/settings2" element={<AdminSettings />} />
         <Route path="/admin/email-history" element={<EmailHistory />} />
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />

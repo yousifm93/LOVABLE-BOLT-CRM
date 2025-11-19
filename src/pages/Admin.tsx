@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Settings, Database, Users, FileText, Activity, Shield, Plus, Edit, Trash2, Check, X, Search, Filter, FileQuestion } from "lucide-react";
+import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
-import PasswordsVault from "@/pages/PasswordsVault";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,13 +214,12 @@ export default function Admin() {
 
       {/* Main Content */}
       <Tabs defaultValue="fields" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
-          <TabsTrigger value="passwords">Passwords</TabsTrigger>
-          <TabsTrigger value="system">System Settings</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="task-automations">Task Automations</TabsTrigger>
+          <TabsTrigger value="email-automations">Email Automations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields" className="space-y-4">
@@ -236,7 +234,7 @@ export default function Admin() {
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <a href="/docs/FIELD_REFERENCE.md" target="_blank" rel="noopener noreferrer">
-                    <FileQuestion className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-2" />
                     Field Documentation
                   </a>
                 </Button>
@@ -620,30 +618,36 @@ export default function Admin() {
           <EmailTemplates />
         </TabsContent>
 
-        <TabsContent value="passwords" className="space-y-4">
-          <PasswordsVault />
-        </TabsContent>
-
-        <TabsContent value="system" className="space-y-4">
+        <TabsContent value="task-automations" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-              <p className="text-sm text-muted-foreground">Configure system-wide settings and preferences</p>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Task Automations
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Configure automated task creation and assignment rules</p>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">System settings interface will be implemented here.</p>
+              <p className="text-muted-foreground">
+                Coming soon: Create automation rules to automatically generate tasks based on pipeline stage changes, dates, and other triggers.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4">
+        <TabsContent value="email-automations" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Reports & Analytics</CardTitle>
-              <p className="text-sm text-muted-foreground">Generate reports and view system analytics</p>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Automations
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Configure automated email workflows and triggers</p>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Reports interface will be implemented here.</p>
+              <p className="text-muted-foreground">
+                Coming soon: Set up email automation rules based on pipeline stage changes, task completions, and custom triggers.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
