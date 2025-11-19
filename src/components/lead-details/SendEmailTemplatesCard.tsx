@@ -247,7 +247,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 disabled={!agentEmail}
               />
               <Label htmlFor="agent" className="text-sm">
-                Buyer's Agent
+                BA
               </Label>
             </div>
             
@@ -257,7 +257,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
                 checked={recipients.thirdParty}
                 onCheckedChange={(checked) => handleRecipientChange("thirdParty", checked as boolean)}
               />
-              <Label htmlFor="third-party" className="text-sm">Third Party</Label>
+              <Label htmlFor="third-party" className="text-sm">3rd</Label>
             </div>
           </div>
           

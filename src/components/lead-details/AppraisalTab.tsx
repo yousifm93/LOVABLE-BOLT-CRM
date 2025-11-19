@@ -75,7 +75,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Ordered On
+          Ordered
         </Label>
         <InlineEditDate
           value={data.appraisal_ordered_date}
@@ -86,7 +86,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Scheduled On
+          Scheduled
         </Label>
         <InlineEditDate
           value={data.appraisal_scheduled_date}

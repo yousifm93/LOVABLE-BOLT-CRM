@@ -102,12 +102,12 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           />
         </div>
 
-        {/* Ordered On */}
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Ordered On
-          </Label>
+  {/* Ordered On */}
+  <div className="flex flex-col gap-2">
+    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+      <Calendar className="h-3 w-3" />
+      Ordered
+    </Label>
           <InlineEditDate
             value={data.condo_ordered_date}
             onValueChange={(value) => onUpdate('condo_ordered_date', value)}

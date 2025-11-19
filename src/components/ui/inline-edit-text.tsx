@@ -53,7 +53,7 @@ export function InlineEditText({
         )}
         onClick={() => setIsEditing(true)}
       >
-        <span className="text-sm">{value || placeholder}</span>
+        <span className="text-sm">{value || "—"}</span>
         <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     );
