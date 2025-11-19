@@ -89,6 +89,77 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 
 // Database service functions
 export const databaseService = {
+  // Task Automations
+  async getTaskAutomations() {
+    const { data, error } = await supabase
+      .from('task_automations')
+      .select(`
+        *,
+        assigned_user:users!task_automations_assigned_to_user_id_fkey(first_name, last_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getTaskAutomationById(id: string) {
+    const { data, error } = await supabase
+      .from('task_automations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async createTaskAutomation(automation: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('task_automations')
+      .insert({
+        ...automation,
+        created_by: user?.id,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateTaskAutomation(id: string, automation: any) {
+    const { data, error } = await supabase
+      .from('task_automations')
+      .update(automation)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteTaskAutomation(id: string) {
+    const { error } = await supabase
+      .from('task_automations')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async toggleTaskAutomationStatus(id: string, isActive: boolean) {
+    const { error } = await supabase
+      .from('task_automations')
+      .update({ is_active: isActive })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   // Agent Call Logs
   async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string, loggedAt?: string) {
     const { data, error} = await supabase
