@@ -1780,10 +1780,12 @@ export type Database = {
           ba_status: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address: string | null
           buyer_agent_id: string | null
+          cash_to_close: number | null
           cash_to_close_goal: number | null
           cd_status: Database["public"]["Enums"]["cd_status"] | null
           close_date: string | null
           closed_at: string | null
+          closing_costs: number | null
           condo_approval_type: string | null
           condo_docs_file: string | null
           condo_eta: string | null
@@ -1914,10 +1916,12 @@ export type Database = {
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null
+          cash_to_close?: number | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
           close_date?: string | null
           closed_at?: string | null
+          closing_costs?: number | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null
@@ -2050,10 +2054,12 @@ export type Database = {
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null
+          cash_to_close?: number | null
           cash_to_close_goal?: number | null
           cd_status?: Database["public"]["Enums"]["cd_status"] | null
           close_date?: string | null
           closed_at?: string | null
+          closing_costs?: number | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null

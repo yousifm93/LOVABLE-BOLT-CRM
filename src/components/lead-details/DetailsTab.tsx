@@ -59,31 +59,29 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
     fico_score: client.loan?.ficoScore || null,
     piti: client.piti || null,
+    cash_to_close: (client as any).cash_to_close || null,
+    closing_costs: (client as any).closing_costs || null,
     
     // Borrower Info
     first_name: client.person?.firstName || "",
     last_name: client.person?.lastName || "",
-    ssn: (client as any).ssn || "",
-    dob: (client as any).dob || null,
-    occupancy: (client as any).occupancy || "",
-    residency_type: (client as any).residency_type || "",
-    marital_status: (client as any).marital_status || "",
-    monthly_payment_goal: (client as any).monthly_payment_goal || null,
-    cash_to_close_goal: (client as any).cash_to_close_goal || null,
-    borrower_current_address: (client as any).borrower_current_address || "",
-    military_veteran: (client as any).military_veteran || false,
-    
-    // Consolidated Financial Fields
-    total_monthly_income: (client as any).totalMonthlyIncome || null,
-    assets: (client as any).assets || null,
-    monthly_liabilities: (client as any).monthlyLiabilities || null,
-    
-    // Monthly Payment Breakdown
-    principal_interest: (client as any).principalInterest || null,
-    property_taxes: (client as any).propertyTaxes || null,
-    homeowners_insurance: (client as any).homeownersInsurance || null,
-    mortgage_insurance: (client as any).mortgageInsurance || null,
-    hoa_dues: (client as any).hoaDues || null,
+      ssn: (client as any).ssn || "",
+      dob: (client as any).dob || null,
+      occupancy: (client as any).occupancy || "",
+      residency_type: (client as any).residency_type || "",
+      marital_status: (client as any).marital_status || "",
+      monthly_payment_goal: (client as any).monthly_payment_goal || null,
+      cash_to_close_goal: (client as any).cash_to_close_goal || null,
+      borrower_current_address: (client as any).borrower_current_address || "",
+      military_veteran: (client as any).military_veteran || false,
+      total_monthly_income: (client as any).totalMonthlyIncome || null,
+      assets: (client as any).assets || null,
+      monthly_liabilities: (client as any).monthlyLiabilities || null,
+      principal_interest: (client as any).principalInterest || null,
+      property_taxes: (client as any).propertyTaxes || null,
+      homeowners_insurance: (client as any).homeownersInsurance || null,
+      mortgage_insurance: (client as any).mortgageInsurance || null,
+      hoa_dues: (client as any).hoaDues || null,
   });
 
   // Helper function for PITI calculation
@@ -120,6 +118,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     setIsEditing(false);
     // Reset edit data
     setEditData({
+      // Loan & Property
       appraisal_value: client.loan?.appraisedValue || null,
       down_pmt: client.loan?.downPayment || null,
       interest_rate: client.loan?.interestRate || 7.0,
@@ -127,6 +126,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
       fico_score: client.loan?.ficoScore || null,
       piti: client.piti || null,
+      cash_to_close: (client as any).cash_to_close || null,
+      closing_costs: (client as any).closing_costs || null,
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
       ssn: (client as any).ssn || "",
@@ -179,6 +180,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         escrows: editData.escrows || null,
         fico_score: editData.fico_score,
         piti: editData.piti,
+        cash_to_close: editData.cash_to_close,
+        closing_costs: editData.closing_costs,
         
         // Borrower Info
         first_name: editData.first_name,
@@ -273,21 +276,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   const loanPropertyData = [
     { 
       icon: DollarSign, 
-      label: "Appraised Value", 
-      value: formatCurrency(client.loan?.appraisedValue || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.appraisal_value || ""}
-          onChange={(e) => setEditData({ ...editData, appraisal_value: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
-      label: "Down Payment", 
+      label: "Down Payment",
       value: formatCurrency(client.loan?.downPayment || 0),
       editComponent: isEditing ? (
         <Input
@@ -363,6 +352,34 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
           className="h-8"
           placeholder="Credit score"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Cash to Close", 
+      value: formatCurrency((client as any).cash_to_close || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.cash_to_close || ""}
+          onChange={(e) => setEditData({ ...editData, cash_to_close: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Closing Costs", 
+      value: formatCurrency((client as any).closing_costs || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.closing_costs || ""}
+          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
         />
       ) : undefined
     }

@@ -61,7 +61,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
-            Quoted On
+            Quoted
           </Label>
           <InlineEditDate
             value={data.insurance_quoted_date}
@@ -73,7 +73,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
-            Ordered On
+            Ordered
           </Label>
           <InlineEditDate
             value={data.insurance_ordered_date}
@@ -85,7 +85,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
-            Received On
+            Received
           </Label>
           <InlineEditDate
             value={data.insurance_received_date}

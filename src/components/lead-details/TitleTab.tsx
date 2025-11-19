@@ -58,7 +58,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Ordered On
+          Ordered
         </Label>
         <InlineEditDate
           value={data.title_ordered_date}
