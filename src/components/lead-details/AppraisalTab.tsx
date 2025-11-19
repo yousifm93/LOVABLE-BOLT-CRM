@@ -124,29 +124,6 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
         </div>
       </div>
 
-      {/* Appraisal Notes */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Date/Time
-        </Label>
-        <InlineEditDateTime
-          value={data.appr_date_time}
-          onValueChange={(value) => onUpdate('appr_date_time', value)}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Clock className="h-3 w-3" />
-          ETA
-        </Label>
-        <InlineEditDate
-          value={data.appr_eta}
-          onValueChange={(value) => onUpdate('appr_eta', value)}
-          placeholder="-"
-        />
-      </div>
-
       {/* Row 4: Notes (spanning both columns) */}
       <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">

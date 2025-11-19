@@ -20,7 +20,7 @@ interface TitleTabProps {
 }
 
 const titleStatusOptions = [
-  { value: "Requested", label: "Requested" },
+  { value: "Ordered", label: "Ordered" },
   { value: "Received", label: "Received" },
   { value: "On Hold", label: "On Hold" }
 ];
