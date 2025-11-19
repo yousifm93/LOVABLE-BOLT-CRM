@@ -21,7 +21,7 @@ export function InlineEditDateTime({ value, onValueChange, className }: InlineEd
     if (!val) return "-";
     try {
       const date = new Date(val);
-      return format(date, "MMM dd, yyyy h:mm a");
+      return format(date, "MMM dd h:mm a").replace(/^(\w+)/, (match) => match.toUpperCase());
     } catch {
       return "-";
     }
