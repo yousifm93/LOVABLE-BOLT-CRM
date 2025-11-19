@@ -315,11 +315,45 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   };
 
   const handleUploadDocument = async (conditionId: string) => {
-    // TODO: Implement document upload to Supabase Storage
-    toast({
-      title: "Document Upload",
-      description: "Document upload feature coming soon",
-    });
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '*/*';
+    input.multiple = false;
+    
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      try {
+        const uploadedDoc = await databaseService.uploadLeadDocument(leadId, file, {
+          title: `Condition: ${selectedCondition?.description || 'Document'}`
+        });
+        
+        await databaseService.updateLeadCondition(conditionId, {
+          document_id: uploadedDoc.id
+        });
+        
+        toast({
+          title: "Success",
+          description: "Document uploaded and linked to condition"
+        });
+        
+        await loadConditions();
+        
+        if (selectedCondition) {
+          setSelectedCondition({ ...selectedCondition, document_id: uploadedDoc.id });
+        }
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Upload Failed",
+          description: error.message || "Failed to upload document",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    input.click();
   };
 
   const handleDeleteCondition = async (conditionId: string) => {
@@ -345,6 +379,18 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   };
 
   const handleInlineUpdate = async (conditionId: string, field: string, value: any) => {
+    if (field === 'status' && ['4_collected', '5_sent_to_lender', '6_cleared'].includes(value)) {
+      const condition = conditions.find(c => c.id === conditionId);
+      if (!condition?.document_id) {
+        toast({
+          title: "Document Required",
+          description: "Please upload a document before marking as Collected, Sent to Lender, or Cleared",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     try {
       await databaseService.updateLeadCondition(conditionId, {
         [field]: value,
@@ -389,7 +435,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[300px]">Description</TableHead>
+          <TableHead className="w-[300px]">Condition</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
             className="cursor-pointer hover:bg-muted w-[160px]"
@@ -402,13 +448,13 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[100px]">Actions</TableHead>
+          
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={4} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={3} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
@@ -420,10 +466,10 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell className="py-2 px-3">
+                <TableCell className="py-1 px-2">
                   <div className="font-medium">{condition.description}</div>
                 </TableCell>
-                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={condition.status}
                     onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
@@ -442,24 +488,28 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
-                  <Input
-                    type="date"
-                    value={condition.due_date || ''}
-                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                    className="w-[130px] h-8 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </TableCell>
-                <TableCell className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteCondition(condition.id)}
-                    className="h-7 px-2 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
+                  {condition.due_date ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{format(new Date(condition.due_date), 'MMM dd')}</span>
+                      <Input
+                        type="date"
+                        value={condition.due_date}
+                        onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                        className="w-[100px] h-6 text-xs opacity-0 hover:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      type="date"
+                      value=""
+                      onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                      className="w-[100px] h-6 text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                      placeholder="—"
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             );
@@ -478,16 +528,15 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Loan Conditions</h3>
+    <div className="space-y-2 p-4">
+      <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-1" />
           Add Condition
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {/* Group 1: Added and Requested */}
         <Collapsible open={isGroup1Open} onOpenChange={setIsGroup1Open}>
           <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -546,15 +595,36 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Priority</label>
-                  <p className="text-sm font-semibold capitalize mt-1">{selectedCondition.priority}</p>
+                  <Select
+                    value={selectedCondition.priority}
+                    onValueChange={(value) => {
+                      handleInlineUpdate(selectedCondition.id, 'priority', value);
+                      setSelectedCondition({ ...selectedCondition, priority: value });
+                    }}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITIES.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <Badge className={priority.color}>{priority.label}</Badge>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Due Date (ETA)</label>
-                  <p className="text-sm font-semibold mt-1">
-                    {selectedCondition.due_date 
-                      ? format(new Date(selectedCondition.due_date), 'MMM dd, yyyy')
-                      : '—'}
-                  </p>
+                  <label className="text-sm font-medium text-muted-foreground">ETA</label>
+                  <Input
+                    type="date"
+                    value={selectedCondition.due_date || ''}
+                    onChange={(e) => {
+                      handleInlineUpdate(selectedCondition.id, 'due_date', e.target.value);
+                      setSelectedCondition({ ...selectedCondition, due_date: e.target.value });
+                    }}
+                    className="w-full mt-1"
+                  />
                 </div>
               </div>
 
@@ -609,26 +679,40 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     className="w-full"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Upload Document
+                    {selectedCondition.document_id ? 'Replace Document' : 'Upload Document'}
                   </Button>
 
-                  {/* Document List (if any) */}
-                  {selectedCondition.document_id && (
+                  {/* Document Display */}
+                  {selectedCondition.document_id ? (
                     <div className="border rounded-lg p-3 flex items-center justify-between bg-muted/30">
                       <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Document attached</p>
-                          <p className="text-xs text-muted-foreground">Click to view or download</p>
+                          <p className="text-xs text-muted-foreground">Linked to this condition</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">View</Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={async () => {
+                            const docs = await databaseService.getLeadDocuments(leadId);
+                            const doc = docs.find(d => d.id === selectedCondition.document_id);
+                            if (doc) {
+                              window.open(doc.file_url, '_blank');
+                            }
+                          }}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                  
-                  {!selectedCondition.document_id && (
+                  ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       No documents uploaded yet
+                      <br />
+                      <span className="text-xs">Required before marking as Collected, Sent to Lender, or Cleared</span>
                     </p>
                   )}
                 </div>
