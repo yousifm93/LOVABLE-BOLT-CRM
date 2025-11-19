@@ -56,43 +56,44 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       </div>
       <div />
 
-      {/* Row 2: Insurance Quoted Date / Insurance Ordered Date */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Quoted On
-        </Label>
-        <InlineEditDate
-          value={data.insurance_quoted_date}
-          onValueChange={(value) => onUpdate('insurance_quoted_date', value)}
-          placeholder="-"
-        />
+      {/* Row 2: Quoted On, Ordered On, Received On - all in one row */}
+      <div className="md:col-span-2 grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Quoted On
+          </Label>
+          <InlineEditDate
+            value={data.insurance_quoted_date}
+            onValueChange={(value) => onUpdate('insurance_quoted_date', value)}
+            placeholder="-"
+          />
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Ordered On
+          </Label>
+          <InlineEditDate
+            value={data.insurance_ordered_date}
+            onValueChange={(value) => onUpdate('insurance_ordered_date', value)}
+            placeholder="-"
+          />
+        </div>
+        
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Received On
+          </Label>
+          <InlineEditDate
+            value={data.insurance_received_date}
+            onValueChange={(value) => onUpdate('insurance_received_date', value)}
+            placeholder="-"
+          />
+        </div>
       </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Ordered On
-        </Label>
-        <InlineEditDate
-          value={data.insurance_ordered_date}
-          onValueChange={(value) => onUpdate('insurance_ordered_date', value)}
-          placeholder="-"
-        />
-      </div>
-
-      {/* Row 3: Insurance Received Date */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Received On
-        </Label>
-        <InlineEditDate
-          value={data.insurance_received_date}
-          onValueChange={(value) => onUpdate('insurance_received_date', value)}
-          placeholder="-"
-        />
-      </div>
-      <div />
 
       {/* Row 4: Notes (spanning both columns) */}
       <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
