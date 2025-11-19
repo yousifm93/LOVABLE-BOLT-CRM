@@ -34,6 +34,7 @@ import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Condition {
   id: string;
@@ -71,9 +72,9 @@ const CONDITION_TYPES = [
 
 const STATUSES = [
   { value: "1_added", label: "1. ADDED", color: "bg-gray-200 text-gray-900" },
-  { value: "2_requested", label: "2. REQUESTED", color: "bg-purple-300 text-purple-900" },
-  { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-yellow-200 text-yellow-900" },
-  { value: "4_collected", label: "4. COLLECTED", color: "bg-blue-300 text-blue-900" },
+  { value: "2_requested", label: "2. REQUESTED", color: "bg-yellow-200 text-yellow-900" },
+  { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-yellow-400 text-yellow-900" },
+  { value: "4_collected", label: "4. COLLECTED", color: "bg-green-300 text-green-900" },
   { value: "5_sent_to_lender", label: "5. SENT TO LENDER", color: "bg-lime-400 text-lime-900" },
   { value: "6_cleared", label: "6. CLEARED!", color: "bg-green-400 text-green-900" },
 ];
@@ -86,6 +87,7 @@ const PRIORITIES = [
 
 export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -104,6 +106,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   // Detail modal state
   const [selectedCondition, setSelectedCondition] = useState<Condition | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [newNote, setNewNote] = useState('');
 
   // Single condition form data
   const [formData, setFormData] = useState({
@@ -448,7 +451,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </TableHead>
           <TableHead 
             onClick={() => handleSortClick('due_date')}
-            className="cursor-pointer hover:bg-muted w-[120px]"
+            className="cursor-pointer hover:bg-muted w-[100px] text-center"
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -479,17 +482,17 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
                   >
                     <SelectTrigger className={cn(
-                      "w-full border-0 h-full rounded-none font-medium",
+                      "w-full border-0 h-full rounded-none font-medium text-center justify-center",
                       getStatusColor(condition.status)
                     )}>
                       <SelectValue>
                         <span className="font-semibold">{getStatusLabel(condition.status)}</span>
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[200px]">
                       {STATUSES.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
-                          <div className={cn("px-3 py-1 rounded font-medium", status.color)}>
+                          <div className={cn("px-3 py-1 rounded font-medium w-full text-center", status.color)}>
                             {status.label}
                           </div>
                         </SelectItem>
@@ -497,28 +500,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="py-0.5 px-2" onClick={(e) => e.stopPropagation()}>
-                  {condition.due_date ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{format(new Date(condition.due_date), 'MMM dd')}</span>
-                      <Input
-                        type="date"
-                        value={condition.due_date}
-                        onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                        className="w-[100px] h-6 text-xs opacity-0 hover:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  ) : (
-                    <Input
-                      type="date"
-                      value=""
-                      onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                      className="w-[100px] h-6 text-xs"
-                      onClick={(e) => e.stopPropagation()}
-                      placeholder="—"
-                    />
-                  )}
+                <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    type="date"
+                    value={condition.due_date || ''}
+                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                    className="w-[90px] h-6 text-xs text-center border-0 bg-transparent hover:bg-muted focus:bg-background mx-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </TableCell>
               </TableRow>
             );
@@ -669,15 +658,45 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
               {/* Team Notes */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Team Notes</label>
+                
+                {/* Display existing notes as read-only log */}
+                {selectedCondition.notes && (
+                  <div className="border rounded-lg p-3 mb-3 bg-muted/30 max-h-[200px] overflow-y-auto">
+                    <div className="text-sm whitespace-pre-wrap">{selectedCondition.notes}</div>
+                  </div>
+                )}
+                
+                {/* New note input */}
                 <Textarea
-                  value={selectedCondition.notes || ''}
-                  onChange={(e) => {
-                    handleInlineUpdate(selectedCondition.id, 'notes', e.target.value);
-                    setSelectedCondition({ ...selectedCondition, notes: e.target.value });
-                  }}
-                  placeholder="Add notes or instructions for the team..."
-                  className="min-h-[120px]"
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Add a new note..."
+                  className="min-h-[80px]"
                 />
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    if (!newNote.trim()) return;
+                    
+                    const timestamp = format(new Date(), 'MMM dd, yyyy h:mm a');
+                    const userName = user?.email || 'Team Member';
+                    
+                    const newNoteEntry = `[${timestamp} - ${userName}]\n${newNote}\n\n`;
+                    const updatedNotes = (selectedCondition.notes || '') + newNoteEntry;
+                    
+                    await handleInlineUpdate(selectedCondition.id, 'notes', updatedNotes);
+                    setSelectedCondition({ ...selectedCondition, notes: updatedNotes });
+                    setNewNote('');
+                    
+                    toast({
+                      title: "Note Added",
+                      description: "Your note has been logged with timestamp"
+                    });
+                  }}
+                  className="mt-2"
+                >
+                  Add Note
+                </Button>
               </div>
 
               {/* Documents Section */}
