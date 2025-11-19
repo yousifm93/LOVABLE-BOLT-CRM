@@ -93,7 +93,11 @@ const columns: ColumnDef<ModernTask>[] = [
       if (!row.original.due_date) return <span className="text-muted-foreground">No date</span>;
       
       const date = new Date(row.original.due_date);
-      const isOverdue = date < new Date() && row.original.status !== "Done";
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDate = new Date(date);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate < today && row.original.status !== "Done";
       const isDueSoon = date <= new Date(Date.now() + 24 * 60 * 60 * 1000) && row.original.status !== "Done";
       
       return (
