@@ -43,7 +43,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Shield className="h-3 w-3" />
-          HOI Status
+          Status
         </Label>
         <InlineEditSelect
           value={data.hoi_status}
@@ -60,7 +60,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Insurance Quoted Date
+          Quoted On
         </Label>
         <InlineEditDate
           value={data.insurance_quoted_date}
@@ -71,7 +71,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Insurance Ordered Date
+          Ordered On
         </Label>
         <InlineEditDate
           value={data.insurance_ordered_date}
@@ -84,7 +84,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Insurance Received Date
+          Received On
         </Label>
         <InlineEditDate
           value={data.insurance_received_date}
@@ -111,7 +111,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
-          Policy Document
+          HOI Policy
         </Label>
         <FileUploadButton
           leadId={leadId}
@@ -127,7 +127,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
-          Inspection Document
+          Inspection Report
         </Label>
         <FileUploadButton
           leadId={leadId}

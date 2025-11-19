@@ -48,7 +48,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <ClipboardCheck className="h-3 w-3" />
-          Appraisal
+          Status
         </Label>
         <InlineEditSelect
           value={data.appraisal_status}
@@ -75,7 +75,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Appraisal Ordered Date
+          Ordered On
         </Label>
         <InlineEditDate
           value={data.appraisal_ordered_date}
@@ -86,7 +86,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Appraisal Scheduled Date
+          Scheduled On
         </Label>
         <InlineEditDate
           value={data.appraisal_scheduled_date}
@@ -109,7 +109,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Clock className="h-3 w-3" />
-          Appraisal ETA
+          ETA
         </Label>
         <InlineEditDate
           value={data.appr_eta}
@@ -135,7 +135,7 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
-          Document
+          Appraisal Report
         </Label>
         <FileUploadButton
           leadId={leadId}

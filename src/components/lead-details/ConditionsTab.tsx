@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistance } from "date-fns";
 import { formatDateModern } from "@/utils/dateUtils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -675,12 +676,46 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
               <div>
                 <label className="text-sm font-medium mb-2 block">Team Notes</label>
                 
-                {/* Display existing notes as read-only log */}
-                {selectedCondition.notes && (
-                  <div className="border rounded-lg p-3 mb-3 bg-muted/30 max-h-[200px] overflow-y-auto">
-                    <div className="text-sm whitespace-pre-wrap">{selectedCondition.notes}</div>
-                  </div>
-                )}
+                {/* Display existing notes in modern activity-style format */}
+                {selectedCondition.notes && (() => {
+                  const notes = selectedCondition.notes
+                    .split('\n\n')
+                    .filter(note => note.trim())
+                    .map(note => {
+                      const match = note.match(/^\[(.*?) - (.*?)\]\n([\s\S]*)$/);
+                      if (match) {
+                        const [, timestamp, email, text] = match;
+                        return { timestamp, email, text };
+                      }
+                      return null;
+                    })
+                    .filter(Boolean);
+
+                  return notes.length > 0 ? (
+                    <div className="space-y-2 mb-3 max-h-[300px] overflow-y-auto">
+                      {notes.map((note, idx) => {
+                        if (!note) return null;
+                        const firstName = note.email.split('@')[0];
+                        const initials = firstName.slice(0, 2).toUpperCase();
+                        const timeAgo = formatDistance(new Date(note.timestamp), new Date(), { addSuffix: true });
+
+                        return (
+                          <div key={idx} className="flex gap-2 p-2 bg-muted/30 rounded-md">
+                            <Avatar className="h-7 w-7">
+                              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs text-muted-foreground mb-1">
+                                by {firstName} • {timeAgo}
+                              </div>
+                              <div className="text-sm whitespace-pre-wrap">{note.text}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null;
+                })()}
                 
                 {/* New note input */}
                 <Textarea
