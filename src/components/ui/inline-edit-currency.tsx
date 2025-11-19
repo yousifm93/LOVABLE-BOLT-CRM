@@ -8,6 +8,8 @@ interface InlineEditCurrencyProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  compareValue?: number | null;
+  showDifference?: boolean;
 }
 
 export function InlineEditCurrency({
@@ -15,7 +17,9 @@ export function InlineEditCurrency({
   onValueChange,
   placeholder = "$0",
   className,
-  disabled = false
+  disabled = false,
+  compareValue,
+  showDifference = false
 }: InlineEditCurrencyProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value?.toString() || "");
@@ -28,6 +32,32 @@ export function InlineEditCurrency({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatCurrencyWithComparison = (
+    amount: number | null,
+    compareVal: number | null,
+    showDiff: boolean
+  ) => {
+    if (!amount) return "-";
+
+    const formatted = formatCurrency(amount);
+
+    if (!showDiff || !compareVal) return formatted;
+
+    const difference = amount - compareVal;
+    const isEqual = difference === 0;
+    const isGreater = difference > 0;
+
+    const color = isEqual || isGreater ? 'text-green-600' : 'text-red-600';
+    const sign = isGreater ? '+' : '';
+    const diffFormatted = formatCurrency(Math.abs(difference));
+
+    return (
+      <span className={color}>
+        {formatted} <span className="text-xs">({sign}{difference >= 0 ? diffFormatted.replace('$', '$') : `-${diffFormatted.replace('$', '$')}`})</span>
+      </span>
+    );
   };
 
   const handleSave = () => {
@@ -84,7 +114,7 @@ export function InlineEditCurrency({
         className
       )}
     >
-      {formatCurrency(value)}
+      {formatCurrencyWithComparison(value, compareValue || null, showDifference)}
     </button>
   );
 }
