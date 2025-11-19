@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { formatDateModern } from "@/utils/dateUtils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -72,7 +73,7 @@ const CONDITION_TYPES = [
 
 const STATUSES = [
   { value: "1_added", label: "1. ADDED", color: "bg-gray-200 text-gray-900" },
-  { value: "2_requested", label: "2. REQUESTED", color: "bg-yellow-200 text-yellow-900" },
+  { value: "2_requested", label: "2. REQUESTED", color: "bg-pink-200 text-pink-900" },
   { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-yellow-400 text-yellow-900" },
   { value: "4_collected", label: "4. COLLECTED", color: "bg-green-300 text-green-900" },
   { value: "5_sent_to_lender", label: "5. SENT TO LENDER", color: "bg-lime-400 text-lime-900" },
@@ -442,7 +443,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-[300px]">Condition</TableHead>
+          <TableHead className="w-[240px]">Condition</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
             className="cursor-pointer hover:bg-muted w-[160px]"
@@ -492,7 +493,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     <SelectContent className="min-w-[200px]">
                       {STATUSES.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
-                          <div className={cn("px-3 py-1 rounded font-medium w-full text-center", status.color)}>
+                          <div className={cn("px-3 py-1 rounded font-medium min-w-[180px] text-center", status.color)}>
                             {status.label}
                           </div>
                         </SelectItem>
@@ -501,13 +502,28 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   </Select>
                 </TableCell>
                 <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                  <Input
-                    type="date"
-                    value={condition.due_date || ''}
-                    onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                    className="w-[90px] h-6 text-xs text-center border-0 bg-transparent hover:bg-muted focus:bg-background mx-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  {condition.due_date ? (
+                    <div className="relative group w-[90px] mx-auto">
+                      <span className="text-sm cursor-pointer">
+                        {formatDateModern(condition.due_date)}
+                      </span>
+                      <Input
+                        type="date"
+                        value={condition.due_date}
+                        onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      type="date"
+                      value=""
+                      onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
+                      className="w-[90px] h-6 text-xs text-center border-0 bg-transparent hover:bg-muted mx-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             );
