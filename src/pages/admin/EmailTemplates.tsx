@@ -100,6 +100,33 @@ const sortSectionsByPriority = (sections: Record<string, any[]>) => {
   return sorted;
 };
 
+// Helper function to convert plain text to HTML
+const convertPlainTextToHtml = (text: string, isPlainMode: boolean): string => {
+  if (!isPlainMode) return text; // Already HTML, return as-is
+  
+  // Convert plain text with newlines to HTML
+  const paragraphs = text
+    .split('\n\n')
+    .map(para => para.trim())
+    .filter(para => para.length > 0);
+  
+  const htmlParagraphs = paragraphs.map(para => {
+    const withBreaks = para.replace(/\n/g, '<br>');
+    return `<p>${withBreaks}</p>`;
+  });
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+  ${htmlParagraphs.join('\n  ')}
+</body>
+</html>`;
+};
+
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -158,36 +185,8 @@ export default function EmailTemplates() {
       return;
     }
 
-    // Convert plain text to HTML if needed
-    let htmlContent = formData.html;
-    
-    if (editorMode === 'plain') {
-      // Convert plain text with newlines to HTML
-      // Split by double newlines to identify paragraphs
-      const paragraphs = htmlContent
-        .split('\n\n')
-        .map(para => para.trim())
-        .filter(para => para.length > 0);
-      
-      // Convert each paragraph: replace single newlines with <br>
-      const htmlParagraphs = paragraphs.map(para => {
-        const withBreaks = para.replace(/\n/g, '<br>');
-        return `<p>${withBreaks}</p>`;
-      });
-      
-      // Wrap in basic HTML structure
-      htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-  ${htmlParagraphs.join('\n  ')}
-</body>
-</html>`;
-    }
-
+    // Use the helper function to convert plain text to HTML if needed
+    const htmlContent = convertPlainTextToHtml(formData.html, editorMode === 'plain');
     const dataToSave = { ...formData, html: htmlContent };
 
     if (editingTemplate) {
@@ -250,7 +249,8 @@ export default function EmailTemplates() {
   };
 
   const handlePreview = () => {
-    let preview = formData.html;
+    // First, convert to HTML if needed (BEFORE replacing merge tags)
+    let preview = convertPlainTextToHtml(formData.html, editorMode === 'plain');
     
     // Generate sample data for all CRM fields
     const sampleData: Record<string, string> = {};
@@ -301,11 +301,6 @@ export default function EmailTemplates() {
     Object.entries(sampleData).forEach(([tag, value]) => {
       preview = preview.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
     });
-    
-    // Convert newlines to <br> tags if in plain text mode
-    if (editorMode === 'plain') {
-      preview = preview.replace(/\n/g, '<br>');
-    }
     
     setPreviewHtml(preview);
   };
@@ -498,7 +493,8 @@ export default function EmailTemplates() {
                 <div>
                   <Label>Preview</Label>
                   <div
-                    className="mt-2 p-4 border rounded-md bg-background whitespace-pre-wrap"
+                    className="mt-2 p-4 border rounded-md bg-background max-w-[600px] mx-auto"
+                    style={{ minHeight: '200px' }}
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 </div>
