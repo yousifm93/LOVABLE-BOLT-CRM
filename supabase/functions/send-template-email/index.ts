@@ -48,7 +48,7 @@ const handler = async (req: Request): Promise<Response> => {
         buyer_agent:buyer_agents!buyer_agent_id(*),
         approved_lender:lenders!approved_lender_id(*),
         pipeline_stage:pipeline_stages!pipeline_stage_id(*),
-        assigned_user:users!teammate_assigned(*)
+        assigned_user:users!fk_leads_teammate_assigned(*)
       `)
       .eq("id", leadId)
       .single();

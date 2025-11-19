@@ -198,7 +198,6 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
               {users.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {user.first_name} {user.last_name}
-                  {user.email && ` (${user.email})`}
                 </SelectItem>
               ))}
             </SelectContent>
