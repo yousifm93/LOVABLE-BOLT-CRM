@@ -100,6 +100,26 @@ export const databaseService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    
+    // Get execution counts for each automation
+    if (data) {
+      const automationsWithCounts = await Promise.all(
+        data.map(async (automation) => {
+          const { count, error: countError } = await supabase
+            .from('task_automation_executions')
+            .select('*', { count: 'exact', head: true })
+            .eq('automation_id', automation.id)
+            .eq('success', true);
+          
+          return {
+            ...automation,
+            execution_count: countError ? 0 : (count || 0)
+          };
+        })
+      );
+      return automationsWithCounts;
+    }
+    
     return data;
   },
 
