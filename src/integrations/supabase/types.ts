@@ -3615,7 +3615,7 @@ export type Database = {
         | "Done"
         | "Working on it"
         | "Need help"
-      title_status: "Requested" | "Received"
+      title_status: "Requested" | "Received" | "Ordered"
       user_role: "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly"
     }
     CompositeTypes: {
@@ -3910,7 +3910,7 @@ export const Constants = {
         "Working on it",
         "Need help",
       ],
-      title_status: ["Requested", "Received"],
+      title_status: ["Requested", "Received", "Ordered"],
       user_role: ["Admin", "LO", "LO Assistant", "Processor", "ReadOnly"],
     },
   },

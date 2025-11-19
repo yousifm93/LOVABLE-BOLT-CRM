@@ -86,12 +86,12 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
         </div>
       </div>
 
-      {/* Row 2: Appraised Value, Date/Time, Scheduled */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Row 2: Appraised Value, Date/Time */}
+      <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <DollarSign className="h-3 w-3" />
-            Appraised Value
+            Appraised
           </Label>
           <InlineEditCurrency
             value={data.appraisal_value}
@@ -108,18 +108,6 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
           <InlineEditDateTime
             value={data.appr_date_time}
             onValueChange={(value) => onUpdate('appr_date_time', value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Scheduled
-          </Label>
-          <InlineEditDate
-            value={data.appraisal_scheduled_date}
-            onValueChange={(value) => onUpdate('appraisal_scheduled_date', value)}
-            placeholder="-"
           />
         </div>
       </div>
