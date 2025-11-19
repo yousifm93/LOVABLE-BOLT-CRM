@@ -70,12 +70,12 @@ const CONDITION_TYPES = [
 ];
 
 const STATUSES = [
-  { value: "1_added", label: "1. Added", color: "bg-gray-100 text-gray-800" },
-  { value: "2_requested", label: "2. Requested", color: "bg-blue-100 text-blue-800" },
-  { value: "3_re_requested", label: "3. Re-requested", color: "bg-orange-100 text-orange-800" },
-  { value: "4_collected", label: "4. Collected", color: "bg-purple-100 text-purple-800" },
-  { value: "5_sent_to_lender", label: "5. Sent to Lender", color: "bg-yellow-100 text-yellow-800" },
-  { value: "6_cleared", label: "6. Cleared", color: "bg-green-100 text-green-800" },
+  { value: "1_added", label: "1. ADDED", color: "bg-gray-200 text-gray-900" },
+  { value: "2_requested", label: "2. REQUESTED", color: "bg-purple-300 text-purple-900" },
+  { value: "3_re_requested", label: "3. RE-REQUESTED", color: "bg-yellow-200 text-yellow-900" },
+  { value: "4_collected", label: "4. COLLECTED", color: "bg-blue-300 text-blue-900" },
+  { value: "5_sent_to_lender", label: "5. SENT TO LENDER", color: "bg-lime-400 text-lime-900" },
+  { value: "6_cleared", label: "6. CLEARED!", color: "bg-green-400 text-green-900" },
 ];
 
 const PRIORITIES = [
@@ -326,7 +326,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       
       try {
         const uploadedDoc = await databaseService.uploadLeadDocument(leadId, file, {
-          title: `Condition: ${selectedCondition?.description || 'Document'}`
+          title: file.name
         });
         
         await databaseService.updateLeadCondition(conditionId, {
@@ -381,7 +381,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const handleInlineUpdate = async (conditionId: string, field: string, value: any) => {
     if (field === 'status' && ['4_collected', '5_sent_to_lender', '6_cleared'].includes(value)) {
       const condition = conditions.find(c => c.id === conditionId);
-      if (!condition?.document_id) {
+      
+      // Only validate if currently in statuses 1-3 (Added, Requested, Re-requested)
+      const isInEarlyStatus = ['1_added', '2_requested', '3_re_requested'].includes(condition?.status || '');
+      
+      if (isInEarlyStatus && !condition?.document_id) {
         toast({
           title: "Document Required",
           description: "Please upload a document before marking as Collected, Sent to Lender, or Cleared",
@@ -466,29 +470,34 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell className="py-1 px-2">
+                <TableCell className="py-0.5 px-2">
                   <div className="font-medium">{condition.description}</div>
                 </TableCell>
-                <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={condition.status}
                     onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
                   >
-                    <SelectTrigger className="w-[140px]">
-                      <Badge className={getStatusColor(condition.status)}>
-                        {getStatusLabel(condition.status)}
-                      </Badge>
+                    <SelectTrigger className={cn(
+                      "w-full border-0 h-full rounded-none font-medium",
+                      getStatusColor(condition.status)
+                    )}>
+                      <SelectValue>
+                        <span className="font-semibold">{getStatusLabel(condition.status)}</span>
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {STATUSES.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
-                          <Badge className={status.color}>{status.label}</Badge>
+                          <div className={cn("px-3 py-1 rounded font-medium", status.color)}>
+                            {status.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="py-1 px-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-0.5 px-2" onClick={(e) => e.stopPropagation()}>
                   {condition.due_date ? (
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{format(new Date(condition.due_date), 'MMM dd')}</span>
@@ -528,7 +537,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   }
 
   return (
-    <div className="space-y-2 p-4">
+    <div className="space-y-2 px-4 pb-4 pt-1">
       <div className="flex items-center justify-end">
         <Button size="sm" onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-1" />
@@ -536,7 +545,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         </Button>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {/* Group 1: Added and Requested */}
         <Collapsible open={isGroup1Open} onOpenChange={setIsGroup1Open}>
           <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
@@ -583,16 +592,57 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
             <div className="space-y-6">
               {/* Header Info */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{selectedCondition.description}</h3>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-1 block">Condition Name</label>
+                  <Input
+                    value={selectedCondition.description}
+                    onChange={(e) => {
+                      handleInlineUpdate(selectedCondition.id, 'description', e.target.value);
+                      setSelectedCondition({ ...selectedCondition, description: e.target.value });
+                    }}
+                    className="text-lg font-semibold"
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {CONDITION_TYPES.find(t => t.value === selectedCondition.condition_type)?.label}
                 </p>
               </div>
 
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Details Grid - 3 columns in one row */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">ETA</label>
+                  <Input
+                    type="date"
+                    value={selectedCondition.due_date || ''}
+                    onChange={(e) => {
+                      handleInlineUpdate(selectedCondition.id, 'due_date', e.target.value);
+                      setSelectedCondition({ ...selectedCondition, due_date: e.target.value });
+                    }}
+                    className="w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <Select
+                    value={selectedCondition.status}
+                    onValueChange={(value) => {
+                      handleInlineUpdate(selectedCondition.id, 'status', value);
+                      setSelectedCondition({ ...selectedCondition, status: value });
+                    }}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          <Badge className={status.color}>{status.label}</Badge>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Priority</label>
                   <Select
@@ -614,43 +664,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">ETA</label>
-                  <Input
-                    type="date"
-                    value={selectedCondition.due_date || ''}
-                    onChange={(e) => {
-                      handleInlineUpdate(selectedCondition.id, 'due_date', e.target.value);
-                      setSelectedCondition({ ...selectedCondition, due_date: e.target.value });
-                    }}
-                    className="w-full mt-1"
-                  />
-                </div>
-              </div>
-
-              {/* Status Selector */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">Status</label>
-                <Select
-                  value={selectedCondition.status}
-                  onValueChange={(value) => {
-                    handleInlineUpdate(selectedCondition.id, 'status', value);
-                    setSelectedCondition({ ...selectedCondition, status: value });
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        <div className="flex items-center gap-2">
-                          <Badge className={status.color}>{status.label}</Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Team Notes */}
@@ -723,6 +736,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
               Close
+            </Button>
+            <Button onClick={async () => {
+              toast({
+                title: "Saved",
+                description: "All changes have been saved",
+              });
+              await loadConditions();
+              setIsDetailModalOpen(false);
+            }}>
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
