@@ -186,12 +186,19 @@ const columns = (
     accessorKey: "due_date",
     header: "Due Date",
     cell: ({ row }) => {
-      const date = row.original.due_date ? new Date(row.original.due_date) : null;
+      const date = row.original.due_date
+        ? new Date(
+            row.original.due_date.includes("T")
+              ? row.original.due_date
+              : `${row.original.due_date}T00:00:00`
+          )
+        : null;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const dueDate = date ? new Date(date) : null;
       if (dueDate) dueDate.setHours(0, 0, 0, 0);
-      const isOverdue = dueDate && dueDate.getTime() < today.getTime() && row.original.status !== "Done";
+      const isOverdue =
+        dueDate && dueDate.getTime() < today.getTime() && row.original.status !== "Done";
       
       return (
         <div className={isOverdue ? "text-destructive" : ""}>
