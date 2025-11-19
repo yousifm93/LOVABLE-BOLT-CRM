@@ -1,8 +1,9 @@
 import { Label } from "@/components/ui/label";
-import { Building2, FileText, MessageSquare, Download, ExternalLink } from "lucide-react";
+import { Building2, FileText, MessageSquare, Download, ExternalLink, Calendar } from "lucide-react";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { InlineEditCondo } from "@/components/ui/inline-edit-condo";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -12,6 +13,8 @@ interface CondoTabProps {
   data: {
     condo_id: string | null;
     condo_status: string | null;
+    condo_ordered_date: string | null;
+    condo_eta: string | null;
     condo_approval_type: string | null;
     condo_notes: string | null;
   };
@@ -81,23 +84,52 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Condo Status - appears first */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Building2 className="h-3 w-3" />
-          Status
-        </Label>
-        <InlineEditSelect
-          value={data.condo_status}
-          onValueChange={(value) => onUpdate('condo_status', value)}
-          options={condoStatusOptions}
-          placeholder="Select status"
-          showAsStatusBadge={false}
-          className="text-sm"
-        />
+      {/* Row 1: Status, Ordered On, ETA - all in one row */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Status */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Building2 className="h-3 w-3" />
+            Status
+          </Label>
+          <InlineEditSelect
+            value={data.condo_status}
+            onValueChange={(value) => onUpdate('condo_status', value)}
+            options={condoStatusOptions}
+            placeholder="Select status"
+            showAsStatusBadge={false}
+            className="text-sm"
+          />
+        </div>
+
+        {/* Ordered On */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Ordered On
+          </Label>
+          <InlineEditDate
+            value={data.condo_ordered_date}
+            onValueChange={(value) => onUpdate('condo_ordered_date', value)}
+            placeholder="-"
+          />
+        </div>
+
+        {/* ETA */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            ETA
+          </Label>
+          <InlineEditDate
+            value={data.condo_eta}
+            onValueChange={(value) => onUpdate('condo_eta', value)}
+            placeholder="-"
+          />
+        </div>
       </div>
 
-      {/* Condo Selection - appears second */}
+      {/* Condo Selection - appears below the row */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Building2 className="h-3 w-3" />
