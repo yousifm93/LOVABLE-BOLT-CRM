@@ -158,10 +158,42 @@ export default function EmailTemplates() {
       return;
     }
 
+    // Convert plain text to HTML if needed
+    let htmlContent = formData.html;
+    
+    if (editorMode === 'plain') {
+      // Convert plain text with newlines to HTML
+      // Split by double newlines to identify paragraphs
+      const paragraphs = htmlContent
+        .split('\n\n')
+        .map(para => para.trim())
+        .filter(para => para.length > 0);
+      
+      // Convert each paragraph: replace single newlines with <br>
+      const htmlParagraphs = paragraphs.map(para => {
+        const withBreaks = para.replace(/\n/g, '<br>');
+        return `<p>${withBreaks}</p>`;
+      });
+      
+      // Wrap in basic HTML structure
+      htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  ${htmlParagraphs.join('\n  ')}
+</body>
+</html>`;
+    }
+
+    const dataToSave = { ...formData, html: htmlContent };
+
     if (editingTemplate) {
       const { error } = await supabase
         .from("email_templates")
-        .update(formData)
+        .update(dataToSave)
         .eq("id", editingTemplate.id);
 
       if (error) {
@@ -172,7 +204,7 @@ export default function EmailTemplates() {
         handleCloseDialog();
       }
     } else {
-      const { error } = await supabase.from("email_templates").insert(formData);
+      const { error } = await supabase.from("email_templates").insert(dataToSave);
 
       if (error) {
         toast({ title: "Error creating template", description: error.message, variant: "destructive" });
@@ -449,7 +481,7 @@ export default function EmailTemplates() {
                   onChange={(e) => setFormData({ ...formData, html: e.target.value })}
                   placeholder={
                     editorMode === 'plain'
-                      ? "Type your email here. Click merge tag buttons above to insert fields like {{first_name}}..."
+                      ? "Type your email here. Press Enter twice for new paragraphs, once for line breaks. Click merge tag buttons to insert fields like {{first_name}}..."
                       : "Enter HTML content with merge tags..."
                   }
                   rows={12}
@@ -457,7 +489,7 @@ export default function EmailTemplates() {
                 />
                 {editorMode === 'plain' && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    The email will be formatted as HTML when sent. Use merge tags like {`{{first_name}}`} anywhere in your text.
+                    Press Enter twice to create paragraph spacing, or once for line breaks. Merge tags like {`{{first_name}}`} will be automatically replaced. Text will be converted to HTML when saved.
                   </p>
                 )}
               </div>
