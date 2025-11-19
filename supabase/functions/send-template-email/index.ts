@@ -20,6 +20,39 @@ interface SendEmailRequest {
   };
 }
 
+function convertPlainTextToHtml(text: string): string {
+  // Check if content already looks like HTML
+  const trimmed = text.trim();
+  if (trimmed.startsWith('<!DOCTYPE') || 
+      trimmed.startsWith('<html') || 
+      trimmed.startsWith('<div') ||
+      trimmed.startsWith('<p')) {
+    return text; // Already HTML, return as-is
+  }
+
+  // Convert plain text with newlines to HTML
+  const paragraphs = text
+    .split('\n\n')
+    .map(para => para.trim())
+    .filter(para => para.length > 0);
+  
+  const htmlParagraphs = paragraphs.map(para => {
+    const withBreaks = para.replace(/\n/g, '<br>');
+    return `<p>${withBreaks}</p>`;
+  });
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  ${htmlParagraphs.join('\n  ')}
+</body>
+</html>`;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -145,6 +178,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Replace merge tags in template
     let htmlContent = template.html || "";
+    
+    // Convert plain text to HTML if needed (before replacing merge tags)
+    htmlContent = convertPlainTextToHtml(htmlContent);
+    
     let subject = template.name;
 
     Object.entries(mergeData).forEach(([key, value]) => {
