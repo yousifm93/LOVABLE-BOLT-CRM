@@ -734,18 +734,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </h3>
           </div>
           <FourColumnDetailLayout items={monthlyPaymentData} />
-          
-          {/* Mark as Closed Button */}
-          <div className="flex justify-end mt-4">
-            <Button 
-              variant="default" 
-              onClick={handleCloseLoan}
-              disabled={isSaving}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Mark as Closed
-            </Button>
-          </div>
         </div>
 
         {/* DTI Calculation */}
@@ -763,6 +751,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
                 })()}
               </span>
             </div>
+          </div>
+          
+          {/* Mark as Closed Button */}
+          <div className="flex justify-end">
+            <Button 
+              variant="default" 
+              onClick={handleCloseLoan}
+              disabled={isSaving}
+              className="bg-yellow-500 hover:bg-yellow-600"
+            >
+              Mark as Closed
+            </Button>
           </div>
         </div>
       </div>

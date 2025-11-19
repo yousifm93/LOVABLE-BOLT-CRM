@@ -36,49 +36,50 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Row 1: Status */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <FileCheck className="h-3 w-3" />
-          Status
-        </Label>
-        <InlineEditSelect
-          value={data.title_status}
-          onValueChange={(value) => onUpdate('title_status', value)}
-          options={titleStatusOptions}
-          placeholder="Select status"
-          showAsStatusBadge={false}
-          className="text-sm"
-        />
-      </div>
-      <div />
+    <div className="space-y-4">
+      {/* Row 1: Status, Ordered, ETA - all in one row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <FileCheck className="h-3 w-3" />
+            Status
+          </Label>
+          <InlineEditSelect
+            value={data.title_status}
+            onValueChange={(value) => onUpdate('title_status', value)}
+            options={titleStatusOptions}
+            placeholder="Select status"
+            showAsStatusBadge={false}
+            className="text-sm"
+          />
+        </div>
 
-      {/* Row 2: Title Ordered Date / Title ETA */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          Ordered
-        </Label>
-        <InlineEditDate
-          value={data.title_ordered_date}
-          onValueChange={(value) => onUpdate('title_ordered_date', value)}
-          placeholder="-"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Clock className="h-3 w-3" />
-          ETA
-        </Label>
-        <InlineEditDate
-          value={data.title_eta}
-          onValueChange={(value) => onUpdate('title_eta', value)}
-          placeholder="-"
-        />
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Ordered
+          </Label>
+          <InlineEditDate
+            value={data.title_ordered_date}
+            onValueChange={(value) => onUpdate('title_ordered_date', value)}
+            placeholder="-"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            ETA
+          </Label>
+          <InlineEditDate
+            value={data.title_eta}
+            onValueChange={(value) => onUpdate('title_eta', value)}
+            placeholder="-"
+          />
+        </div>
       </div>
 
-      {/* Row 3: Notes (spanning both columns) */}
+      {/* Title Notes */}
       <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
         <Label className="text-xs text-muted-foreground flex items-center gap-2">
           <MessageSquare className="h-3 w-3" />
@@ -91,8 +92,9 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
         />
       </div>
 
-      {/* Row 4: Document Upload / Follow Up Button */}
-      <div className="flex flex-col gap-2">
+      {/* Document Upload and Follow Up */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
           Title Work
@@ -108,16 +110,17 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           }}
         />
       </div>
-      <div className="flex items-end justify-start">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleFollowUp}
-          className="gap-2"
-        >
-          <Mail className="h-4 w-4" />
-          Follow Up
-        </Button>
+        <div className="flex items-end justify-start">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleFollowUp}
+            className="gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            Follow Up
+          </Button>
+        </div>
       </div>
     </div>
   );
