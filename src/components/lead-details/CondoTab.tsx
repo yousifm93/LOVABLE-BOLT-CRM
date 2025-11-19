@@ -81,33 +81,33 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Condo Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Building2 className="h-3 w-3" />
-            Condo
-          </Label>
-          <InlineEditCondo
-            value={data.condo_id}
-            onValueChange={(value) => onUpdate('condo_id', value)}
-            placeholder="Select condo..."
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Building2 className="h-3 w-3" />
-            Condo Status
-          </Label>
-          <InlineEditSelect
-            value={data.condo_status}
-            onValueChange={(value) => onUpdate('condo_status', value)}
-            options={condoStatusOptions}
-            placeholder="Select status"
-            showAsStatusBadge={false}
-            className="text-sm"
-          />
-        </div>
+      {/* Condo Status - appears first */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Building2 className="h-3 w-3" />
+          Status
+        </Label>
+        <InlineEditSelect
+          value={data.condo_status}
+          onValueChange={(value) => onUpdate('condo_status', value)}
+          options={condoStatusOptions}
+          placeholder="Select status"
+          showAsStatusBadge={false}
+          className="text-sm"
+        />
+      </div>
+
+      {/* Condo Selection - appears second */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <Building2 className="h-3 w-3" />
+          Condo
+        </Label>
+        <InlineEditCondo
+          value={data.condo_id}
+          onValueChange={(value) => onUpdate('condo_id', value)}
+          placeholder="Select condo..."
+        />
       </div>
 
       {/* Condo Details & Approval Info */}

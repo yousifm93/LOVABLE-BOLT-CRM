@@ -41,7 +41,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileCheck className="h-3 w-3" />
-          Title
+          Status
         </Label>
         <InlineEditSelect
           value={data.title_status}
@@ -58,7 +58,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
-          Title Ordered Date
+          Ordered On
         </Label>
         <InlineEditDate
           value={data.title_ordered_date}
@@ -69,7 +69,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <Clock className="h-3 w-3" />
-          Title ETA
+          ETA
         </Label>
         <InlineEditDate
           value={data.title_eta}
@@ -95,7 +95,7 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
-          Document
+          Title Work
         </Label>
         <FileUploadButton
           leadId={leadId}
