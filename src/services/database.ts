@@ -809,7 +809,7 @@ export const databaseService = {
   },
 
   async getLeadActivities(leadId: string) {
-    const [notes, callLogs, smsLogs, emailLogs] = await Promise.all([
+    const [notes, callLogs, smsLogs, emailLogs, tasks] = await Promise.all([
       supabase
         .from('notes')
         .select(`
@@ -845,6 +845,15 @@ export const databaseService = {
         `)
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false }),
+      
+      supabase
+        .from('tasks')
+        .select(`
+          *,
+          user:users!tasks_created_by_fkey(*)
+        `)
+        .eq('borrower_id', leadId)
+        .order('created_at', { ascending: false }),
     ]);
 
     const activities = [
@@ -852,6 +861,12 @@ export const databaseService = {
       ...(callLogs.data || []).map(log => ({ ...log, type: 'call' as const })),
       ...(smsLogs.data || []).map(log => ({ ...log, type: 'sms' as const })),
       ...(emailLogs.data || []).map(log => ({ ...log, type: 'email' as const })),
+      ...(tasks.data || []).map(task => ({ 
+        ...task, 
+        type: 'task' as const,
+        body: `${task.title}\n${task.description || ''}`,
+        author: task.user
+      })),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return activities;
