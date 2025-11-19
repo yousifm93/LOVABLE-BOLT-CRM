@@ -6,7 +6,9 @@ import { Switch } from '@/components/ui/switch';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { databaseService } from '@/services/database';
 import { TaskAutomationModal } from './TaskAutomationModal';
+import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHistoryModal';
 import { useToast } from '@/hooks/use-toast';
+import { formatDateTime } from '@/utils/formatters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +47,8 @@ export function TaskAutomationsTable() {
   const [editingAutomation, setEditingAutomation] = useState<TaskAutomation | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [automationToDelete, setAutomationToDelete] = useState<string | null>(null);
+  const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false);
+  const [selectedAutomation, setSelectedAutomation] = useState<{id: string, name: string} | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -149,14 +153,6 @@ export function TaskAutomationsTable() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
 
   if (loading) {
     return <div className="text-center py-8">Loading automations...</div>;
@@ -219,19 +215,26 @@ export function TaskAutomationsTable() {
                     <TableCell>
                       <Badge variant={getPriorityColor(automation.task_priority)}>
                         {automation.task_priority}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(automation.created_at)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(automation.updated_at)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">
-                        {automation.execution_count || 0}
-                      </Badge>
-                    </TableCell>
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatDateTime(automation.created_at)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatDateTime(automation.updated_at)}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() => {
+                      setSelectedAutomation({ id: automation.id, name: automation.name });
+                      setExecutionHistoryOpen(true);
+                    }}
+                  >
+                    {automation.execution_count || 0}
+                  </Badge>
+                </TableCell>
                     <TableCell className="text-center">
                       <Switch
                         checked={automation.is_active}
@@ -272,6 +275,15 @@ export function TaskAutomationsTable() {
         onOpenChange={handleModalClose}
         automation={editingAutomation}
       />
+
+      {selectedAutomation && (
+        <TaskAutomationExecutionHistoryModal
+          open={executionHistoryOpen}
+          onOpenChange={setExecutionHistoryOpen}
+          automationId={selectedAutomation.id}
+          automationName={selectedAutomation.name}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

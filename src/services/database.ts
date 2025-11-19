@@ -134,6 +134,21 @@ export const databaseService = {
     return data;
   },
 
+  async getTaskAutomationExecutions(automationId: string) {
+    const { data, error } = await supabase
+      .from('task_automation_executions')
+      .select(`
+        *,
+        lead:leads!task_automation_executions_lead_id_fkey(first_name, last_name),
+        task:tasks!task_automation_executions_task_id_fkey(title)
+      `)
+      .eq('automation_id', automationId)
+      .order('executed_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
   async createTaskAutomation(automation: any) {
     const { data: { user } } = await supabase.auth.getUser();
     
