@@ -153,7 +153,22 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       const fetchedActivities = await databaseService.getLeadActivities(leadId);
       // Transform to match Activity interface
         const transformedActivities = fetchedActivities.map((activity: any) => {
-          // Detect task creation logs
+          // Handle tasks from database
+          if (activity.type === 'task') {
+            return {
+              id: activity.id,
+              type: 'task' as const,
+              title: 'Task created',
+              description: activity.body || `${activity.title}\n${activity.description || ''}`,
+              timestamp: activity.created_at,
+              user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` : 
+                    activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+              author_id: activity.author?.id || activity.user?.id,
+              task_id: activity.id
+            };
+          }
+          
+          // Detect task creation logs from notes (legacy support)
           const isTaskLog = activity.type === 'note' && activity.body?.startsWith('Task created:');
           
           // Get description based on activity type
@@ -174,9 +189,11 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             }
           }
           
+          const activityType = isTaskLog ? 'task' : activity.type;
+          
           return {
             id: activity.id,
-            type: isTaskLog ? 'task' : activity.type,
+            type: activityType,
             title: isTaskLog ? 'Task created' :
                    activity.type === 'note' ? 'Note added' : 
                    activity.type === 'call' ? 'Call logged' :
