@@ -20,6 +20,7 @@ interface AppraisalTabProps {
     appraisal_value: number | null;
     appraisal_file: string | null;
     appraisal_notes: string | null;
+    sales_price: number | null;
   };
   onUpdate: (field: string, value: any) => void;
 }
@@ -97,6 +98,8 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
             value={data.appraisal_value}
             onValueChange={(value) => onUpdate('appraisal_value', value)}
             placeholder="-"
+            compareValue={data.sales_price}
+            showDifference={true}
           />
         </div>
 

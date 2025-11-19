@@ -25,13 +25,14 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes')
+        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes, sales_price')
         .eq('id', leadId)
         .single();
       if (error) throw error;
       return {
         ...data,
-        appraisal_value: data.appraisal_value ? Number(data.appraisal_value) : null
+        appraisal_value: data.appraisal_value ? Number(data.appraisal_value) : null,
+        sales_price: data.sales_price ? Number(data.sales_price) : null
       };
     }
   });
@@ -115,7 +116,8 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
                     appr_eta: lead.appr_eta,
                     appraisal_value: lead.appraisal_value,
                     appraisal_file: lead.appraisal_file,
-                    appraisal_notes: lead.appraisal_notes
+                    appraisal_notes: lead.appraisal_notes,
+                    sales_price: lead.sales_price
                   }}
                   onUpdate={handleUpdate}
                 />
