@@ -613,8 +613,10 @@ export default function Admin() {
           <EmailTemplates />
         </TabsContent>
 
-        <TabsContent value="task-automations" className="space-y-4">
-          <TaskAutomationsTable />
+          <TabsContent value="task-automations" className="space-y-4">
+            <div className="max-w-7xl mx-auto px-4">
+              <TaskAutomationsTable />
+            </div>
         </TabsContent>
 
         <TabsContent value="email-automations" className="space-y-4">
