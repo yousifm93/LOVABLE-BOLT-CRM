@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
 import { TaskAutomationsTable } from "@/components/admin/TaskAutomationsTable";
+import { AddFieldModal } from "@/components/admin/AddFieldModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +18,7 @@ import { useFieldManagement } from "@/hooks/useFieldManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Admin() {
-  const [newFieldName, setNewFieldName] = useState("");
-  const [newFieldDisplayName, setNewFieldDisplayName] = useState("");
-  const [newFieldDescription, setNewFieldDescription] = useState("");
-  const [newFieldType, setNewFieldType] = useState("text");
-  const [newFieldSection, setNewFieldSection] = useState("LEAD");
+  const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -120,29 +117,25 @@ export default function Admin() {
     },
   ];
 
-  const handleAddField = async () => {
-    if (!newFieldName || !newFieldDisplayName) return;
-    
-    const success = await addField({
-      field_name: newFieldName,
-      display_name: newFieldDisplayName,
-      description: newFieldDescription || null,
-      section: newFieldSection,
-      field_type: newFieldType,
+  const handleAddField = async (fieldData: {
+    field_name: string;
+    display_name: string;
+    description: string;
+    section: string;
+    field_type: string;
+  }) => {
+    await addField({
+      field_name: fieldData.field_name,
+      display_name: fieldData.display_name,
+      description: fieldData.description || null,
+      section: fieldData.section,
+      field_type: fieldData.field_type,
       is_required: false,
       is_visible: true,
       is_system_field: false,
       is_in_use: true,
       sort_order: fields.length + 1,
     });
-    
-    if (success) {
-      setNewFieldName("");
-      setNewFieldDisplayName("");
-      setNewFieldDescription("");
-      setNewFieldType("text");
-      setNewFieldSection("LEAD");
-    }
   };
 
   const startEdit = (field: any) => {
@@ -220,117 +213,31 @@ export default function Admin() {
         <TabsContent value="fields" className="space-y-4">
           <Card className="bg-gradient-card shadow-soft">
             <CardHeader>
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">Custom Fields</h3>
                   <p className="text-sm text-muted-foreground">
                     Configure custom fields for your CRM - all fields are available on all boards
                   </p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/docs/FIELD_REFERENCE.md" target="_blank" rel="noopener noreferrer">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Field Documentation
-                  </a>
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setAddFieldModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Field
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="/docs/FIELD_REFERENCE.md" target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Field Documentation
+                    </a>
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              {/* Add New Field Form */}
-              <div className="grid grid-cols-7 gap-4 p-4 bg-muted/30 rounded-lg mb-6">
-                <div>
-                  <Label htmlFor="fieldName">Field Name</Label>
-                  <Input
-                    id="fieldName"
-                    value={newFieldName}
-                    onChange={(e) => setNewFieldName(e.target.value)}
-                    placeholder="e.g. middle_name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fieldDisplayName">Display Name</Label>
-                  <Input
-                    id="fieldDisplayName"
-                    value={newFieldDisplayName}
-                    onChange={(e) => setNewFieldDisplayName(e.target.value)}
-                    placeholder="e.g. Middle Name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fieldDescription">Description</Label>
-                  <Input
-                    id="fieldDescription"
-                    value={newFieldDescription}
-                    onChange={(e) => setNewFieldDescription(e.target.value)}
-                    placeholder="e.g. Borrower's middle name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fieldSection">Section</Label>
-                  <Select value={newFieldSection} onValueChange={setNewFieldSection}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LEAD">Lead Info</SelectItem>
-                      <SelectItem value="FINANCIAL">Financial</SelectItem>
-                      <SelectItem value="PROPERTY">Property</SelectItem>
-                      <SelectItem value="OPERATIONS">Operations</SelectItem>
-                      <SelectItem value="DOCUMENTS">Documents</SelectItem>
-                      <SelectItem value="DATES">Dates</SelectItem>
-                      <SelectItem value="STATUS">Status</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="fieldType">Field Type</Label>
-                  <Select value={newFieldType} onValueChange={setNewFieldType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="currency">Currency</SelectItem>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="datetime">DateTime</SelectItem>
-                      <SelectItem value="boolean">Boolean</SelectItem>
-                      <SelectItem value="select">Select</SelectItem>
-                      <SelectItem value="file">File</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-2 col-span-2">
-                    <Button 
-                      onClick={handleAddField} 
-                      className="w-full"
-                      disabled={!newFieldName || !newFieldDisplayName || !newFieldType || loading}
-                    >
-                      {loading ? (
-                        <>
-                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Field
-                        </>
-                      )}
-                    </Button>
-                    {(!newFieldName || !newFieldDisplayName) && (
-                      <p className="text-xs text-red-500">
-                        Field name and display name are required
-                      </p>
-                    )}
-                </div>
-              </div>
 
               {/* Filters */}
-              <div className="grid grid-cols-5 gap-4 p-4 bg-muted/20 rounded-lg mb-4">
+              <div className="grid grid-cols-5 gap-4 p-3 bg-muted/20 rounded-lg mb-4">
                 <div>
                   <Label htmlFor="search" className="text-xs">Search</Label>
                   <div className="relative">
@@ -404,17 +311,17 @@ export default function Admin() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[150px]">Field Name</TableHead>
-                      <TableHead className="w-[150px]">Display Name</TableHead>
-                      <TableHead className="w-[200px]">Description</TableHead>
-                      <TableHead className="w-[100px]">Section</TableHead>
-                      <TableHead className="w-[100px]">Type</TableHead>
-                      <TableHead className="w-[80px]">Required</TableHead>
-                      <TableHead className="w-[80px]">Visible</TableHead>
-                      <TableHead className="w-[80px]">In Use</TableHead>
-                      <TableHead className="w-[80px]">System</TableHead>
-                      <TableHead className="w-[80px]">Sort</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+                      <TableHead className="w-[130px]">Field Name</TableHead>
+                      <TableHead className="w-[140px]">Display Name</TableHead>
+                      <TableHead className="w-[120px]">Description</TableHead>
+                      <TableHead className="w-[90px]">Section</TableHead>
+                      <TableHead className="w-[80px]">Type</TableHead>
+                      <TableHead className="w-[70px]">Required</TableHead>
+                      <TableHead className="w-[70px]">Visible</TableHead>
+                      <TableHead className="w-[70px]">In Use</TableHead>
+                      <TableHead className="w-[70px]">System</TableHead>
+                      <TableHead className="w-[60px]">Sort</TableHead>
+                      <TableHead className="w-[90px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -454,7 +361,10 @@ export default function Admin() {
                                 className="h-7"
                               />
                             ) : (
-                              <span className="text-xs text-muted-foreground">
+                              <span 
+                                className="text-xs text-muted-foreground truncate block"
+                                title={field.description || ""}
+                              >
                                 {field.description || "—"}
                               </span>
                             )}
@@ -636,6 +546,14 @@ export default function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Field Modal */}
+      <AddFieldModal
+        open={addFieldModalOpen}
+        onOpenChange={setAddFieldModalOpen}
+        onAdd={handleAddField}
+        loading={loading}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
