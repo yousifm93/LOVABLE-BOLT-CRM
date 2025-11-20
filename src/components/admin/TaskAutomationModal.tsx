@@ -83,7 +83,13 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.task_name || !formData.task_description || !formData.assigned_to_user_id) {
+    // Sync automation name with task name
+    const submissionData = {
+      ...formData,
+      name: formData.task_name
+    };
+    
+    if (!submissionData.task_name || !submissionData.task_description || !submissionData.assigned_to_user_id) {
       toast({
         title: 'Error',
         description: 'Please fill in all required fields',
@@ -95,13 +101,13 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     setLoading(true);
     try {
       if (automation) {
-        await databaseService.updateTaskAutomation(automation.id, formData);
+        await databaseService.updateTaskAutomation(automation.id, submissionData);
         toast({
           title: 'Success',
           description: 'Automation updated successfully',
         });
       } else {
-        await databaseService.createTaskAutomation(formData);
+        await databaseService.createTaskAutomation(submissionData);
         toast({
           title: 'Success',
           description: 'Automation created successfully',
@@ -130,24 +136,34 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Automation Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Automation Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Follow up on new lead"
-            />
-          </div>
-
-          {/* Created On (read-only, only when editing) */}
-          {automation && (
-            <div className="space-y-2">
-              <Label>Created On</Label>
-              <div className="text-sm text-muted-foreground">
-                {formatDateTime(automation.created_at)}
+          {/* Task Name + Created On (2 columns when editing) */}
+          {automation ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="task_name">Task Name *</Label>
+                <Input
+                  id="task_name"
+                  value={formData.task_name}
+                  onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
+                  placeholder="e.g., Follow up on new lead"
+                />
               </div>
+              <div className="space-y-2">
+                <Label>Created On</Label>
+                <div className="text-sm text-muted-foreground pt-2">
+                  {formatDateTime(automation.created_at)}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="task_name">Task Name *</Label>
+              <Input
+                id="task_name"
+                value={formData.task_name}
+                onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
+                placeholder="e.g., Follow up on new lead"
+              />
             </div>
           )}
 
@@ -215,16 +231,6 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
           <div className="border-t pt-4 space-y-4">
             <h3 className="text-sm font-medium">Task Details</h3>
             
-            {/* Task Name */}
-            <div className="space-y-2">
-              <Label htmlFor="task_name">Task Name *</Label>
-              <Input
-                id="task_name"
-                value={formData.task_name}
-                onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
-                placeholder="e.g., Follow up on new lead"
-              />
-            </div>
 
             {/* Task Description */}
             <div className="space-y-2">
