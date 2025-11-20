@@ -277,119 +277,127 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     switch (stage) {
       case 'leads':
         return (
-          <div className="p-6 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-3 gap-6">
-              {/* Left Column - Lead Information (Editable) */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm mb-3">Lead Information</h4>
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-3 gap-4">
+              {/* Left Column - Lead Information */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Lead Information</h4>
                 
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Lead Status</Label>
-                  <InlineEditSelect
-                    value={(client as any).converted || 'Working on it'}
-                    onValueChange={(value) => handleLeadUpdate('converted', value)}
-                    options={[
-                      { value: 'Working on it', label: 'Working on it' },
-                      { value: 'Pending App', label: 'Pending App' },
-                      { value: 'Nurture', label: 'Nurture' },
-                      { value: 'Dead', label: 'Dead' },
-                      { value: 'Needs Attention', label: 'Needs Attention' },
-                    ]}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Referral Method</Label>
-                  <InlineEditSelect
-                    value={(client as any).referred_via || ''}
-                    onValueChange={(value) => handleLeadUpdate('referred_via', value)}
-                    options={[
-                      { value: 'Email', label: 'Email' },
-                      { value: 'Text', label: 'Text' },
-                      { value: 'Call', label: 'Call' },
-                      { value: 'Web', label: 'Web' },
-                      { value: 'In-Person', label: 'In-Person' },
-                    ]}
-                    placeholder="Select method"
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Referral Source</Label>
-                  <InlineEditSelect
-                    value={(client as any).referral_source || ''}
-                    onValueChange={(value) => handleLeadUpdate('referral_source', value)}
-                    options={[
-                      { value: 'Agent', label: 'Agent' },
-                      { value: 'New Agent', label: 'New Agent' },
-                      { value: 'Past Client', label: 'Past Client' },
-                      { value: 'Personal', label: 'Personal' },
-                      { value: 'Social', label: 'Social' },
-                      { value: 'Miscellaneous', label: 'Miscellaneous' },
-                    ]}
-                    placeholder="Select source"
-                    className="w-full"
-                  />
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Status:</span>
+                    <InlineEditSelect
+                      value={(client as any).converted || 'Working on it'}
+                      onValueChange={(value) => handleLeadUpdate('converted', value)}
+                      options={[
+                        { value: 'Working on it', label: 'Working on it' },
+                        { value: 'Pending App', label: 'Pending App' },
+                        { value: 'Nurture', label: 'Nurture' },
+                        { value: 'Dead', label: 'Dead' },
+                        { value: 'Needs Attention', label: 'Needs Attention' },
+                      ]}
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Referral Method:</span>
+                    <InlineEditSelect
+                      value={(client as any).referred_via || ''}
+                      onValueChange={(value) => handleLeadUpdate('referred_via', value)}
+                      options={[
+                        { value: 'Email', label: 'Email' },
+                        { value: 'Text', label: 'Text' },
+                        { value: 'Call', label: 'Call' },
+                        { value: 'Web', label: 'Web' },
+                        { value: 'In-Person', label: 'In-Person' },
+                      ]}
+                      placeholder="Select method"
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Referral Source:</span>
+                    <InlineEditSelect
+                      value={(client as any).referral_source || ''}
+                      onValueChange={(value) => handleLeadUpdate('referral_source', value)}
+                      options={[
+                        { value: 'Agent', label: 'Agent' },
+                        { value: 'New Agent', label: 'New Agent' },
+                        { value: 'Past Client', label: 'Past Client' },
+                        { value: 'Personal', label: 'Personal' },
+                        { value: 'Social', label: 'Social' },
+                        { value: 'Miscellaneous', label: 'Miscellaneous' },
+                      ]}
+                      placeholder="Select source"
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Lead Created:</span>
+                    <span className="text-xs font-medium">
+                      {formatDateModern((client as any).created_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Last Updated:</span>
+                    <span className="text-xs font-medium">
+                      {formatDateModern((client as any).updated_at)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Middle Column - Goals (Modern Input Boxes) */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm mb-3">Financial Goals</h4>
+              {/* Middle Column - Financial Goals */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Financial Goals</h4>
                 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Monthly Payment Goal</Label>
-                  <div className="relative">
-                    <InlineEditCurrency
-                      value={(client as any).monthly_pmt_goal || null}
-                      onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
-                      placeholder="Enter amount"
-                      className="w-full h-12 text-lg font-semibold"
-                    />
-                  </div>
+                  <InlineEditCurrency
+                    value={(client as any).monthly_pmt_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
+                    placeholder="Enter amount"
+                    className="w-full h-10 text-base font-semibold bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Cash to Close Goal</Label>
-                  <div className="relative">
-                    <InlineEditCurrency
-                      value={(client as any).cash_to_close_goal || null}
-                      onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
-                      placeholder="Enter amount"
-                      className="w-full h-12 text-lg font-semibold"
-                    />
-                  </div>
+                  <InlineEditCurrency
+                    value={(client as any).cash_to_close_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
+                    placeholder="Enter amount"
+                    className="w-full h-10 text-base font-semibold bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
                 </div>
               </div>
 
-              {/* Right Column - Follow-Up Dates */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm mb-3">Follow-Up Tracking</h4>
+              {/* Right Column - Follow-Up Tracking */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Follow-Up Tracking</h4>
                 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Last Follow-Up</Label>
-                  <div className="relative">
-                    <InlineEditDate
-                      value={(client as any).last_follow_up_date || null}
-                      onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
-                      placeholder="Select date"
-                      className="w-full h-12 text-base font-medium"
-                    />
-                  </div>
+                  <InlineEditDate
+                    value={(client as any).last_follow_up_date || null}
+                    onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                    className="w-full h-10 text-sm font-medium bg-background border-2 border-muted rounded-md hover:border-muted-foreground/40 transition-colors"
+                  />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Next Follow-Up</Label>
-                  <div className="relative">
-                    <InlineEditDate
-                      value={(client as any).task_eta || (client as any).dueDate || null}
-                      onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
-                      placeholder="Select date"
-                      className="w-full h-12 text-base font-medium"
-                    />
-                  </div>
+                  <InlineEditDate
+                    value={(client as any).task_eta || (client as any).dueDate || null}
+                    onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                    className="w-full h-10 text-sm font-medium bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
                 </div>
               </div>
             </div>
@@ -397,14 +405,139 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pending-app':
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-             <h4 className="font-medium text-sm mb-3">Application Review</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Review progress: {(client as any).progress || 0}%</div>
-              <div>• Status: {client.ops.status || 'Pending'}</div>
-              <div>• Missing documents: Credit report, Income verification</div>
-              <div>• Estimated completion: 3-5 business days</div>
-              <div>• Assigned processor: Team Lead</div>
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-3 gap-4">
+              {/* Left Column - Application Status */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Application Status</h4>
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Current Status:</span>
+                    <InlineEditSelect
+                      value={localStatus}
+                      options={[
+                        { value: 'Pending App', label: 'Pending App' },
+                        { value: 'App Complete', label: 'App Complete' },
+                        { value: 'Standby', label: 'Standby' },
+                        { value: 'DNA', label: 'DNA' }
+                      ]}
+                      onValueChange={(value) => handleLeadUpdate('status', value)}
+                      showAsStatusBadge
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Priority:</span>
+                    <InlineEditSelect
+                      value={localPriority}
+                      options={[
+                        { value: 'High', label: 'High' },
+                        { value: 'Medium', label: 'Medium' },
+                        { value: 'Low', label: 'Low' }
+                      ]}
+                      onValueChange={(value) => handleLeadUpdate('priority', value)}
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Likely to Apply:</span>
+                    <InlineEditSelect
+                      value={localLikelyToApply}
+                      options={[
+                        { value: 'Very Likely', label: 'Very Likely' },
+                        { value: 'Likely', label: 'Likely' },
+                        { value: 'Unlikely', label: 'Unlikely' }
+                      ]}
+                      onValueChange={(value) => handleLeadUpdate('likely_to_apply', value)}
+                      placeholder="Select likelihood"
+                      className="text-xs"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Pending App On:</span>
+                    <span className="text-xs font-medium">
+                      {formatDateModern((client as any).pending_app_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Lead Created:</span>
+                    <span className="text-xs font-medium">
+                      {formatDateModern((client as any).created_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Last Updated:</span>
+                    <span className="text-xs font-medium">
+                      {formatDateModern(localUpdatedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Middle Column - Financial Goals */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Financial Goals</h4>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Monthly Payment Goal</Label>
+                  <InlineEditCurrency
+                    value={(client as any).monthly_pmt_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
+                    placeholder="Enter amount"
+                    className="w-full h-10 text-base font-semibold bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Cash to Close Goal</Label>
+                  <InlineEditCurrency
+                    value={(client as any).cash_to_close_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
+                    placeholder="Enter amount"
+                    className="w-full h-10 text-base font-semibold bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column - Follow-Up Tracking */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs mb-2 text-muted-foreground uppercase tracking-wider">Follow-Up Tracking</h4>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Last Follow-Up</Label>
+                  <InlineEditDate
+                    value={(client as any).last_follow_up_date || null}
+                    onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                    className="w-full h-10 text-sm font-medium bg-background border-2 border-muted rounded-md hover:border-muted-foreground/40 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Next Follow-Up</Label>
+                  <InlineEditDate
+                    value={(client as any).task_eta || (client as any).dueDate || null}
+                    onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                    className="w-full h-10 text-sm font-medium bg-background border-2 border-primary/20 rounded-md hover:border-primary/40 transition-colors"
+                  />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Follow-Ups Count</Label>
+                  <div className="w-full h-10 flex items-center justify-center bg-background border-2 border-muted rounded-md">
+                    <span className="text-2xl font-bold text-primary">
+                      {(client as any).follow_up_count || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );
