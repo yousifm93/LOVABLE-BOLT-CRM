@@ -178,7 +178,7 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   };
 
   return (
-    <Card className="h-[280px] flex flex-col">
+    <Card className="h-[300px] flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <Mail className="h-4 w-4" />
