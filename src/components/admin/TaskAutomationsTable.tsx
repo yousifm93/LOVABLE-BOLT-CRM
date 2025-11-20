@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { databaseService } from '@/services/database';
 import { TaskAutomationModal } from './TaskAutomationModal';
@@ -31,6 +32,7 @@ interface TaskAutomation {
   assigned_user?: {
     first_name: string;
     last_name: string;
+    email?: string;
   };
   task_priority: string;
   due_date_offset_days: number | null;
@@ -123,155 +125,151 @@ export function TaskAutomationsTable() {
     loadAutomations();
   };
 
+  const handleExecutionHistoryClick = (automation: TaskAutomation) => {
+    setSelectedAutomation({ id: automation.id, name: automation.name });
+    setExecutionHistoryOpen(true);
+  };
+
   const formatTrigger = (automation: TaskAutomation) => {
-    switch (automation.trigger_type) {
-      case 'lead_created':
-        return 'When lead is created';
-      case 'status_changed':
-        const field = automation.trigger_config.field || 'status';
-        const targetStatus = automation.trigger_config.target_status || '';
-        const fieldLabel = field === 'appraisal_status' ? 'Appraisal Status' : field;
-        return `When ${fieldLabel} changes to "${targetStatus}"`;
-      case 'date_arrives':
-        return `When ${automation.trigger_config.date_field} arrives`;
-      case 'days_after_date':
-        return `${automation.trigger_config.days_offset} days after ${automation.trigger_config.date_field}`;
-      case 'days_before_date':
-        return `${automation.trigger_config.days_offset} days before ${automation.trigger_config.date_field}`;
-      default:
-        return automation.trigger_type;
+    if (automation.trigger_type === 'lead_created') {
+      return 'When a lead is created';
+    } else if (automation.trigger_type === 'status_changed') {
+      const config = automation.trigger_config;
+      const field = config?.field;
+      const targetStatus = config?.target_status;
+      
+      if (field && targetStatus) {
+        const fieldLabel = field
+          .split('_')
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        return `When ${fieldLabel} changes to '${targetStatus}'`;
+      }
+      return 'When status changes';
     }
+    return automation.trigger_type;
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
+    switch (priority) {
+      case 'High':
         return 'destructive';
-      case 'medium':
+      case 'Medium':
         return 'default';
-      case 'low':
+      case 'Low':
         return 'secondary';
       default:
         return 'default';
     }
   };
 
-
   if (loading) {
     return <div className="text-center py-8">Loading automations...</div>;
   }
 
   return (
-    <>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-medium">Task Automations</h3>
-            <p className="text-sm text-muted-foreground">
-              Configure rules to automatically create tasks based on triggers
-            </p>
-          </div>
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Automation
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Task Automations</h2>
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Automation
+        </Button>
+      </div>
 
-        <div className="border rounded-lg">
-          <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12">#</TableHead>
+            <TableHead>Task Name</TableHead>
+            <TableHead>Trigger</TableHead>
+            <TableHead>Assigned To</TableHead>
+            <TableHead>Last Run On</TableHead>
+            <TableHead className="text-center">Times Run</TableHead>
+            <TableHead className="text-center">Active</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {automations.length === 0 ? (
             <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Rule Name</TableHead>
-              <TableHead>Trigger</TableHead>
-              <TableHead>Task Name</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Created On</TableHead>
-              <TableHead>Last Run On</TableHead>
-              <TableHead className="text-center">Times Run</TableHead>
-              <TableHead className="text-center">Active</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                No automations found. Create your first automation to get started.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-            <TableBody>
-              {automations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground">
-                    No automations configured yet
-                  </TableCell>
-                </TableRow>
-              ) : (
-                automations.map((automation, index) => (
-                  <TableRow key={automation.id}>
-                    <TableCell className="text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell className="font-medium">{automation.name}</TableCell>
-                    <TableCell className="text-sm">{formatTrigger(automation)}</TableCell>
-                    <TableCell>{automation.task_name}</TableCell>
-                    <TableCell>
-                      {automation.assigned_user
-                        ? `${automation.assigned_user.first_name} ${automation.assigned_user.last_name}`
-                        : 'Unassigned'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getPriorityColor(automation.task_priority)}>
-                        {automation.task_priority}
-                  </Badge>
+          ) : (
+            automations.map((automation, index) => (
+              <TableRow key={automation.id}>
+                <TableCell className="font-medium">{index + 1}</TableCell>
+                <TableCell className="font-medium">{automation.task_name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatTrigger(automation)}
                 </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {formatDateTime(automation.created_at)}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {automation.last_run_at ? formatDateTime(automation.last_run_at) : '—'}
-              </TableCell>
+                <TableCell>
+                  {automation.assigned_user ? (
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        firstName={automation.assigned_user.first_name}
+                        lastName={automation.assigned_user.last_name}
+                        email={automation.assigned_user.email || ''}
+                        size="sm"
+                      />
+                      <span className="text-sm">
+                        {automation.assigned_user.first_name} {automation.assigned_user.last_name}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Unassigned</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {automation.last_run_at ? (
+                    <span className="text-sm">{formatDateTime(automation.last_run_at)}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-center">
-                  <Badge 
-                    variant="outline" 
-                    className="cursor-pointer hover:bg-muted transition-colors"
-                    onClick={() => {
-                      setSelectedAutomation({ id: automation.id, name: automation.name });
-                      setExecutionHistoryOpen(true);
-                    }}
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer hover:bg-muted"
+                    onClick={() => handleExecutionHistoryClick(automation)}
                   >
                     {automation.execution_count || 0}
                   </Badge>
                 </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={automation.is_active}
-                        onCheckedChange={(checked) => handleToggleActive(automation.id, checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(automation)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setAutomationToDelete(automation.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                <TableCell className="text-center">
+                  <Switch
+                    checked={automation.is_active}
+                    onCheckedChange={(checked) => handleToggleActive(automation.id, checked)}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(automation)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAutomationToDelete(automation.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       <TaskAutomationModal
         open={modalOpen}
@@ -279,14 +277,12 @@ export function TaskAutomationsTable() {
         automation={editingAutomation}
       />
 
-      {selectedAutomation && (
-        <TaskAutomationExecutionHistoryModal
-          open={executionHistoryOpen}
-          onOpenChange={setExecutionHistoryOpen}
-          automationId={selectedAutomation.id}
-          automationName={selectedAutomation.name}
-        />
-      )}
+      <TaskAutomationExecutionHistoryModal
+        open={executionHistoryOpen}
+        onOpenChange={setExecutionHistoryOpen}
+        automationId={selectedAutomation?.id || ''}
+        automationName={selectedAutomation?.name || ''}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -297,11 +293,13 @@ export function TaskAutomationsTable() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setAutomationToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

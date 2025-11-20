@@ -118,12 +118,6 @@ export default function Admin() {
       icon: FileText, 
       color: "text-warning" 
     },
-    { 
-      label: "System Status", 
-      value: "Operational", 
-      icon: Activity, 
-      color: "text-success" 
-    },
   ];
 
   const handleAddField = async () => {
@@ -197,7 +191,7 @@ export default function Admin() {
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {systemStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-4">

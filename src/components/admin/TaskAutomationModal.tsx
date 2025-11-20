@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { databaseService } from '@/services/database';
+import { formatDateTime } from '@/utils/formatters';
 
 interface TaskAutomationModalProps {
   open: boolean;
@@ -123,26 +124,39 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{automation ? 'Edit' : 'Create'} Task Automation</DialogTitle>
+          <DialogTitle>
+            {automation ? 'Edit Task Automation' : 'Create Task Automation'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Automation Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Automation Name *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Follow up on new leads"
-              required
+              placeholder="e.g., Follow up on new lead"
             />
           </div>
 
+          {/* Created On (read-only, only when editing) */}
+          {automation && (
+            <div className="space-y-2">
+              <Label>Created On</Label>
+              <div className="text-sm text-muted-foreground">
+                {formatDateTime(automation.created_at)}
+              </div>
+            </div>
+          )}
+
+          {/* Trigger Type */}
           <div className="space-y-2">
             <Label htmlFor="trigger_type">Trigger Type *</Label>
             <Select
               value={formData.trigger_type}
-              onValueChange={(value) => setFormData({ ...formData, trigger_type: value })}
+              onValueChange={(value) => setFormData({ ...formData, trigger_type: value, trigger_config: {} })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -150,72 +164,22 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
               <SelectContent>
                 <SelectItem value="lead_created">When a lead is created</SelectItem>
                 <SelectItem value="status_changed">When status changes</SelectItem>
-                <SelectItem value="date_arrives">When a date arrives</SelectItem>
-                <SelectItem value="days_after_date">X days after a date</SelectItem>
-                <SelectItem value="days_before_date">X days before a date</SelectItem>
               </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-medium mb-3">Task Details</h3>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="task_name">Task Name *</Label>
-                <Input
-                  id="task_name"
-                  value={formData.task_name}
-                  onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
-                  placeholder="e.g., Follow up on new lead"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="task_description">Task Description *</Label>
-                <Textarea
-                  id="task_description"
-                  value={formData.task_description}
-                  onChange={(e) => setFormData({ ...formData, task_description: e.target.value })}
-                  placeholder="Describe what needs to be done..."
-                  rows={3}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="assigned_to">Assigned To *</Label>
-                  <Select
-                    value={formData.assigned_to_user_id}
-                    onValueChange={(value) => setFormData({ ...formData, assigned_to_user_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select user" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
             </Select>
           </div>
 
           {/* Status Changed Configuration */}
           {formData.trigger_type === 'status_changed' && (
             <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
-              <h4 className="text-sm font-medium">Status Change Configuration</h4>
+              <h4 className="font-medium text-sm">Status Change Configuration</h4>
               
               <div className="space-y-2">
-                <Label htmlFor="status_field">Which field to monitor?</Label>
+                <Label htmlFor="field">Field to Monitor *</Label>
                 <Select
                   value={formData.trigger_config.field || ''}
-                  onValueChange={(value) => setFormData({ 
-                    ...formData, 
-                    trigger_config: { ...formData.trigger_config, field: value, target_status: '' }
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    trigger_config: { ...formData.trigger_config, field: value }
                   })}
                 >
                   <SelectTrigger>
@@ -223,88 +187,136 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
+                    <SelectItem value="title_status">Title Status</SelectItem>
+                    <SelectItem value="insurance_status">Insurance Status</SelectItem>
+                    <SelectItem value="condo_status">Condo Status</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {formData.trigger_config.field === 'appraisal_status' && (
+              {formData.trigger_config.field && (
                 <div className="space-y-2">
-                  <Label htmlFor="target_status">When status changes to:</Label>
-                  <Select
+                  <Label htmlFor="target_status">Target Status *</Label>
+                  <Input
+                    id="target_status"
                     value={formData.trigger_config.target_status || ''}
-                    onValueChange={(value) => setFormData({ 
-                      ...formData, 
-                      trigger_config: { ...formData.trigger_config, target_status: value }
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      trigger_config: { ...formData.trigger_config, target_status: e.target.value }
                     })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ordered">Ordered</SelectItem>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="Inspected">Inspected</SelectItem>
-                      <SelectItem value="Received">Received</SelectItem>
-                      <SelectItem value="Waiver">Waiver</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="e.g., Received, Scheduled"
+                  />
                 </div>
               )}
             </div>
           )}
 
-          <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    value={formData.task_priority}
-                    onValueChange={(value) => setFormData({ ...formData, task_priority: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Medium">Medium</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Task Details Section */}
+          <div className="border-t pt-4 space-y-4">
+            <h3 className="text-sm font-medium">Task Details</h3>
+            
+            {/* Task Name */}
+            <div className="space-y-2">
+              <Label htmlFor="task_name">Task Name *</Label>
+              <Input
+                id="task_name"
+                value={formData.task_name}
+                onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
+                placeholder="e.g., Follow up on new lead"
+              />
+            </div>
+
+            {/* Task Description */}
+            <div className="space-y-2">
+              <Label htmlFor="task_description">Task Description *</Label>
+              <Textarea
+                id="task_description"
+                value={formData.task_description}
+                onChange={(e) => setFormData({ ...formData, task_description: e.target.value })}
+                placeholder="Describe what needs to be done..."
+                rows={3}
+              />
+            </div>
+
+            {/* Assigned To + Priority (2 columns) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="assigned_to">Assigned To *</Label>
+                <Select
+                  value={formData.assigned_to_user_id}
+                  onValueChange={(value) => setFormData({ ...formData, assigned_to_user_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.first_name} {user.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="due_date_offset">Due Date Offset (days from now)</Label>
-                <Input
-                  id="due_date_offset"
-                  type="number"
-                  value={formData.due_date_offset_days || ''}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    due_date_offset_days: e.target.value ? parseInt(e.target.value) : null 
-                  })}
-                  placeholder="e.g., 7 for one week"
-                />
+                <Label htmlFor="priority">Priority *</Label>
+                <Select
+                  value={formData.task_priority}
+                  onValueChange={(value) => setFormData({ ...formData, task_priority: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                />
-                <Label htmlFor="is_active" className="cursor-pointer">
-                  Automation is active
-                </Label>
-              </div>
+            {/* Due Date Offset */}
+            <div className="space-y-2">
+              <Label htmlFor="due_date_offset">Due Date Offset (days)</Label>
+              <Input
+                id="due_date_offset"
+                type="number"
+                value={formData.due_date_offset_days ?? ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  due_date_offset_days: e.target.value ? parseInt(e.target.value) : null
+                })}
+                placeholder="0"
+              />
+              <p className="text-xs text-muted-foreground">
+                Days from trigger event to set as task due date
+              </p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : automation ? 'Update' : 'Create'}
-            </Button>
+          {/* Footer with Is Active toggle and buttons */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+              <Label htmlFor="is_active" className="cursor-pointer">
+                Active
+              </Label>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Saving...' : (automation ? 'Update' : 'Create')}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

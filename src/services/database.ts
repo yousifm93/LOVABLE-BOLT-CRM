@@ -95,7 +95,11 @@ export const databaseService = {
       .from('task_automations')
       .select(`
         *,
-        assigned_user:users!task_automations_assigned_to_user_id_fkey(first_name, last_name)
+        assigned_user:users!task_automations_assigned_to_user_id_fkey(
+          first_name,
+          last_name,
+          email
+        )
       `)
       .order('created_at', { ascending: false });
 
