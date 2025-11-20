@@ -279,327 +279,342 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     switch (stage) {
       case 'leads':
         return (
-          <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Lead Information</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Lead Status:</span>
-                <InlineEditSelect
-                  value={(client as any).converted || 'Working on it'}
-                  onValueChange={(value) => handleLeadUpdate('converted', value)}
-                  options={[
-                    { value: 'Working on it', label: 'Working on it' },
-                    { value: 'Pending App', label: 'Pending App' },
-                    { value: 'Nurture', label: 'Nurture' },
-                    { value: 'Dead', label: 'Dead' },
-                    { value: 'Needs Attention', label: 'Needs Attention' },
-                  ]}
-                />
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Lead Information</h4>
+              <span className="text-xs text-muted-foreground">
+                Updated: {formatDateModern((client as any).updated_at)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {/* Column 1: Lead Details */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Status</span>
+                  <InlineEditSelect
+                    value={(client as any).converted || 'Working on it'}
+                    onValueChange={(value) => handleLeadUpdate('converted', value)}
+                    options={[
+                      { value: 'Working on it', label: 'Working on it' },
+                      { value: 'Pending App', label: 'Pending App' },
+                      { value: 'Nurture', label: 'Nurture' },
+                      { value: 'Dead', label: 'Dead' },
+                      { value: 'Needs Attention', label: 'Needs Attention' },
+                    ]}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Referral Method</span>
+                  <InlineEditSelect
+                    value={(client as any).referred_via || ''}
+                    onValueChange={(value) => handleLeadUpdate('referred_via', value)}
+                    options={[
+                      { value: 'Email', label: 'Email' },
+                      { value: 'Text', label: 'Text' },
+                      { value: 'Call', label: 'Call' },
+                      { value: 'Web', label: 'Web' },
+                      { value: 'In-Person', label: 'In-Person' },
+                    ]}
+                    placeholder="Select method"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Referral Source</span>
+                  <InlineEditSelect
+                    value={(client as any).referral_source || ''}
+                    onValueChange={(value) => handleLeadUpdate('referral_source', value)}
+                    options={[
+                      { value: 'Agent', label: 'Agent' },
+                      { value: 'New Agent', label: 'New Agent' },
+                      { value: 'Past Client', label: 'Past Client' },
+                      { value: 'Personal', label: 'Personal' },
+                      { value: 'Social', label: 'Social' },
+                      { value: 'Miscellaneous', label: 'Miscellaneous' },
+                    ]}
+                    placeholder="Select source"
+                  />
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Referral Method:</span>
-                <InlineEditSelect
-                  value={(client as any).referred_via || ''}
-                  onValueChange={(value) => handleLeadUpdate('referred_via', value)}
-                  options={[
-                    { value: 'Email', label: 'Email' },
-                    { value: 'Text', label: 'Text' },
-                    { value: 'Call', label: 'Call' },
-                    { value: 'Web', label: 'Web' },
-                    { value: 'In-Person', label: 'In-Person' },
-                  ]}
-                  placeholder="Select method"
-                />
+
+              {/* Column 2: Financial Goals */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Monthly Payment Goal</span>
+                  <InlineEditCurrency
+                    value={(client as any).monthly_pmt_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Cash to Close Goal</span>
+                  <InlineEditCurrency
+                    value={(client as any).cash_to_close_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Created</span>
+                  <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Referral Source:</span>
-                <InlineEditSelect
-                  value={(client as any).referral_source || ''}
-                  onValueChange={(value) => handleLeadUpdate('referral_source', value)}
-                  options={[
-                    { value: 'Agent', label: 'Agent' },
-                    { value: 'New Agent', label: 'New Agent' },
-                    { value: 'Past Client', label: 'Past Client' },
-                    { value: 'Personal', label: 'Personal' },
-                    { value: 'Social', label: 'Social' },
-                    { value: 'Miscellaneous', label: 'Miscellaneous' },
-                  ]}
-                  placeholder="Select source"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Monthly Payment Goal:</span>
-                <InlineEditCurrency
-                  value={(client as any).monthly_pmt_goal || null}
-                  onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
-                  placeholder="Enter amount"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Cash to Close Goal:</span>
-                <InlineEditCurrency
-                  value={(client as any).cash_to_close_goal || null}
-                  onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
-                  placeholder="Enter amount"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Last Follow-Up:</span>
-                <InlineEditDate
-                  value={(client as any).last_follow_up_date || null}
-                  onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
-                  placeholder="Select date"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Next Follow-Up:</span>
-                <InlineEditDate
-                  value={(client as any).task_eta || (client as any).dueDate || null}
-                  onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
-                  placeholder="Select date"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Lead Created:</span>
-                <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Last Updated:</span>
-                <span className="text-sm">{formatDateModern((client as any).updated_at)}</span>
+
+              {/* Column 3: Follow-Up Tracking */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Last Follow-Up</span>
+                  <InlineEditDate
+                    value={(client as any).last_follow_up_date || null}
+                    onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Next Follow-Up</span>
+                  <InlineEditDate
+                    value={(client as any).task_eta || (client as any).dueDate || null}
+                    onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                  />
+                </div>
               </div>
             </div>
           </div>
         );
       case 'pending-app':
         return (
-          <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Application Status</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Current Status:</span>
-                <InlineEditSelect
-                  value={localStatus}
-                  options={[
-                    { value: 'Pending App', label: 'Pending App' },
-                    { value: 'App Complete', label: 'App Complete' },
-                    { value: 'Standby', label: 'Standby' },
-                    { value: 'DNA', label: 'DNA' }
-                  ]}
-                  onValueChange={(value) => handleLeadUpdate('status', value)}
-                  showAsStatusBadge
-                />
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Application Status</h4>
+              <span className="text-xs text-muted-foreground">
+                Updated: {formatDateModern(localUpdatedAt)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {/* Column 1: Status Info */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Current Status</span>
+                  <InlineEditSelect
+                    value={localStatus}
+                    options={[
+                      { value: 'Pending App', label: 'Pending App' },
+                      { value: 'App Complete', label: 'App Complete' },
+                      { value: 'Standby', label: 'Standby' },
+                      { value: 'DNA', label: 'DNA' }
+                    ]}
+                    onValueChange={(value) => handleLeadUpdate('status', value)}
+                    showAsStatusBadge
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Priority</span>
+                  <InlineEditSelect
+                    value={localPriority}
+                    options={[
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]}
+                    onValueChange={(value) => handleLeadUpdate('priority', value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Pending App On</span>
+                  <span className="text-sm">{formatDateModern((client as any).pending_app_at)}</span>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Priority:</span>
-                <InlineEditSelect
-                  value={localPriority}
-                  options={[
-                    { value: 'High', label: 'High' },
-                    { value: 'Medium', label: 'Medium' },
-                    { value: 'Low', label: 'Low' }
-                  ]}
-                  onValueChange={(value) => handleLeadUpdate('priority', value)}
-                />
+
+              {/* Column 2: Financial Goals */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Monthly Payment Goal</span>
+                  <InlineEditCurrency
+                    value={(client as any).monthly_pmt_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Cash to Close Goal</span>
+                  <InlineEditCurrency
+                    value={(client as any).cash_to_close_goal || null}
+                    onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
+                    placeholder="Enter amount"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Created</span>
+                  <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Monthly Payment Goal:</span>
-                <InlineEditCurrency
-                  value={(client as any).monthly_pmt_goal || null}
-                  onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
-                  placeholder="Enter amount"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Cash to Close Goal:</span>
-                <InlineEditCurrency
-                  value={(client as any).cash_to_close_goal || null}
-                  onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
-                  placeholder="Enter amount"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Last Follow-Up:</span>
-                <InlineEditDate
-                  value={(client as any).last_follow_up_date || null}
-                  onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
-                  placeholder="Select date"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Next Follow-Up:</span>
-                <InlineEditDate
-                  value={(client as any).task_eta || (client as any).dueDate || null}
-                  onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
-                  placeholder="Select date"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Follow-Ups Count:</span>
-                <span className="text-lg font-bold text-primary">
-                  {(client as any).follow_up_count || 0}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Pending App On:</span>
-                <span className="text-sm">{formatDateModern((client as any).pending_app_at)}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Lead Created:</span>
-                <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Last Updated:</span>
-                <span className="text-sm">{formatDateModern(localUpdatedAt)}</span>
+
+              {/* Column 3: Follow-Up Tracking */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Last Follow-Up</span>
+                  <InlineEditDate
+                    value={(client as any).last_follow_up_date || null}
+                    onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Next Follow-Up</span>
+                  <InlineEditDate
+                    value={(client as any).task_eta || (client as any).dueDate || null}
+                    onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
+                    placeholder="Select date"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Follow-Ups</span>
+                  <span className="text-xl font-bold text-primary">
+                    {(client as any).follow_up_count || 0}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         );
       case 'screening':
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-             <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Income type: {(client as any).incomeType || 'W2'}</div>
-              <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
-              <div>• Verification status: In progress</div>
-              <div>• Credit score range: 720-750</div>
-              <div>• Documentation complete: 75%</div>
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• Income type: {(client as any).incomeType || 'W2'}</div>
+                <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
+                <div>• Verification status: In progress</div>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• Credit score range: 720-750</div>
+                <div>• Documentation complete: 75%</div>
+              </div>
             </div>
           </div>
         );
       case 'pre-qualified':
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-             <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
-              <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
-              <div>• Expires: {(client as any).expirationDate || 'N/A'}</div>
-              <div>• Interest rate range: 6.5% - 7.0%</div>
-              <div>• Next step: Pre-approval documentation</div>
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
+                <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
+                <div>• Expires: {(client as any).expirationDate || 'N/A'}</div>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• Interest rate range: 6.5% - 7.0%</div>
+                <div>• Next step: Pre-approval documentation</div>
+              </div>
             </div>
           </div>
         );
       case 'pre-approved':
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-             <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Shopping status: {client.ops.status || 'New'}</div>
-              <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
-              <div>• Agreement: {(client as any).buyersAgreement || 'Pending'}</div>
-              <div>• House hunting active: Yes</div>
-              <div>• Rate lock available: 60 days</div>
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• Shopping status: {client.ops.status || 'New'}</div>
+                <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
+                <div>• Agreement: {(client as any).buyersAgreement || 'Pending'}</div>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div>• House hunting active: Yes</div>
+                <div>• Rate lock available: 60 days</div>
+              </div>
             </div>
           </div>
         );
       default:
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-             <h4 className="font-medium text-sm mb-3">Screening Status</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Current Status:</span>
-                <InlineEditSelect
-                  value={localStatus}
-                  options={[
-                    { value: 'Pending App', label: 'Pending App' },
-                    { value: 'App Complete', label: 'App Complete' },
-                    { value: 'Standby', label: 'Standby' },
-                    { value: 'DNA', label: 'DNA' }
-                  ]}
-                  onValueChange={(value) => handleLeadUpdate('status', value)}
-                  showAsStatusBadge
-                />
+          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <h4 className="font-medium text-sm mb-3">Screening Status</h4>
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left Column: Status */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Current Status</span>
+                  <InlineEditSelect
+                    value={localStatus}
+                    options={[
+                      { value: 'Pending App', label: 'Pending App' },
+                      { value: 'App Complete', label: 'App Complete' },
+                      { value: 'Standby', label: 'Standby' },
+                      { value: 'DNA', label: 'DNA' }
+                    ]}
+                    onValueChange={(value) => handleLeadUpdate('status', value)}
+                    showAsStatusBadge
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Priority</span>
+                  <InlineEditSelect
+                    value={localPriority}
+                    options={[
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]}
+                    onValueChange={(value) => handleLeadUpdate('priority', value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Last Updated</span>
+                  <span className="text-sm">{formatDateModern(localUpdatedAt)}</span>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Priority:</span>
-                <InlineEditSelect
-                  value={localPriority}
-                  options={[
-                    { value: 'High', label: 'High' },
-                    { value: 'Medium', label: 'Medium' },
-                    { value: 'Low', label: 'Low' }
-                  ]}
-                  onValueChange={(value) => handleLeadUpdate('priority', value)}
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground min-w-[140px]">Last Updated:</span>
-                <span className="text-sm">{formatDateModern(localUpdatedAt)}</span>
-              </div>
-              
-              {/* Credit, Income & Assets Section */}
-              <div className="pt-3 mt-3 border-t border-muted">
-                <h4 className="font-medium text-sm mb-3">Credit, Income & Assets</h4>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[140px]">Credit Score:</span>
+
+              {/* Right Column: Credit, Income & Assets */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-medium text-muted-foreground mb-2">Credit, Income & Assets</h5>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Credit Score</span>
                     <InlineEditNumber
                       value={(client as any).creditScore || null}
                       onValueChange={(value) => handleLeadUpdate('creditScore', value)}
                       placeholder="Enter score"
                     />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[140px]">Total Monthly Income:</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">DTI Ratio</span>
+                    <InlineEditPercentage
+                      value={(client as any).dti || null}
+                      onValueChange={(value) => handleLeadUpdate('dti', value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Monthly Income</span>
                     <InlineEditCurrency
                       value={(client as any).totalMonthlyIncome || null}
                       onValueChange={(value) => handleLeadUpdate('totalMonthlyIncome', value)}
                       placeholder="Enter amount"
                     />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[140px]">Total Assets:</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Total Assets</span>
                     <InlineEditCurrency
                       value={(client as any).assets || null}
                       onValueChange={(value) => handleLeadUpdate('assets', value)}
                       placeholder="Enter amount"
                     />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[140px]">Monthly Liabilities:</span>
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
                     <InlineEditCurrency
                       value={(client as any).monthlyLiabilities || null}
                       onValueChange={(value) => handleLeadUpdate('monthlyLiabilities', value)}
                       placeholder="Enter amount"
                     />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground min-w-[140px]">DTI Ratio:</span>
-                    <InlineEditPercentage
-                      value={(client as any).dti || null}
-                      onValueChange={(value) => handleLeadUpdate('dti', value)}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
-           </div>
+          </div>
         );
     }
   };
