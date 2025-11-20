@@ -1054,10 +1054,10 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
           {/* Center Column - Status Tracker & Lead Information */}
           <div className="space-y-4 overflow-y-auto flex flex-col">
             {/* Status Tracker Pills - Moved from top row */}
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="h-[420px] flex flex-col">
+              <CardHeader className="pb-3 flex-shrink-0">
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
 {pipelineType === 'leads' || pipelineType === 'active' ? (
                   <PipelineStageBar
                     stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []}
