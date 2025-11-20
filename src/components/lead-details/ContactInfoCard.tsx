@@ -240,7 +240,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
 
   return (
     <>
-      <Card className="h-[280px] flex flex-col">
+      <Card className="h-[300px] flex flex-col">
         <CardHeader className="pb-8 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button 
