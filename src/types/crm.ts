@@ -351,6 +351,7 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'likely_to_apply': 'likelyToApply',
   'priority': 'priority',
   'source': 'source',
+  'last_follow_up_date': 'lastFollowUpDate',
   
   // LOAN INFO
   'appraisal_value': 'appraisalValue',

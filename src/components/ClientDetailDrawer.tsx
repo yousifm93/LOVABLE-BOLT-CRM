@@ -29,6 +29,7 @@ import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern, formatDateForInput } from "@/utils/dateUtils";
 
@@ -276,14 +277,121 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     switch (stage) {
       case 'leads':
         return (
-           <div className="p-6 bg-muted/30 rounded-lg border border-muted/60 min-h-[120px]">
-            <h4 className="font-medium text-sm mb-3">Lead Status</h4>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div>• Referral Method: {(client as any).referred_via || (client as any).referral_method || 'N/A'}</div>
-              <div>• Referral Source: {client.ops.referralSource || (client as any).referral_source || 'N/A'}</div>
-              <div>• Lead Status: {client.ops.status || 'Working on it'}</div>
-              <div>• Monthly Payment Goal: {(client as any).monthly_payment_goal ? `$${Number((client as any).monthly_payment_goal).toLocaleString()}` : 'N/A'}</div>
-              <div>• Cash to Close Goal: {(client as any).cash_to_close_goal ? `$${Number((client as any).cash_to_close_goal).toLocaleString()}` : 'N/A'}</div>
+          <div className="p-6 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-3 gap-6">
+              {/* Left Column - Lead Information (Editable) */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm mb-3">Lead Information</h4>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Lead Status</Label>
+                  <InlineEditSelect
+                    value={(client as any).converted || 'Working on it'}
+                    onValueChange={(value) => handleLeadUpdate('converted', value)}
+                    options={[
+                      { value: 'Working on it', label: 'Working on it' },
+                      { value: 'Pending App', label: 'Pending App' },
+                      { value: 'Nurture', label: 'Nurture' },
+                      { value: 'Dead', label: 'Dead' },
+                      { value: 'Needs Attention', label: 'Needs Attention' },
+                    ]}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Referral Method</Label>
+                  <InlineEditSelect
+                    value={(client as any).referred_via || ''}
+                    onValueChange={(value) => handleLeadUpdate('referred_via', value)}
+                    options={[
+                      { value: 'Email', label: 'Email' },
+                      { value: 'Text', label: 'Text' },
+                      { value: 'Call', label: 'Call' },
+                      { value: 'Web', label: 'Web' },
+                      { value: 'In-Person', label: 'In-Person' },
+                    ]}
+                    placeholder="Select method"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Referral Source</Label>
+                  <InlineEditSelect
+                    value={(client as any).referral_source || ''}
+                    onValueChange={(value) => handleLeadUpdate('referral_source', value)}
+                    options={[
+                      { value: 'Agent', label: 'Agent' },
+                      { value: 'New Agent', label: 'New Agent' },
+                      { value: 'Past Client', label: 'Past Client' },
+                      { value: 'Personal', label: 'Personal' },
+                      { value: 'Social', label: 'Social' },
+                      { value: 'Miscellaneous', label: 'Miscellaneous' },
+                    ]}
+                    placeholder="Select source"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Middle Column - Goals (Modern Input Boxes) */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm mb-3">Financial Goals</h4>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Monthly Payment Goal</Label>
+                  <div className="relative">
+                    <InlineEditCurrency
+                      value={(client as any).monthly_pmt_goal || null}
+                      onValueChange={(value) => handleLeadUpdate('monthly_pmt_goal', value)}
+                      placeholder="Enter amount"
+                      className="w-full h-12 text-lg font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Cash to Close Goal</Label>
+                  <div className="relative">
+                    <InlineEditCurrency
+                      value={(client as any).cash_to_close_goal || null}
+                      onValueChange={(value) => handleLeadUpdate('cash_to_close_goal', value)}
+                      placeholder="Enter amount"
+                      className="w-full h-12 text-lg font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Follow-Up Dates */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm mb-3">Follow-Up Tracking</h4>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Last Follow-Up</Label>
+                  <div className="relative">
+                    <InlineEditDate
+                      value={(client as any).last_follow_up_date || null}
+                      onValueChange={(date) => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                      placeholder="Select date"
+                      className="w-full h-12 text-base font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Next Follow-Up</Label>
+                  <div className="relative">
+                    <InlineEditDate
+                      value={(client as any).task_eta || (client as any).dueDate || null}
+                      onValueChange={(date) => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)}
+                      placeholder="Select date"
+                      className="w-full h-12 text-base font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );

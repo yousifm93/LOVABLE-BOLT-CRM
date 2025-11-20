@@ -1829,6 +1829,7 @@ export type Database = {
           insurance_received_date: string | null
           interest_rate: number | null
           is_closed: boolean | null
+          last_follow_up_date: string | null
           last_name: string
           latest_file_updates: string | null
           latest_file_updates_updated_at: string | null
@@ -1965,6 +1966,7 @@ export type Database = {
           insurance_received_date?: string | null
           interest_rate?: number | null
           is_closed?: boolean | null
+          last_follow_up_date?: string | null
           last_name: string
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
@@ -2103,6 +2105,7 @@ export type Database = {
           insurance_received_date?: string | null
           interest_rate?: number | null
           is_closed?: boolean | null
+          last_follow_up_date?: string | null
           last_name?: string
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
