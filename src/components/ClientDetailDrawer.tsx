@@ -279,7 +279,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
     switch (stage) {
       case 'leads':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Lead Information</h4>
               <span className="text-xs text-muted-foreground">
@@ -384,7 +384,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pending-app':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Application Status</h4>
               <span className="text-xs text-muted-foreground">
@@ -480,7 +480,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'screening':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
@@ -497,7 +497,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pre-qualified':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
@@ -514,7 +514,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       case 'pre-approved':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
@@ -531,7 +531,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         );
       default:
         return (
-          <div className="p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[200px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <h4 className="font-medium text-sm mb-3">Screening Status</h4>
             <div className="grid grid-cols-2 gap-6">
               {/* Left Column: Status */}
