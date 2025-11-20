@@ -198,8 +198,9 @@ export interface CRMClient {
   appraisalDateTime?: string;
   appraisalEta?: string;
   financingContingency?: string;
-  monthlyPaymentGoal?: number;
+  monthlyPmtGoal?: number;
   cashToCloseGoal?: number;
+  followUpCount?: number;
 }
 
 export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients' | 'incoming' | 'rfp' | 'submitted' | 'awc' | 'ctc' | 'closing';
@@ -338,6 +339,8 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'income_type': 'incomeType',
   'monthly_liabilities': 'monthlyLiabilities',
   'monthly_pmt_goal': 'monthlyPmtGoal',
+  'last_follow_up_date': 'lastFollowUpDate',
+  'follow_up_count': 'followUpCount',
   'residency_type': 'residencyType',
   'ssn': 'ssn',
   'total_monthly_income': 'totalMonthlyIncome',
@@ -351,7 +354,6 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'likely_to_apply': 'likelyToApply',
   'priority': 'priority',
   'source': 'source',
-  'last_follow_up_date': 'lastFollowUpDate',
   
   // LOAN INFO
   'appraisal_value': 'appraisalValue',
