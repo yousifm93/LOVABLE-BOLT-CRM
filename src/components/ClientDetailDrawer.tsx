@@ -291,15 +291,6 @@ export function ClientDetailDrawer({
                   Updated: {formatDateModern((client as any).updated_at)}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  PP
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  LE
-
-                </Button>
-              </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Column 1: Lead Details */}
@@ -397,21 +388,11 @@ export function ClientDetailDrawer({
           </div>;
       case 'pending-app':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-medium text-sm">Application Status</h4>
-                <span className="text-xs text-muted-foreground">
-                  Updated: {formatDateModern(localUpdatedAt)}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  P-P
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  L-E
-                </Button>
-              </div>
+            <div className="mb-3">
+              <h4 className="font-medium text-sm">Application Status</h4>
+              <span className="text-xs text-muted-foreground">
+                Updated: {formatDateModern(localUpdatedAt)}
+              </span>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Column 1: Status Info */}
@@ -488,17 +469,7 @@ export function ClientDetailDrawer({
           </div>;
       case 'screening':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Initial Verification</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  P-P
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  L-E
-                </Button>
-              </div>
-            </div>
+            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Income type: {(client as any).incomeType || 'W2'}</div>
@@ -513,17 +484,7 @@ export function ClientDetailDrawer({
           </div>;
       case 'pre-qualified':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  P-P
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  L-E
-                </Button>
-              </div>
-            </div>
+            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
@@ -538,17 +499,7 @@ export function ClientDetailDrawer({
           </div>;
       case 'pre-approved':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Pre-Approval Status</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  P-P
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  L-E
-                </Button>
-              </div>
-            </div>
+            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Shopping status: {client.ops.status || 'New'}</div>
@@ -563,17 +514,7 @@ export function ClientDetailDrawer({
           </div>;
       default:
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Screening Status</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
-                  P-P
-                </Button>
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
-                  L-E
-                </Button>
-              </div>
-            </div>
+            <h4 className="font-medium text-sm mb-3">Screening Status</h4>
             <div className="grid grid-cols-2 gap-6">
               {/* Left Column: Status */}
               <div className="space-y-2">
@@ -1385,6 +1326,38 @@ export function ClientDetailDrawer({
                         {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
                       </>}
                   </div>}
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="default" 
+                    className="flex-1 px-4 py-6 h-auto flex flex-col gap-2"
+                    onClick={() => setShowPreApprovalModal(true)}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span className="font-semibold">Pre-Approval</span>
+                    <span className="text-xs text-muted-foreground">Generate Letter</span>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="default" 
+                    className="flex-1 px-4 py-6 h-auto flex flex-col gap-2"
+                    onClick={() => console.log('L-E clicked')}
+                  >
+                    <FileCheck className="h-5 w-5" />
+                    <span className="font-semibold">Loan Estimate</span>
+                    <span className="text-xs text-muted-foreground">Generate Document</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
