@@ -30,7 +30,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const [formData, setFormData] = useState({
     name: '',
     trigger_type: 'lead_created',
-    trigger_config: {} as { field?: string; target_status?: string },
+    trigger_config: {} as { field?: string; target_status?: string; target_stage_id?: string },
     task_name: '',
     task_description: '',
     assigned_to_user_id: '',
@@ -180,6 +180,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
               <SelectContent>
                 <SelectItem value="lead_created">When a lead is created</SelectItem>
                 <SelectItem value="status_changed">When status changes</SelectItem>
+                <SelectItem value="pipeline_stage_changed">When pipeline stage changes</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -230,6 +231,36 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Pipeline Stage Change Configuration */}
+          {formData.trigger_type === 'pipeline_stage_changed' && (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+              <h4 className="font-medium text-sm">Pipeline Stage Configuration</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="target_stage">Target Stage *</Label>
+                <Select
+                  value={formData.trigger_config.target_stage_id || ''}
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    trigger_config: { ...formData.trigger_config, target_stage_id: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="44d74bfb-c4f3-4f7d-a69e-e47ac67a5945">Pending App</SelectItem>
+                    <SelectItem value="a4e162e0-5421-4d17-8ad5-4b1195bbc995">Screening</SelectItem>
+                    <SelectItem value="09162eec-d2b2-48e5-86d0-9e66ee8b2af7">Pre-Qualified</SelectItem>
+                    <SelectItem value="3cbf38ff-752e-4163-a9a3-1757499b4945">Pre-Approved</SelectItem>
+                    <SelectItem value="76eb2e82-e1d9-4f2d-a57d-2120a25696db">Active</SelectItem>
+                    <SelectItem value="acdfc6ba-7cbc-47af-a8c6-380d77aef6dd">Past Clients</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 

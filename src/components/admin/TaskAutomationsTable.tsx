@@ -133,7 +133,24 @@ export function TaskAutomationsTable() {
   const formatTrigger = (automation: TaskAutomation) => {
     if (automation.trigger_type === 'lead_created') {
       return 'When a lead is created';
-    } else if (automation.trigger_type === 'status_changed') {
+    }
+    
+    if (automation.trigger_type === 'pipeline_stage_changed') {
+      const config = automation.trigger_config as { target_stage_id?: string };
+      const stageMap: Record<string, string> = {
+        '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
+        'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+        '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+        '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+        '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+        'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Clients',
+      };
+      
+      const stageName = config.target_stage_id ? stageMap[config.target_stage_id] : 'Unknown';
+      return `When lead moves to ${stageName}`;
+    }
+    
+    if (automation.trigger_type === 'status_changed') {
       const config = automation.trigger_config;
       const field = config?.field;
       const targetStatus = config?.target_status;
@@ -155,6 +172,7 @@ export function TaskAutomationsTable() {
       }
       return 'When status changes';
     }
+    
     return automation.trigger_type;
   };
 
