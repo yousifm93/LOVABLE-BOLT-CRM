@@ -49,8 +49,8 @@ const getActivityIcon = (type: Activity['type']) => {
   }
 };
 
-const getActivityBadgeLabel = (type: Activity['type']): string => {
-  switch (type) {
+const getActivityBadgeLabel = (activity: Activity): string => {
+  switch (activity.type) {
     case 'call':
       return 'CALL LOGGED';
     case 'email':
@@ -60,7 +60,7 @@ const getActivityBadgeLabel = (type: Activity['type']): string => {
     case 'note':
       return 'NOTE ADDED';
     case 'task':
-      return 'TASK CREATED';
+      return activity.task_status === 'Done' ? 'TASK COMPLETED' : 'TASK CREATED';
     default:
       return 'ACTIVITY';
   }
@@ -163,16 +163,16 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                   
                   <div className="flex-1 space-y-1 min-w-0 text-left">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge 
-                        variant={getActivityBadgeVariant(activity)} 
-                        className={cn(
-                          "text-xs flex items-center gap-1",
-                          activity.type === 'task' && activity.task_status !== 'Done' && 
-                          "bg-orange-100 text-orange-600 hover:bg-orange-100 border-orange-200"
-                        )}
-                      >
-                        {getActivityIcon(activity.type)}
-                        {getActivityBadgeLabel(activity.type)}
+              <Badge 
+                variant={getActivityBadgeVariant(activity)} 
+                className={cn(
+                  "text-xs flex items-center gap-1",
+                  activity.type === 'task' && activity.task_status !== 'Done' && 
+                  "bg-orange-100 hover:bg-orange-100 border-orange-200"
+                )}
+              >
+                {getActivityIcon(activity.type)}
+                {getActivityBadgeLabel(activity)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
