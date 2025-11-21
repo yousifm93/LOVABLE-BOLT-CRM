@@ -20,7 +20,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_leads",
-      description: "Search and filter leads with access to all 124 CRM fields. Supports filtering by name, date ranges, loan amount, status, stage, assignee, and any custom field.",
+      description: "Search BORROWERS and LOAN APPLICATIONS. Use for: borrower names, phone numbers, emails, loan amounts, application statuses, close dates. Examples: 'What is John Doe's phone?', 'Show me FHA loans over $300k', 'Leads this month'. DO NOT use for: real estate agents (use search_agents), lenders (use search_contacts).",
       parameters: {
         type: "object",
         properties: {
@@ -67,7 +67,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "count_leads",
-      description: "Count leads matching specific criteria. Use for 'how many' questions.",
+      description: "Count leads matching criteria. Use for: 'How many leads this month?', 'Count of FHA loans', 'Total applications'. Returns numeric count, not lead details.",
       parameters: {
         type: "object",
         properties: {
@@ -102,7 +102,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_agents",
-      description: "Search real estate agents (buyer agents and listing agents) in the buyer_agents table. Use this tool for ANY agent-related queries, NOT search_contacts. Includes date filtering for meetings and calls.",
+      description: "Search REAL ESTATE AGENTS (buyer agents, listing agents). Use for: agent names, agent phone numbers, agent meetings, agent calls. Examples: 'What is Mary Johnson's number?', 'Agents we met this month', 'Show me A-rank agents'. DO NOT use for: borrowers (use search_leads).",
       parameters: {
         type: "object",
         properties: {
@@ -161,7 +161,7 @@ const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_tasks",
-      description: "Search and filter tasks",
+      description: "Search TASKS. Use for: tasks due today, my tasks, overdue tasks, tasks by priority. Examples: 'Show me tasks due today', 'What are my high priority tasks?', 'Tasks assigned to Yousif'.",
       parameters: {
         type: "object",
         properties: {
@@ -910,73 +910,35 @@ serve(async (req) => {
       startOfWeek.setDate(now.getDate() - now.getDay());
       const weekStart = startOfWeek.toISOString().split('T')[0];
 
-      const debugSystemPrompt = `You are MortgageBolt Assistant, an intelligent AI helper for mortgage CRM users.
+      const debugSystemPrompt = `You are MortgageBolt Assistant - an AI helper for mortgage CRM queries.
 
-**CRITICAL CONTEXT - ALWAYS USE THESE FOR DATE FILTERING:**
-- Current Date: ${currentDate}
-- Current Month: ${currentMonth} (${currentMonthStart} to ${nextMonthStart})
-- Current Week Start: ${weekStart}
+CURRENT DATE CONTEXT:
+• Today: ${currentDate}
+• This Month: ${currentMonthStart} to ${nextMonthStart}
+• This Week: ${weekStart} onwards
 
-**Date Query Rules for "Leads Created":**
-- **IMPORTANT**: When asked about "leads created" or "leads we got", ALWAYS use lead_on_date_* filters, NOT created_*
-- "leads today" → { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
-- "leads this month" → { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
-- "leads this week" → { lead_on_date_after: '${weekStart}' }
-- "leads yesterday" → { lead_on_date_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', lead_on_date_before: '${currentDate}' }
+TOOL SELECTION (Pick the RIGHT tool):
+• Borrower info → search_leads (names, phone, email, loan details)
+• Agent info → search_agents (agent names, meetings, calls)
+• Lender/Title/Insurance → search_contacts
+• "How many" questions → count_leads
+• Tasks → search_tasks
+• Condo approvals → search_condos
 
-**CRM Terminology:**
-- "Leads" or "Leads Created" = All records created in pipeline based on lead_on_date field
-  **ALWAYS use lead_on_date_after and lead_on_date_before filters for lead creation questions**
-- "Applications" or "Apps" = Leads where app_complete_at field is set/not null in the time period
-  Use filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
-  Use count_leads or search_leads with these filters, NOT pipeline_stage_id
-- "Active" = Leads in "Active" stage (pipeline_stage_id: '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
-- "Face-to-Face Meetings" or "Meetings" = Agents where face_to_face_meeting date is set in the time period
-  Use search_agents with filters: { face_to_face_meeting_after: '${currentMonthStart}', face_to_face_meeting_before: '${nextMonthStart}' }
-- "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
-  Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
+DATE FILTERING CHEAT SHEET:
+• "leads this month" → count_leads with { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
+• "leads today" → count_leads with { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
+• "apps this month" → count_leads with { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
+• "tasks due today" → search_tasks with { due_date_after: '${currentDate}', due_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
 
-**Borrower Lookup Strategy:**
-- For borrower name/phone/email lookups (e.g., "What is [Borrower Name]'s phone number?"), ALWAYS:
-  1. First call search_leads with search_term="[Full Name]" and limit=5
-  2. If no results found, then try search_contacts with search_term="[Name]"
-  3. Do NOT use search_agents for borrowers - that's for real estate agents only
-- Borrowers are stored in the leads table with first_name, last_name, phone, email fields
+EXAMPLE QUERIES (Follow these patterns):
+1. "What's John Smith's phone?" → search_leads({ search_term: "John Smith", limit: 5 })
+2. "Show me agent Mary Johnson" → search_agents({ search_term: "Mary Johnson", limit: 5 })
+3. "How many leads this month?" → count_leads({ filters: { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' } })
+4. "Tasks due today" → search_tasks({ filters: { due_date_after: '${currentDate}' } })
+5. "How many apps this month?" → count_leads({ filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' } })
 
-**Agent Lookup Strategy:**
-- For agent name lookups (e.g., "What is [Agent Name]'s phone number?"), ALWAYS:
-  1. First try search_agents with search_term="[Name]" and limit=5
-  2. If no results found, then try search_contacts with search_term="[Name]"
-  3. Real estate agents live in buyer_agents table - prioritize search_agents for agent queries
-- For general contacts (lenders, title companies, etc.), use search_contacts
-
-**Data Sources:**
-- Leads: All borrowers and loan applications (leads table)
-- Contacts: General contact directory (contacts table)
-- Real Estate Agents: Buyer and listing agents (buyer_agents table) - **Use search_agents tool for agent queries**
-- Approved Lenders: Pre-approved lenders directory (contacts table with type filter)
-- Tasks: Team task management (tasks table)
-- Condos: Condo approval database (condos table)
-
-You have access to comprehensive CRM data including:
-- Leads (124 fields): All borrower, loan, property, and status information
-- Contacts: Agents, lenders, title companies, insurance providers
-- Real Estate Agents: Buyer agents and listing agents (use search_agents tool)
-- Tasks: Team task management and assignments
-- Condos: Condo approval database
-- Users: Team member information
-- Pipeline Stages: Workflow stages and counts
-
-Use the available tools to answer user questions accurately. When searching:
-- Use smart name matching (partial names, first/last combinations)
-- Apply appropriate filters (dates, statuses, stages, amounts)
-- Count records when asked "how many"
-- Return specific fields when asked for details (phone, email, etc.)
-- For borrower lookups, always use search_leads first
-- For agent name lookups, try search_agents first, then search_contacts as fallback
-- Provide context and suggestions for next steps
-
-Always cite your data sources and offer relevant quick actions. Be concise and professional.`;
+Be concise and cite sources.`;
 
       return new Response(JSON.stringify({ 
         systemPrompt: debugSystemPrompt,
@@ -1042,73 +1004,36 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
     startOfWeek.setDate(now.getDate() - now.getDay());
     const weekStart = startOfWeek.toISOString().split('T')[0];
 
-    // System prompt with comprehensive CRM context
-    const systemPrompt = `You are MortgageBolt Assistant, an intelligent AI helper for mortgage CRM users.
+    // System prompt - simplified and structured for GPT-5
+    const systemPrompt = `You are MortgageBolt Assistant - an AI helper for mortgage CRM queries.
 
-**CRITICAL CONTEXT - ALWAYS USE THESE FOR DATE FILTERING:**
-- Current Date: ${currentDate}
-- Current Month: ${currentMonth} (${currentMonthStart} to ${nextMonthStart})
-- Current Week Start: ${weekStart}
+CURRENT DATE CONTEXT:
+• Today: ${currentDate}
+• This Month: ${currentMonthStart} to ${nextMonthStart}
+• This Week: ${weekStart} onwards
 
-**Date Query Rules for "Leads Created":**
-- **IMPORTANT**: When asked about "leads created" or "leads we got", ALWAYS use lead_on_date_* filters, NOT created_*
-- "leads today" → { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
-- "leads this month" → { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
-- "leads this week" → { lead_on_date_after: '${weekStart}' }
-- "leads yesterday" → { lead_on_date_after: '${new Date(now.getTime() - 86400000).toISOString().split('T')[0]}', lead_on_date_before: '${currentDate}' }
+TOOL SELECTION (Pick the RIGHT tool):
+• Borrower info → search_leads (names, phone, email, loan details)
+• Agent info → search_agents (agent names, meetings, calls)
+• Lender/Title/Insurance → search_contacts
+• "How many" questions → count_leads
+• Tasks → search_tasks
+• Condo approvals → search_condos
 
-**CRM Terminology:**
-- "Leads" or "Leads Created" = All records created in pipeline based on lead_on_date field
-  **ALWAYS use lead_on_date_after and lead_on_date_before filters for lead creation questions**
-- "Applications" or "Apps" = Leads where app_complete_at field is set/not null in the time period
-  Use filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
-  Use count_leads or search_leads with these filters, NOT pipeline_stage_id
-- "Active" = Leads in "Active" stage (pipeline_stage_id: '76eb2e82-e1d9-4f2d-a57d-2120a25696db')
-- "Face-to-Face Meetings" or "Meetings" = Agents where face_to_face_meeting date is set in the time period
-  Use search_agents with filters: { face_to_face_meeting_after: '${currentMonthStart}', face_to_face_meeting_before: '${nextMonthStart}' }
-- "Calls" or "Agent Calls" = Agents where last_agent_call date is set in the time period
-  Use search_agents with filters: { last_agent_call_after: '${currentMonthStart}', last_agent_call_before: '${nextMonthStart}' }
+DATE FILTERING CHEAT SHEET:
+• "leads this month" → count_leads with { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' }
+• "leads today" → count_leads with { lead_on_date_after: '${currentDate}', lead_on_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
+• "apps this month" → count_leads with { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' }
+• "tasks due today" → search_tasks with { due_date_after: '${currentDate}', due_date_before: '${new Date(now.getTime() + 86400000).toISOString().split('T')[0]}' }
 
-**Borrower Lookup Strategy:**
-- For borrower name/phone/email lookups (e.g., "What is [Borrower Name]'s phone number?"), ALWAYS:
-  1. First call search_leads with search_term="[Full Name]" and limit=5
-  2. If no results found, then try search_contacts with search_term="[Name]"
-  3. Do NOT use search_agents for borrowers - that's for real estate agents only
-- Borrowers are stored in the leads table with first_name, last_name, phone, email fields
+EXAMPLE QUERIES (Follow these patterns):
+1. "What's John Smith's phone?" → search_leads({ search_term: "John Smith", limit: 5 })
+2. "Show me agent Mary Johnson" → search_agents({ search_term: "Mary Johnson", limit: 5 })
+3. "How many leads this month?" → count_leads({ filters: { lead_on_date_after: '${currentMonthStart}', lead_on_date_before: '${nextMonthStart}' } })
+4. "Tasks due today" → search_tasks({ filters: { due_date_after: '${currentDate}' } })
+5. "How many apps this month?" → count_leads({ filters: { app_complete_at_after: '${currentMonthStart}', app_complete_at_before: '${nextMonthStart}' } })
 
-**Agent Lookup Strategy:**
-- For agent name lookups (e.g., "What is [Agent Name]'s phone number?"), ALWAYS:
-  1. First try search_agents with search_term="[Name]" and limit=5
-  2. If no results found, then try search_contacts with search_term="[Name]"
-  3. Real estate agents live in buyer_agents table - prioritize search_agents for agent queries
-- For general contacts (lenders, title companies, etc.), use search_contacts
-
-**Data Sources:**
-- Leads: All borrowers and loan applications (leads table)
-- Contacts: General contact directory (contacts table)
-- Real Estate Agents: Buyer and listing agents (buyer_agents table) - **Use search_agents tool for agent queries**
-- Approved Lenders: Pre-approved lenders directory (contacts table with type filter)
-- Tasks: Team task management (tasks table)
-- Condos: Condo approval database (condos table)
-
-You have access to comprehensive CRM data including:
-- Leads (124 fields): All borrower, loan, property, and status information
-- Contacts: Agents, lenders, title companies, insurance providers
-- Real Estate Agents: Buyer agents and listing agents (use search_agents tool)
-- Tasks: Team task management and assignments
-- Condos: Condo approval database
-- Users: Team member information
-- Pipeline Stages: Workflow stages and counts
-
-Use the available tools to answer user questions accurately. When searching:
-- Use smart name matching (partial names, first/last combinations)
-- Apply appropriate filters (dates, statuses, stages, amounts)
-- Count records when asked "how many"
-- Return specific fields when asked for details (phone, email, etc.)
-- For agent name lookups, try search_agents first, then search_contacts as fallback
-- Provide context and suggestions for next steps
-
-Always cite your data sources and offer relevant quick actions. Be concise and professional.`;
+Be concise and cite sources.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -1129,7 +1054,7 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
       throw new Error('OpenAI API key not configured');
     }
 
-    // Call GPT-5 with function calling
+    // Call GPT-5 with function calling (upgraded from gpt-4o-mini for better accuracy)
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1137,7 +1062,7 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5',
         messages: messages,
         tools: TOOL_DEFINITIONS,
         tool_choice: 'auto',
@@ -1189,7 +1114,7 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
         metadata.toolTrace = toolTrace;
       }
       
-      // Call GPT again with tool results
+      // Call GPT-5 again with tool results
       const finalApiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1197,7 +1122,7 @@ Always cite your data sources and offer relevant quick actions. Be concise and p
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5',
           messages: [
             ...messages,
             assistantMessage,
