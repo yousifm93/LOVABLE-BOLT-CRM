@@ -300,10 +300,20 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Lead Information</h4>
-              <span className="text-xs text-muted-foreground">
-                Updated: {formatDateModern((client as any).updated_at)}
-              </span>
+              <div>
+                <h4 className="font-medium text-sm">Lead Information</h4>
+                <span className="text-xs text-muted-foreground">
+                  Updated: {formatDateModern((client as any).updated_at)}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Column 1: Lead Details */}
@@ -405,10 +415,20 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Application Status</h4>
-              <span className="text-xs text-muted-foreground">
-                Updated: {formatDateModern(localUpdatedAt)}
-              </span>
+              <div>
+                <h4 className="font-medium text-sm">Application Status</h4>
+                <span className="text-xs text-muted-foreground">
+                  Updated: {formatDateModern(localUpdatedAt)}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Column 1: Status Info */}
@@ -500,7 +520,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       case 'screening':
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Initial Verification</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Income type: {(client as any).incomeType || 'W2'}</div>
@@ -517,7 +547,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       case 'pre-qualified':
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
@@ -534,7 +574,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       case 'pre-approved':
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Pre-Approval Status</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Shopping status: {client.ops.status || 'New'}</div>
@@ -551,7 +601,17 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
       default:
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Screening Status</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Screening Status</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                  P-P
+                </Button>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
+                  L-E
+                </Button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-6">
               {/* Left Column: Status */}
               <div className="space-y-2">
