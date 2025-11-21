@@ -206,6 +206,9 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                   <SelectItem value="disclosure_status">Disclosure Status</SelectItem>
                   <SelectItem value="loan_status">Loan Status</SelectItem>
                   <SelectItem value="close_date">Close Date</SelectItem>
+                  <SelectItem value="epo_status">EPO Status</SelectItem>
+                  <SelectItem value="package_status">Package Status</SelectItem>
+                  <SelectItem value="loan_amount">Loan Amount</SelectItem>
                   <SelectItem value="title_status">Title Status</SelectItem>
                   <SelectItem value="insurance_status">Insurance Status</SelectItem>
                   <SelectItem value="condo_status">Condo Status</SelectItem>
