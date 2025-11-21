@@ -18,6 +18,8 @@ import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
+import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPartyItemsCard";
@@ -34,6 +36,7 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern, formatDateForInput } from "@/utils/dateUtils";
+import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 
 interface ClientDetailDrawerProps {
   client: CRMClient;
@@ -83,6 +86,13 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [documents, setDocuments] = useState<any[]>([]);
   const [chatMessage, setChatMessage] = useState('');
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
+  
+  // Task completion validation state
+  const [requirementModalOpen, setRequirementModalOpen] = useState(false);
+  const [completionRequirement, setCompletionRequirement] = useState<any>(null);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [agentCallLogModalOpen, setAgentCallLogModalOpen] = useState(false);
+  const [selectedAgentForCall, setSelectedAgentForCall] = useState<any>(null);
   
   // Local state for gray section fields to reflect updates immediately
   const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
@@ -878,11 +888,26 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   };
 
   const handleTaskToggle = async (taskId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Done" ? "To Do" : "Done";
+    
+    // If marking as Done, validate first
+    if (newStatus === "Done") {
+      const task = leadTasks.find(t => t.id === taskId);
+      if (task) {
+        const validation = await validateTaskCompletion(task);
+        
+        if (!validation.canComplete) {
+          // Show requirement modal
+          setCompletionRequirement(validation);
+          setPendingTaskId(taskId);
+          setRequirementModalOpen(true);
+          return; // Don't update status yet
+        }
+      }
+    }
+    
     try {
-      const newStatus = currentStatus === "Done" ? "To Do" : "Done";
       await databaseService.updateTask(taskId, { status: newStatus });
-      
-      // Refresh tasks
       await loadLeadTasks();
       
       toast({
@@ -896,6 +921,53 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         description: "Failed to update task",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleLogCallFromTaskModal = () => {
+    if (!completionRequirement?.contactInfo) return;
+
+    const contactInfo = completionRequirement.contactInfo;
+
+    if (contactInfo.type === 'buyer_agent' || contactInfo.type === 'listing_agent') {
+      setSelectedAgentForCall({ 
+        id: contactInfo.id, 
+        first_name: contactInfo.name.split(' ')[0], 
+        last_name: contactInfo.name.split(' ').slice(1).join(' ') 
+      });
+      setAgentCallLogModalOpen(true);
+      setRequirementModalOpen(false);
+    } else if (contactInfo.type === 'borrower') {
+      setShowCallLogModal(true);
+      setRequirementModalOpen(false);
+    }
+  };
+
+  const handleAgentCallLoggedForTask = async () => {
+    setAgentCallLogModalOpen(false);
+    
+    // Retry the pending status change after call is logged
+    if (pendingTaskId) {
+      const task = leadTasks.find(t => t.id === pendingTaskId);
+      if (task) {
+        try {
+          await databaseService.updateTask(pendingTaskId, { status: "Done" });
+          await loadLeadTasks();
+          
+          toast({
+            title: "Success",
+            description: "Task completed successfully",
+          });
+        } catch (error) {
+          console.error("Error completing task:", error);
+          toast({
+            title: "Error",
+            description: "Failed to complete task",
+            variant: "destructive",
+          });
+        }
+        setPendingTaskId(null);
+      }
     }
   };
 
@@ -1797,6 +1869,23 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             onOpenChange={setShowNoteDetailModal}
             note={selectedNote}
           />
+
+          <TaskCompletionRequirementModal
+            open={requirementModalOpen}
+            onOpenChange={setRequirementModalOpen}
+            requirement={completionRequirement}
+            onLogCall={handleLogCallFromTaskModal}
+          />
+
+          {selectedAgentForCall && (
+            <AgentCallLogModal
+              agentId={selectedAgentForCall.id}
+              agentName={`${selectedAgentForCall.first_name} ${selectedAgentForCall.last_name}`}
+              isOpen={agentCallLogModalOpen}
+              onClose={() => setAgentCallLogModalOpen(false)}
+              onCallLogged={handleAgentCallLoggedForTask}
+            />
+          )}
         </>
       )}
     </div>
