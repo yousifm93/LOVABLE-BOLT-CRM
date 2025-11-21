@@ -614,27 +614,40 @@ export const databaseService = {
           buyer_agent_id,
           listing_agent_id,
           pipeline_stage:pipeline_stages(id, name, order_index)
-        ),
-        buyer_agent:buyer_agents(first_name, last_name, phone),
-        listing_agent:lenders(first_name, last_name, phone)
+        )
       `)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
     
-    // Manually join buyer_agent and listing_agent based on lead relationships
-    const tasksWithAgents = data?.map((task: any) => {
-      const buyerAgentId = task.borrower?.buyer_agent_id;
-      const listingAgentId = task.borrower?.listing_agent_id;
-      
-      return {
-        ...task,
-        lead: task.borrower, // Add lead reference
-        buyer_agent: buyerAgentId ? task.buyer_agent : null,
-        listing_agent: listingAgentId ? task.listing_agent : null,
-      };
-    });
+    // Fetch all unique buyer agent and listing agent IDs
+    const buyerAgentIds = new Set(data?.map(t => t.borrower?.buyer_agent_id).filter(Boolean) || []);
+    const listingAgentIds = new Set(data?.map(t => t.borrower?.listing_agent_id).filter(Boolean) || []);
+    
+    // Fetch buyer agents in bulk
+    const { data: buyerAgents } = await supabase
+      .from('buyer_agents')
+      .select('id, first_name, last_name, phone')
+      .in('id', Array.from(buyerAgentIds));
+    
+    // Fetch listing agents in bulk (from buyer_agents table)
+    const { data: listingAgents } = await supabase
+      .from('buyer_agents')
+      .select('id, first_name, last_name, phone')
+      .in('id', Array.from(listingAgentIds));
+    
+    // Create lookup maps
+    const buyerAgentMap = new Map(buyerAgents?.map(a => [a.id, a]) || []);
+    const listingAgentMap = new Map(listingAgents?.map(a => [a.id, a]) || []);
+    
+    // Manually attach agent data to tasks
+    const tasksWithAgents = data?.map((task: any) => ({
+      ...task,
+      lead: task.borrower, // Add lead reference for validation
+      buyer_agent: task.borrower?.buyer_agent_id ? buyerAgentMap.get(task.borrower.buyer_agent_id) : null,
+      listing_agent: task.borrower?.listing_agent_id ? listingAgentMap.get(task.borrower.listing_agent_id) : null,
+    }));
     
     return tasksWithAgents;
   },

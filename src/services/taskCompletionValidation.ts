@@ -25,7 +25,7 @@ export async function validateTaskCompletion(
 
   // Check for buyer's agent call log
   if (task.completion_requirement_type === 'log_call_buyer_agent') {
-    const agentId = task.lead?.buyer_agent_id;
+    const agentId = task.lead?.buyer_agent_id || task.borrower?.buyer_agent_id;
     if (!agentId) return { canComplete: true }; // No agent assigned
 
     // Check if call log exists in agent_call_logs for this agent
@@ -55,7 +55,7 @@ export async function validateTaskCompletion(
 
   // Check for listing agent call log
   if (task.completion_requirement_type === 'log_call_listing_agent') {
-    const agentId = task.lead?.listing_agent_id;
+    const agentId = task.lead?.listing_agent_id || task.borrower?.listing_agent_id;
     if (!agentId) return { canComplete: true };
 
     const { data, error } = await supabase
@@ -103,7 +103,7 @@ export async function validateTaskCompletion(
           name: task.borrower
             ? `${task.borrower.first_name} ${task.borrower.last_name}`
             : 'Borrower',
-          phone: task.lead?.phone,
+          phone: task.lead?.phone || task.borrower?.phone,
           type: 'borrower',
           id: borrowerId,
         },
