@@ -96,6 +96,24 @@ export const formatDateTime = (value: string | null | undefined): string => {
   }
 };
 
+// DateTime formatter without year (e.g., "Nov 20 8:45 AM")
+export const formatDateTimeNoYear = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  try {
+    const date = new Date(value);
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    const time = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    return `${month} ${day} ${time}`;
+  } catch {
+    return "—";
+  }
+};
+
 // Boolean formatter
 export const formatBoolean = (value: boolean | null | undefined): string => {
   if (value === true) return 'Yes';

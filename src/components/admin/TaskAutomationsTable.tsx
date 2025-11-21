@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Pencil, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { databaseService } from '@/services/database';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAutomationModal } from './TaskAutomationModal';
 import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHistoryModal';
 import { useToast } from '@/hooks/use-toast';
-import { formatDateTime } from '@/utils/formatters';
+import { formatDateTimeNoYear } from '@/utils/formatters';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +55,19 @@ export function TaskAutomationsTable() {
   const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<{id: string, name: string} | null>(null);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
+  const [openCategories, setOpenCategories] = useState({
+    marketing: true,
+    lead_status: true,
+    active_loan: true,
+  });
   const { toast } = useToast();
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => ({
+      ...prev,
+      [category]: !prev[category as keyof typeof prev]
+    }));
+  };
 
   useEffect(() => {
     loadAutomations();
@@ -282,10 +295,26 @@ export function TaskAutomationsTable() {
       <div className="space-y-6">
         {Object.entries(groupedAutomations).map(([category, items]) => (
           items.length > 0 && (
-            <div key={category}>
-              <h3 className="text-lg font-semibold mb-3 px-1">
-                {categoryLabels[category as keyof typeof categoryLabels]}
-              </h3>
+            <Collapsible
+              key={category}
+              open={openCategories[category as keyof typeof openCategories]}
+              onOpenChange={() => toggleCategory(category)}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold px-1">
+                  {categoryLabels[category as keyof typeof categoryLabels]}
+                </h3>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    {openCategories[category as keyof typeof openCategories] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -309,24 +338,19 @@ export function TaskAutomationsTable() {
                 </TableCell>
                 <TableCell>
                   {automation.assigned_user ? (
-                    <div className="flex items-center gap-2">
-                      <UserAvatar
-                        firstName={automation.assigned_user.first_name}
-                        lastName={automation.assigned_user.last_name}
-                        email={automation.assigned_user.email || ''}
-                        size="sm"
-                      />
-                      <span className="text-sm">
-                        {automation.assigned_user.first_name} {automation.assigned_user.last_name}
-                      </span>
-                    </div>
+                    <UserAvatar
+                      firstName={automation.assigned_user.first_name}
+                      lastName={automation.assigned_user.last_name}
+                      email={automation.assigned_user.email || ''}
+                      size="sm"
+                    />
                   ) : (
-                    <span className="text-muted-foreground text-sm">Unassigned</span>
+                    <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </TableCell>
                 <TableCell>
                   {automation.last_run_at ? (
-                    <span className="text-sm">{formatDateTime(automation.last_run_at)}</span>
+                    <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
@@ -382,7 +406,8 @@ export function TaskAutomationsTable() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           )
         ))}
       </div>
