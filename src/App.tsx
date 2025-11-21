@@ -26,7 +26,7 @@ import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import { LoanPricer } from "@/pages/resources/LoanPricer";
 import Condolist from "@/pages/resources/Condolist";
-import PreapprovalLetter from "@/pages/resources/PreapprovalLetter";
+import Letter from "@/pages/Letter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Email from "@/pages/Email";
 import EmailMarketing from "@/pages/resources/EmailMarketing";
@@ -95,7 +95,7 @@ function AppRoutes() {
         <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
         <Route path="/resources/email-marketing/*" element={<EmailMarketing />} />
         <Route path="/resources/condolist" element={<Condolist />} />
-        <Route path="/resources/preapproval" element={<PreapprovalLetter />} />
+        <Route path="/resources/preapproval" element={<Letter />} />
         <Route path="/resources/estimate" element={<LoanEstimate />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
