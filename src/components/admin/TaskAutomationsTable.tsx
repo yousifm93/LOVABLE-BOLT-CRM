@@ -283,9 +283,8 @@ export function TaskAutomationsTable() {
   };
 
   return (
-    <div className="px-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Task Automations</h2>
+    <div className="space-y-4">
+      <div className="flex items-center mb-4">
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Automation
@@ -325,9 +324,9 @@ export function TaskAutomationsTable() {
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Task Name</TableHead>
                     <TableHead>Trigger</TableHead>
-                    <TableHead>Assigned To</TableHead>
+                    <TableHead className="w-[60px] text-center">Assigned To</TableHead>
                     <TableHead>Last Run On</TableHead>
-                    <TableHead className="text-center">Times Run</TableHead>
+                    <TableHead className="text-center">Run History</TableHead>
                     <TableHead className="text-center">Active</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -335,31 +334,33 @@ export function TaskAutomationsTable() {
                 <TableBody>
                   {items.map((automation, index) => (
               <TableRow key={automation.id}>
-                <TableCell className="font-medium">{index + 1}</TableCell>
-                <TableCell className="font-medium">{automation.task_name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="font-medium py-2">{index + 1}</TableCell>
+                <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
+                <TableCell className="text-sm text-muted-foreground py-2">
                   {formatTrigger(automation)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center py-2">
                   {automation.assigned_user ? (
-                    <UserAvatar
-                      firstName={automation.assigned_user.first_name}
-                      lastName={automation.assigned_user.last_name}
-                      email={automation.assigned_user.email || ''}
-                      size="sm"
-                    />
+                    <div className="flex justify-center">
+                      <UserAvatar
+                        firstName={automation.assigned_user.first_name}
+                        lastName={automation.assigned_user.last_name}
+                        email={automation.assigned_user.email || ''}
+                        size="sm"
+                      />
+                    </div>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {automation.last_run_at ? (
                     <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center py-2">
                   <Badge
                     variant="outline"
                     className="cursor-pointer hover:bg-muted"
@@ -368,13 +369,13 @@ export function TaskAutomationsTable() {
                     {automation.execution_count || 0}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center py-2">
                   <Switch
                     checked={automation.is_active}
                     onCheckedChange={(checked) => handleToggleActive(automation.id, checked)}
                   />
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-2">
                   <div className="flex justify-end gap-2">
                     {automation.trigger_type === 'scheduled' && (
                       <Button
