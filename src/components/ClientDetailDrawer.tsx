@@ -20,6 +20,7 @@ import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/compon
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { PreApprovalLetterModal } from "@/components/modals/PreApprovalLetterModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPartyItemsCard";
@@ -78,6 +79,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
   const [showSmsLogModal, setShowSmsLogModal] = useState(false);
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [showPreApprovalModal, setShowPreApprovalModal] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -307,7 +309,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -422,7 +424,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -523,7 +525,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Initial Verification</h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -550,7 +552,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -577,7 +579,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Pre-Approval Status</h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -604,7 +606,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-medium text-sm">Screening Status</h4>
               <div className="flex gap-2">
-                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('P-P clicked')}>
+                <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreApprovalModal(true)}>
                   P-P
                 </Button>
                 <Button variant="outline" size="default" className="px-4 py-2" onClick={() => console.log('L-E clicked')}>
@@ -1948,6 +1950,12 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               onCallLogged={handleAgentCallLoggedForTask}
             />
           )}
+
+          <PreApprovalLetterModal
+            isOpen={showPreApprovalModal}
+            onClose={() => setShowPreApprovalModal(false)}
+            client={client}
+          />
         </>
       )}
     </div>
