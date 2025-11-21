@@ -133,6 +133,8 @@ export function transformLeadToClient(lead: any): any {
     },
     buyer_agent_id: lead.buyer_agent_id || null,
     buyer_agent: lead.buyer_agent || null,
+    listing_agent_id: lead.listing_agent_id || null,
+    listing_agent: lead.listing_agent || null,
     ops: {
       stage: lead.pipeline_stage?.name || 'leads',
       status: lead.status,
