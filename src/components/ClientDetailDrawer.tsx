@@ -343,10 +343,6 @@ export function ClientDetailDrawer({
         
         return (
           <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="mb-3">
-              <h4 className="font-medium text-sm">Lead Information</h4>
-            </div>
-            
             <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
               {/* Left Column: Lead Details */}
               <div className="space-y-3">
