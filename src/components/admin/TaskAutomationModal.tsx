@@ -47,6 +47,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     task_priority: 'Medium',
     due_date_offset_days: null as number | null,
     is_active: true,
+    category: '',
   });
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         task_priority: automation.task_priority || 'Medium',
         due_date_offset_days: automation.due_date_offset_days,
         is_active: automation.is_active ?? true,
+        category: automation.category || '',
       });
     } else {
       setFormData({
@@ -77,6 +79,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         task_priority: 'Medium',
         due_date_offset_days: null,
         is_active: true,
+        category: '',
       });
     }
   }, [automation, open]);
@@ -151,11 +154,12 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         title: 'Success',
         description: 'Task created successfully from automation',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error testing automation:', error);
+      const errorMessage = error?.message || error?.error?.message || 'Failed to test automation';
       toast({
         title: 'Error',
-        description: 'Failed to test automation',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -457,6 +461,23 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="High">High</SelectItem>
                     <SelectItem value="Medium">Medium</SelectItem>
                     <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="lead_status">Lead Status</SelectItem>
+                    <SelectItem value="active_loan">Active Loan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

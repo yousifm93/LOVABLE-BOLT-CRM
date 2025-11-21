@@ -41,6 +41,7 @@ interface TaskAutomation {
   created_at: string;
   last_run_at: string | null;
   execution_count?: number;
+  category?: string;
 }
 
 export function TaskAutomationsTable() {
@@ -255,6 +256,19 @@ export function TaskAutomationsTable() {
     return <div className="text-center py-8">Loading automations...</div>;
   }
 
+  // Group automations by category
+  const groupedAutomations = {
+    marketing: automations.filter(a => a.category === 'marketing'),
+    lead_status: automations.filter(a => a.category === 'lead_status'),
+    active_loan: automations.filter(a => a.category === 'active_loan'),
+  };
+
+  const categoryLabels = {
+    marketing: 'Marketing Automations',
+    lead_status: 'Lead Status Automations',
+    active_loan: 'Active Loan Automations',
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -265,28 +279,28 @@ export function TaskAutomationsTable() {
         </Button>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">#</TableHead>
-            <TableHead>Task Name</TableHead>
-            <TableHead>Trigger</TableHead>
-            <TableHead>Assigned To</TableHead>
-            <TableHead>Last Run On</TableHead>
-            <TableHead className="text-center">Times Run</TableHead>
-            <TableHead className="text-center">Active</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {automations.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                No automations found. Create your first automation to get started.
-              </TableCell>
-            </TableRow>
-          ) : (
-            automations.map((automation, index) => (
+      <div className="space-y-6">
+        {Object.entries(groupedAutomations).map(([category, items]) => (
+          items.length > 0 && (
+            <div key={category}>
+              <h3 className="text-lg font-semibold mb-3 px-1">
+                {categoryLabels[category as keyof typeof categoryLabels]}
+              </h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Task Name</TableHead>
+                    <TableHead>Trigger</TableHead>
+                    <TableHead>Assigned To</TableHead>
+                    <TableHead>Last Run On</TableHead>
+                    <TableHead className="text-center">Times Run</TableHead>
+                    <TableHead className="text-center">Active</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((automation, index) => (
               <TableRow key={automation.id}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell className="font-medium">{automation.task_name}</TableCell>
@@ -364,11 +378,14 @@ export function TaskAutomationsTable() {
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+                  </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )
+        ))}
+      </div>
 
       <TaskAutomationModal
         open={modalOpen}
