@@ -869,17 +869,58 @@ export const databaseService = {
         .order('created_at', { ascending: false }),
     ]);
 
+    // Fetch completion info from audit_log for completed tasks
+    const completedTaskIds = (tasks.data || [])
+      .filter(task => task.status === 'Done')
+      .map(task => task.id);
+
+    let completionInfo: Record<string, { changed_by: string; changed_at: string; user: any }> = {};
+    if (completedTaskIds.length > 0) {
+      const { data: auditData } = await supabase
+        .from('audit_log')
+        .select(`
+          item_id,
+          changed_by,
+          changed_at,
+          changed_by_user:users!audit_log_changed_by_fkey(*)
+        `)
+        .eq('table_name', 'tasks')
+        .eq('action', 'update')
+        .in('item_id', completedTaskIds)
+        .order('changed_at', { ascending: false });
+      
+      if (auditData) {
+        // Create a map of task_id -> latest completion info
+        completionInfo = auditData.reduce((acc, entry) => {
+          // Only keep the first (most recent) entry for each task
+          if (!acc[entry.item_id] && entry.changed_by) {
+            acc[entry.item_id] = {
+              changed_by: entry.changed_by,
+              changed_at: entry.changed_at,
+              user: entry.changed_by_user
+            };
+          }
+          return acc;
+        }, {} as Record<string, any>);
+      }
+    }
+
     const activities = [
       ...(notes.data || []).map(note => ({ ...note, type: 'note' as const })),
       ...(callLogs.data || []).map(log => ({ ...log, type: 'call' as const })),
       ...(smsLogs.data || []).map(log => ({ ...log, type: 'sms' as const })),
       ...(emailLogs.data || []).map(log => ({ ...log, type: 'email' as const })),
-      ...(tasks.data || []).map(task => ({ 
-        ...task, 
-        type: 'task' as const,
-        body: `${task.title}\n${task.description || ''}`,
-        author: task.user
-      })),
+      ...(tasks.data || []).map(task => {
+        const completion = completionInfo[task.id];
+        return {
+          ...task, 
+          type: 'task' as const,
+          body: `${task.title}\n${task.description || ''}`,
+          author: task.user,
+          completed_by_user: completion?.user || null,
+          completed_at: completion?.changed_at || null
+        };
+      }),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return activities;
