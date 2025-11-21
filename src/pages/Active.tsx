@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
-import { ViewPills } from "@/components/ui/view-pills";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
@@ -39,16 +38,14 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
-// Main view default columns
-// Full view - comprehensive columns
-const DEFAULT_FULL_VIEW_COLUMNS = [
+// Main view - streamlined columns (default)
+const DEFAULT_MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
   "arrive_loan_number",
-  "lender_loan_number",
   "loan_amount",
-  "sales_price",
+  "disclosure_status",
   "close_date",
   "loan_status",
   "appraisal_status",
@@ -56,31 +53,15 @@ const DEFAULT_FULL_VIEW_COLUMNS = [
   "hoi_status",
   "condo_status",
   "cd_status",
-  "disclosure_status",
   "package_status",
   "lock_expiration_date",
   "ba_status",
-  "buyer_agent",
-  "listing_agent"
-];
-
-// Main view - streamlined columns (default)
-const DEFAULT_MAIN_VIEW_COLUMNS = [
-  "borrower_name",
-  "team",
-  "lender",
-  "lender_loan_number",
-  "loan_amount",
-  "close_date",
-  "loan_status",
-  "disclosure_status",
-  "lock_expiration_date",
+  "epo_status",
   "buyer_agent",
   "listing_agent"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
-const FULL_VIEW_STORAGE_KEY = 'active_full_view_custom';
 
 interface ActiveLoan {
   id: string;
@@ -230,7 +211,7 @@ const createColumns = (
 ): ColumnDef<ActiveLoan>[] => [
   {
     accessorKey: "borrower_name",
-    header: "Borrower",
+    header: "BORROWER",
     className: "text-left",
     headerClassName: "text-left",
     cell: ({ row }) => (
@@ -249,7 +230,9 @@ const createColumns = (
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: "EMAIL",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditText
@@ -265,7 +248,9 @@ const createColumns = (
   },
   {
     accessorKey: "phone",
-    header: "Phone",
+    header: "PHONE",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditPhone
@@ -280,7 +265,9 @@ const createColumns = (
   },
   {
     accessorKey: "team",
-    header: "User",
+    header: "USER",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <div className="w-12">
@@ -299,7 +286,9 @@ const createColumns = (
   },
   {
     accessorKey: "lender",
-    header: "Lender",
+    header: "LENDER",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => {
       const matchedLender = row.original.approved_lender
         ? lenders.find(l => l.id === row.original.approved_lender!.id)
@@ -323,7 +312,9 @@ const createColumns = (
   },
   {
     accessorKey: "arrive_loan_number",
-    header: "Loan #",
+    header: "LOAN #",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditNumber
@@ -341,6 +332,8 @@ const createColumns = (
     {
       accessorKey: "pr_type",
       header: "P/R",
+      className: "text-center",
+      headerClassName: "text-center",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
         <InlineEditSelect
@@ -359,7 +352,9 @@ const createColumns = (
     },
     {
       accessorKey: "occupancy",
-      header: "Occupancy",
+      header: "OCCUPANCY",
+      className: "text-center",
+      headerClassName: "text-center",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
         <InlineEditSelect
@@ -382,7 +377,9 @@ const createColumns = (
     },
     {
       accessorKey: "loan_amount",
-      header: "Loan Amount",
+      header: "LOAN AMT",
+      className: "text-center",
+      headerClassName: "text-center",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <div className="whitespace-nowrap">
@@ -399,7 +396,9 @@ const createColumns = (
     },
     {
       accessorKey: "sales_price",
-      header: "Sales Price",
+      header: "SALES PRICE",
+      className: "text-center",
+      headerClassName: "text-center",
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
           <div className="whitespace-nowrap">
@@ -417,6 +416,8 @@ const createColumns = (
   {
     accessorKey: "disclosure_status",
     header: "DISC",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -435,7 +436,9 @@ const createColumns = (
   },
   {
     accessorKey: "close_date",
-    header: "Close Date",
+    header: "CLOSE DATE",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditDate
@@ -450,7 +453,9 @@ const createColumns = (
   },
   {
     accessorKey: "loan_status",
-    header: "Loan Status",
+    header: "LOAN STATUS",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -469,7 +474,9 @@ const createColumns = (
   },
   {
     accessorKey: "appraisal_status",
-    header: "Appraisal",
+    header: "APPRAISAL",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -488,7 +495,9 @@ const createColumns = (
   },
   {
     accessorKey: "title_status",
-    header: "Title",
+    header: "TITLE",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -508,6 +517,8 @@ const createColumns = (
   {
     accessorKey: "hoi_status",
     header: "HOI",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -526,7 +537,9 @@ const createColumns = (
   },
   {
     accessorKey: "condo_status",
-    header: "Condo",
+    header: "CONDO",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -546,6 +559,8 @@ const createColumns = (
   {
     accessorKey: "cd_status",
     header: "CD",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -564,7 +579,9 @@ const createColumns = (
   },
   {
     accessorKey: "package_status",
-    header: "Package",
+    header: "PACKAGE",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -583,7 +600,9 @@ const createColumns = (
   },
   {
     accessorKey: "lock_expiration_date",
-    header: "LOC EXP",
+    header: "LOCK EXP",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditDate
@@ -599,6 +618,8 @@ const createColumns = (
   {
     accessorKey: "ba_status",
     header: "BA",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -618,6 +639,8 @@ const createColumns = (
   {
     accessorKey: "epo_status",
     header: "EPO",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
       <InlineEditSelect
@@ -636,7 +659,9 @@ const createColumns = (
   },
   {
     accessorKey: "buyer_agent",
-    header: "Buyer's Agent",
+    header: "BUYER'S AGENT",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditAgent
@@ -660,7 +685,9 @@ const createColumns = (
   },
   {
     accessorKey: "listing_agent",
-    header: "Listing Agent",
+    header: "LISTING AGENT",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditAgent
@@ -683,7 +710,9 @@ const createColumns = (
   },
   {
     accessorKey: "is_closed",
-    header: "Closed",
+    header: "CLOSED",
+    className: "text-center",
+    headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <Checkbox
@@ -705,33 +734,32 @@ export default function Active() {
   
   // Core columns that should appear first with default visibility
   const coreColumns = useMemo(() => [
-    { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "email", label: "Email", visible: true },
-    { id: "phone", label: "Phone", visible: true },
-    { id: "team", label: "User", visible: true },
-    { id: "lender", label: "Lender", visible: true },
-    { id: "arrive_loan_number", label: "Loan #", visible: true },
-    { id: "lender_loan_number", label: "Lender Loan #", visible: false },
-    { id: "loan_amount", label: "Loan Amount", visible: true },
-    { id: "sales_price", label: "Sales Price", visible: true },
-    { id: "close_date", label: "Close Date", visible: true },
-    { id: "loan_status", label: "Loan Status", visible: true },
-    { id: "appraisal_status", label: "Appraisal", visible: true },
-    { id: "title_status", label: "Title", visible: true },
-    { id: "hoi_status", label: "HOI", visible: true },
-    { id: "condo_status", label: "Condo", visible: true },
-    { id: "cd_status", label: "CD", visible: true },
+    { id: "borrower_name", label: "BORROWER", visible: true },
+    { id: "email", label: "EMAIL", visible: true },
+    { id: "phone", label: "PHONE", visible: true },
+    { id: "team", label: "USER", visible: true },
+    { id: "lender", label: "LENDER", visible: true },
+    { id: "arrive_loan_number", label: "LOAN #", visible: true },
+    { id: "lender_loan_number", label: "LENDER LOAN #", visible: false },
+    { id: "loan_amount", label: "LOAN AMT", visible: true },
+    { id: "sales_price", label: "SALES PRICE", visible: false },
     { id: "disclosure_status", label: "DISC", visible: true },
-    { id: "package_status", label: "Package", visible: true },
-    { id: "lock_expiration_date", label: "LOC EXP", visible: true },
+    { id: "close_date", label: "CLOSE DATE", visible: true },
+    { id: "loan_status", label: "LOAN STATUS", visible: true },
+    { id: "appraisal_status", label: "APPRAISAL", visible: true },
+    { id: "title_status", label: "TITLE", visible: true },
+    { id: "hoi_status", label: "HOI", visible: true },
+    { id: "condo_status", label: "CONDO", visible: true },
+    { id: "cd_status", label: "CD", visible: true },
+    { id: "package_status", label: "PACKAGE", visible: true },
+    { id: "lock_expiration_date", label: "LOCK EXP", visible: true },
     { id: "ba_status", label: "BA", visible: true },
-    { id: "real_estate_agent", label: "Buyer Agent", visible: false },
-    { id: "listing_agent", label: "Listing Agent", visible: false },
+    { id: "epo_status", label: "EPO", visible: true },
+    { id: "buyer_agent", label: "BUYER'S AGENT", visible: true },
+    { id: "listing_agent", label: "LISTING AGENT", visible: true },
     { id: "pr_type", label: "P/R", visible: false },
-    { id: "occupancy", label: "Occupancy", visible: false },
-    { id: "epo_status", label: "EPO", visible: false },
-    { id: "buyer_agent", label: "Buyer's Agent", visible: false },
-    { id: "is_closed", label: "Closed", visible: false },
+    { id: "occupancy", label: "OCCUPANCY", visible: false },
+    { id: "is_closed", label: "CLOSED", visible: false },
   ], []);
   
   // Load ALL database fields for Hide/Show modal (~85 total)
@@ -812,9 +840,8 @@ export default function Active() {
     const hasCustomization = localStorage.getItem('active-pipeline-columns');
     const existingViews = views;
     
-    // Check if "Main View" and "Full View" exist in saved views
+    // Check if "Main View" exists in saved views
     const hasMainView = existingViews.some(v => v.name === "Main View");
-    const hasFullView = existingViews.some(v => v.name === "Full View");
     
     // If no Main View exists, create it with the new default configuration
     if (!hasMainView) {
@@ -838,37 +865,7 @@ export default function Active() {
       }, 100);
     }
     
-    // If no Full View exists, create it
-    if (!hasFullView) {
-      const orderedFullColumns = DEFAULT_FULL_VIEW_COLUMNS
-        .map(id => columnVisibility.find(col => col.id === id))
-        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-        .map(col => ({ ...col, visible: true }));
-      
-      const existingFullIds = new Set(DEFAULT_FULL_VIEW_COLUMNS);
-      const remainingColumns = columnVisibility
-        .filter(col => !existingFullIds.has(col.id))
-        .map(col => ({ ...col, visible: false }));
-      
-      const fullViewColumnOrder = [...orderedFullColumns, ...remainingColumns];
-      
-      // Save "Full View" (but don't activate it)
-      const currentColumns = columnVisibility;
-      setTimeout(() => {
-        setColumns(fullViewColumnOrder);
-        setTimeout(() => {
-          saveView("Full View");
-          // Restore Main View if it exists
-          if (hasMainView) {
-            loadView("Main View");
-          } else {
-            setColumns(currentColumns);
-          }
-        }, 100);
-      }, 200);
-    }
-    
-    // If both views exist and no active view is set, load Main View
+    // If Main View exists and no active view is set, load Main View
     if (!activeView && hasMainView && !hasCustomization) {
       loadView("Main View");
     }
@@ -1373,13 +1370,6 @@ export default function Active() {
         >
           <Pencil className="h-3 w-3" />
         </Button>
-        
-        <ViewPills
-          views={views}
-          activeView={activeView}
-          onLoadView={loadView}
-          onDeleteView={deleteView}
-        />
       </div>
 
       {/* Filter chips */}
