@@ -49,10 +49,12 @@ const columns: ColumnDef<ModernTask>[] = [
             </Badge>
           )}
         </div>
-        {row.original.description && (
+        {/* Show description ONLY if no completion requirement */}
+        {!row.original.completion_requirement_type && row.original.description && (
           <div className="text-sm text-muted-foreground mt-1">{row.original.description}</div>
         )}
         
+        {/* Show contact info if completion requirement exists (REPLACES description) */}
         {row.original.completion_requirement_type === 'log_call_buyer_agent' && row.original.buyer_agent && (
           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
             <Phone className="h-3 w-3" />

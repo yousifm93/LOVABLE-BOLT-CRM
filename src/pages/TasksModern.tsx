@@ -74,12 +74,15 @@ const columns = (
     cell: ({ row }) => (
     <div className="w-96 min-w-96 flex-shrink-0">
       <div className="font-medium text-sm">{row.original.title}</div>
-      {row.original.description && (
+      
+      {/* Show description ONLY if no completion requirement */}
+      {!(row.original as any).completion_requirement_type && row.original.description && (
         <div className="text-xs text-muted-foreground mt-1 leading-relaxed truncate whitespace-nowrap overflow-hidden" title={row.original.description}>
           {row.original.description}
         </div>
       )}
-      {/* Display contact info based on completion requirement */}
+      
+      {/* Show contact info if completion requirement exists (REPLACES description) */}
       {(row.original as any).completion_requirement_type === 'log_call_buyer_agent' && (row.original as any).buyer_agent && (
         <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
           <Phone className="h-3 w-3" />

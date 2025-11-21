@@ -656,16 +656,48 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('tasks')
       .select(`
-        *,
+        id, title, description, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
+        borrower:leads!tasks_borrower_id_fkey(
+          id, 
+          first_name, 
+          last_name,
+          phone,
+          buyer_agent_id,
+          listing_agent_id
+        )
       `)
       .eq('borrower_id', leadId)
       .is('deleted_at', null)
       .order('due_date', { ascending: true, nullsFirst: false });
     
     if (error) throw error;
-    return data;
+
+    // Fetch agent data similar to getTasks()
+    const buyerAgentIds = new Set(data?.map(t => t.borrower?.buyer_agent_id).filter(Boolean) || []);
+    const listingAgentIds = new Set(data?.map(t => t.borrower?.listing_agent_id).filter(Boolean) || []);
+
+    const { data: buyerAgents } = await supabase
+      .from('buyer_agents')
+      .select('id, first_name, last_name, phone')
+      .in('id', Array.from(buyerAgentIds));
+
+    const { data: listingAgents } = await supabase
+      .from('buyer_agents')
+      .select('id, first_name, last_name, phone')
+      .in('id', Array.from(listingAgentIds));
+
+    const buyerAgentMap = new Map(buyerAgents?.map(a => [a.id, a]) || []);
+    const listingAgentMap = new Map(listingAgents?.map(a => [a.id, a]) || []);
+
+    const tasksWithAgents = data?.map((task: any) => ({
+      ...task,
+      lead: task.borrower,
+      buyer_agent: task.borrower?.buyer_agent_id ? buyerAgentMap.get(task.borrower.buyer_agent_id) : null,
+      listing_agent: task.borrower?.listing_agent_id ? listingAgentMap.get(task.borrower.listing_agent_id) : null,
+    }));
+
+    return tasksWithAgents;
   },
 
   async getDeletedTasks() {
