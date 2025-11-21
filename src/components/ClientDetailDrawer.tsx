@@ -1870,12 +1870,14 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             note={selectedNote}
           />
 
-          <TaskCompletionRequirementModal
-            open={requirementModalOpen}
-            onOpenChange={setRequirementModalOpen}
-            requirement={completionRequirement}
-            onLogCall={handleLogCallFromTaskModal}
-          />
+          {completionRequirement && (
+            <TaskCompletionRequirementModal
+              open={requirementModalOpen}
+              onOpenChange={setRequirementModalOpen}
+              requirement={completionRequirement}
+              onLogCall={handleLogCallFromTaskModal}
+            />
+          )}
 
           {selectedAgentForCall && (
             <AgentCallLogModal
