@@ -180,7 +180,7 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
             return {
               id: activity.id,
               type: 'task' as const,
-              title: 'Task created',
+              title: activity.status === 'Done' ? 'Task completed' : 'Task created',
               description: activity.body || `${activity.title}\n${activity.description || ''}`,
               timestamp: activity.status === 'Done' ? (activity.completed_at || activity.updated_at) : activity.created_at,
               user: displayUser,

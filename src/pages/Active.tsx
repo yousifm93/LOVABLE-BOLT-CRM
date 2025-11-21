@@ -999,18 +999,6 @@ export default function Active() {
         }
       }
       
-      // Automation: When CTC (Clear To Close), move to Past Clients
-      if (field === 'loan_status' && value === 'CTC') {
-        updateData.pipeline_stage_id = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd'; // Past Clients
-        updateData.is_closed = true;
-        updateData.closed_at = new Date().toISOString();
-        updateData.converted = 'Closed'; // Set status to Closed
-        toast({
-          title: "Moving to Past Clients",
-          description: "Loan moved to Past Clients board",
-        });
-      }
-      
       // Handle notes field (typically edited in drawer)
       if (field === 'notes') {
         // Just pass through - notes are saved via drawer
