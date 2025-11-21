@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { databaseService } from '@/services/database';
+import { supabase } from '@/integrations/supabase/client';
 import { TaskAutomationModal } from './TaskAutomationModal';
 import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHistoryModal';
 import { useToast } from '@/hooks/use-toast';
@@ -51,6 +52,7 @@ export function TaskAutomationsTable() {
   const [automationToDelete, setAutomationToDelete] = useState<string | null>(null);
   const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState<{id: string, name: string} | null>(null);
+  const [triggeringId, setTriggeringId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -130,9 +132,69 @@ export function TaskAutomationsTable() {
     setExecutionHistoryOpen(true);
   };
 
+  const handleManualTrigger = async (automation: TaskAutomation) => {
+    if (automation.trigger_type !== 'scheduled') {
+      toast({
+        title: 'Info',
+        description: 'Manual trigger is only available for scheduled automations',
+      });
+      return;
+    }
+
+    setTriggeringId(automation.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-task-automation', {
+        body: { automationId: automation.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Task created successfully',
+      });
+      await loadAutomations();
+    } catch (error) {
+      console.error('Error triggering automation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to trigger automation',
+        variant: 'destructive',
+      });
+    } finally {
+      setTriggeringId(null);
+    }
+  };
+
   const formatTrigger = (automation: TaskAutomation) => {
     if (automation.trigger_type === 'lead_created') {
       return 'When a lead is created';
+    }
+    
+    if (automation.trigger_type === 'scheduled') {
+      const config = automation.trigger_config as { 
+        frequency?: string;
+        day_of_week?: number;
+        day_of_month?: number;
+        scheduled_hour?: number;
+      };
+      
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const hour = config.scheduled_hour ?? 0;
+      const timeStr = hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
+      
+      if (config.frequency === 'daily') {
+        return `Daily at ${timeStr}`;
+      } else if (config.frequency === 'weekly') {
+        const dayName = config.day_of_week !== undefined ? dayNames[config.day_of_week] : 'Unknown';
+        return `Every ${dayName} at ${timeStr}`;
+      } else if (config.frequency === 'monthly') {
+        return `Monthly on day ${config.day_of_month} at ${timeStr}`;
+      } else if (config.frequency === 'monthly_first_weekday') {
+        const dayName = config.day_of_week !== undefined ? dayNames[config.day_of_week] : 'Unknown';
+        return `First ${dayName} of month at ${timeStr}`;
+      }
+      return 'Scheduled';
     }
     
     if (automation.trigger_type === 'pipeline_stage_changed') {
@@ -272,6 +334,17 @@ export function TaskAutomationsTable() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {automation.trigger_type === 'scheduled' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleManualTrigger(automation)}
+                        disabled={triggeringId === automation.id}
+                        title="Test automation (create task now)"
+                      >
+                        {triggeringId === automation.id ? 'Testing...' : 'Test'}
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

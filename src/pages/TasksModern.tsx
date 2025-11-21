@@ -99,16 +99,20 @@ const columns = (
     accessorKey: "borrower",
     header: "Borrower",
     cell: ({ row }) => (
-      <InlineEditBorrower
-        value={row.original.borrower ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}` : undefined}
-        borrowerId={row.original.borrower_id}
-        leads={leads}
-        onValueChange={(leadId, leadName) => {
-          handleUpdate(row.original.id, 'borrower_id', leadId);
-        }}
-        onBorrowerClick={handleBorrowerClick}
-        className="w-32"
-      />
+      row.original.borrower_id ? (
+        <InlineEditBorrower
+          value={row.original.borrower ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}` : undefined}
+          borrowerId={row.original.borrower_id}
+          leads={leads}
+          onValueChange={(leadId, leadName) => {
+            handleUpdate(row.original.id, 'borrower_id', leadId);
+          }}
+          onBorrowerClick={handleBorrowerClick}
+          className="w-32"
+        />
+      ) : (
+        <Badge variant="outline" className="text-xs">NBT</Badge>
+      )
     ),
     sortable: true,
   },
