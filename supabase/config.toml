@@ -45,3 +45,6 @@ verify_jwt = false
 [functions.add-new-agents]
 verify_jwt = false
 
+[functions.send-preapproval-email]
+verify_jwt = false
+
