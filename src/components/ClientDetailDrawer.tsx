@@ -158,14 +158,22 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
         const transformedActivities = fetchedActivities.map((activity: any) => {
           // Handle tasks from database
           if (activity.type === 'task') {
+            // For completed tasks, use completed_by_user if available
+            const displayUser = activity.status === 'Done' && activity.completed_by_user
+              ? `${activity.completed_by_user.first_name} ${activity.completed_by_user.last_name}`
+              : activity.author 
+                ? `${activity.author.first_name} ${activity.author.last_name}` 
+                : activity.user 
+                  ? `${activity.user.first_name} ${activity.user.last_name}` 
+                  : 'System';
+            
             return {
               id: activity.id,
               type: 'task' as const,
               title: 'Task created',
               description: activity.body || `${activity.title}\n${activity.description || ''}`,
-              timestamp: activity.created_at,
-              user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` : 
-                    activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+              timestamp: activity.status === 'Done' ? (activity.completed_at || activity.updated_at) : activity.created_at,
+              user: displayUser,
               author_id: activity.author?.id || activity.user?.id,
               task_id: activity.id,
               task_status: activity.status // Include task status for color coding

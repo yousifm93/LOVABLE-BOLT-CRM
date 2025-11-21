@@ -19,6 +19,7 @@ interface Activity {
   author_id?: string;
   task_id?: string;
   task_status?: string;
+  completed_by_user?: any;
 }
 
 interface ActivityTabProps {

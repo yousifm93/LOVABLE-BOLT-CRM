@@ -405,7 +405,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 )}
               </div>
               {/* Conditional: Listing Agent (active) OR Transaction Type (other stages) */}
-              {client.ops.stage === 'active' ? (
+              {client.ops.stage === 'Active' ? (
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs text-muted-foreground">Listing Agent</Label>
                   {isEditing ? (
@@ -537,7 +537,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
               </div>
 
               {/* Conditional: Show Transaction Type here ONLY for active stage */}
-              {client.ops.stage === 'active' && (
+              {client.ops.stage === 'Active' && (
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs text-muted-foreground">Transaction Type</Label>
                   {isEditing ? (
@@ -588,7 +588,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 )}
               </div>
               {/* Transaction Type for active stage only */}
-              {client.ops.stage === 'active' && (
+              {client.ops.stage === 'Active' && (
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs text-muted-foreground">Transaction Type</Label>
                   {isEditing ? (
