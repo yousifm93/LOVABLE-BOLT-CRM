@@ -42,12 +42,52 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'incoming') return 'bg-purple-400 text-white'; // Purple
   if (statusLower === 'long term' || statusLower === 'long-term') return 'bg-pink-400 text-white'; // Pink
   
-  // ACTIVE BOARD STATUSES (loan_status)
+  // ACTIVE BOARD - LOAN STATUS
   if (statusLower === 'new' || statusLower === 'new rfp') return 'bg-green-300 text-green-900'; // Light Green
-  if (statusLower === 'rfp') return 'bg-blue-400 text-white'; // Light Blue
-  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'rfp') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-purple-500 text-white'; // Purple
   if (statusLower === 'awc') return 'bg-orange-400 text-white'; // Orange
-  if (statusLower === 'ctc') return 'bg-green-600 text-white'; // Dark Green
+  if (statusLower === 'ctc') return 'bg-green-500 text-white'; // Bright Green
+  
+  // ACTIVE BOARD - DISCLOSURE STATUS
+  if (statusLower === 'sent' && status !== 'Sent') return 'bg-red-500 text-white'; // Red (context-aware)
+  if (statusLower === 'signed') return 'bg-green-500 text-white'; // Bright Green
+  if (statusLower === 'ordered') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'need sig') return 'bg-orange-400 text-white'; // Orange
+  
+  // ACTIVE BOARD - APPRAISAL STATUS
+  if (statusLower === 'scheduled') return 'bg-cyan-500 text-white'; // Cyan
+  if (statusLower === 'inspected') return 'bg-purple-400 text-white'; // Purple
+  if (statusLower === 'received') return 'bg-green-500 text-white'; // Bright Green
+  if (statusLower === 'waiver') return 'bg-orange-400 text-white'; // Orange
+  
+  // ACTIVE BOARD - TITLE STATUS
+  if (statusLower === 'requested') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'on hold') return 'bg-blue-400 text-white'; // Light Blue
+  
+  // ACTIVE BOARD - HOI STATUS
+  if (statusLower === 'quoted') return 'bg-blue-400 text-white'; // Light Blue
+  
+  // ACTIVE BOARD - CONDO STATUS
+  if (statusLower === 'approved') return 'bg-green-500 text-white'; // Bright Green
+  
+  // ACTIVE BOARD - CD STATUS
+  if (statusLower === 'cd sent' || (statusLower === 'sent' && status === 'Sent')) return 'bg-red-500 text-white'; // Red
+  if (statusLower === 'cd signed') return 'bg-green-500 text-white'; // Bright Green
+  
+  // ACTIVE BOARD - PACKAGE STATUS
+  if (statusLower === 'initial') return 'bg-blue-400 text-white'; // Light Blue
+  if (statusLower === 'final') return 'bg-green-500 text-white'; // Bright Green
+  
+  // ACTIVE BOARD - BA STATUS
+  if (statusLower === 'send') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'ba sent') return 'bg-red-500 text-white'; // Red
+  if (statusLower === 'ba signed') return 'bg-green-500 text-white'; // Bright Green
+  
+  // ACTIVE BOARD - EPO STATUS
+  if (statusLower === 'epo send') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'epo sent') return 'bg-red-500 text-white'; // Red
+  if (statusLower === 'epo signed') return 'bg-green-500 text-white'; // Bright Green
   
   // PAST CLIENTS STATUSES
   if (statusLower === 'closed') return 'bg-green-600 text-white'; // Dark Green
