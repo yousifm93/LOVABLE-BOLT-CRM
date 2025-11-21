@@ -64,6 +64,38 @@ export function AgentCallLogModal({
         description: "Call logged successfully",
       });
 
+      // Auto-complete related tasks
+      try {
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, buyer_agent_id, listing_agent_id')
+          .or(`buyer_agent_id.eq.${agentId},listing_agent_id.eq.${agentId}`);
+
+        if (leads && leads.length > 0) {
+          for (const lead of leads) {
+            const callType = lead.buyer_agent_id === agentId 
+              ? 'log_call_buyer_agent' 
+              : 'log_call_listing_agent';
+            
+            const result = await databaseService.autoCompleteTasksAfterCall(
+              lead.id,
+              callType,
+              user.id
+            );
+
+            if (result.completedCount > 0) {
+              toast({
+                title: "Tasks Auto-Completed",
+                description: `${result.completedCount} task(s) marked as done: ${result.taskTitles.join(', ')}`,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error auto-completing tasks:', error);
+        // Don't show error toast - call was still logged successfully
+      }
+
       setSummary("");
       onCallLogged();
       onClose();
