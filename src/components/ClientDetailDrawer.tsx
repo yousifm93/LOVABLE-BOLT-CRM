@@ -278,114 +278,183 @@ export function ClientDetailDrawer({
     }
   };
 
+  const getLastCommunicationTimes = () => {
+    // Find most recent activity of each type
+    const lastCall = activities.find(a => a.type === 'call');
+    const lastText = activities.find(a => a.type === 'sms');
+    const lastEmail = activities.find(a => a.type === 'email');
+    
+    // Helper to format relative time
+    const getRelativeTime = (timestamp: string | undefined) => {
+      if (!timestamp) return null;
+      
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      
+      if (diffInDays === 0) return 'Today';
+      if (diffInDays === 1) return '1 day ago';
+      return `${diffInDays} days ago`;
+    };
+    
+    return {
+      lastCall: lastCall ? getRelativeTime(lastCall.timestamp) : null,
+      lastText: lastText ? getRelativeTime(lastText.timestamp) : null,
+      lastEmail: lastEmail ? getRelativeTime(lastEmail.timestamp) : null
+    };
+  };
+
+  const formatLeadCreationDate = () => {
+    const createdAt = (client as any).created_at;
+    if (!createdAt) return 'N/A';
+    
+    const date = new Date(createdAt);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    // Format date as "Nov 19, 2:34p"
+    const formattedDate = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    const formattedTime = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    }).toLowerCase().replace(' ', '');
+    
+    // Calculate relative time
+    let relativeTime = '';
+    if (diffInDays === 0) relativeTime = 'today';
+    else if (diffInDays === 1) relativeTime = '1 day ago';
+    else relativeTime = `${diffInDays} days ago`;
+    
+    return `${formattedDate}, ${formattedTime} (${relativeTime})`;
+  };
+
   // Critical status information based on pipeline stage
   const renderCriticalStatusInfo = () => {
     const stage = client.ops.stage;
     switch (stage) {
       case 'leads':
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-medium text-sm">Lead Information</h4>
-                <span className="text-xs text-muted-foreground">
-                  Updated: {formatDateModern((client as any).updated_at)}
-                </span>
-              </div>
+        const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
+        
+        return (
+          <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="mb-3">
+              <h4 className="font-medium text-sm">Lead Information</h4>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {/* Column 1: Lead Details */}
-              <div className="space-y-2">
+            
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
+              {/* Left Column: Lead Details */}
+              <div className="space-y-3">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lead Status</span>
-                  <InlineEditSelect value={(client as any).converted || 'Working on it'} onValueChange={value => handleLeadUpdate('converted', value)} options={[{
-                  value: 'Working on it',
-                  label: 'Working on it'
-                }, {
-                  value: 'Pending App',
-                  label: 'Pending App'
-                }, {
-                  value: 'Nurture',
-                  label: 'Nurture'
-                }, {
-                  value: 'Dead',
-                  label: 'Dead'
-                }, {
-                  value: 'Needs Attention',
-                  label: 'Needs Attention'
-                }]} />
+                  <InlineEditSelect 
+                    value={(client as any).converted || 'Working on it'} 
+                    onValueChange={value => handleLeadUpdate('converted', value)} 
+                    options={[
+                      { value: 'Working on it', label: 'Working on it' },
+                      { value: 'Pending App', label: 'Pending App' },
+                      { value: 'Nurture', label: 'Nurture' },
+                      { value: 'Dead', label: 'Dead' },
+                      { value: 'Needs Attention', label: 'Needs Attention' }
+                    ]} 
+                  />
                 </div>
+                
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Referral Method</span>
-                  <InlineEditSelect value={(client as any).referred_via || ''} onValueChange={value => handleLeadUpdate('referred_via', value)} options={[{
-                  value: 'Email',
-                  label: 'Email'
-                }, {
-                  value: 'Text',
-                  label: 'Text'
-                }, {
-                  value: 'Call',
-                  label: 'Call'
-                }, {
-                  value: 'Web',
-                  label: 'Web'
-                }, {
-                  value: 'In-Person',
-                  label: 'In-Person'
-                }]} placeholder="Select method" />
+                  <span className="text-xs text-muted-foreground">Referral Method:</span>
+                  <InlineEditSelect 
+                    value={(client as any).referred_via || ''} 
+                    onValueChange={value => handleLeadUpdate('referred_via', value)} 
+                    options={[
+                      { value: 'Email', label: 'Email' },
+                      { value: 'Text', label: 'Text' },
+                      { value: 'Call', label: 'Call' },
+                      { value: 'Web', label: 'Web' },
+                      { value: 'In-Person', label: 'In-Person' }
+                    ]} 
+                    placeholder="Select method" 
+                  />
                 </div>
+                
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Referral Source</span>
-                  <InlineEditSelect value={(client as any).referral_source || ''} onValueChange={value => handleLeadUpdate('referral_source', value)} options={[{
-                  value: 'Agent',
-                  label: 'Agent'
-                }, {
-                  value: 'New Agent',
-                  label: 'New Agent'
-                }, {
-                  value: 'Past Client',
-                  label: 'Past Client'
-                }, {
-                  value: 'Personal',
-                  label: 'Personal'
-                }, {
-                  value: 'Social',
-                  label: 'Social'
-                }, {
-                  value: 'Miscellaneous',
-                  label: 'Miscellaneous'
-                }]} placeholder="Select source" />
+                  <span className="text-xs text-muted-foreground">Referral Source:</span>
+                  <InlineEditSelect 
+                    value={(client as any).referral_source || ''} 
+                    onValueChange={value => handleLeadUpdate('referral_source', value)} 
+                    options={[
+                      { value: 'Agent', label: 'Agent' },
+                      { value: 'New Agent', label: 'New Agent' },
+                      { value: 'Past Client', label: 'Past Client' },
+                      { value: 'Personal', label: 'Personal' },
+                      { value: 'Social', label: 'Social' },
+                      { value: 'Miscellaneous', label: 'Miscellaneous' }
+                    ]} 
+                    placeholder="Select source" 
+                  />
                 </div>
               </div>
-
-              {/* Column 2: Financial Goals */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Payment Goal</span>
-                  <InlineEditCurrency value={(client as any).monthly_pmt_goal || null} onValueChange={value => handleLeadUpdate('monthly_pmt_goal', value)} placeholder="Enter amount" />
+              
+              {/* Middle Column: Last Communication */}
+              <div className="border border-border rounded-md p-3 bg-background space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Call</span>
+                  <span className="text-sm font-medium">
+                    {lastCall || '—'}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Cash to Close Goal</span>
-                  <InlineEditCurrency value={(client as any).cash_to_close_goal || null} onValueChange={value => handleLeadUpdate('cash_to_close_goal', value)} placeholder="Enter amount" />
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Text</span>
+                  <span className="text-sm font-medium">
+                    {lastText || '—'}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Lead Created</span>
-                  <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Email</span>
+                  <span className="text-sm font-medium">
+                    {lastEmail || '—'}
+                  </span>
                 </div>
               </div>
-
-              {/* Column 3: Follow-Up Tracking */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Last Follow-Up</span>
-                  <InlineEditDate value={(client as any).last_follow_up_date || null} onValueChange={date => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
+              
+              {/* Right Column: Financial Goals */}
+              <div className="space-y-3 min-w-[160px]">
+                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+                  <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
+                  <InlineEditCurrency 
+                    value={(client as any).monthly_pmt_goal || null} 
+                    onValueChange={value => handleLeadUpdate('monthly_pmt_goal', value)} 
+                    placeholder="$0"
+                    className="text-lg font-bold"
+                  />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Next Follow-Up</span>
-                  <InlineEditDate value={(client as any).task_eta || (client as any).dueDate || null} onValueChange={date => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
+                
+                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+                  <div className="text-xs text-muted-foreground mb-1">Cash to Close Goal</div>
+                  <InlineEditCurrency 
+                    value={(client as any).cash_to_close_goal || null} 
+                    onValueChange={value => handleLeadUpdate('cash_to_close_goal', value)} 
+                    placeholder="$0"
+                    className="text-lg font-bold"
+                  />
                 </div>
               </div>
             </div>
-          </div>;
+            
+            {/* Bottom: Lead Creation Date */}
+            <div className="mt-3 pt-3 border-t border-border">
+              <span className="text-xs text-muted-foreground italic">
+                Lead Creation Date: {formatLeadCreationDate()}
+              </span>
+            </div>
+          </div>
+        );
       case 'pending-app':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="mb-3">
