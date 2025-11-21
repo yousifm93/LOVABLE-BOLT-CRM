@@ -55,9 +55,9 @@ const columns: ColumnDef<ModernTask>[] = [
         )}
         
         {/* Show contact info if completion requirement exists (REPLACES description) */}
-        {row.original.completion_requirement_type === 'log_call_buyer_agent' && row.original.buyer_agent && (
-          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-            <Phone className="h-3 w-3" />
+              {row.original.completion_requirement_type === 'log_call_buyer_agent' && row.original.buyer_agent && (
+                <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2">
+                  <Phone className="h-3 w-3" />
             <span>{row.original.buyer_agent.first_name} {row.original.buyer_agent.last_name}</span>
             {row.original.buyer_agent.phone && (
               <span className="font-mono">• {row.original.buyer_agent.phone}</span>
@@ -65,9 +65,9 @@ const columns: ColumnDef<ModernTask>[] = [
           </div>
         )}
         
-        {row.original.completion_requirement_type === 'log_call_listing_agent' && row.original.listing_agent && (
-          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-            <Phone className="h-3 w-3" />
+              {row.original.completion_requirement_type === 'log_call_listing_agent' && row.original.listing_agent && (
+                <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2">
+                  <Phone className="h-3 w-3" />
             <span>{row.original.listing_agent.first_name} {row.original.listing_agent.last_name}</span>
             {row.original.listing_agent.phone && (
               <span className="font-mono">• {row.original.listing_agent.phone}</span>
@@ -76,7 +76,7 @@ const columns: ColumnDef<ModernTask>[] = [
         )}
         
         {row.original.completion_requirement_type === 'log_call_borrower' && row.original.borrower && (
-          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+          <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2">
             <Phone className="h-3 w-3" />
             <span>{row.original.borrower.first_name} {row.original.borrower.last_name}</span>
             {row.original.borrower.phone && (
