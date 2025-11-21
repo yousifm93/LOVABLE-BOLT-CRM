@@ -29,6 +29,7 @@ export default function Admin() {
     totalLeads: 0,
     activeUsers: 0,
     customFields: 0,
+    taskAutomations: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
   
@@ -64,10 +65,16 @@ export default function Admin() {
           .select('*', { count: 'exact', head: true })
           .eq('is_in_use', true);
         
+        // Fetch task automations count
+        const { count: automationsCount } = await supabase
+          .from('task_automations')
+          .select('*', { count: 'exact', head: true });
+        
         setStats({
           totalLeads: leadsCount || 0,
           activeUsers: usersCount || 0,
           customFields: fieldsCount || 0,
+          taskAutomations: automationsCount || 0,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -114,6 +121,12 @@ export default function Admin() {
       value: loadingStats ? "..." : stats.customFields.toString(), 
       icon: FileText, 
       color: "text-warning" 
+    },
+    { 
+      label: "Task Automations", 
+      value: loadingStats ? "..." : stats.taskAutomations.toString(), 
+      icon: Zap, 
+      color: "text-blue-500" 
     },
   ];
 
@@ -184,7 +197,7 @@ export default function Admin() {
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {systemStats.map((stat, index) => (
           <Card key={index}>
             <CardContent className="p-4">

@@ -3135,6 +3135,7 @@ export type Database = {
       task_automations: {
         Row: {
           assigned_to_user_id: string | null
+          category: string | null
           created_at: string | null
           created_by: string | null
           due_date_offset_days: number | null
@@ -3151,6 +3152,7 @@ export type Database = {
         }
         Insert: {
           assigned_to_user_id?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           due_date_offset_days?: number | null
@@ -3167,6 +3169,7 @@ export type Database = {
         }
         Update: {
           assigned_to_user_id?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           due_date_offset_days?: number | null
