@@ -92,12 +92,12 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   const buyerAgent = (client as any).buyer_agent || agents.find(a => a.id === (client as any).buyer_agent_id);
   const listingAgent = (client as any).listing_agent || agents.find(a => a.id === (client as any).listing_agent_id);
 
-  const handleAgentClick = async () => {
-    const agentId = (client as any).buyer_agent_id;
-    if (!agentId) return;
+  const handleAgentClick = async (agentId?: string | null) => {
+    const finalId = agentId || (client as any).buyer_agent_id;
+    if (!finalId) return;
     
     try {
-      const agent = await databaseService.getBuyerAgentById(agentId);
+      const agent = await databaseService.getBuyerAgentById(finalId);
       setSelectedAgent(agent);
       setShowAgentDrawer(true);
     } catch (error) {
@@ -385,7 +385,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3 w-3 text-muted-foreground" />
                     <button
-                      onClick={handleAgentClick}
+                      onClick={() => handleAgentClick((client as any).buyer_agent_id)}
                       className="text-primary hover:underline cursor-pointer disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
                       disabled={!(client as any).buyer_agent_id}
                     >
@@ -408,9 +408,13 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3 w-3 text-muted-foreground" />
-                    <span>
+                    <button
+                      onClick={() => handleAgentClick((client as any).listing_agent_id)}
+                      className="text-primary hover:underline cursor-pointer disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
+                      disabled={!(client as any).listing_agent_id}
+                    >
                       {listingAgent ? `${listingAgent.first_name} ${listingAgent.last_name}` : "—"}
-                    </span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -485,31 +489,6 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 )}
               </div>
 
-              {/* Transaction Type - always in Loan & Property section */}
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Transaction Type</Label>
-                {isEditing ? (
-                  <Select
-                    value={editData.transactionType}
-                    onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Purchase">Purchase</SelectItem>
-                      <SelectItem value="Refinance">Refinance</SelectItem>
-                      <SelectItem value="HELOC">HELOC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm">
-                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium">{client.loan?.loanType || "—"}</span>
-                  </div>
-                )}
-              </div>
-
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Program</Label>
                 {isEditing ? (
@@ -534,32 +513,6 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              {/* Transaction Type for active stage only */}
-              {client.ops.stage === 'Active' && (
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Transaction Type</Label>
-                  {isEditing ? (
-                    <Select
-                      value={editData.transactionType}
-                      onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Purchase">Purchase</SelectItem>
-                        <SelectItem value="Refinance">Refinance</SelectItem>
-                        <SelectItem value="HELOC">HELOC</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                      <span>{client.loan?.loanType || "—"}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
