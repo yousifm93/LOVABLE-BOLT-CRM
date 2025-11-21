@@ -604,20 +604,39 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('tasks')
       .select(`
-        id, title, description, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by,
+        id, title, description, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         borrower:leads!tasks_borrower_id_fkey(
           id, 
           first_name, 
           last_name,
+          phone,
+          buyer_agent_id,
+          listing_agent_id,
           pipeline_stage:pipeline_stages(id, name, order_index)
-        )
+        ),
+        buyer_agent:buyer_agents(first_name, last_name, phone),
+        listing_agent:lenders(first_name, last_name, phone)
       `)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data;
+    
+    // Manually join buyer_agent and listing_agent based on lead relationships
+    const tasksWithAgents = data?.map((task: any) => {
+      const buyerAgentId = task.borrower?.buyer_agent_id;
+      const listingAgentId = task.borrower?.listing_agent_id;
+      
+      return {
+        ...task,
+        lead: task.borrower, // Add lead reference
+        buyer_agent: buyerAgentId ? task.buyer_agent : null,
+        listing_agent: listingAgentId ? task.listing_agent : null,
+      };
+    });
+    
+    return tasksWithAgents;
   },
 
   async getLeadTasks(leadId: string) {

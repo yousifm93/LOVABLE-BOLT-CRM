@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,9 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { formatDateModern } from "@/utils/dateUtils";
+import { validateTaskCompletion } from "@/services/taskCompletionValidation";
+import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 
 interface ModernTask {
   id: string;
@@ -74,6 +77,34 @@ const columns = (
       {row.original.description && (
         <div className="text-xs text-muted-foreground mt-1 leading-relaxed truncate whitespace-nowrap overflow-hidden" title={row.original.description}>
           {row.original.description}
+        </div>
+      )}
+      {/* Display contact info based on completion requirement */}
+      {(row.original as any).completion_requirement_type === 'log_call_buyer_agent' && (row.original as any).buyer_agent && (
+        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+          <Phone className="h-3 w-3" />
+          <span>{(row.original as any).buyer_agent.first_name} {(row.original as any).buyer_agent.last_name}</span>
+          {(row.original as any).buyer_agent.phone && (
+            <span className="font-mono">• {(row.original as any).buyer_agent.phone}</span>
+          )}
+        </div>
+      )}
+      {(row.original as any).completion_requirement_type === 'log_call_listing_agent' && (row.original as any).listing_agent && (
+        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+          <Phone className="h-3 w-3" />
+          <span>{(row.original as any).listing_agent.first_name} {(row.original as any).listing_agent.last_name}</span>
+          {(row.original as any).listing_agent.phone && (
+            <span className="font-mono">• {(row.original as any).listing_agent.phone}</span>
+          )}
+        </div>
+      )}
+      {(row.original as any).completion_requirement_type === 'log_call_borrower' && (row.original as any).borrower && (
+        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+          <Phone className="h-3 w-3" />
+          <span>{(row.original as any).borrower.first_name} {(row.original as any).borrower.last_name}</span>
+          {(row.original as any).lead?.phone && (
+            <span className="font-mono">• {(row.original as any).lead.phone}</span>
+          )}
         </div>
       )}
       </div>
@@ -254,6 +285,11 @@ export default function TasksModern() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [isLeadDrawerOpen, setIsLeadDrawerOpen] = useState(false);
+  const [requirementModalOpen, setRequirementModalOpen] = useState(false);
+  const [completionRequirement, setCompletionRequirement] = useState<any>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ taskId: string; status: string } | null>(null);
+  const [agentCallLogModalOpen, setAgentCallLogModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const { toast } = useToast();
 
   // Get assignable users
@@ -346,6 +382,21 @@ export default function TasksModern() {
   };
 
   const handleUpdate = async (taskId: string, field: string, value: any) => {
+    // If trying to mark as Done, validate completion requirements first
+    if (field === 'status' && value === 'Done') {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const validation = await validateTaskCompletion(task);
+
+      if (!validation.canComplete) {
+        setCompletionRequirement(validation);
+        setPendingStatusChange({ taskId, status: value });
+        setRequirementModalOpen(true);
+        return; // Don't update status yet
+      }
+    }
+
     try {
       await databaseService.updateTask(taskId, { [field]: value });
       
@@ -362,6 +413,37 @@ export default function TasksModern() {
         description: "Failed to update task",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleLogCallFromModal = () => {
+    if (!completionRequirement?.contactInfo) return;
+
+    const contactInfo = completionRequirement.contactInfo;
+
+    if (contactInfo.type === 'buyer_agent' || contactInfo.type === 'listing_agent') {
+      // Open agent call log modal
+      setSelectedAgent({ id: contactInfo.id, first_name: contactInfo.name.split(' ')[0], last_name: contactInfo.name.split(' ').slice(1).join(' ') });
+      setAgentCallLogModalOpen(true);
+      setRequirementModalOpen(false);
+    } else if (contactInfo.type === 'borrower') {
+      // For borrower, we need to open the lead drawer to log call
+      const lead = leads.find(l => l.id === contactInfo.id);
+      if (lead) {
+        setSelectedLead(transformLeadToClient(lead));
+        setIsLeadDrawerOpen(true);
+        setRequirementModalOpen(false);
+      }
+    }
+  };
+
+  const handleAgentCallLogged = () => {
+    setAgentCallLogModalOpen(false);
+    
+    // Retry the pending status change after call is logged
+    if (pendingStatusChange) {
+      handleUpdate(pendingStatusChange.taskId, 'status', pendingStatusChange.status);
+      setPendingStatusChange(null);
     }
   };
 
@@ -670,6 +752,25 @@ export default function TasksModern() {
           onStageChange={() => setIsLeadDrawerOpen(false)}
           pipelineType="leads"
           onLeadUpdated={loadTasks}
+        />
+      )}
+
+      {completionRequirement && (
+        <TaskCompletionRequirementModal
+          open={requirementModalOpen}
+          onOpenChange={setRequirementModalOpen}
+          requirement={completionRequirement}
+          onLogCall={handleLogCallFromModal}
+        />
+      )}
+
+      {selectedAgent && (
+        <AgentCallLogModal
+          isOpen={agentCallLogModalOpen}
+          onClose={() => setAgentCallLogModalOpen(false)}
+          agentId={selectedAgent.id}
+          agentName={`${selectedAgent.first_name} ${selectedAgent.last_name}`}
+          onCallLogged={handleAgentCallLogged}
         />
       )}
     </div>
