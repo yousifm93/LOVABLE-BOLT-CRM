@@ -155,6 +155,8 @@ export function transformLeadToClient(lead: any): any {
     referral_source: lead.referral_source || null,
     monthly_payment_goal: lead.monthly_pmt_goal || null,
     cash_to_close_goal: lead.cash_to_close_goal || null,
+    monthlyPmtGoal: lead.monthly_pmt_goal ?? null,
+    cashToCloseGoal: lead.cash_to_close_goal ?? null,
     ssn: lead.ssn || null,
     dob: lead.dob || null,
     occupancy: lead.occupancy || null,
