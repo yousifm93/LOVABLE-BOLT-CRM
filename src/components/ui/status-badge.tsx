@@ -117,11 +117,11 @@ export function StatusBadge({ status, variant = "square", className, onClick, fo
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-1 text-xs font-medium transition-colors",
+        "inline-flex items-center justify-center px-4 py-2 h-8 min-w-[100px] text-xs font-medium transition-colors",
         variant === "square" ? "rounded" : "rounded-full",
-        fillCell && "w-full justify-center",
-        isGrayPriority ? "w-16 justify-center" : "",
-        isTaskStatus ? "w-28 justify-center" : "",
+        fillCell && "w-full",
+        isGrayPriority ? "w-16" : "",
+        isTaskStatus ? "w-28" : "",
         colorClass,
         onClick && "cursor-pointer hover:opacity-80",
         className
