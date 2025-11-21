@@ -209,6 +209,15 @@ export const databaseService = {
     if (error) throw error;
   },
 
+  async triggerTaskAutomation(automationId: string) {
+    const { data, error } = await supabase.functions.invoke('trigger-task-automation', {
+      body: { automationId }
+    });
+    
+    if (error) throw error;
+    return data;
+  },
+
   // Agent Call Logs
   async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string, loggedAt?: string) {
     const { data, error} = await supabase

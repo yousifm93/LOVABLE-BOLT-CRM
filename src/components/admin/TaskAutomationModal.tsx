@@ -30,7 +30,15 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const [formData, setFormData] = useState({
     name: '',
     trigger_type: 'lead_created',
-    trigger_config: {} as { field?: string; target_status?: string; target_stage_id?: string },
+    trigger_config: {} as { 
+      field?: string; 
+      target_status?: string; 
+      target_stage_id?: string;
+      frequency?: string;
+      day_of_week?: number;
+      day_of_month?: number;
+      scheduled_hour?: number;
+    },
     task_name: '',
     task_description: '',
     assigned_to_user_id: '',
@@ -181,6 +189,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                 <SelectItem value="lead_created">When a lead is created</SelectItem>
                 <SelectItem value="status_changed">When status changes</SelectItem>
                 <SelectItem value="pipeline_stage_changed">When pipeline stage changes</SelectItem>
+                <SelectItem value="scheduled">On a schedule (time-based)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -260,6 +269,110 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="acdfc6ba-7cbc-47af-a8c6-380d77aef6dd">Past Clients</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Scheduled Configuration */}
+          {formData.trigger_type === 'scheduled' && (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+              <h4 className="font-medium text-sm">Schedule Configuration</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Frequency *</Label>
+                <Select
+                  value={formData.trigger_config.frequency || ''}
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    trigger_config: { ...formData.trigger_config, frequency: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly (specific date)</SelectItem>
+                    <SelectItem value="monthly_first_weekday">Monthly (first [day] of month)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Weekly: Day of Week */}
+              {(formData.trigger_config.frequency === 'weekly' || 
+                formData.trigger_config.frequency === 'monthly_first_weekday') && (
+                <div className="space-y-2">
+                  <Label htmlFor="day_of_week">Day of Week *</Label>
+                  <Select
+                    value={formData.trigger_config.day_of_week?.toString() || ''}
+                    onValueChange={(value) => setFormData({
+                      ...formData,
+                      trigger_config: { ...formData.trigger_config, day_of_week: parseInt(value) }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Sunday</SelectItem>
+                      <SelectItem value="1">Monday</SelectItem>
+                      <SelectItem value="2">Tuesday</SelectItem>
+                      <SelectItem value="3">Wednesday</SelectItem>
+                      <SelectItem value="4">Thursday</SelectItem>
+                      <SelectItem value="5">Friday</SelectItem>
+                      <SelectItem value="6">Saturday</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Monthly: Day of Month */}
+              {formData.trigger_config.frequency === 'monthly' && (
+                <div className="space-y-2">
+                  <Label htmlFor="day_of_month">Day of Month *</Label>
+                  <Input
+                    id="day_of_month"
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.trigger_config.day_of_month || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      trigger_config: { 
+                        ...formData.trigger_config, 
+                        day_of_month: e.target.value ? parseInt(e.target.value) : undefined 
+                      }
+                    })}
+                    placeholder="1-31"
+                  />
+                </div>
+              )}
+
+              {/* Time (Hour) */}
+              <div className="space-y-2">
+                <Label htmlFor="scheduled_hour">Time (Hour) *</Label>
+                <Select
+                  value={formData.trigger_config.scheduled_hour?.toString() || ''}
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    trigger_config: { ...formData.trigger_config, scheduled_hour: parseInt(value) }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select hour" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <SelectItem key={i} value={i.toString()}>
+                        {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Tasks will be created at the start of this hour
+                </p>
               </div>
             </div>
           )}

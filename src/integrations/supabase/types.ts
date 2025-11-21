@@ -3140,6 +3140,7 @@ export type Database = {
           due_date_offset_days: number | null
           id: string
           is_active: boolean | null
+          last_scheduled_execution: string | null
           name: string
           task_description: string
           task_name: string
@@ -3155,6 +3156,7 @@ export type Database = {
           due_date_offset_days?: number | null
           id?: string
           is_active?: boolean | null
+          last_scheduled_execution?: string | null
           name: string
           task_description: string
           task_name: string
@@ -3170,6 +3172,7 @@ export type Database = {
           due_date_offset_days?: number | null
           id?: string
           is_active?: boolean | null
+          last_scheduled_execution?: string | null
           name?: string
           task_description?: string
           task_name?: string
@@ -3530,6 +3533,7 @@ export type Database = {
           total: number
         }[]
       }
+      execute_scheduled_automations: { Args: never; Returns: Json }
       format_date_modern: { Args: { input_date: string }; Returns: string }
       get_user_account_id: { Args: { user_uuid: string }; Returns: string }
       search_blog_posts: {

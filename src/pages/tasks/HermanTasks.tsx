@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,7 +52,7 @@ const columns: ColumnDef<ModernTask>[] = [
       <div className="text-sm">
         {row.original.borrower 
           ? `${row.original.borrower.first_name} ${row.original.borrower.last_name}`
-          : "No borrower"
+          : <Badge variant="outline" className="text-xs">NBT</Badge>
         }
       </div>
     ),
