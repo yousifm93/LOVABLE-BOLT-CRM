@@ -55,6 +55,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     phone: client.person?.phone || client.person?.phoneMobile || "",
     email: client.person?.email || "",
     buyer_agent_id: (client as any).buyer_agent_id || null,
+    listing_agent_id: (client as any).listing_agent_id || null,
     loanAmount: client.loan?.loanAmount || null,
     salesPrice: client.loan?.salesPrice || null,
     appraisal_value: client.loan?.appraisedValue || null,
@@ -112,6 +113,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
       phone: client.person?.phone || client.person?.phoneMobile || "",
       email: client.person?.email || "",
       buyer_agent_id: (client as any).buyer_agent_id || null,
+      listing_agent_id: (client as any).listing_agent_id || null,
       loanAmount: client.loan?.loanAmount || null,
       salesPrice: client.loan?.salesPrice || null,
       appraisal_value: client.loan?.appraisedValue || null,
@@ -167,6 +169,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         phone: sanitizedData.phone,
         email: sanitizedData.email,
         buyer_agent_id: editData.buyer_agent_id,
+        listing_agent_id: editData.listing_agent_id,
         loan_amount: sanitizedData.loanAmount,
         sales_price: sanitizedData.salesPrice,
         appraisal_value: sanitizedData.salesPrice?.toString() || null, // Sync with purchase price
@@ -401,29 +404,67 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Transaction Type</Label>
-                {isEditing ? (
-                  <Select
-                    value={editData.transactionType}
-                    onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Purchase">Purchase</SelectItem>
-                      <SelectItem value="Refinance">Refinance</SelectItem>
-                      <SelectItem value="HELOC">HELOC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm">
-                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                    <span>{client.loan?.loanType || "—"}</span>
-                  </div>
-                )}
-              </div>
+              {/* Conditional: Listing Agent (active) OR Transaction Type (other stages) */}
+              {client.ops.stage === 'active' ? (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Listing Agent</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editData.listing_agent_id || "none"}
+                      onValueChange={(value) => setEditData({ ...editData, listing_agent_id: value === "none" ? null : value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select agent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {agents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id}>
+                            {agent.first_name} {agent.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <span>
+                        {(() => {
+                          const displayAgent = (client as any).listing_agent 
+                            || agents.find(a => a.id === (client as any).listing_agent_id);
+                          return displayAgent
+                            ? `${displayAgent.first_name} ${displayAgent.last_name}`
+                            : "—";
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Transaction Type</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editData.transactionType}
+                      onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Purchase">Purchase</SelectItem>
+                        <SelectItem value="Refinance">Refinance</SelectItem>
+                        <SelectItem value="HELOC">HELOC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                      <span>{client.loan?.loanType || "—"}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             {/* Right Column */}
@@ -518,6 +559,32 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
+              {/* Transaction Type for active stage only */}
+              {client.ops.stage === 'active' && (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Transaction Type</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editData.transactionType}
+                      onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Purchase">Purchase</SelectItem>
+                        <SelectItem value="Refinance">Refinance</SelectItem>
+                        <SelectItem value="HELOC">HELOC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                      <span>{client.loan?.loanType || "—"}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
