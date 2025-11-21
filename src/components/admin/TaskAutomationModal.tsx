@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { databaseService } from '@/services/database';
 import { formatDateTime } from '@/utils/formatters';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TaskAutomationModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [testingAutomation, setTestingAutomation] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -131,6 +133,33 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestAutomation = async () => {
+    if (!automation?.id) return;
+    
+    setTestingAutomation(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-task-automation', {
+        body: { automationId: automation.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Task created successfully from automation',
+      });
+    } catch (error) {
+      console.error('Error testing automation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to test automation',
+        variant: 'destructive',
+      });
+    } finally {
+      setTestingAutomation(false);
     }
   };
 
@@ -466,6 +495,16 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
             </div>
             
             <div className="flex gap-2">
+              {automation && formData.trigger_type === 'scheduled' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestAutomation}
+                  disabled={testingAutomation}
+                >
+                  {testingAutomation ? 'Testing...' : 'Test Automation'}
+                </Button>
+              )}
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
