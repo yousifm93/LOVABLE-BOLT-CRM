@@ -394,52 +394,26 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              {/* Conditional: Listing Agent (active) OR Transaction Type (other stages) */}
-              {client.ops.stage === 'Active' ? (
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Listing Agent</Label>
-                  {isEditing ? (
-                    <InlineEditAgent
-                      value={listingAgent}
-                      agents={agents}
-                      onValueChange={(agent) => setEditData({ ...editData, listing_agent_id: agent?.id || null })}
-                      placeholder="Select listing agent"
-                      type="listing"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span>
-                        {listingAgent ? `${listingAgent.first_name} ${listingAgent.last_name}` : "—"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Transaction Type</Label>
-                  {isEditing ? (
-                    <Select
-                      value={editData.transactionType}
-                      onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Purchase">Purchase</SelectItem>
-                        <SelectItem value="Refinance">Refinance</SelectItem>
-                        <SelectItem value="HELOC">HELOC</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                      <span>{client.loan?.loanType || "—"}</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Listing Agent - always shown */}
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Listing Agent</Label>
+                {isEditing ? (
+                  <InlineEditAgent
+                    value={listingAgent}
+                    agents={agents}
+                    onValueChange={(agent) => setEditData({ ...editData, listing_agent_id: agent?.id || null })}
+                    placeholder="Select listing agent"
+                    type="listing"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span>
+                      {listingAgent ? `${listingAgent.first_name} ${listingAgent.last_name}` : "—"}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Right Column */}
@@ -511,32 +485,30 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 )}
               </div>
 
-              {/* Conditional: Show Transaction Type here ONLY for active stage */}
-              {client.ops.stage === 'Active' && (
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Transaction Type</Label>
-                  {isEditing ? (
-                    <Select
-                      value={editData.transactionType}
-                      onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Purchase">Purchase</SelectItem>
-                        <SelectItem value="Refinance">Refinance</SelectItem>
-                        <SelectItem value="HELOC">HELOC</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm">
-                      <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">{client.loan?.loanType || "—"}</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Transaction Type - always in Loan & Property section */}
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">Transaction Type</Label>
+                {isEditing ? (
+                  <Select
+                    value={editData.transactionType}
+                    onValueChange={(value) => setEditData({ ...editData, transactionType: value })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Purchase">Purchase</SelectItem>
+                      <SelectItem value="Refinance">Refinance</SelectItem>
+                      <SelectItem value="HELOC">HELOC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium">{client.loan?.loanType || "—"}</span>
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Loan Program</Label>
