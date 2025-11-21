@@ -6,6 +6,7 @@ import { Phone, Mail, User, DollarSign, ArrowRightLeft, Home, Building2, Landmar
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -86,6 +87,10 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
 
   const fullName = `${client.person.firstName} ${client.person.lastName}`;
   const initials = `${client.person.firstName[0]}${client.person.lastName[0]}`;
+
+  // Derive agent objects for display and editing
+  const buyerAgent = (client as any).buyer_agent || agents.find(a => a.id === (client as any).buyer_agent_id);
+  const listingAgent = (client as any).listing_agent || agents.find(a => a.id === (client as any).listing_agent_id);
 
   const handleAgentClick = async () => {
     const agentId = (client as any).buyer_agent_id;
@@ -369,22 +374,13 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-muted-foreground">Buyer's Agent</Label>
                 {isEditing ? (
-                  <Select
-                    value={editData.buyer_agent_id || "none"}
-                    onValueChange={(value) => setEditData({ ...editData, buyer_agent_id: value === "none" ? null : value })}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Select agent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {agents.map((agent) => (
-                        <SelectItem key={agent.id} value={agent.id}>
-                          {agent.first_name} {agent.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <InlineEditAgent
+                    value={buyerAgent}
+                    agents={agents}
+                    onValueChange={(agent) => setEditData({ ...editData, buyer_agent_id: agent?.id || null })}
+                    placeholder="Select buyer's agent"
+                    type="buyer"
+                  />
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-3 w-3 text-muted-foreground" />
@@ -393,13 +389,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                       className="text-primary hover:underline cursor-pointer disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
                       disabled={!(client as any).buyer_agent_id}
                     >
-                      {(() => {
-                        const displayAgent = (client as any).buyer_agent 
-                          || agents.find(a => a.id === (client as any).buyer_agent_id);
-                        return displayAgent
-                          ? `${displayAgent.first_name} ${displayAgent.last_name}`
-                          : "—";
-                      })()}
+                      {buyerAgent ? `${buyerAgent.first_name} ${buyerAgent.last_name}` : "—"}
                     </button>
                   </div>
                 )}
@@ -409,33 +399,18 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 <div className="flex flex-col gap-1">
                   <Label className="text-xs text-muted-foreground">Listing Agent</Label>
                   {isEditing ? (
-                    <Select
-                      value={editData.listing_agent_id || "none"}
-                      onValueChange={(value) => setEditData({ ...editData, listing_agent_id: value === "none" ? null : value })}
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select agent" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {agents.map((agent) => (
-                          <SelectItem key={agent.id} value={agent.id}>
-                            {agent.first_name} {agent.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <InlineEditAgent
+                      value={listingAgent}
+                      agents={agents}
+                      onValueChange={(agent) => setEditData({ ...editData, listing_agent_id: agent?.id || null })}
+                      placeholder="Select listing agent"
+                      type="listing"
+                    />
                   ) : (
                     <div className="flex items-center gap-2 text-sm">
                       <User className="h-3 w-3 text-muted-foreground" />
                       <span>
-                        {(() => {
-                          const displayAgent = (client as any).listing_agent 
-                            || agents.find(a => a.id === (client as any).listing_agent_id);
-                          return displayAgent
-                            ? `${displayAgent.first_name} ${displayAgent.last_name}`
-                            : "—";
-                        })()}
+                        {listingAgent ? `${listingAgent.first_name} ${listingAgent.last_name}` : "—"}
                       </span>
                     </div>
                   )}
