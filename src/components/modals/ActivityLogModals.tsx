@@ -74,6 +74,25 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
         title: 'Success',
         description: 'Call logged',
       });
+
+      // Auto-complete related tasks for borrower calls
+      try {
+        const result = await databaseService.autoCompleteTasksAfterCall(
+          leadId,
+          'log_call_borrower',
+          userId || ''
+        );
+
+        if (result.completedCount > 0) {
+          toast({
+            title: "Tasks Auto-Completed",
+            description: `${result.completedCount} task(s) marked as done: ${result.taskTitles.join(', ')}`,
+          });
+        }
+      } catch (error) {
+        console.error('Error auto-completing tasks:', error);
+        // Don't show error toast - call was still logged successfully
+      }
     } catch (error) {
       console.error('Error creating call log:', error);
       toast({
