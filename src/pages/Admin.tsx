@@ -9,13 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useFieldManagement } from "@/hooks/useFieldManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
+interface Field {
+  id: string;
+  field_name: string;
+  display_name: string;
+  description?: string | null;
+  section: string;
+  field_type: string;
+  is_required: boolean;
+  is_visible: boolean;
+  is_in_use: boolean;
+  is_system_field: boolean;
+  sort_order: number;
+}
 
 export default function Admin() {
   const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
@@ -189,6 +203,276 @@ export default function Admin() {
     }
   };
 
+  // Define columns for DataTable
+  const fieldColumns: ColumnDef<Field>[] = [
+    {
+      accessorKey: 'field_name',
+      header: 'Field Name',
+      width: 130,
+      minWidth: 100,
+      maxWidth: 200,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.field_name}</span>
+      ),
+    },
+    {
+      accessorKey: 'display_name',
+      header: 'Display Name',
+      width: 140,
+      minWidth: 100,
+      maxWidth: 250,
+      cell: ({ row }) => {
+        const field = row.original;
+        return editingField === field.id ? (
+          <Input
+            value={editData.display_name}
+            onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
+            className="h-7"
+          />
+        ) : (
+          <span>{field.display_name}</span>
+        );
+      },
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      width: 120,
+      minWidth: 80,
+      maxWidth: 300,
+      cell: ({ row }) => {
+        const field = row.original;
+        return editingField === field.id ? (
+          <Input
+            value={editData.description || ""}
+            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            placeholder="Add description..."
+            className="h-7"
+          />
+        ) : (
+          <span 
+            className="text-xs text-muted-foreground truncate block"
+            title={field.description || ""}
+          >
+            {field.description || "—"}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'section',
+      header: 'Section',
+      width: 90,
+      minWidth: 80,
+      maxWidth: 150,
+      cell: ({ row }) => {
+        const field = row.original;
+        return editingField === field.id ? (
+          <Select 
+            value={editData.section} 
+            onValueChange={(value) => setEditData({ ...editData, section: value })}
+          >
+            <SelectTrigger className="h-7">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LEAD">Lead Info</SelectItem>
+              <SelectItem value="FINANCIAL">Financial</SelectItem>
+              <SelectItem value="PROPERTY">Property</SelectItem>
+              <SelectItem value="OPERATIONS">Operations</SelectItem>
+              <SelectItem value="DOCUMENTS">Documents</SelectItem>
+              <SelectItem value="DATES">Dates</SelectItem>
+              <SelectItem value="STATUS">Status</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <Badge variant="outline" className="text-xs">{field.section}</Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'field_type',
+      header: 'Type',
+      width: 80,
+      minWidth: 70,
+      maxWidth: 120,
+      cell: ({ row }) => {
+        const field = row.original;
+        return editingField === field.id ? (
+          <Select 
+            value={editData.field_type} 
+            onValueChange={(value) => setEditData({ ...editData, field_type: value })}
+          >
+            <SelectTrigger className="h-7">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="phone">Phone</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="currency">Currency</SelectItem>
+              <SelectItem value="percentage">Percentage</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+              <SelectItem value="datetime">DateTime</SelectItem>
+              <SelectItem value="boolean">Boolean</SelectItem>
+              <SelectItem value="select">Select</SelectItem>
+              <SelectItem value="file">File</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <Badge>{field.field_type}</Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'is_required',
+      header: 'Required',
+      width: 70,
+      minWidth: 70,
+      maxWidth: 90,
+      sortable: false,
+      cell: ({ row }) => {
+        const field = row.original;
+        return (
+          <Switch
+            checked={editingField === field.id ? editData.is_required : field.is_required}
+            disabled={field.is_system_field || editingField !== field.id}
+            onCheckedChange={(checked) => {
+              if (editingField === field.id) {
+                setEditData({ ...editData, is_required: checked });
+              } else {
+                updateField(field.id, { is_required: checked });
+              }
+            }}
+          />
+        );
+      },
+    },
+    {
+      accessorKey: 'is_visible',
+      header: 'Visible',
+      width: 70,
+      minWidth: 70,
+      maxWidth: 90,
+      sortable: false,
+      cell: ({ row }) => {
+        const field = row.original;
+        return (
+          <Switch
+            checked={editingField === field.id ? editData.is_visible : field.is_visible}
+            disabled={editingField !== field.id}
+            onCheckedChange={(checked) => {
+              if (editingField === field.id) {
+                setEditData({ ...editData, is_visible: checked });
+              } else {
+                updateField(field.id, { is_visible: checked });
+              }
+            }}
+          />
+        );
+      },
+    },
+    {
+      accessorKey: 'is_in_use',
+      header: 'In Use',
+      width: 70,
+      minWidth: 70,
+      maxWidth: 90,
+      sortable: false,
+      cell: ({ row }) => {
+        const field = row.original;
+        return (
+          <Switch
+            checked={editingField === field.id ? editData.is_in_use : field.is_in_use}
+            disabled={editingField !== field.id}
+            onCheckedChange={(checked) => {
+              if (editingField === field.id) {
+                setEditData({ ...editData, is_in_use: checked });
+              } else {
+                updateField(field.id, { is_in_use: checked });
+              }
+            }}
+          />
+        );
+      },
+    },
+    {
+      accessorKey: 'is_system_field',
+      header: 'System',
+      width: 70,
+      minWidth: 70,
+      maxWidth: 90,
+      cell: ({ row }) => {
+        const field = row.original;
+        return field.is_system_field ? (
+          <Badge variant="secondary" className="text-xs">System</Badge>
+        ) : null;
+      },
+    },
+    {
+      accessorKey: 'sort_order',
+      header: 'Sort',
+      width: 60,
+      minWidth: 50,
+      maxWidth: 80,
+      cell: ({ row }) => {
+        const field = row.original;
+        return editingField === field.id ? (
+          <Input
+            type="number"
+            value={editData.sort_order}
+            onChange={(e) => setEditData({ ...editData, sort_order: parseInt(e.target.value) || 0 })}
+            className="h-7 w-16"
+          />
+        ) : (
+          <span className="text-xs text-muted-foreground">{field.sort_order}</span>
+        );
+      },
+    },
+    {
+      accessorKey: 'actions',
+      header: 'Actions',
+      width: 90,
+      minWidth: 90,
+      maxWidth: 120,
+      sortable: false,
+      cell: ({ row }) => {
+        const field = row.original;
+        return (
+          <div className="flex gap-1">
+            {editingField === field.id ? (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => saveEdit(field.id)}>
+                  <Check className="h-4 w-4 text-success" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => startEdit(field)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                {!field.is_system_field && (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-destructive"
+                    onClick={() => confirmDelete(field)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
@@ -321,208 +605,20 @@ export default function Admin() {
                     Showing {filteredFields.length} of {fields.length} fields
                   </p>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[130px]">Field Name</TableHead>
-                      <TableHead className="w-[140px]">Display Name</TableHead>
-                      <TableHead className="w-[120px]">Description</TableHead>
-                      <TableHead className="w-[90px]">Section</TableHead>
-                      <TableHead className="w-[80px]">Type</TableHead>
-                      <TableHead className="w-[70px]">Required</TableHead>
-                      <TableHead className="w-[70px]">Visible</TableHead>
-                      <TableHead className="w-[70px]">In Use</TableHead>
-                      <TableHead className="w-[70px]">System</TableHead>
-                      <TableHead className="w-[60px]">Sort</TableHead>
-                      <TableHead className="w-[90px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8">
-                          Loading fields...
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredFields.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                          No fields found matching filters
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredFields.map((field) => (
-                        <TableRow key={field.id} className={!field.is_in_use ? "opacity-50" : ""}>
-                          <TableCell className="font-mono text-xs">{field.field_name}</TableCell>
-                          <TableCell>
-                            {editingField === field.id ? (
-                              <Input
-                                value={editData.display_name}
-                                onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
-                                className="h-7"
-                              />
-                            ) : (
-                              field.display_name
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {editingField === field.id ? (
-                              <Input
-                                value={editData.description || ""}
-                                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                                placeholder="Add description..."
-                                className="h-7"
-                              />
-                            ) : (
-                              <span 
-                                className="text-xs text-muted-foreground truncate block"
-                                title={field.description || ""}
-                              >
-                                {field.description || "—"}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {editingField === field.id ? (
-                              <Select 
-                                value={editData.section} 
-                                onValueChange={(value) => setEditData({ ...editData, section: value })}
-                              >
-                                <SelectTrigger className="h-7">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="LEAD">Lead Info</SelectItem>
-                                  <SelectItem value="FINANCIAL">Financial</SelectItem>
-                                  <SelectItem value="PROPERTY">Property</SelectItem>
-                                  <SelectItem value="OPERATIONS">Operations</SelectItem>
-                                  <SelectItem value="DOCUMENTS">Documents</SelectItem>
-                                  <SelectItem value="DATES">Dates</SelectItem>
-                                  <SelectItem value="STATUS">Status</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">{field.section}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {editingField === field.id ? (
-                              <Select 
-                                value={editData.field_type} 
-                                onValueChange={(value) => setEditData({ ...editData, field_type: value })}
-                              >
-                                <SelectTrigger className="h-7">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="text">Text</SelectItem>
-                                  <SelectItem value="email">Email</SelectItem>
-                                  <SelectItem value="phone">Phone</SelectItem>
-                                  <SelectItem value="number">Number</SelectItem>
-                                  <SelectItem value="currency">Currency</SelectItem>
-                                  <SelectItem value="percentage">Percentage</SelectItem>
-                                  <SelectItem value="date">Date</SelectItem>
-                                  <SelectItem value="datetime">DateTime</SelectItem>
-                                  <SelectItem value="boolean">Boolean</SelectItem>
-                                  <SelectItem value="select">Select</SelectItem>
-                                  <SelectItem value="file">File</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <Badge>{field.field_type}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={editingField === field.id ? editData.is_required : field.is_required}
-                              disabled={field.is_system_field || editingField !== field.id}
-                              onCheckedChange={(checked) => {
-                                if (editingField === field.id) {
-                                  setEditData({ ...editData, is_required: checked });
-                                } else {
-                                  updateField(field.id, { is_required: checked });
-                                }
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={editingField === field.id ? editData.is_visible : field.is_visible}
-                              disabled={editingField !== field.id}
-                              onCheckedChange={(checked) => {
-                                if (editingField === field.id) {
-                                  setEditData({ ...editData, is_visible: checked });
-                                } else {
-                                  updateField(field.id, { is_visible: checked });
-                                }
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={editingField === field.id ? editData.is_in_use : field.is_in_use}
-                              disabled={editingField !== field.id}
-                              onCheckedChange={(checked) => {
-                                if (editingField === field.id) {
-                                  setEditData({ ...editData, is_in_use: checked });
-                                } else {
-                                  updateField(field.id, { is_in_use: checked });
-                                }
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {field.is_system_field && (
-                              <Badge variant="secondary" className="text-xs">System</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {editingField === field.id ? (
-                              <Input
-                                type="number"
-                                value={editData.sort_order}
-                                onChange={(e) => setEditData({ ...editData, sort_order: parseInt(e.target.value) || 0 })}
-                                className="h-7 w-16"
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{field.sort_order}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              {editingField === field.id ? (
-                                <>
-                                  <Button size="sm" variant="ghost" onClick={() => saveEdit(field.id)}>
-                                    <Check className="h-4 w-4 text-success" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" onClick={cancelEdit}>
-                                    <X className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button size="sm" variant="ghost" onClick={() => startEdit(field)}>
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  {!field.is_system_field && (
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost" 
-                                      className="text-destructive"
-                                      onClick={() => confirmDelete(field)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                {loading ? (
+                  <div className="text-center py-8">Loading fields...</div>
+                ) : (
+                  <DataTable
+                    columns={fieldColumns}
+                    data={filteredFields}
+                    searchTerm=""
+                    lockSort={false}
+                    lockReorder={false}
+                    lockResize={false}
+                    storageKey="admin-fields-table"
+                    showRowNumbers={false}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>

@@ -283,7 +283,7 @@ export function TaskAutomationsTable() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="px-4 space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Task Automations</h2>
         <Button onClick={() => setModalOpen(true)}>
@@ -300,12 +300,13 @@ export function TaskAutomationsTable() {
               open={openCategories[category as keyof typeof openCategories]}
               onOpenChange={() => toggleCategory(category)}
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold px-1">
-                  {categoryLabels[category as keyof typeof categoryLabels]}
-                </h3>
+              <div className="flex items-center gap-2 mb-3">
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                  >
                     {openCategories[category as keyof typeof openCategories] ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -313,6 +314,9 @@ export function TaskAutomationsTable() {
                     )}
                   </Button>
                 </CollapsibleTrigger>
+                <h3 className="text-lg font-semibold">
+                  {categoryLabels[category as keyof typeof categoryLabels]}
+                </h3>
               </div>
               <CollapsibleContent>
               <Table>
