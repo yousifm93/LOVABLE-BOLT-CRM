@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +20,11 @@ interface ModernTask {
   assignee_id?: string;
   borrower_id?: string;
   task_order: number;
+  completion_requirement_type?: string;
   assignee?: { first_name: string; last_name: string };
-  borrower?: { first_name: string; last_name: string };
+  borrower?: { first_name: string; last_name: string; phone?: string };
+  buyer_agent?: { first_name: string; last_name: string; phone?: string };
+  listing_agent?: { first_name: string; last_name: string; phone?: string };
 }
 
 const columns: ColumnDef<ModernTask>[] = [
@@ -37,9 +40,47 @@ const columns: ColumnDef<ModernTask>[] = [
     header: "Task",
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.title}</div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.original.title}</span>
+          {row.original.completion_requirement_type && row.original.completion_requirement_type !== 'none' && (
+            <Badge variant="outline" className="text-xs">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              Required
+            </Badge>
+          )}
+        </div>
         {row.original.description && (
           <div className="text-sm text-muted-foreground mt-1">{row.original.description}</div>
+        )}
+        
+        {row.original.completion_requirement_type === 'log_call_buyer_agent' && row.original.buyer_agent && (
+          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+            <Phone className="h-3 w-3" />
+            <span>{row.original.buyer_agent.first_name} {row.original.buyer_agent.last_name}</span>
+            {row.original.buyer_agent.phone && (
+              <span className="font-mono">• {row.original.buyer_agent.phone}</span>
+            )}
+          </div>
+        )}
+        
+        {row.original.completion_requirement_type === 'log_call_listing_agent' && row.original.listing_agent && (
+          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+            <Phone className="h-3 w-3" />
+            <span>{row.original.listing_agent.first_name} {row.original.listing_agent.last_name}</span>
+            {row.original.listing_agent.phone && (
+              <span className="font-mono">• {row.original.listing_agent.phone}</span>
+            )}
+          </div>
+        )}
+        
+        {row.original.completion_requirement_type === 'log_call_borrower' && row.original.borrower && (
+          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+            <Phone className="h-3 w-3" />
+            <span>{row.original.borrower.first_name} {row.original.borrower.last_name}</span>
+            {row.original.borrower.phone && (
+              <span className="font-mono">• {row.original.borrower.phone}</span>
+            )}
+          </div>
         )}
       </div>
     ),
