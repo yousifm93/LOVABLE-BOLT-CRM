@@ -48,6 +48,8 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     due_date_offset_days: null as number | null,
     is_active: true,
     category: '',
+    completion_requirement_type: 'none',
+    completion_requirement_config: {},
   });
 
   useEffect(() => {
@@ -67,6 +69,8 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: automation.due_date_offset_days,
         is_active: automation.is_active ?? true,
         category: automation.category || '',
+        completion_requirement_type: automation.completion_requirement_type || 'none',
+        completion_requirement_config: automation.completion_requirement_config || {},
       });
     } else {
       setFormData({
@@ -80,6 +84,8 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: null,
         is_active: true,
         category: '',
+        completion_requirement_type: 'none',
+        completion_requirement_config: {},
       });
     }
   }, [automation, open]);
@@ -480,6 +486,27 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="active_loan">Active Loan</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="completion_requirement">Completion Requirement</Label>
+                <Select
+                  value={formData.completion_requirement_type}
+                  onValueChange={(value) => setFormData({ ...formData, completion_requirement_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select requirement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None - can be completed anytime</SelectItem>
+                    <SelectItem value="log_call_buyer_agent">Require call log to Buyer's Agent</SelectItem>
+                    <SelectItem value="log_call_listing_agent">Require call log to Listing Agent</SelectItem>
+                    <SelectItem value="log_call_borrower">Require call log to Borrower</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Defines what must be completed before this task can be marked as done
+                </p>
               </div>
             </div>
 

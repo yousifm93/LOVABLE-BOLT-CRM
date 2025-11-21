@@ -3136,6 +3136,8 @@ export type Database = {
         Row: {
           assigned_to_user_id: string | null
           category: string | null
+          completion_requirement_config: Json | null
+          completion_requirement_type: string | null
           created_at: string | null
           created_by: string | null
           due_date_offset_days: number | null
@@ -3153,6 +3155,8 @@ export type Database = {
         Insert: {
           assigned_to_user_id?: string | null
           category?: string | null
+          completion_requirement_config?: Json | null
+          completion_requirement_type?: string | null
           created_at?: string | null
           created_by?: string | null
           due_date_offset_days?: number | null
@@ -3170,6 +3174,8 @@ export type Database = {
         Update: {
           assigned_to_user_id?: string | null
           category?: string | null
+          completion_requirement_config?: Json | null
+          completion_requirement_type?: string | null
           created_at?: string | null
           created_by?: string | null
           due_date_offset_days?: number | null
@@ -3205,6 +3211,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           borrower_id: string | null
+          completion_requirement_type: string | null
           created_at: string
           created_by: string | null
           creation_log: Json | null
@@ -3222,6 +3229,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           borrower_id?: string | null
+          completion_requirement_type?: string | null
           created_at?: string
           created_by?: string | null
           creation_log?: Json | null
@@ -3239,6 +3247,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           borrower_id?: string | null
+          completion_requirement_type?: string | null
           created_at?: string
           created_by?: string | null
           creation_log?: Json | null
