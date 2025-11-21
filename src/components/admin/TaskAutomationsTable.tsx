@@ -142,6 +142,10 @@ export function TaskAutomationsTable() {
         return 'When Close Date changes (if Disc Status = Signed)';
       }
       
+      if (field === 'loan_amount') {
+        return 'When Loan Amount changes (if Disc Status = Signed)';
+      }
+      
       if (field && targetStatus) {
         const fieldLabel = field
           .split('_')
