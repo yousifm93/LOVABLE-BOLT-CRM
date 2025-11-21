@@ -167,7 +167,8 @@ export function ClientDetailDrawer({ client, isOpen, onClose, onStageChange, pip
               user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` : 
                     activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
               author_id: activity.author?.id || activity.user?.id,
-              task_id: activity.id
+              task_id: activity.id,
+              task_status: activity.status // Include task status for color coding
             };
           }
           

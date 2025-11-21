@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
+import { cn } from "@/lib/utils";
 
 interface Activity {
   id: number;
@@ -17,6 +18,7 @@ interface Activity {
   user: string;
   author_id?: string;
   task_id?: string;
+  task_status?: string;
 }
 
 interface ActivityTabProps {
@@ -64,8 +66,8 @@ const getActivityBadgeLabel = (type: Activity['type']): string => {
   }
 };
 
-const getActivityBadgeVariant = (type: Activity['type']) => {
-  switch (type) {
+const getActivityBadgeVariant = (activity: Activity) => {
+  switch (activity.type) {
     case 'call':
       return 'default';
     case 'email':
@@ -75,7 +77,8 @@ const getActivityBadgeVariant = (type: Activity['type']) => {
     case 'note':
       return 'secondary';
     case 'task':
-      return 'default';
+      // Full orange if completed, lighter if not
+      return activity.task_status === 'Done' ? 'default' : 'outline';
     default:
       return 'default';
   }
@@ -161,8 +164,12 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                   <div className="flex-1 space-y-1 min-w-0 text-left">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge 
-                        variant={getActivityBadgeVariant(activity.type)} 
-                        className="text-xs flex items-center gap-1"
+                        variant={getActivityBadgeVariant(activity)} 
+                        className={cn(
+                          "text-xs flex items-center gap-1",
+                          activity.type === 'task' && activity.task_status !== 'Done' && 
+                          "bg-orange-100 text-orange-600 hover:bg-orange-100 border-orange-200"
+                        )}
                       >
                         {getActivityIcon(activity.type)}
                         {getActivityBadgeLabel(activity.type)}
