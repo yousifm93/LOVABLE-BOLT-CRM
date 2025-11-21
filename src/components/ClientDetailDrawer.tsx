@@ -213,7 +213,7 @@ export function ClientDetailDrawer({
           type: activityType,
           title: isTaskLog ? 'Task created' : activity.type === 'note' ? 'Note added' : activity.type === 'call' ? 'Call logged' : activity.type === 'sms' ? 'SMS logged' : 'Email logged',
           description,
-          timestamp: activity.created_at,
+          timestamp: activity.timestamp || activity.created_at,
           user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` : activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
           author_id: activity.author_id || activity.user_id,
           task_id: isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null
@@ -399,8 +399,8 @@ export function ClientDetailDrawer({
                 </div>
               </div>
               
-              {/* Middle Column: Last Communication */}
-              <div className="border border-border rounded-md p-3 bg-background space-y-2">
+        {/* Middle Column: Last Communication */}
+        <div className="border border-border rounded-md p-2 bg-background space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
@@ -425,25 +425,25 @@ export function ClientDetailDrawer({
               
               {/* Right Column: Financial Goals */}
               <div className="space-y-3 min-w-[160px]">
-                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
-                  <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
-                  <InlineEditCurrency 
-                    value={(client as any).monthly_pmt_goal || null} 
-                    onValueChange={value => handleLeadUpdate('monthly_pmt_goal', value)} 
-                    placeholder="$0"
-                    className="text-lg font-bold"
-                  />
-                </div>
+          <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+            <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
+            <InlineEditCurrency 
+              value={(client as any).monthly_pmt_goal || null} 
+              onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
+              placeholder="$0"
+              className="text-lg font-bold"
+            />
+          </div>
                 
-                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
-                  <div className="text-xs text-muted-foreground mb-1">Cash to Close Goal</div>
-                  <InlineEditCurrency 
-                    value={(client as any).cash_to_close_goal || null} 
-                    onValueChange={value => handleLeadUpdate('cash_to_close_goal', value)} 
-                    placeholder="$0"
-                    className="text-lg font-bold"
-                  />
-                </div>
+          <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+            <div className="text-xs text-muted-foreground mb-1">Cash to Close Goal</div>
+            <InlineEditCurrency 
+              value={(client as any).cash_to_close_goal || null} 
+              onValueChange={value => handleLeadUpdate('cashToCloseGoal', value)} 
+              placeholder="$0"
+              className="text-lg font-bold"
+            />
+          </div>
               </div>
             </div>
             
