@@ -400,7 +400,7 @@ export function ClientDetailDrawer({
               </div>
               
         {/* Middle Column: Last Communication */}
-        <div className="border border-border rounded-md p-2 bg-background space-y-1.5">
+        <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
@@ -428,7 +428,7 @@ export function ClientDetailDrawer({
           <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
             <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
             <InlineEditCurrency 
-              value={(client as any).monthly_pmt_goal || null} 
+              value={(client as any).monthlyPmtGoal ?? null} 
               onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
               placeholder="$0"
               className="text-lg font-bold"
@@ -438,7 +438,7 @@ export function ClientDetailDrawer({
           <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
             <div className="text-xs text-muted-foreground mb-1">Cash to Close Goal</div>
             <InlineEditCurrency 
-              value={(client as any).cash_to_close_goal || null} 
+              value={(client as any).cashToCloseGoal ?? null} 
               onValueChange={value => handleLeadUpdate('cashToCloseGoal', value)} 
               placeholder="$0"
               className="text-lg font-bold"
