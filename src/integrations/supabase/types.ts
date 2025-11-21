@@ -2419,6 +2419,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_views: {
+        Row: {
+          column_order: Json
+          column_widths: Json | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          pipeline_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          column_order?: Json
+          column_widths?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          pipeline_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          column_order?: Json
+          column_widths?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          pipeline_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       podcast_analytics: {
         Row: {
           episode_id: string

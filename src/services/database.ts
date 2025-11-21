@@ -1787,5 +1787,65 @@ export const databaseService = {
     
     if (error) throw error;
     return data.signedUrl;
+  },
+
+  // Pipeline Views
+  async getPipelineViews(pipelineType: string) {
+    const { data, error } = await supabase
+      .from('pipeline_views')
+      .select('*')
+      .eq('pipeline_type', pipelineType)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async createPipelineView(view: {
+    name: string;
+    pipeline_type: string;
+    column_order: string[];
+    column_widths?: Record<string, number>;
+    is_default?: boolean;
+  }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { data, error } = await supabase
+      .from('pipeline_views')
+      .insert({
+        ...view,
+        created_by: user?.id
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePipelineView(id: string, updates: {
+    name?: string;
+    column_order?: string[];
+    column_widths?: Record<string, number>;
+    is_default?: boolean;
+  }) {
+    const { data, error } = await supabase
+      .from('pipeline_views')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePipelineView(id: string) {
+    const { error } = await supabase
+      .from('pipeline_views')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 };

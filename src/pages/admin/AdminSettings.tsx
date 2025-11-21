@@ -1,7 +1,8 @@
-import { Settings, FileQuestion, Shield } from "lucide-react";
+import { Settings, FileQuestion, Shield, Layout } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PasswordsVault from "@/pages/PasswordsVault";
+import PipelineViews from "@/pages/admin/PipelineViews";
 
 export default function AdminSettings() {
   return (
@@ -15,7 +16,7 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="system" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System Settings
@@ -27,6 +28,10 @@ export default function AdminSettings() {
             <TabsTrigger value="passwords" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Passwords
+            </TabsTrigger>
+            <TabsTrigger value="pipeline-views" className="flex items-center gap-2">
+              <Layout className="h-4 w-4" />
+              Pipeline Views
             </TabsTrigger>
           </TabsList>
 
@@ -58,6 +63,10 @@ export default function AdminSettings() {
 
           <TabsContent value="passwords" className="space-y-4">
             <PasswordsVault />
+          </TabsContent>
+
+          <TabsContent value="pipeline-views" className="space-y-4">
+            <PipelineViews />
           </TabsContent>
         </Tabs>
       </div>
