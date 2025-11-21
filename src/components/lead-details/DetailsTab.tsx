@@ -24,7 +24,8 @@ import {
   Calculator,
   Receipt,
   Building2,
-  Wallet
+  Wallet,
+  ArrowRightLeft
 } from "lucide-react";
 import { 
   formatCurrency, 
@@ -61,6 +62,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     piti: client.piti || null,
     cash_to_close: (client as any).cash_to_close || null,
     closing_costs: (client as any).closing_costs || null,
+    loan_type: client.loan?.loanType || "",
     
     // Borrower Info
     first_name: client.person?.firstName || "",
@@ -128,6 +130,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       piti: client.piti || null,
       cash_to_close: (client as any).cash_to_close || null,
       closing_costs: (client as any).closing_costs || null,
+      loan_type: client.loan?.loanType || "",
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
       ssn: (client as any).ssn || "",
@@ -182,6 +185,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         piti: editData.piti,
         cash_to_close: editData.cash_to_close,
         closing_costs: editData.closing_costs,
+        loan_type: editData.loan_type,
         
         // Borrower Info
         first_name: editData.first_name,
@@ -381,6 +385,26 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           className="h-8"
           placeholder="0"
         />
+      ) : undefined
+    },
+    { 
+      icon: ArrowRightLeft, 
+      label: "Transaction Type", 
+      value: client.loan?.loanType || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.loan_type}
+          onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Purchase">Purchase</SelectItem>
+            <SelectItem value="Refinance">Refinance</SelectItem>
+            <SelectItem value="HELOC">HELOC</SelectItem>
+          </SelectContent>
+        </Select>
       ) : undefined
     }
   ];
