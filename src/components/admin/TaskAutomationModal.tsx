@@ -201,12 +201,15 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                   <SelectTrigger>
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
-                    <SelectItem value="title_status">Title Status</SelectItem>
-                    <SelectItem value="insurance_status">Insurance Status</SelectItem>
-                    <SelectItem value="condo_status">Condo Status</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
+                  <SelectItem value="disclosure_status">Disclosure Status</SelectItem>
+                  <SelectItem value="loan_status">Loan Status</SelectItem>
+                  <SelectItem value="close_date">Close Date</SelectItem>
+                  <SelectItem value="title_status">Title Status</SelectItem>
+                  <SelectItem value="insurance_status">Insurance Status</SelectItem>
+                  <SelectItem value="condo_status">Condo Status</SelectItem>
+                </SelectContent>
                 </Select>
               </div>
 

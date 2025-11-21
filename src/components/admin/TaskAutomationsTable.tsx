@@ -138,6 +138,10 @@ export function TaskAutomationsTable() {
       const field = config?.field;
       const targetStatus = config?.target_status;
       
+      if (field === 'close_date') {
+        return 'When Close Date changes (if Disc Status = Signed)';
+      }
+      
       if (field && targetStatus) {
         const fieldLabel = field
           .split('_')
