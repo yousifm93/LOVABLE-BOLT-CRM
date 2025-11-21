@@ -6,10 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, Edit2 } from "lucide-react";
+import { Calendar, User, Clock, Edit2, Phone, ShieldCheck } from "lucide-react";
 import { formatDateModern } from "@/utils/dateUtils";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
+import { validateTaskCompletion } from "@/services/taskCompletionValidation";
+import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
+import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface TaskDetailModalProps {
   open: boolean;
@@ -24,6 +28,11 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [requirementModalOpen, setRequirementModalOpen] = useState(false);
+  const [completionRequirement, setCompletionRequirement] = useState<any>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
+  const [agentCallLogOpen, setAgentCallLogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
 
   useEffect(() => {
     if (open && task) {
@@ -50,6 +59,18 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
 
   const handleSave = async () => {
     if (!task?.id) return;
+
+    // Validate if trying to mark as Done
+    if (editData.status === 'Done' && task.status !== 'Done') {
+      const validation = await validateTaskCompletion(task);
+      
+      if (!validation.canComplete) {
+        setCompletionRequirement(validation);
+        setRequirementModalOpen(true);
+        setPendingStatusChange('Done');
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -81,6 +102,39 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
     }
   };
 
+  const handleLogCallFromModal = () => {
+    setRequirementModalOpen(false);
+    
+    if (!completionRequirement?.contactInfo) return;
+    
+    if (completionRequirement.contactInfo.type === 'buyer_agent' || 
+        completionRequirement.contactInfo.type === 'listing_agent') {
+      setSelectedAgent({
+        id: completionRequirement.contactInfo.id,
+        first_name: completionRequirement.contactInfo.name.split(' ')[0],
+        last_name: completionRequirement.contactInfo.name.split(' ').slice(1).join(' '),
+        phone: completionRequirement.contactInfo.phone
+      });
+      setAgentCallLogOpen(true);
+    }
+  };
+
+  const handleAgentCallLogged = async () => {
+    setAgentCallLogOpen(false);
+    
+    if (pendingStatusChange) {
+      setEditData({ ...editData, status: pendingStatusChange });
+      setPendingStatusChange(null);
+      
+      toast({
+        title: "Call logged",
+        description: "Retrying task completion...",
+      });
+      
+      setTimeout(() => handleSave(), 500);
+    }
+  };
+
   if (!task) return null;
 
   const assignableUsers = users.filter(u => 
@@ -88,24 +142,40 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Task Details</DialogTitle>
-            {!isEditing && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="h-8"
-              >
-                <Edit2 className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DialogTitle>Task Details</DialogTitle>
+                {task?.completion_requirement_type && task.completion_requirement_type !== 'none' && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge variant="outline" className="text-xs">
+                        <ShieldCheck className="h-3 w-3 mr-1" />
+                        Required
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      This task has completion requirements
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+              {!isEditing && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8"
+                >
+                  <Edit2 className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
         
         <div className="space-y-6">
           {isEditing ? (
@@ -228,6 +298,37 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                 {task.description && (
                   <p className="text-muted-foreground mt-2">{task.description}</p>
                 )}
+                
+                {/* Contact Info based on completion requirement */}
+                {task.completion_requirement_type === 'log_call_buyer_agent' && task.buyer_agent && (
+                  <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2 bg-muted p-2 rounded-md">
+                    <Phone className="h-3 w-3" />
+                    <span className="font-medium">{task.buyer_agent.first_name} {task.buyer_agent.last_name}</span>
+                    {task.buyer_agent.phone && (
+                      <span className="font-mono">• {task.buyer_agent.phone}</span>
+                    )}
+                  </div>
+                )}
+                
+                {task.completion_requirement_type === 'log_call_listing_agent' && task.listing_agent && (
+                  <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2 bg-muted p-2 rounded-md">
+                    <Phone className="h-3 w-3" />
+                    <span className="font-medium">{task.listing_agent.first_name} {task.listing_agent.last_name}</span>
+                    {task.listing_agent.phone && (
+                      <span className="font-mono">• {task.listing_agent.phone}</span>
+                    )}
+                  </div>
+                )}
+                
+                {task.completion_requirement_type === 'log_call_borrower' && task.borrower && (
+                  <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2 bg-muted p-2 rounded-md">
+                    <Phone className="h-3 w-3" />
+                    <span className="font-medium">{task.borrower.first_name} {task.borrower.last_name}</span>
+                    {task.borrower.phone && (
+                      <span className="font-mono">• {task.borrower.phone}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -294,5 +395,23 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
         </div>
       </DialogContent>
     </Dialog>
+
+    <TaskCompletionRequirementModal
+      open={requirementModalOpen}
+      onOpenChange={setRequirementModalOpen}
+      requirement={completionRequirement || { message: '', missingRequirement: '' }}
+      onLogCall={handleLogCallFromModal}
+    />
+
+    {selectedAgent && (
+      <AgentCallLogModal
+        agentId={selectedAgent.id}
+        agentName={`${selectedAgent.first_name} ${selectedAgent.last_name}`}
+        isOpen={agentCallLogOpen}
+        onClose={() => setAgentCallLogOpen(false)}
+        onCallLogged={handleAgentCallLogged}
+      />
+    )}
+    </TooltipProvider>
   );
 }
