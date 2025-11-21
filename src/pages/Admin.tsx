@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useFieldManagement } from "@/hooks/useFieldManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
 interface Field {
   id: string;
   field_name: string;
@@ -30,65 +29,77 @@ interface Field {
   is_system_field: boolean;
   sort_order: number;
 }
-
 export default function Admin() {
   const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fieldToDelete, setFieldToDelete] = useState<any>(null);
-  
+
   // Dashboard stats
   const [stats, setStats] = useState({
     totalLeads: 0,
     activeUsers: 0,
     customFields: 0,
-    taskAutomations: 0,
+    taskAutomations: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
-  
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showSystemFields, setShowSystemFields] = useState(true);
   const [showInactiveFields, setShowInactiveFields] = useState(true);
-
-  const { fields, loading, addField, updateField, deleteField } = useFieldManagement();
+  const {
+    fields,
+    loading,
+    addField,
+    updateField,
+    deleteField
+  } = useFieldManagement();
 
   // Fetch dashboard stats
   useEffect(() => {
     const fetchStats = async () => {
       setLoadingStats(true);
-      
       try {
         // Fetch total leads (all pipeline stages)
-        const { count: leadsCount } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true });
-        
+        const {
+          count: leadsCount
+        } = await supabase.from('leads').select('*', {
+          count: 'exact',
+          head: true
+        });
+
         // Fetch active users
-        const { count: usersCount } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_active', true);
-        
+        const {
+          count: usersCount
+        } = await supabase.from('users').select('*', {
+          count: 'exact',
+          head: true
+        }).eq('is_active', true);
+
         // Fetch custom fields in use
-        const { count: fieldsCount } = await supabase
-          .from('crm_fields')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_in_use', true);
-        
+        const {
+          count: fieldsCount
+        } = await supabase.from('crm_fields').select('*', {
+          count: 'exact',
+          head: true
+        }).eq('is_in_use', true);
+
         // Fetch task automations count
-        const { count: automationsCount } = await supabase
-          .from('task_automations')
-          .select('*', { count: 'exact', head: true });
-        
+        const {
+          count: automationsCount
+        } = await supabase.from('task_automations').select('*', {
+          count: 'exact',
+          head: true
+        });
         setStats({
           totalLeads: leadsCount || 0,
           activeUsers: usersCount || 0,
           customFields: fieldsCount || 0,
-          taskAutomations: automationsCount || 0,
+          taskAutomations: automationsCount || 0
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -96,54 +107,43 @@ export default function Admin() {
         setLoadingStats(false);
       }
     };
-    
     fetchStats();
   }, []);
 
   // Apply filters
   const filteredFields = fields.filter(field => {
-    const matchesSearch = 
-      field.field_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      field.display_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = field.field_name.toLowerCase().includes(searchQuery.toLowerCase()) || field.display_name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSection = sectionFilter === "all" || field.section === sectionFilter;
     const matchesType = typeFilter === "all" || field.field_type === typeFilter;
     const matchesSystem = showSystemFields || !field.is_system_field;
     const matchesActive = showInactiveFields || field.is_in_use;
-    
     return matchesSearch && matchesSection && matchesType && matchesSystem && matchesActive;
   });
 
   // Get unique sections and types for filter dropdowns
   const uniqueSections = Array.from(new Set(fields.map(f => f.section))).sort();
   const uniqueTypes = Array.from(new Set(fields.map(f => f.field_type))).sort();
-
-  const systemStats = [
-    { 
-      label: "Total Pipeline Records", 
-      value: loadingStats ? "..." : stats.totalLeads.toLocaleString(), 
-      icon: Database, 
-      color: "text-primary" 
-    },
-    { 
-      label: "Active Users", 
-      value: loadingStats ? "..." : stats.activeUsers.toString(), 
-      icon: Users, 
-      color: "text-success" 
-    },
-    { 
-      label: "Custom Fields", 
-      value: loadingStats ? "..." : stats.customFields.toString(), 
-      icon: FileText, 
-      color: "text-warning" 
-    },
-    { 
-      label: "Task Automations", 
-      value: loadingStats ? "..." : stats.taskAutomations.toString(), 
-      icon: Zap, 
-      color: "text-blue-500" 
-    },
-  ];
-
+  const systemStats = [{
+    label: "Total Pipeline Records",
+    value: loadingStats ? "..." : stats.totalLeads.toLocaleString(),
+    icon: Database,
+    color: "text-primary"
+  }, {
+    label: "Active Users",
+    value: loadingStats ? "..." : stats.activeUsers.toString(),
+    icon: Users,
+    color: "text-success"
+  }, {
+    label: "Custom Fields",
+    value: loadingStats ? "..." : stats.customFields.toString(),
+    icon: FileText,
+    color: "text-warning"
+  }, {
+    label: "Task Automations",
+    value: loadingStats ? "..." : stats.taskAutomations.toString(),
+    icon: Zap,
+    color: "text-blue-500"
+  }];
   const handleAddField = async (fieldData: {
     field_name: string;
     display_name: string;
@@ -161,10 +161,9 @@ export default function Admin() {
       is_visible: true,
       is_system_field: false,
       is_in_use: true,
-      sort_order: fields.length + 1,
+      sort_order: fields.length + 1
     });
   };
-
   const startEdit = (field: any) => {
     setEditingField(field.id);
     setEditData({
@@ -175,26 +174,22 @@ export default function Admin() {
       is_required: field.is_required,
       is_visible: field.is_visible,
       is_in_use: field.is_in_use,
-      sort_order: field.sort_order,
+      sort_order: field.sort_order
     });
   };
-
   const saveEdit = async (fieldId: string) => {
     await updateField(fieldId, editData);
     setEditingField(null);
     setEditData({});
   };
-
   const cancelEdit = () => {
     setEditingField(null);
     setEditData({});
   };
-
   const confirmDelete = (field: any) => {
     setFieldToDelete(field);
     setDeleteDialogOpen(true);
   };
-
   const handleDelete = async () => {
     if (fieldToDelete) {
       await deleteField(fieldToDelete.id);
@@ -204,74 +199,61 @@ export default function Admin() {
   };
 
   // Define columns for DataTable
-  const fieldColumns: ColumnDef<Field>[] = [
-    {
-      accessorKey: 'field_name',
-      header: 'Field Name',
-      width: 130,
-      minWidth: 100,
-      maxWidth: 200,
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.field_name}</span>
-      ),
-    },
-    {
-      accessorKey: 'display_name',
-      header: 'Display Name',
-      width: 140,
-      minWidth: 100,
-      maxWidth: 250,
-      cell: ({ row }) => {
-        const field = row.original;
-        return editingField === field.id ? (
-          <Input
-            value={editData.display_name}
-            onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
-            className="h-7"
-          />
-        ) : (
-          <span>{field.display_name}</span>
-        );
-      },
-    },
-    {
-      accessorKey: 'description',
-      header: 'Description',
-      width: 120,
-      minWidth: 80,
-      maxWidth: 300,
-      cell: ({ row }) => {
-        const field = row.original;
-        return editingField === field.id ? (
-          <Input
-            value={editData.description || ""}
-            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-            placeholder="Add description..."
-            className="h-7"
-          />
-        ) : (
-          <span 
-            className="text-xs text-muted-foreground truncate block"
-            title={field.description || ""}
-          >
+  const fieldColumns: ColumnDef<Field>[] = [{
+    accessorKey: 'field_name',
+    header: 'Field Name',
+    width: 130,
+    minWidth: 100,
+    maxWidth: 200,
+    cell: ({
+      row
+    }) => <span className="font-mono text-xs">{row.original.field_name}</span>
+  }, {
+    accessorKey: 'display_name',
+    header: 'Display Name',
+    width: 140,
+    minWidth: 100,
+    maxWidth: 250,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Input value={editData.display_name} onChange={e => setEditData({
+        ...editData,
+        display_name: e.target.value
+      })} className="h-7" /> : <span>{field.display_name}</span>;
+    }
+  }, {
+    accessorKey: 'description',
+    header: 'Description',
+    width: 120,
+    minWidth: 80,
+    maxWidth: 300,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Input value={editData.description || ""} onChange={e => setEditData({
+        ...editData,
+        description: e.target.value
+      })} placeholder="Add description..." className="h-7" /> : <span className="text-xs text-muted-foreground truncate block" title={field.description || ""}>
             {field.description || "—"}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: 'section',
-      header: 'Section',
-      width: 90,
-      minWidth: 80,
-      maxWidth: 150,
-      cell: ({ row }) => {
-        const field = row.original;
-        return editingField === field.id ? (
-          <Select 
-            value={editData.section} 
-            onValueChange={(value) => setEditData({ ...editData, section: value })}
-          >
+          </span>;
+    }
+  }, {
+    accessorKey: 'section',
+    header: 'Section',
+    width: 90,
+    minWidth: 80,
+    maxWidth: 150,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Select value={editData.section} onValueChange={value => setEditData({
+        ...editData,
+        section: value
+      })}>
             <SelectTrigger className="h-7">
               <SelectValue />
             </SelectTrigger>
@@ -284,25 +266,22 @@ export default function Admin() {
               <SelectItem value="DATES">Dates</SelectItem>
               <SelectItem value="STATUS">Status</SelectItem>
             </SelectContent>
-          </Select>
-        ) : (
-          <Badge variant="outline" className="text-xs">{field.section}</Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'field_type',
-      header: 'Type',
-      width: 80,
-      minWidth: 70,
-      maxWidth: 120,
-      cell: ({ row }) => {
-        const field = row.original;
-        return editingField === field.id ? (
-          <Select 
-            value={editData.field_type} 
-            onValueChange={(value) => setEditData({ ...editData, field_type: value })}
-          >
+          </Select> : <Badge variant="outline" className="text-xs">{field.section}</Badge>;
+    }
+  }, {
+    accessorKey: 'field_type',
+    header: 'Type',
+    width: 80,
+    minWidth: 70,
+    maxWidth: 120,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Select value={editData.field_type} onValueChange={value => setEditData({
+        ...editData,
+        field_type: value
+      })}>
             <SelectTrigger className="h-7">
               <SelectValue />
             </SelectTrigger>
@@ -319,162 +298,138 @@ export default function Admin() {
               <SelectItem value="select">Select</SelectItem>
               <SelectItem value="file">File</SelectItem>
             </SelectContent>
-          </Select>
-        ) : (
-          <Badge>{field.field_type}</Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'is_required',
-      header: 'Required',
-      width: 70,
-      minWidth: 70,
-      maxWidth: 90,
-      sortable: false,
-      cell: ({ row }) => {
-        const field = row.original;
-        return (
-          <Switch
-            checked={editingField === field.id ? editData.is_required : field.is_required}
-            disabled={field.is_system_field || editingField !== field.id}
-            onCheckedChange={(checked) => {
-              if (editingField === field.id) {
-                setEditData({ ...editData, is_required: checked });
-              } else {
-                updateField(field.id, { is_required: checked });
-              }
-            }}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: 'is_visible',
-      header: 'Visible',
-      width: 70,
-      minWidth: 70,
-      maxWidth: 90,
-      sortable: false,
-      cell: ({ row }) => {
-        const field = row.original;
-        return (
-          <Switch
-            checked={editingField === field.id ? editData.is_visible : field.is_visible}
-            disabled={editingField !== field.id}
-            onCheckedChange={(checked) => {
-              if (editingField === field.id) {
-                setEditData({ ...editData, is_visible: checked });
-              } else {
-                updateField(field.id, { is_visible: checked });
-              }
-            }}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: 'is_in_use',
-      header: 'In Use',
-      width: 70,
-      minWidth: 70,
-      maxWidth: 90,
-      sortable: false,
-      cell: ({ row }) => {
-        const field = row.original;
-        return (
-          <Switch
-            checked={editingField === field.id ? editData.is_in_use : field.is_in_use}
-            disabled={editingField !== field.id}
-            onCheckedChange={(checked) => {
-              if (editingField === field.id) {
-                setEditData({ ...editData, is_in_use: checked });
-              } else {
-                updateField(field.id, { is_in_use: checked });
-              }
-            }}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: 'is_system_field',
-      header: 'System',
-      width: 70,
-      minWidth: 70,
-      maxWidth: 90,
-      cell: ({ row }) => {
-        const field = row.original;
-        return field.is_system_field ? (
-          <Badge variant="secondary" className="text-xs">System</Badge>
-        ) : null;
-      },
-    },
-    {
-      accessorKey: 'sort_order',
-      header: 'Sort',
-      width: 60,
-      minWidth: 50,
-      maxWidth: 80,
-      cell: ({ row }) => {
-        const field = row.original;
-        return editingField === field.id ? (
-          <Input
-            type="number"
-            value={editData.sort_order}
-            onChange={(e) => setEditData({ ...editData, sort_order: parseInt(e.target.value) || 0 })}
-            className="h-7 w-16"
-          />
-        ) : (
-          <span className="text-xs text-muted-foreground">{field.sort_order}</span>
-        );
-      },
-    },
-    {
-      accessorKey: 'actions',
-      header: 'Actions',
-      width: 90,
-      minWidth: 90,
-      maxWidth: 120,
-      sortable: false,
-      cell: ({ row }) => {
-        const field = row.original;
-        return (
-          <div className="flex gap-1">
-            {editingField === field.id ? (
-              <>
+          </Select> : <Badge>{field.field_type}</Badge>;
+    }
+  }, {
+    accessorKey: 'is_required',
+    header: 'Required',
+    width: 70,
+    minWidth: 70,
+    maxWidth: 90,
+    sortable: false,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return <Switch checked={editingField === field.id ? editData.is_required : field.is_required} disabled={field.is_system_field || editingField !== field.id} onCheckedChange={checked => {
+        if (editingField === field.id) {
+          setEditData({
+            ...editData,
+            is_required: checked
+          });
+        } else {
+          updateField(field.id, {
+            is_required: checked
+          });
+        }
+      }} />;
+    }
+  }, {
+    accessorKey: 'is_visible',
+    header: 'Visible',
+    width: 70,
+    minWidth: 70,
+    maxWidth: 90,
+    sortable: false,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return <Switch checked={editingField === field.id ? editData.is_visible : field.is_visible} disabled={editingField !== field.id} onCheckedChange={checked => {
+        if (editingField === field.id) {
+          setEditData({
+            ...editData,
+            is_visible: checked
+          });
+        } else {
+          updateField(field.id, {
+            is_visible: checked
+          });
+        }
+      }} />;
+    }
+  }, {
+    accessorKey: 'is_in_use',
+    header: 'In Use',
+    width: 70,
+    minWidth: 70,
+    maxWidth: 90,
+    sortable: false,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return <Switch checked={editingField === field.id ? editData.is_in_use : field.is_in_use} disabled={editingField !== field.id} onCheckedChange={checked => {
+        if (editingField === field.id) {
+          setEditData({
+            ...editData,
+            is_in_use: checked
+          });
+        } else {
+          updateField(field.id, {
+            is_in_use: checked
+          });
+        }
+      }} />;
+    }
+  }, {
+    accessorKey: 'is_system_field',
+    header: 'System',
+    width: 70,
+    minWidth: 70,
+    maxWidth: 90,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return field.is_system_field ? <Badge variant="secondary" className="text-xs">System</Badge> : null;
+    }
+  }, {
+    accessorKey: 'sort_order',
+    header: 'Sort',
+    width: 60,
+    minWidth: 50,
+    maxWidth: 80,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Input type="number" value={editData.sort_order} onChange={e => setEditData({
+        ...editData,
+        sort_order: parseInt(e.target.value) || 0
+      })} className="h-7 w-16" /> : <span className="text-xs text-muted-foreground">{field.sort_order}</span>;
+    }
+  }, {
+    accessorKey: 'actions',
+    header: 'Actions',
+    width: 90,
+    minWidth: 90,
+    maxWidth: 120,
+    sortable: false,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return <div className="flex gap-1">
+            {editingField === field.id ? <>
                 <Button size="sm" variant="ghost" onClick={() => saveEdit(field.id)}>
                   <Check className="h-4 w-4 text-success" />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={cancelEdit}>
                   <X className="h-4 w-4 text-destructive" />
                 </Button>
-              </>
-            ) : (
-              <>
+              </> : <>
                 <Button size="sm" variant="ghost" onClick={() => startEdit(field)}>
                   <Edit className="h-4 w-4" />
                 </Button>
-                {!field.is_system_field && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="text-destructive"
-                    onClick={() => confirmDelete(field)}
-                  >
+                {!field.is_system_field && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => confirmDelete(field)}>
                     <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
-
-  return (
-    <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
+                  </Button>}
+              </>}
+          </div>;
+    }
+  }];
+  return <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
         <p className="text-xs italic text-muted-foreground/70">System configuration and field management</p>
@@ -482,8 +437,7 @@ export default function Admin() {
 
       {/* System Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        {systemStats.map((stat, index) => (
-          <Card key={index}>
+        {systemStats.map((stat, index) => <Card key={index}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -493,12 +447,11 @@ export default function Admin() {
                 <stat.icon className={`h-8 w-8 ${stat.color}`} />
               </div>
             </CardContent>
-          </Card>
-        ))}
+          </Card>)}
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="fields" className="space-y-4">
+      <Tabs defaultValue="fields" className="space-y-4 mx-[10px]">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
@@ -539,13 +492,7 @@ export default function Admin() {
                   <Label htmlFor="search" className="text-xs">Search</Label>
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search fields..."
-                      className="pl-8 h-9"
-                    />
+                    <Input id="search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search fields..." className="pl-8 h-9" />
                   </div>
                 </div>
                 <div>
@@ -556,9 +503,7 @@ export default function Admin() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Sections</SelectItem>
-                      {uniqueSections.map(section => (
-                        <SelectItem key={section} value={section}>{section}</SelectItem>
-                      ))}
+                      {uniqueSections.map(section => <SelectItem key={section} value={section}>{section}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -570,29 +515,19 @@ export default function Admin() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
-                      {uniqueTypes.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
+                      {uniqueTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-end gap-2">
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showSystem"
-                      checked={showSystemFields}
-                      onCheckedChange={setShowSystemFields}
-                    />
+                    <Switch id="showSystem" checked={showSystemFields} onCheckedChange={setShowSystemFields} />
                     <Label htmlFor="showSystem" className="text-xs cursor-pointer">System</Label>
                   </div>
                 </div>
                 <div className="flex items-end gap-2">
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showInactive"
-                      checked={showInactiveFields}
-                      onCheckedChange={setShowInactiveFields}
-                    />
+                    <Switch id="showInactive" checked={showInactiveFields} onCheckedChange={setShowInactiveFields} />
                     <Label htmlFor="showInactive" className="text-xs cursor-pointer">Inactive</Label>
                   </div>
                 </div>
@@ -605,20 +540,7 @@ export default function Admin() {
                     Showing {filteredFields.length} of {fields.length} fields
                   </p>
                 </div>
-                {loading ? (
-                  <div className="text-center py-8">Loading fields...</div>
-                ) : (
-                  <DataTable
-                    columns={fieldColumns}
-                    data={filteredFields}
-                    searchTerm=""
-                    lockSort={false}
-                    lockReorder={false}
-                    lockResize={false}
-                    storageKey="admin-fields-table"
-                    showRowNumbers={false}
-                  />
-                )}
+                {loading ? <div className="text-center py-8">Loading fields...</div> : <DataTable columns={fieldColumns} data={filteredFields} searchTerm="" lockSort={false} lockReorder={false} lockResize={false} storageKey="admin-fields-table" showRowNumbers={false} />}
               </div>
             </CardContent>
           </Card>
@@ -655,12 +577,7 @@ export default function Admin() {
       </Tabs>
 
       {/* Add Field Modal */}
-      <AddFieldModal
-        open={addFieldModalOpen}
-        onOpenChange={setAddFieldModalOpen}
-        onAdd={handleAddField}
-        loading={loading}
-      />
+      <AddFieldModal open={addFieldModalOpen} onOpenChange={setAddFieldModalOpen} onAdd={handleAddField} loading={loading} />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -680,6 +597,5 @@ export default function Admin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
+    </div>;
 }
