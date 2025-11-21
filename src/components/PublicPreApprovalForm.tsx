@@ -297,6 +297,67 @@ export function PublicPreApprovalForm({
     }
   };
 
+  const handleDownload = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({
+        title: "Form Incomplete",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const data = form.getValues();
+
+    // Check if address is missing and not marked as "No Address Yet"
+    if (!noAddressYet && (!data.address1 || !data.city || !data.state || !data.zip)) {
+      setShowAddressError(true);
+      setIsAddressOpen(true);
+      setTimeout(() => setShowAddressError(false), 2000);
+      toast({
+        title: "Property Address Required",
+        description: "Please enter property address or select 'No Address Yet'",
+        className: "bg-gradient-primary text-secondary border-none"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const fullName = `${data.firstName} ${data.lastName}`;
+      const propertyAddress = noAddressYet ? 'TBD' : `${data.address1}${data.address2 ? `, ${data.address2}` : ''}, ${data.city}, ${data.state} ${data.zip}`;
+      const salesPriceNumber = data.salesPrice.replace(/,/g, '');
+      const loanAmountNumber = data.loanAmount.replace(/,/g, '');
+      const formattedSalesPrice = `$${parseInt(salesPriceNumber).toLocaleString()}`;
+      const formattedLoanAmount = `$${parseInt(loanAmountNumber).toLocaleString()}`;
+
+      // Generate and download PDF
+      await generatePreApprovalPDF({
+        fullName,
+        propertyAddress,
+        loanType: data.loanType,
+        salesPrice: formattedSalesPrice,
+        loanAmount: formattedLoanAmount
+      }, true);
+
+      toast({
+        title: "Success!",
+        description: "Pre-approval letter downloaded successfully"
+      });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download pre-approval letter. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
       {/* Start Button - only visible when form is hidden */}
@@ -586,11 +647,17 @@ export function PublicPreApprovalForm({
               </form>
             </Form>
 
-            {/* Admin Access Link */}
-            <div className="mt-6 text-center">
-              <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Admin Access
-              </Link>
+            {/* Download Button */}
+            <div className="mt-6">
+              <Button 
+                type="button" 
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={handleDownload}
+                className="w-full"
+              >
+                Download Pre-Approval Letter
+              </Button>
             </div>
           </CardContent>
         </Card>
