@@ -483,9 +483,9 @@ export function DataTable<T extends Record<string, any>>({
             return (
               <ContextMenu>
                 <ContextMenuTrigger asChild>
-                  <TableRow
-                    key={index}
-                    className={cn(
+                <TableRow
+                  key={rowId}
+                  className={cn(
                       "transition-colors h-10",
                       onRowClick && "cursor-pointer",
                       isSelected && "bg-primary/10"
