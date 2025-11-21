@@ -7,13 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Send, ChevronDown, ThumbsUp } from 'lucide-react';
+import { Send, ThumbsUp } from 'lucide-react';
 import { generatePreApprovalPDF } from '@/lib/pdfGenerator';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
@@ -28,7 +26,7 @@ const formSchema = z.object({
   salesPrice: z.string().min(1, 'Sales price is required'),
   loanAmount: z.string().min(1, 'Loan amount is required'),
   noAddressYet: z.boolean().default(false),
-  primaryEmail: z.string().email('Please enter a valid email address'),
+  primaryEmail: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
   secondaryEmail: z.string().email('Please enter a valid email address').optional().or(z.literal(''))
 });
 
@@ -49,8 +47,6 @@ export function PublicPreApprovalForm({
 }: PublicPreApprovalFormProps = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noAddressYet, setNoAddressYet] = useState(false);
-  const [isAddressOpen, setIsAddressOpen] = useState(false);
-  const [showAddressError, setShowAddressError] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -168,16 +164,23 @@ export function PublicPreApprovalForm({
     console.log('onSubmit called with data:', data);
     console.log('noAddressYet:', noAddressYet);
 
+    // Validate email is provided for sending
+    if (!data.primaryEmail || data.primaryEmail.trim() === '') {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address to receive the pre-approval letter",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Check if address is missing and not marked as "No Address Yet"
     if (!noAddressYet && (!data.address1 || !data.city || !data.state || !data.zip)) {
       console.log('Address validation failed, showing toast');
-      setShowAddressError(true);
-      setIsAddressOpen(true);
-      setTimeout(() => setShowAddressError(false), 2000);
       toast({
         title: "Property Address Required",
         description: "Please enter property address or select 'No Address Yet'",
-        className: "bg-gradient-primary text-secondary border-none"
+        variant: "destructive"
       });
       return;
     }
@@ -312,13 +315,10 @@ export function PublicPreApprovalForm({
 
     // Check if address is missing and not marked as "No Address Yet"
     if (!noAddressYet && (!data.address1 || !data.city || !data.state || !data.zip)) {
-      setShowAddressError(true);
-      setIsAddressOpen(true);
-      setTimeout(() => setShowAddressError(false), 2000);
       toast({
         title: "Property Address Required",
         description: "Please enter property address or select 'No Address Yet'",
-        className: "bg-gradient-primary text-secondary border-none"
+        variant: "destructive"
       });
       return;
     }
@@ -380,9 +380,9 @@ export function PublicPreApprovalForm({
       )}>
         <Card className="border-neutral-200 shadow-large">
           <CardHeader>
-            <CardTitle className="text-2xl">Pre-Approval Letter Request</CardTitle>
+            <CardTitle className="text-2xl">Pre-Approval Letter</CardTitle>
             <CardDescription>
-              Enter your details below and we'll email your pre-approval letter directly to you
+              Enter your details below to generate or email your pre-approval letter
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -420,37 +420,29 @@ export function PublicPreApprovalForm({
                 </div>
 
                 {/* Property Address Section */}
-                <Collapsible open={isAddressOpen} onOpenChange={setIsAddressOpen}>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-between",
-                            showAddressError && "border-destructive"
-                          )}
-                        >
-                          <span>Property Address</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">
-                              {noAddressYet ? 'Enter Address' : 'No Address Yet'}
-                            </span>
-                            <ChevronDown className={cn("h-4 w-4 transition-transform", isAddressOpen && "rotate-180")} />
-                          </div>
-                        </Button>
-                      </CollapsibleTrigger>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Property Address</FormLabel>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      onClick={handleNoAddressYet}
+                      className="text-sm h-auto p-0"
+                    >
+                      {noAddressYet ? '✓ No Address Yet' : 'No Address Yet'}
+                    </Button>
+                  </div>
 
-                    <CollapsibleContent className="space-y-4">
+                  {!noAddressYet && (
+                    <>
                       <FormField
                         control={form.control}
                         name="address1"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input {...field} placeholder="Street Address" disabled={noAddressYet} />
+                              <Input {...field} placeholder="Street Address" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -462,13 +454,12 @@ export function PublicPreApprovalForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input {...field} placeholder="Apt, Suite, etc. (optional)" disabled={noAddressYet} />
+                              <Input {...field} placeholder="Apt, Suite, etc. (optional)" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
@@ -476,7 +467,7 @@ export function PublicPreApprovalForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input {...field} placeholder="City" disabled={noAddressYet} />
+                                <Input {...field} placeholder="City" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -488,7 +479,7 @@ export function PublicPreApprovalForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input {...field} placeholder="State" disabled={noAddressYet} />
+                                <Input {...field} placeholder="State" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -500,26 +491,16 @@ export function PublicPreApprovalForm({
                           render={({ field }) => (
                             <FormItem>
                               <FormControl>
-                                <Input {...field} placeholder="ZIP" disabled={noAddressYet} />
+                                <Input {...field} placeholder="ZIP" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleNoAddressYet}
-                        className="text-sm"
-                      >
-                        {noAddressYet ? '✓ No Address Yet' : 'No Address Yet'}
-                      </Button>
-                    </CollapsibleContent>
-                  </div>
-                </Collapsible>
+                    </>
+                  )}
+                </div>
 
                 <FormField
                   control={form.control}

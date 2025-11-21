@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { HeroSection } from '@/components/HeroSection';
 import { PublicPreApprovalForm } from '@/components/PublicPreApprovalForm';
 
 const Letter = () => {
@@ -28,9 +27,6 @@ const Letter = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <HeroSection />
-
       {/* Form Section */}
       <PublicPreApprovalForm
         formVisible={formVisible}
