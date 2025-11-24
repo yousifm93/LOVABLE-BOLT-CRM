@@ -881,98 +881,144 @@ serve(async (req) => {
         // ========== STEP 6: EXTRACT FROM MATERIAL-UI RESULTS PANEL ==========
         console.log('Extracting from Material-UI results panel...');
         
-        // NEW: Enhanced extraction for Material-UI layout
+        // NEW: Precise Material-UI extraction using component structure
         const extractResults = await page.evaluate(() => {
-          console.log('=== Starting Material-UI Results Extraction ===');
+          console.log('=== Starting Material-UI Results Extraction (Strict Mode) ===');
           
-          // Strategy 1: Find the loan program panel (e.g., "Super Prime 30 Year Fixed")
-          const findProgramPanel = () => {
-            const allDivs = Array.from(document.querySelectorAll('div, section, article'));
-            for (const div of allDivs) {
-              const text = div.textContent || '';
-              if ((text.includes('Year Fixed') || text.includes('ARM SOFR')) && 
-                  (text.includes('Prime') || text.includes('Non-QM'))) {
-                console.log('Found program panel:', text.substring(0, 100));
-                return div;
-              }
-            }
-            return null;
+          // Helper: Find all Material-UI Grid items or Box components
+          const findAllGridItems = () => {
+            const candidates = [
+              ...Array.from(document.querySelectorAll('.MuiGrid-item')),
+              ...Array.from(document.querySelectorAll('.MuiBox-root')),
+              ...Array.from(document.querySelectorAll('[class*="MuiGrid"]')),
+              ...Array.from(document.querySelectorAll('div[class*="css-"]'))
+            ];
+            return candidates;
           };
           
-          // Strategy 2: Extract using Material-UI patterns
-          const extractMuiValue = (labelText, panel) => {
-            if (!panel) panel = document.body;
+          // Helper: Extract label-value pair from a single component
+          const extractPairFromComponent = (component) => {
+            // Get all text nodes in this component
+            const allText = component.textContent || '';
             
-            // Method 1: Look for label followed by value in Material-UI grid/layout
-            const labels = Array.from(panel.querySelectorAll('*'));
+            // Skip if too long (not a single field)
+            if (allText.length > 100) return null;
+            
+            // Look for our specific labels
+            const labels = ['Rate, %', 'Rate,%', 'Lender Credit', 'Monthly Payment, $', 'Monthly Payment,$', 'Monthly Payment'];
+            
+            let foundLabel = null;
             for (const label of labels) {
-              const txt = label.textContent || '';
-              if (txt.includes(labelText) && txt.length < 50) {
-                console.log(\`Found label "\${labelText}" in element:\`, txt);
-                
-                // Check Material-UI Typography siblings
-                const parent = label.parentElement;
-                if (parent) {
-                  const siblings = Array.from(parent.children);
-                  const labelIdx = siblings.indexOf(label);
-                  
-                  // Look at next few siblings
-                  for (let i = labelIdx + 1; i < Math.min(labelIdx + 4, siblings.length); i++) {
-                    const sib = siblings[i];
-                    const sibText = sib.textContent?.trim();
-                    if (sibText && sibText !== txt && /[\d.%$,+-]/.test(sibText)) {
-                      console.log(\`  Found value via sibling: \${sibText}\`);
-                      return sibText;
-                    }
-                  }
-                  
-                  // Look in parent's other children (Material-UI often uses flex/grid)
-                  const allChildren = Array.from(parent.querySelectorAll('*'));
-                  for (const child of allChildren) {
-                    const childText = child.textContent?.trim();
-                    if (childText && !childText.includes(labelText) && 
-                        childText.length < 30 && /^[\d.%$,+-]+$/.test(childText.replace(/,/g, ''))) {
-                      console.log(\`  Found value via parent child: \${childText}\`);
-                      return childText;
-                    }
-                  }
-                }
-                
-                // Method 2: Text-based extraction from same container
-                const container = label.closest('div');
-                if (container) {
-                  const fullText = container.textContent || '';
-                  
-                  // Try regex patterns
-                  const patterns = [
-                    new RegExp(labelText.replace(/[(),%$]/g, '\\\\$&') + '[\\s:]*([\\d.,%$+-]+)'),
-                    new RegExp(labelText.replace(/[(),%$]/g, '\\\\$&') + '\\n+([\\d.,%$+-]+)'),
-                  ];
-                  
-                  for (const pattern of patterns) {
-                    const match = fullText.match(pattern);
-                    if (match && match[1]) {
-                      console.log(\`  Found value via regex: \${match[1]}\`);
-                      return match[1];
-                    }
-                  }
-                }
+              if (allText.includes(label)) {
+                foundLabel = label;
+                break;
+              }
+            }
+            
+            if (!foundLabel) return null;
+            
+            // Now extract the value - it should be in the same component
+            // Remove the label to get the value
+            let value = allText.replace(foundLabel, '').trim();
+            
+            // Clean up common separators
+            value = value.replace(/^[:\s]+/, '').replace(/[:\s]+$/, '');
+            
+            // If value contains newlines, take the first numeric part
+            if (value.includes('\\n')) {
+              const parts = value.split('\\n').map(p => p.trim()).filter(p => p);
+              value = parts[0] || value;
+            }
+            
+            // Value should be numeric
+            if (/^[\d.,%-+$]+$/.test(value.replace(/\s/g, ''))) {
+              console.log(\`Found pair: "\${foundLabel}" = "\${value}"\`);
+              return { label: foundLabel, value };
+            }
+            
+            // Alternative: value might be in a child element
+            const children = Array.from(component.children);
+            for (const child of children) {
+              const childText = (child.textContent || '').trim();
+              if (childText && childText !== allText && /[\d.,%-+$]/.test(childText)) {
+                console.log(\`Found pair (via child): "\${foundLabel}" = "\${childText}"\`);
+                return { label: foundLabel, value: childText };
               }
             }
             
             return null;
           };
           
-          // Find the results panel
-          const programPanel = findProgramPanel();
-          console.log('Program panel found:', !!programPanel);
+          // Collect all components
+          const allComponents = findAllGridItems();
+          console.log(\`Scanning \${allComponents.length} Material-UI components\`);
           
-          // Extract values
-          const rateRaw = extractMuiValue('Rate, %', programPanel) || extractMuiValue('Rate,%', programPanel);
-          const lenderCreditRaw = extractMuiValue('Lender Credit', programPanel);
-          const monthlyPaymentRaw = extractMuiValue('Monthly Payment, $', programPanel) || 
-                                    extractMuiValue('Monthly Payment,$', programPanel) ||
-                                    extractMuiValue('Monthly Payment', programPanel);
+          // Extract all label-value pairs
+          const pairs = [];
+          for (const component of allComponents) {
+            const pair = extractPairFromComponent(component);
+            if (pair) {
+              pairs.push(pair);
+            }
+          }
+          
+          console.log(\`Found \${pairs.length} label-value pairs:\`, JSON.stringify(pairs));
+          
+          // Map pairs to our expected fields
+          let rateRaw = null;
+          let lenderCreditRaw = null;
+          let monthlyPaymentRaw = null;
+          
+          for (const pair of pairs) {
+            if (pair.label.includes('Rate')) {
+              rateRaw = pair.value;
+            } else if (pair.label.includes('Lender Credit')) {
+              lenderCreditRaw = pair.value;
+            } else if (pair.label.includes('Monthly Payment')) {
+              monthlyPaymentRaw = pair.value;
+            }
+          }
+          
+          // Fallback: If structured extraction failed, try text-based with strict boundaries
+          if (!rateRaw || !monthlyPaymentRaw) {
+            console.log('Structured extraction incomplete, trying text-based fallback...');
+            
+            // Find the "Values" tab content area
+            const valuesTab = Array.from(document.querySelectorAll('*')).find(el => {
+              const txt = el.textContent || '';
+              return txt.includes('Rate, %') && txt.includes('Monthly Payment') && txt.length < 500;
+            });
+            
+            if (valuesTab) {
+              const text = valuesTab.textContent || '';
+              console.log('Values tab text:', text.substring(0, 300));
+              
+              // Extract using strict regex patterns
+              if (!rateRaw) {
+                const rateMatch = text.match(/Rate,?\s*%[\s\n]*([0-9.]+)/);
+                if (rateMatch) {
+                  rateRaw = rateMatch[1];
+                  console.log('Fallback extracted rate:', rateRaw);
+                }
+              }
+              
+              if (!lenderCreditRaw) {
+                const creditMatch = text.match(/Lender Credit[\s\n]*([0-9.,+-]+)/);
+                if (creditMatch) {
+                  lenderCreditRaw = creditMatch[1];
+                  console.log('Fallback extracted lender credit:', lenderCreditRaw);
+                }
+              }
+              
+              if (!monthlyPaymentRaw) {
+                const paymentMatch = text.match(/Monthly Payment,?\s*\$?[\s\n]*([0-9.,]+)/);
+                if (paymentMatch) {
+                  monthlyPaymentRaw = paymentMatch[1];
+                  console.log('Fallback extracted payment:', monthlyPaymentRaw);
+                }
+              }
+            }
+          }
           
           // Clean up extracted values
           const cleanNumber = (raw) => {
@@ -984,7 +1030,7 @@ serve(async (req) => {
           const discount_points = cleanNumber(lenderCreditRaw);
           const monthly_payment = cleanNumber(monthlyPaymentRaw);
           
-          console.log('=== Extraction Results ===');
+          console.log('=== Final Extraction Results ===');
           console.log('Rate: ' + rate + ' (raw: ' + rateRaw + ')');
           console.log('Lender Credit: ' + discount_points + ' (raw: ' + lenderCreditRaw + ')');
           console.log('Monthly Payment: ' + monthly_payment + ' (raw: ' + monthlyPaymentRaw + ')');
