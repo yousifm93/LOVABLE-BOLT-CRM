@@ -111,7 +111,7 @@ serve(async (req) => {
           
           const ANCHOR_SYNONYMS = {
             'FICO': ['FICO', 'Credit Score', 'FICO Score'],
-            'LTV': ['LTV', 'LTV %', 'Loan to Value', 'CLTV', 'LTV/CLTV'],
+            'CLTV': ['CLTV', 'LTV', 'LTV %', 'Loan to Value', 'LTV/CLTV'],
             'Loan Amount': ['Loan Amount', 'Base Loan Amount', 'Loan Amt']
           };
           
@@ -212,12 +212,83 @@ serve(async (req) => {
         // ========== STEP 2: FRAME-AWARE FILLERS ==========
         const NUMERIC_LABEL_SYNONYMS = {
           'FICO': ['FICO', 'Credit Score', 'FICO Score'],
-          'LTV': ['LTV', 'LTV %', 'Loan to Value', 'CLTV'],
+          'CLTV': ['CLTV', 'LTV', 'LTV %', 'Loan to Value'],
           'Loan Amount': ['Loan Amount', 'Base Loan Amount', 'Loan Amt']
         };
         
+        // Material-UI Slider Filler
+        async function fillSliderFrameAware(labelText, value) {
+          console.log(\`Filling slider \${labelText} with \${value}\`);
+          const allFrames = [page, ...page.frames()];
+          const labelSynonyms = NUMERIC_LABEL_SYNONYMS[labelText] || [labelText];
+          
+          for (let frameIdx = 0; frameIdx < allFrames.length; frameIdx++) {
+            const frame = allFrames[frameIdx];
+            const frameName = frameIdx === 0 ? 'main' : \`iframe-\${frameIdx}\`;
+            
+            for (const synonym of labelSynonyms) {
+              try {
+                // Look for Material-UI slider by label
+                const result = await frame.evaluate((lbl, val) => {
+                  // Find label
+                  const labels = Array.from(document.querySelectorAll('label'));
+                  const label = labels.find(l => l.textContent?.includes(lbl));
+                  if (!label) return null;
+                  
+                  // Find slider container
+                  const container = label.closest('div');
+                  if (!container) return null;
+                  
+                  // Find slider input or thumb
+                  const slider = container.querySelector('.MuiSlider-root, [role="slider"]');
+                  const input = container.querySelector('input[type="number"], input[type="text"], input[type="hidden"]');
+                  
+                  if (input) {
+                    // Try to set value directly
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                    nativeInputValueSetter.call(input, val);
+                    
+                    // Trigger change events
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    
+                    return { success: true, method: 'input', value: input.value };
+                  }
+                  
+                  if (slider) {
+                    // Set aria-valuenow for sliders
+                    slider.setAttribute('aria-valuenow', val);
+                    slider.dispatchEvent(new Event('change', { bubbles: true }));
+                    return { success: true, method: 'slider', value: val };
+                  }
+                  
+                  return null;
+                }, synonym, value);
+                
+                if (result?.success) {
+                  console.log(\`✓ \${labelText} slider set to \${value} in \${frameName} via \${result.method}\`);
+                  await new Promise(r => setTimeout(r, 300));
+                  return true;
+                }
+              } catch (e) {
+                console.error(\`Slider fill error in \${frameName} for \${synonym}:\`, e.message);
+              }
+            }
+          }
+          
+          console.warn(\`Failed to fill slider \${labelText}\`);
+          return false;
+        }
+        
         async function fillNumberInputFrameAware(labelText, value) {
-          console.log(\`Filling \${labelText} with \${value} (frame-aware)\`);
+          // Try slider first for FICO, CLTV, Loan Amount (Material-UI sliders)
+          if (['FICO', 'CLTV', 'Loan Amount'].includes(labelText)) {
+            const sliderSuccess = await fillSliderFrameAware(labelText, value);
+            if (sliderSuccess) return true;
+            console.log(\`Slider fill failed for \${labelText}, trying input fallback...\`);
+          }
+          
+          console.log(\`Filling \${labelText} with \${value} (frame-aware input)\`);
           const allFrames = [page, ...page.frames()];
           const labelSynonyms = NUMERIC_LABEL_SYNONYMS[labelText] || [labelText];
           
@@ -364,35 +435,100 @@ serve(async (req) => {
           return false;
         }
         
-        // Normalization maps for field values
+        // Normalization maps for field values - UPDATED TO MATCH WEBSITE EXACTLY
         const FIELD_SYNONYMS = {
-          program_type: {
-            'Conventional': ['Conventional', 'Agency', 'Conforming'],
-            'Non-QM': ['Non-QM', 'NonQM', 'Non QM'],
-            'FHA': ['FHA'],
-            'VA': ['VA'],
-            'Prime Jumbo': ['Prime Jumbo', 'Jumbo', 'Prime-Jumbo']
+          citizenship: {
+            'US Citizen / Permanent Resident': ['US Citizen / Permanent Resident', 'US Citizen', 'Permanent Resident'],
+            'Non-Permanent Resident': ['Non-Permanent Resident', 'Non Permanent Resident'],
+            'Foreign national': ['Foreign national', 'Foreign National'],
+            'ITIN': ['ITIN']
+          },
+          income_type: {
+            '2Y Full Doc': ['2Y Full Doc', '2 Year Full Doc'],
+            '1Y Full Doc': ['1Y Full Doc', '1 Year Full Doc'],
+            '24 Months Bank Statement': ['24 Months Bank Statement', '24 Month Bank Statement'],
+            '12 Months Bank Statement': ['12 Months Bank Statement', '12 Month Bank Statement'],
+            '2Y P&L Only': ['2Y P&L Only', '2 Year P&L Only'],
+            '1Y P&L Only': ['1Y P&L Only', '1 Year P&L Only'],
+            'Asset Utilization': ['Asset Utilization'],
+            'WVOE': ['WVOE'],
+            '1099': ['1099'],
+            'DSCR ≥ 1.25': ['DSCR ≥ 1.25', 'DSCR >= 1.25', 'DSCR']
           },
           amortization_type: {
             '30 Year Fixed': ['30 Year Fixed', '30 Yr Fixed', '30-Year Fixed'],
-            '25 Year Fixed': ['25 Year Fixed', '25 Yr Fixed', '25-Year Fixed'],
-            '20 Year Fixed': ['20 Year Fixed', '20 Yr Fixed', '20-Year Fixed'],
-            '15 Year Fixed': ['15 Year Fixed', '15 Yr Fixed', '15-Year Fixed'],
-            '10 Year Fixed': ['10 Year Fixed', '10 Yr Fixed', '10-Year Fixed']
+            '40 Year Fixed': ['40 Year Fixed', '40 Yr Fixed', '40-Year Fixed'],
+            '5/6 ARM SOFR': ['5/6 ARM SOFR', '5/6 ARM'],
+            '7/6 ARM SOFR': ['7/6 ARM SOFR', '7/6 ARM']
           },
           property_type: {
-            '1 Unit SFR': ['1 Unit SFR', 'SFR', 'Single Family', '1-Unit', 'Single Family Residence'],
+            '1 Unit SFR': ['1 Unit SFR', 'SFR', 'Single Family'],
+            'SFR Rural': ['SFR Rural', 'Rural SFR'],
+            'PUD': ['PUD'],
             'Condo': ['Condo', 'Condominium'],
-            '2 Unit': ['2 Unit', '2-Unit', 'Duplex'],
-            '3 Unit': ['3 Unit', '3-Unit', 'Triplex'],
-            '4 Unit': ['4 Unit', '4-Unit', 'Fourplex']
+            '2-4 Units': ['2-4 Units', '2-4 Unit', 'Multi-Unit'],
+            'Condotel': ['Condotel'],
+            'Manufactured housing': ['Manufactured housing', 'Manufactured'],
+            'Multifamily property': ['Multifamily property', 'Multifamily'],
+            'Mixed use': ['Mixed use', 'Mixed Use']
           },
-          state: {
-            'FL': ['FL', 'Florida']
+          number_of_units: {
+            '1 Unit': ['1 Unit', '1'],
+            '2 Units': ['2 Units', '2'],
+            '3 Units': ['3 Units', '3'],
+            '4 Units': ['4 Units', '4'],
+            '5 Units': ['5 Units', '5'],
+            '6 Units': ['6 Units', '6'],
+            '7 Units': ['7 Units', '7'],
+            '8 Units': ['8 Units', '8']
           },
           broker_compensation: {
             'BPC': ['BPC', 'Broker Paid Compensation'],
-            'LPC': ['LPC', 'Lender Paid Compensation']
+            'LPC 0.25%': ['LPC 0.25%', 'LPC 0.25'],
+            'LPC 0.5%': ['LPC 0.5%', 'LPC 0.5'],
+            'LPC 0.75%': ['LPC 0.75%', 'LPC 0.75'],
+            'LPC 1%': ['LPC 1%', 'LPC 1'],
+            'LPC 1.25%': ['LPC 1.25%', 'LPC 1.25'],
+            'LPC 1.5%': ['LPC 1.5%', 'LPC 1.5'],
+            'LPC 1.75%': ['LPC 1.75%', 'LPC 1.75'],
+            'LPC 2%': ['LPC 2%', 'LPC 2'],
+            'LPC 2.25%': ['LPC 2.25%', 'LPC 2.25']
+          },
+          mortgage_history: {
+            '0x30x12': ['0x30x12'],
+            '0x60x12': ['0x60x12']
+          },
+          credit_event: {
+            '48+ months': ['48+ months', '48 months+', '48+'],
+            '< 48 months': ['< 48 months', 'less than 48 months']
+          },
+          dti: {
+            'DTI 00.00% – 30.00%': ['DTI 00.00% – 30.00%', 'DTI 0-30%', 'DTI <=30%'],
+            'DTI 30.01% – 40.00%': ['DTI 30.01% – 40.00%', 'DTI 30-40%'],
+            'DTI 40.01% – 43.00%': ['DTI 40.01% – 43.00%', 'DTI 40-43%'],
+            'DTI 43.01% – 45.00%': ['DTI 43.01% – 45.00%', 'DTI 43-45%'],
+            'DTI 45.01% – 50.00%': ['DTI 45.01% – 50.00%', 'DTI 45-50%'],
+            'DTI 50.01% – 55.00%': ['DTI 50.01% – 55.00%', 'DTI 50-55%'],
+            'Not required': ['Not required', 'N/A', 'None']
+          },
+          prepayment_penalty: {
+            'No PPP': ['No PPP', 'None'],
+            '6m PPP': ['6m PPP', '6 month PPP'],
+            '1Y PPP': ['1Y PPP', '1 Year PPP'],
+            '2Y PPP': ['2Y PPP', '2 Year PPP'],
+            '3Y PPP': ['3Y PPP', '3 Year PPP'],
+            '4Y PPP': ['4Y PPP', '4 Year PPP'],
+            '5Y PPP': ['5Y PPP', '5 Year PPP']
+          },
+          occupancy: {
+            'Primary Residence': ['Primary Residence', 'Primary', 'Owner Occupied'],
+            '2nd Home': ['2nd Home', 'Second Home', 'Vacation Home'],
+            'Investment': ['Investment', 'Investment Property', 'Non Owner Occupied']
+          },
+          purpose: {
+            'Purchase': ['Purchase', 'Buy'],
+            'Rate/Term Refinance': ['Rate/Term Refinance', 'Rate Term', 'Refinance'],
+            'Cashout': ['Cashout', 'Cash Out', 'Cash-Out Refinance']
           }
         };
         
@@ -462,24 +598,26 @@ serve(async (req) => {
         
         // Fill dropdowns first
         console.log('Filling dropdown fields...');
-        await fillDropdownFrameAware(
-          ['Program'],
-          getSynonyms('program_type', scenarioData.program_type)
-        );
-        await new Promise(r => setTimeout(r, 500));
         
-        await fillDropdownFrameAware(['Citizenship'], [scenarioData.citizenship]);
-        await fillDropdownFrameAware(['Occupancy'], [scenarioData.occupancy]);
-        await fillDropdownFrameAware(['Purpose'], [scenarioData.loan_purpose]);
+        // Use updated field synonyms
+        await fillDropdownFrameAware(['Citizenship'], getSynonyms('citizenship', scenarioData.citizenship));
+        await new Promise(r => setTimeout(r, 300));
         
         if (scenarioData.program_type === 'Non-QM' && scenarioData.income_type) {
-          await fillDropdownFrameAware(['Income Type'], [scenarioData.income_type]);
+          await fillDropdownFrameAware(['Income Type'], getSynonyms('income_type', scenarioData.income_type));
+          await new Promise(r => setTimeout(r, 300));
         }
         
-        // Fill numeric inputs with frame-aware logic
-        console.log('Filling numeric inputs (FICO, LTV, Loan Amount)...');
+        await fillDropdownFrameAware(['Occupancy'], getSynonyms('occupancy', scenarioData.occupancy));
+        await new Promise(r => setTimeout(r, 300));
+        
+        await fillDropdownFrameAware(['Purpose'], getSynonyms('purpose', scenarioData.loan_purpose));
+        await new Promise(r => setTimeout(r, 300));
+        
+        // Fill numeric inputs with frame-aware logic (sliders for Material-UI)
+        console.log('Filling numeric inputs (FICO, CLTV, Loan Amount)...');
         await fillNumberInputFrameAware('FICO', scenarioData.fico_score);
-        await fillNumberInputFrameAware('LTV', scenarioData.ltv);
+        await fillNumberInputFrameAware('CLTV', scenarioData.ltv);
         await fillNumberInputFrameAware('Loan Amount', scenarioData.loan_amount);
         
         await new Promise(r => setTimeout(r, 800));
@@ -488,27 +626,36 @@ serve(async (req) => {
         const lockValue = scenarioData.lock_period + ' Days';
         await fillDropdownFrameAware(['Lock Period', 'Rate Lock', 'Lock Term'], [lockValue]);
         
-        // More dropdowns
-        await fillDropdownFrameAware(['State'], getSynonyms('state', scenarioData.state));
-        await fillDropdownFrameAware(['Property Type'], getSynonyms('property_type', scenarioData.property_type));
+        // More dropdowns with updated synonyms
         await fillDropdownFrameAware(['Amortization Type'], getSynonyms('amortization_type', scenarioData.amortization_type));
+        await new Promise(r => setTimeout(r, 300));
+        
+        await fillDropdownFrameAware(['Property Type'], getSynonyms('property_type', scenarioData.property_type));
+        await new Promise(r => setTimeout(r, 300));
+        
+        if (scenarioData.num_units && scenarioData.num_units > 1) {
+          await fillDropdownFrameAware(['Number of Units'], getSynonyms('number_of_units', scenarioData.num_units + ' Units'));
+          await new Promise(r => setTimeout(r, 300));
+        }
+        
+        await fillDropdownFrameAware(['State'], [scenarioData.state]);
+        await new Promise(r => setTimeout(r, 300));
+        
+        // DTI with updated exact format
+        const dtiValue = getSynonyms('dti', scenarioData.dti);
+        await fillDropdownFrameAware(['DTI', 'Debt to Income', 'DTI Ratio'], dtiValue);
+        await new Promise(r => setTimeout(r, 300));
         
         if (scenarioData.program_type === 'Non-QM') {
           if (scenarioData.mortgage_history) {
-            await fillDropdownFrameAware(['Mortgage History'], [scenarioData.mortgage_history]);
+            await fillDropdownFrameAware(['Mortgage History'], getSynonyms('mortgage_history', scenarioData.mortgage_history));
+            await new Promise(r => setTimeout(r, 300));
           }
           if (scenarioData.credit_events) {
-            await fillDropdownFrameAware(['Credit Event'], [scenarioData.credit_events]);
+            await fillDropdownFrameAware(['Credit Event'], getSynonyms('credit_event', scenarioData.credit_events));
+            await new Promise(r => setTimeout(r, 300));
           }
         }
-        
-        // DTI
-        const dtiSynonyms = {
-          'DTI <=40%': ['DTI <=40%', '<= 40%', 'DTI <= 40%', '40% or less'],
-          'DTI >40%': ['DTI >40%', '> 40%', 'DTI > 40%', 'greater than 40%']
-        };
-        const dtiOptions = dtiSynonyms[scenarioData.dti] || [scenarioData.dti];
-        await fillDropdownFrameAware(['DTI', 'Debt to Income', 'DTI Ratio'], dtiOptions);
         
         await fillDropdownFrameAware(
           ['Broker Compensation'],
@@ -731,77 +878,82 @@ serve(async (req) => {
         }
         
         
-        // ========== STEP 6: EXTRACT FROM LABELED FIELDS ==========
-        console.log('Extracting from clearly-labeled results fields...');
+        // ========== STEP 6: EXTRACT FROM MATERIAL-UI RESULTS PANEL ==========
+        console.log('Extracting from Material-UI results panel...');
         
-        // Enhanced extraction function that looks for specific labels
+        // NEW: Enhanced extraction for Material-UI layout
         const extractResults = await page.evaluate(() => {
-          const extractValueByLabel = (labelText) => {
-            // Find all text nodes and elements
-            const allElements = Array.from(document.querySelectorAll('*'));
+          console.log('=== Starting Material-UI Results Extraction ===');
+          
+          // Strategy 1: Find the loan program panel (e.g., "Super Prime 30 Year Fixed")
+          const findProgramPanel = () => {
+            const allDivs = Array.from(document.querySelectorAll('div, section, article'));
+            for (const div of allDivs) {
+              const text = div.textContent || '';
+              if ((text.includes('Year Fixed') || text.includes('ARM SOFR')) && 
+                  (text.includes('Prime') || text.includes('Non-QM'))) {
+                console.log('Found program panel:', text.substring(0, 100));
+                return div;
+              }
+            }
+            return null;
+          };
+          
+          // Strategy 2: Extract using Material-UI patterns
+          const extractMuiValue = (labelText, panel) => {
+            if (!panel) panel = document.body;
             
-            for (const el of allElements) {
-              const text = el.textContent || '';
-              
-              // Check if this element contains our label
-              if (text.includes(labelText) && text.length < 100) {
-                // Found the label, now look for the value
-                // Try 1: Check immediate siblings
-                let current = el;
-                for (let i = 0; i < 5; i++) {
-                  const next = current.nextElementSibling;
-                  if (next) {
-                    const value = next.textContent?.trim();
-                    if (value && value !== labelText && value.length < 30) {
-                      console.log(\`Found "\${labelText}" value via sibling: \${value}\`);
-                      return value;
-                    }
-                    current = next;
-                  } else {
-                    break;
-                  }
-                }
+            // Method 1: Look for label followed by value in Material-UI grid/layout
+            const labels = Array.from(panel.querySelectorAll('*'));
+            for (const label of labels) {
+              const txt = label.textContent || '';
+              if (txt.includes(labelText) && txt.length < 50) {
+                console.log(\`Found label "\${labelText}" in element:\`, txt);
                 
-                // Try 2: Check parent's children
-                const parent = el.parentElement;
+                // Check Material-UI Typography siblings
+                const parent = label.parentElement;
                 if (parent) {
-                  const children = Array.from(parent.children);
-                  for (const child of children) {
+                  const siblings = Array.from(parent.children);
+                  const labelIdx = siblings.indexOf(label);
+                  
+                  // Look at next few siblings
+                  for (let i = labelIdx + 1; i < Math.min(labelIdx + 4, siblings.length); i++) {
+                    const sib = siblings[i];
+                    const sibText = sib.textContent?.trim();
+                    if (sibText && sibText !== txt && /[\d.%$,+-]/.test(sibText)) {
+                      console.log(\`  Found value via sibling: \${sibText}\`);
+                      return sibText;
+                    }
+                  }
+                  
+                  // Look in parent's other children (Material-UI often uses flex/grid)
+                  const allChildren = Array.from(parent.querySelectorAll('*'));
+                  for (const child of allChildren) {
                     const childText = child.textContent?.trim();
-                    if (childText && !childText.includes(labelText) && childText.length < 30) {
-                      // Check if it looks like a value (has numbers)
-                      if (/[\d.%$,]/.test(childText)) {
-                        console.log(\`Found "\${labelText}" value via parent child: \${childText}\`);
-                        return childText;
-                      }
+                    if (childText && !childText.includes(labelText) && 
+                        childText.length < 30 && /^[\d.%$,+-]+$/.test(childText.replace(/,/g, ''))) {
+                      console.log(\`  Found value via parent child: \${childText}\`);
+                      return childText;
                     }
                   }
                 }
                 
-                // Try 3: Look in containing div/section
-                const container = el.closest('div');
+                // Method 2: Text-based extraction from same container
+                const container = label.closest('div');
                 if (container) {
-                  const containerText = container.textContent || '';
-                  const lines = containerText.split('\\n').map(l => l.trim()).filter(l => l);
+                  const fullText = container.textContent || '';
                   
-                  // Find the line with our label
-                  for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes(labelText)) {
-                      // Check same line first
-                      const sameLine = lines[i].replace(labelText, '').trim();
-                      if (sameLine && /[\d.%$,]/.test(sameLine)) {
-                        console.log(\`Found "\${labelText}" value on same line: \${sameLine}\`);
-                        return sameLine;
-                      }
-                      
-                      // Check next line
-                      if (i + 1 < lines.length) {
-                        const nextLine = lines[i + 1];
-                        if (nextLine && /[\d.%$,]/.test(nextLine)) {
-                          console.log(\`Found "\${labelText}" value on next line: \${nextLine}\`);
-                          return nextLine;
-                        }
-                      }
+                  // Try regex patterns
+                  const patterns = [
+                    new RegExp(labelText.replace(/[(),%$]/g, '\\\\$&') + '[\\s:]*([\\d.,%$+-]+)'),
+                    new RegExp(labelText.replace(/[(),%$]/g, '\\\\$&') + '\\n+([\\d.,%$+-]+)'),
+                  ];
+                  
+                  for (const pattern of patterns) {
+                    const match = fullText.match(pattern);
+                    if (match && match[1]) {
+                      console.log(\`  Found value via regex: \${match[1]}\`);
+                      return match[1];
                     }
                   }
                 }
@@ -811,38 +963,43 @@ serve(async (req) => {
             return null;
           };
           
-          // Extract the three main fields
-          const rateRaw = extractValueByLabel('Rate, %') || extractValueByLabel('Rate,%');
-          const lenderCreditRaw = extractValueByLabel('Lender Credit');
-          const monthlyPaymentRaw = extractValueByLabel('Monthly Payment, $') || extractValueByLabel('Monthly Payment,$') || extractValueByLabel('Monthly Payment');
+          // Find the results panel
+          const programPanel = findProgramPanel();
+          console.log('Program panel found:', !!programPanel);
           
-          // Clean up values
-          const rate = rateRaw ? rateRaw.replace('%', '').replace(/[^0-9.]/g, '').trim() : 'N/A';
-          const discount_points = lenderCreditRaw ? lenderCreditRaw.replace(/[$,]/g, '').trim() : 'N/A';
-          const monthly_payment = monthlyPaymentRaw ? monthlyPaymentRaw.replace(/[$,]/g, '').trim() : 'N/A';
+          // Extract values
+          const rateRaw = extractMuiValue('Rate, %', programPanel) || extractMuiValue('Rate,%', programPanel);
+          const lenderCreditRaw = extractMuiValue('Lender Credit', programPanel);
+          const monthlyPaymentRaw = extractMuiValue('Monthly Payment, $', programPanel) || 
+                                    extractMuiValue('Monthly Payment,$', programPanel) ||
+                                    extractMuiValue('Monthly Payment', programPanel);
           
-          // Also try to get APR if visible
-          const aprRaw = extractValueByLabel('APR');
-          const apr = aprRaw ? aprRaw.replace('%', '').replace(/[^0-9.]/g, '').trim() : 'N/A';
+          // Clean up extracted values
+          const cleanNumber = (raw) => {
+            if (!raw) return 'N/A';
+            return raw.replace(/[%$]/g, '').replace(/,/g, '').trim();
+          };
           
-          console.log('Extracted values:');
-          console.log('  Rate: ' + rate + ' (from: ' + rateRaw + ')');
-          console.log('  Lender Credit: ' + discount_points + ' (from: ' + lenderCreditRaw + ')');
-          console.log('  Monthly Payment: ' + monthly_payment + ' (from: ' + monthlyPaymentRaw + ')');
-          console.log('  APR: ' + apr + ' (from: ' + aprRaw + ')');
+          const rate = cleanNumber(rateRaw);
+          const discount_points = cleanNumber(lenderCreditRaw);
+          const monthly_payment = cleanNumber(monthlyPaymentRaw);
+          
+          console.log('=== Extraction Results ===');
+          console.log('Rate: ' + rate + ' (raw: ' + rateRaw + ')');
+          console.log('Lender Credit: ' + discount_points + ' (raw: ' + lenderCreditRaw + ')');
+          console.log('Monthly Payment: ' + monthly_payment + ' (raw: ' + monthlyPaymentRaw + ')');
           
           return {
             rate,
             discount_points,
             monthly_payment,
-            apr,
+            apr: 'N/A',
             program_name: 'A&D Mortgage Quick Pricer',
             priced_at: new Date().toISOString(),
             raw_values: {
               rate: rateRaw,
               lender_credit: lenderCreditRaw,
-              monthly_payment: monthlyPaymentRaw,
-              apr: aprRaw
+              monthly_payment: monthlyPaymentRaw
             }
           };
         });
