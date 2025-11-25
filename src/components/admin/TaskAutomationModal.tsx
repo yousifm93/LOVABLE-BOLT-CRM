@@ -48,6 +48,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     due_date_offset_days: null as number | null,
     is_active: true,
     category: '',
+    subcategory: '',
     completion_requirement_type: 'none',
     completion_requirement_config: {},
   });
@@ -69,6 +70,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: automation.due_date_offset_days,
         is_active: automation.is_active ?? true,
         category: automation.category || '',
+        subcategory: automation.subcategory || '',
         completion_requirement_type: automation.completion_requirement_type || 'none',
         completion_requirement_config: automation.completion_requirement_config || {},
       });
@@ -84,6 +86,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: null,
         is_active: true,
         category: '',
+        subcategory: '',
         completion_requirement_type: 'none',
         completion_requirement_config: {},
       });
@@ -475,7 +478,11 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                 <Label htmlFor="category">Category *</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  onValueChange={(value) => setFormData({ 
+                    ...formData, 
+                    category: value,
+                    subcategory: value === 'active_loan' ? formData.subcategory : ''
+                  })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -484,9 +491,34 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="marketing">Marketing</SelectItem>
                     <SelectItem value="lead_status">Lead Status</SelectItem>
                     <SelectItem value="active_loan">Active Loan</SelectItem>
+                    <SelectItem value="past_client">Past Client</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Subcategory - only shown for active_loan */}
+              {formData.category === 'active_loan' && (
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory">Subcategory (Optional)</Label>
+                  <Select
+                    value={formData.subcategory || ''}
+                    onValueChange={(value) => setFormData({ ...formData, subcategory: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subcategory or leave blank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None (Other)</SelectItem>
+                      <SelectItem value="appraisal">Appraisal</SelectItem>
+                      <SelectItem value="closing">Closing</SelectItem>
+                      <SelectItem value="submission">Submission</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Organize active loan automations into logical groups
+                  </p>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <Label htmlFor="completion_requirement">Completion Requirement</Label>

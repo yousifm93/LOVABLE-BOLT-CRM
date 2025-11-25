@@ -3216,6 +3216,7 @@ export type Database = {
           is_active: boolean | null
           last_scheduled_execution: string | null
           name: string
+          subcategory: string | null
           task_description: string
           task_name: string
           task_priority: string | null
@@ -3235,6 +3236,7 @@ export type Database = {
           is_active?: boolean | null
           last_scheduled_execution?: string | null
           name: string
+          subcategory?: string | null
           task_description: string
           task_name: string
           task_priority?: string | null
@@ -3254,6 +3256,7 @@ export type Database = {
           is_active?: boolean | null
           last_scheduled_execution?: string | null
           name?: string
+          subcategory?: string | null
           task_description?: string
           task_name?: string
           task_priority?: string | null

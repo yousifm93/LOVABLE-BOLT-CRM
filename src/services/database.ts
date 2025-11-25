@@ -101,6 +101,8 @@ export const databaseService = {
           email
         )
       `)
+      .order('category', { ascending: true })
+      .order('subcategory', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) throw error;
