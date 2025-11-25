@@ -273,6 +273,10 @@ export function TaskAutomationsTable() {
         return 'When Loan Amount changes (if Disc Status = Signed)';
       }
       if (field && targetStatus) {
+        // Special formatting for loan_status
+        if (field === 'loan_status') {
+          return `When Loan Status changes to '${targetStatus}'`;
+        }
         const fieldLabel = field.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         return `When ${fieldLabel} changes to '${targetStatus}'`;
       }

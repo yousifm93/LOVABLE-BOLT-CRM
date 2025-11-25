@@ -3796,6 +3796,9 @@ export type Database = {
         | "New RFP"
         | "New"
         | "SUB"
+        | "Closed"
+        | "Needs Support"
+        | "New Lead"
       log_direction: "In" | "Out"
       ocr_status: "pending" | "processing" | "success" | "failed"
       package_status: "Initial" | "Final"
@@ -4087,7 +4090,19 @@ export const Constants = {
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
       lender_type: ["Conventional", "Non-QM", "Private"],
       loan_product: ["conv", "fha", "va", "usda"],
-      loan_status: ["NEW", "RFP", "SUV", "AWC", "CTC", "New RFP", "New", "SUB"],
+      loan_status: [
+        "NEW",
+        "RFP",
+        "SUV",
+        "AWC",
+        "CTC",
+        "New RFP",
+        "New",
+        "SUB",
+        "Closed",
+        "Needs Support",
+        "New Lead",
+      ],
       log_direction: ["In", "Out"],
       ocr_status: ["pending", "processing", "success", "failed"],
       package_status: ["Initial", "Final"],
