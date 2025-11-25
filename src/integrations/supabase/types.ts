@@ -1669,6 +1669,41 @@ export type Database = {
           },
         ]
       }
+      lead_condition_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          condition_id: string
+          created_at: string
+          id: string
+          status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          condition_id: string
+          created_at?: string
+          id?: string
+          status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          condition_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_condition_status_history_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "lead_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_conditions: {
         Row: {
           assigned_to: string | null
