@@ -357,7 +357,7 @@ export function TaskAutomationsTable() {
                     </Button>
                   </CollapsibleTrigger>
                   <h3 className="text-lg font-semibold">
-                    {categoryLabels[category as keyof typeof categoryLabels]}
+                    {categoryLabels[category as keyof typeof categoryLabels]} ({items.length})
                   </h3>
                 </div>
                 <CollapsibleContent>
@@ -382,7 +382,7 @@ export function TaskAutomationsTable() {
                               </Button>
                             </CollapsibleTrigger>
                             <h4 className="text-sm font-medium text-muted-foreground">
-                              {subcategoryLabels[subcat as keyof typeof subcategoryLabels]}
+                              {subcategoryLabels[subcat as keyof typeof subcategoryLabels]} ({subcatItems.length})
                             </h4>
                           </div>
                           <CollapsibleContent>
@@ -507,7 +507,7 @@ export function TaskAutomationsTable() {
                   </Button>
                 </CollapsibleTrigger>
                 <h3 className="text-lg font-semibold">
-                  {categoryLabels[category as keyof typeof categoryLabels]}
+                  {categoryLabels[category as keyof typeof categoryLabels]} ({items.length})
                 </h3>
               </div>
               <CollapsibleContent>
