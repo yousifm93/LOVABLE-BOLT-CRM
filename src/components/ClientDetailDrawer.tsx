@@ -798,9 +798,53 @@ export function ClientDetailDrawer({
       return;
     }
 
+    // Special handling for "New Lead" - create a copy of the lead
+    if (statusLabel === 'New Lead') {
+      try {
+        // Create new lead record with borrower's info
+        const newLead = await databaseService.createLead({
+          first_name: client.person.firstName,
+          last_name: client.person.lastName,
+          phone: client.person.phone || '',
+          email: client.person.email || '',
+          pipeline_stage_id: '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945', // Leads stage
+          referral_source: 'Past Client',
+          status: 'Working on it',
+          lead_on_date: new Date().toISOString().split('T')[0]
+        });
+
+        toast({
+          title: "New Lead Created",
+          description: `New lead created from past client: ${client.person.firstName} ${client.person.lastName}`,
+        });
+
+        // Also update current lead status to "New Lead"
+        await databaseService.updateLead(leadId, {
+          loan_status: statusLabel as any
+        });
+
+        // Refresh parent page data
+        if (onLeadUpdated) {
+          await onLeadUpdated();
+        }
+
+        // Close drawer
+        onClose();
+      } catch (error) {
+        console.error('Error creating new lead:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create new lead",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
+
+    // Regular status update for other statuses
     try {
       await databaseService.updateLead(leadId, {
-        loan_status: statusLabel as any // Cast as any since DB enum needs to be updated
+        loan_status: statusLabel as any
       });
       toast({
         title: `Status updated to ${statusLabel}`,
