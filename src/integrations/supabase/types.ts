@@ -3619,6 +3619,7 @@ export type Database = {
           total: number
         }[]
       }
+      execute_date_based_automations: { Args: never; Returns: Json }
       execute_scheduled_automations: { Args: never; Returns: Json }
       format_date_modern: { Args: { input_date: string }; Returns: string }
       get_user_account_id: { Args: { user_uuid: string }; Returns: string }
