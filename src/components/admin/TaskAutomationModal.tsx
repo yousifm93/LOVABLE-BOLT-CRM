@@ -44,6 +44,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
       days_offset?: number;
       condition_field?: string;
       condition_value?: string;
+      condition_operator?: string;
     },
     task_name: '',
     task_description: '',
@@ -446,6 +447,8 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="appraisal_ordered_date">Appraisal Ordered Date</SelectItem>
                     <SelectItem value="appraisal_scheduled_date">Appraisal Scheduled Date</SelectItem>
                     <SelectItem value="submitted_at">Submission Date</SelectItem>
+                    <SelectItem value="appr_eta">Appraisal ETA</SelectItem>
+                    <SelectItem value="title_eta">Title ETA</SelectItem>
                     <SelectItem value="title_ordered_date">Title Ordered Date</SelectItem>
                     <SelectItem value="insurance_ordered_date">Insurance Ordered Date</SelectItem>
                     <SelectItem value="condo_ordered_date">Condo Ordered Date</SelectItem>
@@ -508,18 +511,39 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                 </div>
 
                 {formData.trigger_config.condition_field && (
-                  <div className="space-y-2">
-                    <Label htmlFor="condition_value">Must Equal *</Label>
-                    <Input
-                      id="condition_value"
-                      value={formData.trigger_config.condition_value || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        trigger_config: { ...formData.trigger_config, condition_value: e.target.value }
-                      })}
-                      placeholder="e.g., Ordered, SUB, Signed"
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="condition_operator">Condition *</Label>
+                      <Select
+                        value={formData.trigger_config.condition_operator || 'equals'}
+                        onValueChange={(value) => setFormData({
+                          ...formData,
+                          trigger_config: { ...formData.trigger_config, condition_operator: value }
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="equals">equals</SelectItem>
+                          <SelectItem value="not_equals">does not equal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="condition_value">Value *</Label>
+                      <Input
+                        id="condition_value"
+                        value={formData.trigger_config.condition_value || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          trigger_config: { ...formData.trigger_config, condition_value: e.target.value }
+                        })}
+                        placeholder="e.g., Received, Ordered, SUB"
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             </div>

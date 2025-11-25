@@ -194,6 +194,7 @@ export function TaskAutomationsTable() {
         days_offset?: number;
         condition_field?: string;
         condition_value?: string;
+        condition_operator?: string;
       };
       
       const offset = config.days_offset ?? 0;
@@ -213,8 +214,9 @@ export function TaskAutomationsTable() {
           : `${offset} day(s) after`;
       
       // Format condition
+      const operator = config.condition_operator === 'not_equals' ? '≠' : '=';
       const condition = config.condition_field && config.condition_value
-        ? ` (if ${config.condition_field.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} = "${config.condition_value}")`
+        ? ` (if ${config.condition_field.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} ${operator} "${config.condition_value}")`
         : '';
       
       return `${when} ${fieldLabel}${condition}`;
