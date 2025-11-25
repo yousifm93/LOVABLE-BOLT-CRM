@@ -303,10 +303,9 @@ export const PIPELINE_CONFIGS = {
     { key: 'ctc', label: 'CTC', icon: '🔓' }
   ],
   'past-clients': [
-    { key: 'stage1', label: '', icon: '' },
-    { key: 'stage2', label: '', icon: '' },
-    { key: 'stage3', label: '', icon: '' },
-    { key: 'stage4', label: '', icon: '' }
+    { key: 'closed', label: 'Closed', icon: '✅' },
+    { key: 'needs-support', label: 'Needs Support', icon: '🆘' },
+    { key: 'new-lead', label: 'New Lead', icon: '🔄' }
   ]
 } as const;
 
