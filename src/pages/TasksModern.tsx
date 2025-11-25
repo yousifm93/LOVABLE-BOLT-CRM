@@ -62,6 +62,7 @@ const columns = (
     cell: ({ row }) => (
       <Checkbox 
         checked={row.original.status === "Done"} 
+        disabled={row.original.status === "Done"}
         onCheckedChange={(checked) => 
           handleUpdate(row.original.id, "status", checked ? "Done" : "Working on it")
         }
