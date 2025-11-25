@@ -310,14 +310,31 @@ export const databaseService = {
   async getConditionStatusHistory(conditionId: string) {
     const { data, error } = await supabase
       .from('lead_condition_status_history')
-      .select(`
-        *,
-        changed_user:users!lead_condition_status_history_changed_by_fkey(first_name, last_name, email)
-      `)
+      .select('*')
       .eq('condition_id', conditionId)
       .order('changed_at', { ascending: true });
     
     if (error) throw error;
+    
+    // Fetch user details separately for each entry
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.filter(d => d.changed_by).map(d => d.changed_by))];
+      
+      if (userIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+        
+        const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+        
+        return data.map(entry => ({
+          ...entry,
+          changed_user: entry.changed_by ? usersMap.get(entry.changed_by) || null : null
+        }));
+      }
+    }
+    
     return data || [];
   },
 

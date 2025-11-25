@@ -32,7 +32,7 @@ const columns: ColumnDef<ModernTask>[] = [
     accessorKey: "status",
     header: "",
     cell: ({ row }) => (
-      <Checkbox checked={row.original.status === "Done"} />
+      <Checkbox checked={row.original.status === "Done"} disabled={row.original.status === "Done"} />
     ),
   },
   {
