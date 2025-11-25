@@ -33,6 +33,7 @@ interface TaskAutomation {
   last_run_at: string | null;
   execution_count?: number;
   category?: string;
+  subcategory?: string;
 }
 export function TaskAutomationsTable() {
   const [automations, setAutomations] = useState<TaskAutomation[]>([]);
@@ -50,7 +51,14 @@ export function TaskAutomationsTable() {
   const [openCategories, setOpenCategories] = useState({
     marketing: true,
     lead_status: true,
-    active_loan: true
+    active_loan: true,
+    past_client: true
+  });
+  const [openSubcategories, setOpenSubcategories] = useState({
+    appraisal: true,
+    closing: true,
+    submission: true,
+    other: true
   });
   const {
     toast
@@ -59,6 +67,13 @@ export function TaskAutomationsTable() {
     setOpenCategories(prev => ({
       ...prev,
       [category]: !prev[category as keyof typeof prev]
+    }));
+  };
+
+  const toggleSubcategory = (subcategory: string) => {
+    setOpenSubcategories(prev => ({
+      ...prev,
+      [subcategory]: !prev[subcategory as keyof typeof prev]
     }));
   };
   useEffect(() => {
@@ -248,12 +263,30 @@ export function TaskAutomationsTable() {
   const groupedAutomations = {
     marketing: automations.filter(a => a.category === 'marketing'),
     lead_status: automations.filter(a => a.category === 'lead_status'),
-    active_loan: automations.filter(a => a.category === 'active_loan')
+    active_loan: automations.filter(a => a.category === 'active_loan'),
+    past_client: automations.filter(a => a.category === 'past_client')
   };
+  
+  // Group active_loan automations by subcategory
+  const activeLoanBySubcategory = {
+    appraisal: groupedAutomations.active_loan.filter(a => a.subcategory === 'appraisal'),
+    closing: groupedAutomations.active_loan.filter(a => a.subcategory === 'closing'),
+    submission: groupedAutomations.active_loan.filter(a => a.subcategory === 'submission'),
+    other: groupedAutomations.active_loan.filter(a => !a.subcategory)
+  };
+  
   const categoryLabels = {
     marketing: 'Marketing Automations',
     lead_status: 'Lead Status Automations',
-    active_loan: 'Active Loan Automations'
+    active_loan: 'Active Loan Automations',
+    past_client: 'Past Client Automations'
+  };
+  
+  const subcategoryLabels = {
+    appraisal: 'Appraisal',
+    closing: 'Closing',
+    submission: 'Submission',
+    other: 'Other'
   };
   return <div className="space-y-4">
       <div className="flex items-center mb-4">
@@ -264,11 +297,175 @@ export function TaskAutomationsTable() {
       </div>
 
       <div className="space-y-6">
-        {Object.entries(groupedAutomations).map(([category, items]) => items.length > 0 && <Collapsible key={category} open={openCategories[category as keyof typeof openCategories]} onOpenChange={() => toggleCategory(category)} className="mx-[5px]">
+        {Object.entries(groupedAutomations).map(([category, items]) => {
+          if (items.length === 0) return null;
+          
+          // Special handling for active_loan category (with sub-groups)
+          if (category === 'active_loan') {
+            return (
+              <Collapsible 
+                key={category} 
+                open={openCategories[category as keyof typeof openCategories]} 
+                onOpenChange={() => toggleCategory(category)} 
+                className="mx-[5px]"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      {openCategories[category as keyof typeof openCategories] ? 
+                        <ChevronDown className="h-4 w-4" /> : 
+                        <ChevronRight className="h-4 w-4" />
+                      }
+                    </Button>
+                  </CollapsibleTrigger>
+                  <h3 className="text-lg font-semibold">
+                    {categoryLabels[category as keyof typeof categoryLabels]}
+                  </h3>
+                </div>
+                <CollapsibleContent>
+                  <div className="space-y-4 pl-4">
+                    {Object.entries(activeLoanBySubcategory).map(([subcat, subcatItems]) => {
+                      if (subcatItems.length === 0) return null;
+                      
+                      return (
+                        <Collapsible 
+                          key={subcat}
+                          open={openSubcategories[subcat as keyof typeof openSubcategories]}
+                          onOpenChange={() => toggleSubcategory(subcat)}
+                          className="mx-[5px]"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                {openSubcategories[subcat as keyof typeof openSubcategories] ? 
+                                  <ChevronDown className="h-3 w-3" /> : 
+                                  <ChevronRight className="h-3 w-3" />
+                                }
+                              </Button>
+                            </CollapsibleTrigger>
+                            <h4 className="text-sm font-medium text-muted-foreground">
+                              {subcategoryLabels[subcat as keyof typeof subcategoryLabels]}
+                            </h4>
+                          </div>
+                          <CollapsibleContent>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-12">#</TableHead>
+                                  <TableHead>Task Name</TableHead>
+                                  <TableHead>Trigger</TableHead>
+                                  <TableHead className="w-[60px] text-center">Assigned To</TableHead>
+                                  <TableHead>Last Run On</TableHead>
+                                  <TableHead className="text-center">Run History</TableHead>
+                                  <TableHead className="text-center">Active</TableHead>
+                                  <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {subcatItems.map((automation, index) => (
+                                  <TableRow key={automation.id}>
+                                    <TableCell className="font-medium py-2">{index + 1}</TableCell>
+                                    <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
+                                    <TableCell className="text-sm text-muted-foreground py-2">
+                                      {formatTrigger(automation)}
+                                    </TableCell>
+                                    <TableCell className="text-center py-2">
+                                      {automation.assigned_user ? (
+                                        <div className="flex justify-center">
+                                          <UserAvatar 
+                                            firstName={automation.assigned_user.first_name} 
+                                            lastName={automation.assigned_user.last_name} 
+                                            email={automation.assigned_user.email || ''} 
+                                            size="sm" 
+                                          />
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground text-sm">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-2">
+                                      {automation.last_run_at ? (
+                                        <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
+                                      ) : (
+                                        <span className="text-muted-foreground text-sm">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-center py-2">
+                                      <Badge 
+                                        variant="outline" 
+                                        className="cursor-pointer hover:bg-muted" 
+                                        onClick={() => handleExecutionHistoryClick(automation)}
+                                      >
+                                        {automation.execution_count || 0}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center py-2">
+                                      <Switch 
+                                        checked={automation.is_active} 
+                                        onCheckedChange={(checked) => handleToggleActive(automation.id, checked)} 
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-right py-2">
+                                      <div className="flex justify-end gap-2">
+                                        {automation.trigger_type === 'scheduled' && (
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => handleManualTrigger(automation)} 
+                                            disabled={triggeringId === automation.id}
+                                            title="Test automation (create task now)"
+                                          >
+                                            {triggeringId === automation.id ? 'Testing...' : 'Test'}
+                                          </Button>
+                                        )}
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => handleEdit(automation)}
+                                        >
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          onClick={() => {
+                                            setAutomationToDelete(automation.id);
+                                            setDeleteDialogOpen(true);
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          }
+          
+          // Regular category rendering for other categories
+          return (
+            <Collapsible 
+              key={category} 
+              open={openCategories[category as keyof typeof openCategories]} 
+              onOpenChange={() => toggleCategory(category)} 
+              className="mx-[5px]"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    {openCategories[category as keyof typeof openCategories] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    {openCategories[category as keyof typeof openCategories] ? 
+                      <ChevronDown className="h-4 w-4" /> : 
+                      <ChevronRight className="h-4 w-4" />
+                    }
                   </Button>
                 </CollapsibleTrigger>
                 <h3 className="text-lg font-semibold">
@@ -290,49 +487,89 @@ export function TaskAutomationsTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((automation, index) => <TableRow key={automation.id}>
-                <TableCell className="font-medium py-2">{index + 1}</TableCell>
-                <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground py-2">
-                  {formatTrigger(automation)}
-                </TableCell>
-                <TableCell className="text-center py-2">
-                  {automation.assigned_user ? <div className="flex justify-center">
-                      <UserAvatar firstName={automation.assigned_user.first_name} lastName={automation.assigned_user.last_name} email={automation.assigned_user.email || ''} size="sm" />
-                    </div> : <span className="text-muted-foreground text-sm">—</span>}
-                </TableCell>
-                <TableCell className="py-2">
-                  {automation.last_run_at ? <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span> : <span className="text-muted-foreground text-sm">—</span>}
-                </TableCell>
-                <TableCell className="text-center py-2">
-                  <Badge variant="outline" className="cursor-pointer hover:bg-muted" onClick={() => handleExecutionHistoryClick(automation)}>
-                    {automation.execution_count || 0}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center py-2">
-                  <Switch checked={automation.is_active} onCheckedChange={checked => handleToggleActive(automation.id, checked)} />
-                </TableCell>
-                <TableCell className="text-right py-2">
-                  <div className="flex justify-end gap-2">
-                    {automation.trigger_type === 'scheduled' && <Button variant="ghost" size="sm" onClick={() => handleManualTrigger(automation)} disabled={triggeringId === automation.id} title="Test automation (create task now)">
-                        {triggeringId === automation.id ? 'Testing...' : 'Test'}
-                      </Button>}
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(automation)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => {
-                      setAutomationToDelete(automation.id);
-                      setDeleteDialogOpen(true);
-                    }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-                  </TableRow>)}
+                  {items.map((automation, index) => (
+                    <TableRow key={automation.id}>
+                      <TableCell className="font-medium py-2">{index + 1}</TableCell>
+                      <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground py-2">
+                        {formatTrigger(automation)}
+                      </TableCell>
+                      <TableCell className="text-center py-2">
+                        {automation.assigned_user ? (
+                          <div className="flex justify-center">
+                            <UserAvatar 
+                              firstName={automation.assigned_user.first_name} 
+                              lastName={automation.assigned_user.last_name} 
+                              email={automation.assigned_user.email || ''} 
+                              size="sm" 
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        {automation.last_run_at ? (
+                          <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-2">
+                        <Badge 
+                          variant="outline" 
+                          className="cursor-pointer hover:bg-muted" 
+                          onClick={() => handleExecutionHistoryClick(automation)}
+                        >
+                          {automation.execution_count || 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center py-2">
+                        <Switch 
+                          checked={automation.is_active} 
+                          onCheckedChange={(checked) => handleToggleActive(automation.id, checked)} 
+                        />
+                      </TableCell>
+                      <TableCell className="text-right py-2">
+                        <div className="flex justify-end gap-2">
+                          {automation.trigger_type === 'scheduled' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleManualTrigger(automation)} 
+                              disabled={triggeringId === automation.id}
+                              title="Test automation (create task now)"
+                            >
+                              {triggeringId === automation.id ? 'Testing...' : 'Test'}
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEdit(automation)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setAutomationToDelete(automation.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
               </CollapsibleContent>
-            </Collapsible>)}
+            </Collapsible>
+          );
+        })}
       </div>
 
       <TaskAutomationModal open={modalOpen} onOpenChange={handleModalClose} automation={editingAutomation} />
