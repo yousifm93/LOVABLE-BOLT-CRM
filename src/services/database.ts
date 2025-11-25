@@ -307,6 +307,20 @@ export const databaseService = {
     if (error) throw error;
   },
 
+  async getConditionStatusHistory(conditionId: string) {
+    const { data, error } = await supabase
+      .from('lead_condition_status_history')
+      .select(`
+        *,
+        changed_user:users!lead_condition_status_history_changed_by_fkey(first_name, last_name, email)
+      `)
+      .eq('condition_id', conditionId)
+      .order('changed_at', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
   // Lead operations
   async getLeads() {
     try {
@@ -1230,7 +1244,7 @@ export const databaseService = {
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
         .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db') // Active stage only
-        .order('created_at', { ascending: false });
+        .order('close_date', { ascending: true, nullsFirst: false });
 
       if (error) {
         console.error('Embed error, using fallback query:', error);
@@ -1239,7 +1253,7 @@ export const databaseService = {
           .from('leads')
           .select('*')
           .in('pipeline_section', ['Incoming', 'Live', 'On Hold'])
-          .order('created_at', { ascending: false });
+          .order('close_date', { ascending: true, nullsFirst: false });
         
         if (fallbackResult.error) throw fallbackResult.error;
         

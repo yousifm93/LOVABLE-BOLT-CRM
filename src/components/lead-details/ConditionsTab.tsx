@@ -109,6 +109,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const [selectedCondition, setSelectedCondition] = useState<Condition | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [newNote, setNewNote] = useState('');
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
 
   // Single condition form data
   const [formData, setFormData] = useState({
@@ -210,9 +211,18 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     setIsDialogOpen(true);
   };
 
-  const handleOpenConditionDetail = (condition: Condition) => {
+  const handleOpenConditionDetail = async (condition: Condition) => {
     setSelectedCondition(condition);
     setIsDetailModalOpen(true);
+    
+    // Load status history
+    try {
+      const history = await databaseService.getConditionStatusHistory(condition.id);
+      setStatusHistory(history);
+    } catch (error) {
+      console.error('Error loading status history:', error);
+      setStatusHistory([]);
+    }
   };
 
   const handleOpenBulkDialog = () => {
@@ -632,9 +642,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   <label className="text-sm font-medium text-muted-foreground">Status</label>
                   <Select
                     value={selectedCondition.status}
-                    onValueChange={(value) => {
-                      handleInlineUpdate(selectedCondition.id, 'status', value);
+                    onValueChange={async (value) => {
+                      await handleInlineUpdate(selectedCondition.id, 'status', value);
                       setSelectedCondition({ ...selectedCondition, status: value });
+                      // Reload status history after status change
+                      try {
+                        const history = await databaseService.getConditionStatusHistory(selectedCondition.id);
+                        setStatusHistory(history);
+                      } catch (error) {
+                        console.error('Error reloading status history:', error);
+                      }
                     }}
                   >
                     <SelectTrigger className="w-full mt-1">
@@ -748,6 +765,36 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 >
                   Add Note
                 </Button>
+              </div>
+
+              {/* Status History Section */}
+              <div>
+                <label className="text-sm font-medium mb-3 block">Status History</label>
+                {statusHistory.length > 0 ? (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-lg p-3 bg-muted/10">
+                    {statusHistory.map((entry, idx) => {
+                      const statusObj = STATUSES.find(s => s.value === entry.status);
+                      const userName = entry.changed_user 
+                        ? `${entry.changed_user.first_name} ${entry.changed_user.last_name}`
+                        : 'System';
+                      const timeStr = format(new Date(entry.changed_at), 'MMM dd, yyyy h:mm a');
+                      
+                      return (
+                        <div key={entry.id} className="flex items-center gap-3 text-sm">
+                          <Badge className={cn("min-w-[140px] justify-center", statusObj?.color || "bg-gray-100 text-gray-800")}>
+                            {statusObj?.label || entry.status}
+                          </Badge>
+                          <span className="text-muted-foreground">{timeStr}</span>
+                          <span className="text-muted-foreground">by {userName}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg bg-muted/10">
+                    No status changes recorded yet
+                  </p>
+                )}
               </div>
 
               {/* Documents Section */}
