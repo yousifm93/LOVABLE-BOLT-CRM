@@ -40,6 +40,10 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
       day_of_week?: number;
       day_of_month?: number;
       scheduled_hour?: number;
+      date_field?: string;
+      days_offset?: number;
+      condition_field?: string;
+      condition_value?: string;
     },
     task_name: '',
     task_description: '',
@@ -232,6 +236,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                 <SelectItem value="status_changed">When status changes</SelectItem>
                 <SelectItem value="pipeline_stage_changed">When pipeline stage changes</SelectItem>
                 <SelectItem value="scheduled">On a schedule (time-based)</SelectItem>
+                <SelectItem value="date_based">When date arrives</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -415,6 +420,107 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                 <p className="text-xs text-muted-foreground">
                   Tasks will be created at the start of this hour
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Date-Based Configuration */}
+          {formData.trigger_type === 'date_based' && (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+              <h4 className="font-medium text-sm">Date-Based Configuration</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="date_field">Date Field *</Label>
+                <Select
+                  value={formData.trigger_config.date_field || ''}
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    trigger_config: { ...formData.trigger_config, date_field: value }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date field" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="close_date">Close Date</SelectItem>
+                    <SelectItem value="appraisal_ordered_date">Appraisal Ordered Date</SelectItem>
+                    <SelectItem value="appraisal_scheduled_date">Appraisal Scheduled Date</SelectItem>
+                    <SelectItem value="submitted_at">Submission Date</SelectItem>
+                    <SelectItem value="title_ordered_date">Title Ordered Date</SelectItem>
+                    <SelectItem value="insurance_ordered_date">Insurance Ordered Date</SelectItem>
+                    <SelectItem value="condo_ordered_date">Condo Ordered Date</SelectItem>
+                    <SelectItem value="lock_expiration_date">Lock Expiration Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="days_offset">Days Before/After *</Label>
+                <Input
+                  id="days_offset"
+                  type="number"
+                  value={formData.trigger_config.days_offset ?? ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    trigger_config: { 
+                      ...formData.trigger_config, 
+                      days_offset: e.target.value ? parseInt(e.target.value) : undefined 
+                    }
+                  })}
+                  placeholder="e.g., -1 for 1 day before, 2 for 2 days after"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use negative numbers for days before (e.g., -1 = 1 day before)<br/>
+                  Use positive numbers for days after (e.g., 2 = 2 days after)
+                </p>
+              </div>
+
+              <div className="border-t pt-4 space-y-4">
+                <h5 className="text-sm font-medium">Optional Condition</h5>
+                <p className="text-xs text-muted-foreground">
+                  Only create task if a status field matches a specific value
+                </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="condition_field">Status Field (Optional)</Label>
+                  <Select
+                    value={formData.trigger_config.condition_field || ''}
+                    onValueChange={(value) => setFormData({
+                      ...formData,
+                      trigger_config: { ...formData.trigger_config, condition_field: value || undefined }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
+                      <SelectItem value="loan_status">Loan Status</SelectItem>
+                      <SelectItem value="disclosure_status">Disclosure Status</SelectItem>
+                      <SelectItem value="title_status">Title Status</SelectItem>
+                      <SelectItem value="hoi_status">Insurance Status</SelectItem>
+                      <SelectItem value="condo_status">Condo Status</SelectItem>
+                      <SelectItem value="package_status">Package Status</SelectItem>
+                      <SelectItem value="cd_status">CD Status</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.trigger_config.condition_field && (
+                  <div className="space-y-2">
+                    <Label htmlFor="condition_value">Must Equal *</Label>
+                    <Input
+                      id="condition_value"
+                      value={formData.trigger_config.condition_value || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        trigger_config: { ...formData.trigger_config, condition_value: e.target.value }
+                      })}
+                      placeholder="e.g., Ordered, SUB, Signed"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}

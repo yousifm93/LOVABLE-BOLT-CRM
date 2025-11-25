@@ -187,6 +187,39 @@ export function TaskAutomationsTable() {
     if (automation.trigger_type === 'lead_created') {
       return 'When a lead is created';
     }
+    
+    if (automation.trigger_type === 'date_based') {
+      const config = automation.trigger_config as {
+        date_field?: string;
+        days_offset?: number;
+        condition_field?: string;
+        condition_value?: string;
+      };
+      
+      const offset = config.days_offset ?? 0;
+      const dateField = config.date_field || 'date';
+      
+      // Format date field name
+      const fieldLabel = dateField
+        .split('_')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      // Format offset
+      const when = offset === 0 
+        ? 'On'
+        : offset < 0 
+          ? `${Math.abs(offset)} day(s) before`
+          : `${offset} day(s) after`;
+      
+      // Format condition
+      const condition = config.condition_field && config.condition_value
+        ? ` (if ${config.condition_field.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} = "${config.condition_value}")`
+        : '';
+      
+      return `${when} ${fieldLabel}${condition}`;
+    }
+    
     if (automation.trigger_type === 'scheduled') {
       const config = automation.trigger_config as {
         frequency?: string;
@@ -210,6 +243,7 @@ export function TaskAutomationsTable() {
       }
       return 'Scheduled';
     }
+    
     if (automation.trigger_type === 'pipeline_stage_changed') {
       const config = automation.trigger_config as {
         target_stage_id?: string;
@@ -225,6 +259,7 @@ export function TaskAutomationsTable() {
       const stageName = config.target_stage_id ? stageMap[config.target_stage_id] : 'Unknown';
       return `When lead moves to ${stageName}`;
     }
+    
     if (automation.trigger_type === 'status_changed') {
       const config = automation.trigger_config;
       const field = config?.field;
@@ -241,6 +276,7 @@ export function TaskAutomationsTable() {
       }
       return 'When status changes';
     }
+    
     return automation.trigger_type;
   };
   const getPriorityColor = (priority: string) => {
