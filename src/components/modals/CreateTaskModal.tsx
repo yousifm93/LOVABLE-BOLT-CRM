@@ -273,7 +273,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Create New Task{mode === 'multiple' ? 's' : ''}</DialogTitle>
@@ -412,11 +412,11 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[35%]">Task Title *</TableHead>
-                    <TableHead className="w-[20%]">Due Date</TableHead>
-                    <TableHead className="w-[20%]">Assigned To</TableHead>
+                    <TableHead className="w-[40%]">Task Title *</TableHead>
+                    <TableHead className="w-[18%]">Due Date</TableHead>
+                    <TableHead className="w-[18%]">Assigned To</TableHead>
                     <TableHead className="w-[20%]">Borrower</TableHead>
-                    <TableHead className="w-[5%]"></TableHead>
+                    <TableHead className="w-[4%]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -431,7 +431,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
                             setBulkTasks(newTasks);
                           }}
                           placeholder="Enter task title"
-                          className="h-9"
+                          className="h-9 min-w-[120px]"
                         />
                       </TableCell>
                       <TableCell>
@@ -470,7 +470,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
                       <TableCell>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className="h-9 w-full justify-start text-left font-normal">
+                            <Button variant="outline" className="h-9 w-full justify-start text-left font-normal truncate">
                               {task.borrower_id ? 
                                 (() => {
                                   const borrower = leads.find(l => l.id === task.borrower_id);
