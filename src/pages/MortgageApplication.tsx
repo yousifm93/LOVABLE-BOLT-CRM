@@ -88,44 +88,6 @@ const MortgageApplicationContent = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Auth Banner for Guest Users */}
-      {!user && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
-          <Card className="border-primary/20 bg-primary/5 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">Save Your Progress</h3>
-                <p className="text-xs text-muted-foreground">
-                  Create an account to save and continue later
-                </p>
-              </div>
-              <Button onClick={() => setShowAuthModal(true)} size="sm">
-                <Save className="mr-2 h-4 w-4" />
-                Sign In
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* User Info for Authenticated Users */}
-      {user && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
-          <Card className="border-border bg-background p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Signed in as</p>
-                <p className="font-semibold text-sm">{user.email}</p>
-              </div>
-              <Button onClick={signOut} variant="outline" size="sm">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
       {/* Desktop Sidebar */}
       {!isMobile && <ApplicationSidebar onSectionChange={handleSectionChange} />}
 
@@ -152,6 +114,40 @@ const MortgageApplicationContent = () => {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="container max-w-4xl mx-auto p-4 md:p-8">
+            {/* Auth Banner for Guest Users */}
+            {!user && (
+              <Card className="border-primary/20 bg-primary/5 p-4 mb-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Save Your Progress</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Create an account to save and continue later
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowAuthModal(true)} size="sm">
+                    <Save className="mr-2 h-4 w-4" />
+                    Sign In
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* User Info for Authenticated Users */}
+            {user && (
+              <Card className="border-border bg-background p-4 mb-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Signed in as</p>
+                    <p className="font-semibold text-sm">{user.email}</p>
+                  </div>
+                  <Button onClick={signOut} variant="outline" size="sm">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              </Card>
+            )}
+
             {renderCurrentForm()}
           </div>
         </div>
