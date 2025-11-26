@@ -314,7 +314,7 @@ export function TaskAutomationsTable() {
     appraisal: groupedAutomations.active_loan.filter(a => a.subcategory === 'appraisal'),
     closing: groupedAutomations.active_loan.filter(a => a.subcategory === 'closing'),
     submission: groupedAutomations.active_loan.filter(a => a.subcategory === 'submission'),
-    other: groupedAutomations.active_loan.filter(a => !a.subcategory)
+    other: groupedAutomations.active_loan.filter(a => a.subcategory === 'other' || !a.subcategory)
   };
   
   const categoryLabels = {
