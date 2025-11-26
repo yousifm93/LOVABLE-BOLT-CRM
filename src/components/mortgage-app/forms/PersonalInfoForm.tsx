@@ -1,0 +1,262 @@
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useApplication } from '@/contexts/MortgageApplicationContext';
+import { ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface PersonalInfoFormProps {
+  onNext: () => void;
+  onBack: () => void;
+}
+
+export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBack }) => {
+  const { data, dispatch, progressPercentage } = useApplication();
+
+  const form = useForm({
+    defaultValues: data.personalInfo,
+    mode: 'onBlur',
+  });
+
+  const { register, watch, setValue, formState: { errors }, handleSubmit } = form;
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: { section: 'personalInfo', data: value },
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [form, dispatch]);
+
+  const onSubmit = (formData: any) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      payload: { section: 'personalInfo', data: formData },
+    });
+    onNext();
+  };
+
+  const formatPhoneNumber = (value: string) => {
+    const phoneNumber = value.replace(/[^\d]/g, '');
+    const phoneNumberLength = phoneNumber.length;
+    if (phoneNumberLength < 4) return phoneNumber;
+    if (phoneNumberLength < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+    }
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
+          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Full Legal Name</CardTitle>
+          <CardDescription>Enter your name as it appears on official documents</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input {...register('firstName', { required: 'First name is required' })} />
+              {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input {...register('lastName', { required: 'Last name is required' })} />
+              {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={watch('hasAlternateNames')}
+              onCheckedChange={(checked) => setValue('hasAlternateNames', !!checked)}
+            />
+            <Label>I have alternate names</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={watch('hasNickname')}
+              onCheckedChange={(checked) => setValue('hasNickname', !!checked)}
+            />
+            <Label>I have a nickname</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address *</Label>
+            <Input
+              {...register('email', {
+                required: 'Email is required',
+                pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
+              })}
+              type="email"
+            />
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cellPhone">Cell Phone *</Label>
+              <Input
+                {...register('cellPhone', { required: 'Cell phone is required' })}
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  setValue('cellPhone', formatted);
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="workPhone">Work Phone</Label>
+              <Input
+                {...register('workPhone')}
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  setValue('workPhone', formatted);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={watch('consentToContact')}
+              onCheckedChange={(checked) => setValue('consentToContact', !!checked)}
+            />
+            <Label>I consent to be contacted via phone, text, or email *</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Address</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currentAddress.street">Street Address *</Label>
+            <Input {...register('currentAddress.street', { required: 'Street address is required' })} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentAddress.city">City *</Label>
+              <Input {...register('currentAddress.city', { required: 'City is required' })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentAddress.state">State *</Label>
+              <Input {...register('currentAddress.state', { required: 'State is required' })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentAddress.zipCode">ZIP Code *</Label>
+              <Input {...register('currentAddress.zipCode', { required: 'ZIP code is required' })} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="propertyOwnership">Do you own or rent? *</Label>
+            <Select value={watch('propertyOwnership')} onValueChange={(value) => setValue('propertyOwnership', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="own">Own</SelectItem>
+                <SelectItem value="rent">Rent</SelectItem>
+                <SelectItem value="living-rent-free">Living Rent Free</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="yearsAtAddress">Years at Address</Label>
+              <Input {...register('yearsAtAddress')} type="number" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthsAtAddress">Months</Label>
+              <Input {...register('monthsAtAddress')} type="number" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Additional Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={watch('isVeteran')}
+              onCheckedChange={(checked) => setValue('isVeteran', !!checked)}
+            />
+            <Label>I am a veteran or currently serving in the military</Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="residencyType">Residency Type *</Label>
+            <Select value={watch('residencyType')} onValueChange={(value) => setValue('residencyType', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select residency type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="us-citizen">US Citizen</SelectItem>
+                <SelectItem value="permanent-resident">Permanent Resident Alien</SelectItem>
+                <SelectItem value="non-permanent-resident">Non Permanent Resident Alien</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="maritalStatus">Marital Status *</Label>
+            <Select value={watch('maritalStatus')} onValueChange={(value) => setValue('maritalStatus', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select marital status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="married">Married</SelectItem>
+                <SelectItem value="unmarried">Unmarried</SelectItem>
+                <SelectItem value="separated">Separated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="numberOfDependents">Number of Dependents</Label>
+            <Input {...register('numberOfDependents')} type="number" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-between pt-4">
+        <Button type="button" variant="outline" onClick={onBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button type="submit">
+          Save & Continue
+        </Button>
+      </div>
+    </form>
+  );
+};

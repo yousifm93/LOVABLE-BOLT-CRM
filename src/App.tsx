@@ -14,6 +14,8 @@ import PastClients from "@/pages/PastClients";
 import Admin from "@/pages/Admin";
 import AdminAssistant from "@/pages/AdminAssistant";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import MortgageAppAdmin from "@/pages/admin/MortgageAppAdmin";
+import MortgageApplication from "@/pages/MortgageApplication";
 import NotFound from "@/pages/NotFound";
 import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
@@ -58,13 +60,14 @@ function AppRoutes() {
   }
 
   if (!user) {
-    return (
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/home-value" element={<PropertyValuePublic />} />
-        <Route path="*" element={<Navigate to="/auth" replace />} />
-      </Routes>
-    );
+  return (
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/home-value" element={<PropertyValuePublic />} />
+      <Route path="/apply" element={<MortgageApplication />} />
+      <Route path="*" element={<Navigate to="/auth" replace />} />
+    </Routes>
+  );
   }
 
   return (
@@ -81,6 +84,7 @@ function AppRoutes() {
         <Route path="/active" element={<Active />} />
         <Route path="/past-clients" element={<PastClients />} />
         <Route path="/admin/assistant" element={<AdminAssistant />} />
+        <Route path="/admin/mortgage-app" element={<MortgageAppAdmin />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin/settings2" element={<AdminSettings />} />
         <Route path="/admin/email-history" element={<EmailHistory />} />
