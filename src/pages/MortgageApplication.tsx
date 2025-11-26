@@ -1,0 +1,137 @@
+import React, { useState, useEffect } from 'react';
+import { ApplicationProvider, useApplication } from '@/contexts/MortgageApplicationContext';
+import { ApplicationSidebar } from '@/components/mortgage-app/ApplicationSidebar';
+import { MobileApplicationSidebar } from '@/components/mortgage-app/MobileApplicationSidebar';
+import { MobileHeader } from '@/components/mortgage-app/MobileHeader';
+import { LoanPurposeModal } from '@/components/mortgage-app/LoanPurposeModal';
+import { LoanOfficerPanel } from '@/components/mortgage-app/LoanOfficerPanel';
+import { MortgageInfoForm } from '@/components/mortgage-app/forms/MortgageInfoForm';
+import { PersonalInfoForm } from '@/components/mortgage-app/forms/PersonalInfoForm';
+import { CoBorrowersForm } from '@/components/mortgage-app/forms/CoBorrowersForm';
+import { IncomeForm } from '@/components/mortgage-app/forms/IncomeForm';
+import { AssetsForm } from '@/components/mortgage-app/forms/AssetsForm';
+import { RealEstateForm } from '@/components/mortgage-app/forms/RealEstateForm';
+import { DeclarationsForm } from '@/components/mortgage-app/forms/DeclarationsForm';
+import { DemographicsForm } from '@/components/mortgage-app/forms/DemographicsForm';
+import { CreditForm } from '@/components/mortgage-app/forms/CreditForm';
+import { AdditionalQuestionsForm } from '@/components/mortgage-app/forms/AdditionalQuestionsForm';
+import { ReviewSubmitForm } from '@/components/mortgage-app/forms/ReviewSubmitForm';
+import { useMobile } from '@/hooks/use-mobile';
+
+const MortgageApplicationContent = () => {
+  const { data, dispatch } = useApplication();
+  const isMobile = useMobile();
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
+
+  useEffect(() => {
+    if (!data.loanPurpose) {
+      setShowLoanPurposeModal(true);
+    }
+  }, [data.loanPurpose]);
+
+  const handleSectionChange = (sectionId: number) => {
+    dispatch({ type: 'SET_CURRENT_SECTION', payload: sectionId });
+  };
+
+  const goToNextSection = () => {
+    const nextSection = data.currentSection + 1;
+    if (nextSection <= 11) {
+      dispatch({ type: 'SET_CURRENT_SECTION', payload: nextSection });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const goToPreviousSection = () => {
+    const prevSection = data.currentSection - 1;
+    if (prevSection >= 1) {
+      dispatch({ type: 'SET_CURRENT_SECTION', payload: prevSection });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const renderCurrentForm = () => {
+    switch (data.currentSection) {
+      case 1:
+        return <MortgageInfoForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 2:
+        return <PersonalInfoForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 3:
+        return <CoBorrowersForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 4:
+        return <IncomeForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 5:
+        return <AssetsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 6:
+        return <RealEstateForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 7:
+        return <DeclarationsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 8:
+        return <DemographicsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 9:
+        return <CreditForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 10:
+        return <AdditionalQuestionsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+      case 11:
+        return <ReviewSubmitForm onBack={goToPreviousSection} />;
+      default:
+        return <MortgageInfoForm onNext={goToNextSection} onBack={goToPreviousSection} />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Desktop Sidebar */}
+      {!isMobile && <ApplicationSidebar onSectionChange={handleSectionChange} />}
+
+      {/* Mobile Sidebar */}
+      {isMobile && (
+        <MobileApplicationSidebar
+          open={showMobileSidebar}
+          onOpenChange={setShowMobileSidebar}
+          onSectionChange={handleSectionChange}
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        {isMobile && (
+          <MobileHeader
+            onMenuToggle={() => setShowMobileSidebar(true)}
+            onPrevious={goToPreviousSection}
+            onNext={goToNextSection}
+          />
+        )}
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="container max-w-4xl mx-auto p-4 md:p-8">
+            {renderCurrentForm()}
+          </div>
+        </div>
+      </div>
+
+      {/* Loan Officer Panel - Desktop Only */}
+      {!isMobile && (
+        <div className="w-80 border-l border-border overflow-y-auto bg-card">
+          <LoanOfficerPanel />
+        </div>
+      )}
+
+      {/* Loan Purpose Modal */}
+      <LoanPurposeModal
+        open={showLoanPurposeModal}
+        onClose={() => setShowLoanPurposeModal(false)}
+      />
+    </div>
+  );
+};
+
+export default function MortgageApplication() {
+  return (
+    <ApplicationProvider>
+      <MortgageApplicationContent />
+    </ApplicationProvider>
+  );
+}
