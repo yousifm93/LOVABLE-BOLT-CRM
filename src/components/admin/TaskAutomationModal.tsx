@@ -53,7 +53,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
     due_date_offset_days: null as number | null,
     is_active: true,
     category: '',
-    subcategory: '',
+    subcategory: 'other',
     completion_requirement_type: 'none',
     completion_requirement_config: {},
   });
@@ -75,7 +75,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: automation.due_date_offset_days,
         is_active: automation.is_active ?? true,
         category: automation.category || '',
-        subcategory: automation.subcategory || '',
+        subcategory: automation.subcategory || 'other',
         completion_requirement_type: automation.completion_requirement_type || 'none',
         completion_requirement_config: automation.completion_requirement_config || {},
       });
@@ -91,7 +91,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         due_date_offset_days: null,
         is_active: true,
         category: '',
-        subcategory: '',
+        subcategory: 'other',
         completion_requirement_type: 'none',
         completion_requirement_config: {},
       });
@@ -611,7 +611,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                   onValueChange={(value) => setFormData({ 
                     ...formData, 
                     category: value,
-                    subcategory: value === 'active_loan' ? formData.subcategory : ''
+                    subcategory: value === 'active_loan' ? formData.subcategory : 'other'
                   })}
                 >
                   <SelectTrigger>
@@ -638,7 +638,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                       <SelectValue placeholder="Select subcategory or leave blank" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Other)</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                       <SelectItem value="appraisal">Appraisal</SelectItem>
                       <SelectItem value="closing">Closing</SelectItem>
                       <SelectItem value="submission">Submission</SelectItem>
