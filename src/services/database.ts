@@ -89,6 +89,91 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 
 // Database service functions
 export const databaseService = {
+  // Mortgage Applications
+  async saveApplication(userId: string, applicationData: any, status: string = 'draft') {
+    const { data, error } = await supabase
+      .from('mortgage_applications')
+      .upsert({
+        user_id: userId,
+        application_data: applicationData,
+        status,
+        progress_percentage: applicationData.progressPercentage || 0,
+        loan_purpose: applicationData.loanPurpose,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+        ignoreDuplicates: false,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async loadApplication(userId: string) {
+    const { data, error } = await supabase
+      .from('mortgage_applications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'draft')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async submitApplication(userId: string, applicationData: any) {
+    const { data, error } = await supabase
+      .from('mortgage_applications')
+      .update({
+        application_data: applicationData,
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        progress_percentage: 100,
+      })
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getAllApplications() {
+    const { data, error } = await supabase
+      .from('mortgage_applications')
+      .select(`
+        *,
+        application_user:application_users(
+          email,
+          first_name,
+          last_name,
+          phone
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async importApplicationToLead(applicationId: string, leadId: string) {
+    const { data, error } = await supabase
+      .from('mortgage_applications')
+      .update({
+        status: 'imported',
+        imported_to_crm_at: new Date().toISOString(),
+        imported_lead_id: leadId,
+      })
+      .eq('id', applicationId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // Task Automations
   async getTaskAutomations() {
     const { data, error } = await supabase

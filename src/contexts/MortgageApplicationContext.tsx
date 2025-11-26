@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
 import { useForm, UseFormReturn } from 'react-hook-form';
+import { supabase } from '@/integrations/supabase/client';
+import { databaseService } from '@/services/database';
 
 export interface CoBorrower {
   id: string;
@@ -524,31 +526,47 @@ export const ApplicationProvider: React.FC<ApplicationProviderProps> = ({ childr
   });
 
   useEffect(() => {
-    const savedData = localStorage.getItem('mortgageApplication');
-    if (savedData) {
+    const loadSavedApplication = async () => {
       try {
-        const parsedData = JSON.parse(savedData);
-        const restoredData = {
-          ...initialData,
-          ...parsedData,
-          visitedSections: new Set(parsedData.visitedSections || [1]),
-          completedFields: new Set(parsedData.completedFields || []),
-          coBorrowers: parsedData.coBorrowers || initialData.coBorrowers,
-          income: parsedData.income || initialData.income,
-          assets: parsedData.assets || initialData.assets,
-          realEstate: parsedData.realEstate || initialData.realEstate,
-          declarations: parsedData.declarations || initialData.declarations,
-          demographics: parsedData.demographics || initialData.demographics,
-          credit: parsedData.credit || initialData.credit,
-          additionalQuestions: parsedData.additionalQuestions || initialData.additionalQuestions,
-          reviewSubmit: parsedData.reviewSubmit || initialData.reviewSubmit,
-        };
-        dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
-        form.reset(restoredData);
+        // Check if user is authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Load from database for authenticated users
+          const savedApp = await databaseService.loadApplication(session.user.id);
+          if (savedApp && savedApp.application_data) {
+            const parsedData = savedApp.application_data as any;
+            const restoredData = {
+              ...initialData,
+              ...parsedData,
+              visitedSections: new Set(parsedData.visitedSections || [1]),
+              completedFields: new Set(parsedData.completedFields || []),
+            };
+            dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
+            form.reset(restoredData);
+            return;
+          }
+        }
+        
+        // Fallback to localStorage for guest users
+        const savedData = localStorage.getItem('mortgageApplication');
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          const restoredData = {
+            ...initialData,
+            ...parsedData,
+            visitedSections: new Set(parsedData.visitedSections || [1]),
+            completedFields: new Set(parsedData.completedFields || []),
+          };
+          dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
+          form.reset(restoredData);
+        }
       } catch (error) {
         console.error('Failed to load application data:', error);
       }
-    }
+    };
+    
+    loadSavedApplication();
   }, [form]);
 
   const saveApplication = async () => {
@@ -558,8 +576,20 @@ export const ApplicationProvider: React.FC<ApplicationProviderProps> = ({ childr
         ...state.data,
         visitedSections: Array.from(state.data.visitedSections),
         completedFields: Array.from(state.data.completedFields),
+        progressPercentage: state.progressPercentage,
       };
-      localStorage.setItem('mortgageApplication', JSON.stringify(dataToSave));
+      
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Save to database for authenticated users
+        await databaseService.saveApplication(session.user.id, dataToSave);
+      } else {
+        // Fallback to localStorage for guest users
+        localStorage.setItem('mortgageApplication', JSON.stringify(dataToSave));
+      }
+      
       dispatch({ type: 'SET_UNSAVED_CHANGES', payload: false });
     } catch (error) {
       console.error('Failed to save application:', error);

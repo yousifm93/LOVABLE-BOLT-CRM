@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ApplicationProvider, useApplication } from '@/contexts/MortgageApplicationContext';
+import { BorrowerAuthProvider, useBorrowerAuth } from '@/hooks/useBorrowerAuth';
+import { BorrowerAuthModal } from '@/components/mortgage-app/BorrowerAuthModal';
 import { ApplicationSidebar } from '@/components/mortgage-app/ApplicationSidebar';
 import { MobileApplicationSidebar } from '@/components/mortgage-app/MobileApplicationSidebar';
 import { MobileHeader } from '@/components/mortgage-app/MobileHeader';
 import { LoanPurposeModal } from '@/components/mortgage-app/LoanPurposeModal';
 import { LoanOfficerPanel } from '@/components/mortgage-app/LoanOfficerPanel';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { LogOut, Save } from 'lucide-react';
 import { MortgageInfoForm } from '@/components/mortgage-app/forms/MortgageInfoForm';
 import { PersonalInfoForm } from '@/components/mortgage-app/forms/PersonalInfoForm';
 import { CoBorrowersForm } from '@/components/mortgage-app/forms/CoBorrowersForm';
@@ -20,9 +25,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const MortgageApplicationContent = () => {
   const { data, dispatch } = useApplication();
+  const { user, signOut } = useBorrowerAuth();
   const isMobile = useIsMobile();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     if (!data.loanPurpose) {
@@ -81,6 +88,44 @@ const MortgageApplicationContent = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Auth Banner for Guest Users */}
+      {!user && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+          <Card className="border-primary/20 bg-primary/5 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm">Save Your Progress</h3>
+                <p className="text-xs text-muted-foreground">
+                  Create an account to save and continue later
+                </p>
+              </div>
+              <Button onClick={() => setShowAuthModal(true)} size="sm">
+                <Save className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* User Info for Authenticated Users */}
+      {user && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+          <Card className="border-border bg-background p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Signed in as</p>
+                <p className="font-semibold text-sm">{user.email}</p>
+              </div>
+              <Button onClick={signOut} variant="outline" size="sm">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Desktop Sidebar */}
       {!isMobile && <ApplicationSidebar onSectionChange={handleSectionChange} />}
 
@@ -124,14 +169,22 @@ const MortgageApplicationContent = () => {
         open={showLoanPurposeModal}
         onClose={() => setShowLoanPurposeModal(false)}
       />
+
+      {/* Auth Modal */}
+      <BorrowerAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 };
 
 export default function MortgageApplication() {
   return (
-    <ApplicationProvider>
-      <MortgageApplicationContent />
-    </ApplicationProvider>
+    <BorrowerAuthProvider>
+      <ApplicationProvider>
+        <MortgageApplicationContent />
+      </ApplicationProvider>
+    </BorrowerAuthProvider>
   );
 }
