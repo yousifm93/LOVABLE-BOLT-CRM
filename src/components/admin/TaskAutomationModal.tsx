@@ -497,7 +497,6 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                       <SelectValue placeholder="None" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
                       <SelectItem value="appraisal_status">Appraisal Status</SelectItem>
                       <SelectItem value="loan_status">Loan Status</SelectItem>
                       <SelectItem value="disclosure_status">Disclosure Status</SelectItem>
