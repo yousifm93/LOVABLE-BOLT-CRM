@@ -97,21 +97,6 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="purchaseStage">Where are you in the purchase process? *</Label>
-            <Select value={watch('purchaseStage')} onValueChange={(value) => setValue('purchaseStage', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select stage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="found-property">Found a property</SelectItem>
-                <SelectItem value="signed-contract">Signed a purchase agreement</SelectItem>
-                <SelectItem value="looking">Still looking for a property</SelectItem>
-                <SelectItem value="refinance">Refinancing existing property</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="purchasePrice">Purchase Price *</Label>

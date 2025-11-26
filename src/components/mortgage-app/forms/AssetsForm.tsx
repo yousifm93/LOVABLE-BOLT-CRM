@@ -64,6 +64,31 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
     });
   };
 
+  const handleContinue = () => {
+    // Calculate total assets
+    const totalAssets = data.assets.assets.reduce((sum, asset) => {
+      const balance = parseFloat(asset.balance.replace(/,/g, '')) || 0;
+      return sum + balance;
+    }, 0);
+
+    // Get down payment amount
+    const downPaymentStr = data.mortgageInfo.downPaymentAmount.replace(/,/g, '');
+    const downPayment = parseFloat(downPaymentStr) || 0;
+
+    // Validate assets cover down payment
+    if (totalAssets < downPayment) {
+      const shortfall = downPayment - totalAssets;
+      toast({
+        title: 'Insufficient Assets',
+        description: `Your total assets ($${totalAssets.toLocaleString()}) must cover the down payment ($${downPayment.toLocaleString()}). You need $${shortfall.toLocaleString()} more in assets.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    onNext();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
@@ -129,7 +154,7 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={onNext}>
+        <Button onClick={handleContinue}>
           Save & Continue
         </Button>
       </div>
@@ -154,6 +179,7 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
                   <SelectItem value="savings">Savings Account</SelectItem>
                   <SelectItem value="investment">Investment Account</SelectItem>
                   <SelectItem value="retirement">Retirement Account (401k, IRA)</SelectItem>
+                  <SelectItem value="gift">Gift</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>

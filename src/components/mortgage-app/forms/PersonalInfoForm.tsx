@@ -67,33 +67,21 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           <CardDescription>Enter your name as it appears on official documents</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name *</Label>
               <Input {...register('firstName', { required: 'First name is required' })} />
               {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-2">
+              <Label htmlFor="middleName">Middle Name</Label>
+              <Input {...register('middleName')} />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="lastName">Last Name *</Label>
               <Input {...register('lastName', { required: 'Last name is required' })} />
               {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={watch('hasAlternateNames')}
-              onCheckedChange={(checked) => setValue('hasAlternateNames', !!checked)}
-            />
-            <Label>I have alternate names</Label>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={watch('hasNickname')}
-              onCheckedChange={(checked) => setValue('hasNickname', !!checked)}
-            />
-            <Label>I have a nickname</Label>
           </div>
         </CardContent>
       </Card>
@@ -115,27 +103,15 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
             {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cellPhone">Cell Phone *</Label>
-              <Input
-                {...register('cellPhone', { required: 'Cell phone is required' })}
-                onChange={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
-                  setValue('cellPhone', formatted);
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="workPhone">Work Phone</Label>
-              <Input
-                {...register('workPhone')}
-                onChange={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
-                  setValue('workPhone', formatted);
-                }}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="cellPhone">Cell Phone *</Label>
+            <Input
+              {...register('cellPhone', { required: 'Cell phone is required' })}
+              onChange={(e) => {
+                const formatted = formatPhoneNumber(e.target.value);
+                setValue('cellPhone', formatted);
+              }}
+            />
           </div>
 
           <div className="flex items-center space-x-2">
@@ -251,11 +227,6 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
                 <SelectItem value="separated">Separated</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dependentsCount">Number of Dependents</Label>
-            <Input {...register('dependentsCount')} type="number" />
           </div>
         </CardContent>
       </Card>
