@@ -101,6 +101,7 @@ function AppRoutes() {
         <Route path="/resources/condolist" element={<Condolist />} />
         <Route path="/resources/preapproval" element={<Letter />} />
         <Route path="/resources/estimate" element={<LoanEstimate />} />
+        <Route path="/apply" element={<MortgageApplication />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>
