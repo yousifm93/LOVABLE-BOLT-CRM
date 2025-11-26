@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CalendarIcon, ChevronDown, Paperclip } from "lucide-react";
+import { CalendarIcon, ChevronDown, Paperclip, X, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { databaseService } from "@/services/database";
@@ -17,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/ui/voice-recorder";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface CreateLeadModalProps {
   open: boolean;
@@ -25,6 +27,7 @@ interface CreateLeadModalProps {
 }
 
 export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: CreateLeadModalProps) {
+  const [mode, setMode] = useState<'single' | 'multiple'>('single');
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -38,6 +41,19 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     referred_via: "none" as any,
     source: "none" as any,
   });
+  const [bulkLeads, setBulkLeads] = useState<Array<{
+    first_name: string;
+    last_name: string;
+    phone: string;
+    email: string;
+    buyer_agent_id: string | null;
+  }>>([{
+    first_name: "",
+    last_name: "",
+    phone: "",
+    email: "",
+    buyer_agent_id: null,
+  }]);
   const [loading, setLoading] = useState(false);
   const [buyerAgents, setBuyerAgents] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -134,127 +150,205 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.first_name.trim()) {
-      toast({
-        title: "Error",
-        description: "First name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const newLead = await databaseService.createLead({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone: formData.phone || null,
-        email: formData.email || null,
-        notes: formData.notes || null,
-        lead_on_date: `${formData.lead_on_date.getFullYear()}-${String(formData.lead_on_date.getMonth() + 1).padStart(2, '0')}-${String(formData.lead_on_date.getDate()).padStart(2, '0')}`,
-        buyer_agent_id: formData.buyer_agent_id,
-        task_eta: `${formData.task_eta.getFullYear()}-${String(formData.task_eta.getMonth() + 1).padStart(2, '0')}-${String(formData.task_eta.getDate()).padStart(2, '0')}`,
-        status: 'Working on it',
-        teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
-        referred_via: formData.referred_via === 'none' ? null : formData.referred_via,
-        referral_source: formData.source === 'none' ? null : formData.source,
-        interest_rate: 7.0,
-        term: 360,
-        loan_type: 'Purchase',
-      });
-
-      // If notes were provided, create a note record
-      if (formData.notes.trim() && newLead.id) {
-        try {
-          // Get current user ID from session
-          const { data: { session } } = await supabase.auth.getSession();
-          const authorId = session?.user?.id || null;
-          
-          await databaseService.createNote({
-            lead_id: newLead.id,
-            author_id: authorId,
-            body: formData.notes,
-          });
-          console.log('Note created successfully', authorId ? `by user ${authorId}` : 'without author');
-        } catch (noteError) {
-          console.error('Error creating note:', noteError);
-          toast({
-            title: 'Warning',
-            description: 'Lead created but note could not be saved',
-            variant: 'destructive',
-          });
-        }
+    if (mode === 'single') {
+      if (!formData.first_name.trim()) {
+        toast({
+          title: "Error",
+          description: "First name is required",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Upload attached files
-      if (selectedFiles.length > 0 && newLead.id) {
-        setUploadingFiles(true);
-        try {
-          for (const file of selectedFiles) {
-            await databaseService.uploadLeadDocument(
-              newLead.id,
-              file,
-              { 
-                title: "Lead Attachment",
-                notes: "Uploaded during lead creation"
-              }
-            );
+      setLoading(true);
+      try {
+        const newLead = await databaseService.createLead({
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone: formData.phone || null,
+          email: formData.email || null,
+          notes: formData.notes || null,
+          lead_on_date: `${formData.lead_on_date.getFullYear()}-${String(formData.lead_on_date.getMonth() + 1).padStart(2, '0')}-${String(formData.lead_on_date.getDate()).padStart(2, '0')}`,
+          buyer_agent_id: formData.buyer_agent_id,
+          task_eta: `${formData.task_eta.getFullYear()}-${String(formData.task_eta.getMonth() + 1).padStart(2, '0')}-${String(formData.task_eta.getDate()).padStart(2, '0')}`,
+          status: 'Working on it',
+          teammate_assigned: formData.teammate_assigned || 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+          referred_via: formData.referred_via === 'none' ? null : formData.referred_via,
+          referral_source: formData.source === 'none' ? null : formData.source,
+          interest_rate: 7.0,
+          term: 360,
+          loan_type: 'Purchase',
+        });
+
+        if (formData.notes.trim() && newLead.id) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const authorId = session?.user?.id || null;
+            
+            await databaseService.createNote({
+              lead_id: newLead.id,
+              author_id: authorId,
+              body: formData.notes,
+            });
+          } catch (noteError) {
+            console.error('Error creating note:', noteError);
+            toast({
+              title: 'Warning',
+              description: 'Lead created but note could not be saved',
+              variant: 'destructive',
+            });
           }
+        }
+
+        if (selectedFiles.length > 0 && newLead.id) {
+          setUploadingFiles(true);
+          try {
+            for (const file of selectedFiles) {
+              await databaseService.uploadLeadDocument(
+                newLead.id,
+                file,
+                { 
+                  title: "Lead Attachment",
+                  notes: "Uploaded during lead creation"
+                }
+              );
+            }
+            toast({
+              title: "Success",
+              description: `${selectedFiles.length} file(s) attached to lead`
+            });
+          } catch (uploadError) {
+            console.error('Error uploading files:', uploadError);
+            toast({
+              title: 'Warning',
+              description: 'Lead created but some files could not be uploaded',
+              variant: 'destructive',
+            });
+          } finally {
+            setUploadingFiles(false);
+          }
+        }
+
+        setFormData({
+          first_name: "",
+          last_name: "",
+          phone: "",
+          email: "",
+          notes: "",
+          lead_on_date: new Date(),
+          buyer_agent_id: null,
+          task_eta: new Date(),
+          teammate_assigned: "",
+          referred_via: "none",
+          source: "none",
+        });
+        setSelectedFiles([]);
+        
+        onLeadCreated();
+        onOpenChange(false);
+      } catch (err: any) {
+        console.error('Error creating lead:', err);
+        toast({
+          title: "Failed to create lead",
+          description: `${err?.message || 'Unknown error'}${err?.details ? ' — ' + err.details : ''}`,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Bulk mode
+      const validLeads = bulkLeads.filter(l => l.first_name.trim());
+      
+      if (validLeads.length === 0) {
+        toast({
+          title: "Error",
+          description: "At least one lead must have a first name",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setLoading(true);
+      try {
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const lead of validLeads) {
+          try {
+            await databaseService.createLead({
+              first_name: lead.first_name,
+              last_name: lead.last_name,
+              phone: lead.phone || null,
+              email: lead.email || null,
+              notes: null,
+              lead_on_date: new Date().toISOString().split('T')[0],
+              buyer_agent_id: lead.buyer_agent_id,
+              task_eta: new Date().toISOString().split('T')[0],
+              status: 'Working on it',
+              teammate_assigned: 'b06a12ea-00b9-4725-b368-e8a416d4028d',
+              referred_via: null,
+              referral_source: null,
+              interest_rate: 7.0,
+              term: 360,
+              loan_type: 'Purchase',
+            });
+            successCount++;
+          } catch (error) {
+            console.error("Error creating lead:", error);
+            failCount++;
+          }
+        }
+
+        if (successCount > 0) {
           toast({
             title: "Success",
-            description: `${selectedFiles.length} file(s) attached to lead`
+            description: `${successCount} lead${successCount > 1 ? 's' : ''} created successfully${failCount > 0 ? `, ${failCount} failed` : ''}`,
           });
-        } catch (uploadError) {
-          console.error('Error uploading files:', uploadError);
-          toast({
-            title: 'Warning',
-            description: 'Lead created but some files could not be uploaded',
-            variant: 'destructive',
-          });
-        } finally {
-          setUploadingFiles(false);
         }
-      }
 
-      setFormData({
-        first_name: "",
-        last_name: "",
-        phone: "",
-        email: "",
-        notes: "",
-        lead_on_date: new Date(),
-        buyer_agent_id: null,
-        task_eta: new Date(),
-        teammate_assigned: "",
-        referred_via: "none",
-        source: "none",
-      });
-      setSelectedFiles([]);
-      
-      onLeadCreated();
-      onOpenChange(false);
-    } catch (err: any) {
-      console.error('Error creating lead:', err);
-      toast({
-        title: "Failed to create lead",
-        description: `${err?.message || 'Unknown error'}${err?.details ? ' — ' + err.details : ''}`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+        if (failCount === 0) {
+          setBulkLeads([{
+            first_name: "",
+            last_name: "",
+            phone: "",
+            email: "",
+            buyer_agent_id: null,
+          }]);
+          onLeadCreated();
+          onOpenChange(false);
+        }
+      } catch (error) {
+        console.error("Error creating leads:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create leads",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", mode === 'single' ? "sm:max-w-lg" : "sm:max-w-4xl")}>
         <DialogHeader>
-        <DialogTitle className="text-left text-xl font-semibold">
-          Create New Lead
-        </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-left text-xl font-semibold">
+              Create New Lead{mode === 'multiple' ? 's' : ''}
+            </DialogTitle>
+            <ToggleGroup type="single" value={mode} onValueChange={(v) => v && setMode(v as any)} className="border rounded-md">
+              <ToggleGroupItem value="single" className="px-3 py-1 text-sm">Single</ToggleGroupItem>
+              <ToggleGroupItem value="multiple" className="px-3 py-1 text-sm">Multiple</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">{mode === 'single' ? (
+          // Single Lead Mode
+          <>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name *</Label>
@@ -555,6 +649,146 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
               </Button>
             </div>
           </div>
+          </>
+          ) : (
+            // Multiple Leads Mode - Spreadsheet Style
+            <div className="space-y-3">
+              <div className="border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-[40px] text-center">#</TableHead>
+                      <TableHead>First Name *</TableHead>
+                      <TableHead>Last Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Agent</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bulkLeads.map((lead, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell>
+                          <Input
+                            value={lead.first_name}
+                            onChange={(e) => {
+                              const newLeads = [...bulkLeads];
+                              newLeads[index].first_name = e.target.value;
+                              setBulkLeads(newLeads);
+                            }}
+                            placeholder="First name"
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={lead.last_name}
+                            onChange={(e) => {
+                              const newLeads = [...bulkLeads];
+                              newLeads[index].last_name = e.target.value;
+                              setBulkLeads(newLeads);
+                            }}
+                            placeholder="Last name"
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={lead.phone}
+                            onChange={(e) => {
+                              const newLeads = [...bulkLeads];
+                              newLeads[index].phone = e.target.value;
+                              setBulkLeads(newLeads);
+                            }}
+                            placeholder="Phone"
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={lead.email}
+                            onChange={(e) => {
+                              const newLeads = [...bulkLeads];
+                              newLeads[index].email = e.target.value;
+                              setBulkLeads(newLeads);
+                            }}
+                            placeholder="Email"
+                            className="h-8"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={lead.buyer_agent_id || ""}
+                            onValueChange={(value) => {
+                              const newLeads = [...bulkLeads];
+                              newLeads[index].buyer_agent_id = value || null;
+                              setBulkLeads(newLeads);
+                            }}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover">
+                              {buyerAgents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.first_name} {agent.last_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          {bulkLeads.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setBulkLeads(bulkLeads.filter((_, i) => i !== index))}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setBulkLeads([...bulkLeads, {
+                  first_name: "",
+                  last_name: "",
+                  phone: "",
+                  email: "",
+                  buyer_agent_id: null,
+                }])}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Row
+              </Button>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating..." : `Create ${bulkLeads.filter(l => l.first_name.trim()).length} Lead${bulkLeads.filter(l => l.first_name.trim()).length !== 1 ? 's' : ''}`}
+                </Button>
+              </div>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>
