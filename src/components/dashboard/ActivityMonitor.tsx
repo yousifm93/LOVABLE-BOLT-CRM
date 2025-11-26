@@ -9,9 +9,11 @@ import { Activity, Plus, Edit, Trash2, CalendarIcon, ChevronDown, Clock } from "
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ActivityDetailModal } from "./ActivityDetailModal";
 
 type TimeRange = 'today' | 'yesterday' | 'last7' | 'custom';
 type Category = 'pipeline' | 'contacts' | 'tasks';
+type ActionFilter = 'all' | 'insert' | 'update' | 'delete';
 
 interface ActivityData {
   category: string;
@@ -19,11 +21,18 @@ interface ActivityData {
   cnt: number;
 }
 
-interface LatestActivity {
+interface ActivityDetail {
   item_id: string;
   action: string;
   table_name: string;
   changed_at: string;
+  changed_by: string | null;
+  before_data: any;
+  after_data: any;
+  display_name: string;
+  fields_changed: string[];
+  user_first_name: string | null;
+  user_last_name: string | null;
 }
 
 const rangeFor = (preset: TimeRange, custom?: { from: Date; to: Date }) => {
@@ -54,13 +63,20 @@ export function ActivityMonitor() {
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
   const [selectedCategories, setSelectedCategories] = useState<Category[]>(['pipeline', 'contacts', 'tasks']);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
-  const [latestActivities, setLatestActivities] = useState<Record<Category, LatestActivity[]>>({
+  const [detailedActivities, setDetailedActivities] = useState<Record<Category, ActivityDetail[]>>({
     pipeline: [],
     contacts: [],
     tasks: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Category[]>(['pipeline']);
+  const [actionFilters, setActionFilters] = useState<Record<Category, ActionFilter>>({
+    pipeline: 'all',
+    contacts: 'all',
+    tasks: 'all'
+  });
+  const [selectedActivity, setSelectedActivity] = useState<ActivityDetail | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const fetchActivityData = async () => {
     setIsLoading(true);
@@ -77,26 +93,27 @@ export function ActivityMonitor() {
         setActivityData(activities);
       }
 
-      // Fetch latest activities for each selected category
-      const latestData: Record<Category, LatestActivity[]> = {
+      // Fetch detailed activities for each selected category
+      const detailedData: Record<Category, ActivityDetail[]> = {
         pipeline: [],
         contacts: [],
         tasks: []
       };
 
       for (const category of selectedCategories) {
-        const { data: latest } = await supabase.rpc('dashboard_activity_latest', {
+        const { data: details } = await supabase.rpc('dashboard_activity_details', {
           _from: range.from.toISOString(),
           _to: range.to.toISOString(),
-          _category: category
+          _category: category,
+          _action: null
         });
         
-        if (latest) {
-          latestData[category] = latest;
+        if (details) {
+          detailedData[category] = details;
         }
       }
 
-      setLatestActivities(latestData);
+      setDetailedActivities(detailedData);
     } catch (error) {
       console.error('Error fetching activity data:', error);
     } finally {
@@ -124,6 +141,10 @@ export function ActivityMonitor() {
     );
   };
 
+  const setActionFilter = (category: Category, action: ActionFilter) => {
+    setActionFilters(prev => ({ ...prev, [category]: action }));
+  };
+
   const getCategoryStats = (category: Category) => {
     const categoryData = activityData.filter(item => item.category === category);
     return {
@@ -131,6 +152,38 @@ export function ActivityMonitor() {
       modified: categoryData.find(item => item.action === 'update')?.cnt || 0,
       deleted: categoryData.find(item => item.action === 'delete')?.cnt || 0
     };
+  };
+
+  const getFilteredActivities = (category: Category): ActivityDetail[] => {
+    const filter = actionFilters[category];
+    const activities = detailedActivities[category] || [];
+    
+    if (filter === 'all') return activities;
+    return activities.filter(activity => activity.action === filter);
+  };
+
+  const getActivityDescription = (activity: ActivityDetail): string => {
+    if (activity.action === 'insert') {
+      return `${activity.display_name} added`;
+    }
+    if (activity.action === 'delete') {
+      return `${activity.display_name} deleted`;
+    }
+    if (activity.action === 'update') {
+      const fieldCount = activity.fields_changed?.length || 0;
+      if (fieldCount === 0) return `${activity.display_name} updated`;
+      if (fieldCount === 1) {
+        const field = activity.fields_changed[0].replace(/_/g, ' ');
+        return `${activity.display_name}: ${field} changed`;
+      }
+      return `${activity.display_name}: ${fieldCount} fields changed`;
+    }
+    return activity.display_name;
+  };
+
+  const handleActivityClick = (activity: ActivityDetail) => {
+    setSelectedActivity(activity);
+    setShowDetailModal(true);
   };
 
   const formatActivityTime = (timestamp: string) => {
@@ -220,50 +273,90 @@ export function ActivityMonitor() {
             {/* KPI Cards for each selected category */}
             {selectedCategories.map((category) => {
               const stats = getCategoryStats(category);
+              const filteredActivities = getFilteredActivities(category);
+              const currentFilter = actionFilters[category];
+              
               return (
                 <div key={category} className="space-y-2">
                   <h4 className="text-sm font-medium capitalize text-foreground">{category} Activity</h4>
+                  
+                  {/* Clickable KPI Stats */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="text-center p-3 rounded-lg bg-background/50">
+                    <button
+                      onClick={() => setActionFilter(category, currentFilter === 'insert' ? 'all' : 'insert')}
+                      className={cn(
+                        "text-center p-3 rounded-lg transition-all",
+                        currentFilter === 'insert' 
+                          ? "bg-success/20 ring-2 ring-success" 
+                          : "bg-background/50 hover:bg-background/70"
+                      )}
+                    >
                       <div className="text-lg font-bold text-success">{stats.added}</div>
                       <div className="text-xs text-muted-foreground">Added</div>
-                    </div>
-                    <div className="text-center p-3 rounded-lg bg-background/50">
+                    </button>
+                    <button
+                      onClick={() => setActionFilter(category, currentFilter === 'update' ? 'all' : 'update')}
+                      className={cn(
+                        "text-center p-3 rounded-lg transition-all",
+                        currentFilter === 'update' 
+                          ? "bg-info/20 ring-2 ring-info" 
+                          : "bg-background/50 hover:bg-background/70"
+                      )}
+                    >
                       <div className="text-lg font-bold text-info">{stats.modified}</div>
                       <div className="text-xs text-muted-foreground">Modified</div>
-                    </div>
-                    <div className="text-center p-3 rounded-lg bg-background/50">
+                    </button>
+                    <button
+                      onClick={() => setActionFilter(category, currentFilter === 'delete' ? 'all' : 'delete')}
+                      className={cn(
+                        "text-center p-3 rounded-lg transition-all",
+                        currentFilter === 'delete' 
+                          ? "bg-destructive/20 ring-2 ring-destructive" 
+                          : "bg-background/50 hover:bg-background/70"
+                      )}
+                    >
                       <div className="text-lg font-bold text-destructive">{stats.deleted}</div>
                       <div className="text-xs text-muted-foreground">Deleted</div>
-                    </div>
+                    </button>
                   </div>
 
-                  {/* Latest Changes */}
-                  {latestActivities[category]?.length > 0 && (
+                  {/* Filtered Activity List */}
+                  {filteredActivities.length > 0 && (
                     <Collapsible 
                       open={expandedCategories.includes(category)}
                       onOpenChange={() => toggleExpanded(category)}
                     >
                       <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="sm" className="w-full justify-between text-xs">
-                          <span>Latest 15 Changes</span>
+                          <span>
+                            {currentFilter === 'all' 
+                              ? `All Changes (${filteredActivities.length})` 
+                              : `${currentFilter === 'insert' ? 'Added' : currentFilter === 'update' ? 'Modified' : 'Deleted'} (${filteredActivities.length})`
+                            }
+                          </span>
                           <ChevronDown className={cn("h-3 w-3 transition-transform", 
                             expandedCategories.includes(category) && "rotate-180")} />
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-1 mt-2">
-                        {latestActivities[category].map((activity, index) => {
+                        {filteredActivities.slice(0, 15).map((activity, index) => {
                           const ActionIcon = actionIcons[activity.action as keyof typeof actionIcons];
                           return (
-                            <div key={index} className="flex items-center justify-between p-2 rounded bg-background/30 hover:bg-background/50 transition-colors cursor-pointer">
-                              <div className="flex items-center gap-2">
-                                <Badge className={cn("text-xs", actionColors[activity.action as keyof typeof actionColors])}>
+                            <div 
+                              key={index} 
+                              onClick={() => handleActivityClick(activity)}
+                              className="flex items-center justify-between p-2 rounded bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Badge className={cn("text-xs flex-shrink-0", actionColors[activity.action as keyof typeof actionColors])}>
                                   <ActionIcon className="h-3 w-3 mr-1" />
                                   {activity.action}
                                 </Badge>
-                                <span className="text-xs text-muted-foreground">{activity.table_name}</span>
+                                <span className="text-xs text-foreground truncate">
+                                  {getActivityDescription(activity)}
+                                </span>
                               </div>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                                 <Clock className="h-3 w-3" />
                                 {formatActivityTime(activity.changed_at)}
                               </div>
@@ -273,12 +366,26 @@ export function ActivityMonitor() {
                       </CollapsibleContent>
                     </Collapsible>
                   )}
+
+                  {/* No activities message */}
+                  {filteredActivities.length === 0 && (
+                    <div className="text-center py-4 text-xs text-muted-foreground">
+                      No {currentFilter !== 'all' ? currentFilter : ''} activities found
+                    </div>
+                  )}
                 </div>
               );
             })}
           </>
         )}
       </CardContent>
+
+      {/* Activity Detail Modal */}
+      <ActivityDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        activity={selectedActivity}
+      />
     </Card>
   );
 }
