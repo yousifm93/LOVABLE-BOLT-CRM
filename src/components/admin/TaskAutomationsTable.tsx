@@ -49,16 +49,16 @@ export function TaskAutomationsTable() {
   } | null>(null);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
   const [openCategories, setOpenCategories] = useState({
-    marketing: true,
-    lead_status: true,
-    active_loan: true,
-    past_client: true
+    marketing: false,
+    lead_status: false,
+    active_loan: false,
+    past_client: false
   });
   const [openSubcategories, setOpenSubcategories] = useState({
-    appraisal: true,
-    closing: true,
-    submission: true,
-    other: true
+    appraisal: false,
+    closing: false,
+    submission: false,
+    other: false
   });
   const {
     toast
