@@ -100,6 +100,36 @@ export type Database = {
           },
         ]
       }
+      application_users: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_audit_log: {
         Row: {
           created_at: string | null
@@ -2390,6 +2420,63 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      mortgage_applications: {
+        Row: {
+          application_data: Json
+          created_at: string
+          id: string
+          imported_lead_id: string | null
+          imported_to_crm_at: string | null
+          loan_purpose: string | null
+          progress_percentage: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          application_data?: Json
+          created_at?: string
+          id?: string
+          imported_lead_id?: string | null
+          imported_to_crm_at?: string | null
+          loan_purpose?: string | null
+          progress_percentage?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          application_data?: Json
+          created_at?: string
+          id?: string
+          imported_lead_id?: string | null
+          imported_to_crm_at?: string | null
+          loan_purpose?: string | null
+          progress_percentage?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_applications_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "application_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notes: {
         Row: {
