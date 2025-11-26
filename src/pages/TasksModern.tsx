@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
@@ -56,19 +56,6 @@ const columns = (
   users: any[],
   handleBorrowerClick: (borrowerId: string) => void
 ): ColumnDef<ModernTask>[] => [
-  {
-    accessorKey: "status",
-    header: "",
-    cell: ({ row }) => (
-      <Checkbox 
-        checked={row.original.status === "Done"} 
-        disabled={row.original.status === "Done"}
-        onCheckedChange={(checked) => 
-          handleUpdate(row.original.id, "status", checked ? "Done" : "Working on it")
-        }
-      />
-    ),
-  },
   {
     accessorKey: "title",
     header: "Task",
@@ -194,20 +181,6 @@ const columns = (
     sortable: true,
   },
   {
-    accessorKey: "task_order",
-    header: "Order",
-    cell: ({ row }) => (
-    <div className="w-16">
-      <InlineEditNumber
-        value={row.original.task_order}
-        onValueChange={(value) => handleUpdate(row.original.id, "task_order", value)}
-        min={0}
-      />
-    </div>
-    ),
-    sortable: true,
-  },
-  {
     accessorKey: "assignee",
     header: "Assigned To",
     cell: ({ row }) => (
@@ -294,6 +267,8 @@ export default function TasksModern() {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ taskId: string; status: string } | null>(null);
   const [agentCallLogModalOpen, setAgentCallLogModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Get assignable users
@@ -571,10 +546,58 @@ export default function TasksModern() {
     setSearchTerm("");
   };
 
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedTaskIds.length} task(s)?`)) return;
+    
+    try {
+      for (const taskId of selectedTaskIds) {
+        await databaseService.deleteTask(taskId);
+      }
+      setSelectedTaskIds([]);
+      loadTasks();
+      toast({
+        title: `${selectedTaskIds.length} task(s) deleted successfully`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Error deleting tasks:", error);
+      toast({
+        title: "Error deleting tasks",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkUpdate = async (field: string, value: any) => {
+    try {
+      for (const taskId of selectedTaskIds) {
+        await databaseService.updateTask(taskId, { [field]: value });
+      }
+      setSelectedTaskIds([]);
+      setIsBulkUpdateDialogOpen(false);
+      loadTasks();
+      toast({
+        title: `${selectedTaskIds.length} task(s) updated successfully`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Error updating tasks:", error);
+      toast({
+        title: "Error updating tasks",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   const completedTasks = filteredTasks.filter(task => task.status === "Done").length;
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
-    const dueDate = new Date(task.due_date);
+    const dueDateStr = task.due_date.includes("T") 
+      ? task.due_date 
+      : `${task.due_date}T00:00:00`;
+    const dueDate = new Date(dueDateStr);
     dueDate.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -640,6 +663,34 @@ export default function TasksModern() {
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
+          {selectedTaskIds.length > 0 && (
+            <div className="flex items-center gap-2 p-3 mb-3 bg-muted rounded-lg">
+              <span className="text-sm font-medium">
+                {selectedTaskIds.length} task(s) selected
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsBulkUpdateDialogOpen(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" /> Edit Selected
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleBulkDelete}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Selected
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedTaskIds([])}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2 items-center">
             <Button
               onClick={() => setIsCreateModalOpen(true)}
@@ -727,6 +778,10 @@ export default function TasksModern() {
               onViewDetails={handleViewDetails}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              selectable={true}
+              selectedIds={selectedTaskIds}
+              onSelectionChange={setSelectedTaskIds}
+              getRowId={(row) => row.id}
             />
           )}
         </CardContent>
@@ -777,6 +832,47 @@ export default function TasksModern() {
           onCallLogged={handleAgentCallLogged}
         />
       )}
+
+      <BulkUpdateDialog
+        open={isBulkUpdateDialogOpen}
+        onOpenChange={setIsBulkUpdateDialogOpen}
+        selectedCount={selectedTaskIds.length}
+        onUpdate={handleBulkUpdate}
+        fieldOptions={[
+          {
+            label: "Status",
+            value: "status",
+            type: "select",
+            options: [
+              { value: "Working on it", label: "Working on it" },
+              { value: "Done", label: "Done" },
+              { value: "Need help", label: "Need help" }
+            ]
+          },
+          {
+            label: "Priority",
+            value: "priority",
+            type: "select",
+            options: [
+              { value: "Critical", label: "ASAP" },
+              { value: "High", label: "High" },
+              { value: "Medium", label: "Medium" },
+              { value: "Low", label: "Low" }
+            ]
+          },
+          {
+            label: "Assigned To",
+            value: "assignee_id",
+            type: "select",
+            options: assignableUsers.map(u => ({ value: u.id, label: `${u.first_name} ${u.last_name}` }))
+          },
+          {
+            label: "Due Date",
+            value: "due_date",
+            type: "date"
+          }
+        ]}
+      />
     </div>
   );
 }
