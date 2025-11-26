@@ -16,11 +16,11 @@ import { DemographicsForm } from '@/components/mortgage-app/forms/DemographicsFo
 import { CreditForm } from '@/components/mortgage-app/forms/CreditForm';
 import { AdditionalQuestionsForm } from '@/components/mortgage-app/forms/AdditionalQuestionsForm';
 import { ReviewSubmitForm } from '@/components/mortgage-app/forms/ReviewSubmitForm';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const MortgageApplicationContent = () => {
   const { data, dispatch } = useApplication();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
 

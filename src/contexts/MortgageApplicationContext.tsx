@@ -147,13 +147,18 @@ export interface ApplicationData {
     workPhoneExt: string;
     homePhone: string;
     consentToContact: boolean;
-    currentAddress: string;
+    currentAddress: {
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    };
     mailingAddressSame: boolean;
     mailingAddress: string;
     propertyOwnership: string;
-    residenceYears: string;
-    residenceMonths: string;
-    militaryStatus: boolean;
+    yearsAtCurrentAddress: string;
+    monthsAtCurrentAddress: string;
+    isUSMilitary: boolean;
     residencyType: string;
     maritalStatus: string;
     hasDependents: boolean;
@@ -233,13 +238,18 @@ const initialData: ApplicationData = {
     workPhoneExt: '',
     homePhone: '',
     consentToContact: false,
-    currentAddress: '',
+    currentAddress: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    },
     mailingAddressSame: true,
     mailingAddress: '',
     propertyOwnership: '',
-    residenceYears: '',
-    residenceMonths: '',
-    militaryStatus: false,
+    yearsAtCurrentAddress: '',
+    monthsAtCurrentAddress: '',
+    isUSMilitary: false,
     residencyType: '',
     maritalStatus: '',
     hasDependents: false,
@@ -323,9 +333,9 @@ const calculateProgress = (data: ApplicationData): number => {
     'personalInfo.firstName',
     'personalInfo.lastName',
     'personalInfo.email',
-    'personalInfo.currentAddress',
-    'personalInfo.residenceYears',
-    'personalInfo.residenceMonths',
+    'personalInfo.currentAddress.street',
+    'personalInfo.yearsAtCurrentAddress',
+    'personalInfo.monthsAtCurrentAddress',
     'personalInfo.consentToContact',
   ];
 

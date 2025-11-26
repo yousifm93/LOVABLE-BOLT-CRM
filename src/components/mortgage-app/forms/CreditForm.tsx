@@ -41,7 +41,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ onNext, onBack }) => {
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
           age--;
         }
-        value.age = age.toString();
+        value.age = age;
       }
 
       dispatch({

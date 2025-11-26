@@ -154,22 +154,34 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentAddress.street">Street Address *</Label>
-            <Input {...register('currentAddress.street', { required: 'Street address is required' })} />
+            <Label htmlFor="street">Street Address *</Label>
+            <Input
+              value={watch('currentAddress')?.street || ''}
+              onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), street: e.target.value })}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currentAddress.city">City *</Label>
-              <Input {...register('currentAddress.city', { required: 'City is required' })} />
+              <Label htmlFor="city">City *</Label>
+              <Input
+                value={watch('currentAddress')?.city || ''}
+                onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), city: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currentAddress.state">State *</Label>
-              <Input {...register('currentAddress.state', { required: 'State is required' })} />
+              <Label htmlFor="state">State *</Label>
+              <Input
+                value={watch('currentAddress')?.state || ''}
+                onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), state: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currentAddress.zipCode">ZIP Code *</Label>
-              <Input {...register('currentAddress.zipCode', { required: 'ZIP code is required' })} />
+              <Label htmlFor="zipCode">ZIP Code *</Label>
+              <Input
+                value={watch('currentAddress')?.zipCode || ''}
+                onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), zipCode: e.target.value })}
+              />
             </div>
           </div>
 
@@ -189,12 +201,12 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="yearsAtAddress">Years at Address</Label>
-              <Input {...register('yearsAtAddress')} type="number" />
+              <Label htmlFor="yearsAtCurrentAddress">Years at Address</Label>
+              <Input {...register('yearsAtCurrentAddress')} type="number" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="monthsAtAddress">Months</Label>
-              <Input {...register('monthsAtAddress')} type="number" />
+              <Label htmlFor="monthsAtCurrentAddress">Months</Label>
+              <Input {...register('monthsAtCurrentAddress')} type="number" />
             </div>
           </div>
         </CardContent>
@@ -207,8 +219,8 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={watch('isVeteran')}
-              onCheckedChange={(checked) => setValue('isVeteran', !!checked)}
+              checked={watch('isUSMilitary')}
+              onCheckedChange={(checked) => setValue('isUSMilitary', !!checked)}
             />
             <Label>I am a veteran or currently serving in the military</Label>
           </div>
@@ -242,8 +254,8 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="numberOfDependents">Number of Dependents</Label>
-            <Input {...register('numberOfDependents')} type="number" />
+            <Label htmlFor="dependentsCount">Number of Dependents</Label>
+            <Input {...register('dependentsCount')} type="number" />
           </div>
         </CardContent>
       </Card>
