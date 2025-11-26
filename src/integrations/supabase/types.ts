@@ -3599,6 +3599,27 @@ export type Database = {
           cnt: number
         }[]
       }
+      dashboard_activity_details: {
+        Args: {
+          _action?: string
+          _category: string
+          _from: string
+          _to: string
+        }
+        Returns: {
+          action: string
+          after_data: Json
+          before_data: Json
+          changed_at: string
+          changed_by: string
+          display_name: string
+          fields_changed: string[]
+          item_id: string
+          table_name: string
+          user_first_name: string
+          user_last_name: string
+        }[]
+      }
       dashboard_activity_latest: {
         Args: { _category: string; _from: string; _to: string }
         Returns: {
