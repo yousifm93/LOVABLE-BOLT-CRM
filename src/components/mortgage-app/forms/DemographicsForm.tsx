@@ -25,20 +25,17 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ onNext, onBa
     });
   };
 
-  const toggleEthnicity = (ethnicity: string) => {
-    const current = data.demographics.ethnicity || [];
-    const updated = current.includes(ethnicity)
-      ? current.filter((e) => e !== ethnicity)
-      : [...current, ethnicity];
-    updateDemographics('ethnicity', updated);
+  // Ethnicity is a string value, not an array
+  const updateEthnicity = (value: string) => {
+    updateDemographics('ethnicity', value);
   };
 
-  const toggleRace = (race: string) => {
-    const current = data.demographics.race || [];
-    const updated = current.includes(race)
-      ? current.filter((r) => r !== race)
-      : [...current, race];
-    updateDemographics('race', updated);
+  // Race is an object, not an array
+  const updateRaceField = (field: string, value: boolean) => {
+    updateDemographics('race', {
+      ...data.demographics.race,
+      [field]: value,
+    });
   };
 
   return (
@@ -72,22 +69,22 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ onNext, onBa
         <CardContent className="space-y-3">
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.ethnicity?.includes('hispanic-latino')}
-              onCheckedChange={() => toggleEthnicity('hispanic-latino')}
+              checked={data.demographics.ethnicity === 'hispanic'}
+              onCheckedChange={() => updateEthnicity('hispanic')}
             />
             <Label className="font-normal cursor-pointer">Hispanic or Latino</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.ethnicity?.includes('not-hispanic-latino')}
-              onCheckedChange={() => toggleEthnicity('not-hispanic-latino')}
+              checked={data.demographics.ethnicity === 'notHispanic'}
+              onCheckedChange={() => updateEthnicity('notHispanic')}
             />
             <Label className="font-normal cursor-pointer">Not Hispanic or Latino</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.ethnicity?.includes('prefer-not-to-say')}
-              onCheckedChange={() => toggleEthnicity('prefer-not-to-say')}
+              checked={data.demographics.ethnicity === 'doNotWish'}
+              onCheckedChange={() => updateEthnicity('doNotWish')}
             />
             <Label className="font-normal cursor-pointer">I do not wish to provide this information</Label>
           </div>
@@ -102,43 +99,43 @@ export const DemographicsForm: React.FC<DemographicsFormProps> = ({ onNext, onBa
         <CardContent className="space-y-3">
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('american-indian')}
-              onCheckedChange={() => toggleRace('american-indian')}
+              checked={data.demographics.race.americanIndianAlaskaNative}
+              onCheckedChange={(checked) => updateRaceField('americanIndianAlaskaNative', !!checked)}
             />
             <Label className="font-normal cursor-pointer">American Indian or Alaska Native</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('asian')}
-              onCheckedChange={() => toggleRace('asian')}
+              checked={data.demographics.race.asian}
+              onCheckedChange={(checked) => updateRaceField('asian', !!checked)}
             />
             <Label className="font-normal cursor-pointer">Asian</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('black')}
-              onCheckedChange={() => toggleRace('black')}
+              checked={data.demographics.race.blackAfricanAmerican}
+              onCheckedChange={(checked) => updateRaceField('blackAfricanAmerican', !!checked)}
             />
             <Label className="font-normal cursor-pointer">Black or African American</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('pacific-islander')}
-              onCheckedChange={() => toggleRace('pacific-islander')}
+              checked={data.demographics.race.nativeHawaiianPacificIslander}
+              onCheckedChange={(checked) => updateRaceField('nativeHawaiianPacificIslander', !!checked)}
             />
             <Label className="font-normal cursor-pointer">Native Hawaiian or Other Pacific Islander</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('white')}
-              onCheckedChange={() => toggleRace('white')}
+              checked={data.demographics.race.white}
+              onCheckedChange={(checked) => updateRaceField('white', !!checked)}
             />
             <Label className="font-normal cursor-pointer">White</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={data.demographics.race?.includes('prefer-not-to-say')}
-              onCheckedChange={() => toggleRace('prefer-not-to-say')}
+              checked={data.demographics.race.doNotWishToProvide}
+              onCheckedChange={(checked) => updateRaceField('doNotWishToProvide', !!checked)}
             />
             <Label className="font-normal cursor-pointer">I do not wish to provide this information</Label>
           </div>

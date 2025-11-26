@@ -46,7 +46,10 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
       type: 'UPDATE_SECTION',
       payload: {
         section: 'realEstate',
-        data: [...data.realEstate, property],
+        data: {
+          ...data.realEstate,
+          properties: [...data.realEstate.properties, property],
+        },
       },
     });
 
@@ -63,10 +66,13 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
   };
 
   const removeProperty = (id: string) => {
-    const updated = data.realEstate.filter((p) => p.id !== id);
+    const updated = data.realEstate.properties.filter((p) => p.id !== id);
     dispatch({
       type: 'UPDATE_SECTION',
-      payload: { section: 'realEstate', data: updated },
+      payload: {
+        section: 'realEstate',
+        data: { ...data.realEstate, properties: updated },
+      },
     });
   };
 
@@ -88,14 +94,14 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
           <CardDescription>Add any real estate properties you currently own</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {data.realEstate.length === 0 ? (
+          {data.realEstate.properties.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No properties added yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {data.realEstate.map((property) => (
+              {data.realEstate.properties.map((property) => (
                 <Card key={property.id}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">

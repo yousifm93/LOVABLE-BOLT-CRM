@@ -136,15 +136,15 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Employment Sources</p>
-              <p className="font-medium">{data.income.employment.length}</p>
+              <p className="font-medium">{data.income.employmentIncomes.length}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Assets</p>
-              <p className="font-medium">{data.assets.length}</p>
+              <p className="font-medium">{data.assets.assets.length}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Properties Owned</p>
-              <p className="font-medium">{data.realEstate.length}</p>
+              <p className="font-medium">{data.realEstate.properties.length}</p>
             </div>
           </div>
         </CardContent>
