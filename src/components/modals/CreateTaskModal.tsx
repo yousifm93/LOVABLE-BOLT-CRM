@@ -13,6 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CommandList } from "@/components/ui/command";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -406,99 +408,122 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           </>
           ) : (
             // Multiple Tasks Mode
-            <div className="space-y-3">
-              {bulkTasks.map((task, index) => (
-                <div key={index} className="border rounded-md p-4 space-y-3 bg-muted/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Task {index + 1}</span>
-                    {bulkTasks.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setBulkTasks(bulkTasks.filter((_, i) => i !== index))}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label>Task Title *</Label>
-                    <Input
-                      value={task.title}
-                      onChange={(e) => {
-                        const newTasks = [...bulkTasks];
-                        newTasks[index].title = e.target.value;
-                        setBulkTasks(newTasks);
-                      }}
-                      placeholder="Enter task title"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <Label>Due Date</Label>
-                      <Input
-                        type="date"
-                        value={task.due_date}
-                        onChange={(e) => {
-                          const newTasks = [...bulkTasks];
-                          newTasks[index].due_date = e.target.value;
-                          setBulkTasks(newTasks);
-                        }}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Assigned To</Label>
-                      <Select
-                        value={task.assignee_id}
-                        onValueChange={(value) => {
-                          const newTasks = [...bulkTasks];
-                          newTasks[index].assignee_id = value;
-                          setBulkTasks(newTasks);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {users.filter(u => u.is_active === true && u.is_assignable !== false).map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.first_name} {user.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Borrower</Label>
-                      <Select
-                        value={task.borrower_id}
-                        onValueChange={(value) => {
-                          const newTasks = [...bulkTasks];
-                          newTasks[index].borrower_id = value;
-                          setBulkTasks(newTasks);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover max-h-[200px]">
-                          {leads.map((lead) => (
-                            <SelectItem key={lead.id} value={lead.id}>
-                              {lead.first_name} {lead.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
+            <div className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[35%]">Task Title *</TableHead>
+                    <TableHead className="w-[20%]">Due Date</TableHead>
+                    <TableHead className="w-[20%]">Assigned To</TableHead>
+                    <TableHead className="w-[20%]">Borrower</TableHead>
+                    <TableHead className="w-[5%]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bulkTasks.map((task, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Input
+                          value={task.title}
+                          onChange={(e) => {
+                            const newTasks = [...bulkTasks];
+                            newTasks[index].title = e.target.value;
+                            setBulkTasks(newTasks);
+                          }}
+                          placeholder="Enter task title"
+                          className="h-9"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="date"
+                          value={task.due_date}
+                          onChange={(e) => {
+                            const newTasks = [...bulkTasks];
+                            newTasks[index].due_date = e.target.value;
+                            setBulkTasks(newTasks);
+                          }}
+                          className="h-9"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={task.assignee_id}
+                          onValueChange={(value) => {
+                            const newTasks = [...bulkTasks];
+                            newTasks[index].assignee_id = value;
+                            setBulkTasks(newTasks);
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            {users.filter(u => u.is_active === true && u.is_assignable !== false).map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.first_name} {user.last_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="h-9 w-full justify-start text-left font-normal">
+                              {task.borrower_id ? 
+                                (() => {
+                                  const borrower = leads.find(l => l.id === task.borrower_id);
+                                  return borrower ? `${borrower.first_name} ${borrower.last_name}` : "Select";
+                                })() : 
+                                "Select"
+                              }
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[250px] p-0 bg-popover" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search borrowers..." />
+                              <CommandList>
+                                <CommandEmpty>No borrower found.</CommandEmpty>
+                                <CommandGroup>
+                                  {leads.map((lead) => (
+                                    <CommandItem
+                                      key={lead.id}
+                                      value={`${lead.first_name} ${lead.last_name}`}
+                                      onSelect={() => {
+                                        const newTasks = [...bulkTasks];
+                                        newTasks[index].borrower_id = lead.id;
+                                        setBulkTasks(newTasks);
+                                      }}
+                                    >
+                                      {lead.first_name} {lead.last_name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                      <TableCell>
+                        {bulkTasks.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newTasks = bulkTasks.filter((_, i) => i !== index);
+                              setBulkTasks(newTasks);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               <Button
                 type="button"
                 variant="outline"

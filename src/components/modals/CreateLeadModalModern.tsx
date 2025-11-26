@@ -19,11 +19,19 @@ import { VoiceRecorder } from "@/components/ui/voice-recorder";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface CreateLeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLeadCreated: () => void;
+}
+
+interface BulkLead {
+  first_name: string;
+  last_name: string;
+  notes: string;
+  buyer_agent_id: string | null;
 }
 
 export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: CreateLeadModalProps) {
@@ -41,17 +49,10 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     referred_via: "none" as any,
     source: "none" as any,
   });
-  const [bulkLeads, setBulkLeads] = useState<Array<{
-    first_name: string;
-    last_name: string;
-    phone: string;
-    email: string;
-    buyer_agent_id: string | null;
-  }>>([{
+  const [bulkLeads, setBulkLeads] = useState<BulkLead[]>([{
     first_name: "",
     last_name: "",
-    phone: "",
-    email: "",
+    notes: "",
     buyer_agent_id: null,
   }]);
   const [loading, setLoading] = useState(false);
@@ -279,9 +280,9 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             await databaseService.createLead({
               first_name: lead.first_name,
               last_name: lead.last_name,
-              phone: lead.phone || null,
-              email: lead.email || null,
-              notes: null,
+              phone: null,
+              email: null,
+              notes: lead.notes || null,
               lead_on_date: new Date().toISOString().split('T')[0],
               buyer_agent_id: lead.buyer_agent_id,
               task_eta: new Date().toISOString().split('T')[0],
@@ -311,8 +312,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
           setBulkLeads([{
             first_name: "",
             last_name: "",
-            phone: "",
-            email: "",
+            notes: "",
             buyer_agent_id: null,
           }]);
           onLeadCreated();
@@ -658,11 +658,10 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead className="w-[40px] text-center">#</TableHead>
-                      <TableHead>First Name *</TableHead>
-                      <TableHead>Last Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Agent</TableHead>
+                      <TableHead className="w-[25%]">First Name *</TableHead>
+                      <TableHead className="w-[25%]">Last Name</TableHead>
+                      <TableHead className="w-[35%]">Notes</TableHead>
+                      <TableHead className="w-[10%]">Agent</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -696,48 +695,53 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                         </TableCell>
                         <TableCell>
                           <Input
-                            value={lead.phone}
+                            value={lead.notes}
                             onChange={(e) => {
                               const newLeads = [...bulkLeads];
-                              newLeads[index].phone = e.target.value;
+                              newLeads[index].notes = e.target.value;
                               setBulkLeads(newLeads);
                             }}
-                            placeholder="Phone"
+                            placeholder="Notes"
                             className="h-8"
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
-                            value={lead.email}
-                            onChange={(e) => {
-                              const newLeads = [...bulkLeads];
-                              newLeads[index].email = e.target.value;
-                              setBulkLeads(newLeads);
-                            }}
-                            placeholder="Email"
-                            className="h-8"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={lead.buyer_agent_id || ""}
-                            onValueChange={(value) => {
-                              const newLeads = [...bulkLeads];
-                              newLeads[index].buyer_agent_id = value || null;
-                              setBulkLeads(newLeads);
-                            }}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover">
-                              {buyerAgents.map((agent) => (
-                                <SelectItem key={agent.id} value={agent.id}>
-                                  {agent.first_name} {agent.last_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="h-8 w-full justify-start text-left font-normal text-xs">
+                                {lead.buyer_agent_id ? 
+                                  (() => {
+                                    const agent = buyerAgents.find(a => a.id === lead.buyer_agent_id);
+                                    return agent ? `${agent.first_name} ${agent.last_name}` : "Select";
+                                  })() : 
+                                  "Select"
+                                }
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0 bg-popover" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search agents..." />
+                                <CommandList>
+                                  <CommandEmpty>No agent found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {buyerAgents.map((agent) => (
+                                      <CommandItem
+                                        key={agent.id}
+                                        value={`${agent.first_name} ${agent.last_name}`}
+                                        onSelect={() => {
+                                          const newLeads = [...bulkLeads];
+                                          newLeads[index].buyer_agent_id = agent.id;
+                                          setBulkLeads(newLeads);
+                                        }}
+                                      >
+                                        {agent.first_name} {agent.last_name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
                         <TableCell>
                           {bulkLeads.length > 1 && (
@@ -764,8 +768,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                 onClick={() => setBulkLeads([...bulkLeads, {
                   first_name: "",
                   last_name: "",
-                  phone: "",
-                  email: "",
+                  notes: "",
                   buyer_agent_id: null,
                 }])}
                 className="w-full"

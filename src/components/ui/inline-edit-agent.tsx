@@ -88,9 +88,9 @@ export function InlineEditAgent({
               <span className="text-sm leading-tight truncate w-full">
                 {value ? `${value.first_name} ${value.last_name}` : placeholder}
               </span>
-              {value?.brokerage && (
+              {value?.phone && (
                 <span className="text-xs text-muted-foreground leading-tight truncate w-full">
-                  {value.brokerage}
+                  {value.phone}
                 </span>
               )}
             </div>
@@ -128,14 +128,9 @@ export function InlineEditAgent({
               <div className="font-medium">
                 {agent.first_name} {agent.last_name}
               </div>
-              {agent.brokerage && (
+              {agent.phone && (
                 <div className="text-xs text-muted-foreground">
-                  {agent.brokerage}
-                </div>
-              )}
-              {agent.email && (
-                <div className="text-xs text-muted-foreground">
-                  {agent.email}
+                  {agent.phone}
                 </div>
               )}
             </DropdownMenuItem>
