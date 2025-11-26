@@ -162,21 +162,48 @@ export function ActivityMonitor() {
     return activities.filter(activity => activity.action === filter);
   };
 
+  const formatFieldName = (field: string): string => {
+    return field
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const getActivityDescription = (activity: ActivityDetail): string => {
     if (activity.action === 'insert') {
-      return `${activity.display_name} added`;
+      return `${activity.display_name}: Added`;
     }
     if (activity.action === 'delete') {
-      return `${activity.display_name} deleted`;
+      return `${activity.display_name}: Deleted`;
     }
     if (activity.action === 'update') {
       const fieldCount = activity.fields_changed?.length || 0;
-      if (fieldCount === 0) return `${activity.display_name} updated`;
-      if (fieldCount === 1) {
-        const field = activity.fields_changed[0].replace(/_/g, ' ');
-        return `${activity.display_name}: ${field} changed`;
+      
+      // For single-field changes, show before/after values
+      if (fieldCount === 1 && activity.before_data && activity.after_data) {
+        const field = activity.fields_changed[0];
+        const beforeValue = activity.before_data[field];
+        const afterValue = activity.after_data[field];
+        
+        // Format date fields nicely
+        if (field.includes('date') || field === 'due_date' || field.includes('_at')) {
+          try {
+            const formattedBefore = beforeValue ? format(new Date(beforeValue), 'MMM d') : 'none';
+            const formattedAfter = afterValue ? format(new Date(afterValue), 'MMM d') : 'none';
+            return `${activity.display_name}: ${formatFieldName(field)} changed from ${formattedBefore} to ${formattedAfter}`;
+          } catch {
+            // If date parsing fails, fall through to default formatting
+          }
+        }
+        
+        // Show before → after for other fields
+        const displayBefore = beforeValue ?? 'none';
+        const displayAfter = afterValue ?? 'none';
+        return `${activity.display_name}: ${formatFieldName(field)} changed from "${displayBefore}" to "${displayAfter}"`;
       }
-      return `${activity.display_name}: ${fieldCount} fields changed`;
+      
+      if (fieldCount === 0) return `${activity.display_name}: Updated`;
+      return `${activity.display_name}: ${fieldCount} field${fieldCount !== 1 ? 's' : ''} changed`;
     }
     return activity.display_name;
   };
