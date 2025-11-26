@@ -13,24 +13,12 @@ interface DeclarationsFormProps {
 
 const declarations = [
   {
-    id: 'outstanding-judgments',
-    question: 'Are there any outstanding judgments against you?',
-  },
-  {
     id: 'declared-bankruptcy',
     question: 'Have you declared bankruptcy within the past 7 years?',
   },
   {
     id: 'property-foreclosed',
     question: 'Have you had property foreclosed upon in the last 7 years?',
-  },
-  {
-    id: 'lawsuit-party',
-    question: 'Are you a party to a lawsuit?',
-  },
-  {
-    id: 'loan-obligations',
-    question: 'Have you conveyed title to any property in lieu of foreclosure in the past 7 years?',
   },
   {
     id: 'delinquent-debt',
@@ -43,22 +31,6 @@ const declarations = [
   {
     id: 'down-payment-borrowed',
     question: 'Is any part of the down payment borrowed?',
-  },
-  {
-    id: 'co-maker-endorser',
-    question: 'Are you a co-maker or endorser on a note?',
-  },
-  {
-    id: 'us-citizen',
-    question: 'Are you a U.S. citizen?',
-  },
-  {
-    id: 'permanent-resident',
-    question: 'Are you a permanent resident alien?',
-  },
-  {
-    id: 'primary-residence',
-    question: 'Do you intend to occupy the property as your primary residence?',
   },
   {
     id: 'ownership-interest',
