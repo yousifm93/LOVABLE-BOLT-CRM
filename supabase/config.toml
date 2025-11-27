@@ -3,6 +3,9 @@ project_id = "zpsvatonxakysnbqnfcc"
 [functions.parse-lead-image]
 verify_jwt = true
 
+[functions.parse-voice-command]
+verify_jwt = true
+
 [functions.migrate-lenders]
 verify_jwt = false
 

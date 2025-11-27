@@ -62,6 +62,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isProcessingCommand, setIsProcessingCommand] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -90,6 +91,48 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
       ...prev,
       notes: prev.notes + separator + text
     }));
+  };
+
+  const handleVoiceCommand = async (transcription: string) => {
+    setIsProcessingCommand(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-voice-command', {
+        body: { 
+          transcription, 
+          currentFormData: formData 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.updates) {
+        const updatedFields = Object.keys(data.updates);
+        
+        if (data.action === 'append_notes') {
+          setFormData(prev => ({
+            ...prev,
+            notes: prev.notes ? `${prev.notes}\n\n${data.updates.notes}` : data.updates.notes
+          }));
+        } else {
+          setFormData(prev => ({ ...prev, ...data.updates }));
+        }
+        
+        toast({
+          title: '🎤 Voice command applied',
+          description: `Updated: ${updatedFields.join(', ')}`
+        });
+      }
+    } catch (error) {
+      console.error('Error processing voice command:', error);
+      toast({
+        title: 'Command failed',
+        description: 'Could not process voice command. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessingCommand(false);
+    }
   };
 
   const findBestAgentMatch = (name: string, agents: any[]) => {
@@ -596,7 +639,13 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
           </Collapsible>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notes">Notes</Label>
+              <VoiceRecorder 
+                onTranscriptionComplete={handleVoiceCommand}
+                disabled={isProcessingCommand}
+              />
+            </div>
             <div className="relative">
               <Textarea
                 id="notes"
@@ -609,7 +658,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                   "resize-none transition-all",
                   isExtracting && "border-primary border-2 animate-pulse"
                 )}
-                disabled={isExtracting}
+                disabled={isExtracting || isProcessingCommand}
               />
               {isExtracting && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
@@ -619,9 +668,17 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                   </div>
                 </div>
               )}
+              {isProcessingCommand && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
+                  <div className="text-center space-y-2">
+                    <div className="text-lg">🎤</div>
+                    <p className="text-sm font-medium">Processing voice command...</p>
+                  </div>
+                </div>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              💡 Tip: Paste a screenshot of an email or text message to automatically extract lead details
+              💡 Tip: Paste a screenshot to auto-fill details, or use the mic button to speak field updates
             </p>
           </div>
 
