@@ -1,5 +1,8 @@
 project_id = "zpsvatonxakysnbqnfcc"
 
+[functions.parse-lead-image]
+verify_jwt = true
+
 [functions.migrate-lenders]
 verify_jwt = false
 

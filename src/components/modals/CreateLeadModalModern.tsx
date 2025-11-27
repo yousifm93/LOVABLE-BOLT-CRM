@@ -61,6 +61,7 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -89,6 +90,20 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
       ...prev,
       notes: prev.notes + separator + text
     }));
+  };
+
+  const findBestAgentMatch = (name: string, agents: any[]) => {
+    if (!name) return null;
+    const nameLower = name.toLowerCase().trim();
+    return agents.find(agent => {
+      const fullName = `${agent.first_name} ${agent.last_name}`.toLowerCase();
+      const firstName = agent.first_name.toLowerCase();
+      const lastName = agent.last_name.toLowerCase();
+      return fullName.includes(nameLower) || 
+             nameLower.includes(fullName) ||
+             nameLower.includes(firstName) ||
+             nameLower.includes(lastName);
+    });
   };
 
   const handleImagePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -141,10 +156,85 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
       // Add to selectedFiles
       setSelectedFiles(prev => [...prev, file]);
 
+      // Extract lead information using AI
+      setIsExtracting(true);
       toast({
-        title: 'Image Attached',
-        description: `Image pasted and added to attachments.`,
+        title: '✨ Analyzing screenshot...',
+        description: 'Extracting lead information from image',
       });
+
+      try {
+        // Convert file to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const base64 = reader.result as string;
+            const base64Data = base64.split(',')[1];
+            resolve(base64Data);
+          };
+        });
+        reader.readAsDataURL(file);
+        const base64Data = await base64Promise;
+
+        // Call AI edge function
+        const { data, error } = await supabase.functions.invoke('parse-lead-image', {
+          body: { image: base64Data, mimeType: blob.type }
+        });
+
+        if (error) {
+          console.error('Error extracting lead info:', error);
+          toast({
+            title: 'Extraction Failed',
+            description: 'Could not extract lead info, but image was attached',
+            variant: 'destructive',
+          });
+        } else if (data) {
+          console.log('Extracted data:', data);
+          
+          // Auto-populate form fields
+          const updates: any = {};
+          if (data.first_name) updates.first_name = data.first_name;
+          if (data.last_name) updates.last_name = data.last_name;
+          if (data.phone) updates.phone = data.phone;
+          if (data.email) updates.email = data.email;
+          if (data.notes) {
+            updates.notes = formData.notes ? `${formData.notes}\n\n${data.notes}` : data.notes;
+          }
+          if (data.referral_method) updates.referred_via = data.referral_method;
+          if (data.referral_source) updates.source = data.referral_source;
+
+          // Match agent by name
+          if (data.agent_name && buyerAgents.length > 0) {
+            const matchedAgent = findBestAgentMatch(data.agent_name, buyerAgents);
+            if (matchedAgent) {
+              updates.buyer_agent_id = matchedAgent.id;
+              console.log('Matched agent:', matchedAgent);
+            }
+          }
+
+          if (Object.keys(updates).length > 0) {
+            setFormData(prev => ({ ...prev, ...updates }));
+            toast({
+              title: '✅ Lead info extracted!',
+              description: `Auto-filled ${Object.keys(updates).length} field(s)`,
+            });
+          } else {
+            toast({
+              title: 'No data extracted',
+              description: 'Image attached but no lead info found',
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error in AI extraction:', error);
+        toast({
+          title: 'Extraction Error',
+          description: 'Image attached but extraction failed',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsExtracting(false);
+      }
     }
   };
 
@@ -507,14 +597,32 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              onPaste={handleImagePaste}
-              placeholder="Enter any notes about this lead (you can also paste images here)"
-              rows={3}
-            />
+            <div className="relative">
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onPaste={handleImagePaste}
+                placeholder="Paste a screenshot here to auto-fill lead information..."
+                rows={6}
+                className={cn(
+                  "resize-none transition-all",
+                  isExtracting && "border-primary border-2 animate-pulse"
+                )}
+                disabled={isExtracting}
+              />
+              {isExtracting && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
+                  <div className="text-center space-y-2">
+                    <div className="text-lg">✨</div>
+                    <p className="text-sm font-medium">Analyzing screenshot...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              💡 Tip: Paste a screenshot of an email or text message to automatically extract lead details
+            </p>
           </div>
 
           {/* Hidden file input */}
