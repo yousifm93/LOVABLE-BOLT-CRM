@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, X, Users } from 'lucide-react';
@@ -18,17 +19,27 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
   const { data, dispatch, progressPercentage } = useApplication();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCoBorrower, setNewCoBorrower] = useState<Partial<CoBorrower>>({
-    type: 'spouse',
+    relationship: 'spouse',
     firstName: '',
-    middleName: '',
     lastName: '',
+    email: '',
+    phone: '',
   });
 
   const addCoBorrower = () => {
-    if (!newCoBorrower.firstName || !newCoBorrower.lastName) {
+    if (!newCoBorrower.firstName || !newCoBorrower.lastName || !newCoBorrower.email || !newCoBorrower.phone) {
       toast({
         title: 'Required fields missing',
-        description: 'Please enter first and last name',
+        description: 'Please enter all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newCoBorrower.relationship === 'other' && !newCoBorrower.customRelationship) {
+      toast({
+        title: 'Required field missing',
+        description: 'Please specify the relationship',
         variant: 'destructive',
       });
       return;
@@ -36,21 +47,12 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
 
     const coBorrower: CoBorrower = {
       id: Date.now().toString(),
-      type: newCoBorrower.type as 'spouse' | 'other',
-      firstName: newCoBorrower.firstName,
-      middleName: newCoBorrower.middleName || '',
-      lastName: newCoBorrower.lastName,
-      suffix: '',
-      hasAlternateNames: false,
-      hasNickname: false,
-      email: '',
-      cellPhone: '',
-      workPhone: '',
-      workPhoneExt: '',
-      homePhone: '',
-      emailShared: false,
-      canCompleteOnBehalf: false,
-      continueFillingInfo: false,
+      relationship: newCoBorrower.relationship as 'spouse' | 'family' | 'friend' | 'other',
+      customRelationship: newCoBorrower.customRelationship,
+      firstName: newCoBorrower.firstName!,
+      lastName: newCoBorrower.lastName!,
+      email: newCoBorrower.email!,
+      phone: newCoBorrower.phone!,
     };
 
     dispatch({
@@ -62,16 +64,17 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
     });
 
     setNewCoBorrower({
-      type: 'spouse',
+      relationship: 'spouse',
       firstName: '',
-      middleName: '',
       lastName: '',
+      email: '',
+      phone: '',
     });
     setShowAddDialog(false);
 
     toast({
-      title: 'Co-borrower added',
-      description: `${coBorrower.firstName} ${coBorrower.lastName} has been added`,
+      title: 'Co-borrower invited',
+      description: `An invitation has been sent to ${coBorrower.email}`,
     });
   };
 
@@ -126,9 +129,12 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">
-                          {coBorrower.firstName} {coBorrower.middleName} {coBorrower.lastName}
+                          {coBorrower.firstName} {coBorrower.lastName}
                         </p>
-                        <p className="text-sm text-muted-foreground capitalize">{coBorrower.type}</p>
+                        <p className="text-sm text-muted-foreground">{coBorrower.email}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {coBorrower.relationship === 'other' ? coBorrower.customRelationship : coBorrower.relationship}
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
@@ -144,15 +150,33 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
             </div>
           )}
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => setShowAddDialog(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Co-Borrower
-          </Button>
+          {!data.coBorrowers.applySolelyByMyself && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowAddDialog(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Co-Borrower
+            </Button>
+          )}
+
+          <div className="flex items-center space-x-2 pt-4">
+            <Checkbox
+              checked={data.coBorrowers.applySolelyByMyself}
+              onCheckedChange={(checked) => {
+                dispatch({
+                  type: 'UPDATE_SECTION',
+                  payload: {
+                    section: 'coBorrowers',
+                    data: { ...data.coBorrowers, applySolelyByMyself: !!checked },
+                  },
+                });
+              }}
+            />
+            <Label>I am applying solely</Label>
+          </div>
         </CardContent>
       </Card>
 
@@ -169,38 +193,14 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Co-Borrower</DialogTitle>
+            <DialogTitle>Invite Co-Borrower</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Type *</Label>
-              <Select
-                value={newCoBorrower.type}
-                onValueChange={(value) => setNewCoBorrower({ ...newCoBorrower, type: value as 'spouse' | 'other' })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="spouse">Spouse</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name *</Label>
               <Input
                 value={newCoBorrower.firstName}
                 onChange={(e) => setNewCoBorrower({ ...newCoBorrower, firstName: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="middleName">Middle Name</Label>
-              <Input
-                value={newCoBorrower.middleName}
-                onChange={(e) => setNewCoBorrower({ ...newCoBorrower, middleName: e.target.value })}
               />
             </div>
 
@@ -212,12 +212,59 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                type="email"
+                value={newCoBorrower.email}
+                onChange={(e) => setNewCoBorrower({ ...newCoBorrower, email: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                type="tel"
+                value={newCoBorrower.phone}
+                onChange={(e) => setNewCoBorrower({ ...newCoBorrower, phone: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="relationship">Relationship to you *</Label>
+              <Select
+                value={newCoBorrower.relationship}
+                onValueChange={(value) => setNewCoBorrower({ ...newCoBorrower, relationship: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="spouse">Spouse</SelectItem>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="friend">Friend</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {newCoBorrower.relationship === 'other' && (
+              <div className="space-y-2">
+                <Label htmlFor="customRelationship">Please specify *</Label>
+                <Input
+                  value={newCoBorrower.customRelationship}
+                  onChange={(e) => setNewCoBorrower({ ...newCoBorrower, customRelationship: e.target.value })}
+                  placeholder="Enter relationship"
+                />
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                 Cancel
               </Button>
               <Button type="button" onClick={addCoBorrower}>
-                Add Co-Borrower
+                Invite
               </Button>
             </div>
           </div>

@@ -91,27 +91,29 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           <CardTitle>Contact Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
-            <Input
-              {...register('email', {
-                required: 'Email is required',
-                pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
-              })}
-              type="email"
-            />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
+                })}
+                type="email"
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cellPhone">Cell Phone *</Label>
-            <Input
-              {...register('cellPhone', { required: 'Cell phone is required' })}
-              onChange={(e) => {
-                const formatted = formatPhoneNumber(e.target.value);
-                setValue('cellPhone', formatted);
-              }}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="cellPhone">Cell Phone *</Label>
+              <Input
+                {...register('cellPhone', { required: 'Cell phone is required' })}
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  setValue('cellPhone', formatted);
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -129,12 +131,21 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           <CardTitle>Current Address</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="street">Street Address *</Label>
-            <Input
-              value={watch('currentAddress')?.street || ''}
-              onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), street: e.target.value })}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="street">Street Address *</Label>
+              <Input
+                value={watch('currentAddress')?.street || ''}
+                onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), street: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit">Address 2 / Unit Number</Label>
+              <Input
+                value={watch('currentAddress')?.unit || ''}
+                onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), unit: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -161,21 +172,20 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="propertyOwnership">Do you own or rent? *</Label>
-            <Select value={watch('propertyOwnership')} onValueChange={(value) => setValue('propertyOwnership', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="own">Own</SelectItem>
-                <SelectItem value="rent">Rent</SelectItem>
-                <SelectItem value="living-rent-free">Living Rent Free</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="propertyOwnership">Do you own or rent? *</Label>
+              <Select value={watch('propertyOwnership')} onValueChange={(value) => setValue('propertyOwnership', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="own">Own</SelectItem>
+                  <SelectItem value="rent">Rent</SelectItem>
+                  <SelectItem value="living-rent-free">Living Rent Free</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="yearsAtCurrentAddress">Years at Address</Label>
               <Input {...register('yearsAtCurrentAddress')} type="number" />
@@ -193,40 +203,42 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           <CardTitle>Additional Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="residencyType">Residency Type *</Label>
+              <Select value={watch('residencyType')} onValueChange={(value) => setValue('residencyType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select residency type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="us-citizen">US Citizen</SelectItem>
+                  <SelectItem value="permanent-resident">Permanent Resident Alien</SelectItem>
+                  <SelectItem value="non-permanent-resident">Non Permanent Resident Alien</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="maritalStatus">Marital Status *</Label>
+              <Select value={watch('maritalStatus')} onValueChange={(value) => setValue('maritalStatus', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select marital status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="married">Married</SelectItem>
+                  <SelectItem value="unmarried">Unmarried</SelectItem>
+                  <SelectItem value="separated">Separated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               checked={watch('isUSMilitary')}
               onCheckedChange={(checked) => setValue('isUSMilitary', !!checked)}
             />
             <Label>I am a veteran or currently serving in the military</Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="residencyType">Residency Type *</Label>
-            <Select value={watch('residencyType')} onValueChange={(value) => setValue('residencyType', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select residency type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="us-citizen">US Citizen</SelectItem>
-                <SelectItem value="permanent-resident">Permanent Resident Alien</SelectItem>
-                <SelectItem value="non-permanent-resident">Non Permanent Resident Alien</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maritalStatus">Marital Status *</Label>
-            <Select value={watch('maritalStatus')} onValueChange={(value) => setValue('maritalStatus', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select marital status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="married">Married</SelectItem>
-                <SelectItem value="unmarried">Unmarried</SelectItem>
-                <SelectItem value="separated">Separated</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
