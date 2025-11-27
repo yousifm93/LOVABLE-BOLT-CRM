@@ -339,10 +339,9 @@ const initialData: ApplicationData = {
 
 const calculateProgress = (data: ApplicationData): number => {
   const requiredFields = [
-    'mortgageInfo.purchaseStage',
     'mortgageInfo.propertyType',
     'mortgageInfo.occupancy',
-    'mortgageInfo.monthlyPayment',
+    'mortgageInfo.comfortableMonthlyPayment',
     'mortgageInfo.purchasePrice',
     'personalInfo.firstName',
     'personalInfo.lastName',

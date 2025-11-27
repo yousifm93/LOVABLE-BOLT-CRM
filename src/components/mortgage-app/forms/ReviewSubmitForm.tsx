@@ -123,8 +123,17 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
     setIsSubmitting(true);
 
     try {
-      // Create/update lead in CRM from application data
-      const lead = await databaseService.createLeadFromApplication(data);
+      // Submit application via Edge Function (bypasses RLS for public submissions)
+      const { data: result, error: submitError } = await supabase.functions.invoke('submit-mortgage-application', {
+        body: {
+          applicationData: data
+        }
+      });
+
+      if (submitError) throw submitError;
+      if (!result?.success) throw new Error(result?.error || 'Failed to submit application');
+
+      console.log('Application submitted successfully:', result);
       
       // Send confirmation email
       const { error: emailError } = await supabase.functions.invoke('send-application-confirmation', {
@@ -152,13 +161,11 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
 
       // Clear localStorage
       localStorage.removeItem('mortgageApplication');
-      
-      // TODO: Save to database and create lead in Screening pipeline
     } catch (error) {
       console.error('Submission error:', error);
       toast({
         title: 'Submission Failed',
-        description: 'There was an error submitting your application. Please try again.',
+        description: error instanceof Error ? error.message : 'There was an error submitting your application. Please try again.',
         variant: 'destructive',
       });
     } finally {
