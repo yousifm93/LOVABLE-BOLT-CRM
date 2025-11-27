@@ -206,23 +206,25 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Financial Institution *</Label>
-              <Input
-                value={newAsset.financialInstitution}
-                onChange={(e) => setNewAsset({ ...newAsset, financialInstitution: e.target.value })}
-                placeholder="Bank name"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Financial Institution *</Label>
+                <Input
+                  value={newAsset.financialInstitution}
+                  onChange={(e) => setNewAsset({ ...newAsset, financialInstitution: e.target.value })}
+                  placeholder="Bank name"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label>Account Number (Last 4 digits)</Label>
-              <Input
-                value={newAsset.accountNumber}
-                onChange={(e) => setNewAsset({ ...newAsset, accountNumber: e.target.value })}
-                placeholder="XXXX"
-                maxLength={4}
-              />
+              <div className="space-y-2">
+                <Label>Account # (Last 4) *</Label>
+                <Input
+                  value={newAsset.accountNumber}
+                  onChange={(e) => setNewAsset({ ...newAsset, accountNumber: e.target.value })}
+                  placeholder="Last 4 digits"
+                  maxLength={4}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

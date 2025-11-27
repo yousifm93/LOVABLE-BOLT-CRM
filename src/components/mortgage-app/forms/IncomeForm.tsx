@@ -17,6 +17,7 @@ interface IncomeFormProps {
 
 export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
   const { data, dispatch, progressPercentage } = useApplication();
+  const [noIncome, setNoIncome] = useState(false);
   const [showEmploymentDialog, setShowEmploymentDialog] = useState(false);
   const [showOtherIncomeDialog, setShowOtherIncomeDialog] = useState(false);
   const [editingEmploymentId, setEditingEmploymentId] = useState<string | null>(null);
@@ -171,22 +172,24 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
   };
 
   const handleContinue = () => {
-    // Validate 2 years of employment history
-    const totalMonths = data.income.employmentIncomes.reduce((sum, emp) => {
-      if (!emp.startDate) return sum;
-      const startDate = new Date(emp.startDate);
-      const endDate = emp.isCurrentJob ? new Date() : new Date();
-      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
-      return sum + months;
-    }, 0);
+    if (!noIncome) {
+      // Validate 2 years of employment history
+      const totalMonths = data.income.employmentIncomes.reduce((sum, emp) => {
+        if (!emp.startDate) return sum;
+        const startDate = new Date(emp.startDate);
+        const endDate = emp.isCurrentJob ? new Date() : new Date();
+        const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+        return sum + months;
+      }, 0);
 
-    if (totalMonths < 24) {
-      toast({
-        title: '2 Years of Employment Required',
-        description: 'You must have at least 2 years of employment history to continue.',
-        variant: 'destructive',
-      });
-      return;
+      if (totalMonths < 24) {
+        toast({
+          title: '2 Years of Employment Required',
+          description: 'You must have at least 2 years of employment history to continue.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     onNext();
@@ -264,6 +267,17 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
             <Plus className="mr-2 h-4 w-4" />
             Add Employment
           </Button>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox 
+              id="noIncome" 
+              checked={noIncome} 
+              onCheckedChange={(checked) => setNoIncome(checked as boolean)}
+            />
+            <Label htmlFor="noIncome" className="text-sm font-normal cursor-pointer">
+              No income
+            </Label>
+          </div>
         </CardContent>
       </Card>
 

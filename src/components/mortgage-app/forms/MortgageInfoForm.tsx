@@ -143,33 +143,33 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="purchasePrice">Purchase Price *</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                {...register('purchasePrice')}
-                className="pl-7"
-                placeholder="0"
-                onChange={(e) => {
-                  const formatted = formatCurrency(e.target.value);
-                  setValue('purchasePrice', formatted);
-                  
-                  // Recalculate down payment dollar if percent is set
-                  const percent = parseFloat(watch('downPaymentPercent') || '0');
-                  if (percent > 0) {
-                    const purchasePrice = parseFloat(formatted.replace(/,/g, '') || '0');
-                    const downPaymentDollar = (purchasePrice * percent / 100);
-                    setValue('downPaymentAmount', downPaymentDollar.toLocaleString());
-                  }
-                }}
-              />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="purchasePrice">Purchase Price *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  {...register('purchasePrice')}
+                  className="pl-7"
+                  placeholder="0"
+                  onChange={(e) => {
+                    const formatted = formatCurrency(e.target.value);
+                    setValue('purchasePrice', formatted);
+                    
+                    // Recalculate down payment dollar if percent is set
+                    const percent = parseFloat(watch('downPaymentPercent') || '0');
+                    if (percent > 0) {
+                      const purchasePrice = parseFloat(formatted.replace(/,/g, '') || '0');
+                      const downPaymentDollar = (purchasePrice * percent / 100);
+                      setValue('downPaymentAmount', downPaymentDollar.toLocaleString());
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="downPayment">Down Payment *</Label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="downPaymentAmount">Down Payment ($) *</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -179,6 +179,10 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
                   onChange={(e) => handleDownPaymentDollarChange(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="downPaymentPercent">Down Payment (%) *</Label>
               <div className="relative">
                 <Input
                   value={watch('downPaymentPercent')}
@@ -196,8 +200,7 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
 
           {loanAmount() > 0 && (
             <div className="pt-2">
-              <p className="text-sm text-muted-foreground">Your loan amount will be</p>
-              <p className="text-2xl font-semibold text-green-600">${loanAmount().toLocaleString()}</p>
+              <p className="text-sm text-green-600 font-medium">Your loan amount will be: ${loanAmount().toLocaleString()}</p>
             </div>
           )}
         </CardContent>
@@ -212,32 +215,34 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
           <CardDescription>Where are you looking to purchase?</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="targetLocation">Where Are You Looking To Purchase? *</Label>
-            <div className="relative">
-              <Input
-                value={formatLocation()}
-                placeholder="Enter Zip or City"
-                onClick={() => setShowLocationModal(true)}
-                readOnly
-                className="cursor-pointer"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="targetLocation">Where Are You Looking To Purchase? *</Label>
+              <div className="relative">
+                <Input
+                  value={formatLocation()}
+                  placeholder="Enter Zip or City"
+                  onClick={() => setShowLocationModal(true)}
+                  readOnly
+                  className="cursor-pointer"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comfortableMonthlyPayment">What is a comfortable monthly housing payment? *</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-              <Input
-                {...register('comfortableMonthlyPayment')}
-                className="pl-7"
-                placeholder="0"
-                onChange={(e) => {
-                  const formatted = formatCurrency(e.target.value);
-                  setValue('comfortableMonthlyPayment', formatted);
-                }}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="comfortableMonthlyPayment">What is a comfortable housing payment? *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  {...register('comfortableMonthlyPayment')}
+                  className="pl-7"
+                  placeholder="0"
+                  onChange={(e) => {
+                    const formatted = formatCurrency(e.target.value);
+                    setValue('comfortableMonthlyPayment', formatted);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </CardContent>

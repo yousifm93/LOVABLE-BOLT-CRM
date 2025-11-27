@@ -8,7 +8,7 @@ export const LoanOfficerPanel = () => {
       <CardContent className="p-6">
         <div className="flex items-start gap-4 mb-6">
           <Avatar className="h-16 w-16">
-            <AvatarImage src="/placeholder-avatar.png" alt="Yousif Mohamed" />
+            <AvatarImage src="https://rlfbofsxhpqjbqjsntzn.supabase.co/storage/v1/object/public/user-uploads/2d37eee0-0e00-4906-aeb5-0fb57f2b7cb1/fbb0d3ec-ebf8-44c1-a46b-2bb0c4d19efc" alt="Yousif Mohamed" />
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">YM</AvatarFallback>
           </Avatar>
           <div>
@@ -27,13 +27,13 @@ export const LoanOfficerPanel = () => {
           
           <div className="flex items-center gap-2 text-sm">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <a href="tel:+17348803488" className="text-foreground hover:text-primary transition-colors">
-              (734) 880-3488
+            <a href="tel:+13523289828" className="text-foreground hover:text-primary transition-colors">
+              (352) 328-9828
             </a>
           </div>
           
           <div className="text-sm text-muted-foreground">
-            NMLS#: 1936724
+            NMLS#: 1390971
           </div>
         </div>
 
@@ -42,9 +42,9 @@ export const LoanOfficerPanel = () => {
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>
-              <p>29777 Telegraph Rd</p>
-              <p>Suite 2207</p>
-              <p>Southfield, MI 48034</p>
+              <p>848 Brickell Avenue</p>
+              <p>Suite 840</p>
+              <p>Miami, Florida 33131</p>
             </div>
           </div>
         </div>
