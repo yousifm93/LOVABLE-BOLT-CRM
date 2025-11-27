@@ -74,7 +74,7 @@ export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectio
         </div>
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-border space-y-3 p-4">
+      <div className="mt-auto pt-6 pb-6 border-t border-border space-y-3 p-4">
         <div className="text-sm">
           <p className="font-medium text-foreground">Save your progress</p>
           <p className="text-muted-foreground text-xs mt-1">Create an account to save and continue later</p>

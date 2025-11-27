@@ -109,7 +109,6 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             <Home className="h-5 w-5" />
             Property Details
           </CardTitle>
-          <CardDescription>Tell us about the property you're interested in</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,8 +198,11 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
           </div>
 
           {loanAmount() > 0 && (
-            <div className="pt-2">
-              <p className="text-sm text-green-600 font-medium">Your loan amount will be: ${loanAmount().toLocaleString()}</p>
+            <div className="flex items-center gap-2 text-sm mt-3">
+              <span className="text-muted-foreground">Your loan amount will be</span>
+              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                ${loanAmount().toLocaleString()}
+              </span>
             </div>
           )}
         </CardContent>
@@ -212,7 +214,6 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             <MapPin className="h-5 w-5" />
             Location & Budget
           </CardTitle>
-          <CardDescription>Where are you looking to purchase?</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

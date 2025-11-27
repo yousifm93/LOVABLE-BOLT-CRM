@@ -140,7 +140,7 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unit">Address 2 / Unit Number</Label>
+              <Label htmlFor="unit">Address 2</Label>
               <Input
                 value={watch('currentAddress')?.unit || ''}
                 onChange={(e) => setValue('currentAddress', { ...watch('currentAddress'), unit: e.target.value })}
@@ -188,11 +188,29 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
             </div>
             <div className="space-y-2">
               <Label htmlFor="yearsAtCurrentAddress">Years at Address</Label>
-              <Input {...register('yearsAtCurrentAddress')} type="number" />
+              <Input 
+                {...register('yearsAtCurrentAddress')} 
+                type="number" 
+                className="rounded-r-none border-r-0"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="monthsAtCurrentAddress">Months at Address</Label>
-              <Input {...register('monthsAtCurrentAddress')} type="number" min="0" max="11" />
+              <Select
+                value={watch('monthsAtCurrentAddress') || ''}
+                onValueChange={(value) => setValue('monthsAtCurrentAddress', value)}
+              >
+                <SelectTrigger className="rounded-l-none">
+                  <SelectValue placeholder="0" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -250,10 +268,11 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
                   <SelectValue placeholder="Select range..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="excellent">740+</SelectItem>
-                  <SelectItem value="good">680-739</SelectItem>
-                  <SelectItem value="fair">620-679</SelectItem>
-                  <SelectItem value="poor">Below 620</SelectItem>
+                  <SelectItem value="below-620">Below 620</SelectItem>
+                  <SelectItem value="620-660">620-660</SelectItem>
+                  <SelectItem value="660-699">660-699</SelectItem>
+                  <SelectItem value="700-739">700-739</SelectItem>
+                  <SelectItem value="740-plus">740+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
