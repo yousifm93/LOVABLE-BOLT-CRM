@@ -5,21 +5,12 @@ import { databaseService } from '@/services/database';
 
 export interface CoBorrower {
   id: string;
-  type: 'spouse' | 'other';
+  relationship: 'spouse' | 'family' | 'friend' | 'other';
+  customRelationship?: string;
   firstName: string;
-  middleName: string;
   lastName: string;
-  suffix: string;
-  hasAlternateNames: boolean;
-  hasNickname: boolean;
   email: string;
-  cellPhone: string;
-  workPhone: string;
-  workPhoneExt: string;
-  homePhone: string;
-  emailShared: boolean;
-  canCompleteOnBehalf: boolean;
-  continueFillingInfo: boolean;
+  phone: string;
 }
 
 export interface EmploymentIncome {
@@ -134,6 +125,13 @@ export interface ApplicationData {
     purchasePrice: string;
     downPaymentAmount: string;
     downPaymentPercent: string;
+    targetLocation: {
+      city: string;
+      state: string;
+      zipCode: string;
+      countyName: string;
+    };
+    comfortableMonthlyPayment: string;
   };
   personalInfo: {
     firstName: string;
@@ -151,6 +149,7 @@ export interface ApplicationData {
     consentToContact: boolean;
     currentAddress: {
       street: string;
+      unit: string;
       city: string;
       state: string;
       zipCode: string;
@@ -225,6 +224,13 @@ const initialData: ApplicationData = {
     purchasePrice: '',
     downPaymentAmount: '',
     downPaymentPercent: '',
+    targetLocation: {
+      city: '',
+      state: '',
+      zipCode: '',
+      countyName: '',
+    },
+    comfortableMonthlyPayment: '',
   },
   personalInfo: {
     firstName: '',
@@ -242,6 +248,7 @@ const initialData: ApplicationData = {
     consentToContact: false,
     currentAddress: {
       street: '',
+      unit: '',
       city: '',
       state: '',
       zipCode: '',
