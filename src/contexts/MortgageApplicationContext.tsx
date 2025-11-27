@@ -381,13 +381,8 @@ const calculateProgress = (data: ApplicationData): number => {
 
   const newSectionFields = [
     ...data.declarations.filter(d => d.required).map(d => `declarations.${d.id}`),
-    'credit.dateOfBirth',
-    'credit.socialSecurityNumber',
-    'credit.confirmSocialSecurityNumber',
-    'credit.estimatedCreditScore',
-    'additionalQuestions.targetMonthlyPayment',
-    'reviewSubmit.authorizationToOrderCredit',
-    'reviewSubmit.electronicDisclosuresConsent',
+    'personalInfo.dateOfBirth',
+    'personalInfo.estimatedCreditScore',
   ];
 
   const totalFields = requiredFields.length + conditionalFields.length + newSectionFields.length;
