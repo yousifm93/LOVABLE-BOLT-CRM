@@ -64,6 +64,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     closing_costs: (client as any).closing_costs || null,
     loan_type: client.loan?.loanType || "",
     occupancy: (client as any).occupancy || "",
+    subject_address_1: (client as any).subject_address_1 || "",
+    subject_address_2: (client as any).subject_address_2 || "",
+    subject_city: (client as any).subject_city || "",
+    subject_state: (client as any).subject_state || "",
+    subject_zip: (client as any).subject_zip || "",
     
     // Borrower Info
     first_name: client.person?.firstName || "",
@@ -131,11 +136,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       cash_to_close: (client as any).cash_to_close || null,
       closing_costs: (client as any).closing_costs || null,
       loan_type: client.loan?.loanType || "",
+      occupancy: (client as any).occupancy || "",
+      subject_address_1: (client as any).subject_address_1 || "",
+      subject_address_2: (client as any).subject_address_2 || "",
+      subject_city: (client as any).subject_city || "",
+      subject_state: (client as any).subject_state || "",
+      subject_zip: (client as any).subject_zip || "",
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
       ssn: (client as any).ssn || "",
       dob: (client as any).dob || null,
-      occupancy: (client as any).occupancy || "",
       residency_type: (client as any).residency_type || "",
       marital_status: (client as any).marital_status || "",
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
@@ -186,13 +196,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         cash_to_close: editData.cash_to_close,
         closing_costs: editData.closing_costs,
         loan_type: editData.loan_type,
+        occupancy: editData.occupancy || null,
+        subject_address_1: editData.subject_address_1 || null,
+        subject_address_2: editData.subject_address_2 || null,
+        subject_city: editData.subject_city || null,
+        subject_state: editData.subject_state || null,
+        subject_zip: editData.subject_zip || null,
         
         // Borrower Info
         first_name: editData.first_name,
         last_name: editData.last_name,
         ssn: editData.ssn || null,
         dob: editData.dob,
-        occupancy: editData.occupancy || null,
         residency_type: editData.residency_type || null,
         marital_status: editData.marital_status || null,
         monthly_pmt_goal: editData.monthly_payment_goal,
@@ -427,6 +442,71 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         </Select>
       ) : undefined
     },
+    { 
+      icon: Home, 
+      label: "Subject Property Address", 
+      value: (client as any).subject_address_1 || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_address_1 || ""}
+          onChange={(e) => setEditData({ ...editData, subject_address_1: e.target.value })}
+          className="h-8"
+          placeholder="Street address"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Address Line 2", 
+      value: (client as any).subject_address_2 || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_address_2 || ""}
+          onChange={(e) => setEditData({ ...editData, subject_address_2: e.target.value })}
+          className="h-8"
+          placeholder="Apt, Suite, Unit"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "City", 
+      value: (client as any).subject_city || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_city || ""}
+          onChange={(e) => setEditData({ ...editData, subject_city: e.target.value })}
+          className="h-8"
+          placeholder="City"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "State", 
+      value: (client as any).subject_state || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_state || ""}
+          onChange={(e) => setEditData({ ...editData, subject_state: e.target.value })}
+          className="h-8"
+          placeholder="State"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Zip Code", 
+      value: (client as any).subject_zip || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_zip || ""}
+          onChange={(e) => setEditData({ ...editData, subject_zip: e.target.value })}
+          className="h-8"
+          placeholder="Zip code"
+        />
+      ) : undefined
+    },
   ];
 
   // Borrower Info data
@@ -520,6 +600,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <SelectItem value="US Citizen">US Citizen</SelectItem>
             <SelectItem value="Permanent Resident">Permanent Resident</SelectItem>
             <SelectItem value="Non-Permanent Resident Alien">Non-Permanent Resident Alien</SelectItem>
+            <SelectItem value="Foreign National">Foreign National</SelectItem>
           </SelectContent>
         </Select>
       ) : undefined
@@ -835,15 +916,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </h3>
           </div>
           <FourColumnDetailLayout items={consolidatedFinancialData} />
-        </div>
-
-        {/* Co-Borrower Information Section */}
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <Users className="h-5 w-5 text-primary" />
-            Co-Borrower Information
-          </h3>
-          <FourColumnDetailLayout items={coBorrowerData} />
         </div>
 
         {/* Monthly Payment Breakdown Section */}
