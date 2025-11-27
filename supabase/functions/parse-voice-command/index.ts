@@ -30,8 +30,9 @@ The user is creating a new lead and may want to update these fields:
 - last_name: Last name of the lead
 - phone: Phone number
 - email: Email address
-- referred_via: How they were referred (Email, Text Message, Phone Call, Social Media, Website, Other)
-- source: Who referred them (specific person/company name)
+- buyer_agent_name: Real estate agent's name (will be matched against agent list)
+- referred_via: MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other"
+- source: MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other"
 - notes: Additional notes about the lead
 
 Current form data:
@@ -45,6 +46,11 @@ Interpret the voice command and extract field updates. Return ONLY valid JSON in
   "action": "update"
 }
 
+CRITICAL RULES FOR referred_via AND source:
+- referred_via can ONLY be: "Email", "Text Message", "Phone Call", "Social Media", "Website", or "Other"
+- source can ONLY be: "Agent", "Past Client", "Zillow", "Realtor.com", or "Other"
+- For buyer_agent_name, extract just the agent's name, it will be matched against the agent list
+
 If the user wants to ADD to notes (not replace), use action: "append_notes".
 If updating existing fields, use action: "update".
 
@@ -52,8 +58,11 @@ Examples:
 - "Put the phone number as 352-555-1234" → {"updates": {"phone": "352-555-1234"}, "action": "update"}
 - "The email should be john@example.com" → {"updates": {"email": "john@example.com"}, "action": "update"}
 - "Change last name to Smith" → {"updates": {"last_name": "Smith"}, "action": "update"}
+- "The realtor is Kevin Rutto" → {"updates": {"buyer_agent_name": "Kevin Rutto"}, "action": "update"}
+- "Real estate agent is John Doe" → {"updates": {"buyer_agent_name": "John Doe"}, "action": "update"}
 - "Add a note that they want a condo in Miami" → {"updates": {"notes": "Looking for a condo in Miami"}, "action": "append_notes"}
 - "Referral method is text message" → {"updates": {"referred_via": "Text Message"}, "action": "update"}
+- "This came from an agent" → {"updates": {"source": "Agent"}, "action": "update"}
 
 Only return valid JSON. Do not include any explanation or markdown.`;
 

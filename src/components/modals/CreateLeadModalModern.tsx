@@ -107,21 +107,51 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
       if (error) throw error;
 
       if (data?.updates) {
-        const updatedFields = Object.keys(data.updates);
+        console.log('Voice command updates:', data.updates);
+        const updates = { ...data.updates };
+        
+        // Handle buyer_agent_name -> buyer_agent_id conversion
+        if (updates.buyer_agent_name) {
+          const agentName = updates.buyer_agent_name;
+          delete updates.buyer_agent_name;
+          
+          if (buyerAgents.length > 0) {
+            const matchedAgent = findBestAgentMatch(agentName, buyerAgents);
+            if (matchedAgent) {
+              updates.buyer_agent_id = matchedAgent.id;
+              console.log('Matched agent from voice:', matchedAgent);
+              toast({
+                title: '✅ Agent matched',
+                description: `${matchedAgent.first_name} ${matchedAgent.last_name}`,
+              });
+            } else {
+              console.log('No agent match found for:', agentName);
+              toast({
+                title: 'Agent not found',
+                description: `Could not find agent: ${agentName}`,
+                variant: 'destructive'
+              });
+            }
+          }
+        }
+        
+        const updatedFields = Object.keys(updates).filter(k => k !== 'buyer_agent_name');
         
         if (data.action === 'append_notes') {
           setFormData(prev => ({
             ...prev,
-            notes: prev.notes ? `${prev.notes}\n\n${data.updates.notes}` : data.updates.notes
+            notes: prev.notes ? `${prev.notes}\n\n${updates.notes}` : updates.notes
           }));
         } else {
-          setFormData(prev => ({ ...prev, ...data.updates }));
+          setFormData(prev => ({ ...prev, ...updates }));
         }
         
-        toast({
-          title: '🎤 Voice command applied',
-          description: `Updated: ${updatedFields.join(', ')}`
-        });
+        if (updatedFields.length > 0) {
+          toast({
+            title: '🎤 Voice command applied',
+            description: `Updated: ${updatedFields.join(', ')}`
+          });
+        }
       }
     } catch (error) {
       console.error('Error processing voice command:', error);
@@ -136,17 +166,34 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
   };
 
   const findBestAgentMatch = (name: string, agents: any[]) => {
-    if (!name) return null;
+    if (!name || !agents.length) return null;
+    
     const nameLower = name.toLowerCase().trim();
-    return agents.find(agent => {
+    
+    // Try exact full name match first
+    let match = agents.find(agent => {
+      const fullName = `${agent.first_name} ${agent.last_name}`.toLowerCase();
+      return fullName === nameLower;
+    });
+    if (match) return match;
+    
+    // Try fuzzy matching (handles typos, partial names)
+    match = agents.find(agent => {
       const fullName = `${agent.first_name} ${agent.last_name}`.toLowerCase();
       const firstName = agent.first_name.toLowerCase();
       const lastName = agent.last_name.toLowerCase();
+      
+      // Check if name contains first or last name
       return fullName.includes(nameLower) || 
              nameLower.includes(fullName) ||
              nameLower.includes(firstName) ||
-             nameLower.includes(lastName);
+             nameLower.includes(lastName) ||
+             firstName.includes(nameLower) ||
+             lastName.includes(nameLower);
     });
+    
+    console.log(`Agent match attempt for "${name}":`, match ? `Found ${match.first_name} ${match.last_name}` : 'No match');
+    return match || null;
   };
 
   const handleImagePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {

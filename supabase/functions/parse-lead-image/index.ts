@@ -42,17 +42,17 @@ serve(async (req) => {
   "phone": "phone number in format (XXX) XXX-XXXX if found",
   "email": "email address if found",
   "agent_name": "real estate agent's name if mentioned (full name)",
-  "referral_method": "Email" or "Text Message" or "Other" based on screenshot type,
-  "referral_source": "who referred this lead (agent name, company, person)",
+  "referral_method": MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other",
+  "referral_source": MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other",
   "notes": "summarize what the lead is looking for, property details, timeline, any important context",
   "confidence": a number between 0 and 1 indicating confidence in the extraction
 }
 
-Important:
+CRITICAL RULES:
+- referral_method: Return ONLY these exact values: "Email", "Text Message", "Phone Call", "Social Media", "Website", or "Other"
+- referral_source: If a real estate agent is involved, return "Agent". For past clients return "Past Client". For lead sources from Zillow/Realtor.com return those. Otherwise return "Other"
+- agent_name: Extract the real estate agent's full name separately (this is different from referral_source)
 - For borrower name, look for phrases like "client looking", "buyer named", or introductions
-- For agent name, look for signatures, "from:", real estate company names, agent titles
-- For referral_method, determine if this is an email screenshot (headers, subject lines) or text message (SMS bubbles, messaging app)
-- For referral_source, identify who is referring the lead (could be the agent, a friend, company)
 - For notes, extract property requirements (price range, bedrooms, location), timeline (when they want to buy), loan type preferences, or any special circumstances
 - Return null for any field you cannot confidently extract
 - Be conservative with confidence scores - only return >0.8 if you're very certain`
