@@ -29,7 +29,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
     incomeType: 'salary',
   });
   const [newOtherIncome, setNewOtherIncome] = useState<Partial<OtherIncome>>({
-    type: 'rental',
+    type: 'investment',
   });
 
   const addOrUpdateEmployment = () => {
@@ -142,7 +142,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       // Add new
       const otherIncome: OtherIncome = {
         id: Date.now().toString(),
-        type: newOtherIncome.type || 'rental',
+        type: newOtherIncome.type || 'investment',
         amount: newOtherIncome.amount || '',
       };
       dispatch({
@@ -166,7 +166,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       setNewOtherIncome(income);
     } else {
       setEditingOtherIncomeId(null);
-      setNewOtherIncome({ type: 'rental' });
+      setNewOtherIncome({ type: 'investment' });
     }
     setShowOtherIncomeDialog(true);
   };
@@ -440,7 +440,6 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rental">Rental Income</SelectItem>
                   <SelectItem value="investment">Investment Income</SelectItem>
                   <SelectItem value="pension">Pension/Retirement</SelectItem>
                   <SelectItem value="social-security">Social Security</SelectItem>

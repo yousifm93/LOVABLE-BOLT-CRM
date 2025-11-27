@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useApplication } from '@/contexts/MortgageApplicationContext';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EnhancedDatePicker } from '@/components/ui/enhanced-date-picker';
 
 interface PersonalInfoFormProps {
   onNext: () => void;
@@ -251,9 +252,10 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <Input
-                {...register('dateOfBirth')}
-                type="date"
+              <EnhancedDatePicker
+                value={watch('dateOfBirth') ? new Date(watch('dateOfBirth')) : undefined}
+                onValueChange={(date) => setValue('dateOfBirth', date ? date.toISOString().split('T')[0] : '')}
+                placeholder="Select date of birth"
               />
             </div>
 

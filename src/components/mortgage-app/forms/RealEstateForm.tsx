@@ -114,31 +114,70 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
             </div>
           ) : (
             <div className="space-y-3">
-              {data.realEstate.properties.map((property) => (
-                <Card key={property.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openPropertyDialog(property)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{property.address}</p>
-                        <p className="text-sm text-muted-foreground capitalize">{property.propertyUsage}</p>
-                        {property.propertyValue && (
-                          <p className="text-sm font-medium">${property.propertyValue}</p>
-                        )}
+              {data.realEstate.properties.map((property) => {
+                const formatPropertyType = (type: string) => {
+                  return type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                };
+                
+                const formatPropertyUsage = (usage: string) => {
+                  if (usage === 'rental') return 'Rental Property';
+                  if (usage === 'primary') return 'Primary Residence';
+                  if (usage === 'second-home') return 'Second Home';
+                  return usage;
+                };
+                
+                const formatCurrency = (value: string | number) => {
+                  if (!value) return '0';
+                  return typeof value === 'number' ? value.toLocaleString() : parseFloat(value).toLocaleString();
+                };
+
+                return (
+                  <Card key={property.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openPropertyDialog(property)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1.5 flex-1">
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Property Address:</span>{' '}
+                            <span className="font-medium">{property.address}</span>
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Property Type:</span>{' '}
+                            {formatPropertyType(property.propertyType || '')}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Property Usage:</span>{' '}
+                            {formatPropertyUsage(property.propertyUsage || '')}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Property Value:</span>{' '}
+                            ${formatCurrency(property.propertyValue || 0)}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Monthly Expenses:</span>{' '}
+                            ${formatCurrency(property.monthlyExpenses || 0)}
+                          </p>
+                          {property.monthlyRent && (
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Monthly Rent:</span>{' '}
+                              ${formatCurrency(property.monthlyRent)}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeProperty(property.id);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeProperty(property.id);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 

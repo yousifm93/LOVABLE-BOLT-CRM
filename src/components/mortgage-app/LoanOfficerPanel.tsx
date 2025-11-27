@@ -4,8 +4,8 @@ import { Mail, Phone, MapPin } from 'lucide-react';
 
 export const LoanOfficerPanel = () => {
   return (
-    <Card className="bg-card border-border">
-      <CardContent className="p-6">
+    <Card className="bg-card border-border h-full">
+      <CardContent className="p-6 flex flex-col min-h-full">
         <div className="flex items-start gap-4 mb-6">
           <Avatar className="h-16 w-16">
             <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Yousif Mohamed" />
@@ -73,11 +73,11 @@ export const LoanOfficerPanel = () => {
         <div className="border-t border-border pt-6 mb-6">
           <div className="flex items-start gap-4 mb-6">
             <Avatar className="h-16 w-16">
-              <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/HD%20headshot.JPG" alt="German Daza" />
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg">GD</AvatarFallback>
+              <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/HD%20headshot.JPG" alt="Herman Daza" />
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">HD</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">German Daza</h3>
+              <h3 className="text-lg font-semibold text-foreground">Herman Daza</h3>
               <p className="text-sm text-muted-foreground">Operations Manager</p>
             </div>
           </div>
@@ -85,8 +85,8 @@ export const LoanOfficerPanel = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <a href="mailto:german@mortgagebolt.com" className="text-foreground hover:text-primary transition-colors">
-                german@mortgagebolt.com
+              <a href="mailto:herman@mortgagebolt.com" className="text-foreground hover:text-primary transition-colors">
+                herman@mortgagebolt.com
               </a>
             </div>
             
@@ -103,18 +103,19 @@ export const LoanOfficerPanel = () => {
           </div>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-border">
-          <h4 className="font-semibold text-foreground mb-2">Mortgage Bolt</h4>
-          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <p>848 Brickell Avenue</p>
-              <p>Suite 840</p>
-              <p>Miami, Florida 33131</p>
+        <div className="mt-auto pt-12 border-t border-border">
+          <div className="text-center mb-8">
+            <h4 className="font-semibold text-foreground mb-3">Mortgage Bolt</h4>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 flex-shrink-0" />
+              <div>
+                <p>848 Brickell Avenue, Suite 840</p>
+                <p>Miami, Florida 33131</p>
+              </div>
             </div>
           </div>
           
-          <div className="mt-6 flex gap-4 text-xs text-muted-foreground">
+          <div className="flex justify-center gap-4 text-xs text-muted-foreground pb-4">
             <a href="#" className="hover:text-foreground transition-colors">Privacy Policy & Terms</a>
             <a href="#" className="hover:text-foreground transition-colors">ADA Disclaimer</a>
           </div>
