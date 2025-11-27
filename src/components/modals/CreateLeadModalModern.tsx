@@ -723,8 +723,10 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
                       <SelectItem value="Email">Email</SelectItem>
-                      <SelectItem value="Phone">Phone</SelectItem>
-                      <SelectItem value="Referral">Referral</SelectItem>
+                      <SelectItem value="Text">Text</SelectItem>
+                      <SelectItem value="Call">Call</SelectItem>
+                      <SelectItem value="Web">Web</SelectItem>
+                      <SelectItem value="In Person">In Person</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -741,8 +743,11 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
                       <SelectItem value="Agent">Agent</SelectItem>
-                      <SelectItem value="Website">Website</SelectItem>
-                      <SelectItem value="Social Media">Social Media</SelectItem>
+                      <SelectItem value="New Agent">New Agent</SelectItem>
+                      <SelectItem value="Past Client">Past Client</SelectItem>
+                      <SelectItem value="Personal">Personal</SelectItem>
+                      <SelectItem value="Social">Social</SelectItem>
+                      <SelectItem value="Miscellaneous">Miscellaneous</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
