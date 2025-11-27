@@ -19,6 +19,8 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
   const { data, dispatch, progressPercentage } = useApplication();
   const [showEmploymentDialog, setShowEmploymentDialog] = useState(false);
   const [showOtherIncomeDialog, setShowOtherIncomeDialog] = useState(false);
+  const [editingEmploymentId, setEditingEmploymentId] = useState<string | null>(null);
+  const [editingOtherIncomeId, setEditingOtherIncomeId] = useState<string | null>(null);
   const [newEmployment, setNewEmployment] = useState<Partial<EmploymentIncome>>({
     employmentType: 'W2',
     isCurrentJob: true,
@@ -29,7 +31,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
     type: 'rental',
   });
 
-  const addEmployment = () => {
+  const addOrUpdateEmployment = () => {
     if (!newEmployment.employerName) {
       toast({
         title: 'Required field missing',
@@ -39,56 +41,69 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       return;
     }
 
-    const employment: EmploymentIncome = {
-      id: Date.now().toString(),
-      employmentType: newEmployment.employmentType || 'W2',
-      isCurrentJob: newEmployment.isCurrentJob ?? true,
-      isPrimaryIncome: newEmployment.isPrimaryIncome ?? false,
-      employerName: newEmployment.employerName || '',
-      position: newEmployment.position || '',
-      startDate: newEmployment.startDate || '',
-      workPhone: '',
-      workPhoneExt: '',
-      officeAddress: '',
-      timeSpentYears: '',
-      timeSpentMonths: '',
-      incomeType: newEmployment.incomeType || 'salary',
-      basePay: '',
-      bonus: '',
-      commissions: '',
-      overtime: '',
-      other: '',
-      frequency: 'monthly',
-      hourlyRate: '',
-      averageHoursPerWeek: '',
-      isSeasonalIncome: false,
-      isForeignIncome: false,
-      employedByFamilyMember: false,
-    };
-
-    dispatch({
-      type: 'UPDATE_SECTION',
-      payload: {
-        section: 'income',
-        data: {
-          ...data.income,
-          employmentIncomes: [...data.income.employmentIncomes, employment],
+    if (editingEmploymentId) {
+      // Update existing
+      const updated = data.income.employmentIncomes.map((emp) =>
+        emp.id === editingEmploymentId ? { ...emp, ...newEmployment } : emp
+      );
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: { section: 'income', data: { ...data.income, employmentIncomes: updated } },
+      });
+      toast({ title: 'Employment updated' });
+    } else {
+      // Add new
+      const employment: EmploymentIncome = {
+        id: Date.now().toString(),
+        employmentType: newEmployment.employmentType || 'W2',
+        isCurrentJob: newEmployment.isCurrentJob ?? true,
+        isPrimaryIncome: newEmployment.isPrimaryIncome ?? false,
+        employerName: newEmployment.employerName || '',
+        position: newEmployment.position || '',
+        startDate: newEmployment.startDate || '',
+        monthlyIncome: newEmployment.monthlyIncome || '',
+        workPhone: '',
+        workPhoneExt: '',
+        officeAddress: '',
+        timeSpentYears: '',
+        timeSpentMonths: '',
+        incomeType: newEmployment.incomeType || 'salary',
+        basePay: '',
+        bonus: '',
+        commissions: '',
+        overtime: '',
+        other: '',
+        frequency: 'monthly',
+        hourlyRate: '',
+        averageHoursPerWeek: '',
+        isSeasonalIncome: false,
+        isForeignIncome: false,
+        employedByFamilyMember: false,
+      };
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: {
+          section: 'income',
+          data: { ...data.income, employmentIncomes: [...data.income.employmentIncomes, employment] },
         },
-      },
-    });
+      });
+      toast({ title: 'Employment added' });
+    }
 
-    setNewEmployment({
-      employmentType: 'W2',
-      isCurrentJob: true,
-      isPrimaryIncome: false,
-      incomeType: 'salary',
-    });
+    setNewEmployment({ employmentType: 'W2', isCurrentJob: true, isPrimaryIncome: false, incomeType: 'salary' });
+    setEditingEmploymentId(null);
     setShowEmploymentDialog(false);
+  };
 
-    toast({
-      title: 'Employment added',
-      description: 'Your employment information has been added',
-    });
+  const openEmploymentDialog = (employment?: EmploymentIncome) => {
+    if (employment) {
+      setEditingEmploymentId(employment.id);
+      setNewEmployment(employment);
+    } else {
+      setEditingEmploymentId(null);
+      setNewEmployment({ employmentType: 'W2', isCurrentJob: true, isPrimaryIncome: false, incomeType: 'salary' });
+    }
+    setShowEmploymentDialog(true);
   };
 
   const removeEmployment = (id: string) => {
@@ -102,7 +117,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
     });
   };
 
-  const addOtherIncome = () => {
+  const addOrUpdateOtherIncome = () => {
     if (!newOtherIncome.amount) {
       toast({
         title: 'Required field missing',
@@ -112,31 +127,69 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       return;
     }
 
-    const otherIncome: OtherIncome = {
-      id: Date.now().toString(),
-      type: newOtherIncome.type || 'rental',
-      amount: newOtherIncome.amount || '',
-      frequency: newOtherIncome.frequency || 'monthly',
-    };
-
-    dispatch({
-      type: 'UPDATE_SECTION',
-      payload: {
-        section: 'income',
-        data: {
-          ...data.income,
-          otherIncomes: [...data.income.otherIncomes, otherIncome],
+    if (editingOtherIncomeId) {
+      // Update existing
+      const updated = data.income.otherIncomes.map((inc) =>
+        inc.id === editingOtherIncomeId ? { ...inc, ...newOtherIncome } : inc
+      );
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: { section: 'income', data: { ...data.income, otherIncomes: updated } },
+      });
+      toast({ title: 'Other income updated' });
+    } else {
+      // Add new
+      const otherIncome: OtherIncome = {
+        id: Date.now().toString(),
+        type: newOtherIncome.type || 'rental',
+        amount: newOtherIncome.amount || '',
+      };
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: {
+          section: 'income',
+          data: { ...data.income, otherIncomes: [...data.income.otherIncomes, otherIncome] },
         },
-      },
-    });
+      });
+      toast({ title: 'Other income added' });
+    }
 
     setNewOtherIncome({ type: 'rental' });
+    setEditingOtherIncomeId(null);
     setShowOtherIncomeDialog(false);
+  };
 
-    toast({
-      title: 'Other income added',
-      description: 'Your income source has been added',
-    });
+  const openOtherIncomeDialog = (income?: OtherIncome) => {
+    if (income) {
+      setEditingOtherIncomeId(income.id);
+      setNewOtherIncome(income);
+    } else {
+      setEditingOtherIncomeId(null);
+      setNewOtherIncome({ type: 'rental' });
+    }
+    setShowOtherIncomeDialog(true);
+  };
+
+  const handleContinue = () => {
+    // Validate 2 years of employment history
+    const totalMonths = data.income.employmentIncomes.reduce((sum, emp) => {
+      if (!emp.startDate) return sum;
+      const startDate = new Date(emp.startDate);
+      const endDate = emp.isCurrentJob ? new Date() : new Date();
+      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+      return sum + months;
+    }, 0);
+
+    if (totalMonths < 24) {
+      toast({
+        title: '2 Years of Employment Required',
+        description: 'You must have at least 2 years of employment history to continue.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    onNext();
   };
 
   const removeOtherIncome = (id: string) => {
@@ -176,18 +229,22 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
           ) : (
             <div className="space-y-3">
               {data.income.employmentIncomes.map((emp) => (
-                <Card key={emp.id}>
+                <Card key={emp.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openEmploymentDialog(emp)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{emp.employerName}</p>
                         <p className="text-sm text-muted-foreground">{emp.position}</p>
                         <p className="text-sm text-muted-foreground capitalize">{emp.employmentType}</p>
+                        {emp.monthlyIncome && <p className="text-sm font-medium">${emp.monthlyIncome}/mo</p>}
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeEmployment(emp.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeEmployment(emp.id);
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -202,7 +259,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => setShowEmploymentDialog(true)}
+            onClick={() => openEmploymentDialog()}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Employment
@@ -227,19 +284,20 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
           ) : (
             <div className="space-y-3">
               {data.income.otherIncomes.map((income) => (
-                <Card key={income.id}>
+                <Card key={income.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openOtherIncomeDialog(income)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium capitalize">{income.type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ${income.amount} / {income.frequency}
-                        </p>
+                        <p className="text-sm text-muted-foreground">${income.amount}/month</p>
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeOtherIncome(income.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeOtherIncome(income.id);
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -254,7 +312,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => setShowOtherIncomeDialog(true)}
+            onClick={() => openOtherIncomeDialog()}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Other Income
@@ -267,7 +325,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button onClick={onNext}>
+        <Button onClick={handleContinue}>
           Save & Continue
         </Button>
       </div>
@@ -276,7 +334,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       <Dialog open={showEmploymentDialog} onOpenChange={setShowEmploymentDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Employment</DialogTitle>
+            <DialogTitle>{editingEmploymentId ? 'Edit Employment' : 'Add Employment'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -321,7 +379,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Start Date</Label>
+              <Label>Start Date *</Label>
               <Input
                 type="date"
                 value={newEmployment.startDate}
@@ -329,12 +387,25 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Monthly Income</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  className="pl-7"
+                  value={newEmployment.monthlyIncome}
+                  onChange={(e) => setNewEmployment({ ...newEmployment, monthlyIncome: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowEmploymentDialog(false)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={addEmployment}>
-                Add Employment
+              <Button type="button" onClick={addOrUpdateEmployment}>
+                {editingEmploymentId ? 'Update' : 'Add'} Employment
               </Button>
             </div>
           </div>
@@ -345,7 +416,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
       <Dialog open={showOtherIncomeDialog} onOpenChange={setShowOtherIncomeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Other Income</DialogTitle>
+            <DialogTitle>{editingOtherIncomeId ? 'Edit Other Income' : 'Add Other Income'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -368,36 +439,24 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Amount *</Label>
-              <Input
-                value={newOtherIncome.amount}
-                onChange={(e) => setNewOtherIncome({ ...newOtherIncome, amount: e.target.value })}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Frequency *</Label>
-              <Select
-                value={newOtherIncome.frequency}
-                onValueChange={(value) => setNewOtherIncome({ ...newOtherIncome, frequency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Monthly Amount *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  className="pl-7"
+                  value={newOtherIncome.amount}
+                  onChange={(e) => setNewOtherIncome({ ...newOtherIncome, amount: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowOtherIncomeDialog(false)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={addOtherIncome}>
-                Add Income
+              <Button type="button" onClick={addOrUpdateOtherIncome}>
+                {editingOtherIncomeId ? 'Update' : 'Add'} Income
               </Button>
             </div>
           </div>

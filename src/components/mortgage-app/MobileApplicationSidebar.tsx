@@ -12,10 +12,7 @@ const sections = [
   { id: 5, name: 'Assets' },
   { id: 6, name: 'Real Estate' },
   { id: 7, name: 'Declarations' },
-  { id: 8, name: 'Demographics' },
-  { id: 9, name: 'Credit' },
-  { id: 10, name: 'Additional Questions' },
-  { id: 11, name: 'Review & Submit' },
+  { id: 8, name: 'Review & Submit' },
 ];
 
 interface MobileApplicationSidebarProps {

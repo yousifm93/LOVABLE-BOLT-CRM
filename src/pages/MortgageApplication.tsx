@@ -17,9 +17,6 @@ import { IncomeForm } from '@/components/mortgage-app/forms/IncomeForm';
 import { AssetsForm } from '@/components/mortgage-app/forms/AssetsForm';
 import { RealEstateForm } from '@/components/mortgage-app/forms/RealEstateForm';
 import { DeclarationsForm } from '@/components/mortgage-app/forms/DeclarationsForm';
-import { DemographicsForm } from '@/components/mortgage-app/forms/DemographicsForm';
-import { CreditForm } from '@/components/mortgage-app/forms/CreditForm';
-import { AdditionalQuestionsForm } from '@/components/mortgage-app/forms/AdditionalQuestionsForm';
 import { ReviewSubmitForm } from '@/components/mortgage-app/forms/ReviewSubmitForm';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -43,7 +40,7 @@ const MortgageApplicationContent = () => {
 
   const goToNextSection = () => {
     const nextSection = data.currentSection + 1;
-    if (nextSection <= 11) {
+    if (nextSection <= 8) {
       dispatch({ type: 'SET_CURRENT_SECTION', payload: nextSection });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -74,12 +71,6 @@ const MortgageApplicationContent = () => {
       case 7:
         return <DeclarationsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
       case 8:
-        return <DemographicsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
-      case 9:
-        return <CreditForm onNext={goToNextSection} onBack={goToPreviousSection} />;
-      case 10:
-        return <AdditionalQuestionsForm onNext={goToNextSection} onBack={goToPreviousSection} />;
-      case 11:
         return <ReviewSubmitForm onBack={goToPreviousSection} />;
       default:
         return <MortgageInfoForm onNext={goToNextSection} onBack={goToPreviousSection} />;

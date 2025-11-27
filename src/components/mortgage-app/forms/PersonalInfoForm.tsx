@@ -233,6 +233,31 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input
+                {...register('dateOfBirth')}
+                type="date"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="estimatedCreditScore">Estimated Credit Score</Label>
+              <Select value={watch('estimatedCreditScore')} onValueChange={(value) => setValue('estimatedCreditScore', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select range..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="excellent">740+</SelectItem>
+                  <SelectItem value="good">680-739</SelectItem>
+                  <SelectItem value="fair">620-679</SelectItem>
+                  <SelectItem value="poor">Below 620</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               checked={watch('isUSMilitary')}
