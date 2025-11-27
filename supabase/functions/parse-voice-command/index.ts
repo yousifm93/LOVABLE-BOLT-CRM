@@ -32,8 +32,8 @@ The user is creating a new lead and may want to update these fields:
 - email: Email address
 - buyer_agent_name: Real estate agent's name (will be matched against agent list)
 - teammate_assigned_name: User/team member to assign this lead to (will be matched against user list)
-- referred_via: MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other"
-- source: MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other"
+- referred_via: MUST be one of: "Email", "Text", "Call", "Web", "In Person", "Phone", "Social", "Personal"
+- source: MUST be one of: "Agent", "New Agent", "Past Client", "Personal", "Social", "Miscellaneous"
 - notes: Additional notes about the lead
 
 Current form data:
@@ -64,10 +64,16 @@ Examples:
 - "Assign this to Salma Mohamed" → {"updates": {"teammate_assigned_name": "Salma Mohamed"}, "action": "update"}
 - "Assign user Yousif" → {"updates": {"teammate_assigned_name": "Yousif"}, "action": "update"}
 - "Add a note that they want a condo in Miami" → {"updates": {"notes": "Looking for a condo in Miami"}, "action": "append_notes"}
-- "Referral method is text message" → {"updates": {"referred_via": "Text Message"}, "action": "update"}
-- "Referral method is phone" → {"updates": {"referred_via": "Phone Call"}, "action": "update"}
-- "Referral via phone call" → {"updates": {"referred_via": "Phone Call"}, "action": "update"}
+- "Referral method is text" → {"updates": {"referred_via": "Text"}, "action": "update"}
+- "Referred via text message" → {"updates": {"referred_via": "Text"}, "action": "update"}
+- "Referral method is phone" → {"updates": {"referred_via": "Call"}, "action": "update"}
+- "They called me" → {"updates": {"referred_via": "Call"}, "action": "update"}
+- "Referral via phone call" → {"updates": {"referred_via": "Call"}, "action": "update"}
+- "Referral method email" → {"updates": {"referred_via": "Email"}, "action": "update"}
+- "Met them in person" → {"updates": {"referred_via": "In Person"}, "action": "update"}
+- "Came from the website" → {"updates": {"referred_via": "Web"}, "action": "update"}
 - "This came from an agent" → {"updates": {"source": "Agent"}, "action": "update"}
+- "Source is past client" → {"updates": {"source": "Past Client"}, "action": "update"}
 
 Only return valid JSON. Do not include any explanation or markdown.`;
 

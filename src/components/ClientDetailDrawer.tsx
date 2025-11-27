@@ -371,7 +371,7 @@ export function ClientDetailDrawer({
                       { value: 'Text', label: 'Text' },
                       { value: 'Call', label: 'Call' },
                       { value: 'Web', label: 'Web' },
-                      { value: 'In-Person', label: 'In-Person' }
+                      { value: 'In Person', label: 'In Person' }
                     ]} 
                     placeholder="Select method" 
                   />
