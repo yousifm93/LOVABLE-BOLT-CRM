@@ -73,6 +73,16 @@ export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectio
           })}
         </div>
       </nav>
+
+      <div className="mt-auto pt-6 border-t border-border space-y-3 p-4">
+        <div className="text-sm">
+          <p className="font-medium text-foreground">Save your progress</p>
+          <p className="text-muted-foreground text-xs mt-1">Create an account to save and continue later</p>
+        </div>
+        <button className="w-full px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+          Sign In
+        </button>
+      </div>
     </div>
   );
 };

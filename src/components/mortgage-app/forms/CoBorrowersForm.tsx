@@ -27,10 +27,10 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
   });
 
   const addCoBorrower = () => {
-    if (!newCoBorrower.firstName || !newCoBorrower.lastName || !newCoBorrower.email || !newCoBorrower.phone) {
+    if (!newCoBorrower.firstName || !newCoBorrower.email || !newCoBorrower.relationship) {
       toast({
         title: 'Required fields missing',
-        description: 'Please enter all required fields',
+        description: 'Please enter first name, email, and relationship',
         variant: 'destructive',
       });
       return;
@@ -196,20 +196,22 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
             <DialogTitle>Invite Co-Borrower</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                value={newCoBorrower.firstName}
-                onChange={(e) => setNewCoBorrower({ ...newCoBorrower, firstName: e.target.value })}
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  value={newCoBorrower.firstName}
+                  onChange={(e) => setNewCoBorrower({ ...newCoBorrower, firstName: e.target.value })}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                value={newCoBorrower.lastName}
-                onChange={(e) => setNewCoBorrower({ ...newCoBorrower, lastName: e.target.value })}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  value={newCoBorrower.lastName}
+                  onChange={(e) => setNewCoBorrower({ ...newCoBorrower, lastName: e.target.value })}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -222,7 +224,7 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 type="tel"
                 value={newCoBorrower.phone}

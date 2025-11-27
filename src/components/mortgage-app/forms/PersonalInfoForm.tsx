@@ -63,7 +63,7 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
 
       <Card>
         <CardHeader>
-          <CardTitle>Full Legal Name</CardTitle>
+          <CardTitle>Borrower Name</CardTitle>
           <CardDescription>Enter your name as it appears on official documents</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -191,8 +191,8 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
               <Input {...register('yearsAtCurrentAddress')} type="number" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="monthsAtCurrentAddress">Months</Label>
-              <Input {...register('monthsAtCurrentAddress')} type="number" />
+              <Label htmlFor="monthsAtCurrentAddress">Months at Address</Label>
+              <Input {...register('monthsAtCurrentAddress')} type="number" min="0" max="11" />
             </div>
           </div>
         </CardContent>
@@ -212,8 +212,9 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="us-citizen">US Citizen</SelectItem>
-                  <SelectItem value="permanent-resident">Permanent Resident Alien</SelectItem>
-                  <SelectItem value="non-permanent-resident">Non Permanent Resident Alien</SelectItem>
+                  <SelectItem value="permanent-resident">Permanent Resident</SelectItem>
+                  <SelectItem value="non-permanent-resident">Non-Permanent Resident</SelectItem>
+                  <SelectItem value="foreign-national">Foreign National</SelectItem>
                 </SelectContent>
               </Select>
             </div>

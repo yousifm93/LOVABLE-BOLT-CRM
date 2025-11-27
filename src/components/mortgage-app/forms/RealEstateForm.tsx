@@ -24,19 +24,10 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
   });
 
   const addOrUpdateProperty = () => {
-    if (!newProperty.address) {
+    if (!newProperty.address || !newProperty.propertyType || !newProperty.propertyUsage || !newProperty.propertyValue || !newProperty.monthlyExpenses) {
       toast({
-        title: 'Required field missing',
-        description: 'Please enter property address',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!newProperty.propertyValue) {
-      toast({
-        title: 'Required field missing',
-        description: 'Please enter property value',
+        title: 'Required fields missing',
+        description: 'Please fill in all required fields',
         variant: 'destructive',
       });
       return;
@@ -192,7 +183,7 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
             </div>
 
             <div className="space-y-2">
-              <Label>Property Type</Label>
+              <Label>Property Type *</Label>
               <Select
                 value={newProperty.propertyType}
                 onValueChange={(value) => setNewProperty({ ...newProperty, propertyType: value })}
@@ -211,7 +202,7 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
             </div>
 
             <div className="space-y-2">
-              <Label>Property Usage</Label>
+              <Label>Property Usage *</Label>
               <Select
                 value={newProperty.propertyUsage}
                 onValueChange={(value) => setNewProperty({ ...newProperty, propertyUsage: value })}
@@ -241,7 +232,7 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
             </div>
 
             <div className="space-y-2">
-              <Label>Monthly Expenses (Mortgage, HOA, etc.)</Label>
+              <Label>Monthly Expenses (Mortgage, Taxes, Insurance, HOA) *</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
