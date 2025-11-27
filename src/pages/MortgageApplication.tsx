@@ -105,24 +105,6 @@ const MortgageApplicationContent = () => {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="container max-w-4xl mx-auto p-4 md:p-8">
-            {/* Auth Banner for Guest Users */}
-            {!user && (
-              <Card className="border-primary/20 bg-primary/5 p-4 mb-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">Save Your Progress</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Create an account to save and continue later
-                    </p>
-                  </div>
-                  <Button onClick={() => setShowAuthModal(true)} size="sm">
-                    <Save className="mr-2 h-4 w-4" />
-                    Sign In
-                  </Button>
-                </div>
-              </Card>
-            )}
-
             {/* User Info for Authenticated Users */}
             {user && (
               <Card className="border-border bg-background p-4 mb-6">

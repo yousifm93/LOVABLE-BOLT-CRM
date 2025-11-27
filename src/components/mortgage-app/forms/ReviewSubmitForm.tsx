@@ -23,7 +23,9 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
 
   const formatCurrency = (amount: number | string | null | undefined): string => {
     if (!amount) return '$0';
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const cleanAmount = typeof amount === 'string' ? amount.replace(/,/g, '') : amount.toString();
+    const numAmount = parseFloat(cleanAmount);
+    if (isNaN(numAmount)) return '$0';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -83,20 +85,27 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
   };
 
   const calculateLoanAmount = (): number => {
-    const purchase = parseFloat(data.mortgageInfo.purchasePrice || '0');
-    const down = parseFloat(data.mortgageInfo.downPaymentAmount || '0');
+    const purchase = parseFloat((data.mortgageInfo.purchasePrice || '0').replace(/,/g, ''));
+    const down = parseFloat((data.mortgageInfo.downPaymentAmount || '0').replace(/,/g, ''));
     return purchase - down;
   };
 
   const calculateTotalAssets = (): number => {
-    return data.assets.assets.reduce((sum, asset) => sum + parseFloat(asset.balance || '0'), 0);
+    return data.assets.assets.reduce((sum, asset) => {
+      const balance = parseFloat((asset.balance || '0').replace(/,/g, ''));
+      return sum + balance;
+    }, 0);
   };
 
   const calculateTotalMonthlyIncome = (): number => {
-    const employmentIncome = data.income.employmentIncomes.reduce((sum, emp) => 
-      sum + parseFloat(emp.monthlyIncome || '0'), 0);
-    const otherIncome = data.income.otherIncomes.reduce((sum, inc) => 
-      sum + parseFloat(inc.amount || '0'), 0);
+    const employmentIncome = data.income.employmentIncomes.reduce((sum, emp) => {
+      const income = parseFloat((emp.monthlyIncome || '0').replace(/,/g, ''));
+      return sum + income;
+    }, 0);
+    const otherIncome = data.income.otherIncomes.reduce((sum, inc) => {
+      const income = parseFloat((inc.amount || '0').replace(/,/g, ''));
+      return sum + income;
+    }, 0);
     return employmentIncome + otherIncome;
   };
 
@@ -155,11 +164,8 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Review & Submit</h2>
-          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Review & Submit</h2>
       </div>
 
       <Card className="bg-primary/5 border-primary/20">
@@ -263,6 +269,14 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
               <p className="text-sm text-muted-foreground">Estimated Credit Score</p>
               <p className="font-medium">{formatCreditScore(data.personalInfo.estimatedCreditScore)}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Residency Type</p>
+              <p className="font-medium capitalize">{data.personalInfo.residencyType || '—'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Military or Veteran</p>
+              <p className="font-medium">{formatYesNo(data.personalInfo.isUSMilitary)}</p>
+            </div>
             <div className="col-span-2">
               <p className="text-sm text-muted-foreground">Current Address</p>
               <p className="font-medium">{formatAddress(data.personalInfo.currentAddress)}</p>
@@ -277,14 +291,6 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
                 <p className="font-medium">{data.personalInfo.mailingAddress || '—'}</p>
               </div>
             )}
-            <div>
-              <p className="text-sm text-muted-foreground">Residency Type</p>
-              <p className="font-medium capitalize">{data.personalInfo.residencyType || '—'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Military or Veteran</p>
-              <p className="font-medium">{formatYesNo(data.personalInfo.isUSMilitary)}</p>
-            </div>
           </div>
         </CardContent>
       </Card>

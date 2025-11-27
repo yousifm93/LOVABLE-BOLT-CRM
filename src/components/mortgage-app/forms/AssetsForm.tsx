@@ -109,11 +109,8 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Assets</h2>
-          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Assets</h2>
       </div>
 
       <Card>
@@ -132,29 +129,60 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {data.assets.assets.map((asset) => (
-                <Card key={asset.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openAssetDialog(asset)}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium capitalize">{asset.type}</p>
-                        <p className="text-sm text-muted-foreground">{asset.financialInstitution}</p>
-                        <p className="text-sm font-medium">${asset.balance}</p>
+              {data.assets.assets.map((asset) => {
+                const formatBalance = (balance: string) => {
+                  const num = parseFloat(balance.replace(/,/g, ''));
+                  return isNaN(num) ? balance : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                };
+                
+                const getAssetTypeLabel = (type: string) => {
+                  const labels: Record<string, string> = {
+                    'checking': 'Checking Account',
+                    'savings': 'Savings Account',
+                    'investment': 'Investment Account',
+                    'retirement': 'Retirement Account (401k, IRA)',
+                    'gift': 'Gift',
+                    'other': 'Other'
+                  };
+                  return labels[type] || type;
+                };
+                
+                return (
+                  <Card key={asset.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openAssetDialog(asset)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">Asset Type</p>
+                          <p className="font-medium">{getAssetTypeLabel(asset.type)}</p>
+                          
+                          <p className="text-xs text-muted-foreground mt-2">Financial Institution</p>
+                          <p className="text-sm">{asset.financialInstitution}</p>
+                          
+                          {asset.accountNumber && (
+                            <>
+                              <p className="text-xs text-muted-foreground mt-2">Account #</p>
+                              <p className="text-sm">***{asset.accountNumber}</p>
+                            </>
+                          )}
+                          
+                          <p className="text-xs text-muted-foreground mt-2">Cash/Market Value</p>
+                          <p className="text-sm font-semibold">${formatBalance(asset.balance)}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeAsset(asset.id);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeAsset(asset.id);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 

@@ -75,11 +75,8 @@ export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBa
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Declarations</h2>
-          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Declarations</h2>
       </div>
 
       <Card>

@@ -96,11 +96,8 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Mortgage Information</h2>
-          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Mortgage Information</h2>
       </div>
 
       <Card>
@@ -168,7 +165,7 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="downPaymentAmount">Down Payment ($) *</Label>
+              <Label htmlFor="downPaymentAmount">Down Payment *</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -181,7 +178,7 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="downPaymentPercent">Down Payment (%) *</Label>
+              <Label htmlFor="downPaymentPercent">Down Payment % *</Label>
               <div className="relative">
                 <Input
                   value={watch('downPaymentPercent')}
@@ -198,11 +195,9 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
           </div>
 
           {loanAmount() > 0 && (
-            <div className="flex items-center gap-2 text-sm mt-3">
-              <span className="text-muted-foreground">Your loan amount will be</span>
-              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                ${loanAmount().toLocaleString()}
-              </span>
+            <div className="text-center pt-2">
+              <p className="text-sm text-muted-foreground">Your loan amount will be</p>
+              <p className="text-3xl font-bold text-green-600">${loanAmount().toLocaleString()}</p>
             </div>
           )}
         </CardContent>

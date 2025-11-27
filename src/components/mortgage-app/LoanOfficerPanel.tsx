@@ -8,7 +8,7 @@ export const LoanOfficerPanel = () => {
       <CardContent className="p-6">
         <div className="flex items-start gap-4 mb-6">
           <Avatar className="h-16 w-16">
-            <AvatarImage src="https://rlfbofsxhpqjbqjsntzn.supabase.co/storage/v1/object/public/user-uploads/2d37eee0-0e00-4906-aeb5-0fb57f2b7cb1/fbb0d3ec-ebf8-44c1-a46b-2bb0c4d19efc" alt="Yousif Mohamed" />
+            <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Yousif Mohamed" />
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">YM</AvatarFallback>
           </Avatar>
           <div>
@@ -47,11 +47,11 @@ export const LoanOfficerPanel = () => {
               <p>Miami, Florida 33131</p>
             </div>
           </div>
-        </div>
-
-        <div className="mt-6 pt-6 border-t border-border flex gap-4 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">Privacy Policy & Terms</a>
-          <a href="#" className="hover:text-foreground transition-colors">ADA Disclaimer</a>
+          
+          <div className="mt-6 flex gap-4 text-xs text-muted-foreground">
+            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy & Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors">ADA Disclaimer</a>
+          </div>
         </div>
       </CardContent>
     </Card>
