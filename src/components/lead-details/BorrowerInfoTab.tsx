@@ -205,6 +205,7 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
             <SelectItem value="US Citizen">US Citizen</SelectItem>
             <SelectItem value="Permanent Resident">Permanent Resident</SelectItem>
             <SelectItem value="Non-Permanent Resident Alien">Non-Permanent Resident Alien</SelectItem>
+            <SelectItem value="Foreign National">Foreign National</SelectItem>
           </SelectContent>
         </Select>
       ) : undefined
