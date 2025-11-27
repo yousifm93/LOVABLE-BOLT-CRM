@@ -54,11 +54,8 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
-          <p className="text-sm text-muted-foreground mt-1">{progressPercentage}% Completed</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
       </div>
 
       <Card>
@@ -268,11 +265,11 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
                   <SelectValue placeholder="Select range..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="below-620">Below 620</SelectItem>
-                  <SelectItem value="620-660">620-660</SelectItem>
-                  <SelectItem value="660-699">660-699</SelectItem>
-                  <SelectItem value="700-739">700-739</SelectItem>
                   <SelectItem value="740-plus">740+</SelectItem>
+                  <SelectItem value="700-739">700-739</SelectItem>
+                  <SelectItem value="660-699">660-699</SelectItem>
+                  <SelectItem value="620-660">620-660</SelectItem>
+                  <SelectItem value="below-620">Below 620</SelectItem>
                 </SelectContent>
               </Select>
             </div>
