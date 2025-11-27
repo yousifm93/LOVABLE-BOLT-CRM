@@ -125,7 +125,7 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="purchasePrice">Purchase Price *</Label>
               <div className="relative">
@@ -152,30 +152,29 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
 
             <div className="space-y-2">
               <Label htmlFor="downPaymentAmount">Down Payment *</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  value={watch('downPaymentAmount')}
-                  className="pl-7"
-                  placeholder="0"
-                  onChange={(e) => handleDownPaymentDollarChange(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="downPaymentPercent">Down Payment % *</Label>
-              <div className="relative">
-                <Input
-                  value={watch('downPaymentPercent')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  onChange={(e) => handleDownPaymentPercentChange(e.target.value)}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+              <div className="flex">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    value={watch('downPaymentAmount')}
+                    className="pl-7 rounded-r-none border-r-0"
+                    placeholder="0"
+                    onChange={(e) => handleDownPaymentDollarChange(e.target.value)}
+                  />
+                </div>
+                <div className="relative w-24">
+                  <Input
+                    value={watch('downPaymentPercent')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="rounded-l-none pr-7"
+                    placeholder="0"
+                    onChange={(e) => handleDownPaymentPercentChange(e.target.value)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                </div>
               </div>
             </div>
           </div>
