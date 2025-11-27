@@ -85,7 +85,6 @@ export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBa
             <FileText className="h-5 w-5" />
             Required Declarations
           </CardTitle>
-          <CardDescription>Please answer all questions honestly and completely</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {declarations.map((declaration, index) => (

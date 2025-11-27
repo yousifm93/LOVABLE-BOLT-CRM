@@ -59,10 +59,9 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Borrower Name</CardTitle>
-          <CardDescription>Enter your name as it appears on official documents</CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle>Borrower Name</CardTitle>
+          </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">

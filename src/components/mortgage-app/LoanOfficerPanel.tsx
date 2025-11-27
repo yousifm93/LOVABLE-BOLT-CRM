@@ -17,7 +17,7 @@ export const LoanOfficerPanel = () => {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 mb-6">
           <div className="flex items-center gap-2 text-sm">
             <Mail className="h-4 w-4 text-muted-foreground" />
             <a href="mailto:yousif@mortgagebolt.com" className="text-foreground hover:text-primary transition-colors">
@@ -34,6 +34,72 @@ export const LoanOfficerPanel = () => {
           
           <div className="text-sm text-muted-foreground">
             NMLS#: 1390971
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6 mb-6">
+          <div className="flex items-start gap-4 mb-6">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/sal%20circle%20headshot.JPG" alt="Salma Mohamed" />
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">SM</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Salma Mohamed</h3>
+              <p className="text-sm text-muted-foreground">Loan Officer</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <a href="mailto:salma@mortgagebolt.com" className="text-foreground hover:text-primary transition-colors">
+                salma@mortgagebolt.com
+              </a>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <a href="tel:+13522132980" className="text-foreground hover:text-primary transition-colors">
+                (352) 213-2980
+              </a>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              NMLS#: 1390971
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6 mb-6">
+          <div className="flex items-start gap-4 mb-6">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/HD%20headshot.JPG" alt="German Daza" />
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">GD</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">German Daza</h3>
+              <p className="text-sm text-muted-foreground">Operations Manager</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <a href="mailto:german@mortgagebolt.com" className="text-foreground hover:text-primary transition-colors">
+                german@mortgagebolt.com
+              </a>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <a href="tel:+13056197959" className="text-foreground hover:text-primary transition-colors">
+                (305) 619-7959
+              </a>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              NMLS#: 1390971
+            </div>
           </div>
         </div>
 
