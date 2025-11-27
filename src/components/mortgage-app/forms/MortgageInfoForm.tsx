@@ -16,8 +16,6 @@ interface MortgageInfoFormProps {
 
 export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBack }) => {
   const { data, dispatch, progressPercentage } = useApplication();
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [locationSearch, setLocationSearch] = useState('');
 
   const form = useForm({
     defaultValues: data.mortgageInfo,
@@ -76,22 +74,10 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
     }
   };
 
-  const handleUpdateLocation = () => {
-    setShowLocationModal(false);
-  };
-
   const loanAmount = () => {
     const purchasePrice = parseFloat(watch('purchasePrice')?.replace(/,/g, '') || '0');
     const downPayment = parseFloat(watch('downPaymentAmount')?.replace(/,/g, '') || '0');
     return purchasePrice - downPayment;
-  };
-
-  const formatLocation = () => {
-    const location = watch('targetLocation');
-    if (location?.city && location?.state) {
-      return `${location.city}, ${location.state} ${location.zipCode}`;
-    }
-    return '';
   };
 
   return (
@@ -211,22 +197,91 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="targetLocation">Where Are You Looking To Purchase? *</Label>
-              <div className="relative">
-                <Input
-                  value={formatLocation()}
-                  placeholder="Enter Zip or City"
-                  onClick={() => setShowLocationModal(true)}
-                  readOnly
-                  className="cursor-pointer"
-                />
-              </div>
+              <Label htmlFor="city">City *</Label>
+              <Input
+                value={watch('targetLocation')?.city || ''}
+                onChange={(e) => setValue('targetLocation', { ...watch('targetLocation'), city: e.target.value })}
+                placeholder="City"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="comfortableMonthlyPayment">What is a comfortable housing payment? *</Label>
+              <Label htmlFor="state">State *</Label>
+              <Select
+                value={watch('targetLocation')?.state || ''}
+                onValueChange={(value) => setValue('targetLocation', { ...watch('targetLocation'), state: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="State" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="AL">AL</SelectItem>
+                  <SelectItem value="AK">AK</SelectItem>
+                  <SelectItem value="AZ">AZ</SelectItem>
+                  <SelectItem value="AR">AR</SelectItem>
+                  <SelectItem value="CA">CA</SelectItem>
+                  <SelectItem value="CO">CO</SelectItem>
+                  <SelectItem value="CT">CT</SelectItem>
+                  <SelectItem value="DE">DE</SelectItem>
+                  <SelectItem value="FL">FL</SelectItem>
+                  <SelectItem value="GA">GA</SelectItem>
+                  <SelectItem value="HI">HI</SelectItem>
+                  <SelectItem value="ID">ID</SelectItem>
+                  <SelectItem value="IL">IL</SelectItem>
+                  <SelectItem value="IN">IN</SelectItem>
+                  <SelectItem value="IA">IA</SelectItem>
+                  <SelectItem value="KS">KS</SelectItem>
+                  <SelectItem value="KY">KY</SelectItem>
+                  <SelectItem value="LA">LA</SelectItem>
+                  <SelectItem value="ME">ME</SelectItem>
+                  <SelectItem value="MD">MD</SelectItem>
+                  <SelectItem value="MA">MA</SelectItem>
+                  <SelectItem value="MI">MI</SelectItem>
+                  <SelectItem value="MN">MN</SelectItem>
+                  <SelectItem value="MS">MS</SelectItem>
+                  <SelectItem value="MO">MO</SelectItem>
+                  <SelectItem value="MT">MT</SelectItem>
+                  <SelectItem value="NE">NE</SelectItem>
+                  <SelectItem value="NV">NV</SelectItem>
+                  <SelectItem value="NH">NH</SelectItem>
+                  <SelectItem value="NJ">NJ</SelectItem>
+                  <SelectItem value="NM">NM</SelectItem>
+                  <SelectItem value="NY">NY</SelectItem>
+                  <SelectItem value="NC">NC</SelectItem>
+                  <SelectItem value="ND">ND</SelectItem>
+                  <SelectItem value="OH">OH</SelectItem>
+                  <SelectItem value="OK">OK</SelectItem>
+                  <SelectItem value="OR">OR</SelectItem>
+                  <SelectItem value="PA">PA</SelectItem>
+                  <SelectItem value="RI">RI</SelectItem>
+                  <SelectItem value="SC">SC</SelectItem>
+                  <SelectItem value="SD">SD</SelectItem>
+                  <SelectItem value="TN">TN</SelectItem>
+                  <SelectItem value="TX">TX</SelectItem>
+                  <SelectItem value="UT">UT</SelectItem>
+                  <SelectItem value="VT">VT</SelectItem>
+                  <SelectItem value="VA">VA</SelectItem>
+                  <SelectItem value="WA">WA</SelectItem>
+                  <SelectItem value="WV">WV</SelectItem>
+                  <SelectItem value="WI">WI</SelectItem>
+                  <SelectItem value="WY">WY</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="zipCode">Zip Code *</Label>
+              <Input
+                value={watch('targetLocation')?.zipCode || ''}
+                onChange={(e) => setValue('targetLocation', { ...watch('targetLocation'), zipCode: e.target.value })}
+                placeholder="Zip"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="comfortableMonthlyPayment">Comfortable Payment *</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -253,115 +308,6 @@ export const MortgageInfoForm: React.FC<MortgageInfoFormProps> = ({ onNext, onBa
           Save & Continue
         </Button>
       </div>
-
-      <Dialog open={showLocationModal} onOpenChange={setShowLocationModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Where Are You Looking To Purchase?</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City *</Label>
-              <Input
-                value={watch('targetLocation')?.city || ''}
-                onChange={(e) => setValue('targetLocation', { ...watch('targetLocation'), city: e.target.value })}
-                placeholder="Enter city"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="state">State *</Label>
-              <Select
-                value={watch('targetLocation')?.state || ''}
-                onValueChange={(value) => setValue('targetLocation', { ...watch('targetLocation'), state: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select state" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AL">Alabama</SelectItem>
-                  <SelectItem value="AK">Alaska</SelectItem>
-                  <SelectItem value="AZ">Arizona</SelectItem>
-                  <SelectItem value="AR">Arkansas</SelectItem>
-                  <SelectItem value="CA">California</SelectItem>
-                  <SelectItem value="CO">Colorado</SelectItem>
-                  <SelectItem value="CT">Connecticut</SelectItem>
-                  <SelectItem value="DE">Delaware</SelectItem>
-                  <SelectItem value="FL">Florida</SelectItem>
-                  <SelectItem value="GA">Georgia</SelectItem>
-                  <SelectItem value="HI">Hawaii</SelectItem>
-                  <SelectItem value="ID">Idaho</SelectItem>
-                  <SelectItem value="IL">Illinois</SelectItem>
-                  <SelectItem value="IN">Indiana</SelectItem>
-                  <SelectItem value="IA">Iowa</SelectItem>
-                  <SelectItem value="KS">Kansas</SelectItem>
-                  <SelectItem value="KY">Kentucky</SelectItem>
-                  <SelectItem value="LA">Louisiana</SelectItem>
-                  <SelectItem value="ME">Maine</SelectItem>
-                  <SelectItem value="MD">Maryland</SelectItem>
-                  <SelectItem value="MA">Massachusetts</SelectItem>
-                  <SelectItem value="MI">Michigan</SelectItem>
-                  <SelectItem value="MN">Minnesota</SelectItem>
-                  <SelectItem value="MS">Mississippi</SelectItem>
-                  <SelectItem value="MO">Missouri</SelectItem>
-                  <SelectItem value="MT">Montana</SelectItem>
-                  <SelectItem value="NE">Nebraska</SelectItem>
-                  <SelectItem value="NV">Nevada</SelectItem>
-                  <SelectItem value="NH">New Hampshire</SelectItem>
-                  <SelectItem value="NJ">New Jersey</SelectItem>
-                  <SelectItem value="NM">New Mexico</SelectItem>
-                  <SelectItem value="NY">New York</SelectItem>
-                  <SelectItem value="NC">North Carolina</SelectItem>
-                  <SelectItem value="ND">North Dakota</SelectItem>
-                  <SelectItem value="OH">Ohio</SelectItem>
-                  <SelectItem value="OK">Oklahoma</SelectItem>
-                  <SelectItem value="OR">Oregon</SelectItem>
-                  <SelectItem value="PA">Pennsylvania</SelectItem>
-                  <SelectItem value="RI">Rhode Island</SelectItem>
-                  <SelectItem value="SC">South Carolina</SelectItem>
-                  <SelectItem value="SD">South Dakota</SelectItem>
-                  <SelectItem value="TN">Tennessee</SelectItem>
-                  <SelectItem value="TX">Texas</SelectItem>
-                  <SelectItem value="UT">Utah</SelectItem>
-                  <SelectItem value="VT">Vermont</SelectItem>
-                  <SelectItem value="VA">Virginia</SelectItem>
-                  <SelectItem value="WA">Washington</SelectItem>
-                  <SelectItem value="WV">West Virginia</SelectItem>
-                  <SelectItem value="WI">Wisconsin</SelectItem>
-                  <SelectItem value="WY">Wyoming</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">Zip Code *</Label>
-              <Input
-                value={watch('targetLocation')?.zipCode || ''}
-                onChange={(e) => setValue('targetLocation', { ...watch('targetLocation'), zipCode: e.target.value })}
-                placeholder="Enter zip code"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="countyName">County Name *</Label>
-              <Input
-                value={watch('targetLocation')?.countyName || ''}
-                onChange={(e) => setValue('targetLocation', { ...watch('targetLocation'), countyName: e.target.value })}
-                placeholder="Enter county name"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowLocationModal(false)}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={handleUpdateLocation}>
-                Update
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </form>
   );
 };
