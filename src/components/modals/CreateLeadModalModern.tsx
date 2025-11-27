@@ -134,8 +134,29 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             }
           }
         }
+
+        // Handle teammate_assigned_name -> teammate_assigned conversion
+        if (updates.teammate_assigned_name) {
+          const userName = updates.teammate_assigned_name;
+          delete updates.teammate_assigned_name;
+          
+          const matchedUser = findBestUserMatch(userName, users);
+          if (matchedUser) {
+            updates.teammate_assigned = matchedUser.id;
+            toast({
+              title: "✅ User assigned",
+              description: `Assigned to ${matchedUser.first_name} ${matchedUser.last_name}`,
+            });
+          } else {
+            toast({
+              title: "⚠️ User not found",
+              description: `Could not find user: ${userName}`,
+              variant: "destructive",
+            });
+          }
+        }
         
-        const updatedFields = Object.keys(updates).filter(k => k !== 'buyer_agent_name');
+        const updatedFields = Object.keys(updates).filter(k => k !== 'buyer_agent_name' && k !== 'teammate_assigned_name');
         
         if (data.action === 'append_notes') {
           setFormData(prev => ({
@@ -193,6 +214,50 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
     });
     
     console.log(`Agent match attempt for "${name}":`, match ? `Found ${match.first_name} ${match.last_name}` : 'No match');
+    return match || null;
+  };
+
+  const findBestUserMatch = (userName: string, users: any[]): any | null => {
+    if (!userName || !users || users.length === 0) {
+      console.log('No user name or empty users list');
+      return null;
+    }
+
+    const nameLower = userName.toLowerCase().trim();
+    console.log('Attempting to match user:', nameLower);
+    console.log('Available users:', users.map(u => `${u.first_name} ${u.last_name}`));
+
+    // Try exact full name match first
+    let match = users.find(user => {
+      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+      return fullName === nameLower;
+    });
+    
+    if (match) {
+      console.log('Exact user match found:', match.first_name, match.last_name);
+      return match;
+    }
+
+    // Fuzzy matching - check if user name includes the search term or vice versa
+    match = users.find(user => {
+      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+      const firstName = user.first_name.toLowerCase();
+      const lastName = user.last_name.toLowerCase();
+      
+      // Check various combinations
+      return fullName.includes(nameLower) || 
+             nameLower.includes(firstName) || 
+             nameLower.includes(lastName) ||
+             firstName.includes(nameLower) ||
+             lastName.includes(nameLower);
+    });
+
+    if (match) {
+      console.log('Fuzzy user match found:', match.first_name, match.last_name);
+    } else {
+      console.log('No user match found for:', userName);
+    }
+
     return match || null;
   };
 
