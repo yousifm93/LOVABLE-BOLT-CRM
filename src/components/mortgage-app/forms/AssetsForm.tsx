@@ -17,11 +17,12 @@ interface AssetsFormProps {
 export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
   const { data, dispatch, progressPercentage } = useApplication();
   const [showDialog, setShowDialog] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [newAsset, setNewAsset] = useState<Partial<Asset>>({
     type: 'checking',
   });
 
-  const addAsset = () => {
+  const addOrUpdateAsset = () => {
     if (!newAsset.financialInstitution || !newAsset.balance) {
       toast({
         title: 'Required fields missing',
@@ -31,29 +32,46 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
       return;
     }
 
-    const asset: Asset = {
-      id: Date.now().toString(),
-      type: newAsset.type || 'checking',
-      financialInstitution: newAsset.financialInstitution,
-      accountNumber: newAsset.accountNumber || '',
-      balance: newAsset.balance,
-    };
-
-    dispatch({
-      type: 'UPDATE_SECTION',
-      payload: {
-        section: 'assets',
-        data: { ...data.assets, assets: [...data.assets.assets, asset] },
-      },
-    });
+    if (editingAssetId) {
+      // Update existing
+      const updated = data.assets.assets.map((asset) =>
+        asset.id === editingAssetId ? { ...asset, ...newAsset } : asset
+      );
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: { section: 'assets', data: { ...data.assets, assets: updated } },
+      });
+      toast({ title: 'Asset updated' });
+    } else {
+      // Add new
+      const asset: Asset = {
+        id: Date.now().toString(),
+        type: newAsset.type || 'checking',
+        financialInstitution: newAsset.financialInstitution,
+        accountNumber: newAsset.accountNumber || '',
+        balance: newAsset.balance,
+      };
+      dispatch({
+        type: 'UPDATE_SECTION',
+        payload: { section: 'assets', data: { ...data.assets, assets: [...data.assets.assets, asset] } },
+      });
+      toast({ title: 'Asset added' });
+    }
 
     setNewAsset({ type: 'checking' });
+    setEditingAssetId(null);
     setShowDialog(false);
+  };
 
-    toast({
-      title: 'Asset added',
-      description: 'Your asset has been added',
-    });
+  const openAssetDialog = (asset?: Asset) => {
+    if (asset) {
+      setEditingAssetId(asset.id);
+      setNewAsset(asset);
+    } else {
+      setEditingAssetId(null);
+      setNewAsset({ type: 'checking' });
+    }
+    setShowDialog(true);
   };
 
   const removeAsset = (id: string) => {
@@ -115,7 +133,7 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
           ) : (
             <div className="space-y-3">
               {data.assets.assets.map((asset) => (
-                <Card key={asset.id}>
+                <Card key={asset.id} className="cursor-pointer hover:bg-accent/50" onClick={() => openAssetDialog(asset)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -126,7 +144,10 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => removeAsset(asset.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeAsset(asset.id);
+                        }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -141,7 +162,7 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => setShowDialog(true)}
+            onClick={() => openAssetDialog()}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Asset
@@ -162,7 +183,7 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Asset</DialogTitle>
+            <DialogTitle>{editingAssetId ? 'Edit Asset' : 'Add Asset'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -205,20 +226,24 @@ export const AssetsForm: React.FC<AssetsFormProps> = ({ onNext, onBack }) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Current Balance *</Label>
-              <Input
-                value={newAsset.balance}
-                onChange={(e) => setNewAsset({ ...newAsset, balance: e.target.value })}
-                placeholder="0.00"
-              />
+              <Label>Cash or Market Value *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  className="pl-7"
+                  value={newAsset.balance}
+                  onChange={(e) => setNewAsset({ ...newAsset, balance: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={addAsset}>
-                Add Asset
+              <Button type="button" onClick={addOrUpdateAsset}>
+                {editingAssetId ? 'Update' : 'Add'} Asset
               </Button>
             </div>
           </div>

@@ -21,6 +21,7 @@ export interface EmploymentIncome {
   employerName: string;
   position: string;
   startDate: string;
+  monthlyIncome: string;
   workPhone: string;
   workPhoneExt: string;
   officeAddress: string;
@@ -44,7 +45,6 @@ export interface OtherIncome {
   id: string;
   type: string;
   amount: string;
-  frequency: string;
 }
 
 export interface Asset {
@@ -63,6 +63,7 @@ export interface Property {
   propertyStatus: string;
   propertyType: string;
   monthlyExpenses: string;
+  monthlyRent?: string;
 }
 
 export interface Declaration {
@@ -162,6 +163,8 @@ export interface ApplicationData {
     isUSMilitary: boolean;
     residencyType: string;
     maritalStatus: string;
+    dateOfBirth: string;
+    estimatedCreditScore: string;
     hasDependents: boolean;
     dependentsCount: string;
   };
@@ -261,6 +264,8 @@ const initialData: ApplicationData = {
     isUSMilitary: false,
     residencyType: '',
     maritalStatus: '',
+    dateOfBirth: '',
+    estimatedCreditScore: '',
     hasDependents: false,
     dependentsCount: '',
   },
