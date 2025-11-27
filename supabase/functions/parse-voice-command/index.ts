@@ -31,6 +31,7 @@ The user is creating a new lead and may want to update these fields:
 - phone: Phone number
 - email: Email address
 - buyer_agent_name: Real estate agent's name (will be matched against agent list)
+- teammate_assigned_name: User/team member to assign this lead to (will be matched against user list)
 - referred_via: MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other"
 - source: MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other"
 - notes: Additional notes about the lead
@@ -60,8 +61,12 @@ Examples:
 - "Change last name to Smith" → {"updates": {"last_name": "Smith"}, "action": "update"}
 - "The realtor is Kevin Rutto" → {"updates": {"buyer_agent_name": "Kevin Rutto"}, "action": "update"}
 - "Real estate agent is John Doe" → {"updates": {"buyer_agent_name": "John Doe"}, "action": "update"}
+- "Assign this to Salma Mohamed" → {"updates": {"teammate_assigned_name": "Salma Mohamed"}, "action": "update"}
+- "Assign user Yousif" → {"updates": {"teammate_assigned_name": "Yousif"}, "action": "update"}
 - "Add a note that they want a condo in Miami" → {"updates": {"notes": "Looking for a condo in Miami"}, "action": "append_notes"}
 - "Referral method is text message" → {"updates": {"referred_via": "Text Message"}, "action": "update"}
+- "Referral method is phone" → {"updates": {"referred_via": "Phone Call"}, "action": "update"}
+- "Referral via phone call" → {"updates": {"referred_via": "Phone Call"}, "action": "update"}
 - "This came from an agent" → {"updates": {"source": "Agent"}, "action": "update"}
 
 Only return valid JSON. Do not include any explanation or markdown.`;
@@ -95,12 +100,15 @@ Only return valid JSON. Do not include any explanation or markdown.`;
       throw new Error('No response from AI');
     }
 
+    console.log('AI raw response:', content);
+
     // Parse the AI response
     let parsedResponse;
     try {
       // Remove markdown code blocks if present
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       parsedResponse = JSON.parse(cleanContent);
+      console.log('Parsed voice command:', JSON.stringify(parsedResponse, null, 2));
     } catch (e) {
       console.error('Failed to parse AI response:', content);
       throw new Error('Invalid AI response format');
