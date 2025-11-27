@@ -201,6 +201,24 @@ export interface CRMClient {
   monthlyPmtGoal?: number;
   cashToCloseGoal?: number;
   followUpCount?: number;
+  
+  // Co-Borrower Information
+  coBorrowerFirstName?: string;
+  coBorrowerLastName?: string;
+  coBorrowerEmail?: string;
+  coBorrowerPhone?: string;
+  coBorrowerRelationship?: string;
+  
+  // Declarations
+  declPrimaryResidence?: boolean;
+  declOwnershipInterest?: boolean;
+  declSellerAffiliation?: boolean;
+  declBorrowingUndisclosed?: boolean;
+  
+  // Demographics
+  demographicEthnicity?: string;
+  demographicRace?: string;
+  demographicGender?: string;
 }
 
 export type PipelineStage = 'leads' | 'pending-app' | 'screening' | 'pre-qualified' | 'pre-approved' | 'active' | 'past-clients' | 'incoming' | 'rfp' | 'submitted' | 'awc' | 'ctc' | 'closing';
@@ -344,6 +362,26 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'ssn': 'ssn',
   'total_monthly_income': 'totalMonthlyIncome',
   'dob': 'dateOfBirth',
+  'time_at_current_address_years': 'timeAtCurrentAddressYears',
+  'time_at_current_address_months': 'timeAtCurrentAddressMonths',
+  
+  // CO-BORROWER INFO
+  'co_borrower_first_name': 'coBorrowerFirstName',
+  'co_borrower_last_name': 'coBorrowerLastName',
+  'co_borrower_email': 'coBorrowerEmail',
+  'co_borrower_phone': 'coBorrowerPhone',
+  'co_borrower_relationship': 'coBorrowerRelationship',
+  
+  // DECLARATIONS
+  'decl_primary_residence': 'declPrimaryResidence',
+  'decl_ownership_interest': 'declOwnershipInterest',
+  'decl_seller_affiliation': 'declSellerAffiliation',
+  'decl_borrowing_undisclosed': 'declBorrowingUndisclosed',
+  
+  // DEMOGRAPHICS
+  'demographic_ethnicity': 'demographicEthnicity',
+  'demographic_race': 'demographicRace',
+  'demographic_gender': 'demographicGender',
   
   // LEAD INFO
   'referral_source': 'referralSource',
