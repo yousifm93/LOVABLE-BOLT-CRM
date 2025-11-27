@@ -63,16 +63,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     cash_to_close: (client as any).cash_to_close || null,
     closing_costs: (client as any).closing_costs || null,
     loan_type: client.loan?.loanType || "",
+    occupancy: (client as any).occupancy || "",
     
     // Borrower Info
     first_name: client.person?.firstName || "",
     last_name: client.person?.lastName || "",
-      ssn: (client as any).ssn || "",
-      dob: (client as any).dob || null,
-      occupancy: (client as any).occupancy || "",
-      residency_type: (client as any).residency_type || "",
-      marital_status: (client as any).marital_status || "",
-      monthly_payment_goal: (client as any).monthly_payment_goal || null,
+    ssn: (client as any).ssn || "",
+    dob: (client as any).dob || null,
+    residency_type: (client as any).residency_type || "",
+    marital_status: (client as any).marital_status || "",
+    monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
       borrower_current_address: (client as any).borrower_current_address || "",
       military_veteran: (client as any).military_veteran || false,
@@ -406,7 +406,27 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           </SelectContent>
         </Select>
       ) : undefined
-    }
+    },
+    { 
+      icon: Home, 
+      label: "Occupancy", 
+      value: (client as any).occupancy || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.occupancy}
+          onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select occupancy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Primary Residence">Primary Residence</SelectItem>
+            <SelectItem value="Second Home">Second Home</SelectItem>
+            <SelectItem value="Investment Property">Investment Property</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
   ];
 
   // Borrower Info data
@@ -698,6 +718,74 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   ];
 
+  // Co-Borrower Information data
+  const coBorrowerData = [
+    {
+      icon: Users,
+      label: "First Name",
+      value: (client as any).co_borrower_first_name || "—"
+    },
+    {
+      icon: Users,
+      label: "Last Name",
+      value: (client as any).co_borrower_last_name || "—"
+    },
+    {
+      icon: Users,
+      label: "Email",
+      value: (client as any).co_borrower_email || "—"
+    },
+    {
+      icon: Users,
+      label: "Phone",
+      value: (client as any).co_borrower_phone || "—"
+    },
+    {
+      icon: Users,
+      label: "Relationship",
+      value: (client as any).co_borrower_relationship || "—"
+    },
+  ];
+
+  // Declarations & Demographics data
+  const declarationsDemographicsData = [
+    {
+      icon: Shield,
+      label: "Will Occupy as Primary Residence",
+      value: formatYesNo((client as any).decl_primary_residence)
+    },
+    {
+      icon: Shield,
+      label: "Have Ownership Interest in Other Property",
+      value: formatYesNo((client as any).decl_ownership_interest)
+    },
+    {
+      icon: Shield,
+      label: "Related to Seller/Real Estate Agent",
+      value: formatYesNo((client as any).decl_seller_affiliation)
+    },
+    {
+      icon: Shield,
+      label: "Borrowing Money for Down Payment",
+      value: formatYesNo((client as any).decl_borrowing_undisclosed)
+    },
+    {
+      icon: User,
+      label: "Ethnicity",
+      value: (client as any).demographic_ethnicity || "—"
+    },
+    {
+      icon: User,
+      label: "Race",
+      value: (client as any).demographic_race || "—"
+    },
+    {
+      icon: User,
+      label: "Gender",
+      value: (client as any).demographic_gender || "—"
+    },
+  ];
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-6 p-1">
@@ -749,6 +837,15 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <FourColumnDetailLayout items={consolidatedFinancialData} />
         </div>
 
+        {/* Co-Borrower Information Section */}
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Users className="h-5 w-5 text-primary" />
+            Co-Borrower Information
+          </h3>
+          <FourColumnDetailLayout items={coBorrowerData} />
+        </div>
+
         {/* Monthly Payment Breakdown Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -759,6 +856,28 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           </div>
           <FourColumnDetailLayout items={monthlyPaymentData} />
         </div>
+
+        {/* Co-Borrower Information Section */}
+        {((client as any).co_borrower_first_name || (client as any).co_borrower_last_name) && (
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <Users className="h-5 w-5 text-primary" />
+              Co-Borrower Information
+            </h3>
+            <FourColumnDetailLayout items={coBorrowerData} />
+          </div>
+        )}
+
+        {/* Declarations & Demographics Section */}
+        {((client as any).decl_primary_residence !== undefined || (client as any).demographic_ethnicity) && (
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <Shield className="h-5 w-5 text-primary" />
+              Declarations & Demographics
+            </h3>
+            <FourColumnDetailLayout items={declarationsDemographicsData} />
+          </div>
+        )}
 
         {/* DTI Calculation */}
         <div className="space-y-4">

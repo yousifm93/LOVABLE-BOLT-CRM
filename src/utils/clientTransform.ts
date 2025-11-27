@@ -203,6 +203,24 @@ export function transformLeadToClient(lead: any): any {
     time_at_current_address_months: lead.time_at_current_address_months || null,
     military_veteran: lead.military_veteran || false,
     
+    // Co-Borrower Information
+    co_borrower_first_name: lead.co_borrower_first_name || null,
+    co_borrower_last_name: lead.co_borrower_last_name || null,
+    co_borrower_email: lead.co_borrower_email || null,
+    co_borrower_phone: lead.co_borrower_phone || null,
+    co_borrower_relationship: lead.co_borrower_relationship || null,
+    
+    // Declarations
+    decl_primary_residence: lead.decl_primary_residence ?? null,
+    decl_ownership_interest: lead.decl_ownership_interest ?? null,
+    decl_seller_affiliation: lead.decl_seller_affiliation ?? null,
+    decl_borrowing_undisclosed: lead.decl_borrowing_undisclosed ?? null,
+    
+    // Demographics
+    demographic_ethnicity: lead.demographic_ethnicity || null,
+    demographic_race: lead.demographic_race || null,
+    demographic_gender: lead.demographic_gender || null,
+    
     // Latest File Updates with metadata
     latest_file_updates: lead.latest_file_updates || null,
     latest_file_updates_updated_at: lead.latest_file_updates_updated_at || null,

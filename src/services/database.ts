@@ -174,6 +174,148 @@ export const databaseService = {
     return data;
   },
 
+  async createLeadFromApplication(applicationData: any) {
+    // Helper to map credit score
+    const mapCreditScore = (range: string): number => {
+      const map: Record<string, number> = {
+        '740-plus': 760,
+        '700-739': 720,
+        '660-699': 680,
+        '620-660': 640,
+        'below-620': 580,
+      };
+      return map[range] || 680;
+    };
+
+    // Helper to format race
+    const formatRace = (race: any): string => {
+      const races: string[] = [];
+      if (race.americanIndianAlaskaNative) races.push('American Indian/Alaska Native');
+      if (race.asian) races.push('Asian');
+      if (race.blackAfricanAmerican) races.push('Black/African American');
+      if (race.nativeHawaiianPacificIslander) races.push('Native Hawaiian/Pacific Islander');
+      if (race.white) races.push('White');
+      if (race.doNotWishToProvide) races.push('Prefer not to say');
+      return races.join(', ') || null;
+    };
+
+    // Calculate totals
+    const loanAmount = parseFloat((applicationData.mortgageInfo.purchasePrice || '0').replace(/,/g, '')) - 
+                       parseFloat((applicationData.mortgageInfo.downPaymentAmount || '0').replace(/,/g, ''));
+    
+    const totalMonthlyIncome = applicationData.income.employmentIncomes.reduce((sum: number, emp: any) => {
+      return sum + parseFloat((emp.monthlyIncome || '0').replace(/,/g, ''));
+    }, 0) + applicationData.income.otherIncomes.reduce((sum: number, inc: any) => {
+      return sum + parseFloat((inc.amount || '0').replace(/,/g, ''));
+    }, 0) + (applicationData.realEstate.properties || []).reduce((sum: number, prop: any) => {
+      return sum + (prop.propertyUsage === 'rental' ? parseFloat((prop.monthlyRent || '0').replace(/,/g, '')) : 0);
+    }, 0);
+
+    const totalAssets = applicationData.assets.assets.reduce((sum: number, asset: any) => {
+      return sum + parseFloat((asset.balance || '0').replace(/,/g, ''));
+    }, 0);
+
+    const monthlyLiabilities = (applicationData.realEstate.properties || []).reduce((sum: number, prop: any) => {
+      return sum + parseFloat((prop.monthlyExpenses || '0').replace(/,/g, ''));
+    }, 0);
+
+    // Get Screening stage ID
+    const { data: screeningStage } = await supabase
+      .from('pipeline_stages')
+      .select('id')
+      .eq('name', 'Screening')
+      .single();
+
+    // Find existing lead by email, phone, or name
+    const { data: existingLeads } = await supabase
+      .from('leads')
+      .select('*, pipeline_stage:pipeline_stages(name)')
+      .or(`email.eq.${applicationData.personalInfo.email},phone.eq.${applicationData.personalInfo.cellPhone}`)
+      .in('pipeline_stage.name', ['Leads', 'Pending App']);
+
+    const leadData = {
+      first_name: applicationData.personalInfo.firstName,
+      last_name: applicationData.personalInfo.lastName,
+      middle_name: applicationData.personalInfo.middleName || null,
+      email: applicationData.personalInfo.email,
+      phone: applicationData.personalInfo.cellPhone,
+      loan_type: applicationData.loanPurpose === 'purchase' ? 'Purchase' : applicationData.loanPurpose === 'refinance' ? 'Refinance' : 'HELOC',
+      property_type: applicationData.mortgageInfo.propertyType,
+      occupancy: applicationData.mortgageInfo.occupancy,
+      sales_price: parseFloat((applicationData.mortgageInfo.purchasePrice || '0').replace(/,/g, '')),
+      loan_amount: loanAmount,
+      monthly_pmt_goal: parseFloat((applicationData.mortgageInfo.comfortableMonthlyPayment || '0').replace(/,/g, '')) || null,
+      subject_address_1: 'TBD',
+      subject_city: applicationData.mortgageInfo.targetLocation.city,
+      subject_state: applicationData.mortgageInfo.targetLocation.state,
+      subject_zip: applicationData.mortgageInfo.targetLocation.zipCode,
+      marital_status: applicationData.personalInfo.maritalStatus,
+      residency_type: applicationData.personalInfo.residencyType,
+      borrower_current_address: `${applicationData.personalInfo.currentAddress.street}${applicationData.personalInfo.currentAddress.unit ? ' ' + applicationData.personalInfo.currentAddress.unit : ''}, ${applicationData.personalInfo.currentAddress.city}, ${applicationData.personalInfo.currentAddress.state} ${applicationData.personalInfo.currentAddress.zipCode}`,
+      dob: applicationData.personalInfo.dateOfBirth,
+      fico_score: mapCreditScore(applicationData.personalInfo.estimatedCreditScore),
+      military_veteran: applicationData.personalInfo.isUSMilitary,
+      time_at_current_address_years: parseInt(applicationData.personalInfo.yearsAtCurrentAddress || '0'),
+      time_at_current_address_months: parseInt(applicationData.personalInfo.monthsAtCurrentAddress || '0'),
+      total_monthly_income: totalMonthlyIncome,
+      assets: totalAssets,
+      monthly_liabilities: monthlyLiabilities,
+      co_borrower_first_name: applicationData.coBorrowers.coBorrowers[0]?.firstName || null,
+      co_borrower_last_name: applicationData.coBorrowers.coBorrowers[0]?.lastName || null,
+      co_borrower_email: applicationData.coBorrowers.coBorrowers[0]?.email || null,
+      co_borrower_phone: applicationData.coBorrowers.coBorrowers[0]?.phone || null,
+      co_borrower_relationship: applicationData.coBorrowers.coBorrowers[0]?.relationship || null,
+      decl_primary_residence: applicationData.declarations.find((d: any) => d.id === '1')?.answer ?? null,
+      decl_ownership_interest: applicationData.declarations.find((d: any) => d.id === '2')?.answer ?? null,
+      decl_seller_affiliation: applicationData.declarations.find((d: any) => d.id === '3')?.answer ?? null,
+      decl_borrowing_undisclosed: applicationData.declarations.find((d: any) => d.id === '4')?.answer ?? null,
+      demographic_ethnicity: applicationData.demographics.ethnicity === 'hispanic' ? 'Hispanic/Latino' : 
+                             applicationData.demographics.ethnicity === 'notHispanic' ? 'Not Hispanic/Latino' : 
+                             applicationData.demographics.ethnicity === 'doNotWish' ? 'Prefer not to say' : null,
+      demographic_race: formatRace(applicationData.demographics.race),
+      demographic_gender: applicationData.demographics.gender === 'male' ? 'Male' : 
+                          applicationData.demographics.gender === 'female' ? 'Female' : 
+                          applicationData.demographics.gender === 'doNotWish' ? 'Prefer not to say' : null,
+      pipeline_stage_id: screeningStage?.id,
+    };
+
+    const today = new Date().toISOString().split('T')[0];
+
+    if (existingLeads && existingLeads.length > 0) {
+      // Update existing lead and move to Screening
+      const { data, error } = await supabase
+        .from('leads')
+        .update({
+          ...leadData,
+          app_complete_at: today,
+        })
+        .eq('id', existingLeads[0].id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } else {
+      // Get current user for created_by
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Create new lead in Screening (triggers will set account_id if not provided)
+      const { data, error } = await supabase
+        .from('leads')
+        .insert([{
+          ...leadData,
+          app_complete_at: today,
+          created_by: user?.id || '',
+          account_id: '' // Will be set by trigger
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  },
+
   // Task Automations
   async getTaskAutomations() {
     const { data, error } = await supabase

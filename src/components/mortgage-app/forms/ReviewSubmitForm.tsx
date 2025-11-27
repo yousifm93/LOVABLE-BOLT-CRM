@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, CheckCircle, Send, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { databaseService } from '@/services/database';
 
 interface ReviewSubmitFormProps {
   onBack: () => void;
@@ -122,6 +123,9 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
     setIsSubmitting(true);
 
     try {
+      // Create/update lead in CRM from application data
+      const lead = await databaseService.createLeadFromApplication(data);
+      
       // Send confirmation email
       const { error: emailError } = await supabase.functions.invoke('send-application-confirmation', {
         body: {

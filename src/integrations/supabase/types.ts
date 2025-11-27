@@ -1851,6 +1851,11 @@ export type Database = {
           close_date: string | null
           closed_at: string | null
           closing_costs: number | null
+          co_borrower_email: string | null
+          co_borrower_first_name: string | null
+          co_borrower_last_name: string | null
+          co_borrower_phone: string | null
+          co_borrower_relationship: string | null
           condo_approval_type: string | null
           condo_docs_file: string | null
           condo_eta: string | null
@@ -1864,6 +1869,13 @@ export type Database = {
           created_at: string
           created_by: string
           ctc_at: string | null
+          decl_borrowing_undisclosed: boolean | null
+          decl_ownership_interest: boolean | null
+          decl_primary_residence: boolean | null
+          decl_seller_affiliation: boolean | null
+          demographic_ethnicity: string | null
+          demographic_gender: string | null
+          demographic_race: string | null
           disc_file: string | null
           disclosure_status:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -1955,6 +1967,8 @@ export type Database = {
           task_eta: string | null
           teammate_assigned: string | null
           term: number | null
+          time_at_current_address_months: number | null
+          time_at_current_address_years: number | null
           title_eta: string | null
           title_file: string | null
           title_notes: string | null
@@ -1989,6 +2003,11 @@ export type Database = {
           close_date?: string | null
           closed_at?: string | null
           closing_costs?: number | null
+          co_borrower_email?: string | null
+          co_borrower_first_name?: string | null
+          co_borrower_last_name?: string | null
+          co_borrower_phone?: string | null
+          co_borrower_relationship?: string | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null
@@ -2002,6 +2021,13 @@ export type Database = {
           created_at?: string
           created_by: string
           ctc_at?: string | null
+          decl_borrowing_undisclosed?: boolean | null
+          decl_ownership_interest?: boolean | null
+          decl_primary_residence?: boolean | null
+          decl_seller_affiliation?: boolean | null
+          demographic_ethnicity?: string | null
+          demographic_gender?: string | null
+          demographic_race?: string | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -2095,6 +2121,8 @@ export type Database = {
           task_eta?: string | null
           teammate_assigned?: string | null
           term?: number | null
+          time_at_current_address_months?: number | null
+          time_at_current_address_years?: number | null
           title_eta?: string | null
           title_file?: string | null
           title_notes?: string | null
@@ -2129,6 +2157,11 @@ export type Database = {
           close_date?: string | null
           closed_at?: string | null
           closing_costs?: number | null
+          co_borrower_email?: string | null
+          co_borrower_first_name?: string | null
+          co_borrower_last_name?: string | null
+          co_borrower_phone?: string | null
+          co_borrower_relationship?: string | null
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null
@@ -2142,6 +2175,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           ctc_at?: string | null
+          decl_borrowing_undisclosed?: boolean | null
+          decl_ownership_interest?: boolean | null
+          decl_primary_residence?: boolean | null
+          decl_seller_affiliation?: boolean | null
+          demographic_ethnicity?: string | null
+          demographic_gender?: string | null
+          demographic_race?: string | null
           disc_file?: string | null
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
@@ -2235,6 +2275,8 @@ export type Database = {
           task_eta?: string | null
           teammate_assigned?: string | null
           term?: number | null
+          time_at_current_address_months?: number | null
+          time_at_current_address_years?: number | null
           title_eta?: string | null
           title_file?: string | null
           title_notes?: string | null
