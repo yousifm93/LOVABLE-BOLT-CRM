@@ -188,6 +188,9 @@ Deno.serve(async (req) => {
       demographic_race: demographics?.race || null,
       demographic_gender: demographics?.gender || null,
       
+      // Add the default account_id for public submissions
+      account_id: '47e707c5-62d0-4ee9-99a3-76572c73a8e1', // Default MortgageBolt account
+      
       // Set pipeline stage to Screening and mark app complete
       pipeline_stage_id: 'a4e162e0-5421-4d17-8ad5-4b1195bbc995', // Screening stage
       app_complete_at: new Date().toISOString(),
