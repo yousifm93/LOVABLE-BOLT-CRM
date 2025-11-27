@@ -48,3 +48,6 @@ verify_jwt = false
 [functions.send-preapproval-email]
 verify_jwt = false
 
+[functions.send-application-confirmation]
+verify_jwt = false
+
