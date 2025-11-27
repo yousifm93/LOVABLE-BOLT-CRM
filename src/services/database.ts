@@ -305,8 +305,8 @@ export const databaseService = {
         .insert([{
           ...leadData,
           app_complete_at: today,
-          created_by: user?.id || '',
-          account_id: '' // Will be set by trigger
+          created_by: user?.id || null,
+          account_id: null // Will be set by trigger if needed
         }])
         .select()
         .single();
