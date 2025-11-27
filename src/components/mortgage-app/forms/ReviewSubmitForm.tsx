@@ -60,6 +60,23 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
     return value ? 'Yes' : 'No';
   };
 
+  const formatCreditScore = (value: string | undefined): string => {
+    const map: Record<string, string> = {
+      'below-620': 'Below 620',
+      '620-660': '620-660',
+      '660-699': '660-699',
+      '700-739': '700-739',
+      '740-plus': '740+',
+      // Legacy values for backwards compatibility
+      'poor': 'Below 620',
+      'fair': '620-679',
+      'good': '680-739',
+      'very-good': '740-799',
+      'excellent': '800+'
+    };
+    return map[value || ''] || value || '—';
+  };
+
   const getDeclarationAnswer = (questionId: string): boolean | null => {
     const declaration = data.declarations.find(d => d.id === questionId);
     return declaration?.answer ?? null;
@@ -244,7 +261,7 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Estimated Credit Score</p>
-              <p className="font-medium">{data.personalInfo.estimatedCreditScore || '—'}</p>
+              <p className="font-medium">{formatCreditScore(data.personalInfo.estimatedCreditScore)}</p>
             </div>
             <div className="col-span-2">
               <p className="text-sm text-muted-foreground">Current Address</p>
