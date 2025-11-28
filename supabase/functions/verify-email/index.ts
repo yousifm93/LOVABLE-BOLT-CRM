@@ -16,6 +16,9 @@ const handler = async (req: Request): Promise<Response> => {
     const token = url.searchParams.get("token");
 
     if (!token) {
+      const htmlHeaders = new Headers(corsHeaders);
+      htmlHeaders.set("Content-Type", "text/html; charset=utf-8");
+      
       return new Response(
         `
         <!DOCTYPE html>
@@ -39,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
         </body>
         </html>
         `,
-        { status: 400, headers: { "Content-Type": "text/html", ...corsHeaders } }
+        { status: 400, headers: htmlHeaders }
       );
     }
 
@@ -59,6 +62,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (findError || !user) {
       console.error("Token not found:", findError);
+      const htmlHeaders = new Headers(corsHeaders);
+      htmlHeaders.set("Content-Type", "text/html; charset=utf-8");
+      
       return new Response(
         `
         <!DOCTYPE html>
@@ -82,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
         </body>
         </html>
         `,
-        { status: 400, headers: { "Content-Type": "text/html", ...corsHeaders } }
+        { status: 400, headers: htmlHeaders }
       );
     }
 
@@ -103,6 +109,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Email verified for user:", user.email);
 
     // Redirect to success page
+    const htmlHeaders = new Headers(corsHeaders);
+    htmlHeaders.set("Content-Type", "text/html; charset=utf-8");
+    
     return new Response(
       `
       <!DOCTYPE html>
@@ -130,10 +139,13 @@ const handler = async (req: Request): Promise<Response> => {
       </body>
       </html>
       `,
-      { status: 200, headers: { "Content-Type": "text/html", ...corsHeaders } }
+      { status: 200, headers: htmlHeaders }
     );
   } catch (error: any) {
     console.error("Error in verify-email:", error);
+    const htmlHeaders = new Headers(corsHeaders);
+    htmlHeaders.set("Content-Type", "text/html; charset=utf-8");
+    
     return new Response(
       `
       <!DOCTYPE html>
@@ -157,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
       </body>
       </html>
       `,
-      { status: 500, headers: { "Content-Type": "text/html", ...corsHeaders } }
+      { status: 500, headers: htmlHeaders }
     );
   }
 };
