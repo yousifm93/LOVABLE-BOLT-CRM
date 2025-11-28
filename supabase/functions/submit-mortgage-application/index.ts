@@ -191,6 +191,9 @@ Deno.serve(async (req) => {
       // Add the default account_id for public submissions
       account_id: '47e707c5-62d0-4ee9-99a3-76572c73a8e1', // Default MortgageBolt account
       
+      // Set created_by to Yousif Mohamed (system default for public submissions)
+      created_by: '08e73d69-4707-4773-84a4-69ce2acd6a11',
+      
       // Set pipeline stage to Screening and mark app complete
       pipeline_stage_id: 'a4e162e0-5421-4d17-8ad5-4b1195bbc995', // Screening stage
       app_complete_at: new Date().toISOString(),
