@@ -201,7 +201,7 @@ const allAvailableColumns = useMemo(() => {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'pre-qualified-columns');
+  } = useColumnVisibility(allAvailableColumns, 'pre-qualified-columns', 'pre_qualified');
 
   const handleViewSaved = (viewName: string) => {
     toast({

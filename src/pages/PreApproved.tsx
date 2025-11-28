@@ -192,7 +192,7 @@ const allAvailableColumns = useMemo(() => {
   const [users, setUsers] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
 
-  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns, setColumns, setActiveView } = useColumnVisibility(allAvailableColumns, 'pre-approved-columns');
+  const { columns: columnVisibility, views, visibleColumns, activeView, toggleColumn, toggleAll, saveView, loadView, deleteView, reorderColumns, setColumns, setActiveView } = useColumnVisibility(allAvailableColumns, 'pre-approved-columns', 'pre_approved');
 
   const handleViewSaved = (viewName: string) => {
     toast({

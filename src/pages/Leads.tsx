@@ -302,7 +302,7 @@ export default function Leads() {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'leads-columns');
+  } = useColumnVisibility(allAvailableColumns, 'leads-columns', 'leads');
   const handleViewSaved = (viewName: string) => {
     toast({
       title: "View Saved",

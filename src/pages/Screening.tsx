@@ -192,7 +192,7 @@ const allAvailableColumns = useMemo(() => {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'screening-columns');
+  } = useColumnVisibility(allAvailableColumns, 'screening-columns', 'screening');
 
   const handleViewSaved = (viewName: string) => {
     toast({
