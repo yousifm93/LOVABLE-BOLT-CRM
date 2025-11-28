@@ -16,6 +16,47 @@ import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy 
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
+// Map accessorKey IDs used in pages to display names
+const ACCESSOR_KEY_DISPLAY_NAMES: Record<string, string> = {
+  // Common computed fields
+  name: "Borrower Name",
+  createdOn: "Lead Created",
+  pendingAppOn: "Pending App On",
+  appCompleteOn: "App Complete On",
+  preQualifiedOn: "Pre-Qualified On",
+  preApprovedOn: "Pre-Approved On",
+  closedOn: "Closed On",
+  
+  // Relationship fields
+  realEstateAgent: "Real Estate Agent",
+  user: "User/Team Member",
+  team: "Team Member",
+  lender: "Lender",
+  buyer_agent: "Buyer's Agent",
+  listing_agent: "Listing Agent",
+  
+  // Status/tracking fields
+  status: "Status",
+  dueDate: "Due Date",
+  notes: "About the Borrower",
+  latestFileUpdates: "Latest File Updates",
+  
+  // Financial fields
+  loanNumber: "Loan #",
+  loanAmount: "Loan Amount",
+  salesPrice: "Sales Price",
+  ltv: "LTV",
+  dti: "DTI",
+  creditScore: "Credit Score",
+  
+  // Status columns
+  baStatus: "BA Status",
+  
+  // Computed/alias fields
+  borrower_name: "Borrower Name",
+  real_estate_agent: "Real Estate Agent",
+};
+
 interface PipelineViewEditorProps {
   viewId?: string;
   viewName?: string;
@@ -183,17 +224,30 @@ export function PipelineViewEditor({
     if (columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
+          // Try to find in crm_fields first
           const field = allFields.find(f => f.field_name === fieldName);
-          if (!field) {
-            console.warn(`Field not found in crm_fields: ${fieldName}`);
-            return null;
+          if (field) {
+            return {
+              field_name: field.field_name,
+              display_name: field.display_name,
+              width: columnWidths[fieldName] || 150,
+              visible: true,
+            };
           }
-          return {
-            field_name: field.field_name,
-            display_name: field.display_name,
-            width: columnWidths[fieldName] || 150,
-            visible: true,
-          };
+          
+          // If not found, check if it's a custom accessorKey
+          const displayName = ACCESSOR_KEY_DISPLAY_NAMES[fieldName];
+          if (displayName) {
+            return {
+              field_name: fieldName,
+              display_name: displayName,
+              width: columnWidths[fieldName] || 150,
+              visible: true,
+            };
+          }
+          
+          console.warn(`Field not found: ${fieldName}`);
+          return null;
         })
         .filter(Boolean) as ColumnConfig[];
       setColumns(initialColumns);
