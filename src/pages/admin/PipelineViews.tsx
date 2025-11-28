@@ -88,21 +88,24 @@ export default function PipelineViews() {
     column_widths: Record<string, number>;
     is_default: boolean;
   }) => {
+    console.log('💾 Saving view:', { viewId: editingView?.id, viewData });
     setSaving(true);
     try {
       if (editingView?.id) {
         // Update existing view
-        await databaseService.updatePipelineView(editingView.id, viewData);
+        const result = await databaseService.updatePipelineView(editingView.id, viewData);
+        console.log('✅ Update result:', result);
         toast.success("View updated successfully");
       } else {
         // Create new view
-        await databaseService.createPipelineView(viewData);
+        const result = await databaseService.createPipelineView(viewData);
+        console.log('✅ Create result:', result);
         toast.success("View created successfully");
       }
       
       await loadViews();
     } catch (error) {
-      console.error("Error saving view:", error);
+      console.error("❌ Error saving view:", error);
       toast.error("Failed to save view");
     } finally {
       setSaving(false);

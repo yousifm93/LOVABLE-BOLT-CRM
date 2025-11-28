@@ -214,15 +214,25 @@ export default function Leads() {
       "dueDate": "Task ETA",
       "user": "Team",
       "notes": "About the Borrower",
+      "leadStrength": "Lead Strength",
+      "lead_strength": "Lead Strength",
+      "loanType": "Loan Type",
+      "loan_type": "Loan Type",
+      "loanAmount": "Loan Amount",
+      "loan_amount": "Loan Amount",
+      "creditScore": "Credit Score",
+      "fico_score": "Credit Score",
     };
     
     return defaultColumns.map(id => {
       const width = savedColumnWidths[id] || 150;
-      const label = columnMapping[id] || id;
+      // Try to find label from columnMapping or use field from database
+      const dbField = allFields.find(f => f.field_name === id || FIELD_NAME_MAP[f.field_name] === id);
+      const label = columnMapping[id] || dbField?.display_name || id;
       const visible = defaultColumns.includes(id);
       
       return { id, label, visible, width };
-    }).filter(col => columnMapping[col.id]); // Only include mapped columns
+    }); // Include all columns, not just mapped ones
   }, [defaultColumns, savedColumnWidths]);
 
   // Load ALL database fields for Hide/Show modal - showing all 124+ fields
