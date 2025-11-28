@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApplicationProvider, useApplication } from '@/contexts/MortgageApplicationContext';
 import { BorrowerAuthProvider, useBorrowerAuth } from '@/hooks/useBorrowerAuth';
-import { BorrowerAuthModal } from '@/components/mortgage-app/BorrowerAuthModal';
 import { ApplicationSidebar } from '@/components/mortgage-app/ApplicationSidebar';
 import { MobileApplicationSidebar } from '@/components/mortgage-app/MobileApplicationSidebar';
 import { MobileHeader } from '@/components/mortgage-app/MobileHeader';
@@ -9,7 +9,7 @@ import { LoanPurposeModal } from '@/components/mortgage-app/LoanPurposeModal';
 import { LoanOfficerPanel } from '@/components/mortgage-app/LoanOfficerPanel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { LogOut, Save } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { MortgageInfoForm } from '@/components/mortgage-app/forms/MortgageInfoForm';
 import { PersonalInfoForm } from '@/components/mortgage-app/forms/PersonalInfoForm';
 import { CoBorrowersForm } from '@/components/mortgage-app/forms/CoBorrowersForm';
@@ -21,12 +21,26 @@ import { ReviewSubmitForm } from '@/components/mortgage-app/forms/ReviewSubmitFo
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const MortgageApplicationContent = () => {
+  const navigate = useNavigate();
   const { data, dispatch } = useApplication();
-  const { user, signOut } = useBorrowerAuth();
+  const { user, signOut, session, loading } = useBorrowerAuth();
   const isMobile = useIsMobile();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Redirect unauthenticated users to auth page
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/apply/auth', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  // Check if email is verified
+  useEffect(() => {
+    if (user && !user.email_confirmed_at) {
+      navigate('/apply/auth', { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     if (!data.loanPurpose) {
@@ -137,12 +151,6 @@ const MortgageApplicationContent = () => {
       <LoanPurposeModal
         open={showLoanPurposeModal}
         onClose={() => setShowLoanPurposeModal(false)}
-      />
-
-      {/* Auth Modal */}
-      <BorrowerAuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
       />
     </div>
   );

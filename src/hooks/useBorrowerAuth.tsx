@@ -10,6 +10,8 @@ interface BorrowerAuthContextType {
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<{ error: any }>;
+  updateEmail: (newEmail: string) => Promise<{ error: any }>;
 }
 
 const BorrowerAuthContext = createContext<BorrowerAuthContextType | undefined>(undefined);
@@ -132,6 +134,64 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/apply`,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Failed to resend email",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox for the verification link.",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      return { error };
+    }
+  };
+
+  const updateEmail = async (newEmail: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail,
+      });
+
+      if (error) {
+        toast({
+          title: "Failed to update email",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
+      toast({
+        title: "Email updated",
+        description: "A new verification email has been sent to your new address.",
+      });
+
+      return { error: null };
+    } catch (error) {
+      console.error('Update email error:', error);
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -139,6 +199,8 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signIn,
     signOut,
+    resendVerificationEmail,
+    updateEmail,
   };
 
   return <BorrowerAuthContext.Provider value={value}>{children}</BorrowerAuthContext.Provider>;
