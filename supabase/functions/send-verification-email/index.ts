@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send verification email
     const emailResponse = await resend.emails.send({
-      from: "Mortgage Bolt <hello@mortgagebolt.com>",
+      from: "Mortgage Bolt <onboarding@resend.dev>",
       to: [email],
       subject: "Verify Your Mortgage Bolt Account",
       html: `
