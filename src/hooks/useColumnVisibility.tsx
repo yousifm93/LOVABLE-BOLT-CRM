@@ -30,12 +30,42 @@ export function useColumnVisibility(
     const loadViews = async () => {
       setIsLoadingViews(true);
       
-      // Load local state
+      // Load database views first if pipelineType is provided
+      let sharedViews: View[] = [];
+      if (pipelineType) {
+        try {
+          const dbViews = await databaseService.getPipelineViews(pipelineType);
+          sharedViews = dbViews.map(dbView => {
+            const columnOrder = Array.isArray(dbView.column_order) 
+              ? dbView.column_order 
+              : JSON.parse(dbView.column_order as string);
+            
+            const columns: Record<string, boolean> = {};
+            columnOrder.forEach((colId: string) => {
+              columns[colId] = true;
+            });
+            
+            return {
+              id: dbView.id,
+              name: dbView.name,
+              columns,
+              order: columnOrder,
+              isShared: true
+            };
+          });
+        } catch (error) {
+          console.error('Failed to load database views:', error);
+        }
+      }
+
+      // Check if shared "Main View" exists
+      const sharedMainView = sharedViews.find(v => v.name === 'Main View');
+      
+      // Load local state only if NO shared Main View exists
       const saved = localStorage.getItem(storageKey);
-      const savedViews = localStorage.getItem(`${storageKey}_views`);
       const savedOrder = localStorage.getItem(`${storageKey}_order`);
       
-      if (saved) {
+      if (!sharedMainView && saved) {
         try {
           const savedState = JSON.parse(saved);
           let orderedColumns = [...initialColumns];
@@ -60,49 +90,42 @@ export function useColumnVisibility(
         } catch (error) {
           console.error('Failed to parse saved column visibility state:', error);
         }
+      } else if (sharedMainView) {
+        // Auto-load shared Main View
+        const orderedColumns = sharedMainView.order
+          .map(id => initialColumns.find(col => col.id === id))
+          .filter((col): col is Column => col !== undefined);
+        
+        // Add any new columns not in Main View
+        const existingIds = new Set(sharedMainView.order);
+        const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
+        const allOrderedColumns = [...orderedColumns, ...newColumns];
+        
+        setColumns(allOrderedColumns.map(col => ({
+          ...col,
+          visible: sharedMainView.columns[col.id] !== undefined ? sharedMainView.columns[col.id] : false
+        })));
+        setActiveView('Main View');
       }
 
-      // Load local views
+      // Load local views (but filter out any local "Main View" if shared one exists)
+      const savedViews = localStorage.getItem(`${storageKey}_views`);
       const localViews: View[] = [];
       if (savedViews) {
         try {
-          localViews.push(...JSON.parse(savedViews));
+          const parsedViews = JSON.parse(savedViews);
+          // Filter out "Main View" from local views if shared one exists
+          const filteredViews = sharedMainView 
+            ? parsedViews.filter((v: View) => v.name !== 'Main View')
+            : parsedViews;
+          localViews.push(...filteredViews);
         } catch (error) {
           console.error('Failed to parse saved views:', error);
         }
       }
-
-      // Load database views if pipelineType is provided
-      const allViews: View[] = [...localViews];
-      if (pipelineType) {
-        try {
-          const dbViews = await databaseService.getPipelineViews(pipelineType);
-          const sharedViews: View[] = dbViews.map(dbView => {
-            const columnOrder = Array.isArray(dbView.column_order) 
-              ? dbView.column_order 
-              : JSON.parse(dbView.column_order as string);
-            
-            const columns: Record<string, boolean> = {};
-            columnOrder.forEach((colId: string) => {
-              columns[colId] = true;
-            });
-            
-            return {
-              id: dbView.id,
-              name: dbView.name,
-              columns,
-              order: columnOrder,
-              isShared: true
-            };
-          });
-          
-          // Prepend shared views (they come first)
-          allViews.unshift(...sharedViews);
-        } catch (error) {
-          console.error('Failed to load database views:', error);
-        }
-      }
       
+      // Combine: shared views first, then filtered local views
+      const allViews: View[] = [...sharedViews, ...localViews];
       setViews(allViews);
       setIsLoadingViews(false);
     };
@@ -134,6 +157,13 @@ export function useColumnVisibility(
   };
 
   const saveView = (viewName: string) => {
+    // Prevent saving a local view named "Main View" if a shared one exists
+    const sharedMainView = views.find(v => v.name === 'Main View' && v.isShared);
+    if (viewName === 'Main View' && sharedMainView) {
+      console.warn('Cannot save local view named "Main View" - a shared Main View already exists');
+      return;
+    }
+
     const newView: View = {
       name: viewName,
       columns: columns.reduce((acc, col) => {
@@ -143,9 +173,13 @@ export function useColumnVisibility(
       order: columns.map(col => col.id)
     };
 
-    const updatedViews = [...views.filter(v => v.name !== viewName), newView];
-    setViews(updatedViews);
-    localStorage.setItem(`${storageKey}_views`, JSON.stringify(updatedViews));
+    // Only save/update local (non-shared) views
+    const localViews = views.filter(v => !v.isShared);
+    const updatedLocalViews = [...localViews.filter(v => v.name !== viewName), newView];
+    const sharedViews = views.filter(v => v.isShared);
+    
+    setViews([...sharedViews, ...updatedLocalViews]);
+    localStorage.setItem(`${storageKey}_views`, JSON.stringify(updatedLocalViews));
   };
 
   const loadView = (viewName: string) => {
