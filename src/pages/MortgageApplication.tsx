@@ -19,6 +19,7 @@ import { RealEstateForm } from '@/components/mortgage-app/forms/RealEstateForm';
 import { DeclarationsForm } from '@/components/mortgage-app/forms/DeclarationsForm';
 import { ReviewSubmitForm } from '@/components/mortgage-app/forms/ReviewSubmitForm';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SubmittedApplicationView } from '@/components/mortgage-app/SubmittedApplicationView';
 
 const MortgageApplicationContent = () => {
   const navigate = useNavigate();
@@ -27,6 +28,9 @@ const MortgageApplicationContent = () => {
   const isMobile = useIsMobile();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [submittedData, setSubmittedData] = useState<any>(null);
 
   // Redirect unauthenticated users to auth page
   useEffect(() => {
@@ -44,11 +48,33 @@ const MortgageApplicationContent = () => {
     }
   }, [user, emailVerified, verificationChecked, navigate]);
 
+  // Check if application was already submitted
   useEffect(() => {
-    if (!data.loanPurpose) {
+    const checkSubmissionStatus = async () => {
+      if (!user) return;
+      
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: appData, error } = await supabase
+        .from('mortgage_applications')
+        .select('status, submitted_at, application_data')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!error && appData?.status === 'submitted') {
+        setIsSubmitted(true);
+        setSubmittedAt(appData.submitted_at);
+        setSubmittedData(appData.application_data);
+      }
+    };
+    
+    checkSubmissionStatus();
+  }, [user]);
+
+  useEffect(() => {
+    if (!data.loanPurpose && !isSubmitted) {
       setShowLoanPurposeModal(true);
     }
-  }, [data.loanPurpose]);
+  }, [data.loanPurpose, isSubmitted]);
 
   const handleSectionChange = (sectionId: number) => {
     dispatch({ type: 'SET_CURRENT_SECTION', payload: sectionId });
@@ -92,6 +118,11 @@ const MortgageApplicationContent = () => {
         return <MortgageInfoForm onNext={goToNextSection} onBack={goToPreviousSection} />;
     }
   };
+
+  // If application is already submitted, show thank you view
+  if (isSubmitted && submittedAt && submittedData) {
+    return <SubmittedApplicationView submittedAt={submittedAt} applicationData={submittedData} />;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
