@@ -47,7 +47,9 @@ export default function MortgageAppAdmin() {
     unverifiedAccounts: 0,
   });
   
-  const applicationUrl = `${window.location.origin}/apply`;
+  // Use production URL for shareable link (accessible without Lovable login)
+  const PRODUCTION_URL = "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com";
+  const applicationUrl = `${PRODUCTION_URL}/apply`;
   
   const handleCopyLink = () => {
     navigator.clipboard.writeText(applicationUrl);
@@ -60,7 +62,7 @@ export default function MortgageAppAdmin() {
   };
   
   const handleOpenApplication = () => {
-    window.open('/apply', '_blank');
+    window.open(`${PRODUCTION_URL}/apply`, '_blank');
   };
 
   useEffect(() => {
