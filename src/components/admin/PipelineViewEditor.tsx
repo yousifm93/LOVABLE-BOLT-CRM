@@ -227,6 +227,7 @@ export function PipelineViewEditor({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -350,16 +351,19 @@ export function PipelineViewEditor({
       width: 150,
       visible: true,
     }]);
+    setHasUnsavedChanges(true);
   };
 
   const removeColumn = (fieldName: string) => {
     setColumns(columns.filter(col => col.field_name !== fieldName));
+    setHasUnsavedChanges(true);
   };
 
   const toggleColumnVisibility = (fieldName: string) => {
     setColumns(columns.map(col =>
       col.field_name === fieldName ? { ...col, visible: !col.visible } : col
     ));
+    setHasUnsavedChanges(true);
   };
 
   const updateColumnWidth = (fieldName: string, delta: number) => {
@@ -370,6 +374,7 @@ export function PipelineViewEditor({
       }
       return col;
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -381,6 +386,7 @@ export function PipelineViewEditor({
       const newIndex = items.findIndex((item) => item.field_name === over.id);
       return arrayMove(items, oldIndex, newIndex);
     });
+    setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
@@ -397,6 +403,7 @@ export function PipelineViewEditor({
       column_widths: columnWidthsObj,
       is_default: isDefaultView,
     });
+    setHasUnsavedChanges(false);
   };
 
   const formatPipelineName = (type: string) => {
@@ -426,7 +433,26 @@ export function PipelineViewEditor({
       {/* Consolidated Top Toolbar */}
       <Card className="p-3">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Saved Views Dropdown */}
+          {/* Pipeline Selector - FIRST */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="pipeline-type" className="text-sm whitespace-nowrap">Pipeline:</Label>
+            <Select value={selectedPipeline} onValueChange={onPipelineChange}>
+              <SelectTrigger id="pipeline-type" className="w-[140px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="leads">Leads</SelectItem>
+                <SelectItem value="screening">Screening</SelectItem>
+                <SelectItem value="pre_qualified">Pre Qualified</SelectItem>
+                <SelectItem value="pre_approved">Pre Approved</SelectItem>
+                <SelectItem value="pending_app">Pending App</SelectItem>
+                <SelectItem value="past_clients">Past Clients</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Saved Views Dropdown - SECOND */}
           <div className="flex items-center gap-2">
             <Label className="text-sm whitespace-nowrap">Saved Views:</Label>
             <Select 
@@ -462,29 +488,13 @@ export function PipelineViewEditor({
             <Input
               id="view-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               placeholder="Enter view name..."
               className="h-9"
             />
-          </div>
-
-          {/* Pipeline Selector */}
-          <div className="flex items-center gap-2">
-            <Label htmlFor="pipeline-type" className="text-sm whitespace-nowrap">Pipeline:</Label>
-            <Select value={selectedPipeline} onValueChange={onPipelineChange}>
-              <SelectTrigger id="pipeline-type" className="w-[140px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="leads">Leads</SelectItem>
-                <SelectItem value="screening">Screening</SelectItem>
-                <SelectItem value="pre_qualified">Pre Qualified</SelectItem>
-                <SelectItem value="pre_approved">Pre Approved</SelectItem>
-                <SelectItem value="pending_app">Pending App</SelectItem>
-                <SelectItem value="past_clients">Past Clients</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Default Toggle */}
@@ -492,7 +502,10 @@ export function PipelineViewEditor({
             <Switch
               id="default-view"
               checked={isDefaultView}
-              onCheckedChange={setIsDefaultView}
+              onCheckedChange={(checked) => {
+                setIsDefaultView(checked);
+                setHasUnsavedChanges(true);
+              }}
             />
             <Label htmlFor="default-view" className="text-sm whitespace-nowrap">Set as Default</Label>
           </div>
@@ -502,7 +515,10 @@ export function PipelineViewEditor({
             <Button variant="outline" size="sm" onClick={onCancel}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0}>
+            <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0} className="relative">
+              {hasUnsavedChanges && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-yellow-500 rounded-full" />
+              )}
               <Save className="h-4 w-4 mr-2" />
               Save View
             </Button>
@@ -594,60 +610,58 @@ export function PipelineViewEditor({
             </Badge>
           </div>
         </div>
-        <ScrollArea className="flex-1">
-          <div className="p-4">
-            {columns.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                <p>No columns selected</p>
-                <p className="text-sm mt-2">Expand "Available Fields" above to add columns to your view</p>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <SortableContext
-                          items={columns.map(c => c.field_name)}
-                          strategy={horizontalListSortingStrategy}
-                        >
-                          {columns.filter(c => c.visible).map(column => (
-                            <SortableColumnHeader
-                              key={column.field_name}
-                              column={column}
-                              onRemove={() => removeColumn(column.field_name)}
-                              onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
-                              onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
-                            />
-                          ))}
-                        </SortableContext>
+        <div className="flex-1 p-4 overflow-x-auto">
+          {columns.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+              <p>No columns selected</p>
+              <p className="text-sm mt-2">Expand "Available Fields" above to add columns to your view</p>
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="border rounded-lg overflow-hidden">
+                <Table className="min-w-max">
+                  <TableHeader>
+                    <TableRow>
+                      <SortableContext
+                        items={columns.map(c => c.field_name)}
+                        strategy={horizontalListSortingStrategy}
+                      >
+                        {columns.filter(c => c.visible).map(column => (
+                          <SortableColumnHeader
+                            key={column.field_name}
+                            column={column}
+                            onRemove={() => removeColumn(column.field_name)}
+                            onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
+                            onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {testData.map((row, idx) => (
+                      <TableRow key={idx}>
+                        {columns.filter(c => c.visible).map(column => (
+                          <TableCell
+                            key={column.field_name}
+                            style={{ width: column.width }}
+                            className="text-center"
+                          >
+                            {row[column.field_name] || '—'}
+                          </TableCell>
+                        ))}
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {testData.map((row, idx) => (
-                        <TableRow key={idx}>
-                          {columns.filter(c => c.visible).map(column => (
-                            <TableCell
-                              key={column.field_name}
-                              style={{ width: column.width }}
-                              className="text-center"
-                            >
-                              {row[column.field_name] || '—'}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </DndContext>
-            )}
-          </div>
-        </ScrollArea>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </DndContext>
+          )}
+        </div>
       </Card>
     </div>
   );
