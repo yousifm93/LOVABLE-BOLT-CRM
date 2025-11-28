@@ -23,7 +23,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const MortgageApplicationContent = () => {
   const navigate = useNavigate();
   const { data, dispatch } = useApplication();
-  const { user, signOut, session, loading, emailVerified } = useBorrowerAuth();
+  const { user, signOut, session, loading, emailVerified, verificationChecked } = useBorrowerAuth();
   const isMobile = useIsMobile();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showLoanPurposeModal, setShowLoanPurposeModal] = useState(false);
@@ -37,10 +37,12 @@ const MortgageApplicationContent = () => {
 
   // Check if email is verified - redirect to auth if not verified
   useEffect(() => {
+    if (!verificationChecked) return; // Wait for verification check to complete
+    
     if (user && !emailVerified) {
       navigate('/apply/auth', { replace: true });
     }
-  }, [user, emailVerified, navigate]);
+  }, [user, emailVerified, verificationChecked, navigate]);
 
   useEffect(() => {
     if (!data.loanPurpose) {
