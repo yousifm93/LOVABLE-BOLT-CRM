@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 function BorrowerAuthContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, signUp, signIn, resendVerificationEmail, updateEmail, session, emailVerified } = useBorrowerAuth();
+  const { user, signUp, signIn, resendVerificationEmail, updateEmail, session, emailVerified, verificationChecked } = useBorrowerAuth();
   const { toast } = useToast();
   const [view, setView] = useState<'signup' | 'signin' | 'verify'>('signup');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,20 +38,32 @@ function BorrowerAuthContent() {
     }
   }, [errorParam]);
 
+  // Check URL params for initial view
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'signin') {
+      setView('signin');
+    }
+  }, [searchParams]);
+
   // Redirect authenticated users with verified emails to application
   useEffect(() => {
+    if (!verificationChecked) return; // Wait for verification check
+    
     if (user && emailVerified) {
       navigate('/apply', { replace: true });
     }
-  }, [user, emailVerified, navigate]);
+  }, [user, emailVerified, verificationChecked, navigate]);
 
   // Show verification view if user is signed in but not verified
   useEffect(() => {
+    if (!verificationChecked) return; // Wait for verification check
+    
     if (user && !emailVerified) {
       setView('verify');
       setPendingEmail(user.email || '');
     }
-  }, [user, emailVerified]);
+  }, [user, emailVerified, verificationChecked]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
