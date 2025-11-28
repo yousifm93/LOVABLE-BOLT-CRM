@@ -8,6 +8,7 @@ interface BorrowerAuthContextType {
   session: Session | null;
   loading: boolean;
   emailVerified: boolean;
+  verificationChecked: boolean;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -22,6 +23,7 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationChecked, setVerificationChecked] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,8 +82,17 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error checking email verification:', error);
+    } finally {
+      setVerificationChecked(true);
     }
   };
+
+  // Mark verification as checked if no user
+  useEffect(() => {
+    if (!loading && !user) {
+      setVerificationChecked(true);
+    }
+  }, [loading, user]);
 
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
@@ -274,6 +285,7 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
     session,
     loading,
     emailVerified,
+    verificationChecked,
     signUp,
     signIn,
     signOut,

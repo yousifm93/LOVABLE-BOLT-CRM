@@ -8,10 +8,10 @@ export default function EmailVerified() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Auto-redirect after 3 seconds
+    // Auto-redirect after 5 seconds
     const timer = setTimeout(() => {
-      navigate('/apply', { replace: true });
-    }, 3000);
+      navigate('/apply/auth?view=signin', { replace: true });
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -38,7 +38,7 @@ export default function EmailVerified() {
         </p>
         
         <Button 
-          onClick={() => navigate('/apply', { replace: true })}
+          onClick={() => navigate('/apply/auth?view=signin', { replace: true })}
           className="w-full"
           size="lg"
         >
