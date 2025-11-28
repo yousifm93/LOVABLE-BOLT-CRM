@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, ReactNode, useState } from 'react';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService } from '@/services/database';
@@ -525,55 +525,90 @@ export const ApplicationProvider: React.FC<ApplicationProviderProps> = ({ childr
     hasUnsavedChanges: false,
     progressPercentage: 0,
   });
+  const [userId, setUserId] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: state.data,
     mode: 'onBlur',
   });
 
+  // Listen for auth state changes
   useEffect(() => {
-    const loadSavedApplication = async () => {
-      try {
-        // Check if user is authenticated
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Load from database for authenticated users
-          const savedApp = await databaseService.loadApplication(session.user.id);
-          if (savedApp && savedApp.application_data) {
-            const parsedData = savedApp.application_data as any;
-            const restoredData = {
-              ...initialData,
-              ...parsedData,
-              visitedSections: new Set(parsedData.visitedSections || [1]),
-              completedFields: new Set(parsedData.completedFields || []),
-            };
-            dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
-            form.reset(restoredData);
-            return;
-          }
-        }
-        
-        // Fallback to localStorage for guest users
-        const savedData = localStorage.getItem('mortgageApplication');
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          const restoredData = {
-            ...initialData,
-            ...parsedData,
-            visitedSections: new Set(parsedData.visitedSections || [1]),
-            completedFields: new Set(parsedData.completedFields || []),
-          };
-          dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
-          form.reset(restoredData);
-        }
-      } catch (error) {
-        console.error('Failed to load application data:', error);
-      }
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      setUserId(session?.user?.id || null);
+    });
     
-    loadSavedApplication();
-  }, [form]);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.id);
+      setUserId(session?.user?.id || null);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load application when userId changes (including on login)
+  useEffect(() => {
+    if (userId) {
+      loadSavedApplication(userId);
+    }
+  }, [userId]);
+
+  const loadSavedApplication = async (userId: string) => {
+    try {
+      console.log('Loading application for user:', userId);
+      
+      // First, get user account data for auto-fill
+      const { data: userData, error: userError } = await supabase
+        .from('application_users')
+        .select('first_name, last_name, email')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+      } else {
+        console.log('Fetched user data:', userData);
+      }
+
+      // Then load saved application
+      const savedApp = await databaseService.loadApplication(userId);
+      console.log('Loaded saved application:', savedApp);
+      
+      if (savedApp && savedApp.application_data) {
+        // Load existing application data
+        const parsedData = savedApp.application_data as any;
+        const restoredData = {
+          ...initialData,
+          ...parsedData,
+          visitedSections: new Set(parsedData.visitedSections || [1]),
+          completedFields: new Set(parsedData.completedFields || []),
+        };
+        console.log('Restoring saved application data');
+        dispatch({ type: 'LOAD_FROM_STORAGE', payload: restoredData });
+        form.reset(restoredData);
+      } else {
+        // No saved application - auto-fill from account data
+        if (userData) {
+          const autoFilledData = {
+            ...initialData,
+            personalInfo: {
+              ...initialData.personalInfo,
+              firstName: userData.first_name || '',
+              lastName: userData.last_name || '',
+              email: userData.email || '',
+            },
+          };
+          console.log('Auto-filling personal info from account data:', autoFilledData.personalInfo);
+          dispatch({ type: 'LOAD_FROM_STORAGE', payload: autoFilledData });
+          form.reset(autoFilledData);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load application data:', error);
+    }
+  };
 
   const saveApplication = async () => {
     dispatch({ type: 'SET_AUTO_SAVING', payload: true });
@@ -589,10 +624,11 @@ export const ApplicationProvider: React.FC<ApplicationProviderProps> = ({ childr
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // Save to database for authenticated users
-        await databaseService.saveApplication(session.user.id, dataToSave);
+        console.log('Saving application for user:', session.user.id);
+        const result = await databaseService.saveApplication(session.user.id, dataToSave);
+        console.log('Application saved successfully:', result);
       } else {
-        // Fallback to localStorage for guest users
+        console.log('No session, saving to localStorage');
         localStorage.setItem('mortgageApplication', JSON.stringify(dataToSave));
       }
       
