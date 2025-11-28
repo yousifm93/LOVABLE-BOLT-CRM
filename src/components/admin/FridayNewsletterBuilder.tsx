@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Download, Copy, Smartphone, Monitor, Check, ChevronDown, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import templateHtml from "../email-templates/mortgage-newsletter.html?raw";
+import templateHtml from "../../email-templates/mortgage-newsletter.html?raw";
 
 export default function FridayNewsletterBuilder() {
   const { toast } = useToast();
