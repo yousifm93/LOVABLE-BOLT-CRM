@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div class="container">
             <h1>Invalid Verification Link</h1>
             <p>This verification link is invalid or has expired.</p>
-            <a href="${Deno.env.get("SUPABASE_URL")?.replace('/functions/v1/verify-email', '') || ''}/apply/auth">Back to Sign In</a>
+            <a href="${Deno.env.get("APP_URL") || "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com"}/apply/auth">Back to Sign In</a>
           </div>
         </body>
         </html>
@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div class="container">
             <h1>Invalid Verification Link</h1>
             <p>This verification link is invalid or has already been used.</p>
-            <a href="${Deno.env.get("SUPABASE_URL")?.replace('/functions/v1/verify-email', '') || ''}/apply/auth">Back to Sign In</a>
+            <a href="${Deno.env.get("APP_URL") || "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com"}/apply/auth">Back to Sign In</a>
           </div>
         </body>
         </html>
@@ -109,7 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
       <html>
       <head>
         <title>Email Verified - Mortgage Bolt</title>
-        <meta http-equiv="refresh" content="3;url=${Deno.env.get("SUPABASE_URL")?.replace('/functions/v1/verify-email', '') || ''}/apply">
+        <meta http-equiv="refresh" content="3;url=${Deno.env.get("APP_URL") || "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com"}/apply">
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
           .container { text-align: center; background: white; padding: 3rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 400px; }
@@ -125,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
           <h1>Email Verified!</h1>
           <p>Your email has been successfully verified. You can now access your mortgage application.</p>
           <p style="font-size: 14px; color: #64748b;">Redirecting you to the application...</p>
-          <a href="${Deno.env.get("SUPABASE_URL")?.replace('/functions/v1/verify-email', '') || ''}/apply">Continue to Application</a>
+          <a href="${Deno.env.get("APP_URL") || "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com"}/apply">Continue to Application</a>
         </div>
       </body>
       </html>
@@ -152,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
         <div class="container">
           <h1>Verification Error</h1>
           <p>An error occurred while verifying your email. Please try again or contact support.</p>
-          <a href="${Deno.env.get("SUPABASE_URL")?.replace('/functions/v1/verify-email', '') || ''}/apply/auth">Back to Sign In</a>
+          <a href="${Deno.env.get("APP_URL") || "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com"}/apply/auth">Back to Sign In</a>
         </div>
       </body>
       </html>
