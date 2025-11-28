@@ -2523,7 +2523,7 @@ export type Database = {
           {
             foreignKeyName: "mortgage_applications_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "application_users"
             referencedColumns: ["id"]
           },
