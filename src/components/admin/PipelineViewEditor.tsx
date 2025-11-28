@@ -87,6 +87,7 @@ interface PipelineViewEditorProps {
   onPipelineChange: (pipeline: string) => void;
   onCreateView: () => void;
   onEditView: (view: PipelineView) => void;
+  isSaving?: boolean;
 }
 
 interface ColumnConfig {
@@ -219,6 +220,7 @@ export function PipelineViewEditor({
   onPipelineChange,
   onCreateView,
   onEditView,
+  isSaving = false,
 }: PipelineViewEditorProps) {
   const { allFields, loading: fieldsLoading } = useFields();
   const [name, setName] = useState(viewName);
@@ -512,15 +514,24 @@ export function PipelineViewEditor({
 
           {/* Action Buttons */}
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={onCancel}>
+            <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0} className="relative">
-              {hasUnsavedChanges && (
+            <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0 || isSaving} className="relative">
+              {hasUnsavedChanges && !isSaving && (
                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-yellow-500 rounded-full" />
               )}
-              <Save className="h-4 w-4 mr-2" />
-              Save View
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save View
+                </>
+              )}
             </Button>
           </div>
         </div>
