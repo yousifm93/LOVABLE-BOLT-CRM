@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,12 +52,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw updateError;
     }
 
-    // Send verification email
-    const emailResponse = await resend.emails.send({
-      from: "Mortgage Bolt <onboarding@resend.dev>",
-      to: [email],
-      subject: "Verify Your Mortgage Bolt Account",
-      html: `
+    // Send verification email via SendGrid
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    
+    const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -144,10 +139,37 @@ const handler = async (req: Request): Promise<Response> => {
           </table>
         </body>
         </html>
-      `,
+      `;
+
+    const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ 
+          to: [{ email: email }] 
+        }],
+        from: { 
+          email: "yousif@mortgagebolt.com", 
+          name: "Mortgage Bolt" 
+        },
+        subject: "Verify Your Mortgage Bolt Account",
+        content: [{ 
+          type: "text/html", 
+          value: htmlContent
+        }],
+      }),
     });
 
-    console.log("Verification email sent:", emailResponse);
+    if (!sendGridResponse.ok) {
+      const errorText = await sendGridResponse.text();
+      console.error("SendGrid error:", errorText);
+      throw new Error(`SendGrid API error: ${sendGridResponse.status}`);
+    }
+
+    console.log("Verification email sent via SendGrid");
 
     return new Response(
       JSON.stringify({ success: true, message: "Verification email sent" }),
