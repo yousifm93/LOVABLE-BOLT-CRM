@@ -22,8 +22,8 @@ import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
 import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
-import PropertyValue from "./pages/resources/PropertyValue"
-import PropertyValuePublic from "./pages/resources/PropertyValuePublic"
+import PropertyValue from "./pages/resources/PropertyValue";
+import PropertyValuePublic from "./pages/resources/PropertyValuePublic";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import { LoanPricer } from "@/pages/resources/LoanPricer";
@@ -37,41 +37,42 @@ import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
 // Protected route component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  
+function ProtectedRoute({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const {
+    user,
+    loading
+  } = useAuth();
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
-  
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
   return <>{children}</>;
 }
 
 // App routes component
 function AppRoutes() {
-  const { user, loading } = useAuth();
-
+  const {
+    user,
+    loading
+  } = useAuth();
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
-
   if (!user) {
-  return (
-    <Routes>
+    return <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/home-value" element={<PropertyValuePublic />} />
       <Route path="/apply" element={<MortgageApplication />} />
       <Route path="*" element={<Navigate to="/auth" replace />} />
-    </Routes>
-  );
+    </Routes>;
   }
-
-  return (
-    <Layout>
+  return <Layout>
       <Routes>
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="/" element={<DashboardTabs />} />
@@ -86,7 +87,7 @@ function AppRoutes() {
         <Route path="/admin/assistant" element={<AdminAssistant />} />
         <Route path="/admin/mortgage-app" element={<MortgageAppAdmin />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/settings2" element={<AdminSettings />} />
+        <Route path="/admin/settings2" element={<AdminSettings />} className="my-0 mx-0 px-0" />
         <Route path="/admin/email-history" element={<EmailHistory />} />
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />
@@ -104,19 +105,14 @@ function AppRoutes() {
         <Route path="/apply" element={<MortgageApplication />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </Layout>
-  );
+    </Layout>;
 }
-
 function App() {
-  return (
-    <AuthProvider>
+  return <AuthProvider>
       <Router>
         <AppRoutes />
         <Toaster />
       </Router>
-    </AuthProvider>
-  );
+    </AuthProvider>;
 }
-
 export default App;

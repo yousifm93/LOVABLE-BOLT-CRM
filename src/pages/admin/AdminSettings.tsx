@@ -4,11 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PasswordsVault from "@/pages/PasswordsVault";
 import PipelineViews from "@/pages/admin/PipelineViews";
 import FridayNewsletterBuilder from "@/components/admin/FridayNewsletterBuilder";
-
 export default function AdminSettings() {
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-6">
+  return <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6 space-y-6 px-[10px]">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Settings 2</h1>
@@ -79,6 +77,5 @@ export default function AdminSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 }
