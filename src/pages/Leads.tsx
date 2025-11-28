@@ -34,6 +34,7 @@ import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { usePipelineView } from "@/hooks/usePipelineView";
 
 // Main view default columns
 const MAIN_VIEW_COLUMNS = ["name", "createdOn", "realEstateAgent", "status", "user", "dueDate", "notes"];
@@ -193,53 +194,36 @@ export default function Leads() {
   const {
     allFields
   } = useFields();
+  const { columnOrder: savedColumnOrder, columnWidths: savedColumnWidths, loading: viewLoading } = usePipelineView('leads');
+
+  // Use saved view column order if available, otherwise fallback to default MAIN_VIEW_COLUMNS
+  const defaultColumns = savedColumnOrder.length > 0 ? savedColumnOrder : MAIN_VIEW_COLUMNS;
 
   // Core columns (original customized set) - IDs match hardcoded accessorKey values
-  const coreColumns = [{
-    id: "name",
-    label: "Full Name",
-    visible: true
-  }, {
-    id: "createdOn",
-    label: "Lead Created On",
-    visible: true
-  }, {
-    id: "phone",
-    label: "Lead Phone",
-    visible: true
-  }, {
-    id: "email",
-    label: "Lead Email",
-    visible: true
-  }, {
-    id: "realEstateAgent",
-    label: "Buyer's Agent",
-    visible: true
-  }, {
-    id: "referredVia",
-    label: "Referred Via",
-    visible: true
-  }, {
-    id: "referralSource",
-    label: "Referral Source",
-    visible: true
-  }, {
-    id: "status",
-    label: "Lead Status",
-    visible: true
-  }, {
-    id: "dueDate",
-    label: "Task ETA",
-    visible: true
-  }, {
-    id: "user",
-    label: "Team",
-    visible: true
-  }, {
-    id: "notes",
-    label: "About the Borrower",
-    visible: true
-  }];
+  const coreColumns = useMemo(() => {
+    // Map saved column order to proper format with widths
+    const columnMapping: Record<string, string> = {
+      "name": "Full Name",
+      "createdOn": "Lead Created On",
+      "phone": "Lead Phone",
+      "email": "Lead Email",
+      "realEstateAgent": "Buyer's Agent",
+      "referredVia": "Referred Via",
+      "referralSource": "Referral Source",
+      "status": "Lead Status",
+      "dueDate": "Task ETA",
+      "user": "Team",
+      "notes": "About the Borrower",
+    };
+    
+    return defaultColumns.map(id => {
+      const width = savedColumnWidths[id] || 150;
+      const label = columnMapping[id] || id;
+      const visible = defaultColumns.includes(id);
+      
+      return { id, label, visible, width };
+    }).filter(col => columnMapping[col.id]); // Only include mapped columns
+  }, [defaultColumns, savedColumnWidths]);
 
   // Load ALL database fields for Hide/Show modal - showing all 124+ fields
   const allAvailableColumns = useMemo(() => {

@@ -37,6 +37,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { usePipelineView } from "@/hooks/usePipelineView";
 
 // Main view - streamlined columns (default)
 const DEFAULT_MAIN_VIEW_COLUMNS = [
@@ -731,36 +732,52 @@ const createColumns = (
 
 export default function Active() {
   const { allFields } = useFields();
+  const { columnOrder: savedColumnOrder, columnWidths: savedColumnWidths, loading: viewLoading } = usePipelineView('active');
+  
+  // Use saved view column order if available, otherwise fallback to defaults
+  const defaultColumns = savedColumnOrder.length > 0 ? savedColumnOrder : DEFAULT_MAIN_VIEW_COLUMNS;
   
   // Core columns that should appear first with default visibility
-  const coreColumns = useMemo(() => [
-    { id: "borrower_name", label: "BORROWER", visible: true },
-    { id: "email", label: "EMAIL", visible: true },
-    { id: "phone", label: "PHONE", visible: true },
-    { id: "team", label: "USER", visible: true },
-    { id: "lender", label: "LENDER", visible: true },
-    { id: "arrive_loan_number", label: "LOAN #", visible: true },
-    { id: "lender_loan_number", label: "LENDER LOAN #", visible: false },
-    { id: "loan_amount", label: "LOAN AMT", visible: true },
-    { id: "sales_price", label: "SALES PRICE", visible: false },
-    { id: "disclosure_status", label: "DISC", visible: true },
-    { id: "close_date", label: "CLOSE DATE", visible: true },
-    { id: "loan_status", label: "LOAN STATUS", visible: true },
-    { id: "appraisal_status", label: "APPRAISAL", visible: true },
-    { id: "title_status", label: "TITLE", visible: true },
-    { id: "hoi_status", label: "HOI", visible: true },
-    { id: "condo_status", label: "CONDO", visible: true },
-    { id: "cd_status", label: "CD", visible: true },
-    { id: "package_status", label: "PACKAGE", visible: true },
-    { id: "lock_expiration_date", label: "LOCK EXP", visible: true },
-    { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
-    { id: "buyer_agent", label: "BUYER'S AGENT", visible: true },
-    { id: "listing_agent", label: "LISTING AGENT", visible: true },
-    { id: "pr_type", label: "P/R", visible: false },
-    { id: "occupancy", label: "OCCUPANCY", visible: false },
-    { id: "is_closed", label: "CLOSED", visible: false },
-  ], []);
+  const coreColumns = useMemo(() => {
+    // Map saved column order with proper labels and widths
+    return defaultColumns.map(id => {
+      const width = savedColumnWidths[id] || 150;
+      // Find label from existing mapping or use uppercase ID
+      const existingMapping: Record<string, string> = {
+        "borrower_name": "BORROWER",
+        "email": "EMAIL",
+        "phone": "PHONE",
+        "team": "USER",
+        "lender": "LENDER",
+        "arrive_loan_number": "LOAN #",
+        "lender_loan_number": "LENDER LOAN #",
+        "loan_amount": "LOAN AMT",
+        "sales_price": "SALES PRICE",
+        "disclosure_status": "DISC",
+        "close_date": "CLOSE DATE",
+        "loan_status": "LOAN STATUS",
+        "appraisal_status": "APPRAISAL",
+        "title_status": "TITLE",
+        "hoi_status": "HOI",
+        "condo_status": "CONDO",
+        "cd_status": "CD",
+        "package_status": "PACKAGE",
+        "lock_expiration_date": "LOCK EXP",
+        "ba_status": "BA",
+        "epo_status": "EPO",
+        "buyer_agent": "BUYER'S AGENT",
+        "listing_agent": "LISTING AGENT",
+        "pr_type": "P/R",
+        "occupancy": "OCCUPANCY",
+        "is_closed": "CLOSED",
+      };
+      
+      const label = existingMapping[id] || id.toUpperCase().replace(/_/g, ' ');
+      const visible = defaultColumns.includes(id);
+      
+      return { id, label, visible, width };
+    });
+  }, [defaultColumns, savedColumnWidths]);
   
   // Load ALL database fields for Hide/Show modal (~85 total)
   const allAvailableColumns = useMemo(() => {
