@@ -87,7 +87,7 @@ function AppRoutes() {
         <Route path="/admin/assistant" element={<AdminAssistant />} />
         <Route path="/admin/mortgage-app" element={<MortgageAppAdmin />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/settings2" element={<AdminSettings />} className="my-0 mx-0 px-0" />
+        <Route path="/admin/settings2" element={<AdminSettings />} />
         <Route path="/admin/email-history" element={<EmailHistory />} />
         <Route path="/contacts/agents" element={<AgentListWrapper />} />
         <Route path="/contacts/borrowers" element={<BorrowerList />} />

@@ -58,6 +58,15 @@ const ACCESSOR_KEY_DISPLAY_NAMES: Record<string, string> = {
   real_estate_agent: "Real Estate Agent",
 };
 
+interface PipelineView {
+  id: string;
+  name: string;
+  pipeline_type: string;
+  column_order: string[];
+  column_widths?: Record<string, number>;
+  is_default: boolean;
+}
+
 interface PipelineViewEditorProps {
   viewId?: string;
   viewName?: string;
@@ -73,6 +82,11 @@ interface PipelineViewEditorProps {
     is_default: boolean;
   }) => Promise<void>;
   onCancel: () => void;
+  views: PipelineView[];
+  selectedPipeline: string;
+  onPipelineChange: (pipeline: string) => void;
+  onCreateView: () => void;
+  onEditView: (view: PipelineView) => void;
 }
 
 interface ColumnConfig {
@@ -200,15 +214,19 @@ export function PipelineViewEditor({
   isDefault = false,
   onSave,
   onCancel,
+  views,
+  selectedPipeline,
+  onPipelineChange,
+  onCreateView,
+  onEditView,
 }: PipelineViewEditorProps) {
   const { allFields, loading: fieldsLoading } = useFields();
   const [name, setName] = useState(viewName);
-  const [selectedPipeline, setSelectedPipeline] = useState(pipelineType);
   const [isDefaultView, setIsDefaultView] = useState(isDefault);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
-  const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(true);
+  const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -374,12 +392,18 @@ export function PipelineViewEditor({
 
     await onSave({
       name,
-      pipeline_type: selectedPipeline,
+      pipeline_type: pipelineType,
       column_order: columnOrderArray,
       column_widths: columnWidthsObj,
       is_default: isDefaultView,
     });
   };
+
+  const formatPipelineName = (type: string) => {
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+  };
+
+  const currentPipelineViews = views.filter(v => v.pipeline_type === selectedPipeline);
 
   const isFieldSelected = (fieldName: string) => {
     return columns.some(col => col.field_name === fieldName);
@@ -398,23 +422,57 @@ export function PipelineViewEditor({
   }
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      {/* Top Toolbar */}
-      <Card className="p-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="view-name">View Name</Label>
+    <div className="flex flex-col h-full gap-3">
+      {/* Consolidated Top Toolbar */}
+      <Card className="p-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Saved Views Dropdown */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Saved Views:</Label>
+            <Select 
+              value={viewId || "new"} 
+              onValueChange={(value) => {
+                if (value === "new") {
+                  onCreateView();
+                } else {
+                  const view = views.find(v => v.id === value);
+                  if (view) onEditView(view);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Select view" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">+ New View</SelectItem>
+                {currentPipelineViews.map((view) => (
+                  <SelectItem key={view.id} value={view.id}>
+                    {view.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="h-6 w-px bg-border" />
+
+          {/* View Name */}
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Label htmlFor="view-name" className="text-sm whitespace-nowrap">View Name:</Label>
             <Input
               id="view-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter view name..."
+              className="h-9"
             />
           </div>
-          <div>
-            <Label htmlFor="pipeline-type">Pipeline</Label>
-            <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
-              <SelectTrigger id="pipeline-type">
+
+          {/* Pipeline Selector */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="pipeline-type" className="text-sm whitespace-nowrap">Pipeline:</Label>
+            <Select value={selectedPipeline} onValueChange={onPipelineChange}>
+              <SelectTrigger id="pipeline-type" className="w-[140px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -428,21 +486,23 @@ export function PipelineViewEditor({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="flex items-center justify-between mt-4">
+
+          {/* Default Toggle */}
           <div className="flex items-center gap-2">
             <Switch
               id="default-view"
               checked={isDefaultView}
               onCheckedChange={setIsDefaultView}
             />
-            <Label htmlFor="default-view">Set as Default View</Label>
+            <Label htmlFor="default-view" className="text-sm whitespace-nowrap">Set as Default</Label>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel}>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={onCancel}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!name || columns.length === 0}>
+            <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0}>
               <Save className="h-4 w-4 mr-2" />
               Save View
             </Button>
@@ -450,149 +510,145 @@ export function PipelineViewEditor({
         </div>
       </Card>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex gap-4 min-h-0">
-        {/* Collapsible Available Fields Panel */}
-        <Collapsible open={isFieldsPanelOpen} onOpenChange={setIsFieldsPanelOpen}>
-          <Card className={cn("flex flex-col transition-all", isFieldsPanelOpen ? "w-64" : "w-12")}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-10 w-full justify-start px-3"
-              >
+      {/* Horizontal Collapsible Available Fields Section */}
+      <Collapsible open={isFieldsPanelOpen} onOpenChange={setIsFieldsPanelOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isFieldsPanelOpen && "rotate-90")} />
-                {isFieldsPanelOpen && <span className="ml-2 font-semibold">Available Fields</span>}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="border-t">
-                <div className="p-3">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search fields..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 h-9"
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {allFields.length} fields available
-                  </div>
-                </div>
-                <ScrollArea className="h-[calc(100vh-28rem)]">
-                  <div className="px-2 pb-2">
-                    {Object.entries(filteredGroups).map(([section, fields]) => (
-                      <div key={section} className="mb-2">
-                        <button
-                          onClick={() => toggleSection(section)}
-                          className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted rounded text-sm font-medium"
-                        >
-                          <span>{section}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {fields.length}
-                          </Badge>
-                        </button>
-                        {expandedSections.has(section) && (
-                          <div className="ml-2 mt-1 space-y-1">
-                            {fields.map(field => (
-                              <div
-                                key={field.field_name}
-                                className={cn(
-                                  "flex items-center justify-between px-2 py-1.5 rounded text-xs group hover:bg-muted",
-                                  isFieldSelected(field.field_name) && "bg-muted/50"
-                                )}
-                              >
-                                <span className="truncate flex-1">{field.display_name}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                                  onClick={() => addColumn(field.field_name)}
-                                  disabled={isFieldSelected(field.field_name)}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <span className="font-semibold text-sm">Available Fields</span>
+                <Badge variant="secondary" className="text-xs">{allFields.length} fields</Badge>
               </div>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Live Preview Table - Main Focus */}
-        <Card className="flex-1 flex flex-col min-w-0">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Live Preview</h3>
-              <Badge variant="secondary">
-                {columns.filter(c => c.visible).length} columns visible
-              </Badge>
-            </div>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              {columns.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                  <p>No columns selected</p>
-                  <p className="text-sm mt-2">Add fields from the left sidebar to start building your view</p>
+              <span className="text-xs text-muted-foreground">
+                {isFieldsPanelOpen ? "Click to collapse" : "Click to expand"}
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="border-t p-3">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search fields..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-9"
+                  />
                 </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <SortableContext
-                            items={columns.map(c => c.field_name)}
-                            strategy={horizontalListSortingStrategy}
-                          >
-                            {columns.filter(c => c.visible).map(column => (
-                              <SortableColumnHeader
-                                key={column.field_name}
-                                column={column}
-                                onRemove={() => removeColumn(column.field_name)}
-                                onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
-                                onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
-                              />
-                            ))}
-                          </SortableContext>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {testData.map((row, idx) => (
-                          <TableRow key={idx}>
-                            {columns.filter(c => c.visible).map(column => (
-                              <TableCell
-                                key={column.field_name}
-                                style={{ width: column.width }}
-                                className="text-center"
+              </div>
+              <ScrollArea className="w-full">
+                <div className="flex gap-4 pb-2">
+                  {Object.entries(filteredGroups).map(([section, fields]) => (
+                    <div key={section} className="min-w-[200px]">
+                      <button
+                        onClick={() => toggleSection(section)}
+                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted rounded-md text-sm font-medium mb-2 bg-muted/30"
+                      >
+                        <span>{section}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {fields.length}
+                        </Badge>
+                      </button>
+                      {expandedSections.has(section) && (
+                        <div className="space-y-1">
+                          {fields.map(field => (
+                            <div
+                              key={field.field_name}
+                              className={cn(
+                                "flex items-center justify-between px-3 py-2 rounded-md text-xs group hover:bg-muted transition-colors",
+                                isFieldSelected(field.field_name) && "bg-muted/50"
+                              )}
+                            >
+                              <span className="truncate flex-1">{field.display_name}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => addColumn(field.field_name)}
+                                disabled={isFieldSelected(field.field_name)}
                               >
-                                {row[column.field_name] || '—'}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </DndContext>
-              )}
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-          </ScrollArea>
+          </CollapsibleContent>
         </Card>
-      </div>
+      </Collapsible>
+
+      {/* Full-Width Live Preview - Main Focus */}
+      <Card className="flex-1 flex flex-col min-h-0">
+        <div className="p-3 border-b">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">Live Preview</h3>
+            <Badge variant="secondary" className="text-xs">
+              {columns.filter(c => c.visible).length} columns visible
+            </Badge>
+          </div>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="p-4">
+            {columns.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                <p>No columns selected</p>
+                <p className="text-sm mt-2">Expand "Available Fields" above to add columns to your view</p>
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <SortableContext
+                          items={columns.map(c => c.field_name)}
+                          strategy={horizontalListSortingStrategy}
+                        >
+                          {columns.filter(c => c.visible).map(column => (
+                            <SortableColumnHeader
+                              key={column.field_name}
+                              column={column}
+                              onRemove={() => removeColumn(column.field_name)}
+                              onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
+                              onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
+                            />
+                          ))}
+                        </SortableContext>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {testData.map((row, idx) => (
+                        <TableRow key={idx}>
+                          {columns.filter(c => c.visible).map(column => (
+                            <TableCell
+                              key={column.field_name}
+                              style={{ width: column.width }}
+                              className="text-center"
+                            >
+                              {row[column.field_name] || '—'}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </DndContext>
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
     </div>
   );
 }
