@@ -2070,6 +2070,14 @@ export const databaseService = {
   }) {
     const { data: { user } } = await supabase.auth.getUser();
     
+    // If setting as default, first clear other defaults for same pipeline_type
+    if (view.is_default) {
+      await supabase
+        .from('pipeline_views')
+        .update({ is_default: false })
+        .eq('pipeline_type', view.pipeline_type);
+    }
+    
     const { data, error } = await supabase
       .from('pipeline_views')
       .insert({
@@ -2089,6 +2097,23 @@ export const databaseService = {
     column_widths?: Record<string, number>;
     is_default?: boolean;
   }) {
+    // If setting as default, first clear other defaults for same pipeline_type
+    if (updates.is_default) {
+      const { data: currentView } = await supabase
+        .from('pipeline_views')
+        .select('pipeline_type')
+        .eq('id', id)
+        .single();
+      
+      if (currentView) {
+        await supabase
+          .from('pipeline_views')
+          .update({ is_default: false })
+          .eq('pipeline_type', currentView.pipeline_type)
+          .neq('id', id);
+      }
+    }
+    
     const { data, error } = await supabase
       .from('pipeline_views')
       .update(updates)
