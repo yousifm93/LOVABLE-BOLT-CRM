@@ -104,29 +104,38 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          email_verified: boolean
           first_name: string | null
           id: string
           last_name: string | null
           phone: string | null
           updated_at: string
+          verification_sent_at: string | null
+          verification_token: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          email_verified?: boolean
           first_name?: string | null
           id: string
           last_name?: string | null
           phone?: string | null
           updated_at?: string
+          verification_sent_at?: string | null
+          verification_token?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          email_verified?: boolean
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
           updated_at?: string
+          verification_sent_at?: string | null
+          verification_token?: string | null
         }
         Relationships: []
       }

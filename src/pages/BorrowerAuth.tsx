@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 
 function BorrowerAuthContent() {
   const navigate = useNavigate();
-  const { user, signUp, signIn, resendVerificationEmail, updateEmail, session } = useBorrowerAuth();
+  const { user, signUp, signIn, resendVerificationEmail, updateEmail, session, emailVerified } = useBorrowerAuth();
   const { toast } = useToast();
   const [view, setView] = useState<'signup' | 'signin' | 'verify'>('signup');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,18 +21,20 @@ function BorrowerAuthContent() {
   const [password, setPassword] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
 
-  // Redirect authenticated users with confirmed emails to application
+  // Redirect authenticated users with verified emails to application
   useEffect(() => {
-    if (user && session) {
-      // Check if email is confirmed
-      if (user.email_confirmed_at) {
-        navigate('/apply', { replace: true });
-      } else {
-        setView('verify');
-        setPendingEmail(user.email || '');
-      }
+    if (user && emailVerified) {
+      navigate('/apply', { replace: true });
     }
-  }, [user, session, navigate]);
+  }, [user, emailVerified, navigate]);
+
+  // Show verification view if user is signed in but not verified
+  useEffect(() => {
+    if (user && !emailVerified) {
+      setView('verify');
+      setPendingEmail(user.email || '');
+    }
+  }, [user, emailVerified]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
