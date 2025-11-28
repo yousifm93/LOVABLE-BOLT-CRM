@@ -168,7 +168,7 @@ const allAvailableColumns = useMemo(() => {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'pending-app-columns');
+  } = useColumnVisibility(allAvailableColumns, 'pending-app-columns', 'pending_app');
 
   const handleViewSaved = (viewName: string) => {
     toast({

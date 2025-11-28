@@ -825,7 +825,7 @@ export default function Active() {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'active-pipeline-columns');
+  } = useColumnVisibility(allAvailableColumns, 'active-pipeline-columns', 'active');
 
   const handleViewSaved = (viewName: string) => {
     toast({

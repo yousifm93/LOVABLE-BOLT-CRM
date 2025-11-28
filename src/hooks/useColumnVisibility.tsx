@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { databaseService } from "@/services/database";
 
 interface Column {
   id: string;
@@ -10,54 +11,104 @@ interface View {
   name: string;
   columns: Record<string, boolean>;
   order: string[];
+  isShared?: boolean;
+  id?: string;
 }
 
-export function useColumnVisibility(initialColumns: Column[], storageKey: string = 'columnVisibility') {
+export function useColumnVisibility(
+  initialColumns: Column[], 
+  storageKey: string = 'columnVisibility',
+  pipelineType?: string
+) {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [views, setViews] = useState<View[]>([]);
   const [activeView, setActiveView] = useState<string | null>(null);
+  const [isLoadingViews, setIsLoadingViews] = useState(false);
 
-  // Load saved state from localStorage
+  // Load saved state from localStorage AND database views
   useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    const savedViews = localStorage.getItem(`${storageKey}_views`);
-    const savedOrder = localStorage.getItem(`${storageKey}_order`);
-    
-    if (saved) {
-      try {
-        const savedState = JSON.parse(saved);
-        let orderedColumns = [...initialColumns];
-        
-        // Apply saved order if available
-        if (savedOrder) {
-          const orderArray = JSON.parse(savedOrder) as string[];
-          orderedColumns = orderArray
-            .map(id => initialColumns.find(col => col.id === id))
-            .filter((col): col is Column => col !== undefined);
+    const loadViews = async () => {
+      setIsLoadingViews(true);
+      
+      // Load local state
+      const saved = localStorage.getItem(storageKey);
+      const savedViews = localStorage.getItem(`${storageKey}_views`);
+      const savedOrder = localStorage.getItem(`${storageKey}_order`);
+      
+      if (saved) {
+        try {
+          const savedState = JSON.parse(saved);
+          let orderedColumns = [...initialColumns];
           
-          // Add any new columns that weren't in the saved order
-          const existingIds = new Set(orderArray);
-          const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
-          orderedColumns = [...orderedColumns, ...newColumns];
+          // Apply saved order if available
+          if (savedOrder) {
+            const orderArray = JSON.parse(savedOrder) as string[];
+            orderedColumns = orderArray
+              .map(id => initialColumns.find(col => col.id === id))
+              .filter((col): col is Column => col !== undefined);
+            
+            // Add any new columns that weren't in the saved order
+            const existingIds = new Set(orderArray);
+            const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
+            orderedColumns = [...orderedColumns, ...newColumns];
+          }
+          
+          setColumns(orderedColumns.map(col => ({
+            ...col,
+            visible: savedState[col.id] !== undefined ? savedState[col.id] : col.visible
+          })));
+        } catch (error) {
+          console.error('Failed to parse saved column visibility state:', error);
         }
-        
-        setColumns(orderedColumns.map(col => ({
-          ...col,
-          visible: savedState[col.id] !== undefined ? savedState[col.id] : col.visible
-        })));
-      } catch (error) {
-        console.error('Failed to parse saved column visibility state:', error);
       }
-    }
 
-    if (savedViews) {
-      try {
-        setViews(JSON.parse(savedViews));
-      } catch (error) {
-        console.error('Failed to parse saved views:', error);
+      // Load local views
+      const localViews: View[] = [];
+      if (savedViews) {
+        try {
+          localViews.push(...JSON.parse(savedViews));
+        } catch (error) {
+          console.error('Failed to parse saved views:', error);
+        }
       }
-    }
-  }, [storageKey]);
+
+      // Load database views if pipelineType is provided
+      const allViews: View[] = [...localViews];
+      if (pipelineType) {
+        try {
+          const dbViews = await databaseService.getPipelineViews(pipelineType);
+          const sharedViews: View[] = dbViews.map(dbView => {
+            const columnOrder = Array.isArray(dbView.column_order) 
+              ? dbView.column_order 
+              : JSON.parse(dbView.column_order as string);
+            
+            const columns: Record<string, boolean> = {};
+            columnOrder.forEach((colId: string) => {
+              columns[colId] = true;
+            });
+            
+            return {
+              id: dbView.id,
+              name: dbView.name,
+              columns,
+              order: columnOrder,
+              isShared: true
+            };
+          });
+          
+          // Prepend shared views (they come first)
+          allViews.unshift(...sharedViews);
+        } catch (error) {
+          console.error('Failed to load database views:', error);
+        }
+      }
+      
+      setViews(allViews);
+      setIsLoadingViews(false);
+    };
+
+    loadViews();
+  }, [storageKey, pipelineType]);
 
   // Save state to localStorage whenever columns change
   useEffect(() => {
@@ -127,9 +178,15 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
   };
 
   const deleteView = (viewName: string) => {
-    const updatedViews = views.filter(v => v.name !== viewName);
-    setViews(updatedViews);
+    // Only allow deleting local (non-shared) views
+    const localViews = views.filter(v => !v.isShared);
+    const updatedViews = localViews.filter(v => v.name !== viewName);
+    const sharedViews = views.filter(v => v.isShared);
+    
+    // Update state with shared views + updated local views
+    setViews([...sharedViews, ...updatedViews]);
     localStorage.setItem(`${storageKey}_views`, JSON.stringify(updatedViews));
+    
     if (activeView === viewName) {
       setActiveView(null);
     }
@@ -158,6 +215,7 @@ export function useColumnVisibility(initialColumns: Column[], storageKey: string
     deleteView,
     reorderColumns,
     setColumns,
-    setActiveView
+    setActiveView,
+    isLoadingViews
   };
 }

@@ -738,7 +738,7 @@ export default function PastClients() {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns');
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns', 'past_clients');
 
   const filterColumns = [
     { value: 'borrower_name', label: 'Borrower Name', type: 'text' as const },
