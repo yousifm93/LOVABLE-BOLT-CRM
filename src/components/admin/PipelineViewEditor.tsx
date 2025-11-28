@@ -159,7 +159,7 @@ export function PipelineViewEditor({
   onSave,
   onCancel,
 }: PipelineViewEditorProps) {
-  const { allFields } = useFields();
+  const { allFields, loading: fieldsLoading } = useFields();
   const [name, setName] = useState(viewName);
   const [selectedPipeline, setSelectedPipeline] = useState(pipelineType);
   const [isDefaultView, setIsDefaultView] = useState(isDefault);
@@ -177,11 +177,17 @@ export function PipelineViewEditor({
 
   // Initialize columns from props or defaults
   useEffect(() => {
+    // Wait for fields to load before initializing columns
+    if (fieldsLoading || allFields.length === 0) return;
+    
     if (columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
           const field = allFields.find(f => f.field_name === fieldName);
-          if (!field) return null;
+          if (!field) {
+            console.warn(`Field not found in crm_fields: ${fieldName}`);
+            return null;
+          }
           return {
             field_name: field.field_name,
             display_name: field.display_name,
@@ -208,7 +214,7 @@ export function PipelineViewEditor({
         .filter(Boolean) as ColumnConfig[];
       setColumns(initialColumns);
     }
-  }, [viewId, allFields, columnOrder, columnWidths]);
+  }, [viewId, allFields, columnOrder, columnWidths, fieldsLoading]);
 
   // Group fields by section
   const groupedFields = useMemo(() => {
@@ -322,6 +328,18 @@ export function PipelineViewEditor({
   const isFieldSelected = (fieldName: string) => {
     return columns.some(col => col.field_name === fieldName);
   };
+
+  // Show loading state while fields are being fetched
+  if (fieldsLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading fields...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full gap-4">
