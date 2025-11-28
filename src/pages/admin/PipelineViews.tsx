@@ -23,11 +23,11 @@ interface PipelineView {
 const PIPELINE_TYPES = [
   "active",
   "leads",
-  "pending-app",
+  "pending_app",
   "screening",
-  "pre-qualified",
-  "pre-approved",
-  "past-clients",
+  "pre_qualified",
+  "pre_approved",
+  "past_clients",
 ];
 
 export default function PipelineViews() {
@@ -124,7 +124,7 @@ export default function PipelineViews() {
               <SelectContent>
                 {PIPELINE_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')}
+                    {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </SelectItem>
                 ))}
               </SelectContent>

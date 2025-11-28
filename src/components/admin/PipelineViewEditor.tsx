@@ -409,10 +409,10 @@ export function PipelineViewEditor({
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="leads">Leads</SelectItem>
                   <SelectItem value="screening">Screening</SelectItem>
-                  <SelectItem value="pre-qualified">Pre-Qualified</SelectItem>
-                  <SelectItem value="pre-approved">Pre-Approved</SelectItem>
-                  <SelectItem value="pending-app">Pending App</SelectItem>
-                  <SelectItem value="past-clients">Past Clients</SelectItem>
+                  <SelectItem value="pre_qualified">Pre Qualified</SelectItem>
+                  <SelectItem value="pre_approved">Pre Approved</SelectItem>
+                  <SelectItem value="pending_app">Pending App</SelectItem>
+                  <SelectItem value="past_clients">Past Clients</SelectItem>
                 </SelectContent>
               </Select>
             </div>
