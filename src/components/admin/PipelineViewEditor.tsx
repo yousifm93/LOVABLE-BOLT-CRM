@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, X, GripVertical, Eye, EyeOff, Save } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Search, Plus, X, GripVertical, Eye, EyeOff, Save, ChevronRight } from "lucide-react";
 import { generateTestRows } from "@/utils/testDataGenerator";
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
@@ -207,6 +208,7 @@ export function PipelineViewEditor({
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
+  const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -396,122 +398,137 @@ export function PipelineViewEditor({
   }
 
   return (
-    <div className="flex h-full gap-4">
-      {/* Left Sidebar - Available Fields */}
-      <Card className="w-80 flex flex-col">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold mb-3">Available Fields</h3>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col h-full gap-4">
+      {/* Top Toolbar */}
+      <Card className="p-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="view-name">View Name</Label>
             <Input
-              placeholder="Search fields..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              id="view-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter view name..."
             />
           </div>
-          <div className="text-xs text-muted-foreground mt-2">
-            {allFields.length} fields available
+          <div>
+            <Label htmlFor="pipeline-type">Pipeline</Label>
+            <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
+              <SelectTrigger id="pipeline-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="leads">Leads</SelectItem>
+                <SelectItem value="screening">Screening</SelectItem>
+                <SelectItem value="pre_qualified">Pre Qualified</SelectItem>
+                <SelectItem value="pre_approved">Pre Approved</SelectItem>
+                <SelectItem value="pending_app">Pending App</SelectItem>
+                <SelectItem value="past_clients">Past Clients</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {Object.entries(filteredGroups).map(([section, fields]) => (
-              <div key={section} className="mb-2">
-                <button
-                  onClick={() => toggleSection(section)}
-                  className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted rounded text-sm font-medium"
-                >
-                  <span>{section}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {fields.length}
-                  </Badge>
-                </button>
-                {expandedSections.has(section) && (
-                  <div className="ml-2 mt-1 space-y-1">
-                    {fields.map(field => (
-                      <div
-                        key={field.field_name}
-                        className={cn(
-                          "flex items-center justify-between px-2 py-1.5 rounded text-xs group hover:bg-muted",
-                          isFieldSelected(field.field_name) && "bg-muted/50"
-                        )}
-                      >
-                        <span className="truncate flex-1">{field.display_name}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                          onClick={() => addColumn(field.field_name)}
-                          disabled={isFieldSelected(field.field_name)}
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="default-view"
+              checked={isDefaultView}
+              onCheckedChange={setIsDefaultView}
+            />
+            <Label htmlFor="default-view">Set as Default View</Label>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={!name || columns.length === 0}>
+              <Save className="h-4 w-4 mr-2" />
+              Save View
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex gap-4 min-h-0">
+        {/* Collapsible Available Fields Panel */}
+        <Collapsible open={isFieldsPanelOpen} onOpenChange={setIsFieldsPanelOpen}>
+          <Card className={cn("flex flex-col transition-all", isFieldsPanelOpen ? "w-64" : "w-12")}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-10 w-full justify-start px-3"
+              >
+                <ChevronRight className={cn("h-4 w-4 transition-transform", isFieldsPanelOpen && "rotate-90")} />
+                {isFieldsPanelOpen && <span className="ml-2 font-semibold">Available Fields</span>}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="border-t">
+                <div className="p-3">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search fields..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {allFields.length} fields available
+                  </div>
+                </div>
+                <ScrollArea className="h-[calc(100vh-28rem)]">
+                  <div className="px-2 pb-2">
+                    {Object.entries(filteredGroups).map(([section, fields]) => (
+                      <div key={section} className="mb-2">
+                        <button
+                          onClick={() => toggleSection(section)}
+                          className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted rounded text-sm font-medium"
                         >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+                          <span>{section}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {fields.length}
+                          </Badge>
+                        </button>
+                        {expandedSections.has(section) && (
+                          <div className="ml-2 mt-1 space-y-1">
+                            {fields.map(field => (
+                              <div
+                                key={field.field_name}
+                                className={cn(
+                                  "flex items-center justify-between px-2 py-1.5 rounded text-xs group hover:bg-muted",
+                                  isFieldSelected(field.field_name) && "bg-muted/50"
+                                )}
+                              >
+                                <span className="truncate flex-1">{field.display_name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  onClick={() => addColumn(field.field_name)}
+                                  disabled={isFieldSelected(field.field_name)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                )}
+                </ScrollArea>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </Card>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
-      {/* Right Side - Editor */}
-      <div className="flex-1 flex flex-col gap-4">
-        {/* Top Toolbar */}
-        <Card className="p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="view-name">View Name</Label>
-              <Input
-                id="view-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter view name..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="pipeline-type">Pipeline</Label>
-              <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
-                <SelectTrigger id="pipeline-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="leads">Leads</SelectItem>
-                  <SelectItem value="screening">Screening</SelectItem>
-                  <SelectItem value="pre_qualified">Pre Qualified</SelectItem>
-                  <SelectItem value="pre_approved">Pre Approved</SelectItem>
-                  <SelectItem value="pending_app">Pending App</SelectItem>
-                  <SelectItem value="past_clients">Past Clients</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="default-view"
-                checked={isDefaultView}
-                onCheckedChange={setIsDefaultView}
-              />
-              <Label htmlFor="default-view">Set as Default View</Label>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={!name || columns.length === 0}>
-                <Save className="h-4 w-4 mr-2" />
-                Save View
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Live Preview Table */}
-        <Card className="flex-1 flex flex-col">
+        {/* Live Preview Table - Main Focus */}
+        <Card className="flex-1 flex flex-col min-w-0">
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Live Preview</h3>

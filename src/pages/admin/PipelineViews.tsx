@@ -105,7 +105,7 @@ export default function PipelineViews() {
   return (
     <div className="h-[calc(100vh-12rem)] flex gap-4">
       {/* Left Sidebar - Saved Views List */}
-      <Card className="w-80 flex flex-col">
+      <Card className="w-60 flex flex-col">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Saved Views</CardTitle>
@@ -124,7 +124,7 @@ export default function PipelineViews() {
               <SelectContent>
                 {PIPELINE_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                   </SelectItem>
                 ))}
               </SelectContent>
