@@ -293,6 +293,13 @@ export function PipelineViewEditor({
     }
   }, [viewId, allFields, columnOrder, columnWidths, fieldsLoading]);
 
+  // Sync local state when switching views
+  useEffect(() => {
+    setName(viewName || "");
+    setIsDefaultView(isDefault || false);
+    setHasUnsavedChanges(false); // Reset unsaved changes when switching views
+  }, [viewId, viewName, isDefault]);
+
   // Group fields by section
   const groupedFields = useMemo(() => {
     const groups: Record<string, typeof allFields> = {};
