@@ -17,6 +17,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import MortgageAppAdmin from "@/pages/admin/MortgageAppAdmin";
 import MortgageApplication from "@/pages/MortgageApplication";
 import BorrowerAuth from "@/pages/BorrowerAuth";
+import EmailVerified from "@/pages/EmailVerified";
 import NotFound from "@/pages/NotFound";
 import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
@@ -70,6 +71,7 @@ function AppRoutes() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/home-value" element={<PropertyValuePublic />} />
       <Route path="/apply/auth" element={<BorrowerAuth />} />
+      <Route path="/apply/verified" element={<EmailVerified />} />
       <Route path="/apply" element={<MortgageApplication />} />
       <Route path="*" element={<Navigate to="/auth" replace />} />
     </Routes>;

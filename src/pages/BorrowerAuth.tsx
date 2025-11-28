@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useBorrowerAuth, BorrowerAuthProvider } from '@/hooks/useBorrowerAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function BorrowerAuthContent() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signUp, signIn, resendVerificationEmail, updateEmail, session, emailVerified } = useBorrowerAuth();
   const { toast } = useToast();
   const [view, setView] = useState<'signup' | 'signin' | 'verify'>('signup');
@@ -20,6 +23,20 @@ function BorrowerAuthContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
+
+  // Check for error query params
+  const errorParam = searchParams.get('error');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (errorParam === 'invalid_token') {
+      setErrorMessage('This verification link is invalid or missing required information.');
+    } else if (errorParam === 'already_verified') {
+      setErrorMessage('This verification link has expired or has already been used.');
+    } else if (errorParam === 'verification_failed') {
+      setErrorMessage('An error occurred while verifying your email. Please try again or contact support.');
+    }
+  }, [errorParam]);
 
   // Redirect authenticated users with verified emails to application
   useEffect(() => {
@@ -112,6 +129,13 @@ function BorrowerAuthContent() {
 
             {/* Right side - Form */}
             <div className="p-8 md:p-12">
+              {errorMessage && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              
               {view === 'signup' && (
                 <>
                   <CardHeader className="px-0 pt-0">
