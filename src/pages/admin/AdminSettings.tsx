@@ -1,8 +1,9 @@
-import { Settings, FileQuestion, Shield, Layout } from "lucide-react";
+import { Settings, FileQuestion, Shield, Layout, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PasswordsVault from "@/pages/PasswordsVault";
 import PipelineViews from "@/pages/admin/PipelineViews";
+import FridayNewsletterBuilder from "@/components/admin/FridayNewsletterBuilder";
 
 export default function AdminSettings() {
   return (
@@ -16,7 +17,7 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="system" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System Settings
@@ -32,6 +33,10 @@ export default function AdminSettings() {
             <TabsTrigger value="pipeline-views" className="flex items-center gap-2">
               <Layout className="h-4 w-4" />
               Pipeline Views
+            </TabsTrigger>
+            <TabsTrigger value="friday-newsletter" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Friday Newsletter
             </TabsTrigger>
           </TabsList>
 
@@ -67,6 +72,10 @@ export default function AdminSettings() {
 
           <TabsContent value="pipeline-views" className="space-y-4">
             <PipelineViews />
+          </TabsContent>
+
+          <TabsContent value="friday-newsletter" className="space-y-4">
+            <FridayNewsletterBuilder />
           </TabsContent>
         </Tabs>
       </div>
