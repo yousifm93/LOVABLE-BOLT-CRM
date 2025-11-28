@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useBorrowerAuth } from '@/hooks/useBorrowerAuth';
+import { useBorrowerAuth, BorrowerAuthProvider } from '@/hooks/useBorrowerAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-export default function BorrowerAuth() {
+function BorrowerAuthContent() {
   const navigate = useNavigate();
   const { user, signUp, signIn, resendVerificationEmail, updateEmail, session } = useBorrowerAuth();
   const { toast } = useToast();
@@ -284,5 +284,13 @@ export default function BorrowerAuth() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function BorrowerAuth() {
+  return (
+    <BorrowerAuthProvider>
+      <BorrowerAuthContent />
+    </BorrowerAuthProvider>
   );
 }
