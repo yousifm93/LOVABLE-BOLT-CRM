@@ -3,6 +3,12 @@ project_id = "zpsvatonxakysnbqnfcc"
 [functions.submit-mortgage-application]
 verify_jwt = false
 
+[functions.send-verification-email]
+verify_jwt = false
+
+[functions.verify-email]
+verify_jwt = false
+
 [functions.parse-lead-image]
 verify_jwt = true
 

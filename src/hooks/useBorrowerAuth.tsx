@@ -7,6 +7,7 @@ interface BorrowerAuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  emailVerified: boolean;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -20,6 +21,7 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerified, setEmailVerified] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,6 +34,15 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Check email verification status from application_users
+        if (session?.user) {
+          setTimeout(() => {
+            checkEmailVerification(session.user.id);
+          }, 0);
+        } else {
+          setEmailVerified(false);
+        }
       }
     );
 
@@ -41,6 +52,13 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Check email verification status
+      if (session?.user) {
+        setTimeout(() => {
+          checkEmailVerification(session.user.id);
+        }, 0);
+      }
     });
 
     return () => {
@@ -49,11 +67,27 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const checkEmailVerification = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('application_users')
+        .select('email_verified')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setEmailVerified(data.email_verified);
+      }
+    } catch (error) {
+      console.error('Error checking email verification:', error);
+    }
+  };
+
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/apply`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -74,9 +108,39 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
         return { error };
       }
 
+      // Insert into application_users with email_verified = false
+      if (data.user) {
+        const { error: insertError } = await supabase
+          .from('application_users')
+          .insert({
+            id: data.user.id,
+            email: email,
+            first_name: firstName || null,
+            last_name: lastName || null,
+            email_verified: false,
+          });
+
+        if (insertError) {
+          console.error('Error inserting application user:', insertError);
+        }
+
+        // Send verification email via edge function
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
+            body: { userId: data.user.id, email: email, firstName: firstName },
+          });
+
+          if (emailError) {
+            console.error('Error sending verification email:', emailError);
+          }
+        } catch (emailError) {
+          console.error('Error calling send-verification-email:', emailError);
+        }
+      }
+
       toast({
         title: "Account created!",
-        description: "You can now save your progress as you complete the application.",
+        description: "Please check your email to verify your account.",
       });
 
       return { error: null };
@@ -136,12 +200,25 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
 
   const resendVerificationEmail = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/apply`,
-        },
+      // Get user by email from application_users
+      const { data: appUser, error: fetchError } = await supabase
+        .from('application_users')
+        .select('id, first_name')
+        .eq('email', email)
+        .single();
+
+      if (fetchError || !appUser) {
+        toast({
+          title: "Failed to resend email",
+          description: "Could not find user with this email",
+          variant: "destructive",
+        });
+        return { error: fetchError };
+      }
+
+      // Send verification email via edge function
+      const { error } = await supabase.functions.invoke('send-verification-email', {
+        body: { userId: appUser.id, email: email, firstName: appUser.first_name },
       });
 
       if (error) {
@@ -196,6 +273,7 @@ export function BorrowerAuthProvider({ children }: { children: ReactNode }) {
     user,
     session,
     loading,
+    emailVerified,
     signUp,
     signIn,
     signOut,
