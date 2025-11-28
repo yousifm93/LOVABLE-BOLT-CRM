@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Friday Newsletter - Mortgage Bolt</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preheader Text -->
+    <div style="display: none; max-height: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: transparent;">
+        Your weekly resource for all things mortgage • Rates • Market Updates • Expert Tips
+    </div>
+
+    <style>
+        body, table, td, p, a, li, blockquote {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        
+        table {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+        }
+        
+        .header-line {
+            display: inline-block;
+            width: 50px;
+            height: 2px;
+            background-color: #FFD700;
+            vertical-align: middle;
+            margin: 0 15px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .section-title {
+            display: inline-block;
+            font-size: 24px;
+            font-weight: 700;
+            color: #000000;
+            margin: 0;
+            vertical-align: middle;
+        }
+        
+        .review-bubble {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 500px;
+            position: relative;
+            color: white;
+            text-align: center;
+        }
+        
+        .review-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid #3b82f6;
+        }
+        
+        .mb-logo-circle {
+            width: 50px;
+            height: 50px;
+            background-color: #FFD700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media only screen and (max-width: 600px) {
+            .mobile-stack {
+                display: block !important;
+                width: 100% !important;
+            }
+            .mobile-center {
+                text-align: center !important;
+            }
+            .mobile-padding {
+                padding: 15px !important;
+            }
+            .mobile-font {
+                font-size: 16px !important;
+                line-height: 1.4 !important;
+            }
+            .mobile-button {
+                width: 100% !important;
+                padding: 15px 20px !important;
+            }
+            .section-title { 
+                font-size: 18px !important; 
+                white-space: normal !important;
+            }
+            .header-line { 
+                width: 30px !important; 
+                margin: 0 10px !important; 
+            }
+            .container { 
+                width: 100% !important; 
+            }
+      }
+      
+      /* Button Hover Animations */
+      .mobile-button {
+        transition: all 0.3s ease !important;
+      }
+      
+      a[class="mobile-button"]:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4) !important;
+      }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5;">
+    
+    <!-- Main Container -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                
+                <!-- Email Content Table -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="background-color: #ffffff; max-width: 600px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    
+                    <!-- Logo Header -->
+                    <tr>
+                        <td style="background-color: #f5f5f5; padding: 10px 10px 0px 10px; text-align: center; border-bottom: 2px solid #f0f0f0; border-radius: 8px 8px 0 0;">
+                            <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/MB%20black%20logo.png" alt="Mortgage Bolt" width="140" height="45" style="height: 45px; width: auto; max-width: 100%;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Newsletter Header GIF -->
+                    <tr>
+                        <td style="padding: 0px 20px 4px 20px; text-align: center; background-color: #f5f5f5;">
+                            <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/FRIDAY%20NEWSLETTER%20HEADER%20(Email%20Newsletter)%20(5)%20(1).gif" alt="Friday Newsletter Header" style="width: 100%; height: auto; border-radius: 10px; margin-top: -10px; filter: contrast(1.1) brightness(1.05);">
+                        </td>
+                    </tr>
+                    
+                    <!-- START: market-updates -->
+                    <!-- Market Updates Section -->
+                    <tr>
+                        <td style="padding: 6px 20px 12px 20px;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title">Market Updates</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <!-- Rate Boxes -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0;">
+                                <tr>
+                                    <td width="33.33%" style="padding: 0 7px;">
+                                        <div style="background: #FED34A; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #333333;">
+                                            <div style="color: #666; font-size: 15px; margin-bottom: 5px; font-family: 'Open Sans', Arial, sans-serif;">10-Year Fixed</div>
+                                            <div style="color: #1a1a1a; font-size: 34px; font-weight: bold; font-family: 'Open Sans', Arial, sans-serif;"><!-- RATE_10_YEAR -->4.99<!-- /RATE_10_YEAR -->%</div>
+                                            <div style="color: #888; font-size: 12px; margin-top: 5px; font-family: 'Open Sans', Arial, sans-serif;">APR <!-- APR_10_YEAR -->5.05<!-- /APR_10_YEAR -->%</div>
+                                        </div>
+                                    </td>
+                                    <td width="33.33%" style="padding: 0 7px;">
+                                        <div style="background: #FED34A; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #333333;">
+                                            <div style="color: #666; font-size: 15px; margin-bottom: 5px; font-family: 'Open Sans', Arial, sans-serif;">15-Year Fixed</div>
+                                            <div style="color: #1a1a1a; font-size: 34px; font-weight: bold; font-family: 'Open Sans', Arial, sans-serif;"><!-- RATE_15_YEAR -->5.44<!-- /RATE_15_YEAR -->%</div>
+                                            <div style="color: #888; font-size: 12px; margin-top: 5px; font-family: 'Open Sans', Arial, sans-serif;">APR <!-- APR_15_YEAR -->5.50<!-- /APR_15_YEAR -->%</div>
+                                        </div>
+                                    </td>
+                                    <td width="33.33%" style="padding: 0 7px;">
+                                        <div style="background: #FED34A; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #333333;">
+                                            <div style="color: #666; font-size: 15px; margin-bottom: 5px; font-family: 'Open Sans', Arial, sans-serif;">30-Year Fixed</div>
+                                            <div style="color: #1a1a1a; font-size: 34px; font-weight: bold; font-family: 'Open Sans', Arial, sans-serif;"><!-- RATE_30_YEAR -->6.19<!-- /RATE_30_YEAR -->%</div>
+                                            <div style="color: #888; font-size: 12px; margin-top: 5px; font-family: 'Open Sans', Arial, sans-serif;">APR <!-- APR_30_YEAR -->6.25<!-- /APR_30_YEAR -->%</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Market Commentary -->
+                            <div style="margin: 30px auto 0 auto; padding: 0 20px; text-align: center;">
+                                <p style="color: #555; font-size: 14px; line-height: 1.6; margin: 0 0 15px 0; font-family: 'Open Sans', Arial, sans-serif; font-style: italic;"><!-- MARKET_COMMENTARY -->"Mortgage rates remain elevated but stable this week, with 30-year fixed loans hanging in the low-to-mid 6% range, so if you're considering buying or refinancing, locking in now may cost less than waiting for a significant drop."<!-- /MARKET_COMMENTARY --></p>
+                                
+                                <!-- Agent Profile -->
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px; padding: 15px;">
+                                    <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Yousif Mohamed" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+                                    <div>
+                                        <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0 0 4px 0; font-family: 'Open Sans', Arial, sans-serif;">Yousif Mohamed</div>
+                                        <div style="color: #666; font-size: 11px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Mortgage Loan Officer</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: market-updates -->
+                    
+                    <!-- START: review-week -->
+                    <!-- Review of the Week! Section -->
+                    <tr>
+                        <td style="padding: 8px 30px 12px 30px; background-color: #ffffff;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Review of the Week!</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+        <div style="max-width: 600px; margin: 10px auto; padding: 25px 35px; background: linear-gradient(135deg, #FFFBF0 0%, #FFF9E6 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); position: relative; text-align: center;">
+            <!-- Opening Quote Mark -->
+            <div style="position: absolute; top: 15px; left: 20px; font-size: 60px; line-height: 1; color: #FFD700; opacity: 0.3; font-family: Georgia, serif;">"</div>
+            
+            <!-- Review Text -->
+            <p style="margin: 0 0 25px 0; padding: 0 10px; color: #1a1a1a; font-size: 13px; line-height: 1.6; font-style: italic; font-family: 'Open Sans', Georgia, serif; position: relative; z-index: 1; text-align: center;">
+                <!-- REVIEW_TEXT -->Working with Mortgage Bolt was an absolute game-changer! They made the entire process seamless and stress-free. From the initial consultation to closing day, their team was professional, responsive, and truly had our best interests at heart. We couldn't be happier with our new home!<!-- /REVIEW_TEXT -->
+            </p>
+            
+            <!-- Closing Quote Mark -->
+            <div style="position: absolute; bottom: 85px; right: 20px; font-size: 60px; line-height: 1; color: #FFD700; opacity: 0.3; font-family: Georgia, serif;">"</div>
+            
+            <!-- Divider Line -->
+            <div style="width: 60px; height: 3px; background: linear-gradient(90deg, #FFD700, #FFC107); margin: 0 auto 15px auto; border-radius: 2px;"></div>
+            
+            <!-- Customer Attribution -->
+            <div style="position: relative; z-index: 1; text-align: center;">
+                <p style="margin: 0 0 4px 0; color: #000000; font-size: 15px; font-weight: 700; font-family: 'Poppins', Arial, sans-serif;">
+                    <!-- REVIEW_NAME -->Sarah & Michael Johnson<!-- /REVIEW_NAME -->
+                </p>
+                <p style="margin: 0 0 3px 0; color: #555; font-size: 13px; font-family: 'Open Sans', Arial, sans-serif;">
+                    <!-- REVIEW_DESC -->First-Time Homebuyers<!-- /REVIEW_DESC -->
+                </p>
+                <p style="margin: 0 0 20px 0; color: #888; font-size: 12px; font-family: 'Open Sans', Arial, sans-serif;">
+                    <!-- REVIEW_DATE -->November 2024<!-- /REVIEW_DATE -->
+                </p>
+                
+                <!-- "See more reviews" Button -->
+                <a href="<!-- REVIEW_BTN_URL -->https://mortgagebolt.com/reviews<!-- /REVIEW_BTN_URL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: 'Open Sans', Arial, sans-serif;" class="mobile-button">See More Reviews</a>
+            </div>
+        </div>
+                        </td>
+                    </tr>
+                    <!-- END: review-week -->
+                    
+                    <!-- START: events-activities -->
+                    <!-- Events and Activities Section -->
+                    <tr>
+                        <td style="padding: 12px 20px;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Events and Activities</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 15px; padding: 12px; border-radius: 12px;">
+                <!-- Event 1 -->
+                <div style="display: flex; gap: 20px; align-items: center; padding: 20px; background: transparent; border-radius: 8px; min-height: 120px;">
+                    <!-- EVENT_1_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/newsletter%20media/1.png" alt="Event 1" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; flex-shrink: 0;"><!-- /EVENT_1_IMAGE -->
+                    <div style="flex: 1;">
+                        <div>
+                            <div style="color: #1a1a1a; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_1_TITLE -->Amazonico is now open!<!-- /EVENT_1_TITLE --></div>
+                            <div style="color: #555; font-size: 13px; line-height: 1.4; margin-bottom: 12px; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_1_DESC -->The newest hotspot in Brickell is here! Reach out to us if you need to secure a reservation - we have the connects for all of our past clients & agent partners!<br><br>Reach out to us if you need help.<!-- /EVENT_1_DESC --></div>
+                            <a href="<!-- EVENT_1_BTN_URL -->#<!-- /EVENT_1_BTN_URL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;" class="mobile-button"><!-- EVENT_1_BTN_TEXT -->Make a Reservation<!-- /EVENT_1_BTN_TEXT --></a>
+                        </div>
+                    </div>
+                </div>
+                
+                 <!-- Event 2 -->
+                 <div style="display: flex; gap: 20px; align-items: center; padding: 20px; background: #f8f9fa; border-radius: 8px; min-height: 120px;">
+                     <div style="flex: 1;">
+                         <div>
+                             <div style="color: #1a1a1a; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_2_TITLE -->Florida Gators, am I right?!<!-- /EVENT_2_TITLE --></div>
+                             <div style="color: #555; font-size: 13px; line-height: 1.4; margin-bottom: 12px; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_2_DESC -->Mortgage Bolt loves a good game day! Catch us at Batch in Brickell every Saturday cheering our alma mater on!<br><br>Reach out to us if you're around.<!-- /EVENT_2_DESC --></div>
+                             <a href="<!-- EVENT_2_BTN_URL -->#<!-- /EVENT_2_BTN_URL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;" class="mobile-button"><!-- EVENT_2_BTN_TEXT -->Let Us Know<!-- /EVENT_2_BTN_TEXT --></a>
+                         </div>
+                     </div>
+                     <!-- EVENT_2_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/newsletter%20media/2.png" alt="Event 2" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; flex-shrink: 0;"><!-- /EVENT_2_IMAGE -->
+                 </div>
+                
+                <!-- Event 3 -->
+                <div style="display: flex; gap: 20px; align-items: center; padding: 20px; background: transparent; border-radius: 8px; min-height: 120px;">
+                    <!-- EVENT_3_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/newsletter%20media/3.png" alt="Event 3" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; flex-shrink: 0;"><!-- /EVENT_3_IMAGE -->
+                    <div style="flex: 1;">
+                        <div>
+                            <div style="color: #1a1a1a; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_3_TITLE -->An Epic Brokers open!<!-- /EVENT_3_TITLE --></div>
+                            <div style="color: #555; font-size: 13px; line-height: 1.4; margin-bottom: 12px; font-family: 'Open Sans', Arial, sans-serif;"><!-- EVENT_3_DESC -->In case you missed it, this $5.6mm penthouse is on the market and priced to sell. Reach out to us or our agent partner David Freed for more info!<br><br>Reach out to us if you're around.<!-- /EVENT_3_DESC --></div>
+                            <a href="<!-- EVENT_3_BTN_URL -->#<!-- /EVENT_3_BTN_URL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;" class="mobile-button"><!-- EVENT_3_BTN_TEXT -->More Details Here<!-- /EVENT_3_BTN_TEXT --></a>
+                        </div>
+                    </div>
+                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: events-activities -->
+                    
+                    <!-- START: featured-listing -->
+                    <!-- Featured Listing Section -->
+                    <tr>
+                        <td style="padding: 15px 30px; background-color: #f8f9fa; border-bottom: 1px solid #e2e8f0;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Featured Listing</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <div style="background-color: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 0 auto; max-width: 500px;">
+                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" class="mobile-stack">
+                     <tr>
+                         <td width="40%" style="vertical-align: top; padding-right: 20px;">
+                             <!-- LISTING_IMAGE --><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9" alt="Featured Property" style="width: 100%; height: auto; border-radius: 10px; object-fit: cover;"><!-- /LISTING_IMAGE -->
+                         </td>
+                         <td width="60%" style="vertical-align: top;">
+                             <h3 style="margin: 0 0 10px 0; color: #000000; font-size: 20px; font-weight: bold;"><!-- LISTING_STREET -->1900 Pizarro Street<!-- /LISTING_STREET --></h3>
+                             <p style="margin: 0 0 6px 0; color: #6B7280; font-size: 14px;"><!-- LISTING_CITY -->Coral Gables, FL 33134<!-- /LISTING_CITY --></p>
+                             <p style="margin: 0 0 8px 0; color: #374151; font-size: 14px;"><strong><!-- LISTING_BEDS -->4<!-- /LISTING_BEDS --></strong> Beds, <strong><!-- LISTING_BATHS -->3<!-- /LISTING_BATHS --></strong> Baths, <strong><!-- LISTING_SQFT -->3,359<!-- /LISTING_SQFT --></strong> Sq Ft</p>
+                             <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 13px;">Listed by <!-- LISTING_AGENT -->Edwin Meza<!-- /LISTING_AGENT --></p>
+                             <div style="margin: 0 0 16px 0; color: #DC2626; font-size: 20px; font-weight: bold;"><!-- LISTING_PRICE -->$2,600,000<!-- /LISTING_PRICE --></div>
+                         </td>
+                     </tr>
+                     <tr>
+                         <td colspan="2" style="padding-top: 15px;">
+                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                 <a href="mailto:<!-- LISTING_CONTACT_EMAIL -->edwin@mortgagebolt.com<!-- /LISTING_CONTACT_EMAIL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;" class="mobile-button">Contact Edwin</a>
+                                 <a href="<!-- LISTING_SEE_MORE_URL -->https://mortgagebolt.com/listings<!-- /LISTING_SEE_MORE_URL -->" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;" class="mobile-button">See More Featured Listings</a>
+                             </div>
+                         </td>
+                     </tr>
+                 </table>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: featured-listing -->
+                    
+                    <!-- START: closing-week -->
+                    <!-- Closing of the Week Section -->
+                    <tr>
+                        <td style="padding: 15px 20px; background: #f8f9fa;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Closing of the Week</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <div style="max-width: 500px; margin: 0 auto;">
+                                 <div style="padding: 20px; background: white; border-radius: 12px;">
+                                     <!-- CLOSING_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/closing%20pic%201.jpeg" alt="Happy family at closing" style="width: 85%; max-width: 450px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; margin: 0 auto 20px auto; display: block;"><!-- /CLOSING_IMAGE -->
+                                     <div style="text-align: center;">
+                                         <div style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 8px 0; font-family: 'Poppins', Arial, sans-serif;"><!-- CLOSING_TITLE -->The Martinez Family<!-- /CLOSING_TITLE --></div>
+                                         <div style="color: #666; font-size: 14px; margin: 0 0 15px 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- CLOSING_LOCATION -->Coral Gables, FL<!-- /CLOSING_LOCATION --> • <!-- CLOSING_PRICE -->$485,000<!-- /CLOSING_PRICE --></div>
+                                         <div style="color: #555; font-size: 14px; line-height: 1.5; font-family: 'Open Sans', Arial, sans-serif;"><!-- CLOSING_DESCRIPTION -->Successfully closed on their dream home with a competitive rate and smooth process. This lovely family found the perfect neighborhood for their growing needs.<!-- /CLOSING_DESCRIPTION --></div>
+                                     </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: closing-week -->
+                    
+                    <!-- START: featured-agents -->
+                    <!-- Featured Agents Section -->
+                    <tr>
+                        <td style="padding: 15px 20px; background: #ffffff;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Featured Agents</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <p style="text-align: center; color: #555; font-size: 14px; line-height: 1.6; margin: 0 0 25px 0; padding: 0 20px; font-family: 'Open Sans', Arial, sans-serif;">These are agents we know, trust, and have great experiences with. If you're looking for an amazing agent to work with, consider these three.</p>
+                            
+                            <div style="display: flex; justify-content: center; gap: 30px; margin: 0 0 25px 0; flex-wrap: wrap;">
+                                <div style="text-align: center;">
+                                    <!-- AGENT_1_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Featured Agent 1" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #FFD700; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;"><!-- /AGENT_1_IMAGE -->
+                                    <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- AGENT_1_NAME -->Eric Leibbaum<!-- /AGENT_1_NAME --></div>
+                                </div>
+                                 <div style="text-align: center;">
+                                     <!-- AGENT_2_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Featured Agent 2" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #FFD700; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;"><!-- /AGENT_2_IMAGE -->
+                                     <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- AGENT_2_NAME -->David Rocca<!-- /AGENT_2_NAME --></div>
+                                 </div>
+                                 <div style="text-align: center;">
+                                     <!-- AGENT_3_IMAGE --><img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Featured Agent 3" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #FFD700; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;"><!-- /AGENT_3_IMAGE -->
+                                    <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0; font-family: 'Open Sans', Arial, sans-serif;"><!-- AGENT_3_NAME -->Tristan Castillo<!-- /AGENT_3_NAME --></div>
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <a href="#" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 12px 25px; border-radius: 25px; font-weight: 600; font-size: 16px;" class="mobile-button">Learn More About Featured Agents</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: featured-agents -->
+                    
+                    <!-- START: refinancing -->
+                    <!-- Interested in Refinancing Section -->
+                    <tr>
+                        <td style="padding: 15px 30px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Interested in Refinancing?</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <div style="text-align: center; padding: 12px;">
+                                <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6; font-family: 'Open Sans', Arial, sans-serif;">Take advantage of current market conditions and potentially lower your monthly payments. Our refinancing experts will help you explore your options.</p>
+                                
+                                <div style="text-align: center; margin: 20px 0;">
+                                    <div style="width: 100%; max-width: 560px; aspect-ratio: 16/9; background-color: #f0f0f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 2px dashed #ccc;">
+                                        <p style="color: #999; font-size: 14px; margin: 0;">Video Placeholder (16:9)</p>
+                                    </div>
+                                </div>
+                                
+                                <a href="#" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 15px 25px; border-radius: 25px; font-weight: 600; font-size: 16px; margin-top: 20px;" class="mobile-button">Schedule a Free 10-Minute Call</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: refinancing -->
+                    
+                    <!-- START: meet-team -->
+                    <!-- Meet The Team Section -->
+                    <tr>
+                        <td style="padding: 15px 20px;">
+                            <div class="section-header">
+                                <span class="header-line"></span>
+                                <h2 class="section-title" style="font-family: 'Poppins', Arial, sans-serif;">Meet The Team</h2>
+                                <span class="header-line"></span>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <!-- Top Row - Three Large Headshots -->
+                                <div style="display: flex; justify-content: center; gap: 30px; margin: 0 0 30px 0; flex-wrap: wrap;">
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/ym%20circle%20headshot.JPG" alt="Team Member 1" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0 0 4px 0; font-family: 'Inter', Arial, sans-serif;">Yousif Mohamed</div>
+                                        <div style="color: #666; font-size: 12px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Senior Loan Officer</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/sal%20circle%20headshot.JPG" alt="Team Member 2" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0 0 4px 0; font-family: 'Open Sans', Arial, sans-serif;">Salma Mohamed</div>
+                                        <div style="color: #666; font-size: 12px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Loan Officer</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/jay%20circle%20headshot.JPG" alt="Team Member 3" style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; margin: 0 auto 10px auto; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 14px; font-weight: 600; margin: 0 0 4px 0; font-family: 'Open Sans', Arial, sans-serif;">Jay Mohamed</div>
+                                        <div style="color: #666; font-size: 12px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Loan Officer</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bottom Row - Four Smaller Headshots -->
+                                <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: nowrap;">
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/HD%20headshot.JPG" alt="Herman Daza" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px auto; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 11px; font-weight: 600; margin: 0 0 2px 0; font-family: 'Open Sans', Arial, sans-serif;">Herman Daza</div>
+                                        <div style="color: #666; font-size: 9px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Pre-Approval Expert</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/JD%20headshot.JPG" alt="Juan Hurtado" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px auto; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 11px; font-weight: 600; margin: 0 0 2px 0; font-family: 'Open Sans', Arial, sans-serif;">Juan Hurtado</div>
+                                        <div style="color: #666; font-size: 9px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Pre-Approval Expert</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/AM%20headshot.JPG" alt="Ashley Merizio" style="width: 60px; height: 60px; border-radius: 50%; object-fit: contain; margin: 0 auto 8px auto; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: block; background: #f5f5f5;">
+                                        <div style="color: #1a1a1a; font-size: 11px; font-weight: 600; margin: 0 0 2px 0; font-family: 'Open Sans', Arial, sans-serif;">Ashley Merizio</div>
+                                        <div style="color: #666; font-size: 9px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Processor</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <img src="https://zpsvatonxakysnbqnfcc.supabase.co/storage/v1/object/public/pics/AM%20headshot.JPG" alt="Team Member 6" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px auto; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: block;">
+                                        <div style="color: #1a1a1a; font-size: 11px; font-weight: 600; margin: 0 0 2px 0; font-family: 'Open Sans', Arial, sans-serif;">Barbara Fuertes</div>
+                                        <div style="color: #666; font-size: 9px; margin: 0; font-family: 'Open Sans', Arial, sans-serif;">Processor</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- END: meet-team -->
+                    
+                    <!-- Call to Action Section -->
+                    <tr>
+                        <td style="padding: 40px 30px; background: #000000; text-align: center;">
+                            <h2 style="margin: 0 0 20px 0; font-size: 28px; font-weight: 700; color: #FFD700;">Ready to Get Started?</h2>
+                            <p style="margin: 0 0 30px 0; font-size: 16px; color: #ffffff; line-height: 1.6;">Whether you're buying your first home, refinancing, or investing in real estate, I'm here to help you achieve your goals.</p>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="padding: 0 10px;">
+                                        <a href="#" style="display: inline-block; background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%); color: #000000; text-decoration: none; padding: 15px 25px; border-radius: 25px; font-weight: 600; font-size: 16px;" class="mobile-button">Schedule a Call</a>
+                                    </td>
+                                    <td style="padding: 0 10px;">
+                                        <a href="#" style="display: inline-block; background-color: transparent; color: #FFD700; text-decoration: none; padding: 15px 25px; border: 2px solid #FFD700; border-radius: 25px; font-weight: 600; font-size: 16px;" class="mobile-button">Apply Now</a>
+                                    </td>
+                                    <td style="padding: 0 10px;">
+                                        <a href="#" style="display: inline-block; background-color: transparent; color: #FFD700; text-decoration: none; padding: 15px 25px; border: 2px solid #FFD700; border-radius: 25px; font-weight: 600; font-size: 16px;" class="mobile-button">Email Us</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+</body>
+</html>
