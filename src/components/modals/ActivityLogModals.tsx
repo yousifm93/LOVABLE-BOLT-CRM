@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,13 +125,10 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
+            <RichTextEditor
               value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={4}
+              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
               placeholder="Enter call notes..."
-              required
             />
           </div>
 
@@ -239,13 +236,10 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
+            <RichTextEditor
               value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={4}
+              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
               placeholder="Enter SMS notes..."
-              required
             />
           </div>
 
@@ -354,13 +348,10 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
+            <RichTextEditor
               value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              rows={4}
+              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
               placeholder="Enter email notes..."
-              required
             />
           </div>
 
@@ -448,13 +439,10 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="note">Note</Label>
-            <Textarea
-              id="note"
+            <RichTextEditor
               value={noteBody}
-              onChange={(e) => setNoteBody(e.target.value)}
-              rows={4}
+              onChange={setNoteBody}
               placeholder="Enter your note here..."
-              required
             />
           </div>
 

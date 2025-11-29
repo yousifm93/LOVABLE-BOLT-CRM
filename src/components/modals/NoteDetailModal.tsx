@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { format } from 'date-fns';
 import { Mail, MessageSquare, Phone, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -163,16 +163,17 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
           </div>
 
           {isEditing ? (
-            <Textarea
+            <RichTextEditor
               value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
+              onChange={setEditedContent}
               className="min-h-[400px]"
             />
           ) : (
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-              <div className="whitespace-pre-wrap text-sm">
-                {note.description || 'No description provided.'}
-              </div>
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: note.description || 'No description provided.' }}
+              />
             </ScrollArea>
           )}
 

@@ -195,8 +195,8 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
               {activity.description && (
                 <CollapsibleContent>
                   <div className="pl-11 pr-2 pt-2">
-                    <p 
-                      className="text-sm text-muted-foreground whitespace-pre-wrap cursor-pointer hover:text-foreground transition-colors"
+                    <div 
+                      className="text-sm text-muted-foreground prose prose-sm max-w-none cursor-pointer hover:text-foreground transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (isClickable) {
@@ -208,9 +208,8 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                           }
                         }
                       }}
-                    >
-                      {activity.description}
-                    </p>
+                      dangerouslySetInnerHTML={{ __html: activity.description }}
+                    />
                   </div>
                 </CollapsibleContent>
               )}
