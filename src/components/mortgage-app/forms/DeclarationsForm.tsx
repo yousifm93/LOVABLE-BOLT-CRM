@@ -16,20 +16,20 @@ interface DeclarationsFormProps {
 
 const declarations = [
   {
-    id: 'declared-bankruptcy',
-    question: 'Have you declared bankruptcy within the past 7 years?',
-  },
-  {
-    id: 'property-foreclosed',
-    question: 'Have you had property foreclosed upon in the last 7 years?',
-  },
-  {
-    id: 'alimony-obligations',
-    question: 'Are you obligated to pay alimony, child support, or separate maintenance?',
+    id: 'primary-residence',
+    question: 'Will you occupy the property as your primary residence?',
   },
   {
     id: 'ownership-interest',
     question: 'Have you had an ownership interest in another property in the last three years?',
+  },
+  {
+    id: 'seller-affiliation',
+    question: 'Do you have a family/business affiliation with the seller?',
+  },
+  {
+    id: 'borrowing-undisclosed',
+    question: 'Are you borrowing any money for this transaction not disclosed elsewhere?',
   },
 ];
 

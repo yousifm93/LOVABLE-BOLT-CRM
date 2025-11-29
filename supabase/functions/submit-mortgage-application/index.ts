@@ -134,12 +134,26 @@ Deno.serve(async (req) => {
       'foreign-national': 'Foreign National',
     };
 
+    // Calculate Principal & Interest (P&I) using standard amortization formula
+    const salesPrice = mortgageInfo.purchasePrice ? parseFloat(mortgageInfo.purchasePrice.replace(/,/g, '')) : 0;
+    const downPayment = mortgageInfo.downPaymentAmount ? parseFloat(mortgageInfo.downPaymentAmount.replace(/,/g, '')) : 0;
+    const loanAmount = salesPrice - downPayment;
+    const interestRate = 7.0; // 7% default
+    const termMonths = 360; // 30 years default
+    const monthlyRate = interestRate / 100 / 12;
+    const principalInterest = loanAmount > 0 
+      ? Math.round(loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1))
+      : 0;
+    
+    // Default property taxes: 1% of purchase price / 12
+    const propertyTaxes = salesPrice > 0 ? Math.round(salesPrice * 0.01 / 12) : 0;
+
     // Prepare lead data
     const leadData = {
       first_name: personalInfo.firstName,
       last_name: personalInfo.lastName,
       middle_name: personalInfo.middleName || null,
-      phone: personalInfo.phone || null,
+      phone: personalInfo.cellPhone || null,
       email: personalInfo.email,
       dob: personalInfo.dateOfBirth || null,
       fico_score: personalInfo.estimatedCreditScore ? creditScoreMap[personalInfo.estimatedCreditScore] || null : null,
@@ -156,15 +170,21 @@ Deno.serve(async (req) => {
       loan_type: applicationData.loanPurpose || null,
       property_type: mortgageInfo.propertyType || null,
       occupancy: mortgageInfo.occupancy || null,
-      sales_price: mortgageInfo.purchasePrice ? parseFloat(mortgageInfo.purchasePrice.replace(/,/g, '')) : null,
-      loan_amount: mortgageInfo.purchasePrice && mortgageInfo.downPaymentAmount ? 
-        parseFloat(mortgageInfo.purchasePrice.replace(/,/g, '')) - parseFloat(mortgageInfo.downPaymentAmount.replace(/,/g, '')) : null,
-      down_pmt: mortgageInfo.downPaymentAmount || null,
+      sales_price: salesPrice || null,
+      loan_amount: loanAmount || null,
+      down_pmt: downPayment || null,
       monthly_pmt_goal: mortgageInfo.comfortableMonthlyPayment ? parseFloat(mortgageInfo.comfortableMonthlyPayment.replace(/,/g, '')) : null,
       
-      subject_city: mortgageInfo.location?.city || null,
-      subject_state: mortgageInfo.location?.state || null,
-      subject_zip: mortgageInfo.location?.zipCode || null,
+      // Auto-calculated fields
+      principal_interest: principalInterest,
+      homeowners_insurance: 100, // Default $100/month
+      property_taxes: propertyTaxes,
+      interest_rate: interestRate,
+      term: termMonths,
+      
+      subject_city: mortgageInfo.targetLocation?.city || null,
+      subject_state: mortgageInfo.targetLocation?.state || null,
+      subject_zip: mortgageInfo.targetLocation?.zipCode || null,
       
       total_monthly_income: totalMonthlyIncome > 0 ? totalMonthlyIncome : null,
       assets: totalAssets > 0 ? totalAssets : null,

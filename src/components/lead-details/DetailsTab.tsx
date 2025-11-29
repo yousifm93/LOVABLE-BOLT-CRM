@@ -858,7 +858,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     {
       icon: User,
       label: "Race",
-      value: (client as any).demographic_race || "—"
+      value: (() => {
+        const raceObj = (client as any).demographic_race;
+        if (!raceObj || typeof raceObj !== 'object') return raceObj || "—";
+        const selectedRaces = [];
+        if (raceObj.americanIndianAlaskaNative) selectedRaces.push("American Indian/Alaska Native");
+        if (raceObj.asian) selectedRaces.push("Asian");
+        if (raceObj.blackAfricanAmerican) selectedRaces.push("Black/African American");
+        if (raceObj.nativeHawaiianPacificIslander) selectedRaces.push("Native Hawaiian/Pacific Islander");
+        if (raceObj.white) selectedRaces.push("White");
+        if (raceObj.doNotWishToProvide) return "Prefer not to disclose";
+        return selectedRaces.length > 0 ? selectedRaces.join(", ") : "—";
+      })()
     },
     {
       icon: User,
@@ -959,9 +970,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
               <span className="text-2xl font-bold text-primary">
                 {(() => {
                   const totalIncome = isEditing ? (editData.total_monthly_income || 0) : ((client as any).totalMonthlyIncome || 0);
-                  const totalLiabilities = isEditing ? (editData.monthly_liabilities || 0) : ((client as any).monthlyLiabilities || 0);
                   const piti = isEditing ? calculatePITI() : ((client as any).piti || 0);
-                  const dti = totalIncome > 0 ? ((totalLiabilities + piti) / totalIncome * 100) : 0;
+                  const dti = totalIncome > 0 ? (piti / totalIncome * 100) : 0;
                   return `${dti.toFixed(2)}%`;
                 })()}
               </span>

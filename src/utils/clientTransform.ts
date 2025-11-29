@@ -10,12 +10,16 @@ const calculateDownPayment = (salesPrice: number | null, loanAmount: number | nu
 };
 
 // Helper to calculate LTV
-const calculateLTV = (loanAmount: number | null, appraisalValue: string | null): number | null => {
+const calculateLTV = (loanAmount: number | null, appraisalValue: string | null, salesPrice: number | null): number | null => {
   if (loanAmount && appraisalValue) {
     const appraisalNum = parseFloat(appraisalValue);
     if (appraisalNum > 0) {
       return (loanAmount / appraisalNum) * 100;
     }
+  }
+  // Fall back to sales price for pre-contract leads
+  if (loanAmount && salesPrice && salesPrice > 0) {
+    return (loanAmount / salesPrice) * 100;
   }
   return null;
 };
@@ -100,7 +104,8 @@ export function transformPastClientToClient(pastClient: any): CRMClient {
 // Transform database Lead to CRMClient with calculated fields
 export function transformLeadToClient(lead: any): any {
   const downPayment = calculateDownPayment(lead.sales_price, lead.loan_amount);
-  const ltv = calculateLTV(lead.loan_amount, lead.appraisal_value);
+  const ltv = calculateLTV(lead.loan_amount, lead.appraisal_value, lead.sales_price);
+  const cashToClose = (downPayment || 0) + (lead.closing_costs || 0);
   
   return {
     person: {
@@ -197,7 +202,17 @@ export function transformLeadToClient(lead: any): any {
   other_monthly_debts: lead.other_monthly_debts || null,
   monthly_liabilities: lead.monthly_liabilities || null,
   dti: lead.dti || null,
-    number_of_dependents: lead.number_of_dependents || null,
+  
+  // Calculated fields
+  cashToClose: cashToClose,
+  totalMonthlyIncome: lead.total_monthly_income || null,
+  principalInterest: lead.principal_interest || null,
+  propertyTaxes: lead.property_taxes || null,
+  homeownersInsurance: lead.homeowners_insurance || null,
+  mortgageInsurance: lead.mortgage_insurance || null,
+  hoaDues: lead.hoa_dues || null,
+  
+  number_of_dependents: lead.number_of_dependents || null,
     borrower_current_address: lead.borrower_current_address || null,
     time_at_current_address_years: lead.time_at_current_address_years || null,
     time_at_current_address_months: lead.time_at_current_address_months || null,
