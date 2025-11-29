@@ -16,12 +16,20 @@ const sections = [
 
 interface ApplicationSidebarProps {
   onSectionChange: (sectionId: number) => void;
+  isReadOnly?: boolean;
 }
 
-export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectionChange }) => {
+export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectionChange, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
 
   const handleSectionClick = (sectionId: number) => {
+    // In read-only mode, allow navigation to all sections
+    if (isReadOnly) {
+      dispatch({ type: 'SET_CURRENT_SECTION', payload: sectionId });
+      onSectionChange(sectionId);
+      return;
+    }
+
     const visitedSectionsArray = Array.from(data.visitedSections);
     const isAccessible = data.visitedSections.has(sectionId) || sectionId === Math.max(...visitedSectionsArray) + 1;
     
@@ -38,9 +46,9 @@ export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectio
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Progress</span>
-            <span className="font-semibold text-foreground">{progressPercentage}%</span>
+            <span className="font-semibold text-foreground">{isReadOnly ? 100 : progressPercentage}%</span>
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <Progress value={isReadOnly ? 100 : progressPercentage} className="h-2" />
         </div>
       </div>
 
@@ -48,9 +56,9 @@ export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectio
         <div className="space-y-1">
           {sections.map((section) => {
             const isActive = data.currentSection === section.id;
-            const isVisited = data.visitedSections.has(section.id);
+            const isVisited = isReadOnly || data.visitedSections.has(section.id);
             const visitedSectionsArray = Array.from(data.visitedSections);
-            const isAccessible = isVisited || section.id === Math.max(...visitedSectionsArray) + 1;
+            const isAccessible = isReadOnly || isVisited || section.id === Math.max(...visitedSectionsArray) + 1;
 
             return (
               <Button
@@ -74,15 +82,18 @@ export const ApplicationSidebar: React.FC<ApplicationSidebarProps> = ({ onSectio
         </div>
       </nav>
 
-      <div className="mt-auto pt-6 pb-6 border-t border-border space-y-3 p-4">
-        <div className="text-sm">
-          <p className="font-medium text-foreground">Save your progress</p>
-          <p className="text-muted-foreground text-xs mt-1">Create an account to save and continue later</p>
+      {/* Sign In / Save Progress CTA - hide in read-only mode */}
+      {!isReadOnly && (
+        <div className="mt-auto pt-6 pb-6 border-t border-border space-y-3 p-4">
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Save your progress</p>
+            <p className="text-muted-foreground text-xs mt-1">Create an account to save and continue later</p>
+          </div>
+          <button className="w-full px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            Sign In
+          </button>
         </div>
-        <button className="w-full px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-          Sign In
-        </button>
-      </div>
+      )}
     </div>
   );
 };

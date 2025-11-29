@@ -9,13 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, X, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface CoBorrowersFormProps {
   onNext: () => void;
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
-export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack }) => {
+export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newCoBorrower, setNewCoBorrower] = useState<Partial<CoBorrower>>({
@@ -96,7 +98,7 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", isReadOnly && "opacity-60 pointer-events-none")}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Co-Borrowers</h2>
       </div>
@@ -177,15 +179,17 @@ export const CoBorrowersForm: React.FC<CoBorrowersFormProps> = ({ onNext, onBack
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={handleNext}>
-          Save & Continue
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button onClick={handleNext}>
+            Save & Continue
+          </Button>
+        </div>
+      )}
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>

@@ -8,13 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, X, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface RealEstateFormProps {
   onNext: () => void;
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
-export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }) => {
+export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
   const [showDialog, setShowDialog] = useState(false);
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", isReadOnly && "opacity-60 pointer-events-none")}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Real Estate Owned</h2>
       </div>
@@ -193,15 +195,17 @@ export const RealEstateForm: React.FC<RealEstateFormProps> = ({ onNext, onBack }
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={onNext}>
-          Save & Continue
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button onClick={onNext}>
+            Save & Continue
+          </Button>
+        </div>
+      )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>

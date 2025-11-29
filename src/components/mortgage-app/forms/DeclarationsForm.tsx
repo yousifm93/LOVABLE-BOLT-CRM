@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, FileText, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DeclarationsFormProps {
   onNext: () => void;
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
 const declarations = [
@@ -31,7 +33,7 @@ const declarations = [
   },
 ];
 
-export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBack }) => {
+export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBack, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
 
   const handleAnswerChange = (id: string, value: string) => {
@@ -74,7 +76,7 @@ export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBa
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", isReadOnly && "opacity-60 pointer-events-none")}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Declarations</h2>
       </div>
@@ -239,15 +241,17 @@ export const DeclarationsForm: React.FC<DeclarationsFormProps> = ({ onNext, onBa
         </Card>
       </div>
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={onNext}>
-          Save & Continue
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button onClick={onNext}>
+            Save & Continue
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
