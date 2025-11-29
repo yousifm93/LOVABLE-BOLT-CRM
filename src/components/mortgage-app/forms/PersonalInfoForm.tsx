@@ -9,13 +9,15 @@ import { useApplication } from '@/contexts/MortgageApplicationContext';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedDatePicker } from '@/components/ui/enhanced-date-picker';
+import { cn } from '@/lib/utils';
 
 interface PersonalInfoFormProps {
   onNext: () => void;
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
-export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBack }) => {
+export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBack, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
 
   const form = useForm({
@@ -54,7 +56,7 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className={cn("space-y-6", isReadOnly && "opacity-60 pointer-events-none")}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Personal Information</h2>
       </div>
@@ -286,15 +288,17 @@ export const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ onNext, onBa
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button type="submit">
-          Save & Continue
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button type="submit">
+            Save & Continue
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

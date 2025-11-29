@@ -9,13 +9,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Plus, X, Briefcase, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface IncomeFormProps {
   onNext: () => void;
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
-export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
+export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack, isReadOnly = false }) => {
   const { data, dispatch, progressPercentage } = useApplication();
   const [noIncome, setNoIncome] = useState(false);
   const [showEmploymentDialog, setShowEmploymentDialog] = useState(false);
@@ -207,7 +209,7 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", isReadOnly && "opacity-60 pointer-events-none")}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-foreground">Income Information</h2>
       </div>
@@ -331,15 +333,17 @@ export const IncomeForm: React.FC<IncomeFormProps> = ({ onNext, onBack }) => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={handleContinue}>
-          Save & Continue
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button onClick={handleContinue}>
+            Save & Continue
+          </Button>
+        </div>
+      )}
 
       {/* Employment Dialog */}
       <Dialog open={showEmploymentDialog} onOpenChange={setShowEmploymentDialog}>

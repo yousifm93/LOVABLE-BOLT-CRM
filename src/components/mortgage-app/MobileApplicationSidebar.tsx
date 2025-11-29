@@ -19,16 +19,26 @@ interface MobileApplicationSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSectionChange: (sectionId: number) => void;
+  isReadOnly?: boolean;
 }
 
-export const MobileApplicationSidebar: React.FC<MobileApplicationSidebarProps> = ({
-  open,
-  onOpenChange,
-  onSectionChange
+export const MobileApplicationSidebar: React.FC<MobileApplicationSidebarProps> = ({ 
+  open, 
+  onOpenChange, 
+  onSectionChange,
+  isReadOnly = false
 }) => {
   const { data, dispatch, progressPercentage } = useApplication();
 
   const handleSectionClick = (sectionId: number) => {
+    // In read-only mode, allow navigation to all sections
+    if (isReadOnly) {
+      dispatch({ type: 'SET_CURRENT_SECTION', payload: sectionId });
+      onSectionChange(sectionId);
+      onOpenChange(false);
+      return;
+    }
+
     const visitedSectionsArray = Array.from(data.visitedSections);
     const isAccessible = data.visitedSections.has(sectionId) || sectionId === Math.max(...visitedSectionsArray) + 1;
     
@@ -47,9 +57,9 @@ export const MobileApplicationSidebar: React.FC<MobileApplicationSidebarProps> =
           <div className="space-y-2 pt-4">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Progress</span>
-              <span className="font-semibold text-foreground">{progressPercentage}%</span>
+              <span className="font-semibold text-foreground">{isReadOnly ? 100 : progressPercentage}%</span>
             </div>
-            <Progress value={progressPercentage} className="h-2" />
+            <Progress value={isReadOnly ? 100 : progressPercentage} className="h-2" />
           </div>
         </SheetHeader>
 
@@ -57,9 +67,9 @@ export const MobileApplicationSidebar: React.FC<MobileApplicationSidebarProps> =
           <div className="space-y-1">
             {sections.map((section) => {
               const isActive = data.currentSection === section.id;
-              const isVisited = data.visitedSections.has(section.id);
+              const isVisited = isReadOnly || data.visitedSections.has(section.id);
               const visitedSectionsArray = Array.from(data.visitedSections);
-              const isAccessible = isVisited || section.id === Math.max(...visitedSectionsArray) + 1;
+              const isAccessible = isReadOnly || isVisited || section.id === Math.max(...visitedSectionsArray) + 1;
 
               return (
                 <Button

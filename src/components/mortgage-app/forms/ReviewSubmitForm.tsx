@@ -11,9 +11,10 @@ import { databaseService } from '@/services/database';
 
 interface ReviewSubmitFormProps {
   onBack: () => void;
+  isReadOnly?: boolean;
 }
 
-export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) => {
+export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack, isReadOnly = false }) => {
   const { data, progressPercentage, dispatch } = useApplication();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -543,41 +544,45 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack }) =>
         </CardContent>
       </Card>
 
-      {/* Terms Agreement */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              checked={agreedToTerms}
-              onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
-              id="terms"
-            />
-            <Label htmlFor="terms" className="text-sm font-normal cursor-pointer">
-              I certify that all information provided in this application is true and complete to the best of my
-              knowledge. I understand that any false information may result in denial of my application or termination
-              of my loan.
-            </Label>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Terms Agreement - hide in read-only mode */}
+      {!isReadOnly && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+                id="terms"
+              />
+              <Label htmlFor="terms" className="text-sm font-normal cursor-pointer">
+                I certify that all information provided in this application is true and complete to the best of my
+                knowledge. I understand that any false information may result in denial of my application or termination
+                of my loan.
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting || !agreedToTerms} size="lg">
-          {isSubmitting ? (
-            'Submitting...'
-          ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              Submit Application
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Action Buttons - hide in read-only mode */}
+      {!isReadOnly && (
+        <div className="flex justify-between pt-4">
+          <Button type="button" variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !agreedToTerms} size="lg">
+            {isSubmitting ? (
+              'Submitting...'
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Submit Application
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
