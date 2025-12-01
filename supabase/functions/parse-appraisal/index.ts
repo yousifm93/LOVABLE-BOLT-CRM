@@ -24,15 +24,14 @@ serve(async (req) => {
     const blob = await response.blob();
     console.log('[parse-appraisal] File downloaded, size:', blob.size, 'type:', blob.type);
     
-    // Convert to base64 in chunks to avoid stack overflow on large files
+    // Convert to base64 without using apply (which has argument limits)
     const arrayBuffer = await blob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     let binary = '';
-    const chunkSize = 8192; // Process 8KB at a time
     
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    // Build binary string character by character to avoid stack overflow
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
     
     const base64 = btoa(binary);
