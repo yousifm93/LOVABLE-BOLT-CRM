@@ -137,6 +137,17 @@ const extractPlainTextFromHtml = (html: string): string => {
   return text;
 };
 
+// Helper function to extract body content from HTML (for preview)
+const extractBodyContent = (html: string): string => {
+  // Find content between <body> and </body>
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) {
+    return bodyMatch[1].trim();
+  }
+  // If no body tags, return as-is
+  return html;
+};
+
 // Helper function to convert plain text to HTML
 const convertPlainTextToHtml = (text: string): string => {
   // Convert plain text with newlines to HTML
@@ -156,7 +167,7 @@ const convertPlainTextToHtml = (text: string): string => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
   ${htmlParagraphs.join('\n  ')}
 </body>
 </html>`;
@@ -315,6 +326,9 @@ export default function EmailTemplates() {
     
     // Convert to HTML if needed
     let preview = editorMode === 'plain' ? convertPlainTextToHtml(formData.html) : formData.html;
+    
+    // Extract body content only for preview (removes DOCTYPE, html, head, body tags)
+    preview = extractBodyContent(preview);
     
     // Generate sample data for all CRM fields
     const sampleData: Record<string, string> = {};
@@ -567,7 +581,7 @@ export default function EmailTemplates() {
                 {/* Live Preview Panel */}
                 <div className="space-y-2">
                   <Label>Live Preview</Label>
-                  <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto">
+                  <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
                     {livePreview ? (
                       <div
                         className="bg-background"
