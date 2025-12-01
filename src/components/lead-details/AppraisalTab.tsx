@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, DollarSign, FileText, ClipboardCheck, MessageSquare, Mail } from "lucide-react";
@@ -8,6 +9,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppraisalTabProps {
   leadId: string;
@@ -35,12 +37,58 @@ const appraisalStatusOptions = [
 
 export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
   const { toast } = useToast();
+  const [isParsing, setIsParsing] = useState(false);
 
   const handleFollowUp = () => {
     toast({
       title: "Follow Up",
       description: "Email template functionality coming soon",
     });
+  };
+
+  const handleAppraisalUpload = async (fileUrl: string | null) => {
+    // First update the file field
+    onUpdate('appraisal_file', fileUrl);
+    
+    if (!fileUrl) return;
+    
+    // Parse the appraisal
+    setIsParsing(true);
+    toast({
+      title: "Processing Appraisal",
+      description: "Extracting appraised value from PDF...",
+    });
+    
+    try {
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('parse-appraisal', {
+        body: { file_url: fileUrl }
+      });
+      
+      if (functionError) throw functionError;
+      
+      if (functionData?.success && functionData?.appraised_value) {
+        // Auto-fill appraised value
+        await onUpdate('appraisal_value', functionData.appraised_value);
+        // Set status to Received
+        await onUpdate('appraisal_status', 'Received');
+        
+        toast({
+          title: "Appraisal Parsed Successfully",
+          description: `Appraised value extracted: $${functionData.appraised_value.toLocaleString()}`,
+        });
+      } else {
+        throw new Error('Failed to extract value');
+      }
+    } catch (error) {
+      console.error('Failed to parse appraisal:', error);
+      toast({
+        title: "Manual Entry Required",
+        description: "Uploaded successfully but couldn't auto-extract value. Please enter manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsParsing(false);
+    }
   };
 
   return (
@@ -139,12 +187,17 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
             leadId={leadId}
             fieldName="appraisal_file"
             currentFile={data.appraisal_file}
-            onUpload={(url) => onUpdate('appraisal_file', url)}
+            onUpload={handleAppraisalUpload}
             config={{
               storage_path: 'files/{lead_id}/appraisal/',
               allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
             }}
           />
+          {isParsing && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Extracting appraised value...
+            </p>
+          )}
         </div>
         <div className="flex items-end justify-start">
           <Button 
