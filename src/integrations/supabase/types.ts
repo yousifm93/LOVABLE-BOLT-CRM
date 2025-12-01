@@ -3566,6 +3566,7 @@ export type Database = {
           created_at: string
           display_password: string | null
           email: string
+          email_signature: string | null
           first_name: string
           id: string
           is_active: boolean
@@ -3580,6 +3581,7 @@ export type Database = {
           created_at?: string
           display_password?: string | null
           email: string
+          email_signature?: string | null
           first_name: string
           id?: string
           is_active?: boolean
@@ -3594,6 +3596,7 @@ export type Database = {
           created_at?: string
           display_password?: string | null
           email?: string
+          email_signature?: string | null
           first_name?: string
           id?: string
           is_active?: boolean
