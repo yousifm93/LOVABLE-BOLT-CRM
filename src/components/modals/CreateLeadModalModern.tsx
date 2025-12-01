@@ -364,6 +364,16 @@ export function CreateLeadModalModern({ open, onOpenChange, onLeadCreated }: Cre
             if (matchedAgent) {
               updates.buyer_agent_id = matchedAgent.id;
               console.log('Matched agent:', matchedAgent);
+              toast({
+                title: "✅ Agent matched",
+                description: `Found existing agent: ${matchedAgent.first_name} ${matchedAgent.last_name}`,
+              });
+            } else {
+              console.log('No agent match found for:', data.agent_name);
+              toast({
+                title: "⚠️ Agent not found",
+                description: `"${data.agent_name}" not in directory - you can add them manually`,
+              });
             }
           }
 
