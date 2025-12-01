@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -200,33 +197,60 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (toEmails.length === 0) throw new Error("At least one recipient email is required");
 
-    const fromAddress = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+    // Send email via SendGrid
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    if (!SENDGRID_API_KEY) {
+      throw new Error("SendGrid API key not configured");
+    }
 
-    const emailResponse = await resend.emails.send({
-      from: `${sender.first_name} ${sender.last_name} <${fromAddress}>`,
-      reply_to: [sender.email],
-      to: toEmails,
-      cc: ccEmails.length > 0 ? ccEmails : undefined,
-      subject: subject,
-      html: htmlContent,
+    const personalizations: any = {
+      to: toEmails.map(email => ({ email }))
+    };
+    
+    if (ccEmails.length > 0) {
+      personalizations.cc = ccEmails.map(email => ({ email }));
+    }
+
+    const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [personalizations],
+        from: { 
+          email: "yousif@mortgagebolt.com", 
+          name: `${sender.first_name} ${sender.last_name}` 
+        },
+        reply_to: { email: sender.email },
+        subject: subject,
+        content: [{ type: "text/html", value: htmlContent }],
+      }),
     });
 
-    if (emailResponse.error) throw new Error(`Failed to send email: ${emailResponse.error.message}`);
+    if (!sendGridResponse.ok) {
+      const errorText = await sendGridResponse.text();
+      throw new Error(`SendGrid API error: ${sendGridResponse.status} - ${errorText}`);
+    }
+
+    // SendGrid returns 202 with empty body on success
+    const messageId = sendGridResponse.headers.get('X-Message-Id') || `sg-${Date.now()}`;
 
     await supabase.from("email_logs").insert({
       lead_id: leadId,
       timestamp: new Date().toISOString(),
       direction: 'Out',
       to_email: toEmails.join(', '),
-      from_email: fromAddress,
+      from_email: "yousif@mortgagebolt.com",
       subject: subject,
       snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
-      provider_message_id: emailResponse.data?.id,
+      provider_message_id: messageId,
       delivery_status: 'sent',
     });
 
     return new Response(
-      JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
+      JSON.stringify({ success: true, emailId: messageId }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
