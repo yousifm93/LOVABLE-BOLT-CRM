@@ -25,7 +25,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes, sales_price')
+        .select('first_name, last_name, appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes, sales_price')
         .eq('id', leadId)
         .single();
       if (error) throw error;
@@ -108,6 +108,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
               <TabsContent value="appraisal" className="mt-4">
                 <AppraisalTab 
                   leadId={leadId}
+                  borrowerLastName={lead.last_name}
                   data={{
                     appraisal_status: lead.appraisal_status,
                     appraisal_ordered_date: lead.appraisal_ordered_date,

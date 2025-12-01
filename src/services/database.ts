@@ -2040,6 +2040,30 @@ export const databaseService = {
     if (dbError) throw dbError;
   },
 
+  async createDocumentFromStoragePath(
+    leadId: string,
+    storagePath: string,
+    metadata: { title: string; mime_type: string; size_bytes: number }
+  ) {
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('documents')
+      .insert({
+        lead_id: leadId,
+        file_name: metadata.title,
+        file_url: storagePath,
+        mime_type: metadata.mime_type,
+        size_bytes: metadata.size_bytes,
+        uploaded_by: userData.user?.id,
+        title: metadata.title
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
   async getDocumentSignedUrl(storagePath: string, expiresIn = 3600) {
     const { data, error } = await supabase.storage
       .from('documents')
