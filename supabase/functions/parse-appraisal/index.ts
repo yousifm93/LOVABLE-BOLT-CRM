@@ -24,9 +24,18 @@ serve(async (req) => {
     const blob = await response.blob();
     console.log('[parse-appraisal] File downloaded, size:', blob.size, 'type:', blob.type);
     
-    // Convert to base64
+    // Convert to base64 in chunks to avoid stack overflow on large files
     const arrayBuffer = await blob.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192; // Process 8KB at a time
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64 = btoa(binary);
     console.log('[parse-appraisal] Converted to base64, length:', base64.length);
     
     // Use Lovable AI Gateway with Gemini Vision
