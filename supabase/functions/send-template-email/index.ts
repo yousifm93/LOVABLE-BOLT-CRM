@@ -111,10 +111,14 @@ const handler = async (req: Request): Promise<Response> => {
       .from("profiles")
       .select("*")
       .eq("user_id", senderId)
-      .single();
+      .maybeSingle();
 
-    if (senderError || !sender) {
-      throw new Error(`Sender not found: ${senderError?.message}`);
+    if (senderError) {
+      throw new Error(`Error fetching sender: ${senderError.message}`);
+    }
+    
+    if (!sender) {
+      throw new Error(`Sender profile not found for user_id: ${senderId}`);
     }
 
     // Build comprehensive merge data
