@@ -54,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
           cc: [{ email: 'hello@mortgagebolt.com' }]
         }],
         from: { 
-          email: "yousif@mortgagebolt.com", 
+          email: "yousif@mortgagebolt.org", 
           name: "Mortgage Bolt - Yousif Mohamed" 
         },
         subject: 'Thank You for Your Mortgage Application',

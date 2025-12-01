@@ -87,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Recipients:', recipients);
-    console.log('CC: yousif@mortgagebolt.com');
+    console.log('CC: yousif@mortgagebolt.org');
 
     // Check if SendGrid API key exists
     const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
@@ -111,10 +111,10 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         personalizations: [{
           to: recipients.map(email => ({ email })),
-          cc: [{ email: 'yousif@mortgagebolt.com' }]
+          cc: [{ email: 'yousif@mortgagebolt.org' }]
         }],
         from: { 
-          email: "yousif@mortgagebolt.com", 
+          email: "yousif@mortgagebolt.org", 
           name: "Mortgage Bolt - Yousif Mohamed" 
         },
         subject: `Pre-Approval Letter - ${customerName}`,
