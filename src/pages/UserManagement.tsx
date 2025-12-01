@@ -14,6 +14,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string | null;
+  phone: string | null;
   role: string;
   is_active: boolean;
   is_assignable: boolean;
@@ -43,6 +44,9 @@ export default function UserManagement() {
       setUsers(data || []);
     }
   };
+
+  const adminUsers = users.filter(user => user.role === 'Admin');
+  const teamMembers = users.filter(user => user.role !== 'Admin');
 
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
     const { error } = await supabase
@@ -97,6 +101,79 @@ export default function UserManagement() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Admins</CardTitle>
+          <CardDescription>
+            System administrators with full access
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {adminUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">
+                    {user.first_name} {user.last_name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.email || "No email"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.phone || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{user.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.is_active ? "default" : "secondary"}>
+                      {user.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                      title="Edit user"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSendPasswordReset(user.email!)}
+                      disabled={!user.email}
+                      title="Send password reset email"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                      title={user.is_active ? "Deactivate user" : "Activate user"}
+                    >
+                      <Power className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Team Members</CardTitle>
           <CardDescription>
             All users have shared access to CRM data. Activity tracking shows who performed each action.
@@ -112,21 +189,24 @@ export default function UserManagement() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assignable</TableHead>
-                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {teamMembers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
                     {user.first_name} {user.last_name}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {user.email || "No email"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.phone || "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{user.role}</Badge>
@@ -140,9 +220,6 @@ export default function UserManagement() {
                     <Badge variant={user.is_assignable !== false ? "default" : "outline"}>
                       {user.is_assignable !== false ? "Yes" : "No"}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(user.created_at)}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button

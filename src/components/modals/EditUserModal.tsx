@@ -13,6 +13,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string | null;
+  phone: string | null;
   role: string;
   is_active: boolean;
   is_assignable: boolean;
@@ -31,6 +32,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
+    phone: "",
     role: "LO" as "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly",
     is_active: true,
     is_assignable: true,
@@ -41,6 +43,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
       setFormData({
         first_name: user.first_name,
         last_name: user.last_name,
+        phone: user.phone || "",
         role: user.role as "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly",
         is_active: user.is_active,
         is_assignable: user.is_assignable ?? true,
@@ -59,6 +62,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
         .update({
           first_name: formData.first_name,
           last_name: formData.last_name,
+          phone: formData.phone || null,
           role: formData.role,
           is_active: formData.is_active,
           is_assignable: formData.is_assignable,
@@ -109,6 +113,16 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
               id="last_name"
               value={formData.last_name}
               onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="352-328-9828"
             />
           </div>
 

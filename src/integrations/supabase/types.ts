@@ -3571,6 +3571,7 @@ export type Database = {
           is_assignable: boolean | null
           last_login_at: string | null
           last_name: string
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -3583,6 +3584,7 @@ export type Database = {
           is_assignable?: boolean | null
           last_login_at?: string | null
           last_name: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -3595,6 +3597,7 @@ export type Database = {
           is_assignable?: boolean | null
           last_login_at?: string | null
           last_name?: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
