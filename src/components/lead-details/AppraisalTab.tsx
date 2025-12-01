@@ -48,7 +48,7 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
     });
   };
 
-  const handleAppraisalUpload = async (storagePath: string | null) => {
+  const handleAppraisalUpload = async (storagePath: string | null, fileSize?: number) => {
     if (!storagePath) {
       onUpdate('appraisal_file', null);
       return;
@@ -63,7 +63,14 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
       // Update the file field with storage path
       onUpdate('appraisal_file', storagePath);
       
-      // Add document to documents table
+      // Delete any existing appraisal documents for this lead to prevent duplicates
+      await supabase
+        .from('documents')
+        .delete()
+        .eq('lead_id', leadId)
+        .ilike('file_name', 'Appraisal Report%');
+      
+      // Add new document to documents table
       const { data: userData } = await supabase.auth.getUser();
       await databaseService.createDocumentFromStoragePath(
         leadId,
@@ -71,7 +78,7 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         {
           title: customTitle,
           mime_type: 'application/pdf',
-          size_bytes: 0 // We don't have file size from storage path
+          size_bytes: fileSize || 0
         }
       );
       
