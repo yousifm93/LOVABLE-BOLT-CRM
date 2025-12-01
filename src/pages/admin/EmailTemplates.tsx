@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, History, ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, History, ChevronDown, ChevronRight, FileText, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 interface EmailTemplate {
   id: string;
@@ -121,6 +122,9 @@ export default function EmailTemplates() {
   const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [isMergeTagsCollapsed, setIsMergeTagsCollapsed] = useState(false);
   const [showSampleData, setShowSampleData] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -227,6 +231,68 @@ export default function EmailTemplates() {
       ...prev,
       html: prev.html + (prev.html ? ' ' : '') + tag,
     }));
+  };
+
+  const handleGenerateWithAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast({ title: "Error", description: "Please describe what email you want to create", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-email-template', {
+        body: { prompt: aiPrompt }
+      });
+
+      if (error) throw error;
+
+      if (data?.content) {
+        setFormData(prev => ({ ...prev, html: data.content }));
+        toast({ title: "Success", description: "Email content generated successfully!" });
+        setAiPrompt("");
+      }
+    } catch (error: any) {
+      console.error("AI generation error:", error);
+      toast({ title: "Error", description: error.message || "Failed to generate email content", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRefineWithAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast({ title: "Error", description: "Please describe how you want to refine the email", variant: "destructive" });
+      return;
+    }
+
+    if (!formData.html.trim()) {
+      toast({ title: "Error", description: "No content to refine. Please create content first.", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-email-template', {
+        body: { 
+          prompt: aiPrompt,
+          currentContent: formData.html
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.content) {
+        setFormData(prev => ({ ...prev, html: data.content }));
+        toast({ title: "Success", description: "Email content refined successfully!" });
+        setAiPrompt("");
+      }
+    } catch (error: any) {
+      console.error("AI refinement error:", error);
+      toast({ title: "Error", description: error.message || "Failed to refine email content", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Live preview with sample data (memoized for performance)
@@ -337,6 +403,81 @@ export default function EmailTemplates() {
                   placeholder="e.g., Appraisal Scheduled"
                 />
               </div>
+
+              {/* AI Assistant Panel */}
+              <Collapsible open={isAiPanelExpanded} onOpenChange={setIsAiPanelExpanded}>
+                <Card className="border-primary/20 bg-primary/5">
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-primary/10 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">AI Assistant</CardTitle>
+                        </div>
+                        <ChevronDown className={`h-5 w-5 transition-transform ${isAiPanelExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                      <CardDescription>Let AI help you create or refine your email template</CardDescription>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label htmlFor="ai-prompt">Describe your email</Label>
+                        <Textarea
+                          id="ai-prompt"
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder="e.g., Create a welcome email for new borrowers that introduces our team and explains the next steps..."
+                          rows={3}
+                          disabled={isGenerating}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={handleGenerateWithAI}
+                          disabled={isGenerating || !aiPrompt.trim()}
+                          className="flex-1"
+                        >
+                          {isGenerating ? (
+                            <>Generating...</>
+                          ) : (
+                            <>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Generate Email
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleRefineWithAI}
+                          disabled={isGenerating || !aiPrompt.trim() || !formData.html.trim()}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          {isGenerating ? (
+                            <>Refining...</>
+                          ) : (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Refine Current
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                        <strong>💡 Tips:</strong>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Be specific about tone (professional, friendly, urgent)</li>
+                          <li>Mention key points to include (dates, actions, deadlines)</li>
+                          <li>AI will automatically include relevant merge tags</li>
+                          <li>Use "Refine Current" to improve existing content</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
 
               <Collapsible open={!isMergeTagsCollapsed} onOpenChange={(open) => setIsMergeTagsCollapsed(!open)}>
                 <div className="flex items-center justify-between mb-2">
