@@ -19,6 +19,7 @@ interface User {
   is_active: boolean;
   is_assignable: boolean;
   created_at: string;
+  display_password?: string | null;
 }
 
 export default function UserManagement() {
@@ -26,6 +27,7 @@ export default function UserManagement() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [revealedPasswords, setRevealedPasswords] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,12 +112,13 @@ export default function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Password</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -137,6 +140,28 @@ export default function UserManagement() {
                     <Badge variant={user.is_active ? "default" : "secondary"}>
                       {user.is_active ? "Active" : "Inactive"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.display_password ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRevealedPasswords(prev => {
+                            const next = new Set(prev);
+                            if (next.has(user.id)) {
+                              next.delete(user.id);
+                            } else {
+                              next.add(user.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="font-mono text-xs"
+                      >
+                        {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
+                      </Button>
+                    ) : '—'}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
@@ -192,6 +217,7 @@ export default function UserManagement() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Password</TableHead>
                 <TableHead>Assignable</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -215,6 +241,28 @@ export default function UserManagement() {
                     <Badge variant={user.is_active ? "default" : "secondary"}>
                       {user.is_active ? "Active" : "Inactive"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {user.display_password ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRevealedPasswords(prev => {
+                            const next = new Set(prev);
+                            if (next.has(user.id)) {
+                              next.delete(user.id);
+                            } else {
+                              next.add(user.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="font-mono text-xs"
+                      >
+                        {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
+                      </Button>
+                    ) : '—'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.is_assignable !== false ? "default" : "outline"}>
