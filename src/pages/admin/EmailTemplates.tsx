@@ -13,6 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useFields } from "@/contexts/FieldsContext";
+import { generateTestValue } from "@/utils/testDataGenerator";
 
 interface EmailTemplate {
   id: string;
@@ -122,20 +124,11 @@ export default function EmailTemplates() {
   const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [isMergeTagsCollapsed, setIsMergeTagsCollapsed] = useState(false);
   const [showSampleData, setShowSampleData] = useState(false);
-  const [sampleDataOverrides, setSampleDataOverrides] = useState({
-    first_name: "John",
-    last_name: "Smith",
-    email: "john@example.com",
-    phone: "(555) 123-4567",
-    loan_amount: "$450,000",
-    interest_rate: "6.5%",
-    close_date: "December 15, 2024",
-    subject_address_1: "123 Main St, Miami, FL"
-  });
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(true);
   const { toast } = useToast();
+  const { allFields } = useFields();
 
   useEffect(() => {
     fetchTemplates();
@@ -158,7 +151,7 @@ export default function EmailTemplates() {
   const fetchCrmFields = async () => {
     const { data, error } = await supabase
       .from('crm_fields')
-      .select('field_name, display_name, section, field_type')
+      .select('field_name, display_name, section, field_type, sample_data')
       .eq('is_in_use', true)
       .order('section', { ascending: true })
       .order('sort_order', { ascending: true });
@@ -312,62 +305,18 @@ export default function EmailTemplates() {
     let preview = formData.html;
     
     if (showSampleData) {
-      // Start with user-provided sample data overrides
-      const sampleData: Record<string, string> = { ...sampleDataOverrides };
+      // Build sample data from database fields with fallback to generated values
+      const sampleData: Record<string, string> = {};
       
-      // Fill in any remaining CRM fields not in overrides
-      crmFields.forEach(field => {
+      allFields.forEach(field => {
         const fieldName = field.field_name;
         
-        // Skip if already in overrides
-        if (sampleData[fieldName]) return;
-        
-        // Generate appropriate sample data based on field type
-        switch (field.field_type) {
-          case 'currency':
-            sampleData[fieldName] = '$450,000';
-            break;
-          case 'percentage':
-            sampleData[fieldName] = '3.5%';
-            break;
-          case 'number':
-            sampleData[fieldName] = '750';
-            break;
-          case 'date':
-            sampleData[fieldName] = 'December 15, 2024';
-            break;
-          case 'phone':
-            sampleData[fieldName] = '(555) 123-4567';
-            break;
-          case 'email':
-            sampleData[fieldName] = 'example@email.com';
-            break;
-          case 'select':
-            if (field.dropdown_options && Array.isArray(field.dropdown_options)) {
-              sampleData[fieldName] = field.dropdown_options[0] || 'Option 1';
-            } else {
-              sampleData[fieldName] = 'Selected Option';
-            }
-            break;
-          default:
-            // For text fields, generate appropriate sample based on field name
-            if (fieldName.includes('first_name')) {
-              sampleData[fieldName] = 'John';
-            } else if (fieldName.includes('last_name')) {
-              sampleData[fieldName] = 'Smith';
-            } else if (fieldName.includes('name')) {
-              sampleData[fieldName] = 'John Smith';
-            } else if (fieldName.includes('address')) {
-              sampleData[fieldName] = '123 Main Street, Miami, FL 33131';
-            } else if (fieldName.includes('city')) {
-              sampleData[fieldName] = 'Miami';
-            } else if (fieldName.includes('state')) {
-              sampleData[fieldName] = 'Florida';
-            } else if (fieldName.includes('zip')) {
-              sampleData[fieldName] = '33131';
-            } else {
-              sampleData[fieldName] = 'Sample Value';
-            }
+        // Use sample_data from database if available, otherwise generate
+        if (field.sample_data) {
+          sampleData[fieldName] = field.sample_data;
+        } else {
+          // Fallback to generated value
+          sampleData[fieldName] = generateTestValue(field, 0);
         }
       });
       
@@ -381,7 +330,7 @@ export default function EmailTemplates() {
     }
     
     return preview;
-  }, [formData.html, showSampleData, crmFields, sampleDataOverrides]);
+  }, [formData.html, showSampleData, allFields]);
 
   return (
     <div className="space-y-6">
@@ -635,94 +584,13 @@ export default function EmailTemplates() {
                    </div>
 
                    {/* Editable Sample Data Panel */}
-                   {showSampleData && (
-                     <Card className="border-muted">
-                       <CardHeader className="pb-3">
-                         <CardTitle className="text-sm">Customize Sample Data</CardTitle>
-                         <CardDescription className="text-xs">
-                           Edit these values to see how your email looks with different data
-                         </CardDescription>
-                       </CardHeader>
-                       <CardContent className="space-y-3">
-                         <div className="grid grid-cols-2 gap-3">
-                           <div>
-                             <Label htmlFor="sample-first-name" className="text-xs">First Name</Label>
-                             <Input
-                               id="sample-first-name"
-                               value={sampleDataOverrides.first_name}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, first_name: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-last-name" className="text-xs">Last Name</Label>
-                             <Input
-                               id="sample-last-name"
-                               value={sampleDataOverrides.last_name}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, last_name: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-email" className="text-xs">Email</Label>
-                             <Input
-                               id="sample-email"
-                               value={sampleDataOverrides.email}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, email: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-phone" className="text-xs">Phone</Label>
-                             <Input
-                               id="sample-phone"
-                               value={sampleDataOverrides.phone}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, phone: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-loan-amount" className="text-xs">Loan Amount</Label>
-                             <Input
-                               id="sample-loan-amount"
-                               value={sampleDataOverrides.loan_amount}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, loan_amount: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-interest-rate" className="text-xs">Interest Rate</Label>
-                             <Input
-                               id="sample-interest-rate"
-                               value={sampleDataOverrides.interest_rate}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, interest_rate: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-close-date" className="text-xs">Close Date</Label>
-                             <Input
-                               id="sample-close-date"
-                               value={sampleDataOverrides.close_date}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, close_date: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                           <div>
-                             <Label htmlFor="sample-property-address" className="text-xs">Property Address</Label>
-                             <Input
-                               id="sample-property-address"
-                               value={sampleDataOverrides.subject_address_1}
-                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, subject_address_1: e.target.value }))}
-                               className="h-8 text-sm"
-                             />
-                           </div>
-                         </div>
-                       </CardContent>
-                     </Card>
-                   )}
+                    {showSampleData && (
+                      <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md mb-4">
+                        📝 Sample data is pulled from Field Management settings
+                      </div>
+                    )}
 
-                   <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
+                    <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
                     {livePreview ? (
                       <div
                         className="bg-background prose prose-sm max-w-none"

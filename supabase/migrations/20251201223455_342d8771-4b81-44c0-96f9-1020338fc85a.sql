@@ -1,0 +1,44 @@
+-- Add sample_data column to crm_fields table
+ALTER TABLE crm_fields ADD COLUMN sample_data text;
+
+-- Seed default sample data for common fields
+UPDATE crm_fields SET sample_data = 'John' WHERE field_name = 'first_name';
+UPDATE crm_fields SET sample_data = 'Smith' WHERE field_name = 'last_name';
+UPDATE crm_fields SET sample_data = 'M' WHERE field_name = 'middle_name';
+UPDATE crm_fields SET sample_data = 'john.smith@email.com' WHERE field_name = 'email';
+UPDATE crm_fields SET sample_data = '(555) 123-4567' WHERE field_name = 'phone';
+UPDATE crm_fields SET sample_data = '$450,000' WHERE field_name = 'loan_amount';
+UPDATE crm_fields SET sample_data = '6.75%' WHERE field_name = 'interest_rate';
+UPDATE crm_fields SET sample_data = 'December 15, 2024' WHERE field_name = 'close_date';
+UPDATE crm_fields SET sample_data = '123 Main Street' WHERE field_name = 'subject_address_1';
+UPDATE crm_fields SET sample_data = 'Apt 4B' WHERE field_name = 'subject_address_2';
+UPDATE crm_fields SET sample_data = 'Miami' WHERE field_name = 'subject_city';
+UPDATE crm_fields SET sample_data = 'FL' WHERE field_name = 'subject_state';
+UPDATE crm_fields SET sample_data = '33131' WHERE field_name = 'subject_zip';
+UPDATE crm_fields SET sample_data = '740' WHERE field_name = 'fico_score';
+UPDATE crm_fields SET sample_data = '38%' WHERE field_name = 'dti';
+UPDATE crm_fields SET sample_data = '$525,000' WHERE field_name = 'sales_price';
+UPDATE crm_fields SET sample_data = '$75,000' WHERE field_name = 'down_pmt';
+UPDATE crm_fields SET sample_data = '$8,500' WHERE field_name = 'assets';
+UPDATE crm_fields SET sample_data = '$6,800' WHERE field_name = 'total_monthly_income';
+UPDATE crm_fields SET sample_data = '$1,200' WHERE field_name = 'monthly_liabilities';
+UPDATE crm_fields SET sample_data = '$2,850' WHERE field_name = 'monthly_pmt_goal';
+UPDATE crm_fields SET sample_data = '$12,500' WHERE field_name = 'cash_to_close_goal';
+UPDATE crm_fields SET sample_data = 'Purchase' WHERE field_name = 'loan_type';
+UPDATE crm_fields SET sample_data = 'Single Family' WHERE field_name = 'property_type';
+UPDATE crm_fields SET sample_data = 'Primary Residence' WHERE field_name = 'occupancy';
+UPDATE crm_fields SET sample_data = 'John Agent' WHERE field_name = 'buyer_agent_name';
+UPDATE crm_fields SET sample_data = 'Jane Listing' WHERE field_name = 'listing_agent_name';
+UPDATE crm_fields SET sample_data = 'ABC Bank' WHERE field_name = 'lender_name';
+UPDATE crm_fields SET sample_data = 'LN-2024-12345' WHERE field_name = 'lender_loan_number';
+UPDATE crm_fields SET sample_data = '1234 Oak Drive, Orlando, FL 32801' WHERE field_name = 'borrower_current_address';
+UPDATE crm_fields SET sample_data = 'January 15, 1985' WHERE field_name = 'dob';
+UPDATE crm_fields SET sample_data = 'Married' WHERE field_name = 'marital_status';
+UPDATE crm_fields SET sample_data = 'U.S. Citizen' WHERE field_name = 'residency_type';
+UPDATE crm_fields SET sample_data = '$2,450' WHERE field_name = 'piti';
+UPDATE crm_fields SET sample_data = '$1,850' WHERE field_name = 'principal_interest';
+UPDATE crm_fields SET sample_data = '$380' WHERE field_name = 'property_taxes';
+UPDATE crm_fields SET sample_data = '$120' WHERE field_name = 'homeowners_insurance';
+UPDATE crm_fields SET sample_data = '$100' WHERE field_name = 'hoa_dues';
+UPDATE crm_fields SET sample_data = 'Email' WHERE field_name = 'referred_via';
+UPDATE crm_fields SET sample_data = 'Realtor Referral' WHERE field_name = 'referral_source';

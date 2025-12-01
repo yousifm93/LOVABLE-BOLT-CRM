@@ -825,6 +825,7 @@ export type Database = {
           is_required: boolean | null
           is_system_field: boolean | null
           is_visible: boolean | null
+          sample_data: string | null
           section: string
           sort_order: number | null
           updated_at: string | null
@@ -843,6 +844,7 @@ export type Database = {
           is_required?: boolean | null
           is_system_field?: boolean | null
           is_visible?: boolean | null
+          sample_data?: string | null
           section: string
           sort_order?: number | null
           updated_at?: string | null
@@ -861,6 +863,7 @@ export type Database = {
           is_required?: boolean | null
           is_system_field?: boolean | null
           is_visible?: boolean | null
+          sample_data?: string | null
           section?: string
           sort_order?: number | null
           updated_at?: string | null
