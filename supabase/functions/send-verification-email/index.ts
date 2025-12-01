@@ -152,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
           to: [{ email: email }] 
         }],
         from: { 
-          email: "yousif@mortgagebolt.com", 
+          email: "yousif@mortgagebolt.org", 
           name: "Mortgage Bolt" 
         },
         subject: "Verify Your Mortgage Bolt Account",

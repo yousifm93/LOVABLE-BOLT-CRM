@@ -75,7 +75,7 @@ serve(async (req) => {
             to: [{ email: testEmail }]
           }],
           from: { 
-            email: "yousif@mortgagebolt.com", 
+            email: "yousif@mortgagebolt.org", 
             name: campaign.email_senders.from_name 
           },
           subject: `[TEST] ${campaign.subject}`,
@@ -193,7 +193,7 @@ serve(async (req) => {
                 to: [{ email: recipient.email }]
               }],
               from: { 
-                email: "yousif@mortgagebolt.com", 
+                email: "yousif@mortgagebolt.org", 
                 name: campaign.email_senders.from_name 
               },
               subject: campaign.subject,
