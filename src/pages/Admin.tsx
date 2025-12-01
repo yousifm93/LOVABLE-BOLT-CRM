@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail } from "lucide-react";
+import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
@@ -14,8 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useFieldManagement } from "@/hooks/useFieldManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 interface Field {
   id: string;
   field_name: string;
@@ -29,6 +32,7 @@ interface Field {
   is_system_field: boolean;
   sort_order: number;
   sample_data?: string | null;
+  dropdown_options?: string[] | null;
 }
 export default function Admin() {
   const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
@@ -411,12 +415,130 @@ export default function Admin() {
       row
     }) => {
       const field = row.original;
-      return editingField === field.id ? <Input value={editData.sample_data || ""} onChange={e => setEditData({
-        ...editData,
-        sample_data: e.target.value
-      })} placeholder="Sample value..." className="h-7" /> : <span className="text-xs text-muted-foreground truncate block" title={field.sample_data || ""}>
-            {field.sample_data || "—"}
-          </span>;
+      
+      if (editingField !== field.id) {
+        return <span className="text-xs text-muted-foreground truncate block" title={field.sample_data || ""}>
+          {field.sample_data || "—"}
+        </span>;
+      }
+
+      // Render appropriate input based on field type
+      switch (field.field_type) {
+        case 'date':
+          return (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 w-full justify-start text-left font-normal">
+                  {editData.sample_data ? format(new Date(editData.sample_data), "MMM dd, yyyy") : "Select date..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={editData.sample_data ? new Date(editData.sample_data) : undefined}
+                  onSelect={(date) => setEditData({...editData, sample_data: date?.toISOString().split('T')[0] || ""})}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          );
+
+        case 'datetime':
+          return (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 w-full justify-start text-left font-normal">
+                  {editData.sample_data ? format(new Date(editData.sample_data), "MMM dd, yyyy HH:mm") : "Select date & time..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="p-3 space-y-2">
+                  <Calendar
+                    mode="single"
+                    selected={editData.sample_data ? new Date(editData.sample_data) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const currentTime = editData.sample_data ? new Date(editData.sample_data) : new Date();
+                        date.setHours(currentTime.getHours(), currentTime.getMinutes());
+                        setEditData({...editData, sample_data: date.toISOString()});
+                      }
+                    }}
+                    className="pointer-events-auto"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="time"
+                      value={editData.sample_data ? format(new Date(editData.sample_data), "HH:mm") : ""}
+                      onChange={(e) => {
+                        const [hours, minutes] = e.target.value.split(':');
+                        const date = editData.sample_data ? new Date(editData.sample_data) : new Date();
+                        date.setHours(parseInt(hours), parseInt(minutes));
+                        setEditData({...editData, sample_data: date.toISOString()});
+                      }}
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          );
+
+        case 'select':
+          const options = field.dropdown_options || [];
+          return (
+            <Select value={editData.sample_data || ""} onValueChange={(v) => setEditData({...editData, sample_data: v})}>
+              <SelectTrigger className="h-7">
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map(opt => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+
+        case 'boolean':
+          return (
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={editData.sample_data === 'true'}
+                onCheckedChange={(checked) => setEditData({...editData, sample_data: String(checked)})}
+              />
+              <span className="text-xs">{editData.sample_data === 'true' ? 'Yes' : 'No'}</span>
+            </div>
+          );
+
+        case 'currency':
+          return (
+            <Input 
+              value={editData.sample_data || ""} 
+              onChange={(e) => setEditData({...editData, sample_data: e.target.value})}
+              placeholder="$0.00"
+              className="h-7"
+            />
+          );
+
+        case 'percentage':
+          return (
+            <Input 
+              value={editData.sample_data || ""} 
+              onChange={(e) => setEditData({...editData, sample_data: e.target.value})}
+              placeholder="0%"
+              className="h-7"
+            />
+          );
+
+        default: // text, email, phone, number, url, file
+          return (
+            <Input 
+              value={editData.sample_data || ""} 
+              onChange={(e) => setEditData({...editData, sample_data: e.target.value})}
+              placeholder="Sample value..."
+              className="h-7"
+            />
+          );
+      }
     }
   }, {
     accessorKey: 'actions',
