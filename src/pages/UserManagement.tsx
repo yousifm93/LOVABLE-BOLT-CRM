@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CreateUserModal } from "@/components/modals/CreateUserModal";
-import { Mail, UserPlus, Power, Pencil } from "lucide-react";
+import { Mail, UserPlus, Power, Pencil, UserCheck } from "lucide-react";
 import { EditUserModal } from "@/components/modals/EditUserModal";
 
 interface User {
@@ -82,6 +82,46 @@ export default function UserManagement() {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setEditModalOpen(true);
+  };
+
+  const handleCreateAuthAccount = async (user: User) => {
+    if (!user.email) {
+      toast({ 
+        title: "Error", 
+        description: "Cannot create auth account: user has no email", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: user.email,
+          password: user.display_password || 'Yousmo93!!',
+          firstName: user.first_name,
+          lastName: user.last_name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({ 
+          title: "Success", 
+          description: `Auth account created for ${user.email}` 
+        });
+      } else {
+        throw new Error(data?.error || 'Failed to create auth account');
+      }
+    } catch (error: any) {
+      console.error('Error creating auth account:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || 'Failed to create auth account', 
+        variant: "destructive" 
+      });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -171,6 +211,15 @@ export default function UserManagement() {
                       title="Edit user"
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCreateAuthAccount(user)}
+                      disabled={!user.email}
+                      title="Create auth account"
+                    >
+                      <UserCheck className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -277,6 +326,15 @@ export default function UserManagement() {
                       title="Edit user"
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCreateAuthAccount(user)}
+                      disabled={!user.email}
+                      title="Create auth account"
+                    >
+                      <UserCheck className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
