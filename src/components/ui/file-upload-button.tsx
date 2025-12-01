@@ -12,7 +12,7 @@ interface FileUploadButtonProps {
     storage_path: string;
     allowed_types: string[];
   };
-  onUpload: (fileUrl: string | null) => void;
+  onUpload: (fileUrl: string | null, fileSize?: number) => void;
 }
 
 export function FileUploadButton({ 
@@ -58,8 +58,8 @@ export function FileUploadButton({
 
       if (uploadError) throw uploadError;
 
-      // Return storage path instead of public URL
-      onUpload(filePath);
+      // Return storage path and file size
+      onUpload(filePath, file.size);
 
       toast({ title: "Success", description: "File uploaded successfully" });
     } catch (error: any) {
