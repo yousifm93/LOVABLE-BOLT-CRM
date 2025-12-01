@@ -28,6 +28,7 @@ interface Field {
   is_in_use: boolean;
   is_system_field: boolean;
   sort_order: number;
+  sample_data?: string | null;
 }
 export default function Admin() {
   const [addFieldModalOpen, setAddFieldModalOpen] = useState(false);
@@ -174,7 +175,8 @@ export default function Admin() {
       is_required: field.is_required,
       is_visible: field.is_visible,
       is_in_use: field.is_in_use,
-      sort_order: field.sort_order
+      sort_order: field.sort_order,
+      sample_data: field.sample_data
     });
   };
   const saveEdit = async (fieldId: string) => {
@@ -398,6 +400,23 @@ export default function Admin() {
         ...editData,
         sort_order: parseInt(e.target.value) || 0
       })} className="h-7 w-16" /> : <span className="text-xs text-muted-foreground">{field.sort_order}</span>;
+    }
+  }, {
+    accessorKey: 'sample_data',
+    header: 'Sample Data',
+    width: 120,
+    minWidth: 100,
+    maxWidth: 200,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      return editingField === field.id ? <Input value={editData.sample_data || ""} onChange={e => setEditData({
+        ...editData,
+        sample_data: e.target.value
+      })} placeholder="Sample value..." className="h-7" /> : <span className="text-xs text-muted-foreground truncate block" title={field.sample_data || ""}>
+            {field.sample_data || "—"}
+          </span>;
     }
   }, {
     accessorKey: 'actions',

@@ -13,6 +13,7 @@ export interface Field {
   is_system_field: boolean;
   is_in_use: boolean;
   sort_order: number;
+  sample_data?: string | null;
   dropdown_options?: string[];
   file_config?: {
     storage_path: string;
