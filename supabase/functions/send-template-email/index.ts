@@ -106,11 +106,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Template not found: ${templateError?.message}`);
     }
 
-    // Fetch sender profile
+    // Fetch sender from users table
     const { data: sender, error: senderError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", senderId)
+      .from("users")
+      .select("first_name, last_name, email")
+      .eq("id", senderId)
       .maybeSingle();
 
     if (senderError) {
@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     if (!sender) {
-      throw new Error(`Sender profile not found for user_id: ${senderId}`);
+      throw new Error(`Sender not found for user id: ${senderId}`);
     }
 
     // Build comprehensive merge data
