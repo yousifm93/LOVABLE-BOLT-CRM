@@ -782,6 +782,7 @@ export default function TasksModern() {
               selectedIds={selectedTaskIds}
               onSelectionChange={setSelectedTaskIds}
               getRowId={(row) => row.id}
+              showRowNumbers={true}
             />
           )}
         </CardContent>

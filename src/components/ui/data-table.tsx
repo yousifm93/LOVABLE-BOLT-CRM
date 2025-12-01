@@ -375,20 +375,52 @@ export function DataTable<T extends Record<string, any>>({
 
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
-        let aValue = a[sortColumn];
-        let bValue = b[sortColumn];
+        // Helper to get nested property value (e.g., "borrower.first_name")
+        const getNestedValue = (obj: any, path: string) => {
+          return path.split('.').reduce((current, key) => current?.[key], obj);
+        };
+
+        let aValue = getNestedValue(a, sortColumn);
+        let bValue = getNestedValue(b, sortColumn);
         
-        // Handle numeric and date comparisons
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
+        // Handle null/undefined values - push to end
+        if (aValue == null && bValue == null) {
+          const aId = getRowId(a);
+          const bId = getRowId(b);
+          return aId < bId ? -1 : aId > bId ? 1 : 0;
+        }
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+        
+        // Detect date strings (ISO format or parseable dates)
+        const isDateString = (val: any) => {
+          if (typeof val !== 'string') return false;
+          return /^\d{4}-\d{2}-\d{2}/.test(val) || !isNaN(Date.parse(val));
+        };
+        
+        // Handle date comparisons
+        if (isDateString(aValue) && isDateString(bValue)) {
+          const aDate = new Date(aValue);
+          const bDate = new Date(bValue);
+          const diff = aDate.getTime() - bDate.getTime();
+          if (diff !== 0) return sortDirection === "asc" ? diff : -diff;
+        }
+        // Handle numeric comparisons
+        else if (typeof aValue === 'number' && typeof bValue === 'number') {
           const diff = aValue - bValue;
           if (diff !== 0) return sortDirection === "asc" ? diff : -diff;
-        } else if (aValue instanceof Date && bValue instanceof Date) {
+        }
+        // Handle Date object comparisons
+        else if (aValue instanceof Date && bValue instanceof Date) {
           const diff = aValue.getTime() - bValue.getTime();
           if (diff !== 0) return sortDirection === "asc" ? diff : -diff;
-        } else {
-          // String comparison
-          if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-          if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+        }
+        // String/text comparison (alphabetical)
+        else {
+          const aStr = String(aValue).toLowerCase();
+          const bStr = String(bValue).toLowerCase();
+          const comparison = aStr.localeCompare(bStr);
+          if (comparison !== 0) return sortDirection === "asc" ? comparison : -comparison;
         }
         
         // Deterministic tiebreaker: use row ID
