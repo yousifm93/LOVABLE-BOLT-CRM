@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Eye, History, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, History, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
@@ -101,10 +101,44 @@ const sortSectionsByPriority = (sections: Record<string, any[]>) => {
   return sorted;
 };
 
-// Helper function to convert plain text to HTML
-const convertPlainTextToHtml = (text: string, isPlainMode: boolean): string => {
-  if (!isPlainMode) return text; // Already HTML, return as-is
+// Helper function to extract plain text from HTML
+const extractPlainTextFromHtml = (html: string): string => {
+  // Remove HTML tags but preserve merge tags and structure
+  let text = html;
   
+  // Remove DOCTYPE and html/head/body tags
+  text = text.replace(/<!DOCTYPE[^>]*>/gi, '');
+  text = text.replace(/<html[^>]*>/gi, '');
+  text = text.replace(/<\/html>/gi, '');
+  text = text.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+  text = text.replace(/<body[^>]*>/gi, '');
+  text = text.replace(/<\/body>/gi, '');
+  
+  // Convert </p><p> to double newline (paragraph breaks)
+  text = text.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+  
+  // Convert <br> to single newline
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Remove all remaining HTML tags but keep content
+  text = text.replace(/<[^>]+>/g, '');
+  
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  
+  // Clean up excessive whitespace
+  text = text.trim();
+  text = text.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
+  
+  return text;
+};
+
+// Helper function to convert plain text to HTML
+const convertPlainTextToHtml = (text: string): string => {
   // Convert plain text with newlines to HTML
   const paragraphs = text
     .split('\n\n')
@@ -133,7 +167,6 @@ export default function EmailTemplates() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [formData, setFormData] = useState({ name: "", html: "" });
-  const [previewHtml, setPreviewHtml] = useState("");
   const [crmFields, setCrmFields] = useState<any[]>([]);
   const [categorizedFields, setCategorizedFields] = useState<Record<string, Array<{ tag: string; label: string; fieldType: string }>>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -187,8 +220,8 @@ export default function EmailTemplates() {
       return;
     }
 
-    // Use the helper function to convert plain text to HTML if needed
-    const htmlContent = convertPlainTextToHtml(formData.html, editorMode === 'plain');
+    // Convert plain text to HTML if needed
+    const htmlContent = editorMode === 'plain' ? convertPlainTextToHtml(formData.html) : formData.html;
     const dataToSave = { ...formData, html: htmlContent };
 
     if (editingTemplate) {
@@ -237,7 +270,10 @@ export default function EmailTemplates() {
     const isHtml = template.html.trim().startsWith('<!DOCTYPE') || template.html.trim().startsWith('<html');
     setEditorMode(isHtml ? 'html' : 'plain');
     
-    setFormData({ name: template.name, html: template.html });
+    // If HTML, extract plain text for plain mode
+    const content = isHtml ? extractPlainTextFromHtml(template.html) : template.html;
+    
+    setFormData({ name: template.name, html: content });
     setIsDialogOpen(true);
   };
 
@@ -245,9 +281,25 @@ export default function EmailTemplates() {
     setIsDialogOpen(false);
     setEditingTemplate(null);
     setFormData({ name: "", html: "" });
-    setPreviewHtml("");
     setEditorMode('plain');
     setIsMergeTagsCollapsed(false);
+  };
+
+  // Handle mode switching with content conversion
+  const handleModeSwitch = (newMode: 'plain' | 'html') => {
+    if (newMode === editorMode) return;
+    
+    if (newMode === 'html' && editorMode === 'plain') {
+      // Converting from plain to HTML
+      const htmlContent = convertPlainTextToHtml(formData.html);
+      setFormData({ ...formData, html: htmlContent });
+    } else if (newMode === 'plain' && editorMode === 'html') {
+      // Converting from HTML to plain
+      const plainContent = extractPlainTextFromHtml(formData.html);
+      setFormData({ ...formData, html: plainContent });
+    }
+    
+    setEditorMode(newMode);
   };
 
   const insertMergeTag = (tag: string) => {
@@ -257,9 +309,12 @@ export default function EmailTemplates() {
     }));
   };
 
-  const handlePreview = () => {
-    // First, convert to HTML if needed (BEFORE replacing merge tags)
-    let preview = convertPlainTextToHtml(formData.html, editorMode === 'plain');
+  // Live preview with sample data (memoized for performance)
+  const livePreview = useMemo(() => {
+    if (!formData.html) return '';
+    
+    // Convert to HTML if needed
+    let preview = editorMode === 'plain' ? convertPlainTextToHtml(formData.html) : formData.html;
     
     // Generate sample data for all CRM fields
     const sampleData: Record<string, string> = {};
@@ -311,8 +366,8 @@ export default function EmailTemplates() {
       preview = preview.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
     });
     
-    setPreviewHtml(preview);
-  };
+    return preview;
+  }, [formData.html, editorMode, crmFields]);
 
   return (
     <div className="space-y-6">
@@ -335,11 +390,11 @@ export default function EmailTemplates() {
                 New Template
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] w-[1400px] max-h-[90vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>{editingTemplate ? "Edit Template" : "Create New Template"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto max-h-[calc(90vh-100px)]">
               <div>
                 <Label htmlFor="name">Template Name</Label>
                 <Input
@@ -466,71 +521,77 @@ export default function EmailTemplates() {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Label htmlFor="content">Email Content</Label>
-                  <div className="ml-auto flex gap-2">
-                    <Button
-                      type="button"
-                      variant={editorMode === 'plain' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setEditorMode('plain')}
-                    >
-                      Plain Text
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={editorMode === 'html' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setEditorMode('html')}
-                    >
-                      HTML
-                    </Button>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Editor Panel */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="content">Email Content</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={editorMode === 'plain' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleModeSwitch('plain')}
+                      >
+                        Plain Text
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editorMode === 'html' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleModeSwitch('html')}
+                      >
+                        HTML
+                      </Button>
+                    </div>
                   </div>
+                  <Textarea
+                    id="content"
+                    value={formData.html}
+                    onChange={(e) => setFormData({ ...formData, html: e.target.value })}
+                    placeholder={
+                      editorMode === 'plain'
+                        ? "Type your email here. Press Enter twice for new paragraphs, once for line breaks. Click merge tag buttons to insert fields like {{first_name}}..."
+                        : "Enter HTML content with merge tags..."
+                    }
+                    rows={20}
+                    className={editorMode === 'html' ? 'font-mono text-sm resize-none' : 'text-sm resize-none'}
+                  />
+                  {editorMode === 'plain' && (
+                    <p className="text-xs text-muted-foreground">
+                      Press Enter twice to create paragraph spacing, or once for line breaks. Merge tags like {`{{first_name}}`} will be automatically replaced.
+                    </p>
+                  )}
                 </div>
-                <Textarea
-                  id="content"
-                  value={formData.html}
-                  onChange={(e) => setFormData({ ...formData, html: e.target.value })}
-                  placeholder={
-                    editorMode === 'plain'
-                      ? "Type your email here. Press Enter twice for new paragraphs, once for line breaks. Click merge tag buttons to insert fields like {{first_name}}..."
-                      : "Enter HTML content with merge tags..."
-                  }
-                  rows={12}
-                  className={editorMode === 'html' ? 'font-mono text-sm' : 'text-sm'}
-                />
-                {editorMode === 'plain' && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Press Enter twice to create paragraph spacing, or once for line breaks. Merge tags like {`{{first_name}}`} will be automatically replaced. Text will be converted to HTML when saved.
+
+                {/* Live Preview Panel */}
+                <div className="space-y-2">
+                  <Label>Live Preview</Label>
+                  <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto">
+                    {livePreview ? (
+                      <div
+                        className="bg-background"
+                        dangerouslySetInnerHTML={{ __html: livePreview }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                        Start typing to see preview...
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Preview updates automatically. Merge tags are replaced with sample data.
                   </p>
-                )}
+                </div>
               </div>
 
-              {previewHtml && (
-                <div>
-                  <Label>Preview</Label>
-                  <div
-                    className="mt-2 border rounded-md bg-background max-w-[600px] mx-auto overflow-auto"
-                    style={{ minHeight: '200px' }}
-                    dangerouslySetInnerHTML={{ __html: previewHtml }}
-                  />
-                </div>
-              )}
-
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePreview} type="button">
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={handleCloseDialog}>
+                  Cancel
                 </Button>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleCloseDialog}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSave}>
-                    {editingTemplate ? "Update" : "Create"}
-                  </Button>
-                </div>
+                <Button onClick={handleSave}>
+                  {editingTemplate ? "Update" : "Create"}
+                </Button>
               </div>
             </div>
           </DialogContent>
