@@ -1373,6 +1373,7 @@ export type Database = {
           from_name: string
           id: string
           is_default: boolean | null
+          signature: string | null
           spf_status: string | null
           tracking_domain: string | null
         }
@@ -1384,6 +1385,7 @@ export type Database = {
           from_name: string
           id?: string
           is_default?: boolean | null
+          signature?: string | null
           spf_status?: string | null
           tracking_domain?: string | null
         }
@@ -1395,6 +1397,7 @@ export type Database = {
           from_name?: string
           id?: string
           is_default?: boolean | null
+          signature?: string | null
           spf_status?: string | null
           tracking_domain?: string | null
         }
