@@ -20,6 +20,7 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
     password: "",
     role: "LO",
   });
@@ -76,6 +77,7 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
           firstName: "",
           lastName: "",
           email: "",
+          phone: "",
           password: "",
           role: "LO",
         });
@@ -163,6 +165,16 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+              placeholder="352-328-9828"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="password">Temporary Password</Label>
             <Input
               id="password"
@@ -188,9 +200,10 @@ export function CreateUserModal({ open, onOpenChange, onUserCreated }: CreateUse
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="LO">Loan Officer (LO)</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="LO">LO</SelectItem>
+                <SelectItem value="LO Assistant">LO Assistant</SelectItem>
                 <SelectItem value="Processor">Processor</SelectItem>
+                <SelectItem value="Admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
