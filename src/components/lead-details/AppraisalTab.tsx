@@ -10,9 +10,11 @@ import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { FileUploadButton } from "@/components/ui/file-upload-button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { databaseService } from "@/services/database";
 
 interface AppraisalTabProps {
   leadId: string;
+  borrowerLastName: string;
   data: {
     appraisal_status: string | null;
     appraisal_ordered_date: string | null;
@@ -35,7 +37,7 @@ const appraisalStatusOptions = [
   { value: "Waiver", label: "Waiver" }
 ];
 
-export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
+export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: AppraisalTabProps) {
   const { toast } = useToast();
   const [isParsing, setIsParsing] = useState(false);
 
@@ -46,22 +48,49 @@ export function AppraisalTab({ leadId, data, onUpdate }: AppraisalTabProps) {
     });
   };
 
-  const handleAppraisalUpload = async (fileUrl: string | null) => {
-    // First update the file field
-    onUpdate('appraisal_file', fileUrl);
+  const handleAppraisalUpload = async (storagePath: string | null) => {
+    if (!storagePath) {
+      onUpdate('appraisal_file', null);
+      return;
+    }
     
-    if (!fileUrl) return;
-    
-    // Parse the appraisal
-    setIsParsing(true);
-    toast({
-      title: "Processing Appraisal",
-      description: "Extracting appraised value from PDF...",
-    });
+    // Generate custom filename: "Appraisal Report-{LastName}-{MM.DD.YY}.pdf"
+    const today = new Date();
+    const formattedDate = `${today.getMonth() + 1}.${today.getDate()}.${String(today.getFullYear()).slice(-2)}`;
+    const customTitle = `Appraisal Report-${borrowerLastName}-${formattedDate}`;
     
     try {
+      // Update the file field with storage path
+      onUpdate('appraisal_file', storagePath);
+      
+      // Add document to documents table
+      const { data: userData } = await supabase.auth.getUser();
+      await databaseService.createDocumentFromStoragePath(
+        leadId,
+        storagePath,
+        {
+          title: customTitle,
+          mime_type: 'application/pdf',
+          size_bytes: 0 // We don't have file size from storage path
+        }
+      );
+      
+      // Generate signed URL for AI parsing
+      setIsParsing(true);
+      toast({
+        title: "Processing Appraisal",
+        description: "Extracting appraised value from PDF...",
+      });
+      
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(storagePath, 300); // 5 minute expiry
+      
+      if (signedUrlError) throw signedUrlError;
+      
+      // Call edge function with signed URL
       const { data: functionData, error: functionError } = await supabase.functions.invoke('parse-appraisal', {
-        body: { file_url: fileUrl }
+        body: { file_url: signedUrlData.signedUrl }
       });
       
       if (functionError) throw functionError;

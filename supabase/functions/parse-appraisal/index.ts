@@ -13,23 +13,24 @@ serve(async (req) => {
   try {
     const { file_url } = await req.json();
     
-    console.log('Parsing appraisal from URL:', file_url);
+    console.log('[parse-appraisal] Starting to parse appraisal from URL');
     
-    // Download file from storage
+    // Download file from signed URL
     const response = await fetch(file_url);
     if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
+      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
     }
     
     const blob = await response.blob();
+    console.log('[parse-appraisal] File downloaded, size:', blob.size, 'type:', blob.type);
     
     // Convert to base64
     const arrayBuffer = await blob.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-    
-    console.log('File downloaded and converted to base64, calling AI...');
+    console.log('[parse-appraisal] Converted to base64, length:', base64.length);
     
     // Use Lovable AI Gateway with Gemini Vision
+    console.log('[parse-appraisal] Calling AI Gateway...');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -63,20 +64,20 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errorText);
+      console.error('[parse-appraisal] AI gateway error:', aiResponse.status, errorText);
       throw new Error(`AI gateway error: ${aiResponse.status}`);
     }
 
     const result = await aiResponse.json();
     const content = result.choices?.[0]?.message?.content;
     
-    console.log('AI response content:', content);
+    console.log('[parse-appraisal] AI response:', JSON.stringify(result));
     
     // Parse the extracted value
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('Extracted appraised value:', parsed.appraised_value);
+      console.log('[parse-appraisal] Successfully extracted value:', parsed.appraised_value);
       
       return new Response(JSON.stringify({ 
         success: true, 
@@ -88,7 +89,7 @@ serve(async (req) => {
     
     throw new Error('Could not extract appraised value from AI response');
   } catch (error) {
-    console.error('Parse appraisal error:', error);
+    console.error('[parse-appraisal] Error:', error);
     return new Response(JSON.stringify({ 
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

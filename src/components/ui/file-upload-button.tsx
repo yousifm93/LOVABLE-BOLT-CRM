@@ -58,13 +58,8 @@ export function FileUploadButton({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      // Call the onUpload callback with the file URL
-      onUpload(publicUrl);
+      // Return storage path instead of public URL
+      onUpload(filePath);
 
       toast({ title: "Success", description: "File uploaded successfully" });
     } catch (error: any) {
@@ -83,13 +78,8 @@ export function FileUploadButton({
     if (!currentFile) return;
 
     try {
-      // Extract file path from URL
-      const urlParts = currentFile.split('/');
-      const bucketIndex = urlParts.indexOf('documents');
-      if (bucketIndex !== -1) {
-        const filePath = urlParts.slice(bucketIndex + 1).join('/');
-        await supabase.storage.from('documents').remove([filePath]);
-      }
+      // currentFile is now a storage path
+      await supabase.storage.from('documents').remove([currentFile]);
       
       onUpload(null);
       toast({ title: "Success", description: "File deleted" });
@@ -103,16 +93,36 @@ export function FileUploadButton({
     }
   };
 
+  const handleViewFile = async () => {
+    if (!currentFile) return;
+    
+    try {
+      // Generate signed URL for viewing
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(currentFile, 300); // 5 minute expiry
+      
+      if (error) throw error;
+      
+      window.open(data.signedUrl, '_blank');
+    } catch (error: any) {
+      console.error('View file error:', error);
+      toast({
+        title: "Failed to open file",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       {currentFile ? (
         <>
-          <a href={currentFile} target="_blank" rel="noopener noreferrer">
-            <Button variant="ghost" size="sm" className="h-7 px-2">
-              <File className="h-3.5 w-3.5 mr-1" />
-              View
-            </Button>
-          </a>
+          <Button variant="ghost" size="sm" onClick={handleViewFile} className="h-7 px-2">
+            <File className="h-3.5 w-3.5 mr-1" />
+            View
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleDelete} className="h-7 px-2">
             <X className="h-3.5 w-3.5" />
           </Button>
