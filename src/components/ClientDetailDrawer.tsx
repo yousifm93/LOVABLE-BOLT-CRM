@@ -580,7 +580,7 @@ export function ClientDetailDrawer({
       default:
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <h4 className="font-medium text-sm mb-3">Screening Status</h4>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-3 gap-6">
               {/* Left Column: Status */}
               <div className="space-y-2">
                 <div className="flex flex-col gap-1">
@@ -615,6 +615,22 @@ export function ClientDetailDrawer({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Last Updated</span>
                   <span className="text-sm">{formatDateModern(localUpdatedAt)}</span>
+                </div>
+              </div>
+
+              {/* Middle Column: Financial Details */}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Cash to Close</span>
+                  <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Closing Costs</span>
+                  <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Interest Rate</span>
+                  <InlineEditPercentage value={(client as any).interestRate || null} onValueChange={value => handleLeadUpdate('interestRate', value)} decimals={3} />
                 </div>
               </div>
 
@@ -710,6 +726,23 @@ export function ClientDetailDrawer({
       return;
     }
     try {
+      // Define stage order for forward progression detection
+      const STAGE_ORDER = ['leads', 'pending-app', 'screening', 'pre-qualified', 'pre-approved', 'active'];
+      const STAGE_DATE_FIELDS: Record<string, string> = {
+        'pending-app': 'pending_app_at',
+        'screening': 'app_complete_at',
+        'pre-qualified': 'pre_qualified_at',
+        'pre-approved': 'pre_approved_at',
+        'active': 'active_at'
+      };
+
+      // Get current stage key from client
+      const currentStageKey = client.ops.stage;
+      const targetStageKey = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
+      
+      const currentIndex = STAGE_ORDER.indexOf(currentStageKey);
+      const targetIndex = STAGE_ORDER.indexOf(targetStageKey);
+
       // Special handling for Pending App stage
       const isPendingApp = normalizedLabel === 'Pending App' || stageId === '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945';
       const updateData: any = {
@@ -721,6 +754,21 @@ export function ClientDetailDrawer({
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
         updateData.status = 'Pending App';
         updateData.task_eta = today;
+      }
+
+      // If moving forward (skipping stages), auto-populate intermediate stage dates
+      if (currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex) {
+        const now = new Date().toISOString();
+        
+        // Fill in all intermediate stage dates
+        for (let i = currentIndex + 1; i <= targetIndex; i++) {
+          const stageKey = STAGE_ORDER[i];
+          const dateField = STAGE_DATE_FIELDS[stageKey];
+          
+          if (dateField) {
+            updateData[dateField] = now;
+          }
+        }
       }
 
       // If moving to Active, also update the pipeline_section to Incoming
@@ -1641,6 +1689,14 @@ export function ClientDetailDrawer({
                 return stages.map((stage, index) => {
                   const isCompleted = index <= currentStageIndex;
                   const isCurrent = index === currentStageIndex;
+                  
+                  // Format timestamp for hover (e.g., "Nov 15, 2024 at 2:30 PM")
+                  const formatTimestamp = (dateStr: string | null) => {
+                    if (!dateStr) return '';
+                    const date = new Date(dateStr);
+                    return format(date, 'MMM dd, yyyy \'at\' h:mm a');
+                  };
+                  
                   return <div key={stage.key} className="flex items-center gap-3 text-sm">
                         <div className={cn("flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold", isCompleted ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-400")}>
                           {isCompleted ? "✓" : "•"}
@@ -1648,44 +1704,54 @@ export function ClientDetailDrawer({
                         <div className="flex-1">
                           <p className="font-medium">{stage.label}</p>
                           <div onClick={e => e.stopPropagation()}>
-                            <InlineEditDate value={stage.date} onValueChange={newDate => {
-                          const fieldMap: Record<string, string> = {
-                            'leads': 'lead_on_date',
-                            'pending-app': 'pending_app_at',
-                            'screening': 'app_complete_at',
-                            'pre-qualified': 'pre_qualified_at',
-                            'pre-approved': 'pre_approved_at',
-                            'active': 'active_at'
-                          };
-                          const dbField = fieldMap[stage.key];
-                          if (dbField && leadId) {
-                            let dateValue: string | null = null;
-                            if (dbField === 'lead_on_date') {
-                              dateValue = newDate ? formatDateForInput(newDate) : null;
-                            } else {
-                              dateValue = newDate ? newDate.toISOString() : null;
-                            }
-                            databaseService.updateLead(leadId, {
-                              [dbField]: dateValue
-                            }).then(() => {
-                              if (onLeadUpdated) onLeadUpdated();
-                              toast({
-                                title: "Success",
-                                description: "Stage date updated"
-                              });
-                            }).catch(error => {
-                              console.error('Error updating stage date:', error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to update stage date",
-                                variant: "destructive"
-                              });
-                            });
-                          }
-                        }} className="text-xs" placeholder="Set date" />
-                            {stage.date && stage.daysAgo !== null && <p className="text-xs text-muted-foreground mt-1">
+                            <InlineEditDate 
+                              value={stage.date} 
+                              onValueChange={newDate => {
+                                const fieldMap: Record<string, string> = {
+                                  'leads': 'lead_on_date',
+                                  'pending-app': 'pending_app_at',
+                                  'screening': 'app_complete_at',
+                                  'pre-qualified': 'pre_qualified_at',
+                                  'pre-approved': 'pre_approved_at',
+                                  'active': 'active_at'
+                                };
+                                const dbField = fieldMap[stage.key];
+                                if (dbField && leadId) {
+                                  let dateValue: string | null = null;
+                                  if (dbField === 'lead_on_date') {
+                                    dateValue = newDate ? formatDateForInput(newDate) : null;
+                                  } else {
+                                    dateValue = newDate ? newDate.toISOString() : null;
+                                  }
+                                  databaseService.updateLead(leadId, {
+                                    [dbField]: dateValue
+                                  }).then(() => {
+                                    if (onLeadUpdated) onLeadUpdated();
+                                    toast({
+                                      title: "Success",
+                                      description: "Stage date updated"
+                                    });
+                                  }).catch(error => {
+                                    console.error('Error updating stage date:', error);
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to update stage date",
+                                      variant: "destructive"
+                                    });
+                                  });
+                                }
+                              }} 
+                              className="text-xs" 
+                              placeholder="Set date" 
+                            />
+                            {stage.date && stage.daysAgo !== null && (
+                              <p 
+                                className="text-xs text-muted-foreground mt-1 cursor-help" 
+                                title={formatTimestamp(stage.date)}
+                              >
                                 {stage.daysAgo} days ago
-                              </p>}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>;
