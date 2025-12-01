@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Eye, History } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, History, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface EmailTemplate {
   id: string;
@@ -138,6 +139,7 @@ export default function EmailTemplates() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [editorMode, setEditorMode] = useState<'plain' | 'html'>('plain');
+  const [isMergeTagsCollapsed, setIsMergeTagsCollapsed] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -230,6 +232,11 @@ export default function EmailTemplates() {
 
   const handleEdit = (template: EmailTemplate) => {
     setEditingTemplate(template);
+    
+    // Auto-detect if content is HTML
+    const isHtml = template.html.trim().startsWith('<!DOCTYPE') || template.html.trim().startsWith('<html');
+    setEditorMode(isHtml ? 'html' : 'plain');
+    
     setFormData({ name: template.name, html: template.html });
     setIsDialogOpen(true);
   };
@@ -239,6 +246,8 @@ export default function EmailTemplates() {
     setEditingTemplate(null);
     setFormData({ name: "", html: "" });
     setPreviewHtml("");
+    setEditorMode('plain');
+    setIsMergeTagsCollapsed(false);
   };
 
   const insertMergeTag = (tag: string) => {
@@ -341,112 +350,121 @@ export default function EmailTemplates() {
                 />
               </div>
 
-              <div>
+              <Collapsible open={!isMergeTagsCollapsed} onOpenChange={(open) => setIsMergeTagsCollapsed(!open)}>
                 <div className="flex items-center justify-between mb-2">
-                  <Label>Merge Tags</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const allCategories = Object.keys(categorizedFields);
-                        const newState: Record<string, boolean> = {};
-                        allCategories.forEach(cat => newState[cat] = true);
-                        setExpandedSections(newState);
-                      }}
-                      type="button"
-                      className="text-xs h-7"
-                    >
-                      Expand All
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent">
+                      {isMergeTagsCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      <Label className="cursor-pointer">Merge Tags</Label>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedSections({})}
-                      type="button"
-                      className="text-xs h-7"
-                    >
-                      Collapse All
-                    </Button>
-                  </div>
+                  </CollapsibleTrigger>
+                  {!isMergeTagsCollapsed && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const allCategories = Object.keys(categorizedFields);
+                          const newState: Record<string, boolean> = {};
+                          allCategories.forEach(cat => newState[cat] = true);
+                          setExpandedSections(newState);
+                        }}
+                        type="button"
+                        className="text-xs h-7"
+                      >
+                        Expand All
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedSections({})}
+                        type="button"
+                        className="text-xs h-7"
+                      >
+                        Collapse All
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 
-                <Input
-                  placeholder="Search merge tags..."
-                  value={mergeTagSearch}
-                  onChange={(e) => setMergeTagSearch(e.target.value)}
-                  className="mb-2"
-                />
-                
-                <div className="mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Object.entries(categorizedFields)
-                      .filter(([category, fields]) => {
-                        if (!mergeTagSearch) return fields.length > 0;
-                        
-                        // Filter based on search
-                        const searchLower = mergeTagSearch.toLowerCase();
-                        const categoryMatch = category.toLowerCase().includes(searchLower);
-                        const fieldsMatch = fields.some(f => 
-                          f.label.toLowerCase().includes(searchLower) || 
-                          f.tag.toLowerCase().includes(searchLower)
-                        );
-                        
-                        return (categoryMatch || fieldsMatch) && fields.length > 0;
-                      })
-                      .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => {
-                        // Filter fields based on search
-                        const filteredFields = mergeTagSearch 
-                          ? fields.filter(f => 
-                              f.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) || 
-                              f.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
-                            )
-                          : fields;
-                        
-                        if (filteredFields.length === 0) return null;
-                        
-                        return (
-                          <div key={category} className="border rounded-md p-2 bg-card">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setExpandedSections(prev => ({ 
-                                ...prev, 
-                                [category]: !prev[category] 
-                              }))}
-                              type="button"
-                              className="w-full justify-between h-auto p-2"
-                            >
-                              <h4 className="text-xs font-semibold text-foreground">
-                                {category}
-                              </h4>
-                              <span className="text-xs text-muted-foreground">
-                                {expandedSections[category] ? '−' : '+'} {filteredFields.length}
-                              </span>
-                            </Button>
-                            
-                            {expandedSections[category] && (
-                              <div className="flex flex-wrap gap-1.5 p-2 bg-muted rounded-md mt-2">
-                                {filteredFields.map(({ tag, label }: { tag: string; label: string }) => (
-                                  <Button
-                                    key={tag}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => insertMergeTag(tag)}
-                                    type="button"
-                                    className="text-xs h-auto py-1 px-2"
-                                  >
-                                    {label}
-                                  </Button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                <CollapsibleContent>
+                  <Input
+                    placeholder="Search merge tags..."
+                    value={mergeTagSearch}
+                    onChange={(e) => setMergeTagSearch(e.target.value)}
+                    className="mb-2"
+                  />
+                  
+                  <div className="mt-2 max-h-96 overflow-y-auto border rounded-md p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(categorizedFields)
+                        .filter(([category, fields]) => {
+                          if (!mergeTagSearch) return fields.length > 0;
+                          
+                          // Filter based on search
+                          const searchLower = mergeTagSearch.toLowerCase();
+                          const categoryMatch = category.toLowerCase().includes(searchLower);
+                          const fieldsMatch = fields.some(f => 
+                            f.label.toLowerCase().includes(searchLower) || 
+                            f.tag.toLowerCase().includes(searchLower)
+                          );
+                          
+                          return (categoryMatch || fieldsMatch) && fields.length > 0;
+                        })
+                        .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => {
+                          // Filter fields based on search
+                          const filteredFields = mergeTagSearch 
+                            ? fields.filter(f => 
+                                f.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) || 
+                                f.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
+                              )
+                            : fields;
+                          
+                          if (filteredFields.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className="border rounded-md p-2 bg-card">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedSections(prev => ({ 
+                                  ...prev, 
+                                  [category]: !prev[category] 
+                                }))}
+                                type="button"
+                                className="w-full justify-between h-auto p-2"
+                              >
+                                <h4 className="text-xs font-semibold text-foreground">
+                                  {category}
+                                </h4>
+                                <span className="text-xs text-muted-foreground">
+                                  {expandedSections[category] ? '−' : '+'} {filteredFields.length}
+                                </span>
+                              </Button>
+                              
+                              {expandedSections[category] && (
+                                <div className="flex flex-wrap gap-1.5 p-2 bg-muted rounded-md mt-2">
+                                  {filteredFields.map(({ tag, label }: { tag: string; label: string }) => (
+                                    <Button
+                                      key={tag}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => insertMergeTag(tag)}
+                                      type="button"
+                                      className="text-xs h-auto py-1 px-2"
+                                    >
+                                      {label}
+                                    </Button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -493,7 +511,7 @@ export default function EmailTemplates() {
                 <div>
                   <Label>Preview</Label>
                   <div
-                    className="mt-2 p-4 border rounded-md bg-background max-w-[600px] mx-auto"
+                    className="mt-2 border rounded-md bg-background max-w-[600px] mx-auto overflow-auto"
                     style={{ minHeight: '200px' }}
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
