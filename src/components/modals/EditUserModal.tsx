@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ interface User {
   role: string;
   is_active: boolean;
   is_assignable: boolean;
+  email_signature?: string | null;
 }
 
 interface EditUserModalProps {
@@ -36,6 +38,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
     role: "LO" as "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly",
     is_active: true,
     is_assignable: true,
+    email_signature: "",
   });
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
         role: user.role as "Admin" | "LO" | "LO Assistant" | "Processor" | "ReadOnly",
         is_active: user.is_active,
         is_assignable: user.is_assignable ?? true,
+        email_signature: user.email_signature || "",
       });
     }
   }, [user]);
@@ -66,6 +70,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
           role: formData.role,
           is_active: formData.is_active,
           is_assignable: formData.is_assignable,
+          email_signature: formData.email_signature || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -92,7 +97,7 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
         </DialogHeader>
@@ -160,6 +165,21 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
               id="is_assignable"
               checked={formData.is_assignable}
               onCheckedChange={(checked) => setFormData({ ...formData, is_assignable: checked })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email_signature">Email Signature (HTML)</Label>
+            <p className="text-xs text-muted-foreground">
+              Paste the HTML source code of the email signature
+            </p>
+            <Textarea
+              id="email_signature"
+              value={formData.email_signature}
+              onChange={(e) => setFormData({ ...formData, email_signature: e.target.value })}
+              placeholder="Paste HTML signature here..."
+              rows={8}
+              className="font-mono text-xs"
             />
           </div>
 

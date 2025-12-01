@@ -109,7 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch sender from users table
     const { data: sender, error: senderError } = await supabase
       .from("users")
-      .select("first_name, last_name, email")
+      .select("first_name, last_name, email, email_signature")
       .eq("id", senderId)
       .maybeSingle();
 
@@ -190,6 +190,20 @@ const handler = async (req: Request): Promise<Response> => {
       htmlContent = htmlContent.replace(regex, String(value ?? ''));
       subject = subject.replace(regex, String(value ?? ''));
     });
+
+    // Append email signature if sender has one
+    if (sender.email_signature) {
+      const signatureHtml = `<br><br>${sender.email_signature}`;
+      
+      // Insert signature before closing body/html tags, or append at end
+      if (htmlContent.includes('</body>')) {
+        htmlContent = htmlContent.replace('</body>', `${signatureHtml}</body>`);
+      } else if (htmlContent.includes('</html>')) {
+        htmlContent = htmlContent.replace('</html>', `${signatureHtml}</html>`);
+      } else {
+        htmlContent += signatureHtml;
+      }
+    }
 
     // Build recipient lists
     const toEmails: string[] = [];

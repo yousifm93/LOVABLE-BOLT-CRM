@@ -20,6 +20,7 @@ interface User {
   is_assignable: boolean;
   created_at: string;
   display_password?: string | null;
+  email_signature?: string | null;
 }
 
 export default function UserManagement() {
