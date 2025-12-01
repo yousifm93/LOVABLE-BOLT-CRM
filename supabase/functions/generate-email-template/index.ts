@@ -37,6 +37,12 @@ Available Merge Tags (use these in your emails):
 - {{loan_officer}} - Assigned loan officer name
 - {{company_name}} - Mortgage Bolt
 
+IMPORTANT RULES:
+- Do NOT include any email signature at the end
+- End the email with just a closing like "Best," or "Thank you," 
+- Never add names, titles, contact info, or company info after the closing
+- The sender will add their own signature when sending
+
 Your task is to generate professional, engaging email content in HTML format. Use proper HTML tags like <p>, <strong>, <em>, <ul>, <li>, <h2>, etc. Include relevant merge tags where appropriate. Keep tone professional but friendly.`;
 
     const userPrompt = currentContent 

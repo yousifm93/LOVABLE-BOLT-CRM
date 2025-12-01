@@ -122,6 +122,16 @@ export default function EmailTemplates() {
   const [mergeTagSearch, setMergeTagSearch] = useState("");
   const [isMergeTagsCollapsed, setIsMergeTagsCollapsed] = useState(false);
   const [showSampleData, setShowSampleData] = useState(false);
+  const [sampleDataOverrides, setSampleDataOverrides] = useState({
+    first_name: "John",
+    last_name: "Smith",
+    email: "john@example.com",
+    phone: "(555) 123-4567",
+    loan_amount: "$450,000",
+    interest_rate: "6.5%",
+    close_date: "December 15, 2024",
+    subject_address_1: "123 Main St, Miami, FL"
+  });
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAiPanelExpanded, setIsAiPanelExpanded] = useState(true);
@@ -302,10 +312,15 @@ export default function EmailTemplates() {
     let preview = formData.html;
     
     if (showSampleData) {
-      // Generate sample data for all CRM fields
-      const sampleData: Record<string, string> = {};
+      // Start with user-provided sample data overrides
+      const sampleData: Record<string, string> = { ...sampleDataOverrides };
+      
+      // Fill in any remaining CRM fields not in overrides
       crmFields.forEach(field => {
         const fieldName = field.field_name;
+        
+        // Skip if already in overrides
+        if (sampleData[fieldName]) return;
         
         // Generate appropriate sample data based on field type
         switch (field.field_type) {
@@ -366,7 +381,7 @@ export default function EmailTemplates() {
     }
     
     return preview;
-  }, [formData.html, showSampleData, crmFields]);
+  }, [formData.html, showSampleData, crmFields, sampleDataOverrides]);
 
   return (
     <div className="space-y-6">
@@ -603,22 +618,111 @@ export default function EmailTemplates() {
                   />
                 </div>
 
-                {/* Live Preview Panel */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Live Preview</Label>
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="sample-data" className="text-sm font-normal cursor-pointer">
-                        Preview with Sample Data
-                      </Label>
-                      <Switch
-                        id="sample-data"
-                        checked={showSampleData}
-                        onCheckedChange={setShowSampleData}
-                      />
-                    </div>
-                  </div>
-                  <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
+                 {/* Live Preview Panel */}
+                 <div className="space-y-2">
+                   <div className="flex items-center justify-between">
+                     <Label>Live Preview</Label>
+                     <div className="flex items-center gap-2">
+                       <Label htmlFor="sample-data" className="text-sm font-normal cursor-pointer">
+                         Preview with Sample Data
+                       </Label>
+                       <Switch
+                         id="sample-data"
+                         checked={showSampleData}
+                         onCheckedChange={setShowSampleData}
+                       />
+                     </div>
+                   </div>
+
+                   {/* Editable Sample Data Panel */}
+                   {showSampleData && (
+                     <Card className="border-muted">
+                       <CardHeader className="pb-3">
+                         <CardTitle className="text-sm">Customize Sample Data</CardTitle>
+                         <CardDescription className="text-xs">
+                           Edit these values to see how your email looks with different data
+                         </CardDescription>
+                       </CardHeader>
+                       <CardContent className="space-y-3">
+                         <div className="grid grid-cols-2 gap-3">
+                           <div>
+                             <Label htmlFor="sample-first-name" className="text-xs">First Name</Label>
+                             <Input
+                               id="sample-first-name"
+                               value={sampleDataOverrides.first_name}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, first_name: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-last-name" className="text-xs">Last Name</Label>
+                             <Input
+                               id="sample-last-name"
+                               value={sampleDataOverrides.last_name}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, last_name: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-email" className="text-xs">Email</Label>
+                             <Input
+                               id="sample-email"
+                               value={sampleDataOverrides.email}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, email: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-phone" className="text-xs">Phone</Label>
+                             <Input
+                               id="sample-phone"
+                               value={sampleDataOverrides.phone}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, phone: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-loan-amount" className="text-xs">Loan Amount</Label>
+                             <Input
+                               id="sample-loan-amount"
+                               value={sampleDataOverrides.loan_amount}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, loan_amount: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-interest-rate" className="text-xs">Interest Rate</Label>
+                             <Input
+                               id="sample-interest-rate"
+                               value={sampleDataOverrides.interest_rate}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, interest_rate: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-close-date" className="text-xs">Close Date</Label>
+                             <Input
+                               id="sample-close-date"
+                               value={sampleDataOverrides.close_date}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, close_date: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                           <div>
+                             <Label htmlFor="sample-property-address" className="text-xs">Property Address</Label>
+                             <Input
+                               id="sample-property-address"
+                               value={sampleDataOverrides.subject_address_1}
+                               onChange={(e) => setSampleDataOverrides(prev => ({ ...prev, subject_address_1: e.target.value }))}
+                               className="h-8 text-sm"
+                             />
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                   )}
+
+                   <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
                     {livePreview ? (
                       <div
                         className="bg-background prose prose-sm max-w-none"
