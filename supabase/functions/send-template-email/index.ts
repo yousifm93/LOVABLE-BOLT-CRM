@@ -238,7 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         personalizations: [personalizations],
         from: { 
-          email: "yousif@mortgagebolt.org", 
+          email: sender.email, 
           name: `${sender.first_name} ${sender.last_name}` 
         },
         reply_to: { email: sender.email },
@@ -260,7 +260,7 @@ const handler = async (req: Request): Promise<Response> => {
       timestamp: new Date().toISOString(),
       direction: 'Out',
       to_email: toEmails.join(', '),
-      from_email: "yousif@mortgagebolt.org",
+      from_email: sender.email,
       subject: subject,
       snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
       provider_message_id: messageId,
