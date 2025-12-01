@@ -681,9 +681,9 @@ const allAvailableColumns = useMemo(() => {
               phone: row.original.realEstateAgentData.phone
             } : null}
             agents={agents}
-            onValueChange={(agent) => {
-              handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
-              fetchLeads();
+            onValueChange={async (agent) => {
+              await handleFieldUpdate(row.original.id, "buyer_agent_id", agent?.id || null);
+              await fetchLeads();
             }}
             type="buyer"
           />
@@ -699,9 +699,9 @@ const allAvailableColumns = useMemo(() => {
           <InlineEditSelect
             value={row.original.status}
             options={convertedOptions}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "converted", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "converted", value);
+              await fetchLeads();
             }}
             showAsStatusBadge={true}
             fillCell={true}
@@ -719,9 +719,9 @@ const allAvailableColumns = useMemo(() => {
         <InlineEditAssignee
           assigneeId={row.original.user}
           users={users}
-          onValueChange={(userId) => {
-            handleFieldUpdate(row.original.id, "teammate_assigned", userId);
-            fetchLeads();
+          onValueChange={async (userId) => {
+            await handleFieldUpdate(row.original.id, "teammate_assigned", userId);
+            await fetchLeads();
           }}
           showNameText={false}
         />
@@ -736,9 +736,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditPhone
             value={row.original.phone}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "phone", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "phone", value);
+              await fetchLeads();
             }}
             placeholder="Enter phone"
           />
@@ -753,9 +753,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditText
             value={row.original.email}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "email", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "email", value);
+              await fetchLeads();
             }}
             placeholder="Enter email"
           />
@@ -771,9 +771,9 @@ const allAvailableColumns = useMemo(() => {
           <InlineEditSelect
             value={row.original.loanType}
             options={loanTypeOptions}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "loan_type", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "loan_type", value);
+              await fetchLeads();
             }}
             placeholder="Select type"
           />
@@ -788,9 +788,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditNumber
             value={row.original.creditScore}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "fico_score", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "fico_score", value);
+              await fetchLeads();
             }}
             placeholder="0"
             min={300}
@@ -807,9 +807,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditCurrency
             value={row.original.loanAmount}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "loan_amount", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "loan_amount", value);
+              await fetchLeads();
             }}
             placeholder="$0"
           />
@@ -824,9 +824,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditPercentage
             value={row.original.dti || 0}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "dti", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "dti", value);
+              await fetchLeads();
             }}
             decimals={1}
           />
@@ -841,10 +841,10 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditDate
             value={row.original.dueDate}
-            onValueChange={(date) => {
+            onValueChange={async (date) => {
               const dateString = date ? date.toISOString().split('T')[0] : null;
-              handleFieldUpdate(row.original.id, "due_date", dateString);
-              fetchLeads();
+              await handleFieldUpdate(row.original.id, "due_date", dateString);
+              await fetchLeads();
             }}
             placeholder="Select date"
           />
@@ -859,9 +859,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditCurrency
             value={row.original.loanAmount}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "loan_amount", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "loan_amount", value);
+              await fetchLeads();
             }}
             placeholder="$0"
           />
@@ -876,9 +876,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditCurrency
             value={row.original.salesPrice}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "sales_price", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "sales_price", value);
+              await fetchLeads();
             }}
             placeholder="$0"
           />
@@ -893,9 +893,9 @@ const allAvailableColumns = useMemo(() => {
         <div onClick={(e) => e.stopPropagation()}>
           <InlineEditPercentage
             value={row.original.ltv || 0}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "ltv", value);
-              fetchLeads();
+            onValueChange={async (value) => {
+              await handleFieldUpdate(row.original.id, "ltv", value);
+              await fetchLeads();
             }}
             decimals={1}
           />
@@ -1127,7 +1127,10 @@ const allAvailableColumns = useMemo(() => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleBulkDelete}
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleBulkDelete();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Yes, Delete All
