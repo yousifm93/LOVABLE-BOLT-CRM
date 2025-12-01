@@ -40,7 +40,7 @@ serve(async (req) => {
   "first_name": "borrower's first name if found",
   "last_name": "borrower's last name if found",
   "phone": "phone number in format (XXX) XXX-XXXX if found",
-  "email": "email address if found",
+  "email": "borrower's email address - look in the To: or CC: recipient lines for emails belonging to the borrower (not the sender)",
   "agent_name": "real estate agent's name if mentioned (full name)",
   "referral_method": MUST be one of: "Email", "Text Message", "Phone Call", "Social Media", "Website", "Other",
   "referral_source": MUST be one of: "Agent", "Past Client", "Zillow", "Realtor.com", "Other",
@@ -53,6 +53,9 @@ CRITICAL RULES:
 - referral_source: If a real estate agent is involved, return "Agent". For past clients return "Past Client". For lead sources from Zillow/Realtor.com return those. Otherwise return "Other"
 - agent_name: Extract the real estate agent's full name separately (this is different from referral_source)
 - For borrower name, look for phrases like "client looking", "buyer named", or introductions
+- For borrower email, PRIORITIZE looking at the To: and CC: recipient lines. The sender's email (in the signature) is usually the real estate agent, NOT the borrower
+- If multiple emails are in the recipient line (comma-separated), try to identify which belongs to the borrower mentioned in the email body
+- Look for email addresses that match or relate to the borrower's name mentioned in the content
 - For notes, extract property requirements (price range, bedrooms, location), timeline (when they want to buy), loan type preferences, or any special circumstances
 - Return null for any field you cannot confidently extract
 - Be conservative with confidence scores - only return >0.8 if you're very certain`
