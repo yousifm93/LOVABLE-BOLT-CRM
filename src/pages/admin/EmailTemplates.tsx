@@ -3,14 +3,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, History, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, History, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Switch } from "@/components/ui/switch";
 
 interface EmailTemplate {
   id: string;
@@ -101,76 +102,12 @@ const sortSectionsByPriority = (sections: Record<string, any[]>) => {
   return sorted;
 };
 
-// Helper function to extract plain text from HTML
-const extractPlainTextFromHtml = (html: string): string => {
-  // Remove HTML tags but preserve merge tags and structure
-  let text = html;
-  
-  // Remove DOCTYPE and html/head/body tags
-  text = text.replace(/<!DOCTYPE[^>]*>/gi, '');
-  text = text.replace(/<html[^>]*>/gi, '');
-  text = text.replace(/<\/html>/gi, '');
-  text = text.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
-  text = text.replace(/<body[^>]*>/gi, '');
-  text = text.replace(/<\/body>/gi, '');
-  
-  // Convert </p><p> to double newline (paragraph breaks)
-  text = text.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
-  
-  // Convert <br> to single newline
-  text = text.replace(/<br\s*\/?>/gi, '\n');
-  
-  // Remove all remaining HTML tags but keep content
-  text = text.replace(/<[^>]+>/g, '');
-  
-  // Decode HTML entities
-  text = text.replace(/&nbsp;/g, ' ');
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&quot;/g, '"');
-  
-  // Clean up excessive whitespace
-  text = text.trim();
-  text = text.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
-  
-  return text;
-};
-
-// Helper function to extract body content from HTML (for preview)
-const extractBodyContent = (html: string): string => {
-  // Find content between <body> and </body>
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  if (bodyMatch) {
-    return bodyMatch[1].trim();
-  }
-  // If no body tags, return as-is
-  return html;
-};
-
-// Helper function to convert plain text to HTML
-const convertPlainTextToHtml = (text: string): string => {
-  // Convert plain text with newlines to HTML
-  const paragraphs = text
-    .split('\n\n')
-    .map(para => para.trim())
-    .filter(para => para.length > 0);
-  
-  const htmlParagraphs = paragraphs.map(para => {
-    const withBreaks = para.replace(/\n/g, '<br>');
-    return `<p>${withBreaks}</p>`;
+// Helper function to highlight merge tags in preview
+const highlightMergeTags = (html: string): string => {
+  // Replace {{field_name}} with styled badges
+  return html.replace(/\{\{([^}]+)\}\}/g, (match, fieldName) => {
+    return `<span style="background-color: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-size: 0.875rem; font-weight: 500; display: inline-block; margin: 0 2px;">{{${fieldName}}}</span>`;
   });
-  
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
-  ${htmlParagraphs.join('\n  ')}
-</body>
-</html>`;
 };
 
 export default function EmailTemplates() {
@@ -182,8 +119,8 @@ export default function EmailTemplates() {
   const [categorizedFields, setCategorizedFields] = useState<Record<string, Array<{ tag: string; label: string; fieldType: string }>>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [mergeTagSearch, setMergeTagSearch] = useState("");
-  const [editorMode, setEditorMode] = useState<'plain' | 'html'>('plain');
   const [isMergeTagsCollapsed, setIsMergeTagsCollapsed] = useState(false);
+  const [showSampleData, setShowSampleData] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -231,9 +168,7 @@ export default function EmailTemplates() {
       return;
     }
 
-    // Convert plain text to HTML if needed
-    const htmlContent = editorMode === 'plain' ? convertPlainTextToHtml(formData.html) : formData.html;
-    const dataToSave = { ...formData, html: htmlContent };
+    const dataToSave = { ...formData };
 
     if (editingTemplate) {
       const { error } = await supabase
@@ -276,15 +211,7 @@ export default function EmailTemplates() {
 
   const handleEdit = (template: EmailTemplate) => {
     setEditingTemplate(template);
-    
-    // Auto-detect if content is HTML
-    const isHtml = template.html.trim().startsWith('<!DOCTYPE') || template.html.trim().startsWith('<html');
-    setEditorMode(isHtml ? 'html' : 'plain');
-    
-    // If HTML, extract plain text for plain mode
-    const content = isHtml ? extractPlainTextFromHtml(template.html) : template.html;
-    
-    setFormData({ name: template.name, html: content });
+    setFormData({ name: template.name, html: template.html });
     setIsDialogOpen(true);
   };
 
@@ -292,31 +219,13 @@ export default function EmailTemplates() {
     setIsDialogOpen(false);
     setEditingTemplate(null);
     setFormData({ name: "", html: "" });
-    setEditorMode('plain');
     setIsMergeTagsCollapsed(false);
-  };
-
-  // Handle mode switching with content conversion
-  const handleModeSwitch = (newMode: 'plain' | 'html') => {
-    if (newMode === editorMode) return;
-    
-    if (newMode === 'html' && editorMode === 'plain') {
-      // Converting from plain to HTML
-      const htmlContent = convertPlainTextToHtml(formData.html);
-      setFormData({ ...formData, html: htmlContent });
-    } else if (newMode === 'plain' && editorMode === 'html') {
-      // Converting from HTML to plain
-      const plainContent = extractPlainTextFromHtml(formData.html);
-      setFormData({ ...formData, html: plainContent });
-    }
-    
-    setEditorMode(newMode);
   };
 
   const insertMergeTag = (tag: string) => {
     setFormData(prev => ({
       ...prev,
-      html: prev.html + tag,
+      html: prev.html + (prev.html ? ' ' : '') + tag,
     }));
   };
 
@@ -324,64 +233,74 @@ export default function EmailTemplates() {
   const livePreview = useMemo(() => {
     if (!formData.html) return '';
     
-    // Convert to HTML if needed
-    let preview = editorMode === 'plain' ? convertPlainTextToHtml(formData.html) : formData.html;
+    let preview = formData.html;
     
-    // Extract body content only for preview (removes DOCTYPE, html, head, body tags)
-    preview = extractBodyContent(preview);
-    
-    // Generate sample data for all CRM fields
-    const sampleData: Record<string, string> = {};
-    
-    crmFields.forEach((field) => {
-      const tag = `{{${field.field_name}}}`;
-      let sampleValue = '';
+    if (showSampleData) {
+      // Generate sample data for all CRM fields
+      const sampleData: Record<string, string> = {};
+      crmFields.forEach(field => {
+        const fieldName = field.field_name;
+        
+        // Generate appropriate sample data based on field type
+        switch (field.field_type) {
+          case 'currency':
+            sampleData[fieldName] = '$450,000';
+            break;
+          case 'percentage':
+            sampleData[fieldName] = '3.5%';
+            break;
+          case 'number':
+            sampleData[fieldName] = '750';
+            break;
+          case 'date':
+            sampleData[fieldName] = 'December 15, 2024';
+            break;
+          case 'phone':
+            sampleData[fieldName] = '(555) 123-4567';
+            break;
+          case 'email':
+            sampleData[fieldName] = 'example@email.com';
+            break;
+          case 'select':
+            if (field.dropdown_options && Array.isArray(field.dropdown_options)) {
+              sampleData[fieldName] = field.dropdown_options[0] || 'Option 1';
+            } else {
+              sampleData[fieldName] = 'Selected Option';
+            }
+            break;
+          default:
+            // For text fields, generate appropriate sample based on field name
+            if (fieldName.includes('first_name')) {
+              sampleData[fieldName] = 'John';
+            } else if (fieldName.includes('last_name')) {
+              sampleData[fieldName] = 'Smith';
+            } else if (fieldName.includes('name')) {
+              sampleData[fieldName] = 'John Smith';
+            } else if (fieldName.includes('address')) {
+              sampleData[fieldName] = '123 Main Street, Miami, FL 33131';
+            } else if (fieldName.includes('city')) {
+              sampleData[fieldName] = 'Miami';
+            } else if (fieldName.includes('state')) {
+              sampleData[fieldName] = 'Florida';
+            } else if (fieldName.includes('zip')) {
+              sampleData[fieldName] = '33131';
+            } else {
+              sampleData[fieldName] = 'Sample Value';
+            }
+        }
+      });
       
-      // Generate appropriate sample value based on field name patterns
-      if (field.field_name.includes('first_name')) {
-        sampleValue = 'John';
-      } else if (field.field_name.includes('last_name')) {
-        sampleValue = 'Doe';
-      } else if (field.field_name.includes('name') && !field.field_name.includes('_name')) {
-        sampleValue = 'Sample Name';
-      } else if (field.field_name.includes('email')) {
-        sampleValue = 'example@email.com';
-      } else if (field.field_name.includes('phone')) {
-        sampleValue = '(555) 123-4567';
-      } else if (field.field_name.includes('amount') || field.field_name.includes('price')) {
-        sampleValue = '$450,000';
-      } else if (field.field_name.includes('rate') && !field.field_name.includes('operating')) {
-        sampleValue = '6.5%';
-      } else if (field.field_name.includes('date')) {
-        sampleValue = new Date().toLocaleDateString();
-      } else if (field.field_name.includes('address')) {
-        sampleValue = '123 Main Street';
-      } else if (field.field_name.includes('city')) {
-        sampleValue = 'Los Angeles';
-      } else if (field.field_name.includes('state')) {
-        sampleValue = 'CA';
-      } else if (field.field_name.includes('zip')) {
-        sampleValue = '90001';
-      } else if (field.field_name.includes('status')) {
-        sampleValue = 'Active';
-      } else if (field.field_name.includes('score') || field.field_name.includes('fico')) {
-        sampleValue = '740';
-      } else if (field.field_name.includes('dti')) {
-        sampleValue = '38%';
-      } else {
-        sampleValue = `Sample ${field.display_name}`;
-      }
-      
-      sampleData[tag] = sampleValue;
-    });
-    
-    // Replace all merge tags with sample data
-    Object.entries(sampleData).forEach(([tag, value]) => {
-      preview = preview.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
-    });
+      // Replace merge tags with sample data
+      preview = preview.replace(/\{\{([^}]+)\}\}/g, (match, fieldName) => {
+        return sampleData[fieldName] || match;
+      });
+    } else {
+      // Highlight merge tags as badges
+      preview = highlightMergeTags(preview);
+    }
     
     return preview;
-  }, [formData.html, editorMode, crmFields]);
+  }, [formData.html, showSampleData, crmFields]);
 
   return (
     <div className="space-y-6">
@@ -471,63 +390,59 @@ export default function EmailTemplates() {
                           if (!mergeTagSearch) return fields.length > 0;
                           
                           // Filter based on search
-                          const searchLower = mergeTagSearch.toLowerCase();
-                          const categoryMatch = category.toLowerCase().includes(searchLower);
-                          const fieldsMatch = fields.some(f => 
-                            f.label.toLowerCase().includes(searchLower) || 
-                            f.tag.toLowerCase().includes(searchLower)
+                          const filteredFields = fields.filter(field => 
+                            field.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) ||
+                            field.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
                           );
-                          
-                          return (categoryMatch || fieldsMatch) && fields.length > 0;
+                          return filteredFields.length > 0;
                         })
-                        .map(([category, fields]: [string, Array<{ tag: string; label: string }>]) => {
-                          // Filter fields based on search
-                          const filteredFields = mergeTagSearch 
-                            ? fields.filter(f => 
-                                f.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) || 
-                                f.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
+                        .map(([category, fields]) => {
+                          const filteredFields = mergeTagSearch
+                            ? fields.filter(field => 
+                                field.label.toLowerCase().includes(mergeTagSearch.toLowerCase()) ||
+                                field.tag.toLowerCase().includes(mergeTagSearch.toLowerCase())
                               )
                             : fields;
                           
-                          if (filteredFields.length === 0) return null;
-                          
                           return (
-                            <div key={category} className="border rounded-md p-2 bg-card">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setExpandedSections(prev => ({ 
-                                  ...prev, 
-                                  [category]: !prev[category] 
-                                }))}
-                                type="button"
-                                className="w-full justify-between h-auto p-2"
-                              >
-                                <h4 className="text-xs font-semibold text-foreground">
-                                  {category}
-                                </h4>
-                                <span className="text-xs text-muted-foreground">
-                                  {expandedSections[category] ? '−' : '+'} {filteredFields.length}
-                                </span>
-                              </Button>
-                              
-                              {expandedSections[category] && (
-                                <div className="flex flex-wrap gap-1.5 p-2 bg-muted rounded-md mt-2">
-                                  {filteredFields.map(({ tag, label }: { tag: string; label: string }) => (
-                                    <Button
-                                      key={tag}
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => insertMergeTag(tag)}
-                                      type="button"
-                                      className="text-xs h-auto py-1 px-2"
-                                    >
-                                      {label}
-                                    </Button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <Collapsible 
+                              key={category} 
+                              open={expandedSections[category]}
+                              onOpenChange={(open) => setExpandedSections({...expandedSections, [category]: open})}
+                            >
+                              <div className="border rounded-md bg-card">
+                                <CollapsibleTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-between p-2 h-auto hover:bg-accent font-semibold text-xs"
+                                    type="button"
+                                  >
+                                    <span className="text-left">{category}</span>
+                                    {expandedSections[category] ? (
+                                      <ChevronDown className="h-3 w-3 shrink-0" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3 shrink-0" />
+                                    )}
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="p-2 pt-0">
+                                  <div className="flex flex-col gap-1">
+                                    {filteredFields.map((field) => (
+                                      <Button
+                                        key={field.tag}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="justify-start text-xs h-auto py-1.5 px-2 hover:bg-accent"
+                                        onClick={() => insertMergeTag(field.tag)}
+                                        type="button"
+                                      >
+                                        <span className="font-medium text-primary">{field.label}</span>
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </CollapsibleContent>
+                              </div>
+                            </Collapsible>
                           );
                         })}
                     </div>
@@ -535,123 +450,102 @@ export default function EmailTemplates() {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Editor Panel */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Rich Text Email Content */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="content">Email Content</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={editorMode === 'plain' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleModeSwitch('plain')}
-                      >
-                        Plain Text
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={editorMode === 'html' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleModeSwitch('html')}
-                      >
-                        HTML
-                      </Button>
-                    </div>
-                  </div>
-                  <Textarea
-                    id="content"
-                    value={formData.html}
-                    onChange={(e) => setFormData({ ...formData, html: e.target.value })}
-                    placeholder={
-                      editorMode === 'plain'
-                        ? "Type your email here. Press Enter twice for new paragraphs, once for line breaks. Click merge tag buttons to insert fields like {{first_name}}..."
-                        : "Enter HTML content with merge tags..."
-                    }
-                    rows={20}
-                    className={editorMode === 'html' ? 'font-mono text-sm resize-none' : 'text-sm resize-none'}
+                  <Label htmlFor="html">Email Content *</Label>
+                  <RichTextEditor
+                    value={formData.html || ''}
+                    onChange={(html) => setFormData({ ...formData, html })}
+                    placeholder="Type your email content here. Use {{field_name}} for merge tags. Click the merge tags below to insert them."
+                    className="min-h-[520px]"
                   />
-                  {editorMode === 'plain' && (
-                    <p className="text-xs text-muted-foreground">
-                      Press Enter twice to create paragraph spacing, or once for line breaks. Merge tags like {`{{first_name}}`} will be automatically replaced.
-                    </p>
-                  )}
                 </div>
 
                 {/* Live Preview Panel */}
                 <div className="space-y-2">
-                  <Label>Live Preview</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Live Preview</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="sample-data" className="text-sm font-normal cursor-pointer">
+                        Preview with Sample Data
+                      </Label>
+                      <Switch
+                        id="sample-data"
+                        checked={showSampleData}
+                        onCheckedChange={setShowSampleData}
+                      />
+                    </div>
+                  </div>
                   <div className="border rounded-md bg-muted/30 h-[520px] overflow-auto p-4">
                     {livePreview ? (
                       <div
-                        className="bg-background"
+                        className="bg-background prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{ __html: livePreview }}
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                        Start typing to see preview...
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <FileText className="h-12 w-12 mb-2" />
+                        <p>Preview will appear here</p>
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Preview updates automatically. Merge tags are replaced with sample data.
-                  </p>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={handleCloseDialog}>
+                <Button variant="outline" onClick={handleCloseDialog} type="button">
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
-                  {editingTemplate ? "Update" : "Create"}
+                <Button onClick={handleSave} type="button">
+                  {editingTemplate ? "Update Template" : "Create Template"}
                 </Button>
               </div>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
         </div>
       </div>
 
-{templates.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No email templates yet. Create your first template!</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Template Name</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.map((template) => (
-                <TableRow key={template.id}>
-                  <TableCell className="font-medium">{template.name}</TableCell>
-                  <TableCell>{new Date(template.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(template)}>
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(template.id)}>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
+      <Card>
+        <CardContent className="p-6">
+          {templates.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No templates yet</h3>
+              <p className="text-muted-foreground mb-4">Create your first email template to get started</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Template Name</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+              </TableHeader>
+              <TableBody>
+                {templates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell>{new Date(template.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(template)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(template.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
