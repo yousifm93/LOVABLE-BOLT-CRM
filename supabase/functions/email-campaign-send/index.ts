@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +10,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
-
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 interface CampaignSendRequest {
   campaignId: string;
@@ -51,6 +48,11 @@ serve(async (req) => {
       throw new Error(`Campaign not found: ${campaignError?.message}`);
     }
 
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    if (!SENDGRID_API_KEY) {
+      throw new Error("SendGrid API key not configured");
+    }
+
     if (testMode && testEmail) {
       // Send test email
       console.log(`Sending test email to: ${testEmail}`);
@@ -62,22 +64,37 @@ serve(async (req) => {
         .replace(/\{\{company_address\}\}/g, '123 Main Street, Miami, FL 33101')
         .replace(/\{\{unsubscribe_url\}\}/g, '#unsubscribe');
 
-      const { data: emailResult, error: emailError } = await resend.emails.send({
-        from: `${campaign.email_senders.from_name} <${campaign.email_senders.from_email}>`,
-        to: [testEmail],
-        subject: `[TEST] ${campaign.subject}`,
-        html: htmlContent,
+      const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{
+            to: [{ email: testEmail }]
+          }],
+          from: { 
+            email: "yousif@mortgagebolt.com", 
+            name: campaign.email_senders.from_name 
+          },
+          subject: `[TEST] ${campaign.subject}`,
+          content: [{ type: "text/html", value: htmlContent }],
+        }),
       });
 
-      if (emailError) {
-        throw new Error(`Failed to send test email: ${emailError.message}`);
+      if (!sendGridResponse.ok) {
+        const errorText = await sendGridResponse.text();
+        throw new Error(`SendGrid API error: ${sendGridResponse.status} - ${errorText}`);
       }
+
+      const messageId = sendGridResponse.headers.get('X-Message-Id') || `sg-test-${Date.now()}`;
 
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Test email sent successfully',
-          messageId: emailResult?.id 
+          messageId 
         }),
         { 
           status: 200, 
@@ -165,42 +182,58 @@ serve(async (req) => {
             .replace(/\{\{company_address\}\}/g, '123 Main Street, Miami, FL 33101')
             .replace(/\{\{unsubscribe_url\}\}/g, `https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/email-unsubscribe/${recipient.id}`);
 
-          const { data: emailResult, error: emailError } = await resend.emails.send({
-            from: `${campaign.email_senders.from_name} <${campaign.email_senders.from_email}>`,
-            to: [recipient.email],
-            subject: campaign.subject,
-            html: htmlContent,
+          const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+            method: "POST",
             headers: {
-              'List-Unsubscribe': `<https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/email-unsubscribe/${recipient.id}>`,
+              "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+              "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              personalizations: [{
+                to: [{ email: recipient.email }]
+              }],
+              from: { 
+                email: "yousif@mortgagebolt.com", 
+                name: campaign.email_senders.from_name 
+              },
+              subject: campaign.subject,
+              content: [{ type: "text/html", value: htmlContent }],
+              custom_args: {
+                campaign_id: campaignId,
+                contact_id: recipient.id
+              }
+            }),
           });
 
-          if (emailError) {
-            console.error(`Failed to send to ${recipient.email}:`, emailError);
+          if (!sendGridResponse.ok) {
+            const errorText = await sendGridResponse.text();
+            console.error(`Failed to send to ${recipient.email}:`, errorText);
             
             // Record failed send
             await supabase.from('email_campaign_sends').insert({
               campaign_id: campaignId,
               contact_id: recipient.id,
               status: 'failed',
-              error_message: emailError.message,
+              error_message: errorText,
             });
             
             failureCount++;
-            return { success: false, email: recipient.email, error: emailError.message };
+            return { success: false, email: recipient.email, error: errorText };
           }
+
+          const messageId = sendGridResponse.headers.get('X-Message-Id') || `sg-${Date.now()}`;
 
           // Record successful send
           await supabase.from('email_campaign_sends').insert({
             campaign_id: campaignId,
             contact_id: recipient.id,
-            provider_message_id: emailResult?.id,
+            provider_message_id: messageId,
             status: 'sent',
             sent_at: new Date().toISOString(),
           });
 
           successCount++;
-          return { success: true, email: recipient.email, messageId: emailResult?.id };
+          return { success: true, email: recipient.email, messageId };
         } catch (error) {
           console.error(`Error sending to ${recipient.email}:`, error);
           failureCount++;

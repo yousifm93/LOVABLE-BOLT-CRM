@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@4.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,70 +89,70 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Recipients:', recipients);
     console.log('CC: yousif@mortgagebolt.com');
 
-    // Check if Resend API key exists
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendApiKey) {
-      console.error('Resend API key not found');
+    // Check if SendGrid API key exists
+    const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
+    if (!SENDGRID_API_KEY) {
+      console.error('SendGrid API key not found');
       return new Response(
-        JSON.stringify({ error: 'Resend API key not configured' }),
+        JSON.stringify({ error: 'SendGrid API key not configured' }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Convert base64 to buffer for attachment
-    console.log('Converting base64 to buffer...');
-    let pdfBuffer: Uint8Array;
-    try {
-      pdfBuffer = Uint8Array.from(atob(pdfAttachment), c => c.charCodeAt(0));
-      console.log('PDF attachment prepared, size:', pdfBuffer.length, 'bytes');
-    } catch (bufferError) {
-      console.error('Error converting base64 to buffer:', bufferError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid PDF attachment data' }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    // Send email with PDF attachment using SendGrid
+    console.log('Calling SendGrid API...');
 
-    // Initialize Resend client
-    const resend = new Resend(resendApiKey);
-
-    // Send email with PDF attachment using Resend
-    console.log('Calling Resend API...');
-
-    const emailResponse = await resend.emails.send({
-      from: 'Mortgage Bolt - Yousif Mohamed <onboarding@resend.dev>',
-      to: recipients,
-      cc: ['yousif@mortgagebolt.com'],
-      subject: `Pre-Approval Letter - ${customerName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Congrats!</h2>
-          <p style="color: #666; line-height: 1.6;">Your pre-approval letter is attached.</p>
-          <p style="color: #666; line-height: 1.6;">Please let us know if you have any questions.</p>
-          <p style="color: #666; line-height: 1.6;">Best,<br>The Mortgage Bolt Team</p>
-        </div>
-      `,
-      attachments: [
-        {
+    const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{
+          to: recipients.map(email => ({ email })),
+          cc: [{ email: 'yousif@mortgagebolt.com' }]
+        }],
+        from: { 
+          email: "yousif@mortgagebolt.com", 
+          name: "Mortgage Bolt - Yousif Mohamed" 
+        },
+        subject: `Pre-Approval Letter - ${customerName}`,
+        content: [{
+          type: "text/html",
+          value: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Congrats!</h2>
+              <p style="color: #666; line-height: 1.6;">Your pre-approval letter is attached.</p>
+              <p style="color: #666; line-height: 1.6;">Please let us know if you have any questions.</p>
+              <p style="color: #666; line-height: 1.6;">Best,<br>The Mortgage Bolt Team</p>
+            </div>
+          `
+        }],
+        attachments: [{
+          content: pdfAttachment,
           filename: fileName,
-          content: pdfAttachment
-        }
-      ]
+          type: "application/pdf",
+          disposition: "attachment"
+        }]
+      }),
     });
 
-    console.log('Resend response:', emailResponse);
+    console.log('SendGrid response status:', sendGridResponse.status);
 
-    if (emailResponse.error) {
-      console.error('Resend API error:', emailResponse.error);
+    if (!sendGridResponse.ok) {
+      const errorText = await sendGridResponse.text();
+      console.error('SendGrid API error:', errorText);
       return new Response(
-        JSON.stringify({ error: `Resend API failed: ${JSON.stringify(emailResponse.error)}` }),
+        JSON.stringify({ error: `SendGrid API failed: ${errorText}` }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log('Email sent successfully via Resend, ID:', emailResponse.data?.id);
+    const messageId = sendGridResponse.headers.get('X-Message-Id') || `sg-${Date.now()}`;
+    console.log('Email sent successfully via SendGrid, Message ID:', messageId);
 
-    return new Response(JSON.stringify({ success: true, emailId: emailResponse.data?.id }), {
+    return new Response(JSON.stringify({ success: true, emailId: messageId }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
