@@ -76,7 +76,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         key: axiomApiKey,
-        automationName: 'Axiom Loan Pricer Tool',
+        taskName: 'Axiom Loan Pricer Tool',
         data: axiomData
       }),
     });
