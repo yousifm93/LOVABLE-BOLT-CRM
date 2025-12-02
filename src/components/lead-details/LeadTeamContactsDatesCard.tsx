@@ -31,7 +31,7 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
         <CollapsibleContent>
           <CardContent>
             <Tabs defaultValue="team" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsList className="grid w-full grid-cols-4 mb-2">
                 <TabsTrigger value="team" className="text-xs flex items-center gap-1">
                   <Users className="h-3 w-3" />
                   Team
@@ -50,25 +50,19 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="team" className="mt-0 min-h-[280px]">
-                <div className="grid grid-cols-2 gap-x-4">
-                  <TeamTab leadId={leadId} />
-                </div>
+              <TabsContent value="team" className="mt-0">
+                <TeamTab leadId={leadId} />
               </TabsContent>
               
-              <TabsContent value="contacts" className="mt-0 min-h-[280px]">
-                <div className="grid grid-cols-2 gap-x-4">
-                  <ContactsTab leadId={leadId} />
-                </div>
+              <TabsContent value="contacts" className="mt-0">
+                <ContactsTab leadId={leadId} />
               </TabsContent>
               
-              <TabsContent value="dates" className="mt-0 min-h-[280px]">
-                <div className="grid grid-cols-2 gap-x-4">
-                  <DatesTab leadId={leadId} />
-                </div>
+              <TabsContent value="dates" className="mt-0">
+                <DatesTab leadId={leadId} />
               </TabsContent>
               
-              <TabsContent value="piti" className="mt-0 min-h-[280px]">
+              <TabsContent value="piti" className="mt-0">
                 <PITITab leadId={leadId} />
               </TabsContent>
             </Tabs>

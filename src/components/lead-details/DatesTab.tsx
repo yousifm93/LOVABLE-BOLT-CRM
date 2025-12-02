@@ -38,7 +38,7 @@ export function DatesTab({ leadId }: DatesTabProps) {
       console.error(`Error updating ${fieldName}:`, error);
       toast({
         title: "Error",
-        description: `Failed to update ${fieldName}.`,
+        description: `Failed to update address.`,
         variant: "destructive",
       });
     }
@@ -46,52 +46,26 @@ export function DatesTab({ leadId }: DatesTabProps) {
 
   if (!lead) return null;
 
+  const addressFields = [
+    { label: "Subject Address 1", field: "subject_address_1", value: lead.subject_address_1 },
+    { label: "Subject Address 2", field: "subject_address_2", value: lead.subject_address_2 },
+    { label: "City", field: "subject_city", value: lead.subject_city },
+    { label: "State", field: "subject_state", value: lead.subject_state },
+    { label: "Zip", field: "subject_zip", value: lead.subject_zip },
+  ];
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between py-2 border-b border-border">
-        <span className="text-sm font-medium text-muted-foreground">Subject Address 1</span>
-        <InlineEditText
-          value={lead.subject_address_1 || ""}
-          onValueChange={(value) => handleFieldUpdate('subject_address_1', value)}
-          placeholder="Street address"
-        />
-      </div>
-
-      <div className="flex items-center justify-between py-2 border-b border-border">
-        <span className="text-sm font-medium text-muted-foreground">Subject Address 2</span>
-        <InlineEditText
-          value={lead.subject_address_2 || ""}
-          onValueChange={(value) => handleFieldUpdate('subject_address_2', value)}
-          placeholder="Apt, Suite, etc."
-        />
-      </div>
-
-      <div className="flex items-center justify-between py-2 border-b border-border">
-        <span className="text-sm font-medium text-muted-foreground">City</span>
-        <InlineEditText
-          value={lead.subject_city || ""}
-          onValueChange={(value) => handleFieldUpdate('subject_city', value)}
-          placeholder="City"
-        />
-      </div>
-
-      <div className="flex items-center justify-between py-2 border-b border-border">
-        <span className="text-sm font-medium text-muted-foreground">State</span>
-        <InlineEditText
-          value={lead.subject_state || ""}
-          onValueChange={(value) => handleFieldUpdate('subject_state', value)}
-          placeholder="State"
-        />
-      </div>
-
-      <div className="flex items-center justify-between py-2 border-b border-border">
-        <span className="text-sm font-medium text-muted-foreground">Zip</span>
-        <InlineEditText
-          value={lead.subject_zip || ""}
-          onValueChange={(value) => handleFieldUpdate('subject_zip', value)}
-          placeholder="Zip code"
-        />
-      </div>
+    <div className="space-y-1">
+      {addressFields.map((item) => (
+        <div key={item.field} className="flex items-center justify-between py-1">
+          <span className="text-xs text-muted-foreground">{item.label}</span>
+          <InlineEditText
+            value={item.value || ""}
+            onValueChange={(value) => handleFieldUpdate(item.field, value || null)}
+            placeholder="—"
+          />
+        </div>
+      ))}
     </div>
   );
 }

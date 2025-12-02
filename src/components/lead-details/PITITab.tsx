@@ -66,64 +66,30 @@ export function PITITab({ leadId }: PITITabProps) {
     }).format(amount);
   };
 
+  const pitiFields = [
+    { label: "Principal & Interest", field: "principal_interest", value: lead.principal_interest },
+    { label: "HOI (Insurance)", field: "homeowners_insurance", value: lead.homeowners_insurance },
+    { label: "Property Taxes", field: "property_taxes", value: lead.property_taxes },
+    { label: "Mortgage Insurance", field: "mortgage_insurance", value: lead.mortgage_insurance },
+    { label: "Association Dues", field: "hoa_dues", value: lead.hoa_dues },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
-        {/* Principal & Interest */}
-        <div className="flex flex-col items-center space-y-2">
-          <span className="text-xs font-medium text-muted-foreground text-center">Principal & Interest</span>
+    <div className="space-y-1">
+      {pitiFields.map((item) => (
+        <div key={item.field} className="flex items-center justify-between py-1">
+          <span className="text-xs text-muted-foreground">{item.label}</span>
           <InlineEditCurrency
-            value={lead.principal_interest}
-            onValueChange={(value) => handleFieldUpdate('principal_interest', value)}
+            value={item.value}
+            onValueChange={(value) => handleFieldUpdate(item.field, value)}
             placeholder="$0"
           />
         </div>
+      ))}
 
-        {/* HOI (Insurance) */}
-        <div className="flex flex-col items-center space-y-2">
-          <span className="text-xs font-medium text-muted-foreground text-center">HOI (Insurance)</span>
-          <InlineEditCurrency
-            value={lead.homeowners_insurance}
-            onValueChange={(value) => handleFieldUpdate('homeowners_insurance', value)}
-            placeholder="$0"
-          />
-        </div>
-
-        {/* Property Taxes */}
-        <div className="flex flex-col items-center space-y-2">
-          <span className="text-xs font-medium text-muted-foreground text-center">Property Taxes</span>
-          <InlineEditCurrency
-            value={lead.property_taxes}
-            onValueChange={(value) => handleFieldUpdate('property_taxes', value)}
-            placeholder="$0"
-          />
-        </div>
-
-        {/* Mortgage Insurance */}
-        <div className="flex flex-col items-center space-y-2">
-          <span className="text-xs font-medium text-muted-foreground text-center">Mortgage Insurance</span>
-          <InlineEditCurrency
-            value={lead.mortgage_insurance}
-            onValueChange={(value) => handleFieldUpdate('mortgage_insurance', value)}
-            placeholder="$0"
-          />
-        </div>
-
-        {/* Association Dues */}
-        <div className="flex flex-col items-center space-y-2">
-          <span className="text-xs font-medium text-muted-foreground text-center">Association Dues</span>
-          <InlineEditCurrency
-            value={lead.hoa_dues}
-            onValueChange={(value) => handleFieldUpdate('hoa_dues', value)}
-            placeholder="$0"
-          />
-        </div>
-      </div>
-
-      {/* Total PITI */}
-      <div className="flex items-center justify-between py-3 mt-4 bg-muted/30 px-3 rounded-md border-t-2 border-primary/20">
-        <span className="text-base font-semibold text-foreground">Total PITI</span>
-        <span className="text-base font-bold text-foreground">{formatCurrency(totalPITI)}</span>
+      <div className="flex items-center justify-between py-1 mt-2 border-t border-border">
+        <span className="text-xs font-semibold text-foreground">Total PITI</span>
+        <span className="text-sm font-bold text-foreground">{formatCurrency(totalPITI)}</span>
       </div>
     </div>
   );
