@@ -78,7 +78,7 @@ verify_jwt = false
 [functions.parse-appraisal]
 verify_jwt = false
 
-[functions.loan-pricer-sheets]
+[functions.loan-pricer-axiom]
 verify_jwt = true
 
 [functions.loan-pricer-webhook]

@@ -14,31 +14,23 @@ interface NewRunModalProps {
 }
 
 export interface ScenarioData {
-  fico_score: number;        // Credit score
-  loan_type: string;         // Conventional | FHA | VA
-  term_years: number;        // 10-30, 40
-  loan_purpose: string;      // Purchase | Refinance
+  fico_score: number;        // Credit score (300-850)
+  zip_code: string;          // 5-digit zip
+  num_units: number;         // 1, 2, 3, 4
   purchase_price: number;    // Dollar amount
   loan_amount: number;       // Dollar amount
   occupancy: string;         // Primary Residence | Second Home | Investment
   property_type: string;     // Single Family | Condo | 2-4 Units
-  num_units?: number;        // 2, 3, 4 (conditional)
-  zip_code: string;          // 5-digit zip
-  state: string;             // US state
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
   fico_score: 720,
-  loan_type: "Conventional",
-  term_years: 30,
-  loan_purpose: "Purchase",
+  zip_code: "",
+  num_units: 1,
   purchase_price: 400000,
   loan_amount: 320000,
   occupancy: "Primary Residence",
-  property_type: "Single Family",
-  num_units: undefined,
-  zip_code: "",
-  state: "FL"
+  property_type: "Single Family"
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {
@@ -58,17 +50,16 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
     if (!scenarioData.fico_score || !scenarioData.zip_code) {
       toast({
         title: "Missing Required Fields",
-        description: "Please fill in Credit Score and Zip Code",
+        description: "Please fill in FICO Score and Zip Code",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate 2-4 Units requires num_units
-    if (scenarioData.property_type === "2-4 Units" && !scenarioData.num_units) {
+    if (!scenarioData.purchase_price || !scenarioData.loan_amount) {
       toast({
-        title: "Missing Number of Units",
-        description: "Please specify the number of units for 2-4 unit properties",
+        title: "Missing Required Fields",
+        description: "Please fill in Purchase Price and Loan Amount",
         variant: "destructive",
       });
       return;
@@ -89,17 +80,17 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
 
       if (runError) throw runError;
 
-      // Call edge function to write to Google Sheet and trigger Axiom
-      const { error: sheetError } = await supabase.functions.invoke('loan-pricer-sheets', {
+      // Call edge function to trigger Axiom
+      const { error: axiomError } = await supabase.functions.invoke('loan-pricer-axiom', {
         body: { run_id: pricingRun.id }
       });
 
-      if (sheetError) {
-        // Update status to failed if Google Sheet write fails
+      if (axiomError) {
+        // Update status to failed if Axiom trigger fails
         await supabase.from('pricing_runs')
-          .update({ status: 'failed', error_message: sheetError.message })
+          .update({ status: 'failed', error_message: axiomError.message })
           .eq('id', pricingRun.id);
-        throw sheetError;
+        throw axiomError;
       }
 
       toast({
