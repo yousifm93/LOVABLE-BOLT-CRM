@@ -502,7 +502,7 @@ const allAvailableColumns = useMemo(() => {
     realEstateAgent: lead.buyer_agent_id || '',
     realEstateAgentData: (lead as any).buyer_agent || null,
     status: lead.converted || 'Working on it',
-    loanNumber: lead.arrive_loan_number?.toString() || '—',
+    loanNumber: lead.mb_loan_number?.toString() || '—',
     fico: lead.fico_score || 0,
     dti: lead.dti || 0,
     loanAmount: lead.loan_amount || 0,

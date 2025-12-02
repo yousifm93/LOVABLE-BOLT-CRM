@@ -28,7 +28,6 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
   const [editData, setEditData] = useState({
     first_name: client.person?.firstName || "",
     last_name: client.person?.lastName || "",
-    ssn: (client as any).ssn || "",
     dob: (client as any).dob || null,
     occupancy: (client as any).occupancy || "",
     residency_type: (client as any).residency_type || "",
@@ -47,7 +46,6 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     setEditData({
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
-      ssn: (client as any).ssn || "",
       dob: (client as any).dob || null,
       occupancy: (client as any).occupancy || "",
       residency_type: (client as any).residency_type || "",
@@ -90,7 +88,6 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       await databaseService.updateLead(leadId, {
         first_name: editData.first_name,
         last_name: editData.last_name,
-        ssn: editData.ssn || null,
         dob: editData.dob,
         occupancy: editData.occupancy || null,
         residency_type: editData.residency_type || null,
@@ -152,22 +149,8 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       ) : undefined
     },
     { 
-      icon: Shield, 
-      label: "Social Security Number", 
-      value: maskSSN((client as any).ssn),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.ssn}
-          onChange={(e) => setEditData({ ...editData, ssn: e.target.value })}
-          className="h-8"
-          placeholder="XXX-XX-XXXX"
-        />
-      ) : undefined
-    },
-    { 
       icon: Calendar, 
-      label: "Date of Birth", 
+      label: "Date of Birth",
       value: formatDate((client as any).dob),
       editComponent: isEditing ? (
         <Input

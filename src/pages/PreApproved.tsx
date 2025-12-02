@@ -69,7 +69,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'loan_amount': 'loanAmount',
   'sales_price': 'salesPrice',
   'pre_approved_at': 'preApprovedOn',
-  'arrive_loan_number': 'loanNumber',
+  'mb_loan_number': 'loanNumber',
   'ba_status': 'baStatus',
   'notes': 'notes',
 };
@@ -390,8 +390,8 @@ const allAvailableColumns = useMemo(() => {
       'user': 'teammate_assigned',
       'buyer_agent_id': 'buyer_agent_id',
       'realEstateAgent': 'buyer_agent_id',
-      'arrive_loan_number': 'arrive_loan_number',
-      'loanNumber': 'arrive_loan_number',
+      'mb_loan_number': 'mb_loan_number',
+      'loanNumber': 'mb_loan_number',
       'due_date': 'task_eta',
       'dueDate': 'task_eta',
       'task_eta': 'task_eta',
@@ -479,8 +479,8 @@ const allAvailableColumns = useMemo(() => {
     id: lead.id, 
     name: `${lead.first_name} ${lead.last_name}`,
     preApprovedOn: lead.pre_approved_at || lead.created_at,
-    loanNumber: lead.arrive_loan_number?.toString() || '—',
-    email: lead.email || '', 
+    loanNumber: lead.mb_loan_number?.toString() || '—',
+    email: lead.email || '',
     phone: lead.phone || '', 
     loanType: lead.loan_type || 'Purchase', 
     status: lead.converted || 'Working on it', 
@@ -677,13 +677,13 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditNumber
-            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
+          <InlineEditText
+            value={row.original.loanNumber === '—' ? '' : row.original.loanNumber}
             onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
+              handleFieldUpdate(row.original.id, "mb_loan_number", value);
               fetchLeads();
             }}
-            placeholder="Enter loan #"
+            placeholder="MB-"
           />
         </div>
       ),

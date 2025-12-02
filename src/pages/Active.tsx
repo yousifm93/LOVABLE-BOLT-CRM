@@ -44,7 +44,7 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
-  "arrive_loan_number",
+  "mb_loan_number",
   "loan_amount",
   "disclosure_status",
   "close_date",
@@ -72,7 +72,7 @@ interface ActiveLoan {
   phone: string | null;
   loan_amount: number | null;
   sales_price: number | null;
-  arrive_loan_number: number | null;
+  mb_loan_number: string | null;
   pr_type: string | null;
   occupancy: string | null;
   disclosure_status: string | null;
@@ -312,18 +312,18 @@ const createColumns = (
     sortable: true,
   },
   {
-    accessorKey: "arrive_loan_number",
+    accessorKey: "mb_loan_number",
     header: "LOAN #",
     className: "text-center",
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditNumber
-          value={row.original.arrive_loan_number || 0}
+        <InlineEditText
+          value={row.original.mb_loan_number || ''}
           onValueChange={(value) => 
-            handleUpdate(row.original.id, "arrive_loan_number", value)
+            handleUpdate(row.original.id, "mb_loan_number", value)
           }
-          placeholder="0"
+          placeholder="MB-"
           className="w-20"
         />
       </div>
@@ -749,7 +749,7 @@ export default function Active() {
         "phone": "PHONE",
         "team": "USER",
         "lender": "LENDER",
-        "arrive_loan_number": "LOAN #",
+        "mb_loan_number": "LOAN #",
         "lender_loan_number": "LENDER LOAN #",
         "loan_amount": "LOAN AMT",
         "sales_price": "SALES PRICE",

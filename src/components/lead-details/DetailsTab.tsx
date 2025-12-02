@@ -38,7 +38,6 @@ import {
   formatAmortizationTerm, 
   calculateMonthlyPayment,
   formatDate,
-  maskSSN,
   formatTimeAtAddress
 } from "@/utils/formatters";
 import { databaseService } from "@/services/database";
@@ -56,43 +55,46 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editData, setEditData] = useState({
-    // Loan & Property
-    appraisal_value: client.loan?.appraisedValue || null,
+    // Borrower Info
+    first_name: client.person?.firstName || "",
+    last_name: client.person?.lastName || "",
+    dob: (client as any).dob || null,
+    marital_status: (client as any).marital_status || "",
+    borrower_current_address: (client as any).borrower_current_address || "",
+    residency_type: (client as any).residency_type || "",
+    military_veteran: (client as any).military_veteran || false,
+    
+    // Loan & Property - Transaction Details
+    loan_type: client.loan?.loanType || "",
     down_pmt: client.loan?.downPayment || null,
     interest_rate: client.loan?.interestRate || 7.0,
     term: client.loan?.term || 360,
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-    fico_score: client.loan?.ficoScore || null,
-    piti: client.piti || null,
     cash_to_close: (client as any).cash_to_close || null,
     closing_costs: (client as any).closing_costs || null,
-    loan_type: client.loan?.loanType || "",
+    
+    // Loan & Property - Property
     occupancy: (client as any).occupancy || "",
+    property_type: client.property?.propertyType || "",
     subject_address_1: (client as any).subject_address_1 || "",
     subject_address_2: (client as any).subject_address_2 || "",
     subject_city: (client as any).subject_city || "",
     subject_state: (client as any).subject_state || "",
     subject_zip: (client as any).subject_zip || "",
     
-    // Borrower Info
-    first_name: client.person?.firstName || "",
-    last_name: client.person?.lastName || "",
-    ssn: (client as any).ssn || "",
-    dob: (client as any).dob || null,
-    residency_type: (client as any).residency_type || "",
-    marital_status: (client as any).marital_status || "",
+    // Financial Summary
     monthly_payment_goal: (client as any).monthly_payment_goal || null,
-      cash_to_close_goal: (client as any).cash_to_close_goal || null,
-      borrower_current_address: (client as any).borrower_current_address || "",
-      military_veteran: (client as any).military_veteran || false,
-      total_monthly_income: (client as any).totalMonthlyIncome || null,
-      assets: (client as any).assets || null,
-      monthly_liabilities: (client as any).monthlyLiabilities || null,
-      principal_interest: (client as any).principalInterest || null,
-      property_taxes: (client as any).propertyTaxes || null,
-      homeowners_insurance: (client as any).homeownersInsurance || null,
-      mortgage_insurance: (client as any).mortgageInsurance || null,
-      hoa_dues: (client as any).hoaDues || null,
+    cash_to_close_goal: (client as any).cash_to_close_goal || null,
+    total_monthly_income: (client as any).totalMonthlyIncome || null,
+    assets: (client as any).assets || null,
+    monthly_liabilities: (client as any).monthlyLiabilities || null,
+    fico_score: client.loan?.ficoScore || null,
+    principal_interest: (client as any).principalInterest || null,
+    property_taxes: (client as any).propertyTaxes || null,
+    homeowners_insurance: (client as any).homeownersInsurance || null,
+    mortgage_insurance: (client as any).mortgageInsurance || null,
+    hoa_dues: (client as any).hoaDues || null,
+    piti: client.piti || null,
   });
 
   // Helper function for PITI calculation
@@ -127,43 +129,41 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset edit data
+    // Reset all edit data
     setEditData({
-      // Loan & Property
-      appraisal_value: client.loan?.appraisedValue || null,
+      first_name: client.person?.firstName || "",
+      last_name: client.person?.lastName || "",
+      dob: (client as any).dob || null,
+      marital_status: (client as any).marital_status || "",
+      borrower_current_address: (client as any).borrower_current_address || "",
+      residency_type: (client as any).residency_type || "",
+      military_veteran: (client as any).military_veteran || false,
+      loan_type: client.loan?.loanType || "",
       down_pmt: client.loan?.downPayment || null,
       interest_rate: client.loan?.interestRate || 7.0,
       term: client.loan?.term || 360,
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-      fico_score: client.loan?.ficoScore || null,
-      piti: client.piti || null,
       cash_to_close: (client as any).cash_to_close || null,
       closing_costs: (client as any).closing_costs || null,
-      loan_type: client.loan?.loanType || "",
       occupancy: (client as any).occupancy || "",
+      property_type: client.property?.propertyType || "",
       subject_address_1: (client as any).subject_address_1 || "",
       subject_address_2: (client as any).subject_address_2 || "",
       subject_city: (client as any).subject_city || "",
       subject_state: (client as any).subject_state || "",
       subject_zip: (client as any).subject_zip || "",
-      first_name: client.person?.firstName || "",
-      last_name: client.person?.lastName || "",
-      ssn: (client as any).ssn || "",
-      dob: (client as any).dob || null,
-      residency_type: (client as any).residency_type || "",
-      marital_status: (client as any).marital_status || "",
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
-      borrower_current_address: (client as any).borrower_current_address || "",
-      military_veteran: (client as any).military_veteran || false,
       total_monthly_income: (client as any).totalMonthlyIncome || null,
       assets: (client as any).assets || null,
       monthly_liabilities: (client as any).monthlyLiabilities || null,
+      fico_score: client.loan?.ficoScore || null,
       principal_interest: (client as any).principalInterest || null,
       property_taxes: (client as any).propertyTaxes || null,
       homeowners_insurance: (client as any).homeownersInsurance || null,
       mortgage_insurance: (client as any).mortgageInsurance || null,
       hoa_dues: (client as any).hoaDues || null,
+      piti: client.piti || null,
     });
   };
 
@@ -189,40 +189,40 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     setIsSaving(true);
     try {
       await databaseService.updateLead(leadId, {
-        // Loan & Property
-        appraisal_value: editData.appraisal_value?.toString() || null,
+        // Borrower Info
+        first_name: editData.first_name,
+        last_name: editData.last_name,
+        dob: editData.dob,
+        marital_status: editData.marital_status || null,
+        borrower_current_address: editData.borrower_current_address || null,
+        residency_type: editData.residency_type || null,
+        military_veteran: editData.military_veteran,
+        
+        // Loan & Property - Transaction Details
+        loan_type: editData.loan_type,
         down_pmt: editData.down_pmt?.toString() || null,
         interest_rate: editData.interest_rate,
         term: editData.term,
         escrows: editData.escrows || null,
-        fico_score: editData.fico_score,
-        piti: editData.piti,
         cash_to_close: editData.cash_to_close,
         closing_costs: editData.closing_costs,
-        loan_type: editData.loan_type,
+        
+        // Loan & Property - Property
         occupancy: editData.occupancy || null,
+        property_type: editData.property_type || null,
         subject_address_1: editData.subject_address_1 || null,
         subject_address_2: editData.subject_address_2 || null,
         subject_city: editData.subject_city || null,
         subject_state: editData.subject_state || null,
         subject_zip: editData.subject_zip || null,
         
-        // Borrower Info
-        first_name: editData.first_name,
-        last_name: editData.last_name,
-        ssn: editData.ssn || null,
-        dob: editData.dob,
-        residency_type: editData.residency_type || null,
-        marital_status: editData.marital_status || null,
+        // Financial Summary
         monthly_pmt_goal: editData.monthly_payment_goal,
         cash_to_close_goal: editData.cash_to_close_goal,
-        borrower_current_address: editData.borrower_current_address || null,
-        military_veteran: editData.military_veteran,
-        
-        // Consolidated Financial Fields
         total_monthly_income: editData.total_monthly_income,
         assets: editData.assets,
         monthly_liabilities: editData.monthly_liabilities,
+        fico_score: editData.fico_score,
         
         // Monthly Payment Breakdown
         principal_interest: editData.principal_interest,
@@ -230,6 +230,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         homeowners_insurance: editData.homeowners_insurance,
         mortgage_insurance: editData.mortgage_insurance,
         hoa_dues: editData.hoa_dues,
+        piti: editData.piti,
       });
 
       setIsEditing(false);
@@ -271,8 +272,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         is_closed: true,
         closed_at: new Date().toISOString(),
         converted: 'Closed',
-        loan_status: 'CTC', // Set loan status to Clear To Close
-        pipeline_section: 'Closed' // Set pipeline_section to 'Closed'
+        loan_status: 'CTC',
+        pipeline_section: 'Closed'
       });
       
       toast({
@@ -295,8 +296,129 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     }
   };
 
-  // Loan & Property data
-  const loanPropertyData = [
+  // ============================================
+  // BORROWER INFORMATION DATA
+  // ============================================
+  const borrowerData = [
+    { 
+      icon: User, 
+      label: "First Name", 
+      value: client.person?.firstName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.first_name}
+          onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
+          className="h-8"
+          placeholder="First name"
+        />
+      ) : undefined
+    },
+    { 
+      icon: User, 
+      label: "Last Name", 
+      value: client.person?.lastName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.last_name}
+          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+          className="h-8"
+          placeholder="Last name"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Calendar, 
+      label: "Date of Birth", 
+      value: formatDate((client as any).dob),
+      editComponent: isEditing ? (
+        <Input
+          type="date"
+          value={editData.dob || ""}
+          onChange={(e) => setEditData({ ...editData, dob: e.target.value || null })}
+          className="h-8"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Users, 
+      label: "Marital Status", 
+      value: (client as any).marital_status || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.marital_status}
+          onValueChange={(value) => setEditData({ ...editData, marital_status: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select marital status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Unmarried">Unmarried</SelectItem>
+            <SelectItem value="Married">Married</SelectItem>
+            <SelectItem value="Separated">Separated</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Current Property Address", 
+      value: (client as any).borrower_current_address || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.borrower_current_address}
+          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
+          className="h-8"
+          placeholder="Street, City, State, ZIP"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Shield, 
+      label: "Residency Type", 
+      value: (client as any).residency_type || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.residency_type}
+          onValueChange={(value) => setEditData({ ...editData, residency_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select residency type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="US Citizen">US Citizen</SelectItem>
+            <SelectItem value="Permanent Resident">Permanent Resident</SelectItem>
+            <SelectItem value="Non-Permanent Resident Alien">Non-Permanent Resident Alien</SelectItem>
+            <SelectItem value="Foreign National">Foreign National</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+  ];
+
+  // ============================================
+  // LOAN & PROPERTY - TRANSACTION DETAILS
+  // ============================================
+  const transactionDetailsData = [
+    { 
+      icon: ArrowRightLeft, 
+      label: "Transaction Type", 
+      value: client.loan?.loanType || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.loan_type}
+          onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Purchase">Purchase</SelectItem>
+            <SelectItem value="Refinance">Refinance</SelectItem>
+            <SelectItem value="HELOC">HELOC</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
     { 
       icon: DollarSign, 
       label: "Down Payment",
@@ -365,20 +487,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: CreditCard, 
-      label: "FICO Score", 
-      value: client.loan?.ficoScore?.toString() || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.fico_score || ""}
-          onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
-          className="h-8"
-          placeholder="Credit score"
-        />
-      ) : undefined
-    },
-    { 
       icon: DollarSign, 
       label: "Cash to Close", 
       value: formatCurrency((client as any).cash_to_close || 0),
@@ -406,26 +514,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         />
       ) : undefined
     },
-    { 
-      icon: ArrowRightLeft, 
-      label: "Transaction Type", 
-      value: client.loan?.loanType || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.loan_type}
-          onValueChange={(value) => setEditData({ ...editData, loan_type: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Purchase">Purchase</SelectItem>
-            <SelectItem value="Refinance">Refinance</SelectItem>
-            <SelectItem value="HELOC">HELOC</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
+  ];
+
+  // ============================================
+  // LOAN & PROPERTY - PROPERTY
+  // ============================================
+  const propertyData = [
     { 
       icon: Home, 
       label: "Occupancy", 
@@ -442,6 +536,28 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <SelectItem value="Primary Residence">Primary Residence</SelectItem>
             <SelectItem value="Second Home">Second Home</SelectItem>
             <SelectItem value="Investment Property">Investment Property</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Building, 
+      label: "Property Type", 
+      value: client.property?.propertyType || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.property_type}
+          onValueChange={(value) => setEditData({ ...editData, property_type: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select property type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Single Family">Single Family</SelectItem>
+            <SelectItem value="Townhouse">Townhouse</SelectItem>
+            <SelectItem value="Condo">Condo</SelectItem>
+            <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
       ) : undefined
@@ -513,122 +629,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
   ];
 
-  // Borrower Info data
-  const borrowerData = [
-    { 
-      icon: User, 
-      label: "Borrower First Name", 
-      value: client.person?.firstName || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.first_name}
-          onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
-          className="h-8"
-          placeholder="First name"
-        />
-      ) : undefined
-    },
-    { 
-      icon: User, 
-      label: "Borrower Last Name", 
-      value: client.person?.lastName || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.last_name}
-          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-          className="h-8"
-          placeholder="Last name"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Shield, 
-      label: "Social Security Number", 
-      value: maskSSN((client as any).ssn),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.ssn}
-          onChange={(e) => setEditData({ ...editData, ssn: e.target.value })}
-          className="h-8"
-          placeholder="XXX-XX-XXXX"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Calendar, 
-      label: "Date of Birth", 
-      value: formatDate((client as any).dob),
-      editComponent: isEditing ? (
-        <Input
-          type="date"
-          value={editData.dob || ""}
-          onChange={(e) => setEditData({ ...editData, dob: e.target.value || null })}
-          className="h-8"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Home, 
-      label: "Occupancy", 
-      value: (client as any).occupancy || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.occupancy}
-          onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select occupancy" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Primary Residence">Primary Residence</SelectItem>
-            <SelectItem value="Second Home">Second Home</SelectItem>
-            <SelectItem value="Investment Property">Investment Property</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    { 
-      icon: Shield, 
-      label: "Residency Type", 
-      value: (client as any).residency_type || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.residency_type}
-          onValueChange={(value) => setEditData({ ...editData, residency_type: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select residency type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="US Citizen">US Citizen</SelectItem>
-            <SelectItem value="Permanent Resident">Permanent Resident</SelectItem>
-            <SelectItem value="Non-Permanent Resident Alien">Non-Permanent Resident Alien</SelectItem>
-            <SelectItem value="Foreign National">Foreign National</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    { 
-      icon: Users, 
-      label: "Marital Status", 
-      value: (client as any).marital_status || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.marital_status}
-          onValueChange={(value) => setEditData({ ...editData, marital_status: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select marital status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Unmarried">Unmarried</SelectItem>
-            <SelectItem value="Married">Married</SelectItem>
-            <SelectItem value="Separated">Separated</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
+  // ============================================
+  // FINANCIAL SUMMARY DATA
+  // ============================================
+  const financialSummaryData = [
     { 
       icon: DollarSign, 
       label: "Monthly Payment Goal", 
@@ -659,42 +663,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         />
       ) : undefined
     },
-    { 
-      icon: Home, 
-      label: "Current Address", 
-      value: (client as any).borrower_current_address || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.borrower_current_address}
-          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
-          className="h-8"
-          placeholder="Street, City, State, ZIP"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Shield, 
-      label: "Military/Veteran", 
-      value: formatYesNo((client as any).military_veteran),
-      editComponent: isEditing ? (
-        <Select
-          value={editData.military_veteran ? "Yes" : "No"}
-          onValueChange={(value) => setEditData({ ...editData, military_veteran: value === "Yes" })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Yes">Yes</SelectItem>
-            <SelectItem value="No">No</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    }
-  ];
-
-  // Consolidated Financial Fields
-  const consolidatedFinancialData = [
     {
       icon: DollarSign,
       label: "Total Monthly Income",
@@ -730,7 +698,21 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           className="w-full"
         />
       ) : null
-    }
+    },
+    { 
+      icon: CreditCard, 
+      label: "Credit Score", 
+      value: client.loan?.ficoScore?.toString() || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.fico_score || ""}
+          onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
+          className="h-8"
+          placeholder="Credit score"
+        />
+      ) : undefined
+    },
   ];
 
   // Monthly Payment Breakdown
@@ -904,16 +886,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           )}
         </div>
 
-        {/* Loan & Property Information Section */}
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <DollarSign className="h-5 w-5 text-primary" />
-            Loan & Property Information
-          </h3>
-          <FourColumnDetailLayout items={loanPropertyData} />
-        </div>
-
-        {/* Borrower Information Section */}
+        {/* 1. BORROWER INFORMATION */}
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <User className="h-5 w-5 text-primary" />
@@ -922,29 +895,42 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <FourColumnDetailLayout items={borrowerData} />
         </div>
 
-        {/* Consolidated Financial Information */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Financial Summary
-            </h3>
+        {/* 2. LOAN & PROPERTY INFORMATION */}
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Loan & Property Information
+          </h3>
+          
+          {/* Transaction Details Subheading */}
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Transaction Details</h4>
+            <FourColumnDetailLayout items={transactionDetailsData} />
           </div>
-          <FourColumnDetailLayout items={consolidatedFinancialData} />
+          
+          {/* Property Subheading */}
+          <div>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Property</h4>
+            <FourColumnDetailLayout items={propertyData} />
+          </div>
         </div>
 
-        {/* Real Estate Owned Section */}
-        {leadId && <RealEstateOwnedSection leadId={leadId} />}
-
-        {/* Monthly Payment Breakdown Section */}
+        {/* 3. FINANCIAL SUMMARY */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Calculator className="h-5 w-5" />
-              Monthly Payment Breakdown
-            </h3>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            Financial Summary
+          </h3>
+          <FourColumnDetailLayout items={financialSummaryData} />
+          
+          {/* Real Estate Owned Section */}
+          {leadId && <RealEstateOwnedSection leadId={leadId} />}
+          
+          {/* Monthly Payment Breakdown */}
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
+            <FourColumnDetailLayout items={monthlyPaymentData} />
           </div>
-          <FourColumnDetailLayout items={monthlyPaymentData} />
         </div>
 
         {/* Co-Borrower Information Section */}
