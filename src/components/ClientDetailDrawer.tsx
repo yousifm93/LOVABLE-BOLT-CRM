@@ -581,65 +581,61 @@ export function ClientDetailDrawer({
           </div>;
       default:
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-4 gap-6">
-              {/* Column 1: Loan Numbers & Costs */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">MB Loan #</span>
-                  <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Lender Loan #</span>
-                  <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Closing Costs</span>
-                  <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Cash to Close</span>
-                  <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
-                </div>
+            <div className="grid grid-cols-3 gap-6">
+              {/* Row 1 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">MB Loan #</span>
+                <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
               </div>
-
-              {/* Column 2: Rate & Financial Profile */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Interest Rate</span>
-                  <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Credit Score</span>
-                  <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Income</span>
-                  <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
-                  <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
-                </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Interest Rate</span>
+                <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
               </div>
-
-              {/* Column 3: Income & Assets */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Total Monthly Income</span>
-                  <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Total Assets</span>
-                  <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">PITI</span>
-                  <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">DTI</span>
-                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
-                </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Total Monthly Income</span>
+                <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
+              </div>
+              
+              {/* Row 2 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Lender Loan #</span>
+                <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Credit Score</span>
+                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Total Assets</span>
+                <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
+              </div>
+              
+              {/* Row 3 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Closing Costs</span>
+                <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Monthly Income</span>
+                <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">PITI</span>
+                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+              </div>
+              
+              {/* Row 4 */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Cash to Close</span>
+                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
+                <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">DTI</span>
+                <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
               </div>
             </div>
           </div>;
@@ -1324,7 +1320,7 @@ export function ClientDetailDrawer({
             </Card>
 
             {/* About the Borrower Section */}
-            <Card>
+            <Card className="h-[160px]">
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
@@ -1333,7 +1329,7 @@ export function ClientDetailDrawer({
                     </Button>}
                 </div>
               </CardHeader>
-              <CardContent className="bg-gray-50">
+              <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
                 {isEditingNotes || !localNotes ? <>
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
@@ -1414,7 +1410,7 @@ export function ClientDetailDrawer({
             </Card>
 
             {/* Latest File Updates Section */}
-            <Card>
+            <Card className="h-[160px]">
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
@@ -1423,7 +1419,7 @@ export function ClientDetailDrawer({
                     </Button>}
                 </div>
               </CardHeader>
-              <CardContent className="bg-gray-50">
+              <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
                 {isEditingFileUpdates || !localFileUpdates ? <>
                     <Textarea key="file-updates-textarea" value={localFileUpdates} onChange={e => {
                   setLocalFileUpdates(e.target.value);
@@ -1500,7 +1496,7 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Moved above Tasks */}
             <Card>
               <CardHeader className="pb-3 bg-white">
                 <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>

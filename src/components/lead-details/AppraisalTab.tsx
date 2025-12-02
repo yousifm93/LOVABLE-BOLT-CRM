@@ -41,13 +41,6 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
   const { toast } = useToast();
   const [isParsing, setIsParsing] = useState(false);
 
-  const handleFollowUp = () => {
-    toast({
-      title: "Follow Up",
-      description: "Email template functionality coming soon",
-    });
-  };
-
   const handleAppraisalUpload = async (storagePath: string | null, fileSize?: number) => {
     if (!storagePath) {
       onUpdate('appraisal_file', null);
@@ -171,12 +164,25 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         </div>
       </div>
 
-      {/* Row 2: Appraised Value, Date/Time */}
+      {/* Row 2: Notes (spanning both columns) */}
+      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
+        <Label className="text-xs text-muted-foreground flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          Appraisal Notes
+        </Label>
+        <InlineEditNotes
+          value={data.appraisal_notes}
+          onValueChange={(value) => onUpdate('appraisal_notes', value)}
+          placeholder="Add notes about the appraisal..."
+        />
+      </div>
+
+      {/* Row 3: Appraised Value, Date/Time */}
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <DollarSign className="h-3 w-3" />
-            Appraised
+            Appraised Value
           </Label>
           <InlineEditCurrency
             value={data.appraisal_value}
@@ -190,7 +196,7 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         <div className="flex flex-col gap-2">
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Calendar className="h-3 w-3" />
-            Date/Time
+            Appraisal Date and Time
           </Label>
           <InlineEditDateTime
             value={data.appr_date_time}
@@ -199,53 +205,27 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         </div>
       </div>
 
-      {/* Row 4: Notes (spanning both columns) */}
-      <div className="md:col-span-2 space-y-2 bg-muted/30 p-3 rounded-md">
-        <Label className="text-xs text-muted-foreground flex items-center gap-2">
-          <MessageSquare className="h-3 w-3" />
-          Appraisal Notes
+      {/* Document Upload */}
+      <div className="flex flex-col gap-2">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <FileText className="h-3 w-3" />
+          Appraisal Report
         </Label>
-        <InlineEditNotes
-          value={data.appraisal_notes}
-          onValueChange={(value) => onUpdate('appraisal_notes', value)}
-          placeholder="Add notes about the appraisal..."
+        <FileUploadButton
+          leadId={leadId}
+          fieldName="appraisal_file"
+          currentFile={data.appraisal_file}
+          onUpload={handleAppraisalUpload}
+          config={{
+            storage_path: 'files/{lead_id}/appraisal/',
+            allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
+          }}
         />
-      </div>
-
-      {/* Document Upload and Follow Up */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <FileText className="h-3 w-3" />
-            Appraisal Report
-          </Label>
-          <FileUploadButton
-            leadId={leadId}
-            fieldName="appraisal_file"
-            currentFile={data.appraisal_file}
-            onUpload={handleAppraisalUpload}
-            config={{
-              storage_path: 'files/{lead_id}/appraisal/',
-              allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
-            }}
-          />
-          {isParsing && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Extracting appraised value...
-            </p>
-          )}
-        </div>
-        <div className="flex items-end justify-start">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFollowUp}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Follow Up
-          </Button>
-        </div>
+        {isParsing && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Extracting appraised value...
+          </p>
+        )}
       </div>
     </div>
   );

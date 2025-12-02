@@ -26,15 +26,6 @@ const titleStatusOptions = [
 ];
 
 export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
-  const { toast } = useToast();
-
-  const handleFollowUp = () => {
-    toast({
-      title: "Follow Up",
-      description: "Email template functionality coming soon",
-    });
-  };
-
   return (
     <div className="space-y-4">
       {/* Row 1: Status, Ordered, ETA - all in one row */}
@@ -92,9 +83,8 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
         />
       </div>
 
-      {/* Document Upload and Follow Up */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
+      {/* Document Upload */}
+      <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
           Title Work
@@ -109,18 +99,6 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
             allowed_types: ['.pdf']
           }}
         />
-      </div>
-        <div className="flex items-end justify-start">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFollowUp}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Follow Up
-          </Button>
-        </div>
       </div>
     </div>
   );

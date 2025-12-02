@@ -359,7 +359,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     <span 
-                      className="truncate cursor-pointer hover:underline" 
+                      className="truncate cursor-pointer hover:underline max-w-[180px]" 
                       title={client.person.email}
                       onClick={() => {
                         navigator.clipboard.writeText(client.person.email);
