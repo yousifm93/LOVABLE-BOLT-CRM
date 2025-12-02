@@ -61,31 +61,27 @@ export function RealEstateOwnedSection({ leadId }: RealEstateOwnedSectionProps) 
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Home className="h-5 w-5 text-primary" />
-          Real Estate Owned
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Total Properties</span>
-            <span className="text-sm font-medium">{totalProperties}</span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Total Value</span>
-            <span className="text-sm font-medium">{formatCurrency(totalValue)}</span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Total Net Income</span>
-            <span className={`text-sm font-medium ${totalNetIncome > 0 ? "text-green-600" : totalNetIncome < 0 ? "text-red-600" : ""}`}>
-              {formatCurrency(totalNetIncome)}/mo
-            </span>
-          </div>
+    <div className="mt-6">
+      <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1 flex items-center gap-2">
+        <Home className="h-4 w-4" />
+        Real Estate Owned
+      </h4>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Total Properties</span>
+          <span className="text-sm font-medium">{totalProperties}</span>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Total Value</span>
+          <span className="text-sm font-medium">{formatCurrency(totalValue)}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Total Net Income</span>
+          <span className={`text-sm font-medium ${totalNetIncome > 0 ? "text-green-600" : totalNetIncome < 0 ? "text-red-600" : ""}`}>
+            {formatCurrency(totalNetIncome)}/mo
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

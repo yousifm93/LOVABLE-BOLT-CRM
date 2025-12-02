@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileUpload } from "@/components/ui/file-upload";
-import { 
+import {
   DollarSign, 
   Home, 
   Percent,
@@ -29,7 +29,9 @@ import {
   Building2,
   Wallet,
   ArrowRightLeft,
-  FileText
+  FileText,
+  Phone,
+  Mail
 } from "lucide-react";
 import { 
   formatCurrency, 
@@ -58,6 +60,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     // Borrower Info
     first_name: client.person?.firstName || "",
     last_name: client.person?.lastName || "",
+    phone: client.person?.phone || client.person?.phoneMobile || "",
+    email: client.person?.email || "",
     dob: (client as any).dob || null,
     marital_status: (client as any).marital_status || "",
     borrower_current_address: (client as any).borrower_current_address || "",
@@ -67,6 +71,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     
     // Loan & Property - Transaction Details
     loan_type: client.loan?.loanType || "",
+    sales_price: client.loan?.salesPrice || null,
+    loan_amount: client.loan?.loanAmount || null,
+    loan_program: client.loan?.loanProgram || "",
     down_pmt: client.loan?.downPayment || null,
     interest_rate: client.loan?.interestRate || 7.0,
     term: client.loan?.term || 360,
@@ -134,6 +141,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     setEditData({
       first_name: client.person?.firstName || "",
       last_name: client.person?.lastName || "",
+      phone: client.person?.phone || client.person?.phoneMobile || "",
+      email: client.person?.email || "",
       dob: (client as any).dob || null,
       marital_status: (client as any).marital_status || "",
       borrower_current_address: (client as any).borrower_current_address || "",
@@ -141,6 +150,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       demographic_gender: (client as any).demographic_gender || "",
       military_veteran: (client as any).military_veteran || false,
       loan_type: client.loan?.loanType || "",
+      sales_price: client.loan?.salesPrice || null,
+      loan_amount: client.loan?.loanAmount || null,
+      loan_program: client.loan?.loanProgram || "",
       down_pmt: client.loan?.downPayment || null,
       interest_rate: client.loan?.interestRate || 7.0,
       term: client.loan?.term || 360,
@@ -194,6 +206,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         // Borrower Info
         first_name: editData.first_name,
         last_name: editData.last_name,
+        phone: editData.phone,
+        email: editData.email,
         dob: editData.dob,
         marital_status: editData.marital_status || null,
         borrower_current_address: editData.borrower_current_address || null,
@@ -203,6 +217,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         
         // Loan & Property - Transaction Details
         loan_type: editData.loan_type,
+        sales_price: editData.sales_price,
+        loan_amount: editData.loan_amount,
+        program: editData.loan_program || null,
         down_pmt: editData.down_pmt?.toString() || null,
         interest_rate: editData.interest_rate,
         term: editData.term,
@@ -408,6 +425,34 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
     // Row 3
     { 
+      icon: Phone, 
+      label: "Borrower Phone", 
+      value: client.person?.phone || client.person?.phoneMobile || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="tel"
+          value={editData.phone}
+          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+          className="h-8"
+          placeholder="Phone number"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Mail, 
+      label: "Borrower Email", 
+      value: client.person?.email || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="email"
+          value={editData.email}
+          onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+          className="h-8"
+          placeholder="Email address"
+        />
+      ) : undefined
+    },
+    { 
       icon: Home, 
       label: "Current Property Address", 
       value: (client as any).borrower_current_address || "—",
@@ -444,6 +489,51 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <SelectItem value="HELOC">HELOC</SelectItem>
           </SelectContent>
         </Select>
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Purchase Price",
+      value: formatCurrency(client.loan?.salesPrice || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          step="1000"
+          min="0"
+          value={editData.sales_price || ""}
+          onChange={(e) => setEditData({ ...editData, sales_price: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Loan Amount",
+      value: formatCurrency(client.loan?.loanAmount || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          step="1000"
+          min="0"
+          value={editData.loan_amount || ""}
+          onChange={(e) => setEditData({ ...editData, loan_amount: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: FileText, 
+      label: "Loan Program",
+      value: client.loan?.loanProgram || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.loan_program}
+          onChange={(e) => setEditData({ ...editData, loan_program: e.target.value })}
+          className="h-8"
+          placeholder="e.g. Conventional, FHA, VA"
+        />
       ) : undefined
     },
     { 
@@ -596,10 +686,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         </Select>
       ) : undefined
     },
-    // Row 2 (4-column address layout)
+    // Row 2 (5-column address layout with Address 2)
     { 
       icon: Home, 
-      label: "Subject Property Address", 
+      label: "Subject Address 1", 
       value: (client as any).subject_address_1 || "—",
       editComponent: isEditing ? (
         <Input
@@ -607,6 +697,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           onChange={(e) => setEditData({ ...editData, subject_address_1: e.target.value })}
           className="h-8"
           placeholder="Street address"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Subject Address 2", 
+      value: (client as any).subject_address_2 || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_address_2 || ""}
+          onChange={(e) => setEditData({ ...editData, subject_address_2: e.target.value })}
+          className="h-8"
+          placeholder="Apt, Suite, etc."
         />
       ) : undefined
     },
@@ -638,7 +741,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
     { 
       icon: Home, 
-      label: "Zip Code", 
+      label: "Zip", 
       value: (client as any).subject_zip || "—",
       editComponent: isEditing ? (
         <Input
