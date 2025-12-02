@@ -62,6 +62,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     marital_status: (client as any).marital_status || "",
     borrower_current_address: (client as any).borrower_current_address || "",
     residency_type: (client as any).residency_type || "",
+    demographic_gender: (client as any).demographic_gender || "",
     military_veteran: (client as any).military_veteran || false,
     
     // Loan & Property - Transaction Details
@@ -137,6 +138,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       marital_status: (client as any).marital_status || "",
       borrower_current_address: (client as any).borrower_current_address || "",
       residency_type: (client as any).residency_type || "",
+      demographic_gender: (client as any).demographic_gender || "",
       military_veteran: (client as any).military_veteran || false,
       loan_type: client.loan?.loanType || "",
       down_pmt: client.loan?.downPayment || null,
@@ -196,6 +198,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         marital_status: editData.marital_status || null,
         borrower_current_address: editData.borrower_current_address || null,
         residency_type: editData.residency_type || null,
+        demographic_gender: editData.demographic_gender || null,
         military_veteran: editData.military_veteran,
         
         // Loan & Property - Transaction Details
@@ -314,19 +317,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: User, 
-      label: "Last Name", 
-      value: client.person?.lastName || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.last_name}
-          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-          className="h-8"
-          placeholder="Last name"
-        />
-      ) : undefined
-    },
-    { 
       icon: Calendar, 
       label: "Date of Birth", 
       value: formatDate((client as any).dob),
@@ -336,6 +326,40 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           value={editData.dob || ""}
           onChange={(e) => setEditData({ ...editData, dob: e.target.value || null })}
           className="h-8"
+        />
+      ) : undefined
+    },
+    { 
+      icon: User, 
+      label: "Gender", 
+      value: (client as any).demographic_gender || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.demographic_gender}
+          onValueChange={(value) => setEditData({ ...editData, demographic_gender: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select gender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Male">Male</SelectItem>
+            <SelectItem value="Female">Female</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value="Prefer not to disclose">Prefer not to disclose</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: User, 
+      label: "Last Name", 
+      value: client.person?.lastName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.last_name}
+          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+          className="h-8"
+          placeholder="Last name"
         />
       ) : undefined
     },
@@ -360,19 +384,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       ) : undefined
     },
     { 
-      icon: Home, 
-      label: "Current Property Address", 
-      value: (client as any).borrower_current_address || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.borrower_current_address}
-          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
-          className="h-8"
-          placeholder="Street, City, State, ZIP"
-        />
-      ) : undefined
-    },
-    { 
       icon: Shield, 
       label: "Residency Type", 
       value: (client as any).residency_type || "—",
@@ -391,6 +402,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <SelectItem value="Foreign National">Foreign National</SelectItem>
           </SelectContent>
         </Select>
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Current Property Address", 
+      value: (client as any).borrower_current_address || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.borrower_current_address}
+          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
+          className="h-8"
+          placeholder="Street, City, State, ZIP"
+        />
       ) : undefined
     },
   ];
@@ -814,59 +838,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
   ];
 
-  // Declarations & Demographics data
-  const declarationsDemographicsData = [
-    {
-      icon: Shield,
-      label: "Will Occupy as Primary Residence",
-      value: formatYesNo((client as any).decl_primary_residence)
-    },
-    {
-      icon: Shield,
-      label: "Have Ownership Interest in Other Property",
-      value: formatYesNo((client as any).decl_ownership_interest)
-    },
-    {
-      icon: Shield,
-      label: "Related to Seller/Real Estate Agent",
-      value: formatYesNo((client as any).decl_seller_affiliation)
-    },
-    {
-      icon: Shield,
-      label: "Borrowing Money for Down Payment",
-      value: formatYesNo((client as any).decl_borrowing_undisclosed)
-    },
-    {
-      icon: User,
-      label: "Ethnicity",
-      value: (client as any).demographic_ethnicity || "—"
-    },
-    {
-      icon: User,
-      label: "Race",
-      value: (() => {
-        const raceObj = (client as any).demographic_race;
-        if (!raceObj || typeof raceObj !== 'object') return raceObj || "—";
-        const selectedRaces = [];
-        if (raceObj.americanIndianAlaskaNative) selectedRaces.push("American Indian/Alaska Native");
-        if (raceObj.asian) selectedRaces.push("Asian");
-        if (raceObj.blackAfricanAmerican) selectedRaces.push("Black/African American");
-        if (raceObj.nativeHawaiianPacificIslander) selectedRaces.push("Native Hawaiian/Pacific Islander");
-        if (raceObj.white) selectedRaces.push("White");
-        if (raceObj.doNotWishToProvide) return "Prefer not to disclose";
-        return selectedRaces.length > 0 ? selectedRaces.join(", ") : "—";
-      })()
-    },
-    {
-      icon: User,
-      label: "Gender",
-      value: (client as any).demographic_gender || "—"
-    },
-  ];
-
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-6 p-1">
+      <div className="space-y-4">
         {/* Single Edit/Save button set at top */}
         <div className="flex items-center justify-end gap-2">
           {isEditing ? (
@@ -892,11 +866,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <User className="h-5 w-5 text-primary" />
             Borrower Information
           </h3>
-          <FourColumnDetailLayout items={borrowerData} />
+          <FourColumnDetailLayout items={borrowerData} columns={3} />
         </div>
 
         {/* 2. LOAN & PROPERTY INFORMATION */}
-        <div>
+        <div className="pt-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <DollarSign className="h-5 w-5 text-primary" />
             Loan & Property Information
@@ -916,7 +890,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         </div>
 
         {/* 3. FINANCIAL SUMMARY */}
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
             Financial Summary
@@ -935,23 +909,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
         {/* Co-Borrower Information Section */}
         {((client as any).co_borrower_first_name || (client as any).co_borrower_last_name) && (
-          <div>
+          <div className="pt-4">
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
               <Users className="h-5 w-5 text-primary" />
               Co-Borrower Information
             </h3>
             <FourColumnDetailLayout items={coBorrowerData} />
-          </div>
-        )}
-
-        {/* Declarations & Demographics Section */}
-        {((client as any).decl_primary_residence !== undefined || (client as any).demographic_ethnicity) && (
-          <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-              <Shield className="h-5 w-5 text-primary" />
-              Declarations & Demographics
-            </h3>
-            <FourColumnDetailLayout items={declarationsDemographicsData} />
           </div>
         )}
 

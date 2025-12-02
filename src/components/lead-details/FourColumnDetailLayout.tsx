@@ -12,6 +12,7 @@ interface DetailItem {
 
 interface FourColumnDetailLayoutProps {
   items: DetailItem[];
+  columns?: 3 | 4;
 }
 
 function DetailRow({ icon: Icon, label, value, badgeVariant, editComponent, isCalculated }: DetailItem) {
@@ -34,36 +35,27 @@ function DetailRow({ icon: Icon, label, value, badgeVariant, editComponent, isCa
   );
 }
 
-export function FourColumnDetailLayout({ items }: FourColumnDetailLayoutProps) {
-  // Split items into four columns
-  const itemsPerColumn = Math.ceil(items.length / 4);
-  const column1 = items.slice(0, itemsPerColumn);
-  const column2 = items.slice(itemsPerColumn, itemsPerColumn * 2);
-  const column3 = items.slice(itemsPerColumn * 2, itemsPerColumn * 3);
-  const column4 = items.slice(itemsPerColumn * 3);
+export function FourColumnDetailLayout({ items, columns = 4 }: FourColumnDetailLayoutProps) {
+  // Split items into specified number of columns
+  const itemsPerColumn = Math.ceil(items.length / columns);
+  const columnData: DetailItem[][] = [];
+  
+  for (let i = 0; i < columns; i++) {
+    columnData.push(items.slice(i * itemsPerColumn, (i + 1) * itemsPerColumn));
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div className="space-y-1">
-        {column1.map((item, index) => (
-          <DetailRow key={`col1-${index}`} {...item} />
-        ))}
-      </div>
-      <div className="space-y-1">
-        {column2.map((item, index) => (
-          <DetailRow key={`col2-${index}`} {...item} />
-        ))}
-      </div>
-      <div className="space-y-1">
-        {column3.map((item, index) => (
-          <DetailRow key={`col3-${index}`} {...item} />
-        ))}
-      </div>
-      <div className="space-y-1">
-        {column4.map((item, index) => (
-          <DetailRow key={`col4-${index}`} {...item} />
-        ))}
-      </div>
+    <div className={cn(
+      "grid grid-cols-1 md:grid-cols-2 gap-6",
+      columns === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"
+    )}>
+      {columnData.map((columnItems, colIndex) => (
+        <div key={`col-${colIndex}`} className="space-y-1">
+          {columnItems.map((item, index) => (
+            <DetailRow key={`col${colIndex}-${index}`} {...item} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
