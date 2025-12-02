@@ -89,9 +89,22 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
 
       if (runError) throw runError;
 
+      // Call edge function to write to Google Sheet and trigger Axiom
+      const { error: sheetError } = await supabase.functions.invoke('loan-pricer-sheets', {
+        body: { run_id: pricingRun.id }
+      });
+
+      if (sheetError) {
+        // Update status to failed if Google Sheet write fails
+        await supabase.from('pricing_runs')
+          .update({ status: 'failed', error_message: sheetError.message })
+          .eq('id', pricingRun.id);
+        throw sheetError;
+      }
+
       toast({
-        title: "Pricing run created",
-        description: "You can now configure your Axiom.ai bot to process this scenario.",
+        title: "Pricing run started",
+        description: "Data sent to pricing system. Results will appear automatically when ready.",
       });
 
       onRunCreated();
