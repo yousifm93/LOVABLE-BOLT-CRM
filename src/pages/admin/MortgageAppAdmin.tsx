@@ -48,7 +48,7 @@ export default function MortgageAppAdmin() {
   });
   
   // Use production URL for shareable link (accessible without Lovable login)
-  const PRODUCTION_URL = "https://290d256e-ff48-4260-82ff-592fe4284119.lovableproject.com";
+  const PRODUCTION_URL = "https://mortgagebolt.org";
   const applicationUrl = `${PRODUCTION_URL}/apply`;
   
   const handleCopyLink = () => {

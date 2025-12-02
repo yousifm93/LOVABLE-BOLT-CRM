@@ -28,7 +28,7 @@ interface LeadCenterTabsProps {
 export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUpdated, onClientPatched, onDocumentsChange, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: LeadCenterTabsProps) {
   return (
     <Card className="mb-4 h-[calc(100vh-300px)]">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-0">
         <CardTitle className="text-base font-medium">Lead Information</CardTitle>
       </CardHeader>
       <CardContent className="h-[calc(100%-80px)]">
