@@ -27,6 +27,7 @@ import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPart
 import { LeadCenterTabs } from "@/components/lead-details/LeadCenterTabs";
 import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
+import { RealEstateOwnedSection } from "@/components/lead-details/RealEstateOwnedSection";
 import { PipelineStageBar } from "@/components/PipelineStageBar";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
@@ -1308,6 +1309,9 @@ export function ClientDetailDrawer({
           <div className="space-y-4 overflow-y-auto">
             {/* Send Email Templates */}
             <SendEmailTemplatesCard leadId={leadId || ""} />
+
+            {/* Real Estate Owned Section */}
+            {leadId && <RealEstateOwnedSection leadId={leadId} />}
 
             {/* Tasks - moved before About the Borrower */}
             <Card>

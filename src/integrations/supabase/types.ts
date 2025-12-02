@@ -3160,6 +3160,56 @@ export type Database = {
         }
         Relationships: []
       }
+      real_estate_properties: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string
+          monthly_expenses: number | null
+          monthly_rent: number | null
+          net_income: number | null
+          property_address: string
+          property_type: string | null
+          property_usage: string | null
+          property_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          monthly_expenses?: number | null
+          monthly_rent?: number | null
+          net_income?: number | null
+          property_address: string
+          property_type?: string | null
+          property_usage?: string | null
+          property_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          monthly_expenses?: number | null
+          monthly_rent?: number | null
+          net_income?: number | null
+          property_address?: string
+          property_type?: string | null
+          property_usage?: string | null
+          property_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "real_estate_properties_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       short_links: {
         Row: {
           campaign_id: string | null
