@@ -47,9 +47,9 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
   const [editedContent, setEditedContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
 
-  const canEdit = note?.author_id === user?.id;
+  const canEdit = note?.author_id === crmUser?.id;
 
   useEffect(() => {
     if (note) {

@@ -25,7 +25,7 @@ interface CreateTaskModalProps {
 
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
   const [mode, setMode] = useState<'single' | 'multiple'>('single');
   const [formData, setFormData] = useState({
     title: "",
@@ -105,10 +105,10 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
         return;
       }
 
-      if (!user) {
+      if (!crmUser) {
         toast({
           title: "Error",
-          description: "You must be signed in to create tasks",
+          description: "User profile not loaded. Please refresh the page.",
           variant: "destructive",
         });
         return;
@@ -127,7 +127,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           assignee_id: formData.assignee_id || null,
           borrower_id: formData.borrower_id || null,
           task_order: 0,
-          created_by: user.id,
+          created_by: crmUser.id,
           creation_log: [],
         });
 
@@ -142,7 +142,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
               task_title: formData.title,
               assignee_name: assigneeName,
               due_date: formData.due_date,
-              author_id: user.id,
+              author_id: crmUser.id,
             });
           } catch (logError) {
             console.error('Failed to create task activity log:', logError);
@@ -187,10 +187,10 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
         return;
       }
 
-      if (!user) {
+      if (!crmUser) {
         toast({
           title: "Error",
-          description: "You must be signed in to create tasks",
+          description: "User profile not loaded. Please refresh the page.",
           variant: "destructive",
         });
         return;
@@ -212,7 +212,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
               assignee_id: task.assignee_id || null,
               borrower_id: task.borrower_id || null,
               task_order: 0,
-              created_by: user.id,
+              created_by: crmUser.id,
               creation_log: [],
             });
 
@@ -227,7 +227,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
                   task_title: task.title,
                   assignee_name: assigneeName,
                   due_date: task.due_date,
-                  author_id: user.id,
+                  author_id: crmUser.id,
                 });
               } catch (logError) {
                 console.error('Failed to create task activity log:', logError);

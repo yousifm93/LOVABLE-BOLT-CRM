@@ -3,8 +3,19 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface CrmUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  is_active: boolean;
+  auth_user_id: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
+  crmUser: CrmUser | null;
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: any }>;
@@ -16,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [crmUser, setCrmUser] = useState<CrmUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -31,7 +43,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        
+        // Fetch CRM user data if authenticated
+        if (session?.user) {
+          supabase
+            .from('users')
+            .select('*')
+            .eq('auth_user_id', session.user.id)
+            .single()
+            .then(({ data, error }) => {
+              if (!mounted) return;
+              if (error) {
+                console.error('Error fetching CRM user:', error);
+                setCrmUser(null);
+              } else {
+                setCrmUser(data);
+              }
+              setLoading(false);
+            });
+        } else {
+          setCrmUser(null);
+          setLoading(false);
+        }
       }
     );
 
@@ -153,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
+    crmUser,
     session,
     loading,
     signUp,

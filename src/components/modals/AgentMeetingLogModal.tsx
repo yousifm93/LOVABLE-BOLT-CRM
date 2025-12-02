@@ -38,15 +38,23 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
 
     setIsLoading(true);
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      // Get CRM user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('Not authenticated');
+      
+      const { data: crmUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', session.user.id)
+        .single();
+      
+      if (!crmUser) throw new Error("CRM user not found");
 
       // Create meeting log
       await databaseService.createAgentCallLog(
         agent.id,
         summary.trim(),
-        user.id,
+        crmUser.id,
         'meeting',
         location.trim() || undefined
       );
