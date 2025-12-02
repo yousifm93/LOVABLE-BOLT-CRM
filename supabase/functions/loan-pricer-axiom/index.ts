@@ -13,6 +13,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log('loan-pricer-axiom v2 - deployed');
     const { run_id } = await req.json();
     
     if (!run_id) {
