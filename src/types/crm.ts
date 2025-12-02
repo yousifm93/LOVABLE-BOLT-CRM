@@ -412,6 +412,8 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'escrows': 'escrows',
   'occupancy': 'occupancy',
   'lender_loan_number': 'lenderLoanNumber',
+  'closing_costs': 'closingCosts',
+  'cash_to_close': 'cashToClose',
   'condo_name': 'condoName',
   'condo_approval_type': 'condoApprovalType',
   

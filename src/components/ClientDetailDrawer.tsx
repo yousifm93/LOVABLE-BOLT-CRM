@@ -307,6 +307,25 @@ export function ClientDetailDrawer({
     };
   };
 
+  // Helper function for third party status colors
+  const getThirdPartyStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'Received':
+      case 'Approved':
+        return 'bg-green-500 text-white';
+      case 'Scheduled':
+      case 'Ordered':
+        return 'bg-blue-500 text-white';
+      case 'Quoted':
+        return 'bg-yellow-500 text-white';
+      case 'Inspected':
+      case 'Waiver':
+        return 'bg-purple-500 text-white';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+  
   const formatLeadCreationDate = () => {
     const createdAt = (client as any).created_at;
     if (!createdAt) return 'N/A';
@@ -650,27 +669,30 @@ export function ClientDetailDrawer({
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Condo</span>
-                  <InlineEditSelect value={(client as any).condoStatus || null} options={[
-                    { value: 'Ordered', label: 'Ordered' },
-                    { value: 'Received', label: 'Received' },
-                    { value: 'Approved', label: 'Approved' }
-                  ]} onValueChange={value => handleLeadUpdate('condoStatus', value)} showAsStatusBadge />
+                  <span className={cn(
+                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
+                    getThirdPartyStatusColor((client as any).condoStatus)
+                  )}>
+                    {(client as any).condoStatus || "—"}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Appraisal</span>
-                  <InlineEditSelect value={(client as any).appraisalStatus || null} options={[
-                    { value: 'Ordered', label: 'Ordered' },
-                    { value: 'Scheduled', label: 'Scheduled' },
-                    { value: 'Received', label: 'Received' }
-                  ]} onValueChange={value => handleLeadUpdate('appraisalStatus', value)} showAsStatusBadge />
+                  <span className={cn(
+                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
+                    getThirdPartyStatusColor((client as any).appraisalStatus)
+                  )}>
+                    {(client as any).appraisalStatus || "—"}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Insurance</span>
-                  <InlineEditSelect value={(client as any).hoiStatus || null} options={[
-                    { value: 'Quoted', label: 'Quoted' },
-                    { value: 'Ordered', label: 'Ordered' },
-                    { value: 'Received', label: 'Received' }
-                  ]} onValueChange={value => handleLeadUpdate('hoiStatus', value)} showAsStatusBadge />
+                  <span className={cn(
+                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
+                    getThirdPartyStatusColor((client as any).hoiStatus)
+                  )}>
+                    {(client as any).hoiStatus || "—"}
+                  </span>
                 </div>
               </div>
             </div>
