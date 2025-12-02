@@ -207,6 +207,16 @@ export function transformLeadToClient(lead: any): any {
   cashToClose: cashToClose,
   totalMonthlyIncome: lead.total_monthly_income || null,
   principalInterest: lead.principal_interest || null,
+  
+  // Loan numbers and costs
+  arriveLoanNumber: lead.arrive_loan_number || null,
+  lenderLoanNumber: lead.lender_loan_number || null,
+  closingCosts: lead.closing_costs || null,
+  
+  // Third party statuses
+  condoStatus: lead.condo_status || null,
+  appraisalStatus: lead.appraisal_status || null,
+  hoiStatus: lead.hoi_status || null,
   propertyTaxes: lead.property_taxes || null,
   homeownersInsurance: lead.homeowners_insurance || null,
   mortgageInsurance: lead.mortgage_insurance || null,
