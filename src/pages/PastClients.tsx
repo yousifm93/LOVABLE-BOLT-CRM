@@ -24,6 +24,7 @@ import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
@@ -41,7 +42,7 @@ interface PastClientLoan {
   last_name: string;
   loan_amount: number | null;
   sales_price: number | null;
-  arrive_loan_number: number | null;
+  mb_loan_number: string | null;
   pr_type: string | null;
   occupancy: string | null;
   disclosure_status: string | null;
@@ -182,7 +183,7 @@ const MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
-  "arrive_loan_number",
+  "mb_loan_number",
   "loan_amount",
   "sales_price",
   "close_date",
@@ -271,16 +272,16 @@ const createColumns = (
     sortable: true,
   },
   {
-    accessorKey: "arrive_loan_number",
+    accessorKey: "mb_loan_number",
     header: "Loan #",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditNumber
-          value={row.original.arrive_loan_number || 0}
+        <InlineEditText
+          value={row.original.mb_loan_number || ''}
           onValueChange={(value) => 
-            handleUpdate(row.original.id, "arrive_loan_number", value)
+            handleUpdate(row.original.id, "mb_loan_number", value)
           }
-          placeholder="0"
+          placeholder="MB-"
           className="w-20"
         />
       </div>
@@ -666,7 +667,7 @@ export default function PastClients() {
   const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
     { id: "team", label: "Team", visible: true },
-    { id: "arrive_loan_number", label: "Loan #", visible: true },
+    { id: "mb_loan_number", label: "Loan #", visible: true },
     { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "sales_price", label: "Sales Price", visible: true },
@@ -742,7 +743,7 @@ export default function PastClients() {
 
   const filterColumns = [
     { value: 'borrower_name', label: 'Borrower Name', type: 'text' as const },
-    { value: 'arrive_loan_number', label: 'Loan Number', type: 'text' as const },
+    { value: 'mb_loan_number', label: 'Loan Number', type: 'text' as const },
     { value: 'loan_amount', label: 'Loan Amount', type: 'text' as const },
     { value: 'sales_price', label: 'Sales Price', type: 'text' as const },
     { value: 'close_date', label: 'Close Date', type: 'date' as const },
@@ -1078,7 +1079,7 @@ export default function PastClients() {
       const search = searchTerm.toLowerCase();
       return (
         `${loan.first_name} ${loan.last_name}`.toLowerCase().includes(search) ||
-        loan.arrive_loan_number?.toString().includes(search)
+        loan.mb_loan_number?.toString().includes(search)
       );
     });
     

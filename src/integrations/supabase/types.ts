@@ -1855,7 +1855,6 @@ export type Database = {
             | null
           appraisal_value: string | null
           approved_lender_id: string | null
-          arrive_loan_number: number | null
           assets: number | null
           ba_status: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address: string | null
@@ -1939,12 +1938,14 @@ export type Database = {
           loan_type: string | null
           lock_expiration_date: string | null
           marital_status: string | null
+          mb_loan_number: string | null
           mi_status: string | null
           middle_name: string | null
           military_veteran: boolean | null
           monthly_liabilities: number | null
           monthly_pmt_goal: number | null
           mortgage_insurance: number | null
+          new_at: string | null
           notes: string | null
           notes_updated_at: string | null
           notes_updated_by: string | null
@@ -2008,7 +2009,6 @@ export type Database = {
             | null
           appraisal_value?: string | null
           approved_lender_id?: string | null
-          arrive_loan_number?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
@@ -2092,12 +2092,14 @@ export type Database = {
           loan_type?: string | null
           lock_expiration_date?: string | null
           marital_status?: string | null
+          mb_loan_number?: string | null
           mi_status?: string | null
           middle_name?: string | null
           military_veteran?: boolean | null
           monthly_liabilities?: number | null
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
+          new_at?: string | null
           notes?: string | null
           notes_updated_at?: string | null
           notes_updated_by?: string | null
@@ -2163,7 +2165,6 @@ export type Database = {
             | null
           appraisal_value?: string | null
           approved_lender_id?: string | null
-          arrive_loan_number?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
@@ -2247,12 +2248,14 @@ export type Database = {
           loan_type?: string | null
           lock_expiration_date?: string | null
           marital_status?: string | null
+          mb_loan_number?: string | null
           mi_status?: string | null
           middle_name?: string | null
           military_veteran?: boolean | null
           monthly_liabilities?: number | null
           monthly_pmt_goal?: number | null
           mortgage_insurance?: number | null
+          new_at?: string | null
           notes?: string | null
           notes_updated_at?: string | null
           notes_updated_by?: string | null

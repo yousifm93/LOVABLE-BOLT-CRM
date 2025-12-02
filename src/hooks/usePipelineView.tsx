@@ -16,7 +16,7 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
     "borrower_name",
     "team",
     "lender",
-    "arrive_loan_number",
+    "mb_loan_number",
     "loan_amount",
     "disclosure_status",
     "close_date",

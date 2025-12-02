@@ -209,7 +209,7 @@ export function transformLeadToClient(lead: any): any {
   principalInterest: lead.principal_interest || null,
   
   // Loan numbers and costs
-  arriveLoanNumber: lead.arrive_loan_number || null,
+  mbLoanNumber: lead.mb_loan_number || null,
   lenderLoanNumber: lead.lender_loan_number || null,
   closingCosts: lead.closing_costs || null,
   

@@ -65,7 +65,7 @@ const FIELD_NAME_MAP: Record<string, string> = {
   'loan_type': 'loanType',
   'loan_amount': 'loanAmount',
   'app_complete_at': 'appCompleteOn',
-  'arrive_loan_number': 'loanNumber',
+  'mb_loan_number': 'loanNumber',
   'notes': 'notes',
   'sales_price': 'salesPrice',
   'ltv': 'ltv',
@@ -371,7 +371,7 @@ const allAvailableColumns = useMemo(() => {
       'realEstateAgent': 'buyer_agent_id',
       'due_date': 'task_eta',
       'dueDate': 'task_eta',
-      'arrive_loan_number': 'arrive_loan_number',
+      'mb_loan_number': 'mb_loan_number',
     };
     
     const dbField = fieldMapping[field] || field;
@@ -449,7 +449,7 @@ const allAvailableColumns = useMemo(() => {
     id: lead.id,
     name: `${lead.first_name} ${lead.last_name}`,
     appCompleteOn: lead.app_complete_at || lead.created_at,
-    loanNumber: lead.arrive_loan_number?.toString() || '—',
+    loanNumber: lead.mb_loan_number?.toString() || '—',
     realEstateAgent: lead.buyer_agent_id || '',
     realEstateAgentData: (lead as any).buyer_agent || null,
     status: lead.converted || 'Working on it',
@@ -652,13 +652,13 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditNumber
-            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
+          <InlineEditText
+            value={row.original.loanNumber === '—' ? '' : row.original.loanNumber}
             onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
+              handleFieldUpdate(row.original.id, "mb_loan_number", value);
               fetchLeads();
             }}
-            placeholder="Enter loan #"
+            placeholder="MB-"
           />
         </div>
       ),

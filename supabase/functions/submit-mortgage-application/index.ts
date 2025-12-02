@@ -148,6 +148,10 @@ Deno.serve(async (req) => {
     // Default property taxes: 1% of purchase price / 12
     const propertyTaxes = salesPrice > 0 ? Math.round(salesPrice * 0.01 / 12) : 0;
 
+    // Generate MB reference number
+    const mbRefNumber = `MB-${Date.now().toString().slice(-8)}`;
+    const currentTimestamp = new Date().toISOString();
+
     // Prepare lead data
     const leadData = {
       first_name: personalInfo.firstName,
@@ -182,9 +186,12 @@ Deno.serve(async (req) => {
       interest_rate: interestRate,
       term: termMonths,
       
-      subject_city: mortgageInfo.targetLocation?.city || null,
-      subject_state: mortgageInfo.targetLocation?.state || null,
-      subject_zip: mortgageInfo.targetLocation?.zipCode || null,
+      // Subject property address
+      subject_address_1: 'TBD',
+      subject_address_2: null,
+      subject_city: mortgageInfo.location?.city || null,
+      subject_state: mortgageInfo.location?.state || null,
+      subject_zip: mortgageInfo.location?.zipCode || null,
       
       total_monthly_income: totalMonthlyIncome > 0 ? totalMonthlyIncome : null,
       assets: totalAssets > 0 ? totalAssets : null,
@@ -216,9 +223,14 @@ Deno.serve(async (req) => {
       
       // Set pipeline stage to Screening and mark app complete
       pipeline_stage_id: 'a4e162e0-5421-4d17-8ad5-4b1195bbc995', // Screening stage
-      app_complete_at: new Date().toISOString(),
+      app_complete_at: currentTimestamp,
+      new_at: currentTimestamp,
+      pending_app_at: currentTimestamp,
       status: 'Working on it',
       lead_on_date: new Date().toISOString().split('T')[0],
+      
+      // MB Loan Number
+      mb_loan_number: mbRefNumber,
     };
 
     console.log('Checking for existing lead by email/phone...');

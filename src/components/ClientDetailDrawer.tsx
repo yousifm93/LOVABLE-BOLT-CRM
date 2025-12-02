@@ -585,8 +585,8 @@ export function ClientDetailDrawer({
               {/* Column 1: Loan Numbers & Costs */}
               <div className="space-y-2">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Arrive Loan #</span>
-                  <InlineEditNumber value={(client as any).arriveLoanNumber || null} onValueChange={value => handleLeadUpdate('arriveLoanNumber', value)} placeholder="Enter #" />
+                  <span className="text-xs text-muted-foreground">MB Loan #</span>
+                  <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lender Loan #</span>

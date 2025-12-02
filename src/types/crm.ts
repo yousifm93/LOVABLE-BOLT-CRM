@@ -188,7 +188,7 @@ export interface CRMClient {
   // Additional
   pipelineStageId?: string;
   pipelineSection?: string;
-  arriveLoanNumber?: number;
+  mbLoanNumber?: string;
   prType?: string;
   source?: string;
   leadStrength?: string;
@@ -394,7 +394,7 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   
   // LOAN INFO
   'appraisal_value': 'appraisalValue',
-  'arrive_loan_number': 'arriveLoanNumber',
+  'mb_loan_number': 'mbLoanNumber',
   'loan_amount': 'loanAmount',
   'sales_price': 'salesPrice',
   'loan_type': 'loanType',
