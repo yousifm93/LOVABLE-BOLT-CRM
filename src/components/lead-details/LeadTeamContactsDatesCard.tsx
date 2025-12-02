@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Contact, Calendar, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Contact, Home, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TeamTab } from "./TeamTab";
 import { ContactsTab } from "./ContactsTab"; 
@@ -25,7 +25,7 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">Team, Contacts & Dates</CardTitle>
+            <CardTitle className="text-base font-medium">Team, Contacts & Address</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
@@ -41,8 +41,8 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
                   Contacts
                 </TabsTrigger>
                 <TabsTrigger value="dates" className="text-xs flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Dates
+                  <Home className="h-3 w-3" />
+                  Address
                 </TabsTrigger>
                 <TabsTrigger value="piti" className="text-xs flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />
