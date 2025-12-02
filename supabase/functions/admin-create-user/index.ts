@@ -59,6 +59,19 @@ Deno.serve(async (req) => {
 
     console.log(`Successfully created auth user: ${authUser.user.id}`);
 
+    // Link the auth user to the CRM user record
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ auth_user_id: authUser.user.id })
+      .eq('email', email);
+
+    if (updateError) {
+      console.error('Error linking auth user to CRM user:', updateError);
+      // Don't throw - auth user was created successfully, this is just a linking step
+    } else {
+      console.log(`Successfully linked auth user ${authUser.user.id} to CRM user with email ${email}`);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

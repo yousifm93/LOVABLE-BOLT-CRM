@@ -3569,6 +3569,7 @@ export type Database = {
       }
       users: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           display_password: string | null
           email: string
@@ -3584,6 +3585,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           display_password?: string | null
           email: string
@@ -3599,6 +3601,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           display_password?: string | null
           email?: string
@@ -3797,6 +3800,7 @@ export type Database = {
       execute_scheduled_automations: { Args: never; Returns: Json }
       format_date_modern: { Args: { input_date: string }; Returns: string }
       get_user_account_id: { Args: { user_uuid: string }; Returns: string }
+      is_team_member: { Args: { user_uuid: string }; Returns: boolean }
       search_blog_posts: {
         Args: { search_query: string }
         Returns: {
