@@ -37,6 +37,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
     cash_to_close_goal: (client as any).cash_to_close_goal || null,
     borrower_current_address: (client as any).borrower_current_address || "",
     military_veteran: (client as any).military_veteran || false,
+    own_rent_current_address: (client as any).own_rent_current_address || "",
+    time_at_current_address_years: (client as any).time_at_current_address_years || null,
+    time_at_current_address_months: (client as any).time_at_current_address_months || null,
   });
 
   const handleEdit = () => {
@@ -53,6 +56,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
       borrower_current_address: (client as any).borrower_current_address || "",
       military_veteran: (client as any).military_veteran || false,
+      own_rent_current_address: (client as any).own_rent_current_address || "",
+      time_at_current_address_years: (client as any).time_at_current_address_years || null,
+      time_at_current_address_months: (client as any).time_at_current_address_months || null,
     });
   };
 
@@ -93,6 +99,9 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
         cash_to_close_goal: editData.cash_to_close_goal,
         borrower_current_address: editData.borrower_current_address || null,
         military_veteran: editData.military_veteran,
+        own_rent_current_address: editData.own_rent_current_address || null,
+        time_at_current_address_years: editData.time_at_current_address_years,
+        time_at_current_address_months: editData.time_at_current_address_months,
       });
 
       toast({
@@ -271,6 +280,52 @@ export function BorrowerInfoTab({ client, leadId, onLeadUpdated }: BorrowerInfoT
           className="h-8"
           placeholder="Street, City, State, ZIP"
         />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Own/Rent/Living Status", 
+      value: (client as any).own_rent_current_address || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.own_rent_current_address}
+          onValueChange={(value) => setEditData({ ...editData, own_rent_current_address: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="RENT">Rent</SelectItem>
+            <SelectItem value="OWN">Own</SelectItem>
+            <SelectItem value="Living Rent-Free">Living Rent-Free</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    { 
+      icon: Calendar, 
+      label: "Time at Current Address", 
+      value: formatTimeAtAddress((client as any).time_at_current_address_years, (client as any).time_at_current_address_months),
+      editComponent: isEditing ? (
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            value={editData.time_at_current_address_years || ""}
+            onChange={(e) => setEditData({ ...editData, time_at_current_address_years: parseInt(e.target.value) || null })}
+            className="h-8 w-20"
+            placeholder="Years"
+            min="0"
+          />
+          <Input
+            type="number"
+            value={editData.time_at_current_address_months || ""}
+            onChange={(e) => setEditData({ ...editData, time_at_current_address_months: parseInt(e.target.value) || null })}
+            className="h-8 w-20"
+            placeholder="Months"
+            min="0"
+            max="11"
+          />
+        </div>
       ) : undefined
     },
     { 

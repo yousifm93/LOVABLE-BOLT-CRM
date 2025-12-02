@@ -263,6 +263,31 @@ Deno.serve(async (req) => {
       console.log('Successfully created new lead:', result.id);
     }
 
+    // Insert real estate properties if any
+    if (realEstate?.properties && realEstate.properties.length > 0) {
+      console.log('Inserting real estate properties...');
+      const propertyRecords = realEstate.properties.map((property: any) => ({
+        lead_id: result.id,
+        property_address: property.address || 'Unknown Address',
+        property_type: property.propertyType || null,
+        property_usage: property.propertyUsage || null,
+        property_value: property.propertyValue ? parseFloat(property.propertyValue) : null,
+        monthly_expenses: property.monthlyExpenses ? parseFloat(property.monthlyExpenses) : null,
+        monthly_rent: property.monthlyRent ? parseFloat(property.monthlyRent) : null,
+      }));
+
+      const { error: propertiesError } = await supabase
+        .from('real_estate_properties')
+        .insert(propertyRecords);
+
+      if (propertiesError) {
+        console.error('Error inserting properties:', propertiesError);
+        // Don't fail the entire submission if properties fail to insert
+      } else {
+        console.log(`Successfully inserted ${propertyRecords.length} properties`);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
