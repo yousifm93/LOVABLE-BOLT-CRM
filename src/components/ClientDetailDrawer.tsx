@@ -622,16 +622,8 @@ export function ClientDetailDrawer({
                 </div>
               </div>
 
-              {/* Column 3: Goals & Assets */}
+              {/* Column 3: Income & Assets */}
               <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Payment Goal</span>
-                  <InlineEditCurrency value={(client as any).monthlyPmtGoal || null} onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Cash to Close Goal</span>
-                  <InlineEditCurrency value={(client as any).cashToCloseGoal || null} onValueChange={value => handleLeadUpdate('cashToCloseGoal', value)} placeholder="Enter amount" />
-                </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Total Monthly Income</span>
                   <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
@@ -640,52 +632,13 @@ export function ClientDetailDrawer({
                   <span className="text-xs text-muted-foreground">Total Assets</span>
                   <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
                 </div>
-              </div>
-
-              {/* Column 4: Payment & Third Party Statuses */}
-              <div className="space-y-2">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">PITI</span>
                   <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Condo</span>
-                  <InlineEditSelect 
-                    value={(client as any).condoStatus || null} 
-                    options={[
-                      { value: 'Ordered', label: 'Ordered' },
-                      { value: 'Received', label: 'Received' },
-                      { value: 'Approved', label: 'Approved' },
-                      { value: 'Waiver', label: 'Waiver' },
-                      { value: 'N/A', label: 'N/A' }
-                    ]} 
-                    onValueChange={value => handleLeadUpdate('condo_status', value)} 
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Appraisal</span>
-                  <InlineEditSelect 
-                    value={(client as any).appraisalStatus || null} 
-                    options={[
-                      { value: 'Ordered', label: 'Ordered' },
-                      { value: 'Scheduled', label: 'Scheduled' },
-                      { value: 'Inspected', label: 'Inspected' },
-                      { value: 'Received', label: 'Received' }
-                    ]} 
-                    onValueChange={value => handleLeadUpdate('appraisal_status', value)} 
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Insurance</span>
-                  <InlineEditSelect 
-                    value={(client as any).hoiStatus || null} 
-                    options={[
-                      { value: 'Quoted', label: 'Quoted' },
-                      { value: 'Ordered', label: 'Ordered' },
-                      { value: 'Received', label: 'Received' }
-                    ]} 
-                    onValueChange={value => handleLeadUpdate('hoi_status', value)} 
-                  />
+                  <span className="text-xs text-muted-foreground">DTI</span>
+                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
                 </div>
               </div>
             </div>
