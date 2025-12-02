@@ -1,61 +1,21 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-
-interface ScenarioData {
-  fico_score: number;
-  citizenship: string;
-  dti: string;
-  property_type: string;
-  num_units: number;
-  occupancy: string;
-  state: string;
-  program_type: string;
-  loan_type: string;
-  amortization_type: string;
-  loan_purpose: string;
-  loan_amount: number;
-  ltv: number;
-  lock_period: number;
-  broker_compensation: string;
-  admin_fee_buyout: boolean;
-  escrow_waiver: boolean;
-  high_balance: boolean;
-  sub_financing: boolean;
-  
-  // Non-QM specific fields (optional)
-  income_type?: string;
-  mortgage_history?: string;
-  credit_events?: string;
-}
+import { ScenarioData } from "./NewRunModal";
 
 interface ScenarioFormProps {
   data: ScenarioData;
   onChange: (data: ScenarioData) => void;
-  currentStep: number;
 }
 
-const PROGRAM_TYPES = [
-  "Conventional",
-  "Non-QM",
-  "Prime Jumbo",
-  "FHA",
-  "VA"
+const LOAN_TYPES = ["Conventional", "FHA", "VA"];
+
+const TERM_YEARS = [
+  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+  21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 40
 ];
 
-const LOAN_TYPES = [
-  "Fixed",
-  "ARM"
-];
-
-const CITIZENSHIP_OPTIONS = [
-  "US Citizen / Permanent Resident",
-  "Non-Permanent Resident"
-];
+const LOAN_PURPOSES = ["Purchase", "Refinance"];
 
 const OCCUPANCY_TYPES = [
   "Primary Residence",
@@ -63,71 +23,23 @@ const OCCUPANCY_TYPES = [
   "Investment"
 ];
 
-const LOAN_PURPOSES = [
-  "Purchase",
-  "Rate and Term Refinance",
-  "Cash Out"
-];
-
-const AMORTIZATION_TYPES = [
-  "30 Year Fixed",
-  "25 Year",
-  "20 Year",
-  "15 Year"
-];
-
 const PROPERTY_TYPES = [
-  "1 Unit SFR",
+  "Single Family",
   "Condo",
-  "2-4 Unit"
+  "2-4 Units"
 ];
 
-const NUM_UNITS = [1, 2, 3, 4];
+const NUM_UNITS = [2, 3, 4];
 
-const DTI_OPTIONS = [
-  "DTI <=40%",
-  "DTI 41%-45%",
-  "DTI 46%-50%",
-  "DTI >50%"
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ];
 
-const BROKER_COMPENSATION_OPTIONS = [
-  "BPC",
-  "1.00%",
-  "1.50%",
-  "2.00%",
-  "2.50%"
-];
-
-const LOCK_PERIODS = [30, 45, 60, 90];
-
-const INCOME_TYPES = [
-  "2-Year Full Doc",
-  "1-Year Full Doc",
-  "24-Month Bank Statement",
-  "12-Month Bank Statement",
-  "2-Year P&L",
-  "1-Year P&L",
-  "Asset Utilization",
-  "WVOE",
-  "1099",
-  "DSCR ≥1.25",
-  "DSCR 1.0-1.24",
-  "DSCR 0.75-0.99",
-  "DSCR <0.75"
-];
-
-const MORTGAGE_HISTORY_OPTIONS = [
-  "0x30x12",
-  "0x60x12"
-];
-
-const CREDIT_EVENTS_OPTIONS = [
-  "48+ months",
-  "<48 months"
-];
-
-export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps) {
+export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
   const updateData = (field: keyof ScenarioData, value: any) => {
     onChange({
       ...data,
@@ -135,240 +47,43 @@ export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps)
     });
   };
 
-  // Step 1: Loan Program & Property Details
-  if (currentStep === 1) {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Program Type</Label>
-            <Select
-              value={data.program_type}
-              onValueChange={(value) => updateData('program_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROGRAM_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Loan Type</Label>
-            <Select
-              value={data.loan_type}
-              onValueChange={(value) => updateData('loan_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LOAN_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+  const formatCurrency = (value: number | string) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num || 0);
+  };
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Citizenship</Label>
-            <Select
-              value={data.citizenship}
-              onValueChange={(value) => updateData('citizenship', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CITIZENSHIP_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Occupancy</Label>
-            <Select
-              value={data.occupancy}
-              onValueChange={(value) => updateData('occupancy', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OCCUPANCY_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Purpose</Label>
-            <Select
-              value={data.loan_purpose}
-              onValueChange={(value) => updateData('loan_purpose', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LOAN_PURPOSES.map((purpose) => (
-                  <SelectItem key={purpose} value={purpose}>
-                    {purpose}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Property Type</Label>
-            <Select
-              value={data.property_type}
-              onValueChange={(value) => updateData('property_type', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROPERTY_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Number of Units</Label>
-            <Select
-              value={data.num_units.toString()}
-              onValueChange={(value) => updateData('num_units', Number(value))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {NUM_UNITS.map((num) => (
-                  <SelectItem key={num} value={num.toString()}>
-                    {num} Unit{num > 1 ? 's' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>State</Label>
-            <Input value="Florida" disabled className="bg-muted" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 2: Loan Amounts & Borrower Details
-  if (currentStep === 2) {
-    return (
-      <div className="space-y-6">
+  return (
+    <div className="space-y-6">
+      {/* Row 1: Credit Score & Loan Type */}
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="fico_score">
-            FICO Score: <span className="font-semibold">{data.fico_score}</span>
-          </Label>
-          <Slider
+          <Label htmlFor="fico_score">Credit Score (FICO) *</Label>
+          <Input
             id="fico_score"
-            min={620}
+            type="number"
+            value={data.fico_score || ""}
+            onChange={(e) => updateData('fico_score', Number(e.target.value))}
+            min={300}
             max={850}
-            step={5}
-            value={[data.fico_score]}
-            onValueChange={(value) => updateData('fico_score', value[0])}
-            className="w-full"
+            placeholder="e.g. 720"
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>620</span>
-            <span>850</span>
-          </div>
         </div>
-
         <div className="space-y-2">
-          <Label htmlFor="ltv">
-            LTV (Loan-to-Value): <span className="font-semibold">{data.ltv}%</span>
-          </Label>
-          <Slider
-            id="ltv"
-            min={55}
-            max={97}
-            step={1}
-            value={[data.ltv]}
-            onValueChange={(value) => updateData('ltv', value[0])}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>55%</span>
-            <span>97%</span>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="loan_amount">Loan Amount</Label>
-            <Input
-              id="loan_amount"
-              type="number"
-              value={data.loan_amount}
-              onChange={(e) => updateData('loan_amount', Number(e.target.value))}
-              min={0}
-              step={1000}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>DTI (Debt-to-Income)</Label>
-            <Select
-              value={data.dti}
-              onValueChange={(value) => updateData('dti', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DTI_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Amortization Type</Label>
+          <Label>Loan Type</Label>
           <Select
-            value={data.amortization_type}
-            onValueChange={(value) => updateData('amortization_type', value)}
+            value={data.loan_type}
+            onValueChange={(value) => updateData('loan_type', value)}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {AMORTIZATION_TYPES.map((type) => (
+              {LOAN_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
                 </SelectItem>
@@ -376,299 +91,202 @@ export function ScenarioForm({ data, onChange, currentStep }: ScenarioFormProps)
             </SelectContent>
           </Select>
         </div>
-
-        {/* Non-QM Specific Fields */}
-        {data.program_type === "Non-QM" && (
-          <div className="col-span-2">
-            <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-              <Label className="text-base font-semibold mb-4 block text-blue-900 dark:text-blue-100">
-                Non-QM Additional Requirements
-              </Label>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Income Type</Label>
-                  <Select
-                    value={data.income_type || ""}
-                    onValueChange={(value) => updateData('income_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select income type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INCOME_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Mortgage History</Label>
-                  <Select
-                    value={data.mortgage_history || ""}
-                    onValueChange={(value) => updateData('mortgage_history', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select mortgage history" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MORTGAGE_HISTORY_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2 mt-4">
-                <Label>Credit Events</Label>
-                <Select
-                  value={data.credit_events || ""}
-                  onValueChange={(value) => updateData('credit_events', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select credit events" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CREDIT_EVENTS_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    );
-  }
 
-  // Step 3: Additional Options & Review
-  if (currentStep === 3) {
-    return (
-      <div className="space-y-6">
+      {/* Row 2: Term & Loan Purpose */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Term in Years</Label>
+          <Select
+            value={data.term_years.toString()}
+            onValueChange={(value) => updateData('term_years', Number(value))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TERM_YEARS.map((term) => (
+                <SelectItem key={term} value={term.toString()}>
+                  {term} Years
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Loan Purpose</Label>
+          <Select
+            value={data.loan_purpose}
+            onValueChange={(value) => updateData('loan_purpose', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LOAN_PURPOSES.map((purpose) => (
+                <SelectItem key={purpose} value={purpose}>
+                  {purpose}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Row 3: Purchase Price & Loan Amount */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="purchase_price">Purchase Price</Label>
+          <Input
+            id="purchase_price"
+            type="number"
+            value={data.purchase_price || ""}
+            onChange={(e) => updateData('purchase_price', Number(e.target.value))}
+            min={0}
+            step={1000}
+            placeholder="e.g. 400000"
+          />
+          <p className="text-xs text-muted-foreground">
+            {formatCurrency(data.purchase_price)}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="loan_amount">Loan Amount</Label>
+          <Input
+            id="loan_amount"
+            type="number"
+            value={data.loan_amount || ""}
+            onChange={(e) => updateData('loan_amount', Number(e.target.value))}
+            min={0}
+            step={1000}
+            placeholder="e.g. 320000"
+          />
+          <p className="text-xs text-muted-foreground">
+            {formatCurrency(data.loan_amount)}
+          </p>
+        </div>
+      </div>
+
+      {/* Row 4: Occupancy & Property Type */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Occupancy</Label>
+          <Select
+            value={data.occupancy}
+            onValueChange={(value) => updateData('occupancy', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {OCCUPANCY_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Property Type</Label>
+          <Select
+            value={data.property_type}
+            onValueChange={(value) => {
+              updateData('property_type', value);
+              // Clear num_units if not 2-4 Units
+              if (value !== "2-4 Units") {
+                updateData('num_units', undefined);
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROPERTY_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Conditional Row: Number of Units */}
+      {data.property_type === "2-4 Units" && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Rate Lock Period</Label>
+            <Label>Number of Units *</Label>
             <Select
-              value={data.lock_period.toString()}
-              onValueChange={(value) => updateData('lock_period', Number(value))}
+              value={data.num_units?.toString() || ""}
+              onValueChange={(value) => updateData('num_units', Number(value))}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select number of units" />
               </SelectTrigger>
               <SelectContent>
-                {LOCK_PERIODS.map((period) => (
-                  <SelectItem key={period} value={period.toString()}>
-                    {period} Days
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Broker Compensation</Label>
-            <Select
-              value={data.broker_compensation}
-              onValueChange={(value) => updateData('broker_compensation', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BROKER_COMPENSATION_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
+                {NUM_UNITS.map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} Units
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+      )}
 
-        <div>
-          <Label className="text-base font-semibold mb-4 block">Additional Options</Label>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="admin_fee_buyout"
-                checked={data.admin_fee_buyout}
-                onCheckedChange={(checked) => updateData('admin_fee_buyout', checked as boolean)}
-              />
-              <Label htmlFor="admin_fee_buyout" className="cursor-pointer">
-                Admin Fee Buyout
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="escrow_waiver"
-                checked={data.escrow_waiver}
-                onCheckedChange={(checked) => updateData('escrow_waiver', checked as boolean)}
-              />
-              <Label htmlFor="escrow_waiver" className="cursor-pointer">
-                Escrow Waiver
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="high_balance"
-                checked={data.high_balance}
-                onCheckedChange={(checked) => updateData('high_balance', checked as boolean)}
-              />
-              <Label htmlFor="high_balance" className="cursor-pointer">
-                High Balance
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="sub_financing"
-                checked={data.sub_financing}
-                onCheckedChange={(checked) => updateData('sub_financing', checked as boolean)}
-              />
-              <Label htmlFor="sub_financing" className="cursor-pointer">
-                Sub Financing
-              </Label>
-            </div>
-          </div>
+      {/* Row 5: Zip Code & State */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="zip_code">Zip Code *</Label>
+          <Input
+            id="zip_code"
+            type="text"
+            value={data.zip_code}
+            onChange={(e) => updateData('zip_code', e.target.value)}
+            maxLength={5}
+            placeholder="e.g. 33131"
+          />
         </div>
-
-        <div>
-          <Label className="text-base font-semibold">Scenario Summary</Label>
-          <Card className="p-6 mt-2">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Loan Program</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Program Type:</span>
-                    <span className="font-medium">{data.program_type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Loan Type:</span>
-                    <span className="font-medium">{data.loan_type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Purpose:</span>
-                    <span className="font-medium">{data.loan_purpose}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amortization:</span>
-                    <span className="font-medium">{data.amortization_type}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Property</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-medium">{data.property_type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Units:</span>
-                    <span className="font-medium">{data.num_units}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Occupancy:</span>
-                    <span className="font-medium">{data.occupancy}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">State:</span>
-                    <span className="font-medium">Florida</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Borrower</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">FICO Score:</span>
-                    <span className="font-medium">{data.fico_score}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">DTI:</span>
-                    <span className="font-medium">{data.dti}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Citizenship:</span>
-                    <span className="font-medium">{data.citizenship}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Loan Details</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount:</span>
-                    <span className="font-medium">${data.loan_amount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">LTV:</span>
-                    <span className="font-medium">{data.ltv}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Lock Period:</span>
-                    <span className="font-medium">{data.lock_period} Days</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Broker Comp:</span>
-                    <span className="font-medium">{data.broker_compensation}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Non-QM Details in Summary */}
-            {data.program_type === "Non-QM" && (
-              <div className="mt-6 pt-4 border-t">
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Non-QM Details</h4>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Income Type:</span>
-                        <span className="font-medium">{data.income_type || "Not set"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Mortgage History:</span>
-                        <span className="font-medium">{data.mortgage_history || "Not set"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Credit Events:</span>
-                        <span className="font-medium">{data.credit_events || "Not set"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {(data.admin_fee_buyout || data.escrow_waiver || data.high_balance || data.sub_financing) && (
-              <div className="mt-6 pt-4 border-t">
-                <h4 className="font-medium mb-3 text-sm text-muted-foreground">Additional Options</h4>
-                <div className="flex flex-wrap gap-2">
-                  {data.admin_fee_buyout && <Badge variant="secondary">Admin Fee Buyout</Badge>}
-                  {data.escrow_waiver && <Badge variant="secondary">Escrow Waiver</Badge>}
-                  {data.high_balance && <Badge variant="secondary">High Balance</Badge>}
-                  {data.sub_financing && <Badge variant="secondary">Sub Financing</Badge>}
-                </div>
-              </div>
-            )}
-          </Card>
+        <div className="space-y-2">
+          <Label>State</Label>
+          <Select
+            value={data.state}
+            onValueChange={(value) => updateData('state', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {US_STATES.map((state) => (
+                <SelectItem key={state} value={state}>
+                  {state}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-    );
-  }
 
-  return null;
+      {/* Axiom Integration Instructions */}
+      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+          Axiom.ai Integration Instructions
+        </h3>
+        <p className="text-xs text-blue-800 dark:text-blue-200 mb-3">
+          After creating this pricing run, you can use Axiom.ai to automatically scrape your lender's pricing website:
+        </p>
+        <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-2 list-decimal list-inside">
+          <li>Install the Axiom.ai Chrome extension</li>
+          <li>Navigate to your lender's pricing website</li>
+          <li>Record a bot that fills in these fields: Credit Score, Loan Type, Term, Purpose, Purchase Price, Loan Amount, Occupancy, Property Type, Units (if applicable), Zip Code, State</li>
+          <li>Set the bot to capture the pricing results table/screenshot</li>
+          <li>Run the bot manually or schedule it to run automatically</li>
+          <li>Results will be saved and viewable in this CRM</li>
+        </ol>
+      </div>
+    </div>
+  );
 }
