@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FourColumnDetailLayout } from "./FourColumnDetailLayout";
+import { RealEstateOwnedSection } from "./RealEstateOwnedSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -10,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FileUpload } from "@/components/ui/file-upload";
 import { 
   DollarSign, 
   Home, 
@@ -25,7 +28,8 @@ import {
   Receipt,
   Building2,
   Wallet,
-  ArrowRightLeft
+  ArrowRightLeft,
+  FileText
 } from "lucide-react";
 import { 
   formatCurrency, 
@@ -813,8 +817,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
     {
       icon: Users,
-      label: "Email",
-      value: (client as any).co_borrower_email || "—"
+      label: "Relationship",
+      value: (client as any).co_borrower_relationship || "—"
     },
     {
       icon: Users,
@@ -823,8 +827,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
     {
       icon: Users,
-      label: "Relationship",
-      value: (client as any).co_borrower_relationship || "—"
+      label: "Email",
+      value: (client as any).co_borrower_email || "—"
     },
   ];
 
@@ -929,6 +933,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <FourColumnDetailLayout items={consolidatedFinancialData} />
         </div>
 
+        {/* Real Estate Owned Section */}
+        {leadId && <RealEstateOwnedSection leadId={leadId} />}
+
         {/* Monthly Payment Breakdown Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -961,6 +968,40 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <FourColumnDetailLayout items={declarationsDemographicsData} />
           </div>
         )}
+
+        {/* Paper Application Section */}
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-primary" />
+            Paper Application
+          </h3>
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <Label>Application PDF</Label>
+            <FileUpload 
+              value={(client as any).paper_application_url}
+              onValueChange={async (url) => {
+                if (!leadId) return;
+                try {
+                  await databaseService.updateLead(leadId, { paper_application_url: url });
+                  if (onLeadUpdated) await onLeadUpdated();
+                  toast({
+                    title: "Success",
+                    description: "Paper application updated successfully",
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message || "Failed to update paper application",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              bucket="lead-attachments"
+              accept=".pdf"
+              placeholder="Upload application PDF"
+            />
+          </div>
+        </div>
 
         {/* DTI Calculation */}
         <div className="space-y-4">
