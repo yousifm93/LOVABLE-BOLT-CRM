@@ -47,12 +47,20 @@ export function AgentCallLogModal({
 
     setIsLoading(true);
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      // Get CRM user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error("No user found");
+      
+      const { data: crmUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', session.user.id)
+        .single();
+      
+      if (!crmUser) throw new Error("CRM user not found");
 
       // Create call log with custom date/time
-      await databaseService.createAgentCallLog(agentId, summary, user.id, 'call', undefined, callDateTime);
+      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDateTime);
 
       // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
@@ -80,7 +88,7 @@ export function AgentCallLogModal({
             const result = await databaseService.autoCompleteTasksAfterCall(
               lead.id,
               callType,
-              user.id
+              crmUser.id
             );
 
             if (result.completedCount > 0) {

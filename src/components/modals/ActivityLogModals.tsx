@@ -19,7 +19,7 @@ interface ActivityLogModalProps {
 
 export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
@@ -48,13 +48,18 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
-      // Use auth.uid() directly for user tracking
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || null;
+      if (!crmUser) {
+        toast({
+          title: 'Error',
+          description: 'User profile not loaded. Please refresh the page.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const callLogData: CallLogInsert = {
         lead_id: leadId,
-        user_id: userId,
+        user_id: crmUser.id,
         timestamp: new Date(formData.timestamp).toISOString(),
         outcome: 'Connected' as any,
         duration_seconds: null,
@@ -80,7 +85,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
         const result = await databaseService.autoCompleteTasksAfterCall(
           leadId,
           'log_call_borrower',
-          userId || ''
+          crmUser.id
         );
 
         if (result.completedCount > 0) {
@@ -148,7 +153,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
 export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
@@ -177,13 +182,18 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     setLoading(true);
 
     try {
-      // Use auth.uid() directly for user tracking
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || null;
+      if (!crmUser) {
+        toast({
+          title: 'Error',
+          description: 'User profile not loaded. Please refresh the page.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const smsLogData: SmsLogInsert = {
         lead_id: leadId,
-        user_id: userId,
+        user_id: crmUser.id,
         timestamp: new Date(formData.timestamp).toISOString(),
         direction: 'Out' as any,
         to_number: 'client-number',
@@ -259,7 +269,7 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
 
 export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     timestamp: new Date().toISOString().slice(0, 16),
@@ -288,13 +298,18 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
     setLoading(true);
 
     try {
-      // Use auth.uid() directly for user tracking
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || null;
+      if (!crmUser) {
+        toast({
+          title: 'Error',
+          description: 'User profile not loaded. Please refresh the page.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const emailLogData: EmailLogInsert = {
         lead_id: leadId,
-        user_id: userId,
+        user_id: crmUser.id,
         timestamp: new Date(formData.timestamp).toISOString(),
         direction: 'Out' as any,
         to_email: 'client@example.com',
@@ -371,7 +386,7 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
 
 export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: ActivityLogModalProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
 
@@ -398,13 +413,18 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
     setLoading(true);
 
     try {
-      // Use auth.uid() directly for user tracking
-      const { data: { session } } = await supabase.auth.getSession();
-      const authorId = session?.user?.id || null;
+      if (!crmUser) {
+        toast({
+          title: 'Error',
+          description: 'User profile not loaded. Please refresh the page.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
       const noteData: NoteInsert = {
         lead_id: leadId,
-        author_id: authorId,
+        author_id: crmUser.id,
         body: noteBody.trim(),
       };
 
