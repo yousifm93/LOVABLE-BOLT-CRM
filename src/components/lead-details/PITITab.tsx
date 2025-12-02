@@ -68,8 +68,8 @@ export function PITITab({ leadId }: PITITabProps) {
 
   const pitiFields = [
     { label: "Principal & Interest", field: "principal_interest", value: lead.principal_interest },
-    { label: "HOI (Insurance)", field: "homeowners_insurance", value: lead.homeowners_insurance },
     { label: "Property Taxes", field: "property_taxes", value: lead.property_taxes },
+    { label: "HOI (Insurance)", field: "homeowners_insurance", value: lead.homeowners_insurance },
     { label: "Mortgage Insurance", field: "mortgage_insurance", value: lead.mortgage_insurance },
     { label: "Association Dues", field: "hoa_dues", value: lead.hoa_dues },
   ];

@@ -580,8 +580,8 @@ export function ClientDetailDrawer({
             </div>
           </div>;
       default:
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-4 gap-6">
+        return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-4 gap-4">
               {/* Row 1 */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">MB Loan #</span>
@@ -596,14 +596,14 @@ export function ClientDetailDrawer({
                 <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Lender Loan #</span>
-                <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
+                <span className="text-xs text-muted-foreground">Credit Score</span>
+                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
               </div>
               
               {/* Row 2 */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Credit Score</span>
-                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+                <span className="text-xs text-muted-foreground">Lender Loan #</span>
+                <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Total Assets</span>
