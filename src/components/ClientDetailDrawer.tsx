@@ -307,25 +307,6 @@ export function ClientDetailDrawer({
     };
   };
 
-  // Helper function for third party status colors
-  const getThirdPartyStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'Received':
-      case 'Approved':
-        return 'bg-green-500 text-white';
-      case 'Scheduled':
-      case 'Ordered':
-        return 'bg-blue-500 text-white';
-      case 'Quoted':
-        return 'bg-yellow-500 text-white';
-      case 'Inspected':
-      case 'Waiver':
-        return 'bg-purple-500 text-white';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-  
   const formatLeadCreationDate = () => {
     const createdAt = (client as any).created_at;
     if (!createdAt) return 'N/A';
@@ -625,11 +606,11 @@ export function ClientDetailDrawer({
               <div className="space-y-2">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Interest Rate</span>
-                  <InlineEditPercentage value={(client as any).interestRate || null} onValueChange={value => handleLeadUpdate('interestRate', value)} decimals={3} />
+                  <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Credit Score</span>
-                  <InlineEditNumber value={(client as any).creditScore || null} onValueChange={value => handleLeadUpdate('creditScore', value)} placeholder="Enter score" />
+                  <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Monthly Income</span>
@@ -669,30 +650,42 @@ export function ClientDetailDrawer({
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Condo</span>
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
-                    getThirdPartyStatusColor((client as any).condoStatus)
-                  )}>
-                    {(client as any).condoStatus || "—"}
-                  </span>
+                  <InlineEditSelect 
+                    value={(client as any).condoStatus || null} 
+                    options={[
+                      { value: 'Ordered', label: 'Ordered' },
+                      { value: 'Received', label: 'Received' },
+                      { value: 'Approved', label: 'Approved' },
+                      { value: 'Waiver', label: 'Waiver' },
+                      { value: 'N/A', label: 'N/A' }
+                    ]} 
+                    onValueChange={value => handleLeadUpdate('condo_status', value)} 
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Appraisal</span>
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
-                    getThirdPartyStatusColor((client as any).appraisalStatus)
-                  )}>
-                    {(client as any).appraisalStatus || "—"}
-                  </span>
+                  <InlineEditSelect 
+                    value={(client as any).appraisalStatus || null} 
+                    options={[
+                      { value: 'Ordered', label: 'Ordered' },
+                      { value: 'Scheduled', label: 'Scheduled' },
+                      { value: 'Inspected', label: 'Inspected' },
+                      { value: 'Received', label: 'Received' }
+                    ]} 
+                    onValueChange={value => handleLeadUpdate('appraisal_status', value)} 
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Insurance</span>
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded inline-block",
-                    getThirdPartyStatusColor((client as any).hoiStatus)
-                  )}>
-                    {(client as any).hoiStatus || "—"}
-                  </span>
+                  <InlineEditSelect 
+                    value={(client as any).hoiStatus || null} 
+                    options={[
+                      { value: 'Quoted', label: 'Quoted' },
+                      { value: 'Ordered', label: 'Ordered' },
+                      { value: 'Received', label: 'Received' }
+                    ]} 
+                    onValueChange={value => handleLeadUpdate('hoi_status', value)} 
+                  />
                 </div>
               </div>
             </div>
