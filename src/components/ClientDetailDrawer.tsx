@@ -581,7 +581,7 @@ export function ClientDetailDrawer({
           </div>;
       default:
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-4 gap-6">
               {/* Row 1 */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">MB Loan #</span>
@@ -595,12 +595,12 @@ export function ClientDetailDrawer({
                 <span className="text-xs text-muted-foreground">Total Monthly Income</span>
                 <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
               </div>
-              
-              {/* Row 2 */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Lender Loan #</span>
                 <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
               </div>
+              
+              {/* Row 2 */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Credit Score</span>
                 <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
@@ -609,29 +609,27 @@ export function ClientDetailDrawer({
                 <span className="text-xs text-muted-foreground">Total Assets</span>
                 <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
               </div>
-              
-              {/* Row 3 */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Closing Costs</span>
                 <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Cash to Close</span>
+                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+              </div>
+              
+              {/* Row 3 */}
+              <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Monthly Income</span>
                 <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">PITI</span>
-                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
-              </div>
-              
-              {/* Row 4 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Cash to Close</span>
-                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
                 <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">PITI</span>
+                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">DTI</span>
@@ -1496,7 +1494,7 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* Quick Actions - Moved above Tasks */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader className="pb-3 bg-white">
                 <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
@@ -1506,23 +1504,21 @@ export function ClientDetailDrawer({
                   <Button 
                     variant="outline" 
                     size="default" 
-                    className="flex-1 px-4 py-6 h-auto flex flex-col gap-2"
+                    className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
                     onClick={() => setShowPreApprovalModal(true)}
                   >
-                    <FileText className="h-5 w-5" />
-                    <span className="font-semibold">Pre-Approval</span>
-                    <span className="text-xs text-muted-foreground">Generate Letter</span>
+                    <FileText className="h-4 w-4" />
+                    <span className="font-semibold text-sm">Pre-Approval</span>
                   </Button>
                   
                   <Button 
                     variant="outline" 
                     size="default" 
-                    className="flex-1 px-4 py-6 h-auto flex flex-col gap-2"
+                    className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
                     onClick={() => console.log('L-E clicked')}
                   >
-                    <FileCheck className="h-5 w-5" />
-                    <span className="font-semibold">Loan Estimate</span>
-                    <span className="text-xs text-muted-foreground">Generate Document</span>
+                    <FileCheck className="h-4 w-4" />
+                    <span className="font-semibold text-sm">Loan Estimate</span>
                   </Button>
                 </div>
               </CardContent>
