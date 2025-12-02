@@ -300,9 +300,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   };
 
   // ============================================
-  // BORROWER INFORMATION DATA
+  // BORROWER INFORMATION DATA (Horizontal flow: 3 columns)
   // ============================================
   const borrowerData = [
+    // Row 1
     { 
       icon: User, 
       label: "First Name", 
@@ -313,6 +314,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
           className="h-8"
           placeholder="First name"
+        />
+      ) : undefined
+    },
+    { 
+      icon: User, 
+      label: "Last Name", 
+      value: client.person?.lastName || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.last_name}
+          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+          className="h-8"
+          placeholder="Last name"
         />
       ) : undefined
     },
@@ -329,40 +343,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         />
       ) : undefined
     },
-    { 
-      icon: User, 
-      label: "Gender", 
-      value: (client as any).demographic_gender || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.demographic_gender}
-          onValueChange={(value) => setEditData({ ...editData, demographic_gender: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select gender" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Male">Male</SelectItem>
-            <SelectItem value="Female">Female</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
-            <SelectItem value="Prefer not to disclose">Prefer not to disclose</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    { 
-      icon: User, 
-      label: "Last Name", 
-      value: client.person?.lastName || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.last_name}
-          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-          className="h-8"
-          placeholder="Last name"
-        />
-      ) : undefined
-    },
+    // Row 2
     { 
       icon: Users, 
       label: "Marital Status", 
@@ -404,6 +385,28 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         </Select>
       ) : undefined
     },
+    { 
+      icon: User, 
+      label: "Gender", 
+      value: (client as any).demographic_gender || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.demographic_gender}
+          onValueChange={(value) => setEditData({ ...editData, demographic_gender: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select gender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Male">Male</SelectItem>
+            <SelectItem value="Female">Female</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value="Prefer not to disclose">Prefer not to disclose</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    // Row 3
     { 
       icon: Home, 
       label: "Current Property Address", 
@@ -541,29 +544,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
   ];
 
   // ============================================
-  // LOAN & PROPERTY - PROPERTY
+  // LOAN & PROPERTY - PROPERTY (Row 1: Type + Occupancy, Row 2: Address fields)
   // ============================================
   const propertyData = [
-    { 
-      icon: Home, 
-      label: "Occupancy", 
-      value: (client as any).occupancy || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.occupancy}
-          onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select occupancy" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Primary Residence">Primary Residence</SelectItem>
-            <SelectItem value="Second Home">Second Home</SelectItem>
-            <SelectItem value="Investment Property">Investment Property</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
+    // Row 1
     { 
       icon: Building, 
       label: "Property Type", 
@@ -588,6 +572,33 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
     { 
       icon: Home, 
+      label: "Occupancy", 
+      value: (() => {
+        const occ = (client as any).occupancy;
+        if (occ === "Primary Residence") return "Primary";
+        if (occ === "Second Home") return "Second";
+        if (occ === "Investment Property") return "Investment";
+        return occ || "—";
+      })(),
+      editComponent: isEditing ? (
+        <Select
+          value={editData.occupancy}
+          onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select occupancy" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Primary Residence">Primary</SelectItem>
+            <SelectItem value="Second Home">Second</SelectItem>
+            <SelectItem value="Investment Property">Investment</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
+    // Row 2 (4-column address layout)
+    { 
+      icon: Home, 
       label: "Subject Property Address", 
       value: (client as any).subject_address_1 || "—",
       editComponent: isEditing ? (
@@ -596,19 +607,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           onChange={(e) => setEditData({ ...editData, subject_address_1: e.target.value })}
           className="h-8"
           placeholder="Street address"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Home, 
-      label: "Address Line 2", 
-      value: (client as any).subject_address_2 || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.subject_address_2 || ""}
-          onChange={(e) => setEditData({ ...editData, subject_address_2: e.target.value })}
-          className="h-8"
-          placeholder="Apt, Suite, Unit"
         />
       ) : undefined
     },
@@ -840,7 +838,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-4">
+      <div className="space-y-4 pt-2">
         {/* Single Edit/Save button set at top */}
         <div className="flex items-center justify-end gap-2">
           {isEditing ? (
@@ -862,7 +860,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
         {/* 1. BORROWER INFORMATION */}
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
             <User className="h-5 w-5 text-primary" />
             Borrower Information
           </h3>

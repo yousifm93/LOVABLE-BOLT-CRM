@@ -28,15 +28,6 @@ const hoiStatusOptions = [
 ];
 
 export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
-  const { toast } = useToast();
-
-  const handleFollowUp = () => {
-    toast({
-      title: "Follow Up",
-      description: "Email template functionality coming soon",
-    });
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Row 1: HOI Status */}
@@ -108,7 +99,7 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         />
       </div>
 
-      {/* Row 5: Document Uploads / Follow Up Button */}
+      {/* Row 5: Document Uploads */}
       <div className="flex flex-col gap-2">
         <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
           <FileText className="h-3 w-3" />
@@ -140,19 +131,6 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
             allowed_types: ['.pdf']
           }}
         />
-      </div>
-
-      {/* Row 6: Follow Up Button */}
-      <div className="md:col-span-2 flex items-end justify-start">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleFollowUp}
-          className="gap-2"
-        >
-          <Mail className="h-4 w-4" />
-          Follow Up
-        </Button>
       </div>
     </div>
   );
