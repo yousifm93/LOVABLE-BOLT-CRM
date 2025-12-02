@@ -1310,9 +1310,6 @@ export function ClientDetailDrawer({
             {/* Send Email Templates */}
             <SendEmailTemplatesCard leadId={leadId || ""} />
 
-            {/* Real Estate Owned Section */}
-            {leadId && <RealEstateOwnedSection leadId={leadId} />}
-
             {/* Tasks - moved before About the Borrower */}
             <Card>
               <CardHeader className="pb-3 bg-white">

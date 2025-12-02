@@ -1951,6 +1951,7 @@ export type Database = {
           occupancy: string | null
           own_rent_current_address: string | null
           package_status: Database["public"]["Enums"]["package_status"] | null
+          paper_application_url: string | null
           pending_app_at: string | null
           phone: string | null
           pipeline_section: string | null
@@ -2103,6 +2104,7 @@ export type Database = {
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
+          paper_application_url?: string | null
           pending_app_at?: string | null
           phone?: string | null
           pipeline_section?: string | null
@@ -2257,6 +2259,7 @@ export type Database = {
           occupancy?: string | null
           own_rent_current_address?: string | null
           package_status?: Database["public"]["Enums"]["package_status"] | null
+          paper_application_url?: string | null
           pending_app_at?: string | null
           phone?: string | null
           pipeline_section?: string | null
