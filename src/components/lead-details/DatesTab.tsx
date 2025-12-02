@@ -55,9 +55,9 @@ export function DatesTab({ leadId }: DatesTabProps) {
   ];
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {addressFields.map((item) => (
-        <div key={item.field} className="flex items-center justify-between py-1">
+        <div key={item.field} className="flex flex-col gap-0.5">
           <span className="text-xs text-muted-foreground">{item.label}</span>
           <InlineEditText
             value={item.value || ""}
