@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('loan-pricer-axiom v2 - deployed');
+    console.log('loan-pricer-axiom v3 - deployed');
     const { run_id } = await req.json();
     
     if (!run_id) {
@@ -77,7 +77,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         key: axiomApiKey,
-        taskName: 'Axiom Loan Pricer Tool',
+        name: 'Axiom Loan Pricer Tool',
         data: axiomData
       }),
     });

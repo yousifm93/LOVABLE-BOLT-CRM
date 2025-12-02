@@ -27,8 +27,6 @@ verify_jwt = true
 [functions.migrate-lenders]
 verify_jwt = false
 
-[functions.loan-pricer-scraper]
-verify_jwt = true
 
 [functions.income-ocr]
 verify_jwt = true
