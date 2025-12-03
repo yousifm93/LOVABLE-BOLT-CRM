@@ -236,6 +236,27 @@ const TOOL_DEFINITIONS = [
         required: ["operation", "field"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_lead",
+      description: "Update fields on a lead/borrower record. Use for: changing dates, updating statuses, assigning lenders or agents. Examples: 'Update closing date of John Doe to December 15', 'Change appraisal status of Jane Smith to Received', 'Assign KIND Lending as lender for Mike Jones'.",
+      parameters: {
+        type: "object",
+        properties: {
+          borrower_name: {
+            type: "string",
+            description: "Name of borrower to find and update (first name, last name, or full name)"
+          },
+          updates: {
+            type: "object",
+            description: "Fields to update. Common fields: close_date (YYYY-MM-DD), appraisal_status (Ordered/Scheduled/Inspected/Received/Waiver), title_status (Requested/Received), condo_status (Ordered/Received/Approved), hoi_status (Quoted/Ordered/Received), loan_status (New/RFP/SUB/AWC/CTC), lender_name (name of lender to lookup), disclosure_status (Ordered/Sent/Signed/Need SIG), cd_status (Requested/Sent/Signed/N/A), ba_status (Send/Sent/Signed/N/A)"
+          }
+        },
+        required: ["borrower_name", "updates"]
+      }
+    }
   }
 ];
 
@@ -724,6 +745,164 @@ async function aggregateLeads(args: any, supabase: any): Promise<any> {
   };
 }
 
+async function updateLead(args: any, supabase: any): Promise<any> {
+  const { borrower_name, updates } = args;
+  
+  console.log('===========================================');
+  console.log('updateLead called with:', JSON.stringify(args, null, 2));
+  console.log('===========================================');
+  
+  if (!borrower_name) {
+    return { error: 'borrower_name is required to find the lead to update' };
+  }
+  
+  // Search for the lead by name
+  const parts = borrower_name.trim().split(/\s+/);
+  let query = supabase.from('leads').select('id, first_name, last_name');
+  
+  if (parts.length === 2) {
+    const [part1, part2] = parts;
+    query = query.or(
+      `and(first_name.ilike.%${part1}%,last_name.ilike.%${part2}%),` +
+      `and(first_name.ilike.%${part2}%,last_name.ilike.%${part1}%)`
+    );
+  } else {
+    query = query.or(
+      `first_name.ilike.%${borrower_name}%,last_name.ilike.%${borrower_name}%`
+    );
+  }
+  
+  const { data: leads, error: searchError } = await query.limit(5);
+  
+  if (searchError) {
+    return { error: `Failed to search for borrower: ${searchError.message}` };
+  }
+  
+  if (!leads || leads.length === 0) {
+    return { error: `Could not find borrower "${borrower_name}"` };
+  }
+  
+  if (leads.length > 1) {
+    const names = leads.map((l: any) => `${l.first_name} ${l.last_name}`).join(', ');
+    return { 
+      error: `Found multiple borrowers matching "${borrower_name}": ${names}. Please be more specific.`,
+      matches: leads
+    };
+  }
+  
+  const targetLead = leads[0];
+  const processedUpdates: any = { ...updates };
+  
+  // Handle lender_name lookup - convert to approved_lender_id
+  if (updates.lender_name) {
+    const { data: lenders, error: lenderError } = await supabase
+      .from('lenders')
+      .select('id, lender_name')
+      .ilike('lender_name', `%${updates.lender_name}%`)
+      .limit(1);
+    
+    if (lenderError) {
+      return { error: `Failed to lookup lender: ${lenderError.message}` };
+    }
+    
+    if (lenders && lenders.length > 0) {
+      processedUpdates.approved_lender_id = lenders[0].id;
+      console.log(`Mapped lender "${updates.lender_name}" to ID: ${lenders[0].id}`);
+    } else {
+      return { error: `Could not find lender "${updates.lender_name}"` };
+    }
+    delete processedUpdates.lender_name;
+  }
+  
+  // Handle agent_name lookup - convert to buyer_agent_id
+  if (updates.agent_name || updates.buyer_agent_name) {
+    const agentName = updates.agent_name || updates.buyer_agent_name;
+    const agentParts = agentName.trim().split(/\s+/);
+    
+    let agentQuery = supabase.from('buyer_agents').select('id, first_name, last_name');
+    if (agentParts.length === 2) {
+      const [p1, p2] = agentParts;
+      agentQuery = agentQuery.or(
+        `and(first_name.ilike.%${p1}%,last_name.ilike.%${p2}%),` +
+        `and(first_name.ilike.%${p2}%,last_name.ilike.%${p1}%)`
+      );
+    } else {
+      agentQuery = agentQuery.or(
+        `first_name.ilike.%${agentName}%,last_name.ilike.%${agentName}%`
+      );
+    }
+    
+    const { data: agents, error: agentError } = await agentQuery.limit(1);
+    
+    if (agentError) {
+      return { error: `Failed to lookup agent: ${agentError.message}` };
+    }
+    
+    if (agents && agents.length > 0) {
+      processedUpdates.buyer_agent_id = agents[0].id;
+      console.log(`Mapped agent "${agentName}" to ID: ${agents[0].id}`);
+    } else {
+      return { error: `Could not find agent "${agentName}"` };
+    }
+    delete processedUpdates.agent_name;
+    delete processedUpdates.buyer_agent_name;
+  }
+  
+  // Handle teammate lookup - convert to teammate_assigned UUID
+  if (updates.teammate_name || updates.assigned_to) {
+    const teammateName = updates.teammate_name || updates.assigned_to;
+    const teammateParts = teammateName.trim().split(/\s+/);
+    
+    let teammateQuery = supabase.from('users').select('id, first_name, last_name');
+    if (teammateParts.length === 2) {
+      const [p1, p2] = teammateParts;
+      teammateQuery = teammateQuery.or(
+        `and(first_name.ilike.%${p1}%,last_name.ilike.%${p2}%),` +
+        `and(first_name.ilike.%${p2}%,last_name.ilike.%${p1}%)`
+      );
+    } else {
+      teammateQuery = teammateQuery.or(
+        `first_name.ilike.%${teammateName}%,last_name.ilike.%${teammateName}%`
+      );
+    }
+    
+    const { data: teammates, error: teammateError } = await teammateQuery.limit(1);
+    
+    if (teammateError) {
+      return { error: `Failed to lookup teammate: ${teammateError.message}` };
+    }
+    
+    if (teammates && teammates.length > 0) {
+      processedUpdates.teammate_assigned = teammates[0].id;
+      console.log(`Mapped teammate "${teammateName}" to ID: ${teammates[0].id}`);
+    } else {
+      return { error: `Could not find teammate "${teammateName}"` };
+    }
+    delete processedUpdates.teammate_name;
+    delete processedUpdates.assigned_to;
+  }
+  
+  // Perform the update
+  const { data, error: updateError } = await supabase
+    .from('leads')
+    .update(processedUpdates)
+    .eq('id', targetLead.id)
+    .select()
+    .single();
+  
+  if (updateError) {
+    return { error: `Failed to update lead: ${updateError.message}` };
+  }
+  
+  return {
+    success: true,
+    message: `Successfully updated ${targetLead.first_name} ${targetLead.last_name}`,
+    updated_fields: Object.keys(updates),
+    lead_id: targetLead.id,
+    source: 'Leads Database'
+  };
+}
+
 async function executeTool(toolName: string, args: any, supabase: any): Promise<any> {
   console.log(`Executing tool: ${toolName}`, args);
   
@@ -751,6 +930,8 @@ async function executeTool(toolName: string, args: any, supabase: any): Promise<
         return await getTeamMembers(args, supabase);
       case 'aggregate_leads':
         return await aggregateLeads(args, supabase);
+      case 'update_lead':
+        return await updateLead(args, supabase);
       default:
         return { error: `Unknown tool: ${toolName}` };
     }

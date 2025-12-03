@@ -158,7 +158,8 @@ const condoStatusOptions = [
 const cdStatusOptions = [
   { value: "Requested", label: "Requested" },
   { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" }
+  { value: "Signed", label: "Signed" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const packageStatusOptions = [
@@ -169,7 +170,8 @@ const packageStatusOptions = [
 const baStatusOptions = [
   { value: "Send", label: "Send" },
   { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" }
+  { value: "Signed", label: "Signed" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const epoStatusOptions = [

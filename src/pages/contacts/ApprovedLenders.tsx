@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
+import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
-import { Checkbox } from "@/components/ui/checkbox";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,7 +38,8 @@ export default function ApprovedLenders() {
   const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
+  const [emailModalLender, setEmailModalLender] = useState<Lender | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,13 +82,10 @@ export default function ApprovedLenders() {
     }
   };
 
-  const handleSendEmail = (lender: Lender) => {
-    if (lender.account_executive_email) {
-      const subject = `Inquiry from ${lender.lender_name}`;
-      const body = `Hello ${lender.account_executive},\n\nI wanted to reach out regarding potential loan opportunities.\n\nBest regards`;
-      const mailto = `mailto:${lender.account_executive_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(mailto);
-    }
+  const handleSendEmail = (lender: Lender, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEmailModalLender(lender);
+    setIsEmailModalOpen(true);
   };
 
   const handleContactCreated = () => {
@@ -116,27 +114,6 @@ export default function ApprovedLenders() {
       newSelected.add(id);
     }
     setSelectedIds(newSelected);
-  };
-
-  const togglePasswordVisibility = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newShowPasswords = new Set(showPasswords);
-    if (newShowPasswords.has(id)) {
-      newShowPasswords.delete(id);
-    } else {
-      newShowPasswords.add(id);
-    }
-    setShowPasswords(newShowPasswords);
-  };
-
-  const formatCurrency = (value: number | undefined) => {
-    if (!value) return "—";
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
   };
 
   // Add row numbers to data
@@ -213,67 +190,13 @@ export default function ApprovedLenders() {
       ),
     },
     {
-      accessorKey: "broker_portal_username",
-      header: "Username",
-      cell: ({ row }) => (
-        <span className="text-sm font-mono">{row.original.broker_portal_username || "—"}</span>
-      ),
-    },
-    {
-      accessorKey: "broker_portal_password",
-      header: "Password",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-mono">
-            {showPasswords.has(row.original.id) 
-              ? row.original.broker_portal_password || "—"
-              : row.original.broker_portal_password ? "••••••••" : "—"
-            }
-          </span>
-          {row.original.broker_portal_password && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0"
-              onClick={(e) => togglePasswordVisibility(row.original.id, e)}
-            >
-              {showPasswords.has(row.original.id) ? (
-                <EyeOff className="h-3 w-3" />
-              ) : (
-                <Eye className="h-3 w-3" />
-              )}
-            </Button>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "min_loan_amount",
-      header: "Min Loan",
-      cell: ({ row }) => (
-        <span className="text-sm">{formatCurrency(row.original.min_loan_amount)}</span>
-      ),
-      sortable: true,
-    },
-    {
-      accessorKey: "max_loan_amount",
-      header: "Max Loan",
-      cell: ({ row }) => (
-        <span className="text-sm">{formatCurrency(row.original.max_loan_amount)}</span>
-      ),
-      sortable: true,
-    },
-    {
       accessorKey: "send_email",
       header: "Send Email",
       cell: ({ row }) => (
         <Button
           size="sm"
           variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSendEmail(row.original);
-          }}
+          onClick={(e) => handleSendEmail(row.original, e)}
           disabled={!row.original.account_executive_email}
         >
           <Mail className="h-3 w-3 mr-1" />
@@ -339,6 +262,15 @@ export default function ApprovedLenders() {
           setSelectedLender(null);
         }}
         onLenderUpdated={loadLenders}
+      />
+
+      <SendLenderEmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => {
+          setIsEmailModalOpen(false);
+          setEmailModalLender(null);
+        }}
+        lender={emailModalLender}
       />
     </div>
   );
