@@ -287,20 +287,21 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                   <span className="text-muted-foreground">Lock Period:</span>
                   <span className="font-medium">30 days</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Broker Comp:</span>
+                  <span className="font-medium">2.75%</span>
+                </div>
               </div>
             </Card>
           </div>
 
           {/* RIGHT SIDE: All detail cards stacked vertically (2/3 width) */}
           <div className="md:col-span-2 space-y-3">
-            {/* Borrower Card */}
-            <Card className="p-3">
-              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Borrower</h3>
-              <p className="text-sm">
-                <span className="text-muted-foreground">Name: </span>
-                <span className="font-medium">{run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}</span>
-              </p>
-            </Card>
+            {/* Borrower - Single line */}
+            <div className="text-sm">
+              <span className="text-muted-foreground">Borrower: </span>
+              <span className="font-medium">{run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}</span>
+            </div>
 
             {/* Property Details Card */}
             <Card className="p-3">
@@ -341,14 +342,6 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                     {scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Lock Period:</span>
-                  <span className="text-sm font-medium">30 days</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Broker Comp:</span>
-                  <span className="text-sm font-medium">2.75%</span>
-                </div>
               </div>
             </Card>
 
@@ -356,10 +349,6 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             <Card className="p-3">
               <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Loan Program</h3>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between">
-                  <span className="text-sm">Amortization:</span>
-                  <span className="text-sm font-medium">30 Years</span>
-                </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Purpose:</span>
                   <span className="text-sm font-medium">Purchase</span>
