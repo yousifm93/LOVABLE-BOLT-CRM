@@ -426,10 +426,106 @@ export default function TasksModern() {
     }
   };
 
+  // Helper to convert relative date values to actual date ranges
+  const getDateRange = (value: string): { start: Date; end: Date } | null => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    switch (value) {
+      case 'today': {
+        const end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+        return { start: today, end };
+      }
+      case 'yesterday': {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const end = new Date(yesterday);
+        end.setHours(23, 59, 59, 999);
+        return { start: yesterday, end };
+      }
+      case 'tomorrow': {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const end = new Date(tomorrow);
+        end.setHours(23, 59, 59, 999);
+        return { start: tomorrow, end };
+      }
+      case 'this_week': {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        return { start: startOfWeek, end: endOfWeek };
+      }
+      case 'last_week': {
+        const startOfLastWeek = new Date(today);
+        startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+        const endOfLastWeek = new Date(startOfLastWeek);
+        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+        endOfLastWeek.setHours(23, 59, 59, 999);
+        return { start: startOfLastWeek, end: endOfLastWeek };
+      }
+      case 'next_week': {
+        const startOfNextWeek = new Date(today);
+        startOfNextWeek.setDate(today.getDate() - today.getDay() + 7);
+        const endOfNextWeek = new Date(startOfNextWeek);
+        endOfNextWeek.setDate(startOfNextWeek.getDate() + 6);
+        endOfNextWeek.setHours(23, 59, 59, 999);
+        return { start: startOfNextWeek, end: endOfNextWeek };
+      }
+      case 'this_month': {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+        return { start: startOfMonth, end: endOfMonth };
+      }
+      case 'last_month': {
+        const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        endOfLastMonth.setHours(23, 59, 59, 999);
+        return { start: startOfLastMonth, end: endOfLastMonth };
+      }
+      default:
+        return null;
+    }
+  };
+
   // Apply advanced filters
   const applyAdvancedFilters = (tasks: ModernTask[], filters: FilterCondition[]) => {
     return tasks.filter(task => {
       return filters.every(filter => {
+        // Handle date column specially
+        if (filter.column === 'due_date') {
+          if (!task.due_date) {
+            return filter.operator === 'is_not';
+          }
+          
+          const taskDateStr = task.due_date.includes('T') 
+            ? task.due_date 
+            : `${task.due_date}T00:00:00`;
+          const taskDate = new Date(taskDateStr);
+          taskDate.setHours(0, 0, 0, 0);
+          
+          const dateRange = getDateRange(filter.value as string);
+          if (!dateRange) return true;
+          
+          switch (filter.operator) {
+            case 'is':
+              return taskDate >= dateRange.start && taskDate <= dateRange.end;
+            case 'is_not':
+              return taskDate < dateRange.start || taskDate > dateRange.end;
+            case 'is_before':
+              return taskDate < dateRange.start;
+            case 'is_after':
+              return taskDate > dateRange.end;
+            default:
+              return true;
+          }
+        }
+        
+        // Handle other columns
         let taskValue: any;
         
         switch (filter.column) {
@@ -442,9 +538,6 @@ export default function TasksModern() {
           case 'assignee_id':
             const assignee = assignableUsers.find(u => u.id === task.assignee_id);
             taskValue = assignee?.first_name || '';
-            break;
-          case 'due_date':
-            taskValue = task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '';
             break;
           default:
             return true;
