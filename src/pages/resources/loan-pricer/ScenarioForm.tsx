@@ -22,7 +22,13 @@ const PROPERTY_TYPES = [
 
 const NUM_UNITS = [1, 2, 3, 4];
 
-const TERM_YEARS = [5, 10, 15, 20, 25, 30];
+const INCOME_TYPES = [
+  { label: "Full Doc", value: "Full Doc - 24M" },
+  { label: "DSCR", value: "DSCR" },
+  { label: "24-Month Bank Statements", value: "24Mo Business Bank Statements" },
+  { label: "12-Month Bank Statements", value: "12Mo Business Bank Statements" },
+  { label: "No Ratio Primary", value: "Community - No income/No employment/No DTI" }
+];
 
 export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
   const updateData = (field: keyof ScenarioData, value: any) => {
@@ -166,24 +172,42 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Term</Label>
+          <Label>Income Type</Label>
           <Select
-            value={data.term_years?.toString() || "30"}
-            onValueChange={(value) => updateData('term_years', parseInt(value))}
+            value={data.income_type || "Full Doc - 24M"}
+            onValueChange={(value) => updateData('income_type', value)}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TERM_YEARS.map((term) => (
-                <SelectItem key={term} value={term.toString()}>
-                  {term} Years
+              {INCOME_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      {/* Conditional DSCR Ratio field */}
+      {data.income_type === "DSCR" && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>DSCR Ratio</Label>
+            <Input
+              type="text"
+              value={data.dscr_ratio || ""}
+              onChange={(e) => updateData('dscr_ratio', e.target.value)}
+              placeholder="e.g. 1.25"
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a value between 0 and 2.0 (e.g., 0.7, 1.25, 1.5)
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
