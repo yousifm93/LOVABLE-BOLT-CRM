@@ -1873,6 +1873,7 @@ export type Database = {
           condo_approval_type: string | null
           condo_docs_file: string | null
           condo_eta: string | null
+          condo_file: string | null
           condo_id: string | null
           condo_name: string | null
           condo_notes: string | null
@@ -1912,6 +1913,7 @@ export type Database = {
           id: string
           income_type: string | null
           initial_approval_file: string | null
+          inspection_file: string | null
           insurance_file: string | null
           insurance_inspection_file: string | null
           insurance_notes: string | null
@@ -1926,6 +1928,7 @@ export type Database = {
           latest_file_updates: string | null
           latest_file_updates_updated_at: string | null
           latest_file_updates_updated_by: string | null
+          le_file: string | null
           lead_on_date: string
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           lender_id: string | null
@@ -2027,6 +2030,7 @@ export type Database = {
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null
+          condo_file?: string | null
           condo_id?: string | null
           condo_name?: string | null
           condo_notes?: string | null
@@ -2066,6 +2070,7 @@ export type Database = {
           id?: string
           income_type?: string | null
           initial_approval_file?: string | null
+          inspection_file?: string | null
           insurance_file?: string | null
           insurance_inspection_file?: string | null
           insurance_notes?: string | null
@@ -2080,6 +2085,7 @@ export type Database = {
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
           latest_file_updates_updated_by?: string | null
+          le_file?: string | null
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
@@ -2183,6 +2189,7 @@ export type Database = {
           condo_approval_type?: string | null
           condo_docs_file?: string | null
           condo_eta?: string | null
+          condo_file?: string | null
           condo_id?: string | null
           condo_name?: string | null
           condo_notes?: string | null
@@ -2222,6 +2229,7 @@ export type Database = {
           id?: string
           income_type?: string | null
           initial_approval_file?: string | null
+          inspection_file?: string | null
           insurance_file?: string | null
           insurance_inspection_file?: string | null
           insurance_notes?: string | null
@@ -2236,6 +2244,7 @@ export type Database = {
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
           latest_file_updates_updated_by?: string | null
+          le_file?: string | null
           lead_on_date?: string
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null

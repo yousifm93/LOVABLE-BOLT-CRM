@@ -78,6 +78,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               leadId={leadId} 
               documents={documents} 
               onDocumentsChange={onDocumentsChange || (() => {})}
+              lead={client}
             />
           </TabsContent>
           

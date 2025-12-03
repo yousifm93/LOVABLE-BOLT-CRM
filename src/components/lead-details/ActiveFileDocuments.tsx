@@ -1,0 +1,235 @@
+import { useState } from "react";
+import { ChevronDown, ChevronRight, FileText, Upload, Eye, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { databaseService } from "@/services/database";
+import { cn } from "@/lib/utils";
+
+interface ActiveFileDocumentsProps {
+  leadId: string;
+  lead: any;
+  onLeadUpdate: () => void;
+}
+
+// Define all active file document fields
+const FILE_FIELDS = [
+  { key: 'le_file', label: 'LE (Loan Estimate)' },
+  { key: 'contract_file', label: 'Contract' },
+  { key: 'initial_approval_file', label: 'Initial Approval' },
+  { key: 'disc_file', label: 'Disclosures' },
+  { key: 'appraisal_file', label: 'Appraisal Report' },
+  { key: 'insurance_file', label: 'Insurance Binder' },
+  { key: 'icd_file', label: 'ICD (Initial CD)' },
+  { key: 'fcp_file', label: 'Final Closing Package' },
+  { key: 'insurance_policy_file', label: 'Insurance Policy' },
+  { key: 'inspection_file', label: 'Inspection Report' },
+  { key: 'title_file', label: 'Title Work' },
+  { key: 'condo_file', label: 'Condo Documents' },
+];
+
+export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleFileUpload = async (fieldKey: string, file: File) => {
+    if (!leadId) return;
+    
+    setUploading(fieldKey);
+    try {
+      // Upload to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${leadId}/${fieldKey}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('lead-documents')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Update lead with file path
+      await databaseService.updateLead(leadId, {
+        [fieldKey]: uploadData.path
+      });
+
+      toast({
+        title: "File Uploaded",
+        description: `${FILE_FIELDS.find(f => f.key === fieldKey)?.label} uploaded successfully`
+      });
+      
+      onLeadUpdate();
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload file",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const handleFileView = async (fieldKey: string) => {
+    const filePath = lead[fieldKey];
+    if (!filePath) return;
+
+    try {
+      const { data } = await supabase.storage
+        .from('lead-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Could not open file",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleFileDelete = async (fieldKey: string) => {
+    const filePath = lead[fieldKey];
+    if (!filePath || !confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      // Delete from storage
+      await supabase.storage
+        .from('lead-documents')
+        .remove([filePath]);
+
+      // Clear the field in the lead
+      await databaseService.updateLead(leadId, {
+        [fieldKey]: null
+      });
+
+      toast({
+        title: "File Deleted",
+        description: "File removed successfully"
+      });
+      
+      onLeadUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Could not delete file",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getFileName = (filePath: string) => {
+    if (!filePath) return '';
+    const parts = filePath.split('/');
+    return parts[parts.length - 1];
+  };
+
+  return (
+    <Card className="bg-gradient-card shadow-soft border-0">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpen(!isOpen)}
+            className="h-6 w-6 p-0 hover:bg-muted"
+          >
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+          <h3 className="text-sm font-semibold text-foreground">Active File Documents</h3>
+        </div>
+      </CardHeader>
+
+      {isOpen && (
+        <CardContent className="pt-0">
+          <div className="space-y-2">
+            {FILE_FIELDS.map((field) => {
+              const hasFile = !!lead[field.key];
+              const isUploading = uploading === field.key;
+
+              return (
+                <div
+                  key={field.key}
+                  className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <FileText className={cn(
+                      "h-4 w-4 flex-shrink-0",
+                      hasFile ? "text-green-500" : "text-muted-foreground"
+                    )} />
+                    <span className="text-sm font-medium">{field.label}</span>
+                    {hasFile && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        {getFileName(lead[field.key])}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {hasFile ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => handleFileView(field.key)}
+                          title="View"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          onClick={() => handleFileDelete(field.key)}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(field.key, file);
+                            e.target.value = '';
+                          }}
+                          disabled={isUploading}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={isUploading}
+                          asChild
+                        >
+                          <span>
+                            <Upload className="h-3 w-3 mr-1" />
+                            {isUploading ? 'Uploading...' : 'Upload'}
+                          </span>
+                        </Button>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
