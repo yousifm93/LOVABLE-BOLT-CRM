@@ -2,7 +2,7 @@
 // Maps field names to their status values and required conditions
 
 export interface StatusChangeRule {
-  requires: string; // field name that must be populated
+  requires: string | string[]; // field name(s) that must be populated
   message: string;
   actionLabel?: string;
   actionType?: 'upload_file' | 'set_field';
@@ -13,6 +13,25 @@ export interface StatusChangeRules {
     [statusValue: string]: StatusChangeRule;
   };
 }
+
+// Pipeline stage change validation rules
+export interface PipelineStageRule {
+  requires: string[];
+  message: string;
+  actionLabel?: string;
+}
+
+export interface PipelineStageRules {
+  [stageKey: string]: PipelineStageRule;
+}
+
+export const pipelineStageRules: PipelineStageRules = {
+  'pending-app': {
+    requires: ['lead_strength', 'likely_to_apply'],
+    message: 'Please update Lead Strength and Likely to Apply before moving to Pending App',
+    actionLabel: 'Update Lead Details'
+  }
+};
 
 export const statusChangeRules: StatusChangeRules = {
   disclosure_status: {
@@ -107,21 +126,60 @@ export function validateStatusChange(
     return { isValid: true };
   }
 
-  // Check if the required field is populated
-  const requiredValue = lead[rule.requires];
-  if (requiredValue && requiredValue.trim && requiredValue.trim() !== '') {
-    return { isValid: true };
+  // Check if the required field(s) are populated
+  const requiredFields = Array.isArray(rule.requires) ? rule.requires : [rule.requires];
+  
+  for (const fieldToCheck of requiredFields) {
+    const requiredValue = lead[fieldToCheck];
+    if (!requiredValue || (requiredValue.trim && requiredValue.trim() === '')) {
+      return {
+        isValid: false,
+        rule,
+        fieldName,
+        newValue
+      };
+    }
   }
-  if (requiredValue && !requiredValue.trim) {
+
+  return { isValid: true };
+}
+
+// Pipeline stage validation
+export interface PipelineValidationResult {
+  isValid: boolean;
+  rule?: PipelineStageRule;
+  stageKey?: string;
+  missingFields?: string[];
+}
+
+export function validatePipelineStageChange(
+  targetStageKey: string,
+  lead: any
+): PipelineValidationResult {
+  const rule = pipelineStageRules[targetStageKey];
+  if (!rule) {
     return { isValid: true };
   }
 
-  return {
-    isValid: false,
-    rule,
-    fieldName,
-    newValue
-  };
+  const missingFields: string[] = [];
+  
+  for (const fieldToCheck of rule.requires) {
+    const value = lead[fieldToCheck];
+    if (!value || (typeof value === 'string' && value.trim() === '')) {
+      missingFields.push(fieldToCheck);
+    }
+  }
+
+  if (missingFields.length > 0) {
+    return {
+      isValid: false,
+      rule,
+      stageKey: targetStageKey,
+      missingFields
+    };
+  }
+
+  return { isValid: true };
 }
 
 // Human-readable label for completion requirements

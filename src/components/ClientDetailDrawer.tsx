@@ -1,7 +1,7 @@
 import { useState } from "react";
 import * as React from "react";
 import { format } from "date-fns";
-import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2 } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, Task, Document } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
@@ -41,6 +42,7 @@ import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern, formatDateForInput } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
+import { validatePipelineStageChange, PipelineStageRule } from "@/services/statusChangeValidation";
 interface ClientDetailDrawerProps {
   client: CRMClient;
   isOpen: boolean;
@@ -130,6 +132,11 @@ export function ClientDetailDrawer({
     currentValue: string | number | null;
     newValue: string | number;
   }>>([]);
+
+  // Pipeline stage validation state
+  const [pipelineValidationModalOpen, setPipelineValidationModalOpen] = useState(false);
+  const [pipelineValidationRule, setPipelineValidationRule] = useState<PipelineStageRule | null>(null);
+  const [pipelineValidationMissingFields, setPipelineValidationMissingFields] = useState<string[]>([]);
 
   // User info for timestamps
   const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
@@ -762,7 +769,7 @@ export function ClientDetailDrawer({
             <div className="grid grid-cols-6 gap-4">
               {/* Left side - condensed fields in first 3 columns */}
               <div className="col-span-3 grid grid-cols-3 gap-4">
-                {/* Row 1 */}
+                {/* Row 1: MB Loan #, Interest Rate, Total Monthly Income, PITI */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">MB Loan #</span>
                   <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
@@ -776,7 +783,7 @@ export function ClientDetailDrawer({
                   <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
                 </div>
                 
-                {/* Row 2 */}
+                {/* Row 2: Lender Loan #, Total Assets, Credit Score, DTI */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lender Loan #</span>
                   <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
@@ -790,7 +797,7 @@ export function ClientDetailDrawer({
                   <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
                 </div>
                 
-                {/* Row 3 */}
+                {/* Row 3: Closing Costs, Cash to Close, Monthly Liabilities */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Closing Costs</span>
                   <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
@@ -804,23 +811,44 @@ export function ClientDetailDrawer({
                   <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
                 </div>
                 
-                {/* Row 4 - PITI after Total Monthly Income position, DTI after Credit Score position */}
+                {/* Row 4: Finance Contingency (with empty cells for alignment) */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">PITI</span>
-                  <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+                  <span className="text-xs text-muted-foreground">Finance Contingency</span>
+                  <InlineEditDate value={(client as any).finance_contingency || null} onValueChange={date => handleLeadUpdate('finance_contingency', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">DTI</span>
-                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
+                  {/* Empty cell for alignment */}
                 </div>
                 <div className="flex flex-col gap-1">
                   {/* Empty cell for alignment */}
                 </div>
               </div>
               
-              {/* Right side - empty for future additions */}
-              <div className="col-span-3">
-                {/* Reserved space for future box/field */}
+              {/* Right side - PITI and DTI positioned after their related fields */}
+              <div className="col-span-3 grid grid-cols-3 gap-4">
+                {/* Row 1: PITI (next to Total Monthly Income) */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">PITI</span>
+                  <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* Empty */}
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* Empty */}
+                </div>
+                
+                {/* Row 2: DTI (next to Credit Score) */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">DTI</span>
+                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* Empty */}
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* Empty */}
+                </div>
               </div>
             </div>
           </div>;
@@ -887,6 +915,18 @@ export function ClientDetailDrawer({
       });
       return;
     }
+    
+    // Validate pipeline stage change requirements
+    const targetStageKey = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
+    const pipelineValidation = validatePipelineStageChange(targetStageKey, client);
+    
+    if (!pipelineValidation.isValid && pipelineValidation.rule) {
+      setPipelineValidationRule(pipelineValidation.rule);
+      setPipelineValidationMissingFields(pipelineValidation.missingFields || []);
+      setPipelineValidationModalOpen(true);
+      return;
+    }
+    
     try {
       // Define stage order for forward progression detection
       const STAGE_ORDER = ['leads', 'pending-app', 'screening', 'pre-qualified', 'pre-approved', 'active'];
@@ -1994,6 +2034,38 @@ export function ClientDetailDrawer({
           {completionRequirement && <TaskCompletionRequirementModal open={requirementModalOpen} onOpenChange={setRequirementModalOpen} requirement={completionRequirement} onLogCall={handleLogCallFromTaskModal} />}
 
           {selectedAgentForCall && <AgentCallLogModal agentId={selectedAgentForCall.id} agentName={`${selectedAgentForCall.first_name} ${selectedAgentForCall.last_name}`} isOpen={agentCallLogModalOpen} onClose={() => setAgentCallLogModalOpen(false)} onCallLogged={handleAgentCallLoggedForTask} />}
+
+          {/* Pipeline Stage Validation Modal */}
+          {pipelineValidationRule && (
+            <Dialog open={pipelineValidationModalOpen} onOpenChange={setPipelineValidationModalOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <AlertCircle className="h-5 w-5" />
+                    <DialogTitle>Action Required</DialogTitle>
+                  </div>
+                  <DialogDescription className="pt-2">
+                    {pipelineValidationRule.message}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground mb-2">Please update the following fields:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {pipelineValidationMissingFields.map(field => (
+                      <li key={field} className="text-foreground font-medium">
+                        {field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setPipelineValidationModalOpen(false)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <PreApprovalLetterModal isOpen={showPreApprovalModal} onClose={() => setShowPreApprovalModal(false)} client={client} />
 
