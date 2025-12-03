@@ -22,10 +22,7 @@ const PROPERTY_TYPES = [
 
 const NUM_UNITS = [1, 2, 3, 4];
 
-const CITIZENSHIP_TYPES = [
-  "US Citizen",
-  "Foreign National"
-];
+const TERM_YEARS = [5, 10, 15, 20, 25, 30];
 
 export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
   const updateData = (field: keyof ScenarioData, value: any) => {
@@ -169,18 +166,18 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Citizenship</Label>
+          <Label>Term</Label>
           <Select
-            value={data.citizenship || "US Citizen"}
-            onValueChange={(value) => updateData('citizenship', value)}
+            value={data.term_years?.toString() || "30"}
+            onValueChange={(value) => updateData('term_years', parseInt(value))}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CITIZENSHIP_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
+              {TERM_YEARS.map((term) => (
+                <SelectItem key={term} value={term.toString()}>
+                  {term} Years
                 </SelectItem>
               ))}
             </SelectContent>
