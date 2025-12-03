@@ -21,7 +21,7 @@ export interface ScenarioData {
   loan_amount: number;       // Dollar amount
   occupancy: string;         // Primary Residence | Second Home | Investment
   property_type: string;     // Single Family | Condo | 2-4 Units
-  citizenship: string;       // US Citizen | Foreign National
+  term_years: number;        // 5, 10, 15, 20, 25, 30
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
@@ -32,7 +32,7 @@ const INITIAL_SCENARIO: ScenarioData = {
   loan_amount: 320000,
   occupancy: "Primary Residence",
   property_type: "Single Family",
-  citizenship: "US Citizen"
+  term_years: 30
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {

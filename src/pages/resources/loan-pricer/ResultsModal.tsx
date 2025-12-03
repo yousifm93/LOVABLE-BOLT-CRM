@@ -189,8 +189,8 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <span className="text-sm font-medium">{scenario?.fico_score || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Citizenship:</span>
-                <span className="text-sm font-medium">{scenario?.citizenship || 'N/A'}</span>
+                <span className="text-sm">Term:</span>
+                <span className="text-sm font-medium">{scenario?.term_years ? `${scenario.term_years} Years` : 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">DTI:</span>
