@@ -335,7 +335,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
                       .map((lead) => (
                         <CommandItem
                           key={lead.id}
-                          value={lead.id}
+                          value={`${lead.first_name} ${lead.last_name} ${lead.email || ''}`}
                           onSelect={() => {
                             setFormData({ ...formData, borrower_id: lead.id });
                             setBorrowerOpen(false);
