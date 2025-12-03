@@ -331,8 +331,10 @@ export function LoanPricer() {
                 <TableRow>
                   <TableHead>Time</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-auto">Program</TableHead>
+                  <TableHead>Program</TableHead>
+                  <TableHead>FICO</TableHead>
                   <TableHead>LTV</TableHead>
+                  <TableHead>Property Type</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Points</TableHead>
                   <TableHead className="whitespace-nowrap">Loan Amount</TableHead>
@@ -393,6 +395,9 @@ export function LoanPricer() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <span className="font-medium">{run.scenario_json?.fico_score || '-'}</span>
+                    </TableCell>
+                    <TableCell>
                       {run.scenario_json?.loan_amount && run.scenario_json?.purchase_price ? (
                         <span className="font-medium">
                           {((run.scenario_json.loan_amount / run.scenario_json.purchase_price) * 100).toFixed(1)}%
@@ -402,8 +407,11 @@ export function LoanPricer() {
                       )}
                     </TableCell>
                     <TableCell>
+                      <span className="text-sm">{run.scenario_json?.property_type || '-'}</span>
+                    </TableCell>
+                    <TableCell>
                       {run.results_json?.rate ? (
-                        <span className="font-medium text-primary">{String(run.results_json.rate).replace(/\s*%/g, '')}%</span>
+                        <span className="font-semibold bg-muted px-2 py-1 rounded">{String(run.results_json.rate).replace(/\s*%/g, '')}%</span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
@@ -411,10 +419,10 @@ export function LoanPricer() {
                     <TableCell>
                       {run.results_json?.discount_points && run.scenario_json?.loan_amount ? (
                         <div className="flex items-center gap-1">
-                          <span className="font-medium">
+                          <span className="font-semibold bg-muted px-2 py-1 rounded">
                             {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
                           </span>
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-muted-foreground text-xs">
                             ({formatCurrency((100 - parseFloat(run.results_json.discount_points)) / 100 * run.scenario_json.loan_amount)})
                           </span>
                         </div>

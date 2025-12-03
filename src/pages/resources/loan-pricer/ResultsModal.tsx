@@ -195,246 +195,236 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
           )}
         </Card>
 
-        {/* Monthly Payment Breakdown - Condensed Vertical Table */}
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4 text-sm text-muted-foreground text-center">Monthly Payment Breakdown</h3>
-          <div className="flex justify-center">
-            <div className="border rounded-lg overflow-hidden w-full max-w-xs">
-              <table className="w-full">
-                <tbody>
-                  <tr className="border-b">
-                    <td className="px-3 py-2 bg-muted/30 text-sm">P&I</td>
-                    <td className="px-3 py-2 text-right text-sm font-medium">
-                      {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="px-3 py-2 bg-muted/30 text-sm">Taxes</td>
-                    <td className="px-3 py-2 text-right">
-                      <Input 
-                        type="number" 
-                        value={pitiInputs.taxes || ''} 
-                        onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
-                        className="w-20 text-right ml-auto h-7 text-sm"
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="px-3 py-2 bg-muted/30 text-sm">Insurance</td>
-                    <td className="px-3 py-2 text-right">
-                      <Input 
-                        type="number" 
-                        value={pitiInputs.insurance || ''} 
-                        onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
-                        className="w-20 text-right ml-auto h-7 text-sm"
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="px-3 py-2 bg-muted/30 text-sm">MI</td>
-                    <td className="px-3 py-2 text-right">
-                      <Input 
-                        type="number" 
-                        value={pitiInputs.mi || ''} 
-                        onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
-                        className="w-20 text-right ml-auto h-7 text-sm"
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="px-3 py-2 bg-muted/30 text-sm">HOA</td>
-                    <td className="px-3 py-2 text-right">
-                      <Input 
-                        type="number" 
-                        value={pitiInputs.hoa || ''} 
-                        onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
-                        className="w-20 text-right ml-auto h-7 text-sm"
-                        placeholder="0"
-                      />
-                    </td>
-                  </tr>
-                  <tr className="bg-primary/10">
-                    <td className="px-3 py-2 font-semibold text-sm">Total PITI</td>
-                    <td className="px-3 py-2 text-right font-bold text-primary">
-                      {formatCurrency(totalPITI)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        {/* Main Content: 2-column layout - PITI on left, Details on right */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* LEFT SIDE: Monthly Payment Breakdown (1/3 width) */}
+          <div className="md:col-span-1">
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Monthly Payment Breakdown</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="px-3 py-1.5 bg-muted/30 text-sm">P&I</td>
+                      <td className="px-3 py-1.5 text-right text-sm font-medium">
+                        {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">Taxes</td>
+                      <td className="px-3 py-1.5 text-right">
+                        <Input 
+                          type="number" 
+                          value={pitiInputs.taxes || ''} 
+                          onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
+                          className="w-20 text-right ml-auto h-6 text-sm"
+                          placeholder="0"
+                        />
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">Insurance</td>
+                      <td className="px-3 py-1.5 text-right">
+                        <Input 
+                          type="number" 
+                          value={pitiInputs.insurance || ''} 
+                          onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
+                          className="w-20 text-right ml-auto h-6 text-sm"
+                          placeholder="0"
+                        />
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">MI</td>
+                      <td className="px-3 py-1.5 text-right">
+                        <Input 
+                          type="number" 
+                          value={pitiInputs.mi || ''} 
+                          onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
+                          className="w-20 text-right ml-auto h-6 text-sm"
+                          placeholder="0"
+                        />
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">HOA</td>
+                      <td className="px-3 py-1.5 text-right">
+                        <Input 
+                          type="number" 
+                          value={pitiInputs.hoa || ''} 
+                          onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
+                          className="w-20 text-right ml-auto h-6 text-sm"
+                          placeholder="0"
+                        />
+                      </td>
+                    </tr>
+                    <tr className="bg-primary/10">
+                      <td className="px-3 py-1.5 font-semibold text-sm">Total PITI</td>
+                      <td className="px-3 py-1.5 text-right font-bold text-primary text-base">
+                        {formatCurrency(totalPITI)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
-        </Card>
 
-        {/* Scenario Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Borrower Card */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Borrower</h3>
-            <div className="space-y-2">
+          {/* RIGHT SIDE: All detail cards stacked vertically (2/3 width) */}
+          <div className="md:col-span-2 space-y-3">
+            {/* Borrower Card */}
+            <Card className="p-3">
+              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Borrower</h3>
               <div className="flex justify-between">
                 <span className="text-sm">Name:</span>
                 <span className="text-sm font-medium">
                   {run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}
                 </span>
               </div>
-            </div>
-          </Card>
+            </Card>
 
-          {/* Loan Program Card */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Loan Program</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Amortization:</span>
-                <span className="text-sm font-medium">30 Years</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Purpose:</span>
-                <span className="text-sm font-medium">Purchase</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Property Details Card */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Property Details</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Property Type:</span>
-                <span className="text-sm font-medium">{scenario?.property_type || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Units:</span>
-                <span className="text-sm font-medium">{scenario?.num_units || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Occupancy:</span>
-                <span className="text-sm font-medium">{scenario?.occupancy || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">ZIP Code:</span>
-                <span className="text-sm font-medium">{scenario?.zip_code || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">State:</span>
-                <span className="text-sm font-medium">{getStateFromZip(scenario?.zip_code)}</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Additional Borrower Info Card - only show if DSCR ratio exists */}
-          {scenario?.dscr_ratio && (
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Additional Info</h3>
-              <div className="space-y-2">
+            {/* Property Details Card */}
+            <Card className="p-3">
+              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Property Details</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <div className="flex justify-between">
-                  <span className="text-sm">DSCR Ratio:</span>
-                  <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
+                  <span className="text-sm">Property Type:</span>
+                  <span className="text-sm font-medium">{scenario?.property_type || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Occupancy:</span>
+                  <span className="text-sm font-medium">{scenario?.occupancy || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Units:</span>
+                  <span className="text-sm font-medium">{scenario?.num_units || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">ZIP / State:</span>
+                  <span className="text-sm font-medium">{scenario?.zip_code || 'N/A'} / {getStateFromZip(scenario?.zip_code)}</span>
                 </div>
               </div>
             </Card>
-          )}
 
-          {/* Loan Details Card */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Loan Details</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm">Purchase Price:</span>
-                <span className="text-sm font-medium">
-                  {scenario?.purchase_price ? formatCurrency(scenario.purchase_price) : 'N/A'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Loan Amount:</span>
-                <span className="text-sm font-medium">
-                  {scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Lock Period:</span>
-                <span className="text-sm font-medium">30 days</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Broker Comp:</span>
-                <span className="text-sm font-medium">2.75%</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Non-QM Details Card */}
-          {scenario?.program_type === "Non-QM" && (
-            <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-              <h3 className="font-semibold mb-3 text-sm text-blue-900 dark:text-blue-100">Non-QM Details</h3>
-              <div className="space-y-2 text-sm">
+            {/* Loan Details Card */}
+            <Card className="p-3">
+              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Loan Details</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Income Type:</span>
-                  <Badge variant="secondary">{scenario.income_type || 'N/A'}</Badge>
+                  <span className="text-sm">Purchase Price:</span>
+                  <span className="text-sm font-medium">
+                    {scenario?.purchase_price ? formatCurrency(scenario.purchase_price) : 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Mortgage History:</span>
-                  <Badge variant="secondary">{scenario.mortgage_history || 'N/A'}</Badge>
+                  <span className="text-sm">Loan Amount:</span>
+                  <span className="text-sm font-medium">
+                    {scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Credit Events:</span>
-                  <Badge variant="secondary">{scenario.credit_events || 'N/A'}</Badge>
+                  <span className="text-sm">Lock Period:</span>
+                  <span className="text-sm font-medium">30 days</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Broker Comp:</span>
+                  <span className="text-sm font-medium">2.75%</span>
                 </div>
               </div>
             </Card>
-          )}
+
+            {/* Loan Program Card */}
+            <Card className="p-3">
+              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Loan Program</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="flex justify-between">
+                  <span className="text-sm">Amortization:</span>
+                  <span className="text-sm font-medium">30 Years</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Purpose:</span>
+                  <span className="text-sm font-medium">Purchase</span>
+                </div>
+                {scenario?.dscr_ratio && (
+                  <div className="flex justify-between">
+                    <span className="text-sm">DSCR Ratio:</span>
+                    <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Non-QM Details Card */}
+            {scenario?.program_type === "Non-QM" && (
+              <Card className="p-3 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <h3 className="font-semibold mb-2 text-sm text-blue-900 dark:text-blue-100">Non-QM Details</h3>
+                <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Income Type:</span>
+                    <Badge variant="secondary" className="text-xs">{scenario.income_type || 'N/A'}</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mortgage History:</span>
+                    <Badge variant="secondary" className="text-xs">{scenario.mortgage_history || 'N/A'}</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Credit Events:</span>
+                    <Badge variant="secondary" className="text-xs">{scenario.credit_events || 'N/A'}</Badge>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Additional Options Card */}
+            {scenario && (
+              <Card className="p-3">
+                <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Additional Options</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.admin_fee_buyout ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                      {scenario.admin_fee_buyout && (
+                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                          <path d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs">Admin Fee Buyout</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.escrow_waiver ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                      {scenario.escrow_waiver && (
+                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                          <path d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs">Escrow Waiver</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.high_balance ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                      {scenario.high_balance && (
+                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                          <path d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs">High Balance</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.sub_financing ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                      {scenario.sub_financing && (
+                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                          <path d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs">Sub Financing</span>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
-
-        {/* Additional Options Card */}
-        {scenario && (
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Additional Options</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center ${scenario.admin_fee_buyout ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                  {scenario.admin_fee_buyout && (
-                    <svg className="w-3 h-3 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm">Admin Fee Buyout</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center ${scenario.escrow_waiver ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                  {scenario.escrow_waiver && (
-                    <svg className="w-3 h-3 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm">Escrow Waiver</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center ${scenario.high_balance ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                  {scenario.high_balance && (
-                    <svg className="w-3 h-3 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm">High Balance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center ${scenario.sub_financing ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                  {scenario.sub_financing && (
-                    <svg className="w-3 h-3 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm">Sub Financing</span>
-              </div>
-            </div>
-          </Card>
-        )}
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 pt-4 border-t">
