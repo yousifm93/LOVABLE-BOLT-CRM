@@ -250,5 +250,12 @@ export function transformLeadToClient(lead: any): any {
     latest_file_updates: lead.latest_file_updates || null,
     latest_file_updates_updated_at: lead.latest_file_updates_updated_at || null,
     latest_file_updates_updated_by: lead.latest_file_updates_updated_by || null,
+    
+    // Key Dates
+    closeDate: lead.close_date || null,
+    financeContingency: lead.finance_contingency || null,
+    
+    // PITI
+    piti: lead.piti || null,
   };
 }
