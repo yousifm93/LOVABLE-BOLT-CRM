@@ -11,7 +11,19 @@ import { ResultsModal } from "./loan-pricer/ResultsModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, calculateMonthlyPayment } from "@/utils/formatters";
+
+const getIncomeTypeLabel = (incomeType: string | undefined): string => {
+  if (!incomeType) return 'N/A';
+  const labels: Record<string, string> = {
+    "Full Doc - 24M": "Full Doc",
+    "DSCR": "DSCR",
+    "24Mo Business Bank Statements": "24-Month Bank Statements",
+    "12Mo Business Bank Statements": "12-Month Bank Statements",
+    "Community - No income/No employment/No DTI": "No Ratio Primary"
+  };
+  return labels[incomeType] || incomeType;
+};
 
 interface PricingRun {
   id: string;
@@ -151,6 +163,34 @@ export function LoanPricer() {
     }
   };
 
+  const handleCancel = async (run: PricingRun) => {
+    try {
+      const { error } = await supabase
+        .from('pricing_runs')
+        .update({ 
+          status: 'cancelled',
+          completed_at: new Date().toISOString(),
+          error_message: 'Cancelled by user'
+        })
+        .eq('id', run.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Run cancelled",
+        description: "The pricing run has been cancelled.",
+      });
+      
+      fetchPricingRuns();
+    } catch (error: any) {
+      toast({
+        title: "Error cancelling run",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -159,6 +199,8 @@ export function LoanPricer() {
         return <XCircle className="h-4 w-4 text-destructive" />;
       case 'running':
         return <Loader2 className="h-4 w-4 text-warning animate-spin" />;
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-muted-foreground" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
@@ -170,6 +212,7 @@ export function LoanPricer() {
       failed: "destructive",
       running: "secondary",
       pending: "outline",
+      cancelled: "outline",
     } as const;
 
     return (
@@ -312,13 +355,8 @@ export function LoanPricer() {
                       }
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="text-sm font-medium">
-                          {run.scenario_json?.program_type || 'N/A'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {run.scenario_json?.loan_type || ''}
-                        </div>
+                      <div className="text-sm font-medium">
+                        {getIncomeTypeLabel(run.scenario_json?.income_type)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -335,11 +373,19 @@ export function LoanPricer() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {run.results_json?.monthly_payment ? (
-                        <span className="font-medium">{formatCurrency(run.results_json.monthly_payment)}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      {(() => {
+                        const loanAmount = run.scenario_json?.loan_amount;
+                        const rateStr = run.results_json?.rate;
+                        if (!loanAmount || !rateStr) return <span className="text-muted-foreground">-</span>;
+                        
+                        const rate = parseFloat(String(rateStr).replace(/\s*%/g, ''));
+                        if (isNaN(rate)) return <span className="text-muted-foreground">-</span>;
+                        
+                        const monthlyPayment = calculateMonthlyPayment(loanAmount, rate, 360);
+                        if (!monthlyPayment) return <span className="text-muted-foreground">-</span>;
+                        
+                        return <span className="font-medium">{formatCurrency(monthlyPayment)}</span>;
+                      })()}
                     </TableCell>
                     <TableCell>
                       {run.results_json?.discount_points ? (
@@ -385,6 +431,16 @@ export function LoanPricer() {
                             onClick={() => handleRetry(run)}
                           >
                             <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {(run.status === 'running' || run.status === 'pending') && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleCancel(run)}
+                            title="Cancel Run"
+                          >
+                            <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                           </Button>
                         )}
                         {/* Rate Sheet Screenshot Button */}
