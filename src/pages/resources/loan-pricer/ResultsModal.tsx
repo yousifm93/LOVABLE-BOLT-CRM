@@ -76,7 +76,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
               <p className="text-4xl font-bold text-primary">
-                {results?.rate ? `${results.rate}%` : 'N/A'}
+                {results?.rate ? `${String(results.rate).replace(/\s*%/g, '')}%` : 'N/A'}
               </p>
             </div>
             <div className="text-center">
@@ -170,6 +170,10 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <span className="text-sm font-medium">{scenario?.occupancy || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-sm">ZIP Code:</span>
+                <span className="text-sm font-medium">{scenario?.zip_code || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-sm">State:</span>
                 <span className="text-sm font-medium">{scenario?.state || 'N/A'}</span>
               </div>
@@ -204,9 +208,23 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Loan Details</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
+                <span className="text-sm">Purchase Price:</span>
+                <span className="text-sm font-medium">
+                  {scenario?.purchase_price ? formatCurrency(scenario.purchase_price) : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-sm">Loan Amount:</span>
                 <span className="text-sm font-medium">
                   {scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm">LTV:</span>
+                <span className="text-sm font-medium">
+                  {scenario?.loan_amount && scenario?.purchase_price 
+                    ? `${Math.round((scenario.loan_amount / scenario.purchase_price) * 100)}%` 
+                    : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
