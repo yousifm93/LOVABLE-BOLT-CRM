@@ -48,10 +48,18 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
     }).format(num || 0);
   };
 
-  // Calculate LTV
-  const ltv = data.purchase_price > 0 
-    ? ((data.loan_amount / data.purchase_price) * 100).toFixed(2)
-    : null;
+  // Calculate LTV from loan amount and purchase price
+  const calculatedLTV = data.purchase_price > 0 
+    ? ((data.loan_amount / data.purchase_price) * 100)
+    : 0;
+
+  // Handle LTV change - calculate loan amount from LTV
+  const handleLTVChange = (newLTV: number) => {
+    if (data.purchase_price > 0 && newLTV > 0) {
+      const newLoanAmount = Math.round((data.purchase_price * newLTV) / 100);
+      onChange({ ...data, loan_amount: newLoanAmount });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -128,13 +136,20 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
           </p>
         </div>
         <div className="space-y-2">
-          <Label>LTV</Label>
-          <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 flex items-center">
-            <span className="font-medium">
-              {ltv ? `${ltv}%` : '—'}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">Auto-calculated</p>
+          <Label htmlFor="ltv">LTV %</Label>
+          <Input
+            id="ltv"
+            type="number"
+            value={calculatedLTV > 0 ? calculatedLTV.toFixed(2) : ""}
+            onChange={(e) => handleLTVChange(Number(e.target.value))}
+            min={0}
+            max={100}
+            step={0.5}
+            placeholder="e.g. 80"
+          />
+          <p className="text-xs text-muted-foreground">
+            Edit LTV or Loan Amount - they sync automatically
+          </p>
         </div>
       </div>
 
