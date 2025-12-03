@@ -329,7 +329,7 @@ export function LoanPricer() {
                     </TableCell>
                     <TableCell>
                       {run.results_json?.rate ? (
-                        <span className="font-medium text-primary">{run.results_json.rate}%</span>
+                        <span className="font-medium text-primary">{String(run.results_json.rate).replace(/\s*%/g, '')}%</span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
