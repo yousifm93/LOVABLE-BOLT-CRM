@@ -71,8 +71,8 @@ const getIncomeTypeLabel = (incomeType: string | undefined): string => {
   const labels: Record<string, string> = {
     "Full Doc - 24M": "Full Doc",
     "DSCR": "DSCR",
-    "24Mo Business Bank Statements": "24MO Bank STM",
-    "12Mo Business Bank Statements": "12MO Bank STM",
+    "24Mo Business Bank Statements": "24 Mo Bank Stm",
+    "12Mo Business Bank Statements": "12 Mo Bank Stm",
     "Community - No income/No employment/No DTI": "No Ratio Primary"
   };
   return labels[incomeType] || incomeType;
@@ -149,17 +149,26 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Pricing Results</span>
-            <Badge variant={run.status === 'completed' ? 'default' : 'destructive'}>
-              {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
-            </Badge>
-          </DialogTitle>
+          <DialogTitle>Pricing Results</DialogTitle>
         </DialogHeader>
 
-        {/* Pricing Summary Hero - Rate & Points */}
+        {/* Pricing Summary Hero - Program, LTV, Rate, Points */}
         <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">Loan Program</p>
+              <p className="text-2xl font-bold text-foreground">
+                {getIncomeTypeLabel(scenario?.income_type)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">LTV</p>
+              <p className="text-4xl font-bold text-foreground">
+                {scenario?.loan_amount && scenario?.purchase_price 
+                  ? `${((scenario.loan_amount / scenario.purchase_price) * 100).toFixed(1)}%` 
+                  : 'N/A'}
+              </p>
+            </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
               <p className="text-4xl font-bold text-primary">
@@ -172,87 +181,82 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 {results?.discount_points ? (100 - parseFloat(results.discount_points)).toFixed(3) : 'N/A'}
               </p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">LTV</p>
-              <p className="text-4xl font-bold text-foreground">
-                {scenario?.loan_amount && scenario?.purchase_price 
-                  ? `${((scenario.loan_amount / scenario.purchase_price) * 100).toFixed(1)}%` 
-                  : 'N/A'}
-              </p>
-            </div>
-            {run.completed_at && (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-2">Priced At</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {format(new Date(run.completed_at), 'MMM d, h:mm a')}
-                </p>
-              </div>
-            )}
           </div>
+          {run.completed_at && (
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Priced at {format(new Date(run.completed_at), "MMMM d, h:mm a")}
+            </p>
+          )}
         </Card>
 
-        {/* Monthly Payment Breakdown - PITI Calculator */}
+        {/* Monthly Payment Breakdown - Vertical Excel-like Table */}
         <Card className="p-6">
           <h3 className="font-semibold mb-4 text-sm text-muted-foreground">Monthly Payment Breakdown</h3>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            {/* P&I (read-only) */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">P&I</Label>
-              <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 flex items-center justify-center">
-                <span className="font-semibold">{calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}</span>
-              </div>
-            </div>
-            {/* Taxes (editable) */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">Taxes</Label>
-              <Input 
-                type="number" 
-                value={pitiInputs.taxes || ''} 
-                onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
-                className="text-center h-10"
-                placeholder="0"
-              />
-            </div>
-            {/* Insurance (editable) */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">Insurance</Label>
-              <Input 
-                type="number" 
-                value={pitiInputs.insurance || ''} 
-                onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
-                className="text-center h-10"
-                placeholder="0"
-              />
-            </div>
-            {/* MI (editable) */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">MI</Label>
-              <Input 
-                type="number" 
-                value={pitiInputs.mi || ''} 
-                onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
-                className="text-center h-10"
-                placeholder="0"
-              />
-            </div>
-            {/* HOA (editable) */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">HOA</Label>
-              <Input 
-                type="number" 
-                value={pitiInputs.hoa || ''} 
-                onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
-                className="text-center h-10"
-                placeholder="0"
-              />
-            </div>
-            {/* Total PITI */}
-            <div className="text-center">
-              <Label className="text-xs text-muted-foreground mb-1 block">Total PITI</Label>
-              <div className="h-10 px-3 py-2 border rounded-md bg-primary/10 border-primary/30 flex items-center justify-center">
-                <span className="font-bold text-primary text-lg">{formatCurrency(totalPITI)}</span>
-              </div>
-            </div>
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <tbody>
+                <tr className="border-b">
+                  <td className="px-4 py-3 bg-muted/30 font-medium text-sm w-1/2">P&I</td>
+                  <td className="px-4 py-3 text-right font-semibold">
+                    {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="px-4 py-3 bg-muted/30 font-medium text-sm">Taxes</td>
+                  <td className="px-4 py-3 text-right">
+                    <Input 
+                      type="number" 
+                      value={pitiInputs.taxes || ''} 
+                      onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
+                      className="w-28 text-right ml-auto h-8"
+                      placeholder="0"
+                    />
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="px-4 py-3 bg-muted/30 font-medium text-sm">Insurance</td>
+                  <td className="px-4 py-3 text-right">
+                    <Input 
+                      type="number" 
+                      value={pitiInputs.insurance || ''} 
+                      onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
+                      className="w-28 text-right ml-auto h-8"
+                      placeholder="0"
+                    />
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="px-4 py-3 bg-muted/30 font-medium text-sm">MI</td>
+                  <td className="px-4 py-3 text-right">
+                    <Input 
+                      type="number" 
+                      value={pitiInputs.mi || ''} 
+                      onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
+                      className="w-28 text-right ml-auto h-8"
+                      placeholder="0"
+                    />
+                  </td>
+                </tr>
+                <tr className="border-b">
+                  <td className="px-4 py-3 bg-muted/30 font-medium text-sm">HOA</td>
+                  <td className="px-4 py-3 text-right">
+                    <Input 
+                      type="number" 
+                      value={pitiInputs.hoa || ''} 
+                      onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
+                      className="w-28 text-right ml-auto h-8"
+                      placeholder="0"
+                    />
+                  </td>
+                </tr>
+                <tr className="bg-primary/10">
+                  <td className="px-4 py-3 font-bold text-sm">Total PITI</td>
+                  <td className="px-4 py-3 text-right font-bold text-primary text-lg">
+                    {formatCurrency(totalPITI)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </Card>
 
@@ -338,20 +342,12 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">LTV:</span>
-                <span className="text-sm font-medium">
-                  {scenario?.loan_amount && scenario?.purchase_price 
-                    ? `${Math.round((scenario.loan_amount / scenario.purchase_price) * 100)}%` 
-                    : 'N/A'}
-                </span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-sm">Lock Period:</span>
-                <span className="text-sm font-medium">{scenario?.lock_period ? `${scenario.lock_period} days` : 'N/A'}</span>
+                <span className="text-sm font-medium">30 days</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Broker Comp:</span>
-                <span className="text-sm font-medium">{scenario?.broker_compensation || 'N/A'}</span>
+                <span className="text-sm font-medium">2.75%</span>
               </div>
             </div>
           </Card>
