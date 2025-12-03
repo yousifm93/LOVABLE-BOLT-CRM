@@ -213,12 +213,15 @@ Important:
     if (parsed.property_type) leadUpdate.property_type = parsed.property_type;
     if (parsed.sales_price) leadUpdate.sales_price = parsed.sales_price;
     if (parsed.loan_amount) leadUpdate.loan_amount = parsed.loan_amount;
-    if (parsed.down_payment) leadUpdate.down_payment = parsed.down_payment;
+    // Calculate down payment as sales_price - loan_amount (not parsed from contract)
+    if (parsed.sales_price && parsed.loan_amount) {
+      leadUpdate.down_pmt = String(parsed.sales_price - parsed.loan_amount);
+    }
     if (parsed.subject_address_1) leadUpdate.subject_address_1 = parsed.subject_address_1;
     if (parsed.subject_address_2) leadUpdate.subject_address_2 = parsed.subject_address_2;
-    if (parsed.city) leadUpdate.city = parsed.city;
-    if (parsed.state) leadUpdate.state = parsed.state;
-    if (parsed.zip) leadUpdate.zip = parsed.zip;
+    if (parsed.city) leadUpdate.subject_city = parsed.city;
+    if (parsed.state) leadUpdate.subject_state = parsed.state;
+    if (parsed.zip) leadUpdate.subject_zip = parsed.zip;
     if (parsed.close_date) leadUpdate.close_date = parsed.close_date;
     if (parsed.finance_contingency) leadUpdate.finance_contingency = parsed.finance_contingency;
     if (buyer_agent_id) leadUpdate.buyer_agent_id = buyer_agent_id;
