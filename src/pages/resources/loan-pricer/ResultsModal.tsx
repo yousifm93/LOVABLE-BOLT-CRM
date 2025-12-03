@@ -1,12 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Download, RefreshCw, X, Eye } from "lucide-react";
 import { formatCurrency, calculateMonthlyPayment } from "@/utils/formatters";
 import { format } from "date-fns";
 import { DebugViewerModal } from "@/components/loan-pricer/DebugViewerModal";
+
+// Calculate default PITI values based on property type and purchase price
+const getDefaultPITI = (scenario: any) => {
+  const purchasePrice = scenario?.purchase_price || 0;
+  const propertyType = scenario?.property_type || 'Single Family';
+  
+  // Taxes: 1.5% of purchase price / 12 (ALL property types)
+  const defaultTaxes = Math.round((purchasePrice * 0.015) / 12);
+  
+  // Insurance: 
+  // - Condo: flat $75/month
+  // - Single Family & 2-4 Units: $75/month per $100K purchase price
+  const defaultInsurance = propertyType === 'Condo' 
+    ? 75 
+    : Math.round((purchasePrice / 100000) * 75);
+  
+  // MI: Always blank (user enters)
+  const defaultMI = 0;
+  
+  // HOA:
+  // - Condo: $150/month per $100K purchase price
+  // - Single Family & 2-4 Units: $0
+  const defaultHOA = propertyType === 'Condo'
+    ? Math.round((purchasePrice / 100000) * 150)
+    : 0;
+  
+  return { taxes: defaultTaxes, insurance: defaultInsurance, mi: defaultMI, hoa: defaultHOA };
+};
 
 interface PricingRun {
   id: string;
@@ -71,16 +101,26 @@ const getStateFromZip = (zip: string | undefined): string => {
 
 export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsModalProps) {
   const [showDebugModal, setShowDebugModal] = useState(false);
+  const [pitiInputs, setPitiInputs] = useState({ taxes: 0, insurance: 0, mi: 0, hoa: 0 });
+  
+  const scenario = run?.scenario_json;
+  const results = run?.results_json;
+  
+  // Calculate default PITI when scenario changes
+  useEffect(() => {
+    if (scenario) {
+      setPitiInputs(getDefaultPITI(scenario));
+    }
+  }, [scenario?.purchase_price, scenario?.property_type]);
   
   if (!run) return null;
 
-  const { scenario_json: scenario, results_json: results } = run;
   const hasDebugData = (run.debug_screenshots && run.debug_screenshots.length > 0) || 
                        (run.button_scan_results && run.button_scan_results.length > 0) ||
                        (run.debug_logs && run.debug_logs.length > 0);
   const showDebugButton = run.status === 'failed' || hasDebugData;
 
-  // Calculate monthly payment dynamically
+  // Calculate monthly P&I payment dynamically
   const calculatedMonthlyPayment = (() => {
     const loanAmount = scenario?.loan_amount;
     const rateStr = results?.rate;
@@ -89,6 +129,9 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
     if (isNaN(rate)) return null;
     return calculateMonthlyPayment(loanAmount, rate, 360);
   })();
+  
+  // Calculate total PITI
+  const totalPITI = (calculatedMonthlyPayment || 0) + pitiInputs.taxes + pitiInputs.insurance + pitiInputs.mi + pitiInputs.hoa;
 
   const handleRunAgain = () => {
     if (onRunAgain && scenario) {
@@ -114,9 +157,9 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
           </DialogTitle>
         </DialogHeader>
 
-        {/* Pricing Summary Hero */}
+        {/* Pricing Summary Hero - Rate & Points */}
         <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
               <p className="text-4xl font-bold text-primary">
@@ -124,44 +167,93 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Monthly Payment</p>
+              <p className="text-sm text-muted-foreground mb-2">Points</p>
               <p className="text-4xl font-bold text-foreground">
-                {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : 'N/A'}
+                {results?.discount_points ? (100 - parseFloat(results.discount_points)).toFixed(3) : 'N/A'}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Discount Points</p>
+              <p className="text-sm text-muted-foreground mb-2">LTV</p>
               <p className="text-4xl font-bold text-foreground">
-                {results?.discount_points || 'N/A'}
+                {scenario?.loan_amount && scenario?.purchase_price 
+                  ? `${((scenario.loan_amount / scenario.purchase_price) * 100).toFixed(1)}%` 
+                  : 'N/A'}
               </p>
             </div>
+            {run.completed_at && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">Priced At</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {format(new Date(run.completed_at), 'MMM d, h:mm a')}
+                </p>
+              </div>
+            )}
           </div>
+        </Card>
 
-          {/* Additional Pricing Info */}
-          {results && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-primary/20">
-              {results.apr && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">APR</p>
-                  <p className="text-lg font-semibold">{results.apr}%</p>
-                </div>
-              )}
-              {results.program_name && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Program</p>
-                  <p className="text-lg font-semibold">{results.program_name}</p>
-                </div>
-              )}
-              {run.completed_at && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Priced At</p>
-                  <p className="text-lg font-semibold">
-                    {format(new Date(run.completed_at), 'MMMM d, h:mm a')}
-                  </p>
-                </div>
-              )}
+        {/* Monthly Payment Breakdown - PITI Calculator */}
+        <Card className="p-6">
+          <h3 className="font-semibold mb-4 text-sm text-muted-foreground">Monthly Payment Breakdown</h3>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            {/* P&I (read-only) */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">P&I</Label>
+              <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 flex items-center justify-center">
+                <span className="font-semibold">{calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}</span>
+              </div>
             </div>
-          )}
+            {/* Taxes (editable) */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">Taxes</Label>
+              <Input 
+                type="number" 
+                value={pitiInputs.taxes || ''} 
+                onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
+                className="text-center h-10"
+                placeholder="0"
+              />
+            </div>
+            {/* Insurance (editable) */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">Insurance</Label>
+              <Input 
+                type="number" 
+                value={pitiInputs.insurance || ''} 
+                onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
+                className="text-center h-10"
+                placeholder="0"
+              />
+            </div>
+            {/* MI (editable) */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">MI</Label>
+              <Input 
+                type="number" 
+                value={pitiInputs.mi || ''} 
+                onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
+                className="text-center h-10"
+                placeholder="0"
+              />
+            </div>
+            {/* HOA (editable) */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">HOA</Label>
+              <Input 
+                type="number" 
+                value={pitiInputs.hoa || ''} 
+                onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
+                className="text-center h-10"
+                placeholder="0"
+              />
+            </div>
+            {/* Total PITI */}
+            <div className="text-center">
+              <Label className="text-xs text-muted-foreground mb-1 block">Total PITI</Label>
+              <div className="h-10 px-3 py-2 border rounded-md bg-primary/10 border-primary/30 flex items-center justify-center">
+                <span className="font-bold text-primary text-lg">{formatCurrency(totalPITI)}</span>
+              </div>
+            </div>
+          </div>
         </Card>
 
         {/* Scenario Details Grid */}
