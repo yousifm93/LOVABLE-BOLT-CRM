@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Loader2, Send } from "lucide-react";
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,16 +36,13 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
   const [body, setBody] = useState("");
 
   // Reset form when modal opens with new lender
-  const handleOpenChange = (open: boolean) => {
-    if (open && lender) {
+  useEffect(() => {
+    if (isOpen && lender) {
       setSubject(`Inquiry - ${lender.lender_name}`);
-      setBody(`Hello ${lender.account_executive || 'Team'},\n\nI wanted to reach out regarding potential loan opportunities.\n\nBest regards,\n${crmUser?.first_name || ''} ${crmUser?.last_name || ''}`);
+      setBody(`<p>Hello ${lender.account_executive || 'Team'},</p><p><br></p><p>I wanted to reach out regarding potential loan opportunities.</p><p><br></p><p>Best regards,<br>${crmUser?.first_name || ''} ${crmUser?.last_name || ''}</p>`);
       setCc("");
     }
-    if (!open) {
-      onClose();
-    }
-  };
+  }, [isOpen, lender, crmUser]);
 
   const handleSend = async () => {
     if (!lender?.account_executive_email) {
@@ -69,18 +66,18 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
     setIsSending(true);
 
     try {
-      const senderEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
       const senderName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : "Mortgage Bolt";
+      const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
 
-      const { error } = await supabase.functions.invoke('send-template-email', {
+      const { error } = await supabase.functions.invoke('send-direct-email', {
         body: {
           to: lender.account_executive_email,
           cc: cc.trim() || undefined,
           subject: subject,
-          html: body.replace(/\n/g, '<br>'),
-          from_email: senderEmail,
+          html: body,
+          from_email: "scenarios@mortgagebolt.org",
           from_name: senderName,
-          reply_to: senderEmail
+          reply_to: replyToEmail
         }
       });
 
@@ -106,10 +103,10 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
 
   if (!lender) return null;
 
-  const fromEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
+  const replyToEmail = crmUser?.email || user?.email || "yousif@mortgagebolt.org";
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -133,21 +130,32 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
               <Label htmlFor="from">From</Label>
               <Input
                 id="from"
-                value={fromEmail}
+                value="scenarios@mortgagebolt.org"
                 disabled
                 className="bg-muted"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cc">CC (optional)</Label>
-            <Input
-              id="cc"
-              value={cc}
-              onChange={(e) => setCc(e.target.value)}
-              placeholder="email@example.com"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cc">CC (optional)</Label>
+              <Input
+                id="cc"
+                value={cc}
+                onChange={(e) => setCc(e.target.value)}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reply-to">Reply-To</Label>
+              <Input
+                id="reply-to"
+                value={replyToEmail}
+                disabled
+                className="bg-muted"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -161,14 +169,12 @@ export function SendLenderEmailModal({ isOpen, onClose, lender }: SendLenderEmai
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="body">Message</Label>
-            <Textarea
-              id="body"
+            <Label>Message</Label>
+            <RichTextEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={setBody}
               placeholder="Type your message..."
-              rows={10}
-              className="resize-none"
+              className="min-h-[200px]"
             />
           </div>
 

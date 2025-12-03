@@ -87,3 +87,6 @@ verify_jwt = false
 
 [functions.summarize-transcript]
 verify_jwt = false
+
+[functions.send-direct-email]
+verify_jwt = false

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Phone, Mail, Building } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
+import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { databaseService } from "@/services/database";
@@ -40,6 +41,7 @@ export default function ApprovedLenders() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [emailModalLender, setEmailModalLender] = useState<Lender | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -231,9 +233,18 @@ export default function ApprovedLenders() {
               Filter
             </Button>
             {selectedIds.size > 0 && (
-              <span className="text-sm text-muted-foreground">
-                {selectedIds.size} selected
-              </span>
+              <>
+                <Button 
+                  variant="default"
+                  onClick={() => setIsBulkEmailModalOpen(true)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Email {selectedIds.size} Selected
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {selectedIds.size} selected
+                </span>
+              </>
             )}
           </div>
         </CardHeader>
@@ -271,6 +282,15 @@ export default function ApprovedLenders() {
           setEmailModalLender(null);
         }}
         lender={emailModalLender}
+      />
+
+      <BulkLenderEmailModal
+        isOpen={isBulkEmailModalOpen}
+        onClose={() => {
+          setIsBulkEmailModalOpen(false);
+          setSelectedIds(new Set());
+        }}
+        lenders={lenders.filter(l => selectedIds.has(l.id))}
       />
     </div>
   );
