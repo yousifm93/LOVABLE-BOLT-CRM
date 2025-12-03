@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
+import { ActiveFileDocuments } from "./ActiveFileDocuments";
 
 interface Document {
   id: string;
@@ -26,6 +27,7 @@ interface DocumentsTabProps {
   leadId: string | null;
   documents: Document[];
   onDocumentsChange: () => void;
+  lead?: any;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -52,7 +54,7 @@ const getFileTypeBadge = (type: string) => {
   return 'FILE';
 };
 
-export function DocumentsTab({ leadId, documents, onDocumentsChange }: DocumentsTabProps) {
+export function DocumentsTab({ leadId, documents, onDocumentsChange, lead }: DocumentsTabProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -259,6 +261,15 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange }: Documents
 
   return (
     <div className="space-y-4">
+      {/* Active File Documents Section */}
+      {leadId && lead && (
+        <ActiveFileDocuments 
+          leadId={leadId} 
+          lead={lead} 
+          onLeadUpdate={onDocumentsChange} 
+        />
+      )}
+
       {/* Upload Zone */}
       <div
         className={cn(

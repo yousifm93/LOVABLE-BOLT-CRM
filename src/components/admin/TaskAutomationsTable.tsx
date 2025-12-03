@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { UserAvatar } from '@/components/ui/user-avatar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Pencil, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { databaseService } from '@/services/database';
@@ -11,8 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { TaskAutomationModal } from './TaskAutomationModal';
 import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHistoryModal';
 import { useToast } from '@/hooks/use-toast';
-import { formatDateTimeNoYear } from '@/utils/formatters';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { getCompletionRequirementLabel } from '@/services/statusChangeValidation';
+
 interface TaskAutomation {
   id: string;
   name: string;
@@ -34,7 +34,9 @@ interface TaskAutomation {
   execution_count?: number;
   category?: string;
   subcategory?: string;
+  completion_requirement_type?: string;
 }
+
 export function TaskAutomationsTable() {
   const [automations, setAutomations] = useState<TaskAutomation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,9 +62,8 @@ export function TaskAutomationsTable() {
     submission: false,
     other: false
   });
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const toggleCategory = (category: string) => {
     setOpenCategories(prev => ({
       ...prev,
@@ -76,9 +77,11 @@ export function TaskAutomationsTable() {
       [subcategory]: !prev[subcategory as keyof typeof prev]
     }));
   };
+
   useEffect(() => {
     loadAutomations();
   }, []);
+
   const loadAutomations = async () => {
     try {
       const data = await databaseService.getTaskAutomations();
@@ -94,6 +97,7 @@ export function TaskAutomationsTable() {
       setLoading(false);
     }
   };
+
   const handleToggleActive = async (id: string, isActive: boolean) => {
     try {
       await databaseService.toggleTaskAutomationStatus(id, isActive);
@@ -111,10 +115,12 @@ export function TaskAutomationsTable() {
       });
     }
   };
+
   const handleEdit = (automation: TaskAutomation) => {
     setEditingAutomation(automation);
     setModalOpen(true);
   };
+
   const handleDelete = async () => {
     if (!automationToDelete) return;
     try {
@@ -136,18 +142,13 @@ export function TaskAutomationsTable() {
       setAutomationToDelete(null);
     }
   };
+
   const handleModalClose = () => {
     setModalOpen(false);
     setEditingAutomation(null);
     loadAutomations();
   };
-  const handleExecutionHistoryClick = (automation: TaskAutomation) => {
-    setSelectedAutomation({
-      id: automation.id,
-      name: automation.name
-    });
-    setExecutionHistoryOpen(true);
-  };
+
   const handleManualTrigger = async (automation: TaskAutomation) => {
     if (automation.trigger_type !== 'scheduled') {
       toast({
@@ -158,13 +159,8 @@ export function TaskAutomationsTable() {
     }
     setTriggeringId(automation.id);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('trigger-task-automation', {
-        body: {
-          automationId: automation.id
-        }
+      const { data, error } = await supabase.functions.invoke('trigger-task-automation', {
+        body: { automationId: automation.id }
       });
       if (error) throw error;
       toast({
@@ -183,6 +179,7 @@ export function TaskAutomationsTable() {
       setTriggeringId(null);
     }
   };
+
   const formatTrigger = (automation: TaskAutomation) => {
     if (automation.trigger_type === 'lead_created') {
       return 'When a lead is created';
@@ -200,20 +197,17 @@ export function TaskAutomationsTable() {
       const offset = config.days_offset ?? 0;
       const dateField = config.date_field || 'date';
       
-      // Format date field name
       const fieldLabel = dateField
         .split('_')
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       
-      // Format offset
       const when = offset === 0 
         ? 'On'
         : offset < 0 
           ? `${Math.abs(offset)} day(s) before`
           : `${offset} day(s) after`;
       
-      // Format condition
       const operator = config.condition_operator === 'not_equals' ? '≠' : '=';
       const condition = config.condition_field && config.condition_value
         ? ` (if ${config.condition_field.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} ${operator} "${config.condition_value}")`
@@ -273,7 +267,6 @@ export function TaskAutomationsTable() {
         return 'When Loan Amount changes (if Disc Status = Signed)';
       }
       if (field && targetStatus) {
-        // Special formatting for loan_status
         if (field === 'loan_status') {
           return `When Loan Status changes to '${targetStatus}'`;
         }
@@ -285,18 +278,7 @@ export function TaskAutomationsTable() {
     
     return automation.trigger_type;
   };
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return 'destructive';
-      case 'Medium':
-        return 'default';
-      case 'Low':
-        return 'secondary';
-      default:
-        return 'default';
-    }
-  };
+
   if (loading) {
     return <div className="text-center py-8">Loading automations...</div>;
   }
@@ -330,7 +312,79 @@ export function TaskAutomationsTable() {
     submission: 'Submission',
     other: 'Other'
   };
-  return <div className="space-y-4">
+
+  // Render table for automations (reusable)
+  const renderAutomationTable = (items: TaskAutomation[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-12">#</TableHead>
+          <TableHead>Task Name</TableHead>
+          <TableHead>Trigger</TableHead>
+          <TableHead>Contingency</TableHead>
+          <TableHead className="text-center">Active</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((automation, index) => (
+          <TableRow key={automation.id}>
+            <TableCell className="font-medium py-2">{index + 1}</TableCell>
+            <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
+            <TableCell className="text-sm text-muted-foreground py-2">
+              {formatTrigger(automation)}
+            </TableCell>
+            <TableCell className="text-sm py-2">
+              <span className="text-muted-foreground">
+                {getCompletionRequirementLabel(automation.completion_requirement_type || null)}
+              </span>
+            </TableCell>
+            <TableCell className="text-center py-2">
+              <Switch 
+                checked={automation.is_active} 
+                onCheckedChange={(checked) => handleToggleActive(automation.id, checked)} 
+              />
+            </TableCell>
+            <TableCell className="text-right py-2">
+              <div className="flex justify-end gap-2">
+                {automation.trigger_type === 'scheduled' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleManualTrigger(automation)} 
+                    disabled={triggeringId === automation.id}
+                    title="Test automation (create task now)"
+                  >
+                    {triggeringId === automation.id ? 'Testing...' : 'Test'}
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit(automation)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setAutomationToDelete(automation.id);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  return (
+    <div className="space-y-4">
       <div className="flex items-center mb-4">
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -390,99 +444,7 @@ export function TaskAutomationsTable() {
                             </h4>
                           </div>
                           <CollapsibleContent>
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-12">#</TableHead>
-                                  <TableHead>Task Name</TableHead>
-                                  <TableHead>Trigger</TableHead>
-                                  <TableHead className="w-[60px] text-center">Assigned To</TableHead>
-                                  <TableHead>Last Run On</TableHead>
-                                  <TableHead className="text-center">Run History</TableHead>
-                                  <TableHead className="text-center">Active</TableHead>
-                                  <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {subcatItems.map((automation, index) => (
-                                  <TableRow key={automation.id}>
-                                    <TableCell className="font-medium py-2">{index + 1}</TableCell>
-                                    <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground py-2">
-                                      {formatTrigger(automation)}
-                                    </TableCell>
-                                    <TableCell className="text-center py-2">
-                                      {automation.assigned_user ? (
-                                        <div className="flex justify-center">
-                                          <UserAvatar 
-                                            firstName={automation.assigned_user.first_name} 
-                                            lastName={automation.assigned_user.last_name} 
-                                            email={automation.assigned_user.email || ''} 
-                                            size="sm" 
-                                          />
-                                        </div>
-                                      ) : (
-                                        <span className="text-muted-foreground text-sm">—</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="py-2">
-                                      {automation.last_run_at ? (
-                                        <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
-                                      ) : (
-                                        <span className="text-muted-foreground text-sm">—</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-center py-2">
-                                      <Badge 
-                                        variant="outline" 
-                                        className="cursor-pointer hover:bg-muted" 
-                                        onClick={() => handleExecutionHistoryClick(automation)}
-                                      >
-                                        {automation.execution_count || 0}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center py-2">
-                                      <Switch 
-                                        checked={automation.is_active} 
-                                        onCheckedChange={(checked) => handleToggleActive(automation.id, checked)} 
-                                      />
-                                    </TableCell>
-                                    <TableCell className="text-right py-2">
-                                      <div className="flex justify-end gap-2">
-                                        {automation.trigger_type === 'scheduled' && (
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onClick={() => handleManualTrigger(automation)} 
-                                            disabled={triggeringId === automation.id}
-                                            title="Test automation (create task now)"
-                                          >
-                                            {triggeringId === automation.id ? 'Testing...' : 'Test'}
-                                          </Button>
-                                        )}
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handleEdit(automation)}
-                                        >
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => {
-                                            setAutomationToDelete(automation.id);
-                                            setDeleteDialogOpen(true);
-                                          }}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                            {renderAutomationTable(subcatItems)}
                           </CollapsibleContent>
                         </Collapsible>
                       );
@@ -515,99 +477,7 @@ export function TaskAutomationsTable() {
                 </h3>
               </div>
               <CollapsibleContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Task Name</TableHead>
-                    <TableHead>Trigger</TableHead>
-                    <TableHead className="w-[60px] text-center">Assigned To</TableHead>
-                    <TableHead>Last Run On</TableHead>
-                    <TableHead className="text-center">Run History</TableHead>
-                    <TableHead className="text-center">Active</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((automation, index) => (
-                    <TableRow key={automation.id}>
-                      <TableCell className="font-medium py-2">{index + 1}</TableCell>
-                      <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground py-2">
-                        {formatTrigger(automation)}
-                      </TableCell>
-                      <TableCell className="text-center py-2">
-                        {automation.assigned_user ? (
-                          <div className="flex justify-center">
-                            <UserAvatar 
-                              firstName={automation.assigned_user.first_name} 
-                              lastName={automation.assigned_user.last_name} 
-                              email={automation.assigned_user.email || ''} 
-                              size="sm" 
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-2">
-                        {automation.last_run_at ? (
-                          <span className="text-sm">{formatDateTimeNoYear(automation.last_run_at)}</span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center py-2">
-                        <Badge 
-                          variant="outline" 
-                          className="cursor-pointer hover:bg-muted" 
-                          onClick={() => handleExecutionHistoryClick(automation)}
-                        >
-                          {automation.execution_count || 0}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center py-2">
-                        <Switch 
-                          checked={automation.is_active} 
-                          onCheckedChange={(checked) => handleToggleActive(automation.id, checked)} 
-                        />
-                      </TableCell>
-                      <TableCell className="text-right py-2">
-                        <div className="flex justify-end gap-2">
-                          {automation.trigger_type === 'scheduled' && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleManualTrigger(automation)} 
-                              disabled={triggeringId === automation.id}
-                              title="Test automation (create task now)"
-                            >
-                              {triggeringId === automation.id ? 'Testing...' : 'Test'}
-                            </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEdit(automation)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => {
-                              setAutomationToDelete(automation.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                {renderAutomationTable(items)}
               </CollapsibleContent>
             </Collapsible>
           );
@@ -634,5 +504,6 @@ export function TaskAutomationsTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>;
+    </div>
+  );
 }

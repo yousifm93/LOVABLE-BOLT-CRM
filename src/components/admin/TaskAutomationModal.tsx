@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { databaseService } from '@/services/database';
-import { formatDateTime } from '@/utils/formatters';
+import { formatDateTime, formatDateTimeNoYear } from '@/utils/formatters';
 import { supabase } from '@/integrations/supabase/client';
+import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHistoryModal';
 
 interface TaskAutomationModalProps {
   open: boolean;
@@ -28,6 +30,7 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [testingAutomation, setTestingAutomation] = useState(false);
+  const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -191,34 +194,40 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Task Name + Created On (2 columns when editing) */}
-          {automation ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="task_name">Task Name *</Label>
-                <Input
-                  id="task_name"
-                  value={formData.task_name}
-                  onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
-                  placeholder="e.g., Follow up on new lead"
-                />
+          {/* Task Name */}
+          <div className="space-y-2">
+            <Label htmlFor="task_name">Task Name *</Label>
+            <Input
+              id="task_name"
+              value={formData.task_name}
+              onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
+              placeholder="e.g., Follow up on new lead"
+            />
+          </div>
+
+          {/* Metadata row when editing - Created On, Last Run, Run History */}
+          {automation && (
+            <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Created On</Label>
+                <div className="text-sm">{formatDateTime(automation.created_at)}</div>
               </div>
-              <div className="space-y-2">
-                <Label>Created On</Label>
-                <div className="text-sm text-muted-foreground pt-2">
-                  {formatDateTime(automation.created_at)}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Last Run On</Label>
+                <div className="text-sm">
+                  {automation.last_run_at ? formatDateTimeNoYear(automation.last_run_at) : '—'}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="task_name">Task Name *</Label>
-              <Input
-                id="task_name"
-                value={formData.task_name}
-                onChange={(e) => setFormData({ ...formData, task_name: e.target.value })}
-                placeholder="e.g., Follow up on new lead"
-              />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Run History</Label>
+                <Badge 
+                  variant="outline" 
+                  className="cursor-pointer hover:bg-background"
+                  onClick={() => setExecutionHistoryOpen(true)}
+                >
+                  {automation.execution_count || 0} runs
+                </Badge>
+              </div>
             </div>
           )}
 
@@ -733,6 +742,15 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
           </div>
         </form>
       </DialogContent>
+
+      {automation && (
+        <TaskAutomationExecutionHistoryModal 
+          open={executionHistoryOpen} 
+          onOpenChange={setExecutionHistoryOpen} 
+          automationId={automation.id} 
+          automationName={automation.name} 
+        />
+      )}
     </Dialog>
   );
 }
