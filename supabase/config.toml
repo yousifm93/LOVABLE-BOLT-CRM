@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.sync-active-pipeline]
 verify_jwt = false
+
+[functions.summarize-transcript]
+verify_jwt = false

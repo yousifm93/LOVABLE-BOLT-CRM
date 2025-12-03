@@ -1,7 +1,7 @@
 import { useState } from "react";
 import * as React from "react";
 import { format } from "date-fns";
-import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -118,6 +118,8 @@ export function ClientDetailDrawer({
   const [isEditingFileUpdates, setIsEditingFileUpdates] = useState(false);
   const [hasUnsavedFileUpdates, setHasUnsavedFileUpdates] = useState(false);
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
+  const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
+  const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
 
   // User info for timestamps
   const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
@@ -277,6 +279,109 @@ export function ClientDetailDrawer({
         description: `Failed to update ${fieldName}.`,
         variant: "destructive"
       });
+    }
+  };
+
+  // Voice recording handler for Latest File Updates
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const chunksRef = React.useRef<Blob[]>([]);
+
+  const handleVoiceRecordingStart = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await processVoiceRecording(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecordingFileUpdates(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access to record voice notes.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleVoiceRecordingStop = () => {
+    if (mediaRecorderRef.current && isRecordingFileUpdates) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingFileUpdates(false);
+    }
+  };
+
+  const processVoiceRecording = async (audioBlob: Blob) => {
+    setIsSummarizingTranscript(true);
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+
+      // Transcribe audio
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('voice-transcribe', {
+        body: { audio: base64Audio }
+      });
+
+      if (transcribeError) throw transcribeError;
+
+      if (!transcribeData?.text) {
+        throw new Error('No transcription returned');
+      }
+
+      // Summarize the transcript
+      const { data: summaryData, error: summaryError } = await supabase.functions.invoke('summarize-transcript', {
+        body: { transcript: transcribeData.text }
+      });
+
+      if (summaryError) throw summaryError;
+
+      if (summaryData?.summary) {
+        // Append summary to existing file updates
+        const newContent = localFileUpdates 
+          ? `${localFileUpdates}\n\n${summaryData.summary}`
+          : summaryData.summary;
+        
+        setLocalFileUpdates(newContent);
+        setHasUnsavedFileUpdates(true);
+        setIsEditingFileUpdates(true);
+        
+        toast({
+          title: 'Voice Note Added',
+          description: 'Your voice note has been transcribed and summarized.',
+        });
+      }
+    } catch (error) {
+      console.error('Error processing voice recording:', error);
+      toast({
+        title: 'Processing Failed',
+        description: 'Could not process the voice recording. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSummarizingTranscript(false);
     }
   };
 
@@ -581,59 +686,68 @@ export function ClientDetailDrawer({
           </div>;
       default:
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-4 gap-4">
-              {/* Row 1 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">MB Loan #</span>
-                <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Interest Rate</span>
-                <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Total Monthly Income</span>
-                <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Credit Score</span>
-                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+            <div className="grid grid-cols-6 gap-4">
+              {/* Left side - condensed fields in first 3 columns */}
+              <div className="col-span-3 grid grid-cols-3 gap-4">
+                {/* Row 1 */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">MB Loan #</span>
+                  <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Interest Rate</span>
+                  <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Total Monthly Income</span>
+                  <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
+                </div>
+                
+                {/* Row 2 */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lender Loan #</span>
+                  <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Total Assets</span>
+                  <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Credit Score</span>
+                  <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+                </div>
+                
+                {/* Row 3 */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Closing Costs</span>
+                  <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Cash to Close</span>
+                  <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
+                  <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
+                </div>
+                
+                {/* Row 4 */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">PITI</span>
+                  <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">DTI</span>
+                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {/* Empty cell for alignment */}
+                </div>
               </div>
               
-              {/* Row 2 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Lender Loan #</span>
-                <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Total Assets</span>
-                <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Closing Costs</span>
-                <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Cash to Close</span>
-                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
-              </div>
-              
-              {/* Row 3 */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Monthly Income</span>
-                <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
-                <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">PITI</span>
-                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">DTI</span>
-                <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
+              {/* Right side - empty for future additions */}
+              <div className="col-span-3">
+                {/* Reserved space for future box/field */}
               </div>
             </div>
           </div>;
@@ -1411,7 +1525,33 @@ export function ClientDetailDrawer({
             <Card className="h-[160px]">
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        if (isRecordingFileUpdates) {
+                          handleVoiceRecordingStop();
+                        } else {
+                          handleVoiceRecordingStart();
+                        }
+                      }}
+                      disabled={isSummarizingTranscript}
+                      className={cn(
+                        "w-8 h-8 rounded-full transition-all",
+                        isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                      )}
+                      title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                    >
+                      {isSummarizingTranscript ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                      )}
+                    </Button>
+                  </div>
                   {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
                       Edit
                     </Button>}
