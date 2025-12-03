@@ -29,7 +29,21 @@ export const statusChangeRules: StatusChangeRules = {
       actionType: 'upload_file'
     }
   },
+  loan_status: {
+    'AWC': {
+      requires: 'initial_approval_file',
+      message: 'Upload the initial approval to change status to AWC',
+      actionLabel: 'Upload Initial Approval',
+      actionType: 'upload_file'
+    }
+  },
   appraisal_status: {
+    'Scheduled': {
+      requires: 'appr_date_time',
+      message: 'Set the appraisal date/time to change status to Scheduled',
+      actionLabel: 'Set Appraisal Date/Time',
+      actionType: 'set_field'
+    },
     'Received': {
       requires: 'appraisal_file',
       message: 'Upload the appraisal report to change status to Received',
@@ -48,8 +62,8 @@ export const statusChangeRules: StatusChangeRules = {
   insurance_status: {
     'Received': {
       requires: 'insurance_file',
-      message: 'Upload the insurance binder to change status to Received',
-      actionLabel: 'Upload Insurance File',
+      message: 'Upload the HOI policy to change status to Received',
+      actionLabel: 'Upload HOI Policy',
       actionType: 'upload_file'
     }
   },

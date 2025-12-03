@@ -978,6 +978,56 @@ export type Database = {
           },
         ]
       }
+      email_automations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          pipeline_group: string
+          purpose: string | null
+          recipient_type: string
+          template_id: string | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pipeline_group: string
+          purpose?: string | null
+          recipient_type: string
+          template_id?: string | null
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pipeline_group?: string
+          purpose?: string | null
+          recipient_type?: string
+          template_id?: string | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_campaign_sends: {
         Row: {
           campaign_id: string
