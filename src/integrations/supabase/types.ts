@@ -3931,7 +3931,7 @@ export type Database = {
         | "validate"
         | "calculate"
         | "export"
-      ba_status: "Send" | "Sent" | "Signed"
+      ba_status: "Send" | "Sent" | "Signed" | "N/A"
       blog_category:
         | "guides"
         | "market-updates"
@@ -3948,7 +3948,7 @@ export type Database = {
         | "paused"
         | "sent"
         | "failed"
-      cd_status: "Requested" | "Sent" | "Signed"
+      cd_status: "Requested" | "Sent" | "Signed" | "N/A"
       change_action: "insert" | "update" | "delete"
       component_type:
         | "base_hourly"
@@ -4225,7 +4225,7 @@ export const Constants = {
         "calculate",
         "export",
       ],
-      ba_status: ["Send", "Sent", "Signed"],
+      ba_status: ["Send", "Sent", "Signed", "N/A"],
       blog_category: [
         "guides",
         "market-updates",
@@ -4244,7 +4244,7 @@ export const Constants = {
         "sent",
         "failed",
       ],
-      cd_status: ["Requested", "Sent", "Signed"],
+      cd_status: ["Requested", "Sent", "Signed", "N/A"],
       change_action: ["insert", "update", "delete"],
       component_type: [
         "base_hourly",

@@ -1015,8 +1015,8 @@ export default function Active() {
         }
       }
       
-      // Automation: When NEW or RFP, move from Live/On Hold back to Incoming
-      if (field === 'loan_status' && (value === 'New' || value === 'RFP')) {
+      // Automation: When NEW or RFP, move from Live/On Hold back to Incoming (case-insensitive)
+      if (field === 'loan_status' && (value?.toUpperCase() === 'NEW' || value?.toUpperCase() === 'RFP')) {
         const currentLoan = activeLoans.find(loan => loan.id === id);
         if (currentLoan?.pipeline_section === 'Live' || currentLoan?.pipeline_section === 'On Hold') {
           updateData.pipeline_section = 'Incoming';
