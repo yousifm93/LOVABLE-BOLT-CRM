@@ -18,11 +18,23 @@ const getIncomeTypeLabel = (incomeType: string | undefined): string => {
   const labels: Record<string, string> = {
     "Full Doc - 24M": "Full Doc",
     "DSCR": "DSCR",
-    "24Mo Business Bank Statements": "24MO Bank STM",
-    "12Mo Business Bank Statements": "12MO Bank STM",
+    "24Mo Business Bank Statements": "24 Mo Bank Stm",
+    "12Mo Business Bank Statements": "12 Mo Bank Stm",
     "Community - No income/No employment/No DTI": "No Ratio Primary"
   };
   return labels[incomeType] || incomeType;
+};
+
+// Calculate default PITI values for list view
+const getDefaultPITIForList = (scenario: any) => {
+  const purchasePrice = scenario?.purchase_price || 0;
+  const propertyType = scenario?.property_type || 'Single Family';
+  
+  const defaultTaxes = Math.round((purchasePrice * 0.015) / 12);
+  const defaultInsurance = propertyType === 'Condo' ? 75 : Math.round((purchasePrice / 100000) * 75);
+  const defaultHOA = propertyType === 'Condo' ? Math.round((purchasePrice / 100000) * 150) : 0;
+  
+  return { taxes: defaultTaxes, insurance: defaultInsurance, mi: 0, hoa: defaultHOA };
 };
 
 // Convert Google Drive URLs to viewable format using googleusercontent with original quality
@@ -320,10 +332,12 @@ export function LoanPricer() {
                   <TableHead>Status</TableHead>
                   <TableHead>Borrower</TableHead>
                   <TableHead>Program</TableHead>
-                  <TableHead>Loan Amount</TableHead>
+                  <TableHead>LTV</TableHead>
                   <TableHead>Rate</TableHead>
-                  <TableHead>P&I</TableHead>
                   <TableHead>Points</TableHead>
+                  <TableHead>Loan Amount</TableHead>
+                  <TableHead>P&I</TableHead>
+                  <TableHead>PITI</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -383,10 +397,13 @@ export function LoanPricer() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {run.scenario_json?.loan_amount ? 
-                        formatCurrency(run.scenario_json.loan_amount) : 
-                        'N/A'
-                      }
+                      {run.scenario_json?.loan_amount && run.scenario_json?.purchase_price ? (
+                        <span className="font-medium">
+                          {((run.scenario_json.loan_amount / run.scenario_json.purchase_price) * 100).toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {run.results_json?.rate ? (
@@ -394,6 +411,26 @@ export function LoanPricer() {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {run.results_json?.discount_points && run.scenario_json?.loan_amount ? (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">
+                            {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            ({formatCurrency((100 - parseFloat(run.results_json.discount_points)) / 100 * run.scenario_json.loan_amount)})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {run.scenario_json?.loan_amount ? 
+                        formatCurrency(run.scenario_json.loan_amount) : 
+                        'N/A'
+                      }
                     </TableCell>
                     <TableCell>
                       {(() => {
@@ -411,18 +448,22 @@ export function LoanPricer() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      {run.results_json?.discount_points && run.scenario_json?.loan_amount ? (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">
-                            {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
-                          </span>
-                          <span className="text-muted-foreground text-sm">
-                            ({formatCurrency((100 - parseFloat(run.results_json.discount_points)) / 100 * run.scenario_json.loan_amount)})
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      {(() => {
+                        const loanAmount = run.scenario_json?.loan_amount;
+                        const rateStr = run.results_json?.rate;
+                        if (!loanAmount || !rateStr) return <span className="text-muted-foreground">-</span>;
+                        
+                        const rate = parseFloat(String(rateStr).replace(/\s*%/g, ''));
+                        if (isNaN(rate)) return <span className="text-muted-foreground">-</span>;
+                        
+                        const monthlyPayment = calculateMonthlyPayment(loanAmount, rate, 360);
+                        if (!monthlyPayment) return <span className="text-muted-foreground">-</span>;
+                        
+                        const piti = getDefaultPITIForList(run.scenario_json);
+                        const totalPITI = monthlyPayment + piti.taxes + piti.insurance + piti.mi + piti.hoa;
+                        
+                        return <span className="font-medium">{formatCurrency(totalPITI)}</span>;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-0.5">
