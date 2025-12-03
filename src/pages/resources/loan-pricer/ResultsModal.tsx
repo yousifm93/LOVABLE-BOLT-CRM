@@ -189,9 +189,15 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <span className="text-sm font-medium">{scenario?.fico_score || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Term:</span>
-                <span className="text-sm font-medium">{scenario?.term_years ? `${scenario.term_years} Years` : 'N/A'}</span>
+                <span className="text-sm">Income Type:</span>
+                <span className="text-sm font-medium">{scenario?.income_type || 'N/A'}</span>
               </div>
+              {scenario?.dscr_ratio && (
+                <div className="flex justify-between">
+                  <span className="text-sm">DSCR Ratio:</span>
+                  <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-sm">DTI:</span>
                 <span className="text-sm font-medium">{scenario?.dti || 'N/A'}</span>
