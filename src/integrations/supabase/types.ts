@@ -1954,6 +1954,7 @@ export type Database = {
           fcp_file: string | null
           fico_score: number | null
           fin_cont: string | null
+          finance_contingency: string | null
           first_name: string
           follow_up_count: number | null
           hoa_dues: number | null
@@ -2111,6 +2112,7 @@ export type Database = {
           fcp_file?: string | null
           fico_score?: number | null
           fin_cont?: string | null
+          finance_contingency?: string | null
           first_name: string
           follow_up_count?: number | null
           hoa_dues?: number | null
@@ -2270,6 +2272,7 @@ export type Database = {
           fcp_file?: string | null
           fico_score?: number | null
           fin_cont?: string | null
+          finance_contingency?: string | null
           first_name?: string
           follow_up_count?: number | null
           hoa_dues?: number | null
