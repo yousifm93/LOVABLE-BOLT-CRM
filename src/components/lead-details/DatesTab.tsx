@@ -46,26 +46,55 @@ export function DatesTab({ leadId }: DatesTabProps) {
 
   if (!lead) return null;
 
-  const addressFields = [
-    { label: "Subject Address 1", field: "subject_address_1", value: lead.subject_address_1 },
-    { label: "Subject Address 2", field: "subject_address_2", value: lead.subject_address_2 },
-    { label: "City", field: "subject_city", value: lead.subject_city },
-    { label: "State", field: "subject_state", value: lead.subject_state },
-    { label: "Zip", field: "subject_zip", value: lead.subject_zip },
-  ];
-
   return (
-    <div className="space-y-2">
-      {addressFields.map((item) => (
-        <div key={item.field} className="flex flex-col gap-0.5">
-          <span className="text-xs text-muted-foreground">{item.label}</span>
+    <div className="space-y-3">
+      {/* Row 1: Address 1 and Address 2 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">Subject Address 1</span>
           <InlineEditText
-            value={item.value || ""}
-            onValueChange={(value) => handleFieldUpdate(item.field, value || null)}
+            value={lead.subject_address_1 || ""}
+            onValueChange={(value) => handleFieldUpdate('subject_address_1', value || null)}
             placeholder="—"
           />
         </div>
-      ))}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">Subject Address 2</span>
+          <InlineEditText
+            value={lead.subject_address_2 || ""}
+            onValueChange={(value) => handleFieldUpdate('subject_address_2', value || null)}
+            placeholder="—"
+          />
+        </div>
+      </div>
+      
+      {/* Row 2: City, State, Zip */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">City</span>
+          <InlineEditText
+            value={lead.subject_city || ""}
+            onValueChange={(value) => handleFieldUpdate('subject_city', value || null)}
+            placeholder="—"
+          />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">State</span>
+          <InlineEditText
+            value={lead.subject_state || ""}
+            onValueChange={(value) => handleFieldUpdate('subject_state', value || null)}
+            placeholder="—"
+          />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-muted-foreground">Zip</span>
+          <InlineEditText
+            value={lead.subject_zip || ""}
+            onValueChange={(value) => handleFieldUpdate('subject_zip', value || null)}
+            placeholder="—"
+          />
+        </div>
+      </div>
     </div>
   );
 }

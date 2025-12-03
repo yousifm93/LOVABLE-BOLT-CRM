@@ -804,7 +804,7 @@ export function ClientDetailDrawer({
                   <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
                 </div>
                 
-                {/* Row 4 */}
+                {/* Row 4 - PITI after Total Monthly Income position, DTI after Credit Score position */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">PITI</span>
                   <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />

@@ -1003,8 +1003,8 @@ export default function Active() {
     try {
       const updateData: any = { [field]: value };
       
-      // Automation: When SUB (Submitted), move from Incoming to Live
-      if (field === 'loan_status' && value === 'SUB') {
+      // Automation: When SUB, AWC, or CTC, move from Incoming to Live
+      if (field === 'loan_status' && ['SUB', 'AWC', 'CTC'].includes(value?.toUpperCase())) {
         const currentLoan = activeLoans.find(loan => loan.id === id);
         if (currentLoan?.pipeline_section === 'Incoming') {
           updateData.pipeline_section = 'Live';
