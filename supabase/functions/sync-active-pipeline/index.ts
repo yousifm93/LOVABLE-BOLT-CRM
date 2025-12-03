@@ -292,7 +292,7 @@ const activeLoansData = [
     first_name: 'Nicholas',
     last_name: 'Burchill',
     close_date: '2025-12-08',
-    loan_status: 'FRD',
+    loan_status: 'CTC', // FRD (Funded/Ready to Draw) maps to CTC in our system
     loan_amount: 325600,
     sales_price: 407000,
     title_status: 'Received',
