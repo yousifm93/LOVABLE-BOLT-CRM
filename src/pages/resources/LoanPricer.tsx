@@ -25,21 +25,19 @@ const getIncomeTypeLabel = (incomeType: string | undefined): string => {
   return labels[incomeType] || incomeType;
 };
 
-// Convert Google Drive URLs to viewable format
+// Convert Google Drive URLs to viewable format using googleusercontent
 const formatGoogleDriveUrl = (url: string): string => {
   if (!url) return '';
-  // If already a direct view URL
-  if (url.includes('drive.google.com/uc')) return url;
-  // If it's a thumbnail link format
-  if (url.includes('drive.google.com/thumbnail')) return url;
+  // If already a googleusercontent URL, return as-is
+  if (url.includes('googleusercontent.com')) return url;
   // If it's a file link format: drive.google.com/file/d/FILE_ID/...
   const fileMatch = url.match(/\/d\/([^\/]+)/);
   if (fileMatch) {
-    return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
   }
-  // If it's just an ID (no http)
+  // If it's just a file ID (no http) - most common case from Axiom
   if (!url.includes('http')) {
-    return `https://drive.google.com/uc?export=view&id=${url}`;
+    return `https://lh3.googleusercontent.com/d/${url}`;
   }
   return url;
 };
@@ -322,11 +320,9 @@ export function LoanPricer() {
                   <TableHead>Program</TableHead>
                   <TableHead>Loan Amount</TableHead>
                   <TableHead>Rate</TableHead>
-                  <TableHead>Monthly Payment</TableHead>
-                  <TableHead>Disc. Points</TableHead>
+                  <TableHead>P&I</TableHead>
                   <TableHead>Disc. Points 2</TableHead>
                   <TableHead>Started</TableHead>
-                  <TableHead>Duration</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -413,17 +409,15 @@ export function LoanPricer() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      {run.results_json?.discount_points ? (
-                        <span className="font-medium">{run.results_json.discount_points}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {run.results_json?.discount_points ? (
-                        <span className="font-medium">
-                          {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
-                        </span>
+                      {run.results_json?.discount_points && run.scenario_json?.loan_amount ? (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">
+                            {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            ({formatCurrency((100 - parseFloat(run.results_json.discount_points)) / 100 * run.scenario_json.loan_amount)})
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
@@ -437,16 +431,6 @@ export function LoanPricer() {
                           {format(new Date(run.started_at), 'h:mm a')}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {run.completed_at ? 
-                        `${Math.round((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s` :
-                        run.status === 'running' ? (
-                          <span className="text-muted-foreground animate-pulse">
-                            {Math.round((new Date().getTime() - new Date(run.started_at).getTime()) / 1000)}s...
-                          </span>
-                        ) : '-'
-                      }
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
