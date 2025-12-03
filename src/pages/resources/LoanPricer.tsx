@@ -25,19 +25,21 @@ const getIncomeTypeLabel = (incomeType: string | undefined): string => {
   return labels[incomeType] || incomeType;
 };
 
-// Convert Google Drive URLs to viewable format using googleusercontent
+// Convert Google Drive URLs to viewable format using googleusercontent with original quality
 const formatGoogleDriveUrl = (url: string): string => {
   if (!url) return '';
-  // If already a googleusercontent URL, return as-is
-  if (url.includes('googleusercontent.com')) return url;
+  // If already a googleusercontent URL, add =s0 for original quality if not present
+  if (url.includes('googleusercontent.com')) {
+    return url.includes('=s') ? url : `${url}=s0`;
+  }
   // If it's a file link format: drive.google.com/file/d/FILE_ID/...
   const fileMatch = url.match(/\/d\/([^\/]+)/);
   if (fileMatch) {
-    return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${fileMatch[1]}=s0`;
   }
   // If it's just a file ID (no http) - most common case from Axiom
   if (!url.includes('http')) {
-    return `https://lh3.googleusercontent.com/d/${url}`;
+    return `https://lh3.googleusercontent.com/d/${url}=s0`;
   }
   return url;
 };
@@ -321,8 +323,8 @@ export function LoanPricer() {
                   <TableHead>Loan Amount</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>P&I</TableHead>
-                  <TableHead>Disc. Points 2</TableHead>
-                  <TableHead>Started</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead>Time</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -512,7 +514,7 @@ export function LoanPricer() {
         open={screenshotPreview?.open ?? false} 
         onOpenChange={(open) => !open && setScreenshotPreview(null)}
       >
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-7xl max-h-[95vh]">
           <DialogHeader>
             <DialogTitle>{screenshotPreview?.title}</DialogTitle>
           </DialogHeader>
@@ -520,7 +522,7 @@ export function LoanPricer() {
             <img 
               src={formatGoogleDriveUrl(screenshotPreview?.url || '')}
               alt={screenshotPreview?.title}
-              className="max-w-full max-h-[70vh] object-contain rounded-lg border"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg border"
               onError={(e) => {
                 e.currentTarget.src = '/placeholder.svg';
               }}

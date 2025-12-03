@@ -3,11 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScenarioData } from "./NewRunModal";
 
-interface ScenarioFormProps {
-  data: ScenarioData;
-  onChange: (data: ScenarioData) => void;
-}
-
 const OCCUPANCY_TYPES = [
   "Primary Residence",
   "Second Home",
@@ -30,6 +25,11 @@ const INCOME_TYPES = [
   { label: "No Ratio Primary", value: "Community - No income/No employment/No DTI" }
 ];
 
+interface ScenarioFormProps {
+  data: ScenarioData;
+  onChange: (data: ScenarioData) => void;
+}
+
 export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
   const updateData = (field: keyof ScenarioData, value: any) => {
     onChange({
@@ -48,37 +48,55 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
     }).format(num || 0);
   };
 
+  // Calculate LTV
+  const ltv = data.purchase_price > 0 
+    ? ((data.loan_amount / data.purchase_price) * 100).toFixed(2)
+    : null;
+
   return (
     <div className="space-y-6">
-      {/* Row 1: FICO Score & Zip Code */}
+      {/* Row 1: Income Type & Property Type */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="fico_score">FICO Score *</Label>
-          <Input
-            id="fico_score"
-            type="number"
-            value={data.fico_score || ""}
-            onChange={(e) => updateData('fico_score', Number(e.target.value))}
-            min={300}
-            max={850}
-            placeholder="e.g. 720"
-          />
+          <Label>Income Type</Label>
+          <Select
+            value={data.income_type || "Full Doc - 24M"}
+            onValueChange={(value) => updateData('income_type', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INCOME_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="zip_code">Zip Code *</Label>
-          <Input
-            id="zip_code"
-            type="text"
-            value={data.zip_code}
-            onChange={(e) => updateData('zip_code', e.target.value.replace(/\D/g, '').slice(0, 5))}
-            maxLength={5}
-            placeholder="e.g. 33131"
-          />
+          <Label>Property Type</Label>
+          <Select
+            value={data.property_type}
+            onValueChange={(value) => updateData('property_type', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROPERTY_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Row 2: Purchase Price & Loan Amount */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Row 2: Purchase Price, Loan Amount & LTV */}
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="purchase_price">Purchase Price *</Label>
           <Input
@@ -109,9 +127,18 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
             {formatCurrency(data.loan_amount)}
           </p>
         </div>
+        <div className="space-y-2">
+          <Label>LTV</Label>
+          <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 flex items-center">
+            <span className="font-medium">
+              {ltv ? `${ltv}%` : '—'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">Auto-calculated</p>
+        </div>
       </div>
 
-      {/* Row 3: Occupancy & Property Type */}
+      {/* Row 3: Occupancy & Number of Units */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label>Occupancy</Label>
@@ -132,28 +159,6 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Property Type</Label>
-          <Select
-            value={data.property_type}
-            onValueChange={(value) => updateData('property_type', value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROPERTY_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Row 4: Number of Units & Citizenship */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
           <Label>Number of Units</Label>
           <Select
             value={data.num_units?.toString() || "1"}
@@ -171,23 +176,32 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Row 4: FICO Score & Zip Code */}
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label>Income Type</Label>
-          <Select
-            value={data.income_type || "Full Doc - 24M"}
-            onValueChange={(value) => updateData('income_type', value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {INCOME_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="fico_score">FICO Score *</Label>
+          <Input
+            id="fico_score"
+            type="number"
+            value={data.fico_score || ""}
+            onChange={(e) => updateData('fico_score', Number(e.target.value))}
+            min={300}
+            max={850}
+            placeholder="e.g. 720"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="zip_code">Zip Code *</Label>
+          <Input
+            id="zip_code"
+            type="text"
+            value={data.zip_code}
+            onChange={(e) => updateData('zip_code', e.target.value.replace(/\D/g, '').slice(0, 5))}
+            maxLength={5}
+            placeholder="e.g. 33131"
+          />
         </div>
       </div>
 
