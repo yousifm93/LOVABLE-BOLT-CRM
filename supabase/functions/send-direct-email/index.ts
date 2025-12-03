@@ -15,6 +15,46 @@ interface SendDirectEmailRequest {
   reply_to?: string;
 }
 
+// Sanitize TipTap HTML to convert task lists to email-friendly format
+function sanitizeHtmlForEmail(html: string): string {
+  let sanitized = html;
+  
+  // Convert TipTap task list items to Unicode checkboxes
+  // Unchecked: <li data-type="taskItem" data-checked="false">
+  sanitized = sanitized.replace(
+    /<li[^>]*data-type="taskItem"[^>]*data-checked="false"[^>]*>(.*?)<\/li>/gi,
+    '<li style="list-style-type: none;">☐ $1</li>'
+  );
+  
+  // Checked: <li data-type="taskItem" data-checked="true">
+  sanitized = sanitized.replace(
+    /<li[^>]*data-type="taskItem"[^>]*data-checked="true"[^>]*>(.*?)<\/li>/gi,
+    '<li style="list-style-type: none;">☑ $1</li>'
+  );
+  
+  // Handle task items without explicit data-checked (default unchecked)
+  sanitized = sanitized.replace(
+    /<li[^>]*data-type="taskItem"[^>]*>(.*?)<\/li>/gi,
+    '<li style="list-style-type: none;">☐ $1</li>'
+  );
+  
+  // Convert task list container to regular ul without bullets
+  sanitized = sanitized.replace(
+    /<ul[^>]*data-type="taskList"[^>]*>/gi,
+    '<ul style="list-style-type: none; padding-left: 0;">'
+  );
+  
+  // Remove any nested label/checkbox elements inside task items
+  sanitized = sanitized.replace(/<label[^>]*>[\s\S]*?<\/label>/gi, '');
+  sanitized = sanitized.replace(/<input[^>]*type="checkbox"[^>]*>/gi, '');
+  
+  // Clean up empty paragraphs that might cause extra spacing
+  sanitized = sanitized.replace(/<p><br><\/p>/g, '<br>');
+  sanitized = sanitized.replace(/<p>\s*<\/p>/g, '');
+  
+  return sanitized;
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -30,6 +70,9 @@ serve(async (req: Request): Promise<Response> => {
     if (!SENDGRID_API_KEY) {
       throw new Error("SENDGRID_API_KEY is not configured");
     }
+
+    // Sanitize HTML for email compatibility
+    const sanitizedHtml = sanitizeHtmlForEmail(html);
 
     // Build recipient list
     const personalizations: any = {
@@ -50,7 +93,7 @@ serve(async (req: Request): Promise<Response> => {
       content: [
         {
           type: "text/html",
-          value: html,
+          value: sanitizedHtml,
         },
       ],
     };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users } from "lucide-react";
+import { X, Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,14 @@ interface AssociatedClient {
   is_closed: boolean | null;
 }
 
+interface EmailLog {
+  id: string;
+  subject: string;
+  timestamp: string;
+  delivery_status: string | null;
+  opened_at: string | null;
+}
+
 interface LenderDetailDialogProps {
   lender: Lender | null;
   isOpen: boolean;
@@ -61,10 +69,13 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   const [showPassword, setShowPassword] = useState(false);
   const [associatedClients, setAssociatedClients] = useState<AssociatedClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+  const [loadingEmails, setLoadingEmails] = useState(false);
 
   useEffect(() => {
     if (lender?.id && isOpen) {
       loadAssociatedClients();
+      loadEmailLogs();
     }
   }, [lender?.id, isOpen]);
 
@@ -84,6 +95,29 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
       console.error('Error loading associated clients:', error);
     } finally {
       setLoadingClients(false);
+    }
+  };
+
+  const loadEmailLogs = async () => {
+    if (!lender?.account_executive_email) {
+      setEmailLogs([]);
+      return;
+    }
+    setLoadingEmails(true);
+    try {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, subject, timestamp, delivery_status, opened_at')
+        .eq('to_email', lender.account_executive_email)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      setEmailLogs(data || []);
+    } catch (error) {
+      console.error('Error loading email logs:', error);
+    } finally {
+      setLoadingEmails(false);
     }
   };
 
@@ -144,47 +178,63 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
+  const getDeliveryStatusColor = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered': return 'bg-green-500/20 text-green-700';
+      case 'sent': return 'bg-blue-500/20 text-blue-700';
+      case 'failed': return 'bg-red-500/20 text-red-700';
+      case 'bounced': return 'bg-red-500/20 text-red-700';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex items-center gap-4">
-            <Avatar className="h-14 w-14">
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+            <Avatar className="h-12 w-12">
+              <AvatarFallback className="bg-primary text-primary-foreground text-base">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <DialogTitle className="text-xl flex items-center gap-3">
-                <InlineEditText
-                  value={lender.lender_name}
-                  onValueChange={(value) => handleFieldUpdate('lender_name', value)}
-                  placeholder="Lender name"
-                  className="font-semibold"
-                />
-              </DialogTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <InlineEditLenderType
-                  value={lender.lender_type}
-                  onValueChange={(value) => handleFieldUpdate('lender_type', value)}
-                />
-                <Badge variant={lender.status === 'Active' ? 'default' : 'secondary'}>
-                  {lender.status}
-                </Badge>
-              </div>
+            <div className="flex-1 flex items-center gap-3">
+              <InlineEditText
+                value={lender.lender_name}
+                onValueChange={(value) => handleFieldUpdate('lender_name', value)}
+                placeholder="Lender name"
+                className="font-semibold text-xl"
+              />
+              <InlineEditLenderType
+                value={lender.lender_type}
+                onValueChange={(value) => handleFieldUpdate('lender_type', value)}
+              />
+              <Badge variant="default" className="bg-green-500/20 text-green-700 border-green-500/30">
+                Approved
+              </Badge>
             </div>
           </div>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
-          <div className="p-6 space-y-6">
-            {/* Account Executive - condensed single row */}
+          <div className="p-6 space-y-5">
+            {/* Account Executive - grid layout */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Account Executive
               </h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-x-6 gap-y-2">
                 <div>
                   <label className="text-xs text-muted-foreground">First Name</label>
                   <InlineEditText
@@ -221,13 +271,13 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
-            {/* Portal Access - condensed single row */}
+            {/* Portal Access - grid layout */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Portal Access
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-x-6 gap-y-2">
                 <div>
                   <label className="text-xs text-muted-foreground">Portal URL</label>
                   <div className="flex items-center gap-1">
@@ -301,13 +351,13 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
-            {/* Loan Limits - condensed single row */}
+            {/* Loan Limits */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
                 Loan Limits
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 max-w-md">
                 <div>
                   <label className="text-xs text-muted-foreground">Minimum</label>
                   <InlineEditCurrency
@@ -341,6 +391,52 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
+            {/* Email History */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <History className="h-4 w-4" />
+                Email History ({emailLogs.length})
+              </h3>
+              {loadingEmails ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : !lender.account_executive_email ? (
+                <p className="text-sm text-muted-foreground italic">No email address configured for this lender.</p>
+              ) : emailLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">No emails sent to this lender yet.</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {emailLogs.map((email) => (
+                    <div
+                      key={email.id}
+                      className="flex items-center justify-between p-2 bg-muted/30 rounded-md text-sm"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium truncate">{email.subject}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-muted-foreground flex-shrink-0">
+                        {email.delivery_status && (
+                          <Badge variant="outline" className={`text-xs ${getDeliveryStatusColor(email.delivery_status)}`}>
+                            {email.delivery_status}
+                          </Badge>
+                        )}
+                        {email.opened_at && (
+                          <Badge variant="outline" className="text-xs bg-green-500/20 text-green-700">
+                            Opened
+                          </Badge>
+                        )}
+                        <span className="text-xs">
+                          {formatDate(email.timestamp)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             {/* Associated Clients */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
@@ -352,7 +448,7 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
               ) : associatedClients.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No clients associated with this lender yet.</p>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
+                <div className="space-y-2 max-h-40 overflow-y-auto">
                   {associatedClients.map((client) => (
                     <div
                       key={client.id}
