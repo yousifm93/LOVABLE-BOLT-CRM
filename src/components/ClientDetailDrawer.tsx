@@ -21,6 +21,7 @@ import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { PreApprovalLetterModal } from "@/components/modals/PreApprovalLetterModal";
+import { FieldUpdateConfirmationModal } from "@/components/modals/FieldUpdateConfirmationModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPartyItemsCard";
@@ -120,6 +121,15 @@ export function ClientDetailDrawer({
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
+
+  // Field update confirmation modal state
+  const [showFieldUpdateModal, setShowFieldUpdateModal] = useState(false);
+  const [detectedFieldUpdates, setDetectedFieldUpdates] = useState<Array<{
+    field: string;
+    fieldLabel: string;
+    currentValue: string | number | null;
+    newValue: string | number;
+  }>>([]);
 
   // User info for timestamps
   const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
@@ -351,9 +361,11 @@ export function ClientDetailDrawer({
         throw new Error('No transcription returned');
       }
 
+      const transcription = transcribeData.text;
+
       // Summarize the transcript
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke('summarize-transcript', {
-        body: { transcript: transcribeData.text }
+        body: { transcript: transcription }
       });
 
       if (summaryError) throw summaryError;
@@ -373,6 +385,44 @@ export function ClientDetailDrawer({
           description: 'Your voice note has been transcribed and summarized.',
         });
       }
+
+      // Check for field update requests in the transcription
+      try {
+        const currentLeadData = {
+          appraisal_eta: (client as any).appr_eta,
+          appraisal_status: (client as any).appraisal_status,
+          appraisal_value: (client as any).appraisal_value,
+          title_eta: (client as any).title_eta,
+          title_status: (client as any).title_status,
+          condo_eta: (client as any).condo_eta,
+          condo_status: (client as any).condo_status,
+          insurance_eta: (client as any).insurance_eta,
+          hoi_status: (client as any).hoi_status,
+          loan_status: (client as any).loan_status,
+          disclosure_status: (client as any).disclosure_status,
+          close_date: (client as any).close_date,
+          lock_expiration_date: (client as any).lock_expiration_date,
+          loan_amount: (client as any).loanAmount,
+          sales_price: (client as any).salesPrice,
+          interest_rate: (client as any).interestRate,
+          cd_status: (client as any).cd_status,
+          ba_status: (client as any).ba_status,
+          package_status: (client as any).package_status,
+          epo_status: (client as any).epo_status,
+        };
+
+        const { data: fieldUpdateData, error: fieldUpdateError } = await supabase.functions.invoke('parse-field-updates', {
+          body: { transcription, currentLeadData }
+        });
+
+        if (!fieldUpdateError && fieldUpdateData?.detectedUpdates?.length > 0) {
+          setDetectedFieldUpdates(fieldUpdateData.detectedUpdates);
+          setShowFieldUpdateModal(true);
+        }
+      } catch (fieldParseError) {
+        console.error('Error parsing field updates:', fieldParseError);
+        // Non-critical error, don't show to user
+      }
     } catch (error) {
       console.error('Error processing voice recording:', error);
       toast({
@@ -382,6 +432,29 @@ export function ClientDetailDrawer({
       });
     } finally {
       setIsSummarizingTranscript(false);
+    }
+  };
+
+  // Handler for applying selected field updates from voice detection
+  const handleApplyFieldUpdates = async (selectedUpdates: Array<{
+    field: string;
+    fieldLabel: string;
+    currentValue: string | number | null;
+    newValue: string | number;
+  }>) => {
+    for (const update of selectedUpdates) {
+      try {
+        await handleLeadUpdate(update.field, update.newValue);
+      } catch (error) {
+        console.error(`Error updating ${update.field}:`, error);
+      }
+    }
+    
+    if (selectedUpdates.length > 0) {
+      toast({
+        title: 'Fields Updated',
+        description: `${selectedUpdates.length} field(s) updated successfully.`,
+      });
     }
   };
 
@@ -1923,6 +1996,13 @@ export function ClientDetailDrawer({
           {selectedAgentForCall && <AgentCallLogModal agentId={selectedAgentForCall.id} agentName={`${selectedAgentForCall.first_name} ${selectedAgentForCall.last_name}`} isOpen={agentCallLogModalOpen} onClose={() => setAgentCallLogModalOpen(false)} onCallLogged={handleAgentCallLoggedForTask} />}
 
           <PreApprovalLetterModal isOpen={showPreApprovalModal} onClose={() => setShowPreApprovalModal(false)} client={client} />
+
+          <FieldUpdateConfirmationModal 
+            isOpen={showFieldUpdateModal} 
+            onClose={() => setShowFieldUpdateModal(false)} 
+            detectedUpdates={detectedFieldUpdates}
+            onApply={handleApplyFieldUpdates}
+          />
         </>}
     </div>;
 }
