@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon } from "lucide-react";
+import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
 import { TaskAutomationsTable } from "@/components/admin/TaskAutomationsTable";
+import { EmailAutomationsTable } from "@/components/admin/EmailAutomationsTable";
 import { AddFieldModal } from "@/components/admin/AddFieldModal";
+import { statusChangeRules } from "@/services/statusChangeValidation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -406,6 +408,51 @@ export default function Admin() {
       })} className="h-7 w-16" /> : <span className="text-xs text-muted-foreground">{field.sort_order}</span>;
     }
   }, {
+    accessorKey: 'restrictions',
+    header: 'Restrictions',
+    width: 150,
+    minWidth: 120,
+    maxWidth: 200,
+    cell: ({
+      row
+    }) => {
+      const field = row.original;
+      const fieldName = field.field_name;
+      
+      // Check if this field has status change rules
+      const hasStatusRules = statusChangeRules[fieldName];
+      
+      // Check if this field is required by another status
+      const requiredByFields: string[] = [];
+      Object.entries(statusChangeRules).forEach(([statusField, rules]) => {
+        Object.entries(rules).forEach(([statusValue, rule]) => {
+          if (rule.requires === fieldName) {
+            requiredByFields.push(`${statusField} = ${statusValue}`);
+          }
+        });
+      });
+
+      if (!hasStatusRules && requiredByFields.length === 0) {
+        return <span className="text-xs text-muted-foreground">—</span>;
+      }
+
+      return (
+        <div className="space-y-1">
+          {hasStatusRules && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Status rules
+            </Badge>
+          )}
+          {requiredByFields.length > 0 && (
+            <div className="text-xs text-muted-foreground" title={requiredByFields.join(', ')}>
+              Required for: {requiredByFields.length > 1 ? `${requiredByFields.length} statuses` : requiredByFields[0]}
+            </div>
+          )}
+        </div>
+      );
+    }
+  }, {
     accessorKey: 'sample_data',
     header: 'Sample Data',
     width: 120,
@@ -700,20 +747,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="email-automations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Email Automations
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">Configure automated email workflows and triggers</p>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Coming soon: Set up email automation rules based on pipeline stage changes, task completions, and custom triggers.
-              </p>
-            </CardContent>
-          </Card>
+          <EmailAutomationsTable />
         </TabsContent>
       </Tabs>
 

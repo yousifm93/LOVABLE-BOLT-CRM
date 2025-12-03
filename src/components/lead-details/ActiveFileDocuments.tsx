@@ -15,15 +15,14 @@ interface ActiveFileDocumentsProps {
 
 // Define all active file document fields
 const FILE_FIELDS = [
-  { key: 'le_file', label: 'LE (Loan Estimate)' },
+  { key: 'le_file', label: 'Loan Estimate' },
   { key: 'contract_file', label: 'Contract' },
   { key: 'initial_approval_file', label: 'Initial Approval' },
   { key: 'disc_file', label: 'Disclosures' },
   { key: 'appraisal_file', label: 'Appraisal Report' },
-  { key: 'insurance_file', label: 'Insurance Binder' },
-  { key: 'icd_file', label: 'ICD (Initial CD)' },
+  { key: 'insurance_file', label: 'HOI Policy' },
+  { key: 'icd_file', label: 'Initial Closing Disclosure' },
   { key: 'fcp_file', label: 'Final Closing Package' },
-  { key: 'insurance_policy_file', label: 'Insurance Policy' },
   { key: 'inspection_file', label: 'Inspection Report' },
   { key: 'title_file', label: 'Title Work' },
   { key: 'condo_file', label: 'Condo Documents' },
