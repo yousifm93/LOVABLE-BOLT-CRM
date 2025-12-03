@@ -170,6 +170,7 @@ const allAvailableColumns = useMemo(() => {
     { value: "Send", label: "Send" },
     { value: "Sent", label: "Sent" },
     { value: "Signed", label: "Signed" },
+    { value: "N/A", label: "N/A" },
   ];
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");

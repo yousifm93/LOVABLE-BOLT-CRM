@@ -181,7 +181,8 @@ const condoStatusOptions = [
 const cdStatusOptions = [
   { value: "Requested", label: "Requested" },
   { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" }
+  { value: "Signed", label: "Signed" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const packageStatusOptions = [
@@ -192,7 +193,8 @@ const packageStatusOptions = [
 const baStatusOptions = [
   { value: "Send", label: "Send" },
   { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" }
+  { value: "Signed", label: "Signed" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const epoStatusOptions = [
@@ -1009,6 +1011,18 @@ export default function Active() {
           toast({
             title: "Moved to Live",
             description: "Loan moved from Incoming to Live section",
+          });
+        }
+      }
+      
+      // Automation: When NEW or RFP, move from Live/On Hold back to Incoming
+      if (field === 'loan_status' && (value === 'New' || value === 'RFP')) {
+        const currentLoan = activeLoans.find(loan => loan.id === id);
+        if (currentLoan?.pipeline_section === 'Live' || currentLoan?.pipeline_section === 'On Hold') {
+          updateData.pipeline_section = 'Incoming';
+          toast({
+            title: "Moved to Incoming",
+            description: "Loan moved back to Incoming section",
           });
         }
       }
