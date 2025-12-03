@@ -56,6 +56,7 @@ serve(async (req) => {
     // Index 5: loan_amount
     // Index 6: occupancy
     // Index 7: property_type
+    // Index 8: citizenship
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -64,7 +65,8 @@ serve(async (req) => {
       scenario.purchase_price?.toString() || '',
       scenario.loan_amount?.toString() || '',
       scenario.occupancy || '',
-      scenario.property_type || ''
+      scenario.property_type || '',
+      scenario.citizenship || 'US Citizen'
     ]];
 
     console.log('Sending to Axiom:', axiomData);
