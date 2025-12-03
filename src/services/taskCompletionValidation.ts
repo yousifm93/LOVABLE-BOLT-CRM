@@ -23,8 +23,10 @@ export async function validateTaskCompletion(
     return { canComplete: true };
   }
 
+  const requirementType = task.completion_requirement_type;
+
   // Check for buyer's agent call log
-  if (task.completion_requirement_type === 'log_call_buyer_agent') {
+  if (requirementType === 'log_call_buyer_agent') {
     const agentId = task.lead?.buyer_agent_id || task.borrower?.buyer_agent_id;
     if (!agentId) return { canComplete: true }; // No agent assigned
 
@@ -54,7 +56,7 @@ export async function validateTaskCompletion(
   }
 
   // Check for listing agent call log
-  if (task.completion_requirement_type === 'log_call_listing_agent') {
+  if (requirementType === 'log_call_listing_agent') {
     const agentId = task.lead?.listing_agent_id || task.borrower?.listing_agent_id;
     if (!agentId) return { canComplete: true };
 
@@ -83,7 +85,7 @@ export async function validateTaskCompletion(
   }
 
   // Check for borrower call log
-  if (task.completion_requirement_type === 'log_call_borrower') {
+  if (requirementType === 'log_call_borrower') {
     const borrowerId = task.borrower_id;
     if (!borrowerId) return { canComplete: true };
 
@@ -107,6 +109,91 @@ export async function validateTaskCompletion(
           type: 'borrower',
           id: borrowerId,
         },
+      };
+    }
+  }
+
+  // Check for borrower note log
+  if (requirementType === 'log_note_borrower') {
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('lead_id', borrowerId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!data || data.length === 0) {
+      return {
+        canComplete: false,
+        message: 'You must add a note for the borrower before completing this task',
+        missingRequirement: 'log_note_borrower',
+        contactInfo: {
+          name: task.borrower
+            ? `${task.borrower.first_name} ${task.borrower.last_name}`
+            : 'Borrower',
+          phone: task.lead?.phone || task.borrower?.phone,
+          type: 'borrower',
+          id: borrowerId,
+        },
+      };
+    }
+  }
+
+  // Check for field populated requirements (field_populated:field_name)
+  if (requirementType.startsWith('field_populated:')) {
+    const fieldName = requirementType.split(':')[1];
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select(fieldName)
+      .eq('id', borrowerId)
+      .single();
+
+    if (error || !lead || !lead[fieldName]) {
+      const fieldDisplayNames: Record<string, string> = {
+        'appr_date_time': 'Appraisal Date/Time',
+        'lock_expiration_date': 'Lock Expiration Date',
+      };
+      return {
+        canComplete: false,
+        message: `You must populate ${fieldDisplayNames[fieldName] || fieldName} before completing this task`,
+        missingRequirement: requirementType,
+      };
+    }
+  }
+
+  // Check for field value requirements (field_value:field_name=value1,value2)
+  if (requirementType.startsWith('field_value:')) {
+    const [, fieldConfig] = requirementType.split(':');
+    const [fieldName, valuesStr] = fieldConfig.split('=');
+    const allowedValues = valuesStr.split(',');
+    
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select(fieldName)
+      .eq('id', borrowerId)
+      .single();
+
+    if (error || !lead || !allowedValues.includes(lead[fieldName])) {
+      const fieldDisplayNames: Record<string, string> = {
+        'package_status': 'Package Status',
+        'title_status': 'Title Status',
+        'loan_status': 'Loan Status',
+        'disclosure_status': 'Disclosure Status',
+        'epo_status': 'EPO Status',
+      };
+      return {
+        canComplete: false,
+        message: `${fieldDisplayNames[fieldName] || fieldName} must be ${allowedValues.join(' or ')} before completing this task`,
+        missingRequirement: requirementType,
       };
     }
   }

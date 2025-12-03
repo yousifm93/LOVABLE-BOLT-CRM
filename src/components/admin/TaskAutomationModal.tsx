@@ -663,10 +663,19 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
                     <SelectItem value="log_call_buyer_agent">Require call log to Buyer's Agent</SelectItem>
                     <SelectItem value="log_call_listing_agent">Require call log to Listing Agent</SelectItem>
                     <SelectItem value="log_call_borrower">Require call log to Borrower</SelectItem>
+                    <SelectItem value="log_note_borrower">Require note logged for Borrower</SelectItem>
+                    <SelectItem value="field_populated:appr_date_time">Require Appraisal Date/Time populated</SelectItem>
+                    <SelectItem value="field_populated:lock_expiration_date">Require Lock Expiration Date populated</SelectItem>
+                    <SelectItem value="field_value:package_status=Final">Require Package Status = Final</SelectItem>
+                    <SelectItem value="field_value:title_status=Received">Require Title Status = Received</SelectItem>
+                    <SelectItem value="field_value:loan_status=AWC">Require Loan Status = AWC</SelectItem>
+                    <SelectItem value="field_value:loan_status=SUB">Require Loan Status = SUB</SelectItem>
+                    <SelectItem value="field_value:disclosure_status=Ordered,Sent,Signed">Require Disclosure Status = Ordered/Sent/Signed</SelectItem>
+                    <SelectItem value="field_value:epo_status=Sent">Require EPO Status = Sent</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Defines what must be completed before this task can be marked as done
+                  Defines what must be completed before this task can be marked as done. Tasks auto-complete when requirement is met.
                 </p>
               </div>
             </div>

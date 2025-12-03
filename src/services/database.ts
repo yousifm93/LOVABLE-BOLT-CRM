@@ -1090,6 +1090,122 @@ export const databaseService = {
     };
   },
 
+  async autoCompleteTasksAfterNote(
+    leadId: string,
+    loggedByUserId: string
+  ): Promise<{ completedCount: number; taskTitles: string[] }> {
+    // Find tasks for this lead with log_note_borrower requirement
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('id, title, status, assignee_id, created_at')
+      .eq('borrower_id', leadId)
+      .eq('completion_requirement_type', 'log_note_borrower')
+      .neq('status', 'Done')
+      .is('deleted_at', null);
+
+    if (error || !tasks || tasks.length === 0) {
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    // Filter tasks created within last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentTasks = tasks.filter(task => {
+      const taskCreatedAt = new Date(task.created_at).getTime();
+      return taskCreatedAt >= thirtyDaysAgo;
+    });
+
+    if (recentTasks.length === 0) {
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    // Update all matching tasks to "Done"
+    const taskIds = recentTasks.map(t => t.id);
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({ status: 'Done' })
+      .in('id', taskIds);
+
+    if (updateError) {
+      console.error('Error auto-completing tasks:', updateError);
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    return {
+      completedCount: recentTasks.length,
+      taskTitles: recentTasks.map(t => t.title)
+    };
+  },
+
+  async autoCompleteTasksAfterFieldUpdate(
+    leadId: string,
+    fieldName: string,
+    fieldValue: string | null,
+    loggedByUserId: string
+  ): Promise<{ completedCount: number; taskTitles: string[] }> {
+    // Find tasks that might be auto-completed by this field update
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('id, title, status, completion_requirement_type, created_at')
+      .eq('borrower_id', leadId)
+      .neq('status', 'Done')
+      .is('deleted_at', null);
+
+    if (error || !tasks || tasks.length === 0) {
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    // Filter tasks created within last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentTasks = tasks.filter(task => {
+      const taskCreatedAt = new Date(task.created_at).getTime();
+      return taskCreatedAt >= thirtyDaysAgo;
+    });
+
+    // Find tasks that should be completed by this field update
+    const tasksToComplete = recentTasks.filter(task => {
+      const req = task.completion_requirement_type;
+      if (!req) return false;
+
+      // Check field_populated requirements
+      if (req.startsWith('field_populated:')) {
+        const reqField = req.split(':')[1];
+        return reqField === fieldName && fieldValue !== null && fieldValue !== '';
+      }
+
+      // Check field_value requirements
+      if (req.startsWith('field_value:')) {
+        const [, fieldConfig] = req.split(':');
+        const [reqField, valuesStr] = fieldConfig.split('=');
+        if (reqField !== fieldName) return false;
+        const allowedValues = valuesStr.split(',');
+        return allowedValues.includes(fieldValue || '');
+      }
+
+      return false;
+    });
+
+    if (tasksToComplete.length === 0) {
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    // Update matching tasks to "Done"
+    const taskIds = tasksToComplete.map(t => t.id);
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({ status: 'Done' })
+      .in('id', taskIds);
+
+    if (updateError) {
+      console.error('Error auto-completing tasks:', updateError);
+      return { completedCount: 0, taskTitles: [] };
+    }
+
+    return {
+      completedCount: tasksToComplete.length,
+      taskTitles: tasksToComplete.map(t => t.title)
+    };
+  },
+
   // Contact operations
   async getContacts() {
     const { data, error } = await supabase

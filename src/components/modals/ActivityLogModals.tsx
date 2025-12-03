@@ -437,6 +437,24 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
         title: 'Success',
         description: 'Note added',
       });
+
+      // Auto-complete related tasks for borrower notes
+      try {
+        const result = await databaseService.autoCompleteTasksAfterNote(
+          leadId,
+          crmUser.id
+        );
+
+        if (result.completedCount > 0) {
+          toast({
+            title: "Tasks Auto-Completed",
+            description: `${result.completedCount} task(s) marked as done: ${result.taskTitles.join(', ')}`,
+          });
+        }
+      } catch (error) {
+        console.error('Error auto-completing tasks:', error);
+        // Don't show error toast - note was still added successfully
+      }
     } catch (error) {
       console.error('Error creating note:', error);
       toast({
