@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Download, RefreshCw, X, Eye } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/utils/formatters";
+import { formatCurrency, calculateMonthlyPayment } from "@/utils/formatters";
 import { format } from "date-fns";
 import { DebugViewerModal } from "@/components/loan-pricer/DebugViewerModal";
 
@@ -35,6 +35,40 @@ interface ResultsModalProps {
   onRunAgain?: (scenarioData: any) => void;
 }
 
+// Get income type display label
+const getIncomeTypeLabel = (incomeType: string | undefined): string => {
+  if (!incomeType) return 'N/A';
+  const labels: Record<string, string> = {
+    "Full Doc - 24M": "Full Doc",
+    "DSCR": "DSCR",
+    "24Mo Business Bank Statements": "24MO Bank STM",
+    "12Mo Business Bank Statements": "12MO Bank STM",
+    "Community - No income/No employment/No DTI": "No Ratio Primary"
+  };
+  return labels[incomeType] || incomeType;
+};
+
+// Derive state from ZIP code
+const getStateFromZip = (zip: string | undefined): string => {
+  if (!zip) return 'N/A';
+  const zipNum = parseInt(zip);
+  if (isNaN(zipNum)) return 'N/A';
+  
+  // Florida ZIP codes: 32000-34999
+  if (zipNum >= 32000 && zipNum <= 34999) return 'Florida';
+  // Add other common states as needed
+  // Georgia: 30000-31999, 39800-39999
+  if ((zipNum >= 30000 && zipNum <= 31999) || (zipNum >= 39800 && zipNum <= 39999)) return 'Georgia';
+  // Texas: 75000-79999, 88500-88599
+  if ((zipNum >= 75000 && zipNum <= 79999) || (zipNum >= 88500 && zipNum <= 88599)) return 'Texas';
+  // California: 90000-96199
+  if (zipNum >= 90000 && zipNum <= 96199) return 'California';
+  // New York: 10000-14999
+  if (zipNum >= 10000 && zipNum <= 14999) return 'New York';
+  
+  return 'FL'; // Default to FL
+};
+
 export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsModalProps) {
   const [showDebugModal, setShowDebugModal] = useState(false);
   
@@ -45,6 +79,16 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                        (run.button_scan_results && run.button_scan_results.length > 0) ||
                        (run.debug_logs && run.debug_logs.length > 0);
   const showDebugButton = run.status === 'failed' || hasDebugData;
+
+  // Calculate monthly payment dynamically
+  const calculatedMonthlyPayment = (() => {
+    const loanAmount = scenario?.loan_amount;
+    const rateStr = results?.rate;
+    if (!loanAmount || !rateStr) return null;
+    const rate = parseFloat(String(rateStr).replace(/\s*%/g, ''));
+    if (isNaN(rate)) return null;
+    return calculateMonthlyPayment(loanAmount, rate, 360);
+  })();
 
   const handleRunAgain = () => {
     if (onRunAgain && scenario) {
@@ -82,7 +126,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Monthly Payment</p>
               <p className="text-4xl font-bold text-foreground">
-                {results?.monthly_payment ? formatCurrency(results.monthly_payment) : 'N/A'}
+                {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : 'N/A'}
               </p>
             </div>
             <div className="text-center">
@@ -95,7 +139,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
 
           {/* Additional Pricing Info */}
           {results && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-primary/20">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-primary/20">
               {results.apr && (
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">APR</p>
@@ -112,15 +156,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground">Priced At</p>
                   <p className="text-lg font-semibold">
-                    {format(new Date(run.completed_at), 'h:mm a')}
-                  </p>
-                </div>
-              )}
-              {run.started_at && run.completed_at && (
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Duration</p>
-                  <p className="text-lg font-semibold">
-                    {Math.round((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s
+                    {format(new Date(run.completed_at), 'MMMM d, h:mm a')}
                   </p>
                 </div>
               )}
@@ -135,20 +171,16 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Loan Program</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm">Program Type:</span>
-                <span className="text-sm font-medium">{scenario?.program_type || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-sm">Loan Type:</span>
-                <span className="text-sm font-medium">{scenario?.loan_type || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Purpose:</span>
-                <span className="text-sm font-medium">{scenario?.loan_purpose || 'N/A'}</span>
+                <span className="text-sm font-medium">{getIncomeTypeLabel(scenario?.income_type)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Amortization:</span>
-                <span className="text-sm font-medium">{scenario?.amortization_type || 'N/A'}</span>
+                <span className="text-sm font-medium">30 Years</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm">Purpose:</span>
+                <span className="text-sm font-medium">Purchase</span>
               </div>
             </div>
           </Card>
@@ -175,7 +207,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">State:</span>
-                <span className="text-sm font-medium">{scenario?.state || 'N/A'}</span>
+                <span className="text-sm font-medium">{getStateFromZip(scenario?.zip_code)}</span>
               </div>
             </div>
           </Card>
@@ -188,24 +220,12 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <span className="text-sm">FICO Score:</span>
                 <span className="text-sm font-medium">{scenario?.fico_score || 'N/A'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm">Income Type:</span>
-                <span className="text-sm font-medium">{scenario?.income_type || 'N/A'}</span>
-              </div>
               {scenario?.dscr_ratio && (
                 <div className="flex justify-between">
                   <span className="text-sm">DSCR Ratio:</span>
                   <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-sm">DTI:</span>
-                <span className="text-sm font-medium">{scenario?.dti || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm">LTV:</span>
-                <span className="text-sm font-medium">{scenario?.ltv ? `${scenario.ltv}%` : 'N/A'}</span>
-              </div>
             </div>
           </Card>
 
