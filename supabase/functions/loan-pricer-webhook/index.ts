@@ -16,7 +16,7 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Received webhook payload:', JSON.stringify(body));
 
-    const { run_id, rate, discount_points, status } = body;
+    const { run_id, rate, discount_points, status, screenshot_1, screenshot_2 } = body;
 
     if (!run_id) {
       console.error('Missing run_id in webhook payload');
@@ -61,6 +61,13 @@ serve(async (req) => {
     }
     if (discount_points !== undefined && discount_points !== null && discount_points !== '') {
       resultsJson.discount_points = discount_points;
+    }
+    // Add screenshot URLs
+    if (screenshot_1) {
+      resultsJson.screenshot_1 = screenshot_1;
+    }
+    if (screenshot_2) {
+      resultsJson.screenshot_2 = screenshot_2;
     }
 
     // Update the pricing run with results

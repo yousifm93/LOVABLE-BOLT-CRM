@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Clock, CheckCircle, XCircle, Download, Eye, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Clock, CheckCircle, XCircle, Eye, AlertCircle, RefreshCw, Loader2, FileText, DollarSign, Pencil } from "lucide-react";
 import { NewRunModal } from "./loan-pricer/NewRunModal";
 import { ResultsModal } from "./loan-pricer/ResultsModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -387,13 +387,34 @@ export function LoanPricer() {
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          disabled={run.status !== 'completed'}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        {/* Rate Sheet Screenshot Button */}
+                        {run.results_json?.screenshot_1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(run.results_json.screenshot_1, '_blank')}
+                            title="View Rate Sheet"
+                          >
+                            <div className="relative">
+                              <FileText className="h-4 w-4" />
+                              <DollarSign className="h-2.5 w-2.5 absolute -bottom-0.5 -right-1 bg-background rounded-full" />
+                            </div>
+                          </Button>
+                        )}
+                        {/* Input Fields Screenshot Button */}
+                        {run.results_json?.screenshot_2 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(run.results_json.screenshot_2, '_blank')}
+                            title="View Input Fields"
+                          >
+                            <div className="relative">
+                              <FileText className="h-4 w-4" />
+                              <Pencil className="h-2.5 w-2.5 absolute -bottom-0.5 -right-1 bg-background rounded-full" />
+                            </div>
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
