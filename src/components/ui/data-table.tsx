@@ -377,7 +377,14 @@ export function DataTable<T extends Record<string, any>>({
       filtered = [...filtered].sort((a, b) => {
         // Helper to get nested property value (e.g., "borrower.first_name")
         const getNestedValue = (obj: any, path: string) => {
-          return path.split('.').reduce((current, key) => current?.[key], obj);
+          const value = path.split('.').reduce((current, key) => current?.[key], obj);
+          
+          // Special handling for borrower objects - concatenate name for alphabetical sorting
+          if (path === 'borrower' && value && typeof value === 'object') {
+            return `${value.first_name || ''} ${value.last_name || ''}`.trim().toLowerCase();
+          }
+          
+          return value;
         };
 
         let aValue = getNestedValue(a, sortColumn);
@@ -513,7 +520,7 @@ export function DataTable<T extends Record<string, any>>({
             const isSelected = selectedIds.includes(rowId);
             
             return (
-              <ContextMenu>
+              <ContextMenu key={rowId}>
                 <ContextMenuTrigger asChild>
                 <TableRow
                   key={rowId}
