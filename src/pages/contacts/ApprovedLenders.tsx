@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
-import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
+import { LenderDetailDialog } from "@/components/LenderDetailDialog";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
@@ -97,25 +97,6 @@ export default function ApprovedLenders() {
   const handleRowClick = (lender: Lender) => {
     setSelectedLender(lender);
     setIsDrawerOpen(true);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === lenders.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(lenders.map(l => l.id)));
-    }
-  };
-
-  const toggleSelect = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
   };
 
   // Add row numbers to data
@@ -254,6 +235,10 @@ export default function ApprovedLenders() {
             data={lendersWithIndex}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            selectable={true}
+            selectedIds={Array.from(selectedIds)}
+            onSelectionChange={(ids) => setSelectedIds(new Set(ids))}
+            getRowId={(row) => row.id}
           />
         </CardContent>
       </Card>
@@ -265,7 +250,7 @@ export default function ApprovedLenders() {
         defaultType="lender"
       />
 
-      <LenderDetailDrawer
+      <LenderDetailDialog
         lender={selectedLender}
         isOpen={isDrawerOpen}
         onClose={() => {
