@@ -89,37 +89,53 @@ export function LoanPricer() {
   useEffect(() => {
     fetchPricingRuns();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates for INSERT, UPDATE, and DELETE
     const channel = supabase
-      .channel('pricing_runs_changes')
+      .channel('pricing_runs_realtime')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'pricing_runs'
         },
         (payload) => {
-          console.log('Pricing run updated:', payload);
-          fetchPricingRuns();
-
-          // Show toast notification on completion
-          if (payload.new.status === 'completed') {
-            const rate = payload.new.results_json?.rate;
-            toast({
-              title: "✓ Pricing Run Completed",
-              description: rate ? `Rate: ${rate}%` : "Results are ready to view",
-            });
-          } else if (payload.new.status === 'failed') {
-            toast({
-              title: "Pricing Run Failed",
-              description: payload.new.error_message || "An error occurred during pricing",
-              variant: "destructive",
-            });
+          console.log('Pricing run changed:', payload.eventType, payload);
+          
+          // Update the local state directly for faster updates
+          if (payload.eventType === 'UPDATE') {
+            setPricingRuns(prev => prev.map(run => 
+              run.id === payload.new.id 
+                ? { ...run, ...payload.new as PricingRun }
+                : run
+            ));
+            
+            // Show toast notification on completion
+            const newRun = payload.new as any;
+            if (newRun.status === 'completed') {
+              const rate = newRun.results_json?.rate;
+              toast({
+                title: "✓ Pricing Run Completed",
+                description: rate ? `Rate: ${rate}%` : "Results are ready to view",
+              });
+            } else if (newRun.status === 'failed') {
+              toast({
+                title: "Pricing Run Failed",
+                description: newRun.error_message || "An error occurred during pricing",
+                variant: "destructive",
+              });
+            }
+          } else if (payload.eventType === 'INSERT') {
+            // For inserts, fetch fresh data to get related leads info
+            fetchPricingRuns();
+          } else if (payload.eventType === 'DELETE') {
+            setPricingRuns(prev => prev.filter(run => run.id !== payload.old.id));
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
