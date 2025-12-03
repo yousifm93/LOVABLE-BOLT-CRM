@@ -149,59 +149,55 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-baseline gap-2">
+          <DialogTitle className="flex flex-col">
             <span>Pricing Results</span>
             {run.completed_at && (
               <span className="text-sm font-normal text-muted-foreground italic">
-                ({format(new Date(run.completed_at), "M/d/yy h:mm a")})
+                {format(new Date(run.completed_at), "M/d/yy h:mm a")}
               </span>
             )}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Pricing Summary Hero - Program, LTV, FICO, Rate, Points */}
-        <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Loan Program</p>
-              <p className="text-xl font-bold text-foreground">
-                {getIncomeTypeLabel(scenario?.income_type)}
-              </p>
+        {/* Pricing Summary Hero - Single Column Stacked */}
+        <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center py-1 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">Loan Program</span>
+              <span className="text-lg font-bold">{getIncomeTypeLabel(scenario?.income_type)}</span>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">LTV</p>
-              <p className="text-2xl font-bold text-foreground">
+            <div className="flex justify-between items-center py-1 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">LTV</span>
+              <span className="text-lg font-bold">
                 {scenario?.loan_amount && scenario?.purchase_price 
                   ? `${((scenario.loan_amount / scenario.purchase_price) * 100).toFixed(1)}%` 
                   : 'N/A'}
-              </p>
+              </span>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">FICO</p>
-              <p className="text-2xl font-bold text-foreground">
-                {scenario?.fico_score || 'N/A'}
-              </p>
+            <div className="flex justify-between items-center py-1 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">FICO</span>
+              <span className="text-lg font-bold">{scenario?.fico_score || 'N/A'}</span>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
-              <p className="text-2xl font-bold text-primary">
+            <div className="flex justify-between items-center py-1 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">Interest Rate</span>
+              <span className="text-lg font-bold text-primary">
                 {results?.rate ? `${String(results.rate).replace(/\s*%/g, '')}%` : 'N/A'}
-              </p>
+              </span>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Points</p>
-              <p className="text-2xl font-bold text-primary">
+            <div className="flex justify-between items-center py-1">
+              <span className="text-sm text-muted-foreground">Points</span>
+              <span className="text-lg font-bold text-primary">
                 {results?.discount_points ? (
                   <>
                     {(100 - parseFloat(results.discount_points)).toFixed(3)}
                     {scenario?.loan_amount && (
-                      <span className="text-base ml-1">
+                      <span className="text-sm ml-1">
                         ({formatCurrency((100 - parseFloat(results.discount_points)) * scenario.loan_amount / 100)})
                       </span>
                     )}
                   </>
                 ) : 'N/A'}
-              </p>
+              </span>
             </div>
           </div>
         </Card>
@@ -216,80 +212,94 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                 <table className="w-full">
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-3 py-1.5 bg-muted/30 text-sm">P&I</td>
-                      <td className="px-3 py-1.5 text-right text-sm font-medium">
-                        {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}
+                      <td className="px-3 py-2 bg-muted/30 text-sm font-medium">P&I</td>
+                      <td className="px-3 py-2 text-right">
+                        <span className="text-sm font-medium">
+                          {calculatedMonthlyPayment ? formatCurrency(calculatedMonthlyPayment) : '—'}
+                        </span>
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">Taxes</td>
-                      <td className="px-3 py-1.5 text-right">
-                        <Input 
-                          type="number" 
-                          value={pitiInputs.taxes || ''} 
-                          onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
-                          className="w-20 text-right ml-auto h-6 text-sm"
-                          placeholder="0"
-                        />
+                      <td className="px-3 py-2 bg-muted/30 text-sm">Taxes</td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end">
+                          <Input 
+                            type="number" 
+                            value={pitiInputs.taxes || ''} 
+                            onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
+                            className="w-24 text-right h-7 text-sm"
+                            placeholder="0"
+                          />
+                        </div>
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">Insurance</td>
-                      <td className="px-3 py-1.5 text-right">
-                        <Input 
-                          type="number" 
-                          value={pitiInputs.insurance || ''} 
-                          onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
-                          className="w-20 text-right ml-auto h-6 text-sm"
-                          placeholder="0"
-                        />
+                      <td className="px-3 py-2 bg-muted/30 text-sm">Insurance</td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end">
+                          <Input 
+                            type="number" 
+                            value={pitiInputs.insurance || ''} 
+                            onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
+                            className="w-24 text-right h-7 text-sm"
+                            placeholder="0"
+                          />
+                        </div>
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">MI</td>
-                      <td className="px-3 py-1.5 text-right">
-                        <Input 
-                          type="number" 
-                          value={pitiInputs.mi || ''} 
-                          onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
-                          className="w-20 text-right ml-auto h-6 text-sm"
-                          placeholder="0"
-                        />
+                      <td className="px-3 py-2 bg-muted/30 text-sm">MI</td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end">
+                          <Input 
+                            type="number" 
+                            value={pitiInputs.mi || ''} 
+                            onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
+                            className="w-24 text-right h-7 text-sm"
+                            placeholder="0"
+                          />
+                        </div>
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="pl-6 pr-3 py-1.5 bg-muted/30 text-sm text-muted-foreground">HOA</td>
-                      <td className="px-3 py-1.5 text-right">
-                        <Input 
-                          type="number" 
-                          value={pitiInputs.hoa || ''} 
-                          onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
-                          className="w-20 text-right ml-auto h-6 text-sm"
-                          placeholder="0"
-                        />
+                      <td className="px-3 py-2 bg-muted/30 text-sm">HOA</td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end">
+                          <Input 
+                            type="number" 
+                            value={pitiInputs.hoa || ''} 
+                            onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
+                            className="w-24 text-right h-7 text-sm"
+                            placeholder="0"
+                          />
+                        </div>
                       </td>
                     </tr>
                     <tr className="bg-primary/10">
-                      <td className="px-3 py-1.5 font-semibold text-sm">Total PITI</td>
-                      <td className="px-3 py-1.5 text-right font-bold text-primary text-base">
+                      <td className="px-3 py-2 font-semibold text-sm">Total PITI</td>
+                      <td className="px-3 py-2 text-right font-bold text-primary text-base">
                         {formatCurrency(totalPITI)}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <div className="mt-3 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amortization:</span>
-                  <span className="font-medium">30 Years</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Lock Period:</span>
-                  <span className="font-medium">30 days</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Broker Comp:</span>
-                  <span className="font-medium">2.75%</span>
+              
+              {/* Loan Terms - Separate boxed section */}
+              <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amortization:</span>
+                    <span className="font-medium">30 Years</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Lock Period:</span>
+                    <span className="font-medium">30 days</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Broker Comp:</span>
+                    <span className="font-medium">2.75%</span>
+                  </div>
                 </div>
               </div>
             </Card>
