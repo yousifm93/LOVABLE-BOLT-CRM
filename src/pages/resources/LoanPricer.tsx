@@ -329,22 +329,24 @@ export function LoanPricer() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Time</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Borrower</TableHead>
-                  <TableHead>Program</TableHead>
+                  <TableHead className="w-auto">Program</TableHead>
                   <TableHead>LTV</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Points</TableHead>
-                  <TableHead>Loan Amount</TableHead>
+                  <TableHead className="whitespace-nowrap">Loan Amount</TableHead>
                   <TableHead>P&I</TableHead>
                   <TableHead>PITI</TableHead>
-                  <TableHead>Time</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pricingRuns.map((run) => (
                   <TableRow key={run.id}>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(run.started_at), "MMM d, h:mm a")}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(run.status)}
@@ -386,12 +388,6 @@ export function LoanPricer() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {run.leads ? 
-                        `${run.leads.first_name} ${run.leads.last_name}` : 
-                        'Direct Run'
-                      }
-                    </TableCell>
-                    <TableCell>
                       <div className="text-sm font-medium">
                         {getIncomeTypeLabel(run.scenario_json?.income_type)}
                       </div>
@@ -426,7 +422,7 @@ export function LoanPricer() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {run.scenario_json?.loan_amount ? 
                         formatCurrency(run.scenario_json.loan_amount) : 
                         'N/A'
@@ -464,16 +460,6 @@ export function LoanPricer() {
                         
                         return <span className="font-medium">{formatCurrency(totalPITI)}</span>;
                       })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="text-sm">
-                          {format(new Date(run.started_at), 'MMM d')}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(run.started_at), 'h:mm a')}
-                        </div>
-                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
