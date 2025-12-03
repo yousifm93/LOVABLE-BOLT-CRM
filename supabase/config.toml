@@ -1,5 +1,8 @@
 project_id = "zpsvatonxakysnbqnfcc"
 
+[functions.parse-contract]
+verify_jwt = true
+
 [functions.parse-field-updates]
 verify_jwt = true
 

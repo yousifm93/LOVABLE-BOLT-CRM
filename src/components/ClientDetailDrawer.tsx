@@ -824,27 +824,29 @@ export function ClientDetailDrawer({
                 </div>
               </div>
               
-              {/* Right side - PITI and DTI positioned after their related fields */}
+              {/* Right side - PITI, Closing Date, DTI, Finance Contingency */}
               <div className="col-span-3 grid grid-cols-3 gap-4">
-                {/* Row 1: PITI (next to Total Monthly Income) */}
+                {/* Row 1: PITI (next to Total Monthly Income), Closing Date */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">PITI</span>
                   <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {/* Empty */}
+                  <span className="text-xs text-muted-foreground">Closing Date</span>
+                  <InlineEditDate value={(client as any).closeDate || null} onValueChange={value => handleLeadUpdate('closeDate', value)} placeholder="Select date" />
                 </div>
                 <div className="flex flex-col gap-1">
                   {/* Empty */}
                 </div>
                 
-                {/* Row 2: DTI (next to Credit Score) */}
+                {/* Row 2: DTI (next to Credit Score), Finance Contingency */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">DTI</span>
                   <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  {/* Empty */}
+                  <span className="text-xs text-muted-foreground">Finance Contingency</span>
+                  <InlineEditDate value={(client as any).financeContingency || null} onValueChange={value => handleLeadUpdate('financeContingency', value)} placeholder="Select date" />
                 </div>
                 <div className="flex flex-col gap-1">
                   {/* Empty */}

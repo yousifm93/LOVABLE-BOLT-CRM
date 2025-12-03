@@ -436,6 +436,7 @@ export const FIELD_NAME_MAP: Record<string, string> = {
   'appr_date_time': 'appraisalDateTime',
   'appr_eta': 'appraisalEta',
   'fin_cont': 'financingContingency',
+  'finance_contingency': 'financeContingency',
   'pending_app_at': 'pendingAppAt',
   'app_complete_at': 'appCompleteAt',
   'pre_qualified_at': 'preQualifiedAt',

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, Upload, Eye, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Upload, Eye, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,72 @@ const FILE_FIELDS = [
 export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [parsing, setParsing] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const parseContract = async (filePath: string) => {
+    try {
+      setParsing('contract_file');
+      
+      // Get signed URL for the file
+      const { data: signedUrlData } = await supabase.storage
+        .from('lead-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (!signedUrlData?.signedUrl) {
+        throw new Error('Could not get file URL');
+      }
+
+      toast({
+        title: "Parsing Contract",
+        description: "Extracting information from contract..."
+      });
+
+      // Call the parse-contract edge function
+      const { data, error } = await supabase.functions.invoke('parse-contract', {
+        body: { 
+          file_url: signedUrlData.signedUrl,
+          lead_id: leadId 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        const fieldsUpdated = data.fields_updated?.length || 0;
+        const extractedData = data.extracted_data;
+        
+        let description = `Extracted ${fieldsUpdated} fields from contract.`;
+        if (extractedData?.sales_price) {
+          description += ` Sales Price: $${extractedData.sales_price.toLocaleString()}.`;
+        }
+        if (data.buyer_agent_id) {
+          description += ' Buyer agent linked.';
+        }
+        if (data.listing_agent_id) {
+          description += ' Listing agent linked.';
+        }
+
+        toast({
+          title: "Contract Parsed Successfully",
+          description
+        });
+        
+        onLeadUpdate();
+      } else {
+        throw new Error(data?.error || 'Failed to parse contract');
+      }
+    } catch (error: any) {
+      console.error('Contract parsing error:', error);
+      toast({
+        title: "Parsing Failed",
+        description: error.message || "Could not extract contract data",
+        variant: "destructive"
+      });
+    } finally {
+      setParsing(null);
+    }
+  };
 
   const handleFileUpload = async (fieldKey: string, file: File) => {
     if (!leadId) return;
@@ -59,6 +124,11 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       });
       
       onLeadUpdate();
+
+      // If this is a contract upload, automatically parse it
+      if (fieldKey === 'contract_file') {
+        await parseContract(uploadData.path);
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({
@@ -154,6 +224,7 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
             {FILE_FIELDS.map((field) => {
               const hasFile = !!lead[field.key];
               const isUploading = uploading === field.key;
+              const isParsing = parsing === field.key;
 
               return (
                 <div
@@ -169,6 +240,12 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
                     {hasFile && (
                       <span className="text-xs text-muted-foreground truncate">
                         {getFileName(lead[field.key])}
+                      </span>
+                    )}
+                    {isParsing && (
+                      <span className="flex items-center gap-1 text-xs text-blue-500">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Parsing...
                       </span>
                     )}
                   </div>
@@ -206,13 +283,13 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
                             if (file) handleFileUpload(field.key, file);
                             e.target.value = '';
                           }}
-                          disabled={isUploading}
+                          disabled={isUploading || isParsing}
                         />
                         <Button
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs"
-                          disabled={isUploading}
+                          disabled={isUploading || isParsing}
                           asChild
                         >
                           <span>
