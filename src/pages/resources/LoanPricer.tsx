@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Clock, CheckCircle, XCircle, Eye, AlertCircle, RefreshCw, Loader2, FileText, DollarSign, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Clock, CheckCircle, XCircle, Eye, AlertCircle, RefreshCw, Loader2, FileText, DollarSign, Pencil, ExternalLink } from "lucide-react";
 import { NewRunModal } from "./loan-pricer/NewRunModal";
 import { ResultsModal } from "./loan-pricer/ResultsModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,11 +18,30 @@ const getIncomeTypeLabel = (incomeType: string | undefined): string => {
   const labels: Record<string, string> = {
     "Full Doc - 24M": "Full Doc",
     "DSCR": "DSCR",
-    "24Mo Business Bank Statements": "24-Month Bank Statements",
-    "12Mo Business Bank Statements": "12-Month Bank Statements",
+    "24Mo Business Bank Statements": "24MO Bank STM",
+    "12Mo Business Bank Statements": "12MO Bank STM",
     "Community - No income/No employment/No DTI": "No Ratio Primary"
   };
   return labels[incomeType] || incomeType;
+};
+
+// Convert Google Drive URLs to viewable format
+const formatGoogleDriveUrl = (url: string): string => {
+  if (!url) return '';
+  // If already a direct view URL
+  if (url.includes('drive.google.com/uc')) return url;
+  // If it's a thumbnail link format
+  if (url.includes('drive.google.com/thumbnail')) return url;
+  // If it's a file link format: drive.google.com/file/d/FILE_ID/...
+  const fileMatch = url.match(/\/d\/([^\/]+)/);
+  if (fileMatch) {
+    return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+  }
+  // If it's just an ID (no http)
+  if (!url.includes('http')) {
+    return `https://drive.google.com/uc?export=view&id=${url}`;
+  }
+  return url;
 };
 
 interface PricingRun {
@@ -48,6 +67,11 @@ export function LoanPricer() {
   const [pricingRuns, setPricingRuns] = useState<PricingRun[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [prefilledScenario, setPrefilledScenario] = useState<any>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<{
+    open: boolean;
+    url: string;
+    title: string;
+  } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -296,10 +320,11 @@ export function LoanPricer() {
                   <TableHead>Status</TableHead>
                   <TableHead>Borrower</TableHead>
                   <TableHead>Program</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <TableHead>Loan Amount</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Monthly Payment</TableHead>
                   <TableHead>Disc. Points</TableHead>
+                  <TableHead>Disc. Points 2</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -395,6 +420,15 @@ export function LoanPricer() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {run.results_json?.discount_points ? (
+                        <span className="font-medium">
+                          {(100 - parseFloat(run.results_json.discount_points)).toFixed(3)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="space-y-0.5">
                         <div className="text-sm">
                           {format(new Date(run.started_at), 'MMM d')}
@@ -448,7 +482,11 @@ export function LoanPricer() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => window.open(run.results_json.screenshot_1, '_blank')}
+                            onClick={() => setScreenshotPreview({
+                              open: true,
+                              url: run.results_json.screenshot_1,
+                              title: "Rate Sheet Screenshot"
+                            })}
                             title="View Rate Sheet"
                           >
                             <div className="relative">
@@ -462,7 +500,11 @@ export function LoanPricer() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => window.open(run.results_json.screenshot_2, '_blank')}
+                            onClick={() => setScreenshotPreview({
+                              open: true,
+                              url: run.results_json.screenshot_2,
+                              title: "Input Fields Screenshot"
+                            })}
                             title="View Input Fields"
                           >
                             <div className="relative">
@@ -480,6 +522,39 @@ export function LoanPricer() {
           )}
         </div>
       </Card>
+
+      {/* Screenshot Preview Modal */}
+      <Dialog 
+        open={screenshotPreview?.open ?? false} 
+        onOpenChange={(open) => !open && setScreenshotPreview(null)}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>{screenshotPreview?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="relative flex items-center justify-center overflow-auto">
+            <img 
+              src={formatGoogleDriveUrl(screenshotPreview?.url || '')}
+              alt={screenshotPreview?.title}
+              className="max-w-full max-h-[70vh] object-contain rounded-lg border"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder.svg';
+              }}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(formatGoogleDriveUrl(screenshotPreview?.url || ''), '_blank')}
+              className="gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in New Tab
+            </Button>
+            <Button onClick={() => setScreenshotPreview(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <NewRunModal
         open={isNewRunModalOpen}
