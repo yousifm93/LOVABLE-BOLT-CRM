@@ -561,14 +561,17 @@ export default function TasksModern() {
   const filteredTasks = (() => {
     let result = tasks;
 
-    // Apply search term filter (task name, borrower name, stage name)
+    // Apply search term filter (task name, borrower name, stage name, priority, status, assignee)
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(task => 
         task.title.toLowerCase().includes(searchLower) ||
         task.description?.toLowerCase().includes(searchLower) ||
         (task.borrower?.first_name && `${task.borrower.first_name} ${task.borrower.last_name}`.toLowerCase().includes(searchLower)) ||
-        task.borrower?.pipeline_stage?.name?.toLowerCase().includes(searchLower)
+        task.borrower?.pipeline_stage?.name?.toLowerCase().includes(searchLower) ||
+        task.priority?.toLowerCase().includes(searchLower) ||
+        task.status?.toLowerCase().includes(searchLower) ||
+        (task.assignee && `${task.assignee.first_name} ${task.assignee.last_name}`.toLowerCase().includes(searchLower))
       );
     }
     

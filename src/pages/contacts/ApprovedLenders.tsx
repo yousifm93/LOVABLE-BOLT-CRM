@@ -1,73 +1,44 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building, Star, ExternalLink } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Building, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
+import { Checkbox } from "@/components/ui/checkbox";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 interface Lender {
   id: string;
   lender_name: string;
-  lender_type: "Conventional" | "Non-QM" | "Private";
+  lender_type: "Conventional" | "Non-QM" | "Private" | "HELOC";
   account_executive?: string;
   account_executive_email?: string;
   account_executive_phone?: string;
   broker_portal_url?: string;
+  broker_portal_username?: string;
+  broker_portal_password?: string;
+  min_loan_amount?: number;
+  max_loan_amount?: number;
   status: string;
   notes?: string;
   created_at: string;
   updated_at: string;
 }
 
-const fallbackLendersData: Lender[] = [
-  {
-    id: "1",
-    lender_name: "Angel Oak Mortgage",
-    lender_type: "Non-QM",
-    account_executive: "Michael Johnson",
-    account_executive_email: "michael.j@angeloak.com",
-    account_executive_phone: "(555) 123-4567",
-    broker_portal_url: "https://portal.angeloak.com",
-    status: "Active",
-    created_at: "2024-01-15",
-    updated_at: "2024-01-15"
-  },
-  {
-    id: "2",
-    lender_name: "Champions Mortgage",
-    lender_type: "Conventional",
-    account_executive: "Sarah Williams",
-    account_executive_email: "sarah.w@champions.com",
-    account_executive_phone: "(555) 234-5678",
-    broker_portal_url: "https://broker.champions.com",
-    status: "Active",
-    created_at: "2024-01-18",
-    updated_at: "2024-01-18"
-  },
-  {
-    id: "3",
-    lender_name: "Fund Loans",
-    lender_type: "Private",
-    account_executive: "David Chin",
-    account_executive_email: "david.c@fundloans.com",
-    account_executive_phone: "(555) 345-6789",
-    broker_portal_url: "https://portal.fundloans.com",
-    status: "Active",
-    created_at: "2024-01-20",
-    updated_at: "2024-01-20"
-  }
-];
-
 export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,7 +56,6 @@ export default function ApprovedLenders() {
         description: "Failed to load lenders.",
         variant: "destructive"
       });
-      setLenders(fallbackLendersData); // Fallback to mock data
     } finally {
       setIsLoading(false);
     }
@@ -120,15 +90,69 @@ export default function ApprovedLenders() {
     }
   };
 
-  const handleContactCreated = (newContact: any) => {
-    loadLenders(); // Reload lenders after creation
+  const handleContactCreated = () => {
+    loadLenders();
   };
 
   const handleRowClick = (lender: Lender) => {
-    console.log("Selected lender:", lender);
+    setSelectedLender(lender);
+    setIsDrawerOpen(true);
   };
 
-  const columns: ColumnDef<Lender>[] = [
+  const toggleSelectAll = () => {
+    if (selectedIds.size === lenders.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(lenders.map(l => l.id)));
+    }
+  };
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const togglePasswordVisibility = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newShowPasswords = new Set(showPasswords);
+    if (newShowPasswords.has(id)) {
+      newShowPasswords.delete(id);
+    } else {
+      newShowPasswords.add(id);
+    }
+    setShowPasswords(newShowPasswords);
+  };
+
+  const formatCurrency = (value: number | undefined) => {
+    if (!value) return "—";
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Add row numbers to data
+  const lendersWithIndex = lenders.map((lender, index) => ({
+    ...lender,
+    rowNumber: index + 1
+  }));
+
+  const columns: ColumnDef<Lender & { rowNumber?: number }>[] = [
+    {
+      accessorKey: "rowNumber",
+      header: "#",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-sm">{row.original.rowNumber}</span>
+      ),
+    },
     {
       accessorKey: "lender_name",
       header: "Lender Name",
@@ -146,7 +170,7 @@ export default function ApprovedLenders() {
       cell: ({ row }) => (
         <InlineEditLenderType
           value={row.original.lender_type}
-          onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" })}
+          onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" | "HELOC" })}
         />
       ),
       sortable: true,
@@ -161,7 +185,7 @@ export default function ApprovedLenders() {
     },
     {
       accessorKey: "contact",
-      header: "Account Executive Contact",
+      header: "AE Contact",
       cell: ({ row }) => (
         <div className="space-y-1">
           <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
@@ -179,12 +203,65 @@ export default function ApprovedLenders() {
       accessorKey: "broker_portal_url",
       header: "Broker Portal",
       cell: ({ row }) => (
-        <InlineEditLink
-          value={row.original.broker_portal_url}
-          onValueChange={(value) => handleUpdateLender(row.original.id, { broker_portal_url: value })}
-          placeholder="Portal URL"
-        />
+        <div className="flex items-center gap-1">
+          <InlineEditLink
+            value={row.original.broker_portal_url}
+            onValueChange={(value) => handleUpdateLender(row.original.id, { broker_portal_url: value })}
+            placeholder="Portal URL"
+          />
+        </div>
       ),
+    },
+    {
+      accessorKey: "broker_portal_username",
+      header: "Username",
+      cell: ({ row }) => (
+        <span className="text-sm font-mono">{row.original.broker_portal_username || "—"}</span>
+      ),
+    },
+    {
+      accessorKey: "broker_portal_password",
+      header: "Password",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-mono">
+            {showPasswords.has(row.original.id) 
+              ? row.original.broker_portal_password || "—"
+              : row.original.broker_portal_password ? "••••••••" : "—"
+            }
+          </span>
+          {row.original.broker_portal_password && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              onClick={(e) => togglePasswordVisibility(row.original.id, e)}
+            >
+              {showPasswords.has(row.original.id) ? (
+                <EyeOff className="h-3 w-3" />
+              ) : (
+                <Eye className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "min_loan_amount",
+      header: "Min Loan",
+      cell: ({ row }) => (
+        <span className="text-sm">{formatCurrency(row.original.min_loan_amount)}</span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "max_loan_amount",
+      header: "Max Loan",
+      cell: ({ row }) => (
+        <span className="text-sm">{formatCurrency(row.original.max_loan_amount)}</span>
+      ),
+      sortable: true,
     },
     {
       accessorKey: "send_email",
@@ -203,14 +280,6 @@ export default function ApprovedLenders() {
           Email
         </Button>
       ),
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <StatusBadge status={row.original.status} />
-      ),
-      sortable: true,
     },
   ];
 
@@ -238,12 +307,17 @@ export default function ApprovedLenders() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
+            {selectedIds.size > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={lenders}
+            data={lendersWithIndex}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
           />
@@ -255,6 +329,16 @@ export default function ApprovedLenders() {
         onOpenChange={setShowCreateModal}
         onContactCreated={handleContactCreated}
         defaultType="lender"
+      />
+
+      <LenderDetailDrawer
+        lender={selectedLender}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedLender(null);
+        }}
+        onLenderUpdated={loadLenders}
       />
     </div>
   );

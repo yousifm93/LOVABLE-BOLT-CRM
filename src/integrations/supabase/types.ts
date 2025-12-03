@@ -2447,11 +2447,15 @@ export type Database = {
           account_executive: string | null
           account_executive_email: string | null
           account_executive_phone: string | null
+          broker_portal_password: string | null
           broker_portal_url: string | null
+          broker_portal_username: string | null
           created_at: string
           id: string
           lender_name: string
           lender_type: Database["public"]["Enums"]["lender_type"]
+          max_loan_amount: number | null
+          min_loan_amount: number | null
           notes: string | null
           status: string | null
           updated_at: string
@@ -2460,11 +2464,15 @@ export type Database = {
           account_executive?: string | null
           account_executive_email?: string | null
           account_executive_phone?: string | null
+          broker_portal_password?: string | null
           broker_portal_url?: string | null
+          broker_portal_username?: string | null
           created_at?: string
           id?: string
           lender_name: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
+          max_loan_amount?: number | null
+          min_loan_amount?: number | null
           notes?: string | null
           status?: string | null
           updated_at?: string
@@ -2473,11 +2481,15 @@ export type Database = {
           account_executive?: string | null
           account_executive_email?: string | null
           account_executive_phone?: string | null
+          broker_portal_password?: string | null
           broker_portal_url?: string | null
+          broker_portal_username?: string | null
           created_at?: string
           id?: string
           lender_name?: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
+          max_loan_amount?: number | null
+          min_loan_amount?: number | null
           notes?: string | null
           status?: string | null
           updated_at?: string
@@ -4020,7 +4032,7 @@ export type Database = {
         | "Dead"
         | "Needs Attention"
       lead_strength: "Hot" | "Warm" | "Cold" | "Qualified"
-      lender_type: "Conventional" | "Non-QM" | "Private"
+      lender_type: "Conventional" | "Non-QM" | "Private" | "HELOC"
       loan_product: "conv" | "fha" | "va" | "usda"
       loan_status:
         | "NEW"
@@ -4323,7 +4335,7 @@ export const Constants = {
         "Needs Attention",
       ],
       lead_strength: ["Hot", "Warm", "Cold", "Qualified"],
-      lender_type: ["Conventional", "Non-QM", "Private"],
+      lender_type: ["Conventional", "Non-QM", "Private", "HELOC"],
       loan_product: ["conv", "fha", "va", "usda"],
       loan_status: [
         "NEW",
