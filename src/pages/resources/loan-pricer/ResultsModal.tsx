@@ -149,22 +149,23 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Pricing Results</DialogTitle>
+          <DialogTitle className="flex items-baseline gap-2">
+            <span>Pricing Results</span>
+            {run.completed_at && (
+              <span className="text-sm font-normal text-muted-foreground italic">
+                ({format(new Date(run.completed_at), "M/d/yy h:mm a")})
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Pricing Summary Hero - Program, FICO, LTV, Rate, Points */}
+        {/* Pricing Summary Hero - Program, LTV, FICO, Rate, Points */}
         <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Loan Program</p>
               <p className="text-xl font-bold text-foreground">
                 {getIncomeTypeLabel(scenario?.income_type)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">FICO</p>
-              <p className="text-2xl font-bold text-foreground">
-                {scenario?.fico_score || 'N/A'}
               </p>
             </div>
             <div className="text-center">
@@ -176,6 +177,12 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
               </p>
             </div>
             <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">FICO</p>
+              <p className="text-2xl font-bold text-foreground">
+                {scenario?.fico_score || 'N/A'}
+              </p>
+            </div>
+            <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Interest Rate</p>
               <p className="text-2xl font-bold text-primary">
                 {results?.rate ? `${String(results.rate).replace(/\s*%/g, '')}%` : 'N/A'}
@@ -183,16 +190,20 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Points</p>
-              <p className="text-2xl font-bold text-foreground">
-                {results?.discount_points ? (100 - parseFloat(results.discount_points)).toFixed(3) : 'N/A'}
+              <p className="text-2xl font-bold text-primary">
+                {results?.discount_points ? (
+                  <>
+                    {(100 - parseFloat(results.discount_points)).toFixed(3)}
+                    {scenario?.loan_amount && (
+                      <span className="text-base ml-1">
+                        ({formatCurrency((100 - parseFloat(results.discount_points)) * scenario.loan_amount / 100)})
+                      </span>
+                    )}
+                  </>
+                ) : 'N/A'}
               </p>
             </div>
           </div>
-          {run.completed_at && (
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              Priced at {format(new Date(run.completed_at), "MMMM d, h:mm a")}
-            </p>
-          )}
         </Card>
 
         {/* Main Content: 2-column layout - PITI on left, Details on right */}
@@ -267,6 +278,16 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                   </tbody>
                 </table>
               </div>
+              <div className="mt-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amortization:</span>
+                  <span className="font-medium">30 Years</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Lock Period:</span>
+                  <span className="font-medium">30 days</span>
+                </div>
+              </div>
             </Card>
           </div>
 
@@ -275,12 +296,10 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             {/* Borrower Card */}
             <Card className="p-3">
               <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Borrower</h3>
-              <div className="flex justify-between">
-                <span className="text-sm">Name:</span>
-                <span className="text-sm font-medium">
-                  {run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}
-                </span>
-              </div>
+              <p className="text-sm">
+                <span className="text-muted-foreground">Name: </span>
+                <span className="font-medium">{run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}</span>
+              </p>
             </Card>
 
             {/* Property Details Card */}
@@ -375,54 +394,6 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
               </Card>
             )}
 
-            {/* Additional Options Card */}
-            {scenario && (
-              <Card className="p-3">
-                <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Additional Options</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.admin_fee_buyout ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {scenario.admin_fee_buyout && (
-                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs">Admin Fee Buyout</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.escrow_waiver ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {scenario.escrow_waiver && (
-                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs">Escrow Waiver</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.high_balance ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {scenario.high_balance && (
-                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs">High Balance</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded border flex items-center justify-center ${scenario.sub_financing ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {scenario.sub_financing && (
-                        <svg className="w-2 h-2 text-primary-foreground" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M5 13l4 4L19 7"></path>
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs">Sub Financing</span>
-                  </div>
-                </div>
-              </Card>
-            )}
           </div>
         </div>
 
