@@ -159,34 +159,34 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
           </DialogTitle>
         </DialogHeader>
 
-        {/* Pricing Summary Hero - Single Column Stacked */}
+        {/* Pricing Summary Hero - 5 Column Grid */}
         <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center py-1 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">Loan Program</span>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="text-center">
+              <span className="text-xs text-muted-foreground block mb-1">Loan Program</span>
               <span className="text-lg font-bold">{getIncomeTypeLabel(scenario?.income_type)}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">LTV</span>
-              <span className="text-lg font-bold">
+            <div className="text-center">
+              <span className="text-xs text-muted-foreground block mb-1">LTV</span>
+              <span className="text-2xl font-bold">
                 {scenario?.loan_amount && scenario?.purchase_price 
                   ? `${((scenario.loan_amount / scenario.purchase_price) * 100).toFixed(1)}%` 
                   : 'N/A'}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">FICO</span>
-              <span className="text-lg font-bold">{scenario?.fico_score || 'N/A'}</span>
+            <div className="text-center">
+              <span className="text-xs text-muted-foreground block mb-1">FICO</span>
+              <span className="text-2xl font-bold">{scenario?.fico_score || 'N/A'}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-border/50">
-              <span className="text-sm text-muted-foreground">Interest Rate</span>
-              <span className="text-lg font-bold text-primary">
+            <div className="text-center">
+              <span className="text-xs text-muted-foreground block mb-1">Interest Rate</span>
+              <span className="text-2xl font-bold text-primary">
                 {results?.rate ? `${String(results.rate).replace(/\s*%/g, '')}%` : 'N/A'}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1">
-              <span className="text-sm text-muted-foreground">Points</span>
-              <span className="text-lg font-bold text-primary">
+            <div className="text-center">
+              <span className="text-xs text-muted-foreground block mb-1">Points</span>
+              <span className="text-xl font-bold text-primary">
                 {results?.discount_points ? (
                   <>
                     {(100 - parseFloat(results.discount_points)).toFixed(3)}
@@ -227,7 +227,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                             type="number" 
                             value={pitiInputs.taxes || ''} 
                             onChange={(e) => setPitiInputs(prev => ({ ...prev, taxes: Number(e.target.value) || 0 }))}
-                            className="w-24 text-right h-7 text-sm"
+                            className="w-24 text-right h-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0"
                           />
                         </div>
@@ -241,7 +241,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                             type="number" 
                             value={pitiInputs.insurance || ''} 
                             onChange={(e) => setPitiInputs(prev => ({ ...prev, insurance: Number(e.target.value) || 0 }))}
-                            className="w-24 text-right h-7 text-sm"
+                            className="w-24 text-right h-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0"
                           />
                         </div>
@@ -255,7 +255,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                             type="number" 
                             value={pitiInputs.mi || ''} 
                             onChange={(e) => setPitiInputs(prev => ({ ...prev, mi: Number(e.target.value) || 0 }))}
-                            className="w-24 text-right h-7 text-sm"
+                            className="w-24 text-right h-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0"
                           />
                         </div>
@@ -269,7 +269,7 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
                             type="number" 
                             value={pitiInputs.hoa || ''} 
                             onChange={(e) => setPitiInputs(prev => ({ ...prev, hoa: Number(e.target.value) || 0 }))}
-                            className="w-24 text-right h-7 text-sm"
+                            className="w-24 text-right h-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="0"
                           />
                         </div>
@@ -305,94 +305,52 @@ export function ResultsModal({ open, onOpenChange, run, onRunAgain }: ResultsMod
             </Card>
           </div>
 
-          {/* RIGHT SIDE: All detail cards stacked vertically (2/3 width) */}
-          <div className="md:col-span-2 space-y-3">
-            {/* Borrower - Single line */}
-            <div className="text-sm">
-              <span className="text-muted-foreground">Borrower: </span>
-              <span className="font-medium">{run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}</span>
+          {/* RIGHT SIDE: All details stacked vertically (2/3 width) */}
+          <div className="md:col-span-2">
+            <div className="space-y-2">
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Borrower</span>
+                <span className="text-sm font-medium">{run.leads ? `${run.leads.first_name} ${run.leads.last_name}` : 'Direct Run'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Property Type</span>
+                <span className="text-sm font-medium">{scenario?.property_type || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Units</span>
+                <span className="text-sm font-medium">{scenario?.num_units || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Occupancy</span>
+                <span className="text-sm font-medium">{scenario?.occupancy || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">ZIP</span>
+                <span className="text-sm font-medium">{scenario?.zip_code || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">State</span>
+                <span className="text-sm font-medium">{getStateFromZip(scenario?.zip_code)}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Purchase Price</span>
+                <span className="text-sm font-medium">{scenario?.purchase_price ? formatCurrency(scenario.purchase_price) : 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Loan Amount</span>
+                <span className="text-sm font-medium">{scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-sm text-muted-foreground">Purpose</span>
+                <span className="text-sm font-medium">Purchase</span>
+              </div>
+              {scenario?.dscr_ratio && (
+                <div className="flex justify-between py-1 border-t border-border/50">
+                  <span className="text-sm text-muted-foreground">DSCR Ratio</span>
+                  <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
+                </div>
+              )}
             </div>
-
-            {/* Property Details Card */}
-            <Card className="p-3">
-              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Property Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between">
-                  <span className="text-sm">Property Type:</span>
-                  <span className="text-sm font-medium">{scenario?.property_type || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Occupancy:</span>
-                  <span className="text-sm font-medium">{scenario?.occupancy || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Units:</span>
-                  <span className="text-sm font-medium">{scenario?.num_units || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">ZIP / State:</span>
-                  <span className="text-sm font-medium">{scenario?.zip_code || 'N/A'} / {getStateFromZip(scenario?.zip_code)}</span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Loan Details Card */}
-            <Card className="p-3">
-              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Loan Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between">
-                  <span className="text-sm">Purchase Price:</span>
-                  <span className="text-sm font-medium">
-                    {scenario?.purchase_price ? formatCurrency(scenario.purchase_price) : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Loan Amount:</span>
-                  <span className="text-sm font-medium">
-                    {scenario?.loan_amount ? formatCurrency(scenario.loan_amount) : 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            {/* Loan Program Card */}
-            <Card className="p-3">
-              <h3 className="font-semibold mb-2 text-sm text-muted-foreground">Loan Program</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between">
-                  <span className="text-sm">Purpose:</span>
-                  <span className="text-sm font-medium">Purchase</span>
-                </div>
-                {scenario?.dscr_ratio && (
-                  <div className="flex justify-between">
-                    <span className="text-sm">DSCR Ratio:</span>
-                    <span className="text-sm font-medium">{scenario.dscr_ratio}</span>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Non-QM Details Card */}
-            {scenario?.program_type === "Non-QM" && (
-              <Card className="p-3 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                <h3 className="font-semibold mb-2 text-sm text-blue-900 dark:text-blue-100">Non-QM Details</h3>
-                <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Income Type:</span>
-                    <Badge variant="secondary" className="text-xs">{scenario.income_type || 'N/A'}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mortgage History:</span>
-                    <Badge variant="secondary" className="text-xs">{scenario.mortgage_history || 'N/A'}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Credit Events:</span>
-                    <Badge variant="secondary" className="text-xs">{scenario.credit_events || 'N/A'}</Badge>
-                  </div>
-                </div>
-              </Card>
-            )}
-
           </div>
         </div>
 
