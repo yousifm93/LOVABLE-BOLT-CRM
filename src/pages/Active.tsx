@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
@@ -1315,31 +1315,31 @@ export default function Active() {
         />
         
         
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
-          <PopoverTrigger asChild>
+        <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <SheetTrigger asChild>
             <Button variant="outline" size="sm">
               <Filter className="h-4 w-4 mr-2" />
               Filter {filters.length > 0 && `(${filters.length})`}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="start">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium">Filter Active Loans</h4>
-                {filters.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                    Clear All
-                  </Button>
-                )}
-              </div>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+            <SheetHeader>
+              <SheetTitle>Filter Active Loans</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4 mt-4">
+              {filters.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                  Clear All Filters
+                </Button>
+              )}
               <FilterBuilder
                 filters={filters}
                 columns={filterColumns}
                 onFiltersChange={setFilters}
               />
             </div>
-          </PopoverContent>
-        </Popover>
+          </SheetContent>
+        </Sheet>
         
         <ColumnVisibilityButton
           columns={columnVisibility}

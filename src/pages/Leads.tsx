@@ -29,7 +29,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
@@ -1050,8 +1050,8 @@ export default function Leads() {
               <Input placeholder="Search new leads..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
-              <PopoverTrigger asChild>
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
                 <Button variant="outline" className="relative">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
@@ -1059,19 +1059,19 @@ export default function Leads() {
                       {filters.length}
                     </Badge>}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="end">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Filter Leads</h4>
-                    {filters.length > 0 && <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
-                        Clear All
-                      </Button>}
-                  </div>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                <SheetHeader>
+                  <SheetTitle>Filter Leads</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {filters.length > 0 && <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
+                      Clear All Filters
+                    </Button>}
                   <FilterBuilder filters={filters} onFiltersChange={setFilters} columns={filterColumns} />
                 </div>
-              </PopoverContent>
-            </Popover>
+              </SheetContent>
+            </Sheet>
             
               <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} onViewSaved={handleViewSaved} />
             
