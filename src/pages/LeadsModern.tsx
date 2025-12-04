@@ -592,7 +592,7 @@ export function LeadsModern() {
               />
             </div>
             
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="relative h-8">
                   <Filter className="h-4 w-4 mr-2" />
