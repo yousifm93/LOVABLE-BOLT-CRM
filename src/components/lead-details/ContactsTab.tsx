@@ -5,10 +5,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, ChevronsUpDown, X, Plus, Building, User, Phone, Mail, ClipboardCheck } from "lucide-react";
+import { Check, ChevronsUpDown, X, Plus, Building, User, Phone, Mail, ClipboardCheck, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
+
+interface Lender {
+  id: string;
+  lender_name: string;
+  lender_type: string;
+  account_executive: string | null;
+  account_executive_email: string | null;
+}
 
 interface Contact {
   id: string;
@@ -31,11 +40,11 @@ interface ContactsTabProps {
 }
 
 const CONTACT_TYPES = [
-  { key: 'buyers_agent', label: "Buyer's Agent", icon: User },
-  { key: 'listing_agent', label: 'Listing Agent', icon: Building },
-  { key: 'title', label: 'Title Company', icon: Building },
-  { key: 'insurance', label: 'Insurance Provider', icon: Building },
-  { key: 'appraisal', label: 'Appraisal Company', icon: ClipboardCheck },
+  { key: 'lender', label: 'Lender', icon: Landmark, type: 'lender' },
+  { key: 'account_executive', label: 'Account Executive', icon: User, type: 'readonly' },
+  { key: 'title', label: 'Title Company', icon: Building, type: 'contact' },
+  { key: 'insurance', label: 'Insurance Provider', icon: Building, type: 'contact' },
+  { key: 'appraisal', label: 'Appraisal Company', icon: ClipboardCheck, type: 'contact' },
 ];
 
 function ContactRow({ type, label, icon: Icon, assignment, contacts, onAssign, onRemove, onAddNew }: {
@@ -248,13 +257,15 @@ function AddContactModal({ isOpen, onClose, onSave, contactType }: {
 export function ContactsTab({ leadId }: ContactsTabProps) {
   const [assignments, setAssignments] = useState<ExternalContact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [lenders, setLenders] = useState<Lender[]>([]);
+  const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([loadAssignments(), loadContacts()]);
+    Promise.all([loadAssignments(), loadContacts(), loadLenders()]);
   }, [leadId]);
 
   const loadAssignments = async () => {
@@ -280,6 +291,20 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLenders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lenders')
+        .select('*')
+        .order('lender_name');
+
+      if (error) throw error;
+      setLenders(data || []);
+    } catch (error) {
+      console.error('Error loading lenders:', error);
     }
   };
 
@@ -349,6 +374,43 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
     <>
       <div className="space-y-1">
         {CONTACT_TYPES.map(contactType => {
+          // Handle lender type differently
+          if (contactType.type === 'lender') {
+            return (
+              <div key={contactType.key} className="py-3 border-b">
+                <div className="flex items-center gap-2 mb-2">
+                  <contactType.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">{contactType.label}</span>
+                </div>
+                <div className="pl-5">
+                  <InlineEditApprovedLender
+                    value={selectedLender}
+                    lenders={lenders}
+                    onValueChange={(lender) => setSelectedLender(lender as Lender | null)}
+                    placeholder="Select lender..."
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          // Handle readonly account executive
+          if (contactType.type === 'readonly') {
+            return (
+              <div key={contactType.key} className="py-3 border-b">
+                <div className="flex items-center gap-2 mb-2">
+                  <contactType.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">{contactType.label}</span>
+                </div>
+                <div className="text-sm text-muted-foreground pl-5">
+                  {selectedLender?.account_executive 
+                    ? `${selectedLender.account_executive}${selectedLender.account_executive_email ? ` (${selectedLender.account_executive_email})` : ''}`
+                    : 'Select lender first'}
+                </div>
+              </div>
+            );
+          }
+
           const assignment = assignments.find(a => a.type === contactType.key);
           
           return (
