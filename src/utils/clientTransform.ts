@@ -269,5 +269,19 @@ export function transformLeadToClient(lead: any): any {
     
     // PITI
     piti: lead.piti || null,
+    
+    // Active File Document fields (for green background display)
+    le_file: lead.le_file || null,
+    contract_file: lead.contract_file || null,
+    initial_approval_file: lead.initial_approval_file || null,
+    disc_file: lead.disc_file || null,
+    appraisal_file: lead.appraisal_file || null,
+    insurance_file: lead.insurance_file || null,
+    icd_file: lead.icd_file || null,
+    fcp_file: lead.fcp_file || null,
+    inspection_file: lead.inspection_file || null,
+    title_file: lead.title_file || null,
+    condo_file: lead.condo_file || null,
+    rate_lock_file: lead.rate_lock_file || null,
   };
 }
