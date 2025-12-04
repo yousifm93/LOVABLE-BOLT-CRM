@@ -29,11 +29,32 @@ serve(async (req) => {
       );
     }
 
+    // Get current date for natural language date parsing
+    const currentDate = new Date().toISOString().split('T')[0];
+
     const systemPrompt = `You are an assistant that analyzes voice transcriptions from mortgage loan officers to detect field update requests for their CRM leads.
+
+Current date is: ${currentDate}
 
 Analyze the transcription and extract any field update requests. Only extract updates that are clearly stated - do not infer or guess.
 
+IMPORTANT - CALCULATIONS:
+- If user mentions a purchase price/sales price AND a down payment percentage, calculate BOTH:
+  - sales_price: the full purchase price
+  - loan_amount: calculated as sales_price * (1 - down_payment_percentage/100)
+  - Example: "400,000 with 20% down" → sales_price: 400000, loan_amount: 320000
+- If user mentions "400K" or "400 thousand", convert to 400000
+
+IMPORTANT - DATE PARSING:
+- Parse natural language dates relative to current date (${currentDate})
+- "next Sunday" or "this Sunday" → calculate the actual date
+- "December 14th" or "12/14" → use current year unless context suggests otherwise
+- Always return dates in YYYY-MM-DD format
+
 Available fields that can be updated (use exact field names):
+- sales_price (number) - also called "purchase price", "asking price", "price"
+- loan_amount (number) - calculated if down payment % given
+- down_pmt (string) - down payment amount or percentage
 - appraisal_eta (date, format: YYYY-MM-DD)
 - appraisal_status (values: Not Ordered, Ordered, Scheduled, Completed, Received, Review, Revision)
 - appraisal_value (number)
@@ -46,7 +67,7 @@ Available fields that can be updated (use exact field names):
 - loan_status (values: NEW, RFP, SUB, COND, CTC, DOCS, FUNDED, Suspended)
 - disclosure_status (values: Not Sent, Sent, Signed)
 - close_date (date, format: YYYY-MM-DD)
-- lock_expiration_date (date, format: YYYY-MM-DD)
+- lock_expiration_date (date, format: YYYY-MM-DD) - also called "lock expiration", "rate lock expiration"
 - loan_amount (number)
 - sales_price (number)
 - interest_rate (percentage number, e.g., 6.5)
@@ -54,6 +75,11 @@ Available fields that can be updated (use exact field names):
 - ba_status (values: Pending, Approved, Rejected, N/A)
 - package_status (values: Not Started, In Progress, Review, Final, Shipped)
 - epo_status (values: Not Started, In Review, Approved, Rejected)
+- property_type (values: Single Family, Condo, Townhouse, Multi-Family, Other)
+- occupancy (values: Primary Residence, Second Home, Investment)
+- loan_program (values: Conventional, FHA, VA, USDA, DSCR, Non-QM, Jumbo, Other) - also called "loan type"
+- dscr_ratio (number between 0-2, e.g., 1.0, 1.25)
+- fico_score (number) - also called "credit score"
 
 Current lead data for context:
 ${JSON.stringify(currentLeadData, null, 2)}
@@ -63,6 +89,25 @@ Return a JSON array of detected updates. Each update should have:
 - fieldLabel: a human-readable label for the field
 - currentValue: the current value from the lead data (or null if not set)
 - newValue: the new value to set (properly formatted)
+
+EXAMPLES:
+- "The borrower is looking to purchase around 400,000 with 20% down" →
+  [
+    {"field": "sales_price", "fieldLabel": "Sales Price", "currentValue": null, "newValue": 400000},
+    {"field": "loan_amount", "fieldLabel": "Loan Amount", "currentValue": null, "newValue": 320000}
+  ]
+- "It's a DSCR loan with ratio of 1.25" →
+  [
+    {"field": "loan_program", "fieldLabel": "Loan Program", "currentValue": null, "newValue": "DSCR"},
+    {"field": "dscr_ratio", "fieldLabel": "DSCR Ratio", "currentValue": null, "newValue": 1.25}
+  ]
+- "They want to buy a condo as an investment" →
+  [
+    {"field": "property_type", "fieldLabel": "Property Type", "currentValue": null, "newValue": "Condo"},
+    {"field": "occupancy", "fieldLabel": "Occupancy", "currentValue": null, "newValue": "Investment"}
+  ]
+- "Lock expiration is next Sunday December 14th" →
+  [{"field": "lock_expiration_date", "fieldLabel": "Lock Expiration Date", "currentValue": null, "newValue": "2024-12-14"}]
 
 Only return updates where the user clearly intends to change a field value. If no field updates are detected, return an empty array.
 
