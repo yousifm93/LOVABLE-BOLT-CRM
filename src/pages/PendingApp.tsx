@@ -926,7 +926,7 @@ const allAvailableColumns = useMemo(() => {
               />
             </div>
             
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="relative">
                   <Filter className="h-4 w-4 mr-2" />

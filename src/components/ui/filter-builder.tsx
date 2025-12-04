@@ -162,7 +162,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Select value" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[100]">
             {options.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
@@ -185,7 +185,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               {relativeValues.map((rv) => (
                 <SelectItem key={rv.value} value={rv.value}>
                   {rv.label}
@@ -217,7 +217,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
                     : "Start"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
                 <Calendar
                   mode="single"
                   selected={filter.value instanceof Date ? filter.value : filter.value ? new Date(filter.value) : undefined}
@@ -244,7 +244,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
                     : "End"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
                 <Calendar
                   mode="single"
                   selected={filter.endValue instanceof Date ? filter.endValue : filter.endValue ? new Date(filter.endValue as string) : undefined}
@@ -276,7 +276,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
                 : "Pick a date"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 z-[100]" align="start">
             <Calendar
               mode="single"
               selected={filter.value instanceof Date ? filter.value : filter.value ? new Date(filter.value) : undefined}
@@ -330,7 +330,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select field" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               {columns.map((column) => (
                 <SelectItem key={column.value} value={column.value}>
                   {column.label}
@@ -352,7 +352,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100]">
               {getOperators(filter.column).map((operator) => (
                 <SelectItem key={operator.value} value={operator.value}>
                   {operator.label}
