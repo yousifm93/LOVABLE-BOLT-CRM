@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Lock, Unlock, Pencil } from "lucide-react";
+import { Search, Filter, X, Pencil } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -1312,22 +1312,6 @@ export default function Active() {
           className="w-64"
         />
         
-        <Button
-          variant={sortLocked ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            const newValue = !sortLocked;
-            setSortLocked(newValue);
-            localStorage.setItem('active-sort-locked', JSON.stringify(newValue));
-            toast({
-              title: newValue ? "Sort Locked" : "Sort Unlocked",
-              description: newValue ? "Loans will stay in creation order" : "You can now sort by any column",
-            });
-          }}
-          title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
-        >
-          {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-        </Button>
         
         <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <PopoverTrigger asChild>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFields } from "@/contexts/FieldsContext";
-import { Search, Plus, Filter, Phone, Mail, Clock, Lock, Unlock, X } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -961,24 +961,6 @@ const allAvailableColumns = useMemo(() => {
               />
             </div>
             
-            <Button
-              variant={sortLocked ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                const newValue = !sortLocked;
-                setSortLocked(newValue);
-                localStorage.setItem('screening-sort-locked', JSON.stringify(newValue));
-                toast({
-                  title: newValue ? "View Locked" : "View Unlocked",
-                  description: newValue 
-                    ? "Sorting, resizing, and reordering are now locked" 
-                    : "You can now sort, resize, and reorder columns",
-                });
-              }}
-              title={sortLocked ? "Unlock view customization" : "Lock view customization"}
-            >
-              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-            </Button>
             
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
