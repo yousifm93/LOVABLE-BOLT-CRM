@@ -9,7 +9,7 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
-import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
@@ -1046,7 +1046,7 @@ const allAvailableColumns = useMemo(() => {
                   </Button>
                 </div>
               </div>
-              <FilterBuilder
+              <SimpleFilterBuilder
                 filters={filters}
                 onFiltersChange={setFilters}
                 columns={filterColumns}

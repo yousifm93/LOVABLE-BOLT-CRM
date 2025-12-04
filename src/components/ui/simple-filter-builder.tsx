@@ -1,11 +1,9 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CalendarIcon, X, Save } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -21,7 +19,7 @@ export interface FilterCondition {
   endValue?: string | Date;
 }
 
-interface FilterBuilderProps {
+interface SimpleFilterBuilderProps {
   filters: FilterCondition[];
   onFiltersChange: (filters: FilterCondition[]) => void;
   columns: Array<{ value: string; label: string; type?: 'date' | 'text' | 'select' | 'number'; options?: string[] }>;
@@ -78,21 +76,44 @@ const relativeValues = [
   { value: '90_days', label: '90 days' },
 ];
 
-// Native select inline styles to ensure dropdowns work
-const nativeSelectStyle: React.CSSProperties = {
-  position: 'relative',
-  zIndex: 9999,
-  pointerEvents: 'auto',
+// Pure inline styles - matching the working test select
+const selectStyle: React.CSSProperties = {
+  height: '40px',
+  fontSize: '14px',
   cursor: 'pointer',
-  WebkitAppearance: 'menulist',
-  appearance: 'menulist',
+  background: 'white',
+  border: '1px solid #e2e8f0',
+  borderRadius: '6px',
+  padding: '0 12px',
+  color: '#1a1a1a',
 };
 
-// Native select styling to match design system with filter-select class for CSS fixes
-const nativeSelectClasses = "filter-select h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const inputStyle: React.CSSProperties = {
+  height: '40px',
+  fontSize: '14px',
+  background: 'white',
+  border: '1px solid #e2e8f0',
+  borderRadius: '6px',
+  padding: '0 12px',
+  color: '#1a1a1a',
+  width: '160px',
+};
 
-export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView, showSaveAsView = true }: FilterBuilderProps) {
+export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveAsView, showSaveAsView = true }: SimpleFilterBuilderProps) {
   const [viewName, setViewName] = useState("");
+
+  // Auto-add first filter row when component mounts with empty filters
+  useEffect(() => {
+    if (filters.length === 0) {
+      const newFilter: FilterCondition = {
+        id: Date.now().toString(),
+        column: '',
+        operator: 'is',
+        value: '',
+      };
+      onFiltersChange([newFilter]);
+    }
+  }, []); // Only run on mount
 
   const addFilter = () => {
     const newFilter: FilterCondition = {
@@ -140,7 +161,6 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
 
   const handleColumnChange = (filterId: string, newColumn: string) => {
     updateFilter(filterId, 'column', newColumn);
-    // Reset operator to first valid one for new column type
     const ops = getOperators(newColumn);
     updateFilter(filterId, 'operator', ops[0]?.value || 'is');
     updateFilter(filterId, 'value', '');
@@ -148,24 +168,21 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
 
   const handleOperatorChange = (filterId: string, newOperator: string) => {
     updateFilter(filterId, 'operator', newOperator);
-    // Clear value when switching operators
     updateFilter(filterId, 'value', '');
     updateFilter(filterId, 'endValue', undefined);
   };
 
   const renderValueInput = (filter: FilterCondition) => {
-    // Hide value input for is_empty/is_not_empty operators
     if (filter.operator === 'is_empty' || filter.operator === 'is_not_empty') {
       return null;
     }
 
-    // Show placeholder when no column selected
     if (!filter.column) {
       return (
-        <Input
+        <input
           placeholder="Select field first"
           disabled
-          className="w-40"
+          style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }}
         />
       );
     }
@@ -173,14 +190,13 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
     const columnType = getColumnType(filter.column);
     const options = getColumnOptions(filter.column);
 
-    // Select type - show native dropdown with options
+    // Select type
     if (columnType === 'select' && options.length > 0) {
       return (
         <select
           value={filter.value as string}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-          className={cn(nativeSelectClasses, "w-40")}
-          style={nativeSelectStyle}
+          style={{ ...selectStyle, width: '160px' }}
         >
           <option value="">Select value</option>
           {options.map((option) => (
@@ -192,16 +208,14 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
       );
     }
 
-    // Date type - show calendar picker or relative values
+    // Date type
     if (columnType === 'date') {
-      // For "is in last" operator, show relative options
       if (filter.operator === 'is_in_last') {
         return (
           <select
             value={filter.value as string}
             onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-            className={cn(nativeSelectClasses, "w-40")}
-            style={nativeSelectStyle}
+            style={{ ...selectStyle, width: '160px' }}
           >
             <option value="">Select period</option>
             {relativeValues.map((rv) => (
@@ -213,20 +227,16 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
         );
       }
 
-      // For "is between", show two date pickers
       if (filter.operator === 'is_between') {
         return (
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn(
-                    "w-32 justify-start text-left font-normal",
-                    !filter.value && "text-muted-foreground"
-                  )}
+                  style={{ width: '120px', justifyContent: 'flex-start', textAlign: 'left', fontWeight: 'normal' }}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon style={{ marginRight: '8px', height: '16px', width: '16px' }} />
                   {filter.value instanceof Date
                     ? format(filter.value, "MMM dd")
                     : filter.value
@@ -243,17 +253,14 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
                 />
               </PopoverContent>
             </Popover>
-            <span className="text-muted-foreground">and</span>
+            <span style={{ color: '#6b7280' }}>and</span>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn(
-                    "w-32 justify-start text-left font-normal",
-                    !filter.endValue && "text-muted-foreground"
-                  )}
+                  style={{ width: '120px', justifyContent: 'flex-start', textAlign: 'left', fontWeight: 'normal' }}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon style={{ marginRight: '8px', height: '16px', width: '16px' }} />
                   {filter.endValue instanceof Date
                     ? format(filter.endValue, "MMM dd")
                     : filter.endValue
@@ -274,18 +281,14 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
         );
       }
 
-      // Default: show calendar picker
       return (
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn(
-                "w-40 justify-start text-left font-normal",
-                !filter.value && "text-muted-foreground"
-              )}
+              style={{ width: '160px', justifyContent: 'flex-start', textAlign: 'left', fontWeight: 'normal' }}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon style={{ marginRight: '8px', height: '16px', width: '16px' }} />
               {filter.value instanceof Date
                 ? format(filter.value, "MMM dd, yyyy")
                 : filter.value
@@ -305,40 +308,50 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
       );
     }
 
-    // Number type - show number input
+    // Number type
     if (columnType === 'number') {
       return (
-        <Input
+        <input
           type="number"
           placeholder="Enter number"
           value={filter.value as string}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-          className="w-40"
+          style={inputStyle}
         />
       );
     }
 
-    // Text type - show text input
+    // Text type
     return (
-      <Input
+      <input
         placeholder="Enter value"
         value={filter.value as string}
         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-        className="w-40"
+        style={inputStyle}
       />
     );
   };
 
   return (
-    <div className="space-y-3" data-filter-section="true">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {filters.map((filter) => (
-        <div key={filter.id} className="flex items-center gap-2 p-3 bg-muted rounded-lg flex-wrap">
-          {/* Column Select - Native HTML */}
+        <div 
+          key={filter.id} 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            padding: '12px', 
+            background: '#f4f4f5', 
+            borderRadius: '8px',
+            flexWrap: 'wrap'
+          }}
+        >
+          {/* Column Select */}
           <select
             value={filter.column}
             onChange={(e) => handleColumnChange(filter.id, e.target.value)}
-            className={cn(nativeSelectClasses, "w-48")}
-            style={nativeSelectStyle}
+            style={{ ...selectStyle, width: '200px' }}
           >
             <option value="">Select field</option>
             {columns.map((column) => (
@@ -348,12 +361,11 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             ))}
           </select>
 
-          {/* Operator Select - Native HTML */}
+          {/* Operator Select */}
           <select
             value={filter.operator}
             onChange={(e) => handleOperatorChange(filter.id, e.target.value)}
-            className={cn(nativeSelectClasses, "w-36")}
-            style={nativeSelectStyle}
+            style={{ ...selectStyle, width: '140px' }}
           >
             {getOperators(filter.column).map((operator) => (
               <option key={operator.value} value={operator.value}>
@@ -362,7 +374,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             ))}
           </select>
 
-          {/* Value Input - Dynamic based on column type */}
+          {/* Value Input */}
           {renderValueInput(filter)}
 
           {/* Remove Filter */}
@@ -370,9 +382,9 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             variant="ghost"
             size="icon"
             onClick={() => removeFilter(filter.id)}
-            className="h-8 w-8 shrink-0"
+            style={{ height: '32px', width: '32px', flexShrink: 0 }}
           >
-            <X className="h-4 w-4" />
+            <X style={{ height: '16px', width: '16px' }} />
           </Button>
         </div>
       ))}
@@ -380,7 +392,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
       <Button
         variant="outline"
         onClick={addFilter}
-        className="w-full"
+        style={{ width: '100%' }}
       >
         Add Filter
       </Button>
@@ -388,28 +400,28 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
       {/* Save as New View Section */}
       {showSaveAsView && onSaveAsView && filters.length > 0 && (
         <>
-          <Separator className="my-3" />
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Save filters as a new view</label>
-            <div className="flex gap-2">
-              <Input
+          <Separator style={{ margin: '12px 0' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 500, color: '#6b7280' }}>Save filters as a new view</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
                 placeholder="View name"
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
-                className="flex-1"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSaveAsView();
                   }
                 }}
+                style={{ ...inputStyle, flex: 1, width: 'auto' }}
               />
               <Button
                 onClick={handleSaveAsView}
                 disabled={!viewName.trim()}
                 size="sm"
-                className="gap-1"
+                style={{ display: 'flex', gap: '4px', alignItems: 'center' }}
               >
-                <Save className="h-4 w-4" />
+                <Save style={{ height: '16px', width: '16px' }} />
                 Save View
               </Button>
             </div>
@@ -419,3 +431,6 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
     </div>
   );
 }
+
+// Re-export FilterCondition type for backward compatibility
+export type { FilterCondition as FilterBuilderCondition };

@@ -28,7 +28,7 @@ import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
 // Sheet removed - using inline filters
 import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
@@ -1109,7 +1109,7 @@ export default function Leads() {
                   </Button>
                 </div>
               </div>
-              <FilterBuilder filters={filters} onFiltersChange={setFilters} columns={filterColumns} />
+              <SimpleFilterBuilder filters={filters} onFiltersChange={setFilters} columns={filterColumns} />
             </div>
           </div>
         )}
