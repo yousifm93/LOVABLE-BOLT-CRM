@@ -78,6 +78,16 @@ const relativeValues = [
   { value: '90_days', label: '90 days' },
 ];
 
+// Native select inline styles to ensure dropdowns work
+const nativeSelectStyle: React.CSSProperties = {
+  position: 'relative',
+  zIndex: 9999,
+  pointerEvents: 'auto',
+  cursor: 'pointer',
+  WebkitAppearance: 'menulist',
+  appearance: 'menulist',
+};
+
 // Native select styling to match design system with filter-select class for CSS fixes
 const nativeSelectClasses = "filter-select h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -170,6 +180,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           value={filter.value as string}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
           className={cn(nativeSelectClasses, "w-40")}
+          style={nativeSelectStyle}
         >
           <option value="">Select value</option>
           {options.map((option) => (
@@ -190,6 +201,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             value={filter.value as string}
             onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
             className={cn(nativeSelectClasses, "w-40")}
+            style={nativeSelectStyle}
           >
             <option value="">Select period</option>
             {relativeValues.map((rv) => (
@@ -326,6 +338,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             value={filter.column}
             onChange={(e) => handleColumnChange(filter.id, e.target.value)}
             className={cn(nativeSelectClasses, "w-48")}
+            style={nativeSelectStyle}
           >
             <option value="">Select field</option>
             {columns.map((column) => (
@@ -340,6 +353,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             value={filter.operator}
             onChange={(e) => handleOperatorChange(filter.id, e.target.value)}
             className={cn(nativeSelectClasses, "w-36")}
+            style={nativeSelectStyle}
           >
             {getOperators(filter.column).map((operator) => (
               <option key={operator.value} value={operator.value}>
