@@ -44,6 +44,8 @@ const textOperators = [
   { value: 'contains', label: 'contains' },
   { value: 'does_not_contain', label: "doesn't contain" },
   { value: 'starts_with', label: 'starts with' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
 ];
 
 const numberOperators = [
@@ -53,6 +55,8 @@ const numberOperators = [
   { value: 'less_than', label: 'less than' },
   { value: 'greater_or_equal', label: 'greater or equal' },
   { value: 'less_or_equal', label: 'less or equal' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
 ];
 
 const dateOperators = [
@@ -62,11 +66,15 @@ const dateOperators = [
   { value: 'is_before', label: 'is before' },
   { value: 'is_in_last', label: 'is in last' },
   { value: 'is_between', label: 'is between' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
 ];
 
 const selectOperators = [
   { value: 'is', label: 'is' },
   { value: 'is_not', label: 'is not' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
 ];
 
 const relativeValues = [
@@ -125,6 +133,22 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
   };
 
   const renderValueInput = (filter: FilterCondition) => {
+    // Hide value input for is_empty/is_not_empty operators
+    if (filter.operator === 'is_empty' || filter.operator === 'is_not_empty') {
+      return null;
+    }
+
+    // Show placeholder when no column selected
+    if (!filter.column) {
+      return (
+        <Input
+          placeholder="Select field first"
+          disabled
+          className="w-40"
+        />
+      );
+    }
+
     const columnType = getColumnType(filter.column);
     const options = getColumnOptions(filter.column);
 
@@ -135,7 +159,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           value={filter.value as string}
           onValueChange={(value) => updateFilter(filter.id, 'value', value)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="Select value" />
           </SelectTrigger>
           <SelectContent>
@@ -158,7 +182,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             value={filter.value as string}
             onValueChange={(value) => updateFilter(filter.id, 'value', value)}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
             <SelectContent>
@@ -240,7 +264,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <Button
               variant="outline"
               className={cn(
-                "w-44 justify-start text-left font-normal",
+                "w-40 justify-start text-left font-normal",
                 !filter.value && "text-muted-foreground"
               )}
             >
@@ -272,7 +296,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           placeholder="Enter number"
           value={filter.value as string}
           onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-          className="w-44"
+          className="w-40"
         />
       );
     }
@@ -283,7 +307,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
         placeholder="Enter value"
         value={filter.value as string}
         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-        className="w-44"
+        className="w-40"
       />
     );
   };
@@ -338,7 +362,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           </Select>
 
           {/* Value Input - Dynamic based on column type */}
-          {filter.column && renderValueInput(filter)}
+          {renderValueInput(filter)}
 
           {/* Remove Filter */}
           <Button
