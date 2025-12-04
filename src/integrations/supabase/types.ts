@@ -1947,6 +1947,7 @@ export type Database = {
             | null
           dob: string | null
           down_pmt: string | null
+          dscr_ratio: number | null
           dti: number | null
           email: string | null
           epo_status: Database["public"]["Enums"]["epo_status"] | null
@@ -2015,11 +2016,13 @@ export type Database = {
           pr_type: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at: string | null
           pre_qualified_at: string | null
+          prepayment_penalty: string | null
           principal_interest: number | null
           priority: string | null
           program: string | null
           property_taxes: number | null
           property_type: string | null
+          rate_lock_file: string | null
           referral_source: Database["public"]["Enums"]["referral_source"] | null
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           reo: boolean | null
@@ -2105,6 +2108,7 @@ export type Database = {
             | null
           dob?: string | null
           down_pmt?: string | null
+          dscr_ratio?: number | null
           dti?: number | null
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
@@ -2173,11 +2177,13 @@ export type Database = {
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
+          prepayment_penalty?: string | null
           principal_interest?: number | null
           priority?: string | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null
+          rate_lock_file?: string | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
             | null
@@ -2265,6 +2271,7 @@ export type Database = {
             | null
           dob?: string | null
           down_pmt?: string | null
+          dscr_ratio?: number | null
           dti?: number | null
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
@@ -2333,11 +2340,13 @@ export type Database = {
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
+          prepayment_penalty?: string | null
           principal_interest?: number | null
           priority?: string | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null
+          rate_lock_file?: string | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
             | null

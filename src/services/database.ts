@@ -89,6 +89,18 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
 
 // Database service functions
 export const databaseService = {
+  // Check if lead has associated tasks
+  async getTasksCountForLead(leadId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('borrower_id', leadId)
+      .is('deleted_at', null);
+
+    if (error) throw error;
+    return count || 0;
+  },
+
   // Mortgage Applications
   async saveApplication(userId: string, applicationData: any, status: string = 'draft') {
     const { data, error } = await supabase

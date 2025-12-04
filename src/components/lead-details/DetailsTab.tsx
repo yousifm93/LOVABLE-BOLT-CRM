@@ -31,7 +31,8 @@ import {
   ArrowRightLeft,
   FileText,
   Phone,
-  Mail
+  Mail,
+  Lock
 } from "lucide-react";
 import { 
   formatCurrency, 
@@ -103,6 +104,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     mortgage_insurance: (client as any).mortgageInsurance || null,
     hoa_dues: (client as any).hoaDues || null,
     piti: client.piti || null,
+    // Rate Lock fields
+    lock_expiration_date: (client as any).lock_expiration_date || null,
+    dscr_ratio: (client as any).dscr_ratio || null,
+    prepayment_penalty: (client as any).prepayment_penalty || "",
   });
 
   // Helper function for PITI calculation
@@ -178,6 +183,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       mortgage_insurance: (client as any).mortgageInsurance || null,
       hoa_dues: (client as any).hoaDues || null,
       piti: client.piti || null,
+      // Rate Lock fields
+      lock_expiration_date: (client as any).lock_expiration_date || null,
+      dscr_ratio: (client as any).dscr_ratio || null,
+      prepayment_penalty: (client as any).prepayment_penalty || "",
     });
   };
 
@@ -251,6 +260,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         mortgage_insurance: editData.mortgage_insurance,
         hoa_dues: editData.hoa_dues,
         piti: editData.piti,
+        
+        // Rate Lock fields
+        lock_expiration_date: editData.lock_expiration_date,
+        dscr_ratio: editData.dscr_ratio,
+        prepayment_penalty: editData.prepayment_penalty || null,
       });
 
       setIsEditing(false);
@@ -921,6 +935,114 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Property</h4>
             <FourColumnDetailLayout items={propertyData} />
+          </div>
+
+          {/* Rate Lock Information Subheading */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Rate Lock Information</h4>
+            <FourColumnDetailLayout items={[
+              { 
+                icon: Percent, 
+                label: "Interest Rate", 
+                value: client.loan?.interestRate ? `${client.loan.interestRate}%` : "—",
+                editComponent: isEditing ? (
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={editData.interest_rate || ""}
+                    onChange={(e) => setEditData({ ...editData, interest_rate: parseFloat(e.target.value) || null })}
+                    className="h-8"
+                    placeholder="7.0"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Calendar, 
+                label: "Lock Expiration", 
+                value: formatDate((client as any).lock_expiration_date),
+                editComponent: isEditing ? (
+                  <Input
+                    type="date"
+                    value={editData.lock_expiration_date || ""}
+                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
+                    className="h-8"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Calculator, 
+                label: "DSCR Ratio", 
+                value: (client as any).dscr_ratio ? String((client as any).dscr_ratio) : "—",
+                editComponent: isEditing ? (
+                  <Input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    max="2"
+                    value={editData.dscr_ratio || ""}
+                    onChange={(e) => setEditData({ ...editData, dscr_ratio: parseFloat(e.target.value) || null })}
+                    className="h-8"
+                    placeholder="1.25"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Lock, 
+                label: "Prepayment Penalty", 
+                value: (client as any).prepayment_penalty ? `${(client as any).prepayment_penalty} Year${(client as any).prepayment_penalty !== "1" ? "s" : ""}` : "—",
+                editComponent: isEditing ? (
+                  <Select
+                    value={editData.prepayment_penalty}
+                    onValueChange={(value) => setEditData({ ...editData, prepayment_penalty: value })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select years" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 Years</SelectItem>
+                      <SelectItem value="1">1 Year</SelectItem>
+                      <SelectItem value="2">2 Years</SelectItem>
+                      <SelectItem value="3">3 Years</SelectItem>
+                      <SelectItem value="4">4 Years</SelectItem>
+                      <SelectItem value="5">5 Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : undefined
+              },
+              { 
+                icon: Calendar, 
+                label: "Amortization Term", 
+                value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
+                editComponent: isEditing ? (
+                  <Input
+                    type="number"
+                    value={editData.term || ""}
+                    onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
+                    className="h-8"
+                    placeholder="360"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Building, 
+                label: "Escrow Waiver", 
+                value: (client as any).escrows || formatYesNo(client.loan?.escrowWaiver || false),
+                editComponent: isEditing ? (
+                  <Select
+                    value={editData.escrows}
+                    onValueChange={(value) => setEditData({ ...editData, escrows: value })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Escrowed">Escrowed</SelectItem>
+                      <SelectItem value="Waived">Waived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : undefined
+              },
+            ]} />
           </div>
         </div>
 

@@ -1093,6 +1093,18 @@ export default function Active() {
     if (!deleteLeadId) return;
     
     try {
+      // Check if lead has associated tasks
+      const taskCount = await databaseService.getTasksCountForLead(deleteLeadId);
+      if (taskCount > 0) {
+        toast({
+          title: "Cannot Delete Lead",
+          description: `This lead has ${taskCount} task${taskCount > 1 ? 's' : ''} associated with it. Please complete or delete the associated tasks first, then try again.`,
+          variant: "destructive",
+        });
+        setDeleteLeadId(null);
+        return;
+      }
+
       await databaseService.deleteLead(deleteLeadId);
       toast({
         title: "Success",
