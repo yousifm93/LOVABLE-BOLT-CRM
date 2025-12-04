@@ -78,8 +78,8 @@ const relativeValues = [
   { value: '90_days', label: '90 days' },
 ];
 
-// Native select styling to match design system
-const nativeSelectClasses = "h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+// Native select styling to match design system with filter-select class for CSS fixes
+const nativeSelectClasses = "filter-select h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView, showSaveAsView = true }: FilterBuilderProps) {
   const [viewName, setViewName] = useState("");
@@ -318,7 +318,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-filter-section="true">
       {filters.map((filter) => (
         <div key={filter.id} className="flex items-center gap-2 p-3 bg-muted rounded-lg flex-wrap">
           {/* Column Select - Native HTML */}

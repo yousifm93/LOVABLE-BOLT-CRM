@@ -346,3 +346,33 @@ All colors MUST be HSL.
 .prose p {
   margin: 0.5rem 0;
 }
+
+/* Native select fix for filter builder */
+.filter-select {
+  position: relative !important;
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  -webkit-appearance: menulist !important;
+  appearance: menulist !important;
+}
+
+/* Force filter section to be interactive */
+[data-filter-section="true"] {
+  position: relative;
+  z-index: 40;
+  pointer-events: auto;
+}
+
+[data-filter-section="true"] * {
+  pointer-events: auto;
+}
+
+[data-filter-section="true"] select {
+  position: relative !important;
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  -webkit-appearance: menulist !important;
+  appearance: menulist !important;
+}
