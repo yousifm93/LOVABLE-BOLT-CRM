@@ -16,7 +16,8 @@ export function DTITab({ leadId }: DTITabProps) {
     piti: null,
     totalMonthlyIncome: null,
   });
-  const [rentalIncome, setRentalIncome] = useState<number>(0);
+  const [grossRentalIncome, setGrossRentalIncome] = useState<number>(0);
+  const [reoExpenses, setReoExpenses] = useState<number>(0);
 
   useEffect(() => {
     loadData();
@@ -39,19 +40,24 @@ export function DTITab({ leadId }: DTITabProps) {
         totalMonthlyIncome: (lead as any)?.total_monthly_income || null,
       });
 
-      // Fetch real estate properties for rental income
+      // Fetch real estate properties for rental income (GROSS, not net)
       const { data: properties, error: propError } = await supabase
         .from('real_estate_properties')
         .select('monthly_rent, monthly_expenses')
         .eq('lead_id', leadId);
 
       if (!propError && properties) {
-        const totalNetRental = properties.reduce((sum, prop) => {
-          const rent = prop.monthly_rent || 0;
-          const expenses = prop.monthly_expenses || 0;
-          return sum + (rent - expenses);
+        // Sum gross rental income (all monthly_rent values)
+        const totalGrossRent = properties.reduce((sum, prop) => {
+          return sum + (prop.monthly_rent || 0);
         }, 0);
-        setRentalIncome(totalNetRental);
+        setGrossRentalIncome(totalGrossRent);
+
+        // Sum REO expenses separately (for debt side)
+        const totalExpenses = properties.reduce((sum, prop) => {
+          return sum + (prop.monthly_expenses || 0);
+        }, 0);
+        setReoExpenses(totalExpenses);
       }
     } catch (error) {
       console.error('Error loading DTI data:', error);
@@ -70,12 +76,14 @@ export function DTITab({ leadId }: DTITabProps) {
     }).format(value);
   };
 
-  const monthlyDebt = leadData.totalMonthlyLiabilities || 0;
+  // Debt side: monthly_liabilities from lead + REO expenses
+  const monthlyDebt = (leadData.totalMonthlyLiabilities || 0) + reoExpenses;
   const piti = leadData.piti || 0;
   const totalDebt = monthlyDebt + piti;
 
+  // Income side: total_monthly_income + gross rental income
   const monthlyIncome = leadData.totalMonthlyIncome || 0;
-  const totalIncome = monthlyIncome + rentalIncome;
+  const totalIncome = monthlyIncome + grossRentalIncome;
 
   // Front-end DTI = PITI / Total Income
   const frontEndDTI = totalIncome > 0 ? (piti / totalIncome) * 100 : 0;
@@ -121,7 +129,7 @@ export function DTITab({ leadId }: DTITabProps) {
           </div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground mb-1">Rental Income</p>
-            <p className="text-sm font-medium">{formatCurrency(rentalIncome)}</p>
+            <p className="text-sm font-medium">{formatCurrency(grossRentalIncome)}</p>
           </div>
           <div className="text-center border-l pl-2">
             <p className="text-xs text-muted-foreground mb-1">Total</p>

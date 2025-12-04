@@ -13,6 +13,7 @@ interface ApplicationData {
     purchasePrice?: string;
     downPaymentAmount?: string;
     comfortableMonthlyPayment?: string;
+    monthlyPayment?: string;
     transactionType?: string;
     location?: {
       city?: string;
@@ -32,6 +33,8 @@ interface ApplicationData {
     cellPhone?: string;
     email: string;
     dateOfBirth?: string;
+    dob?: string;
+    birthDate?: string;
     estimatedCreditScore?: string;
     maritalStatus?: string;
     residencyType?: string;
@@ -39,17 +42,30 @@ interface ApplicationData {
     currentAddress?: {
       street?: string;
       streetAddress?: string;
+      address?: string;
       unit?: string;
       addressLine2?: string;
+      apt?: string;
       city?: string;
       state?: string;
       zipCode?: string;
       zip?: string;
+      postalCode?: string;
     };
+    streetAddress?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    zip?: string;
     yearsAtCurrentAddress?: string | number;
     monthsAtCurrentAddress?: string | number;
     years?: string | number;
     months?: string | number;
+    residenceYears?: string | number;
+    residenceMonths?: string | number;
+    yearsAtAddress?: string | number;
+    monthsAtAddress?: string | number;
     ownOrRent?: string;
     propertyOwnership?: string;
     militaryVeteran?: boolean;
@@ -68,6 +84,7 @@ interface ApplicationData {
     employmentIncomes: Array<any>;
     otherIncomes: Array<any>;
     hasNoIncome?: boolean;
+    totalMonthlyIncome?: number;
   };
   assets?: {
     assets: Array<any>;
@@ -85,6 +102,125 @@ interface ApplicationData {
     gender?: string;
   };
 }
+
+// ============= VALUE NORMALIZATION MAPS =============
+
+// Normalize loan_type to UPPERCASE (matching CRM dropdown)
+const loanTypeMap: Record<string, string> = {
+  'purchase': 'PURCHASE',
+  'refinance': 'REFINANCE',
+  'refi': 'REFINANCE',
+  'heloc': 'HELOC',
+  'cash-out': 'REFINANCE',
+  'cash_out': 'REFINANCE',
+};
+
+// Normalize property_type to match CRM dropdown exactly
+const propertyTypeMap: Record<string, string> = {
+  'single-family': 'Single Family',
+  'single_family': 'Single Family',
+  'singlefamily': 'Single Family',
+  'single family': 'Single Family',
+  'sfr': 'Single Family',
+  'condo': 'Condo',
+  'condominium': 'Condo',
+  'townhouse': 'Townhouse',
+  'townhome': 'Townhouse',
+  'multi-family': 'Multi-Family',
+  'multifamily': 'Multi-Family',
+  'multi_family': 'Multi-Family',
+  '2-4 units': 'Multi-Family',
+  '2-4units': 'Multi-Family',
+  'other': 'Other',
+};
+
+// Normalize occupancy to match CRM dropdown
+const occupancyMap: Record<string, string> = {
+  'primary-residence': 'Primary Home',
+  'primary': 'Primary Home',
+  'primary_residence': 'Primary Home',
+  'primaryhome': 'Primary Home',
+  'primary home': 'Primary Home',
+  'owner-occupied': 'Primary Home',
+  'second-home': 'Second Home',
+  'second_home': 'Second Home',
+  'secondhome': 'Second Home',
+  'second home': 'Second Home',
+  'vacation': 'Second Home',
+  'investment': 'Investment',
+  'rental': 'Investment',
+  'investment property': 'Investment',
+  'non-owner': 'Investment',
+};
+
+// Normalize own/rent to UPPERCASE
+const ownRentMap: Record<string, string> = {
+  'rent': 'RENT',
+  'renting': 'RENT',
+  'renter': 'RENT',
+  'own': 'OWN',
+  'owned': 'OWN',
+  'owner': 'OWN',
+  'living-rent-free': 'Living Rent-Free',
+  'living_rent_free': 'Living Rent-Free',
+  'rent-free': 'Living Rent-Free',
+  'rent free': 'Living Rent-Free',
+};
+
+// Normalize residency type to match CRM dropdown
+const residencyTypeMap: Record<string, string> = {
+  'us-citizen': 'US Citizen',
+  'us_citizen': 'US Citizen',
+  'uscitizen': 'US Citizen',
+  'citizen': 'US Citizen',
+  'us citizen': 'US Citizen',
+  'permanent-resident': 'Permanent Resident',
+  'permanent_resident': 'Permanent Resident',
+  'permanentresident': 'Permanent Resident',
+  'permanent resident': 'Permanent Resident',
+  'green card': 'Permanent Resident',
+  'non-permanent-resident': 'Non-Permanent Resident',
+  'non_permanent_resident': 'Non-Permanent Resident',
+  'nonpermanentresident': 'Non-Permanent Resident',
+  'non-permanent resident': 'Non-Permanent Resident',
+  'visa': 'Non-Permanent Resident',
+  'foreign-national': 'Foreign National',
+  'foreign_national': 'Foreign National',
+  'foreignnational': 'Foreign National',
+  'foreign national': 'Foreign National',
+  'foreign': 'Foreign National',
+};
+
+// Normalize gender to match CRM dropdown
+const genderMap: Record<string, string> = {
+  'male': 'Male',
+  'm': 'Male',
+  'female': 'Female',
+  'f': 'Female',
+  'other': 'Other',
+  'prefer-not-to-say': 'Prefer not to say',
+  'prefer_not_to_say': 'Prefer not to say',
+  'prefernotosay': 'Prefer not to say',
+  'prefer not to say': 'Prefer not to say',
+  'decline': 'Prefer not to say',
+};
+
+// Map marital status values
+const maritalStatusMap: Record<string, string> = {
+  'single': 'Single',
+  'married': 'Married',
+  'separated': 'Separated',
+  'unmarried': 'Single',
+  'divorced': 'Separated',
+  'widowed': 'Single',
+};
+
+// Helper to normalize a value using a map
+const normalizeValue = (value: string | null | undefined, map: Record<string, string>): string | null => {
+  if (!value) return null;
+  const lower = value.toLowerCase().trim();
+  return map[lower] || value;
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -113,9 +249,12 @@ Deno.serve(async (req) => {
     console.log('Mortgage Info:', JSON.stringify(mortgageInfo, null, 2));
     console.log('Income:', JSON.stringify(income, null, 2));
 
-    // Calculate total monthly income - handle both string and number types
+    // ============= INCOME CALCULATION - CHECK ALL POSSIBLE FIELD NAMES =============
     const totalMonthlyIncome = (income?.employmentIncomes || []).reduce((sum: number, emp: any) => {
-      const raw = emp.monthlyIncome || emp.monthlyAmount || emp.income || 0;
+      // Check all possible field names for monthly income
+      const raw = emp.monthlyIncome || emp.monthlyAmount || emp.income || emp.basePay || 
+                  emp.grossIncome || emp.monthlyGrossIncome || emp.salary || emp.monthlySalary ||
+                  emp.baseIncome || emp.amount || 0;
       let monthlyIncome: number;
       if (typeof raw === 'string') {
         monthlyIncome = parseFloat(raw.replace(/[,$]/g, '')) || 0;
@@ -125,22 +264,28 @@ Deno.serve(async (req) => {
       console.log(`Employment income entry: ${JSON.stringify(emp)}, parsed monthly: ${monthlyIncome}`);
       return sum + monthlyIncome;
     }, 0) + (income?.otherIncomes || []).reduce((sum: number, inc: any) => {
-      const raw = inc.amount || inc.monthlyAmount || inc.monthlyIncome || 0;
+      const raw = inc.amount || inc.monthlyAmount || inc.monthlyIncome || inc.income || 0;
       let amount: number;
       if (typeof raw === 'string') {
         amount = parseFloat(raw.replace(/[,$]/g, '')) || 0;
       } else {
         amount = raw || 0;
       }
+      // Handle annual vs monthly frequency
+      if (inc.frequency === 'annually' || inc.frequency === 'annual' || inc.frequency === 'yearly') {
+        amount = amount / 12;
+      }
       console.log(`Other income entry: ${JSON.stringify(inc)}, parsed amount: ${amount}`);
       return sum + amount;
     }, 0);
 
-    console.log(`Calculated total monthly income: ${totalMonthlyIncome}`);
+    // Also check if totalMonthlyIncome was pre-calculated
+    const finalMonthlyIncome = totalMonthlyIncome > 0 ? totalMonthlyIncome : (income?.totalMonthlyIncome || 0);
+    console.log(`Calculated total monthly income: ${finalMonthlyIncome}`);
 
     // Calculate total assets - handle both string and number types
     const totalAssets = (assets?.assets || []).reduce((sum: number, asset: any) => {
-      const raw = asset.balance || asset.marketValue || asset.cashValue || asset.value || 0;
+      const raw = asset.balance || asset.marketValue || asset.cashValue || asset.value || asset.amount || 0;
       let balance: number;
       if (typeof raw === 'string') {
         balance = parseFloat(raw.replace(/[,$]/g, '')) || 0;
@@ -150,9 +295,9 @@ Deno.serve(async (req) => {
       return sum + balance;
     }, 0);
 
-    // Calculate monthly liabilities from real estate
+    // Calculate monthly liabilities from real estate (expenses only, not rent)
     const monthlyLiabilities = (realEstate?.properties || []).reduce((sum: number, property: any) => {
-      const raw = property.monthlyExpenses || 0;
+      const raw = property.monthlyExpenses || property.expenses || 0;
       let expenses: number;
       if (typeof raw === 'string') {
         expenses = parseFloat(raw.replace(/[,$]/g, '')) || 0;
@@ -187,27 +332,6 @@ Deno.serve(async (req) => {
     }
     console.log(`Credit score raw: ${personalInfo.estimatedCreditScore}, mapped: ${ficoScore}`);
 
-    // Map residency type
-    const residencyTypeMap: Record<string, string> = {
-      'us-citizen': 'US Citizen',
-      'us_citizen': 'US Citizen',
-      'permanent-resident': 'Permanent Resident',
-      'permanent_resident': 'Permanent Resident',
-      'non-permanent-resident': 'Non-Permanent Resident',
-      'non_permanent_resident': 'Non-Permanent Resident',
-      'foreign-national': 'Foreign National',
-      'foreign_national': 'Foreign National',
-    };
-
-    // Map marital status values
-    const maritalStatusMap: Record<string, string> = {
-      'single': 'Single',
-      'married': 'Married',
-      'separated': 'Separated',
-      'unmarried': 'Single',
-      'divorced': 'Separated',
-    };
-
     // Parse sales price and down payment - handle both string and number
     const parseCurrency = (value: any): number => {
       if (!value) return 0;
@@ -233,8 +357,8 @@ Deno.serve(async (req) => {
     const propertyTaxes = salesPrice > 0 ? Math.round(salesPrice * 0.015 / 12) : 0;
 
     // Insurance based on property type (from loan pricer logic)
-    const propertyType = mortgageInfo.propertyType?.toLowerCase() || '';
-    const isCondo = propertyType.includes('condo');
+    const rawPropertyType = mortgageInfo.propertyType?.toLowerCase() || '';
+    const isCondo = rawPropertyType.includes('condo');
     const homeownersInsurance = isCondo ? 75 : Math.round((salesPrice / 100000) * 75);
     
     // HOA dues - only for condos
@@ -249,36 +373,62 @@ Deno.serve(async (req) => {
     const mbRefNumber = `MB-${Date.now().toString().slice(-8)}`;
     const currentTimestamp = new Date().toISOString();
 
-    // Parse property ownership - handle both field names
-    const propertyOwnership = personalInfo.propertyOwnership || personalInfo.ownOrRent || null;
-    console.log(`Property ownership: ${propertyOwnership}`);
+    // ============= PARSE AND NORMALIZE FIELDS =============
+
+    // Parse property ownership - handle multiple field names
+    const rawPropertyOwnership = personalInfo.propertyOwnership || personalInfo.ownOrRent || null;
+    const normalizedOwnRent = normalizeValue(rawPropertyOwnership, ownRentMap);
+    console.log(`Property ownership raw: ${rawPropertyOwnership}, normalized: ${normalizedOwnRent}`);
 
     // Parse monthly payment goal - handle various field names and formats
-    const monthlyPmtGoal = parseCurrency(mortgageInfo.comfortableMonthlyPayment);
+    const monthlyPmtGoal = parseCurrency(
+      mortgageInfo.comfortableMonthlyPayment || 
+      mortgageInfo.monthlyPayment
+    );
     console.log(`Monthly payment goal: ${monthlyPmtGoal}`);
 
-    // Parse years/months at address - handle both string and number
+    // Parse years/months at address - handle multiple field names
     const parseNumber = (value: any): number | null => {
       if (value === null || value === undefined || value === '') return null;
       const num = typeof value === 'string' ? parseInt(value) : value;
       return isNaN(num) ? null : num;
     };
 
-    const yearsAtAddress = parseNumber(personalInfo.yearsAtCurrentAddress || personalInfo.years);
-    const monthsAtAddress = parseNumber(personalInfo.monthsAtCurrentAddress || personalInfo.months);
+    const yearsAtAddress = parseNumber(
+      personalInfo.yearsAtCurrentAddress || 
+      personalInfo.years || 
+      personalInfo.residenceYears || 
+      personalInfo.yearsAtAddress
+    );
+    const monthsAtAddress = parseNumber(
+      personalInfo.monthsAtCurrentAddress || 
+      personalInfo.months || 
+      personalInfo.residenceMonths || 
+      personalInfo.monthsAtAddress
+    );
+    console.log(`Years at address: ${yearsAtAddress}, Months: ${monthsAtAddress}`);
 
-    // Build current address string
+    // Build current address string - handle multiple structures
     let borrowerCurrentAddress: string | null = null;
     if (personalInfo.currentAddress) {
       const addr = personalInfo.currentAddress;
       const parts = [
-        addr.street || addr.streetAddress,
-        addr.unit || addr.addressLine2,
+        addr.street || addr.streetAddress || addr.address,
+        addr.unit || addr.addressLine2 || addr.apt,
         addr.city,
         addr.state,
-        addr.zipCode || addr.zip
+        addr.zipCode || addr.zip || addr.postalCode
       ].filter(Boolean);
       borrowerCurrentAddress = parts.length > 0 ? parts.join(', ') : null;
+    } else {
+      // Try flat field names on personalInfo
+      const parts = [
+        personalInfo.streetAddress || personalInfo.address,
+        personalInfo.city,
+        personalInfo.state,
+        personalInfo.zipCode || personalInfo.zip
+      ].filter(Boolean);
+      if (parts.length > 0) borrowerCurrentAddress = parts.join(', ');
     }
     console.log(`Borrower current address: ${borrowerCurrentAddress}`);
 
@@ -288,18 +438,37 @@ Deno.serve(async (req) => {
     const subjectZip = mortgageInfo.location?.zipCode || mortgageInfo.zipCode || null;
     console.log(`Subject location - City: ${subjectCity}, State: ${subjectState}, Zip: ${subjectZip}`);
 
-    // Get marital status with mapping
-    const rawMaritalStatus = personalInfo.maritalStatus?.toLowerCase() || '';
-    const maritalStatus = maritalStatusMap[rawMaritalStatus] || personalInfo.maritalStatus || null;
-    console.log(`Marital status raw: ${personalInfo.maritalStatus}, mapped: ${maritalStatus}`);
+    // Get marital status with normalization
+    const rawMaritalStatus = personalInfo.maritalStatus;
+    const normalizedMaritalStatus = normalizeValue(rawMaritalStatus, maritalStatusMap);
+    console.log(`Marital status raw: ${rawMaritalStatus}, normalized: ${normalizedMaritalStatus}`);
 
-    // Get gender - check both personalInfo and demographics
-    const gender = demographics?.gender || personalInfo.gender || null;
-    console.log(`Gender: ${gender}`);
+    // Get residency type with normalization
+    const rawResidencyType = personalInfo.residencyType;
+    const normalizedResidencyType = normalizeValue(rawResidencyType, residencyTypeMap);
+    console.log(`Residency type raw: ${rawResidencyType}, normalized: ${normalizedResidencyType}`);
 
-    // Get transaction type - check multiple possible field names
-    const transactionType = mortgageInfo.transactionType || applicationData.loanPurpose || null;
-    console.log(`Transaction type: ${transactionType}`);
+    // Get gender - check both personalInfo and demographics, then normalize
+    const rawGender = demographics?.gender || personalInfo.gender || null;
+    const normalizedGender = normalizeValue(rawGender, genderMap);
+    console.log(`Gender raw: ${rawGender}, normalized: ${normalizedGender}`);
+
+    // Get transaction type - check multiple possible field names, then normalize
+    const rawTransactionType = mortgageInfo.transactionType || applicationData.loanPurpose || null;
+    const normalizedLoanType = normalizeValue(rawTransactionType, loanTypeMap);
+    console.log(`Transaction type raw: ${rawTransactionType}, normalized: ${normalizedLoanType}`);
+
+    // Get property type with normalization
+    const normalizedPropertyType = normalizeValue(mortgageInfo.propertyType, propertyTypeMap);
+    console.log(`Property type raw: ${mortgageInfo.propertyType}, normalized: ${normalizedPropertyType}`);
+
+    // Get occupancy with normalization
+    const normalizedOccupancy = normalizeValue(mortgageInfo.occupancy, occupancyMap);
+    console.log(`Occupancy raw: ${mortgageInfo.occupancy}, normalized: ${normalizedOccupancy}`);
+
+    // Get date of birth - check multiple field names
+    const dateOfBirth = personalInfo.dateOfBirth || personalInfo.dob || personalInfo.birthDate || null;
+    console.log(`Date of birth: ${dateOfBirth}`);
 
     // Calculate REO owned based on properties
     const reoOwned = realEstate?.properties && realEstate.properties.length > 0;
@@ -308,27 +477,27 @@ Deno.serve(async (req) => {
     // Cash to close = down payment (will add closing costs later when available)
     const cashToClose = downPayment;
 
-    // Prepare lead data
+    // Prepare lead data with normalized values
     const leadData = {
       first_name: personalInfo.firstName,
       last_name: personalInfo.lastName,
       middle_name: personalInfo.middleName || null,
       phone: personalInfo.phone || personalInfo.cellPhone || null,
       email: personalInfo.email,
-      dob: personalInfo.dateOfBirth || null,
+      dob: dateOfBirth,
       fico_score: ficoScore,
-      marital_status: maritalStatus,
-      residency_type: personalInfo.residencyType ? (residencyTypeMap[personalInfo.residencyType.toLowerCase()] || personalInfo.residencyType) : null,
+      marital_status: normalizedMaritalStatus,
+      residency_type: normalizedResidencyType,
       borrower_current_address: borrowerCurrentAddress,
       time_at_current_address_years: yearsAtAddress,
       time_at_current_address_months: monthsAtAddress,
-      own_rent_current_address: propertyOwnership,
+      own_rent_current_address: normalizedOwnRent,
       military_veteran: personalInfo.militaryVeteran || false,
       
-      // Transaction and property info
-      loan_type: transactionType,
-      property_type: mortgageInfo.propertyType || null,
-      occupancy: mortgageInfo.occupancy || null,
+      // Transaction and property info - NORMALIZED VALUES
+      loan_type: normalizedLoanType,
+      property_type: normalizedPropertyType,
+      occupancy: normalizedOccupancy,
       sales_price: salesPrice || null,
       loan_amount: loanAmount || null,
       down_pmt: downPayment > 0 ? String(downPayment) : null,
@@ -355,7 +524,7 @@ Deno.serve(async (req) => {
       subject_zip: subjectZip,
       
       // Financial info
-      total_monthly_income: totalMonthlyIncome > 0 ? totalMonthlyIncome : null,
+      total_monthly_income: finalMonthlyIncome > 0 ? finalMonthlyIncome : null,
       assets: totalAssets > 0 ? totalAssets : null,
       monthly_liabilities: monthlyLiabilities > 0 ? monthlyLiabilities : null,
       
@@ -372,10 +541,10 @@ Deno.serve(async (req) => {
       decl_seller_affiliation: declarations?.find(d => d.id === 'seller-affiliation')?.answer ?? null,
       decl_borrowing_undisclosed: declarations?.find(d => d.id === 'borrowing-undisclosed')?.answer ?? null,
       
-      // Demographics
+      // Demographics - NORMALIZED VALUES
       demographic_ethnicity: demographics?.ethnicity || null,
       demographic_race: demographics?.race || null,
-      demographic_gender: gender,
+      demographic_gender: normalizedGender,
       
       // Add the default account_id for public submissions
       account_id: '47e707c5-62d0-4ee9-99a3-76572c73a8e1', // Default MortgageBolt account
