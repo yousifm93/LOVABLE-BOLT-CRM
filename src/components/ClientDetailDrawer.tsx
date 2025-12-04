@@ -765,92 +765,61 @@ export function ClientDetailDrawer({
             </div>
           </div>;
       default:
+        // Calculate LTV
+        const loanAmount = (client as any).loanAmount || 0;
+        const salesPrice = (client as any).salesPrice || 0;
+        const ltv = salesPrice > 0 ? ((loanAmount / salesPrice) * 100).toFixed(2) : null;
+
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-6 gap-4">
-              {/* Left side - condensed fields in first 3 columns */}
-              <div className="col-span-3 grid grid-cols-3 gap-4">
-                {/* Row 1: MB Loan #, Interest Rate, Total Monthly Income, PITI */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">MB Loan #</span>
-                  <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="MB-" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Interest Rate</span>
-                  <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Total Monthly Income</span>
-                  <InlineEditCurrency value={(client as any).totalMonthlyIncome || null} onValueChange={value => handleLeadUpdate('totalMonthlyIncome', value)} placeholder="Enter amount" />
-                </div>
-                
-                {/* Row 2: Lender Loan #, Total Assets, Credit Score, DTI */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Lender Loan #</span>
-                  <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Total Assets</span>
-                  <InlineEditCurrency value={(client as any).assets || null} onValueChange={value => handleLeadUpdate('assets', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Credit Score</span>
-                  <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
-                </div>
-                
-                {/* Row 3: Closing Costs, Cash to Close, Monthly Liabilities */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Closing Costs</span>
-                  <InlineEditCurrency value={(client as any).closingCosts || null} onValueChange={value => handleLeadUpdate('closingCosts', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Cash to Close</span>
-                  <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Liabilities</span>
-                  <InlineEditCurrency value={(client as any).monthlyLiabilities || null} onValueChange={value => handleLeadUpdate('monthlyLiabilities', value)} placeholder="Enter amount" />
-                </div>
-                
-                {/* Row 4: Finance Contingency (with empty cells for alignment) */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Finance Contingency</span>
-                  <InlineEditDate value={(client as any).finance_contingency || null} onValueChange={date => handleLeadUpdate('finance_contingency', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {/* Empty cell for alignment */}
-                </div>
-                <div className="flex flex-col gap-1">
-                  {/* Empty cell for alignment */}
-                </div>
+              {/* Row 1: Lender Loan #, Loan Amount, LTV, FICO Score, Interest Rate, DTI */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Lender Loan #</span>
+                <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Loan Amount</span>
+                <InlineEditCurrency value={(client as any).loanAmount || null} onValueChange={value => handleLeadUpdate('loan_amount', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">LTV</span>
+                <span className="text-sm font-medium">{ltv ? `${ltv}%` : '—'}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">FICO Score</span>
+                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Interest Rate</span>
+                <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">DTI</span>
+                <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
               </div>
               
-              {/* Right side - PITI, Closing Date, DTI, Finance Contingency */}
-              <div className="col-span-3 grid grid-cols-3 gap-4">
-                {/* Row 1: PITI (next to Total Monthly Income), Closing Date */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">PITI</span>
-                  <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Closing Date</span>
-                  <InlineEditDate value={(client as any).closeDate || null} onValueChange={value => handleLeadUpdate('closeDate', value)} placeholder="Select date" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {/* Empty */}
-                </div>
-                
-                {/* Row 2: DTI (next to Credit Score), Finance Contingency */}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">DTI</span>
-                  <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Finance Contingency</span>
-                  <InlineEditDate value={(client as any).financeContingency || null} onValueChange={value => handleLeadUpdate('financeContingency', value)} placeholder="Select date" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {/* Empty */}
-                </div>
+              {/* Row 2: Cash to Close, Closing Date, PITI, Finance Contingency, empty, empty */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Cash to Close</span>
+                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Closing Date</span>
+                <InlineEditDate value={(client as any).closeDate || null} onValueChange={value => handleLeadUpdate('closeDate', value)} placeholder="Select date" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">PITI</span>
+                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Finance Contingency</span>
+                <InlineEditDate value={(client as any).finance_contingency || null} onValueChange={date => handleLeadUpdate('finance_contingency', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
+              </div>
+              <div className="flex flex-col gap-1">
+                {/* Empty cell */}
+              </div>
+              <div className="flex flex-col gap-1">
+                {/* Empty cell */}
               </div>
             </div>
           </div>;

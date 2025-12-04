@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Contact, Home, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
+import { Calculator, Contact, Home, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { TeamTab } from "./TeamTab";
+import { DTITab } from "./DTITab";
 import { ContactsTab } from "./ContactsTab"; 
 import { DatesTab } from "./DatesTab";
 import { PITITab } from "./PITITab";
@@ -25,16 +25,16 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">Team, Contacts & Address</CardTitle>
+            <CardTitle className="text-base font-medium">DTI, Contacts & Address</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
           <CardContent>
-            <Tabs defaultValue="team" className="w-full">
+            <Tabs defaultValue="dti" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-2">
-                <TabsTrigger value="team" className="text-xs flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  Team
+                <TabsTrigger value="dti" className="text-xs flex items-center gap-1">
+                  <Calculator className="h-3 w-3" />
+                  DTI
                 </TabsTrigger>
                 <TabsTrigger value="contacts" className="text-xs flex items-center gap-1">
                   <Contact className="h-3 w-3" />
@@ -50,8 +50,8 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="team" className="mt-0">
-                <TeamTab leadId={leadId} />
+              <TabsContent value="dti" className="mt-0">
+                <DTITab leadId={leadId} />
               </TabsContent>
               
               <TabsContent value="contacts" className="mt-0">
