@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Filter, Search, Lock, Unlock, X } from "lucide-react";
+import { Plus, Filter, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +115,6 @@ export function LeadsModern() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sortLocked, setSortLocked] = useState(false);
   const { toast } = useToast();
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
 
@@ -125,6 +124,7 @@ export function LeadsModern() {
     views,
     visibleColumns,
     activeView,
+    isMainViewActive,
     toggleColumn,
     toggleAll,
     saveView,
@@ -133,7 +133,7 @@ export function LeadsModern() {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(coreColumns, 'leads-columns');
+  } = useColumnVisibility(coreColumns, 'leads-columns', 'leads');
 
   const handleViewSaved = (viewName: string) => {
     toast({
@@ -185,9 +185,9 @@ export function LeadsModern() {
 
   const filterColumns = [
     { value: 'created_at', label: 'Created Date', type: 'date' as const },
-    { value: 'converted', label: 'Converted', type: 'select' as const, options: CONVERTED_OPTIONS.map(o => o.label) },
-    { value: 'referred_via', label: 'Referred Via', type: 'select' as const, options: REFERRED_VIA_OPTIONS.map(o => o.label) },
-    { value: 'referral_source', label: 'Referral Source', type: 'select' as const, options: REFERRAL_SOURCE_OPTIONS.map(o => o.label) },
+    { value: 'converted', label: 'Status', type: 'select' as const, options: CONVERTED_OPTIONS.map(o => o.value) },
+    { value: 'referred_via', label: 'Referred Via', type: 'select' as const, options: REFERRED_VIA_OPTIONS.map(o => o.value) },
+    { value: 'referral_source', label: 'Referral Source', type: 'select' as const, options: REFERRAL_SOURCE_OPTIONS.map(o => o.value) },
     { value: 'first_name', label: 'Lead Name', type: 'text' as const },
     { value: 'email', label: 'Email', type: 'text' as const },
     { value: 'phone', label: 'Phone', type: 'text' as const },
@@ -195,12 +195,6 @@ export function LeadsModern() {
 
   useEffect(() => {
     loadData();
-    
-    // Load sort lock state from localStorage
-    const savedSortLocked = localStorage.getItem('leads-sort-locked');
-    if (savedSortLocked) {
-      setSortLocked(JSON.parse(savedSortLocked));
-    }
   }, []);
 
   const loadData = async () => {
@@ -368,6 +362,28 @@ export function LeadsModern() {
   
   const removeFilter = (filterId: string) => {
     setFilters(filters.filter(f => f.id !== filterId));
+  };
+
+  // Load Main View configuration
+  const loadMainView = () => {
+    const orderedMainColumns = MAIN_VIEW_COLUMNS
+      .map(id => columnVisibility.find(col => col.id === id))
+      .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+      .map(col => ({ ...col, visible: true }));
+    
+    const existingIds = new Set(MAIN_VIEW_COLUMNS);
+    const remainingColumns = columnVisibility
+      .filter(col => !existingIds.has(col.id))
+      .map(col => ({ ...col, visible: false }));
+    
+    const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+    setColumns(newColumnOrder);
+    setActiveView("Main View");
+    
+    toast({
+      title: "Main View Loaded",
+      description: "Default column configuration restored"
+    });
   };
 
   // Transform leads to display format
@@ -569,24 +585,6 @@ export function LeadsModern() {
               />
             </div>
             
-            <Button
-              variant={sortLocked ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                const newValue = !sortLocked;
-                setSortLocked(newValue);
-                localStorage.setItem('leads-sort-locked', JSON.stringify(newValue));
-                toast({
-                  title: newValue ? "Sort Locked" : "Sort Unlocked",
-                  description: newValue ? "Leads will stay in creation order" : "You can now sort by any column",
-                });
-              }}
-              title={sortLocked ? "Unlock sorting" : "Lock sorting to creation date"}
-              className="h-8"
-            >
-              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-            </Button>
-            
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="relative h-8">
@@ -628,28 +626,9 @@ export function LeadsModern() {
             />
             
             <Button
-              variant={activeView === "Main View" ? "default" : "outline"}
+              variant={isMainViewActive || activeView === "Main View" ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                const orderedMainColumns = MAIN_VIEW_COLUMNS
-                  .map(id => columnVisibility.find(col => col.id === id))
-                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-                  .map(col => ({ ...col, visible: true }));
-                
-                const existingIds = new Set(MAIN_VIEW_COLUMNS);
-                const remainingColumns = columnVisibility
-                  .filter(col => !existingIds.has(col.id))
-                  .map(col => ({ ...col, visible: false }));
-                
-                const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-                setColumns(newColumnOrder);
-                setActiveView("Main View");
-                
-                toast({
-                  title: "Main View Loaded",
-                  description: "Default column configuration restored"
-                });
-              }}
+              onClick={loadMainView}
               className="h-8 text-xs"
             >
               Main View
@@ -668,7 +647,6 @@ export function LeadsModern() {
             columns={columns}
             data={displayData}
             searchTerm={searchTerm}
-            lockSort={sortLocked}
             storageKey="leads-table"
             onRowClick={handleRowClick}
             onColumnReorder={handleColumnReorder}

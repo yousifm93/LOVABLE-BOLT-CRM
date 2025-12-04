@@ -2684,6 +2684,7 @@ export type Database = {
           column_widths: Json | null
           created_at: string | null
           created_by: string | null
+          filters: Json | null
           id: string
           is_default: boolean | null
           name: string
@@ -2695,6 +2696,7 @@ export type Database = {
           column_widths?: Json | null
           created_at?: string | null
           created_by?: string | null
+          filters?: Json | null
           id?: string
           is_default?: boolean | null
           name: string
@@ -2706,6 +2708,7 @@ export type Database = {
           column_widths?: Json | null
           created_at?: string | null
           created_by?: string | null
+          filters?: Json | null
           id?: string
           is_default?: boolean | null
           name?: string

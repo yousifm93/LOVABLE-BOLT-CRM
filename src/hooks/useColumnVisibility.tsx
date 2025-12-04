@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { databaseService } from "@/services/database";
 
 interface Column {
@@ -13,6 +13,7 @@ interface View {
   order: string[];
   isShared?: boolean;
   id?: string;
+  filters?: any[];
 }
 
 export function useColumnVisibility(
@@ -24,6 +25,7 @@ export function useColumnVisibility(
   const [views, setViews] = useState<View[]>([]);
   const [activeView, setActiveView] = useState<string | null>(null);
   const [isLoadingViews, setIsLoadingViews] = useState(false);
+  const [mainViewConfig, setMainViewConfig] = useState<{ columns: Record<string, boolean>; order: string[] } | null>(null);
 
   // Load saved state from localStorage AND database views
   useEffect(() => {
@@ -50,7 +52,8 @@ export function useColumnVisibility(
               name: dbView.name,
               columns,
               order: columnOrder,
-              isShared: true
+              isShared: true,
+              filters: (dbView as any).filters || []
             };
           });
         } catch (error) {
@@ -61,36 +64,13 @@ export function useColumnVisibility(
       // Check if shared "Main View" exists
       const sharedMainView = sharedViews.find(v => v.name === 'Main View');
       
-      // Load local state only if NO shared Main View exists
-      const saved = localStorage.getItem(storageKey);
-      const savedOrder = localStorage.getItem(`${storageKey}_order`);
-      
-      if (!sharedMainView && saved) {
-        try {
-          const savedState = JSON.parse(saved);
-          let orderedColumns = [...initialColumns];
-          
-          // Apply saved order if available
-          if (savedOrder) {
-            const orderArray = JSON.parse(savedOrder) as string[];
-            orderedColumns = orderArray
-              .map(id => initialColumns.find(col => col.id === id))
-              .filter((col): col is Column => col !== undefined);
-            
-            // Add any new columns that weren't in the saved order
-            const existingIds = new Set(orderArray);
-            const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
-            orderedColumns = [...orderedColumns, ...newColumns];
-          }
-          
-          setColumns(orderedColumns.map(col => ({
-            ...col,
-            visible: savedState[col.id] !== undefined ? savedState[col.id] : col.visible
-          })));
-        } catch (error) {
-          console.error('Failed to parse saved column visibility state:', error);
-        }
-      } else if (sharedMainView) {
+      if (sharedMainView) {
+        // Store Main View config for comparison
+        setMainViewConfig({
+          columns: sharedMainView.columns,
+          order: sharedMainView.order
+        });
+        
         // Auto-load shared Main View
         const orderedColumns = sharedMainView.order
           .map(id => initialColumns.find(col => col.id === id))
@@ -106,15 +86,43 @@ export function useColumnVisibility(
           visible: sharedMainView.columns[col.id] !== undefined ? sharedMainView.columns[col.id] : false
         })));
         setActiveView('Main View');
+      } else {
+        // No shared Main View - use localStorage or defaults
+        const saved = localStorage.getItem(storageKey);
+        const savedOrder = localStorage.getItem(`${storageKey}_order`);
+        
+        if (saved) {
+          try {
+            const savedState = JSON.parse(saved);
+            let orderedColumns = [...initialColumns];
+            
+            if (savedOrder) {
+              const orderArray = JSON.parse(savedOrder) as string[];
+              orderedColumns = orderArray
+                .map(id => initialColumns.find(col => col.id === id))
+                .filter((col): col is Column => col !== undefined);
+              
+              const existingIds = new Set(orderArray);
+              const newColumns = initialColumns.filter(col => !existingIds.has(col.id));
+              orderedColumns = [...orderedColumns, ...newColumns];
+            }
+            
+            setColumns(orderedColumns.map(col => ({
+              ...col,
+              visible: savedState[col.id] !== undefined ? savedState[col.id] : col.visible
+            })));
+          } catch (error) {
+            console.error('Failed to parse saved column visibility state:', error);
+          }
+        }
       }
 
-      // Load local views (but filter out any local "Main View" if shared one exists)
+      // Load local views (filter out Main View if shared one exists)
       const savedViews = localStorage.getItem(`${storageKey}_views`);
       const localViews: View[] = [];
       if (savedViews) {
         try {
           const parsedViews = JSON.parse(savedViews);
-          // Filter out "Main View" from local views if shared one exists
           const filteredViews = sharedMainView 
             ? parsedViews.filter((v: View) => v.name !== 'Main View')
             : parsedViews;
@@ -146,17 +154,38 @@ export function useColumnVisibility(
     localStorage.setItem(`${storageKey}_order`, JSON.stringify(order));
   }, [columns, storageKey]);
 
-  const toggleColumn = (columnId: string) => {
+  // Check if current config matches Main View (for highlighting)
+  const isMainViewActive = useMemo(() => {
+    if (!mainViewConfig) return activeView === 'Main View';
+    
+    const currentVisibleIds = new Set(columns.filter(c => c.visible).map(c => c.id));
+    const mainViewVisibleIds = new Set(Object.keys(mainViewConfig.columns).filter(id => mainViewConfig.columns[id]));
+    
+    // Check if same columns are visible
+    if (currentVisibleIds.size !== mainViewVisibleIds.size) return false;
+    for (const id of currentVisibleIds) {
+      if (!mainViewVisibleIds.has(id)) return false;
+    }
+    
+    return true;
+  }, [columns, mainViewConfig, activeView]);
+
+  const toggleColumn = useCallback((columnId: string) => {
     setColumns(prev => prev.map(col => 
       col.id === columnId ? { ...col, visible: !col.visible } : col
     ));
-  };
+    // When user modifies columns, clear active view (unless it was already modified)
+    if (activeView === 'Main View' && isMainViewActive) {
+      setActiveView(null);
+    }
+  }, [activeView, isMainViewActive]);
 
-  const toggleAll = (visible: boolean) => {
+  const toggleAll = useCallback((visible: boolean) => {
     setColumns(prev => prev.map(col => ({ ...col, visible })));
-  };
+    setActiveView(null);
+  }, []);
 
-  const saveView = (viewName: string) => {
+  const saveView = useCallback((viewName: string) => {
     // Prevent saving a local view named "Main View" if a shared one exists
     const sharedMainView = views.find(v => v.name === 'Main View' && v.isShared);
     if (viewName === 'Main View' && sharedMainView) {
@@ -180,9 +209,10 @@ export function useColumnVisibility(
     
     setViews([...sharedViews, ...updatedLocalViews]);
     localStorage.setItem(`${storageKey}_views`, JSON.stringify(updatedLocalViews));
-  };
+    setActiveView(viewName);
+  }, [views, columns, storageKey]);
 
-  const loadView = (viewName: string) => {
+  const loadView = useCallback((viewName: string) => {
     const view = views.find(v => v.name === viewName);
     if (view) {
       // If view has order, restore order first
@@ -209,9 +239,9 @@ export function useColumnVisibility(
       }
       setActiveView(viewName);
     }
-  };
+  }, [views, columns]);
 
-  const deleteView = (viewName: string) => {
+  const deleteView = useCallback((viewName: string) => {
     // Only allow deleting local (non-shared) views
     const localViews = views.filter(v => !v.isShared);
     const updatedViews = localViews.filter(v => v.name !== viewName);
@@ -224,24 +254,25 @@ export function useColumnVisibility(
     if (activeView === viewName) {
       setActiveView(null);
     }
-  };
+  }, [views, activeView, storageKey]);
 
-  const reorderColumns = (oldIndex: number, newIndex: number) => {
+  const reorderColumns = useCallback((oldIndex: number, newIndex: number) => {
     setColumns(prev => {
       const newColumns = [...prev];
       const [movedColumn] = newColumns.splice(oldIndex, 1);
       newColumns.splice(newIndex, 0, movedColumn);
       return newColumns;
     });
-  };
+  }, []);
 
-  const visibleColumns = columns.filter(col => col.visible);
+  const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
 
   return {
     columns,
     views,
     visibleColumns,
     activeView,
+    isMainViewActive,
     toggleColumn,
     toggleAll,
     saveView,

@@ -85,7 +85,7 @@ function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
       />
       <label
         htmlFor={column.id}
-        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
       >
         {column.label}
       </label>
@@ -105,7 +105,7 @@ export function ColumnVisibilityModal({
 }: ColumnVisibilityModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewName, setViewName] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['CONTACT INFO', 'LEAD INFO']));
   const { allFields } = useFields();
 
   const sensors = useSensors(
@@ -115,11 +115,27 @@ export function ColumnVisibilityModal({
     })
   );
 
+  // Merge all database fields with provided columns to show all 140+ fields
+  const allColumnsWithDbFields = useMemo(() => {
+    const existingIds = new Set(columns.map(c => c.id));
+    
+    // Get all additional fields from database that aren't in columns
+    const additionalFields = allFields
+      .filter(f => f.is_in_use && !existingIds.has(f.field_name))
+      .map(field => ({
+        id: field.field_name,
+        label: field.display_name,
+        visible: false
+      }));
+    
+    return [...columns, ...additionalFields];
+  }, [columns, allFields]);
+
   // Group columns by section
   const groupedColumns = useMemo(() => {
     const groups: Record<string, Column[]> = {};
     
-    columns.forEach(col => {
+    allColumnsWithDbFields.forEach(col => {
       const field = allFields.find(f => f.field_name === col.id);
       const section = field?.section || 'OTHER';
       
@@ -141,7 +157,8 @@ export function ColumnVisibilityModal({
       'OBJECT',
       'NOTES',
       'FILE',
-      'TRACKING DATA'
+      'TRACKING DATA',
+      'OTHER'
     ];
     
     const sortedGroups: Record<string, Column[]> = {};
@@ -159,16 +176,20 @@ export function ColumnVisibilityModal({
     });
     
     return sortedGroups;
-  }, [columns, allFields]);
+  }, [allColumnsWithDbFields, allFields]);
 
-  const filteredColumns = searchTerm
-    ? columns.filter(column =>
-        column.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : null;
+  // Filter columns by search term
+  const filteredColumns = useMemo(() => {
+    if (!searchTerm) return null;
+    return allColumnsWithDbFields.filter(column =>
+      column.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      column.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [allColumnsWithDbFields, searchTerm]);
 
   const visibleCount = columns.filter(col => col.visible).length;
-  const allVisible = visibleCount === columns.length;
+  const totalCount = allColumnsWithDbFields.length;
+  const allVisible = visibleCount === totalCount;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -196,23 +217,25 @@ export function ColumnVisibilityModal({
     if (over && active.id !== over.id) {
       const oldIndex = columns.findIndex((col) => col.id === active.id);
       const newIndex = columns.findIndex((col) => col.id === over.id);
-      onReorderColumns(oldIndex, newIndex);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onReorderColumns(oldIndex, newIndex);
+      }
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Display Columns</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 flex flex-col min-h-0">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Find Columns to Show/Hide"
+              placeholder="Search columns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -230,14 +253,14 @@ export function ColumnVisibilityModal({
               htmlFor="all-columns"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              All Columns, {visibleCount} selected
+              All Columns ({visibleCount}/{totalCount} shown)
             </label>
           </div>
 
           <Separator />
 
           {/* Column List with Section Grouping */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {filteredColumns ? (
               // Search results - flat list
               <DndContext
@@ -250,13 +273,17 @@ export function ColumnVisibilityModal({
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-1">
-                    {filteredColumns.map((column) => (
-                      <SortableColumnItem
-                        key={column.id}
-                        column={column}
-                        onToggle={onColumnToggle}
-                      />
-                    ))}
+                    {filteredColumns.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No columns found</p>
+                    ) : (
+                      filteredColumns.map((column) => (
+                        <SortableColumnItem
+                          key={column.id}
+                          column={column}
+                          onToggle={onColumnToggle}
+                        />
+                      ))
+                    )}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -319,19 +346,25 @@ export function ColumnVisibilityModal({
 
           {/* Save View Section */}
           <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Save current configuration as a new view:</p>
             <div className="flex space-x-2">
               <Input
                 placeholder="Enter view name"
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
                 className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && viewName.trim()) {
+                    handleSaveView();
+                  }
+                }}
               />
               <Button 
                 onClick={handleSaveView}
                 disabled={!viewName.trim()}
                 size="sm"
               >
-                Save To This View
+                Save as New View
               </Button>
             </div>
           </div>
