@@ -253,8 +253,6 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
           title: "Fields Updated",
           description: `Successfully saved ${Object.keys(selectedFields).length} fields`
         });
-        
-        onLeadUpdate();
       }
     } catch (error: any) {
       console.error('Failed to update lead:', error);
@@ -266,7 +264,16 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     } finally {
       setShowConfirmModal(false);
       setPendingExtraction(null);
+      // Refresh lead data after confirmation (file already uploaded, now show green background)
+      onLeadUpdate();
     }
+  };
+
+  const handleCancelExtraction = () => {
+    setShowConfirmModal(false);
+    setPendingExtraction(null);
+    // Still refresh to show green background (file was uploaded even if extraction cancelled)
+    onLeadUpdate();
   };
 
   const MAX_FILE_SIZE_MB = 10;
@@ -335,16 +342,17 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         description: `${fieldLabel} uploaded successfully`
       });
       
-      onLeadUpdate();
-
-      // If this is a contract upload, automatically parse it
+      // If this is a contract or rate lock upload, automatically parse it
+      // and defer onLeadUpdate until after parsing/confirmation to prevent state reset
       if (fieldKey === 'contract_file') {
         await parseContract(uploadData.path);
-      }
-      
-      // If this is a rate lock upload, automatically parse it
-      if (fieldKey === 'rate_lock_file') {
+        // onLeadUpdate will be called after confirmation modal closes
+      } else if (fieldKey === 'rate_lock_file') {
         await parseRateLock(uploadData.path);
+        // onLeadUpdate will be called after confirmation modal closes
+      } else {
+        // For non-parsed files, refresh immediately
+        onLeadUpdate();
       }
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -532,10 +540,7 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       {pendingExtraction && (
         <DocumentExtractionConfirmationModal
           isOpen={showConfirmModal}
-          onClose={() => {
-            setShowConfirmModal(false);
-            setPendingExtraction(null);
-          }}
+          onClose={handleCancelExtraction}
           onConfirm={handleConfirmExtraction}
           documentType={pendingExtraction.type}
           extractedFields={pendingExtraction.fieldsToUpdate}
