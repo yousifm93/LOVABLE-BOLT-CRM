@@ -10,7 +10,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
@@ -926,8 +926,8 @@ const allAvailableColumns = useMemo(() => {
               />
             </div>
             
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
-              <PopoverTrigger asChild>
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
                 <Button variant="outline" className="relative">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
@@ -937,25 +937,25 @@ const allAvailableColumns = useMemo(() => {
                     </Badge>
                   )}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="end">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Filter Applications</h4>
-                    {filters.length > 0 && (
-                      <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
-                        Clear All
-                      </Button>
-                    )}
-                  </div>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                <SheetHeader>
+                  <SheetTitle>Filter Applications</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {filters.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
+                      Clear All Filters
+                    </Button>
+                  )}
                   <FilterBuilder
                     filters={filters}
                     onFiltersChange={setFilters}
                     columns={filterColumns}
                   />
                 </div>
-              </PopoverContent>
-            </Popover>
+              </SheetContent>
+            </Sheet>
             
               <ColumnVisibilityButton
                 columns={columnVisibility}

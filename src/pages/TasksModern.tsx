@@ -11,7 +11,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { transformLeadToClient } from "@/utils/clientTransform";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
@@ -931,8 +931,8 @@ export default function TasksModern() {
               ))}
             </div>
             
-            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
-              <PopoverTrigger asChild>
+            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <SheetTrigger asChild>
                 <Button variant="outline" className="relative">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
@@ -942,22 +942,22 @@ export default function TasksModern() {
                     </Badge>
                   )}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[36rem]" align="end">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Filter Tasks</h4>
-                    {(filters.length > 0 || userFilter || searchTerm) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={clearAllFilters}
-                        className="text-xs"
-                      >
-                        Clear All
-                      </Button>
-                    )}
-                  </div>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                <SheetHeader>
+                  <SheetTitle>Filter Tasks</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-4">
+                  {(filters.length > 0 || userFilter || searchTerm) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearAllFilters}
+                      className="text-xs"
+                    >
+                      Clear All Filters
+                    </Button>
+                  )}
                   <FilterBuilder
                     filters={filters}
                     onFiltersChange={setFilters}
@@ -966,8 +966,8 @@ export default function TasksModern() {
                     showSaveAsView={true}
                   />
                 </div>
-              </PopoverContent>
-            </Popover>
+              </SheetContent>
+            </Sheet>
           </div>
         </CardHeader>
         <CardContent>

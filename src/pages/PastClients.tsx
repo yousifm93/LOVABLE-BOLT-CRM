@@ -30,7 +30,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
 import { databaseService } from "@/services/database";
@@ -1121,31 +1121,31 @@ export default function PastClients() {
             />
           </div>
 
-          <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen} modal={false}>
-            <PopoverTrigger asChild>
+          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+            <SheetTrigger asChild>
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter {filters.length > 0 && `(${filters.length})`}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="start">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium">Filter Past Clients</h4>
-                  {filters.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                      Clear All
-                    </Button>
-                  )}
-                </div>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+              <SheetHeader>
+                <SheetTitle>Filter Past Clients</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-4 mt-4">
+                {filters.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                    Clear All Filters
+                  </Button>
+                )}
                 <FilterBuilder
                   filters={filters}
                   columns={filterColumns}
                   onFiltersChange={setFilters}
                 />
               </div>
-            </PopoverContent>
-          </Popover>
+            </SheetContent>
+          </Sheet>
           
           <ColumnVisibilityButton 
             columns={columnVisibility} 

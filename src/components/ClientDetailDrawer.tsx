@@ -771,15 +771,11 @@ export function ClientDetailDrawer({
         const ltv = salesPrice > 0 ? ((loanAmount / salesPrice) * 100).toFixed(2) : null;
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="grid grid-cols-5 gap-4">
-              {/* Row 1: Lender Loan #, Loan Amount, LTV, FICO Score, Interest Rate */}
+            <div className="grid grid-cols-4 gap-4">
+              {/* Row 1: Lender Loan #, LTV, FICO Score, Interest Rate */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Lender Loan #</span>
                 <InlineEditText value={(client as any).lenderLoanNumber || null} onValueChange={value => handleLeadUpdate('lenderLoanNumber', value)} placeholder="Enter #" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Loan Amount</span>
-                <InlineEditCurrency value={(client as any).loanAmount || null} onValueChange={value => handleLeadUpdate('loan_amount', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">LTV</span>
@@ -794,22 +790,18 @@ export function ClientDetailDrawer({
                 <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
               </div>
               
-              {/* Row 2: Cash to Close, Closing Date, PITI, Finance Contingency, DTI */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
-                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
-              </div>
+              {/* Row 2: Closing Date, Cash to Close, PITI, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
                 <InlineEditDate value={(client as any).closeDate || null} onValueChange={value => handleLeadUpdate('closeDate', value)} placeholder="Select date" />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
-                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
+                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Finance Contingency</span>
-                <InlineEditDate value={(client as any).finance_contingency || null} onValueChange={date => handleLeadUpdate('finance_contingency', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
+                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
