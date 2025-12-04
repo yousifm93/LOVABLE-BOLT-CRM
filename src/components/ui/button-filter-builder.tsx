@@ -150,7 +150,7 @@ export function ButtonFilterBuilder({
   ).length;
 
   return (
-    <div className="space-y-4 p-4 bg-muted/50 border rounded-lg">
+    <div className="space-y-4 p-4 bg-muted/50 border rounded-lg max-w-md">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium">Filters {activeFilterCount > 0 && `(${activeFilterCount})`}</h3>
         {filters.length > 0 && (

@@ -26,6 +26,7 @@ const FILE_FIELDS = [
   { key: 'inspection_file', label: 'Inspection Report' },
   { key: 'title_file', label: 'Title Work' },
   { key: 'condo_file', label: 'Condo Documents' },
+  { key: 'rate_lock_file', label: 'Rate Lock Confirmation' },
 ];
 
 export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
@@ -98,6 +99,67 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     }
   };
 
+  const parseRateLock = async (filePath: string) => {
+    try {
+      setParsing('rate_lock_file');
+      
+      // Get signed URL for the file
+      const { data: signedUrlData } = await supabase.storage
+        .from('lead-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (!signedUrlData?.signedUrl) {
+        throw new Error('Could not get file URL');
+      }
+
+      toast({
+        title: "Parsing Rate Lock",
+        description: "Extracting information from rate lock confirmation..."
+      });
+
+      // Call the parse-rate-lock edge function
+      const { data, error } = await supabase.functions.invoke('parse-rate-lock', {
+        body: { 
+          file_url: signedUrlData.signedUrl,
+          lead_id: leadId 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        const fieldsUpdated = data.fields_updated?.length || 0;
+        const extractedData = data.extracted_data;
+        
+        let description = `Extracted ${fieldsUpdated} fields from rate lock.`;
+        if (extractedData?.note_rate) {
+          description += ` Rate: ${extractedData.note_rate}%.`;
+        }
+        if (extractedData?.lock_expiration) {
+          description += ` Expires: ${extractedData.lock_expiration}.`;
+        }
+
+        toast({
+          title: "Rate Lock Parsed Successfully",
+          description
+        });
+        
+        onLeadUpdate();
+      } else {
+        throw new Error(data?.error || 'Failed to parse rate lock');
+      }
+    } catch (error: any) {
+      console.error('Rate lock parsing error:', error);
+      toast({
+        title: "Parsing Failed",
+        description: error.message || "Could not extract rate lock data",
+        variant: "destructive"
+      });
+    } finally {
+      setParsing(null);
+    }
+  };
+
   const MAX_FILE_SIZE_MB = 10;
   const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
@@ -141,6 +203,11 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       // If this is a contract upload, automatically parse it
       if (fieldKey === 'contract_file') {
         await parseContract(uploadData.path);
+      }
+      
+      // If this is a rate lock upload, automatically parse it
+      if (fieldKey === 'rate_lock_file') {
+        await parseRateLock(uploadData.path);
       }
     } catch (error: any) {
       console.error('Upload error:', error);
