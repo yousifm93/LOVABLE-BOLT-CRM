@@ -29,7 +29,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// Sheet removed - using inline filters
 import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
@@ -1050,28 +1050,17 @@ export default function Leads() {
               <Input placeholder="Search new leads..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             
-            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="relative">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                  {filters.length > 0 && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                      {filters.length}
-                    </Badge>}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-                <SheetHeader>
-                  <SheetTitle>Filter Leads</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4 mt-4">
-                  {filters.length > 0 && <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
-                      Clear All Filters
-                    </Button>}
-                  <FilterBuilder filters={filters} onFiltersChange={setFilters} columns={filterColumns} />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Button 
+              variant={isFilterOpen ? "default" : "outline"} 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+              {filters.length > 0 && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                  {filters.length}
+                </Badge>}
+            </Button>
             
               <ColumnVisibilityButton columns={columnVisibility} onColumnToggle={toggleColumn} onToggleAll={toggleAll} onSaveView={saveView} onReorderColumns={reorderColumns} onViewSaved={handleViewSaved} />
             
@@ -1103,6 +1092,27 @@ export default function Leads() {
             <ViewPills views={views} activeView={activeView} onLoadView={loadView} onDeleteView={deleteView} />
           </div>
         </CardHeader>
+        {/* Inline Filter Section */}
+        {isFilterOpen && (
+          <div className="px-6 pb-4">
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">Filter Leads</h3>
+                <div className="flex items-center gap-2">
+                  {filters.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-7">
+                      Clear All
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFilterOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <FilterBuilder filters={filters} onFiltersChange={setFilters} columns={filterColumns} />
+            </div>
+          </div>
+        )}
         <CardContent className="mx-0 py-[10px] px-[20px] rounded-none">
           <DataTable columns={columns} data={filteredLeads} searchTerm="" storageKey="leads-table" onRowClick={() => {}} // Disable generic row click
           onViewDetails={handleRowClick} onEdit={handleRowClick} onDelete={handleDelete} onColumnReorder={handleColumnReorder} selectable selectedIds={selectedLeadIds} onSelectionChange={setSelectedLeadIds} getRowId={row => row.id} defaultSortColumn="createdAtTs" defaultSortDirection="desc" showRowNumbers />

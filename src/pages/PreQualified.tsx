@@ -10,7 +10,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService, type Lead as DatabaseLead } from "@/services/database";
@@ -1015,36 +1015,19 @@ const allAvailableColumns = useMemo(() => {
               />
             </div>
             
-            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="relative">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                  {filters.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                      {filters.length}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-                <SheetHeader>
-                  <SheetTitle>Filter Clients</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4 mt-4">
-                  {filters.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs">
-                      Clear All Filters
-                    </Button>
-                  )}
-                  <FilterBuilder
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    columns={filterColumns}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Button 
+              variant={isFilterOpen ? "default" : "outline"} 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+              {filters.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                  {filters.length}
+                </Badge>
+              )}
+            </Button>
             
               <ColumnVisibilityButton
                 columns={columnVisibility}
@@ -1091,6 +1074,31 @@ const allAvailableColumns = useMemo(() => {
             />
           </div>
         </CardHeader>
+        {/* Inline Filter Section */}
+        {isFilterOpen && (
+          <div className="px-6 pb-4">
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">Filter Clients</h3>
+                <div className="flex items-center gap-2">
+                  {filters.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-7">
+                      Clear All
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFilterOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <FilterBuilder
+                filters={filters}
+                onFiltersChange={setFilters}
+                columns={filterColumns}
+              />
+            </div>
+          </div>
+        )}
         <CardContent>
           <DataTable
             storageKey="prequalified-table"
