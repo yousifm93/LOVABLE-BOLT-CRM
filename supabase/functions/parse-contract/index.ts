@@ -26,10 +26,10 @@ serve(async (req) => {
     const blob = await response.blob();
     console.log('[parse-contract] File downloaded, size:', blob.size, 'type:', blob.type);
     
-    // Check file size - limit to 5MB to prevent memory issues
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    // Check file size - limit to 10MB to prevent memory issues
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
     if (blob.size > MAX_SIZE) {
-      throw new Error(`File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 5MB. Please compress the PDF.`);
+      throw new Error(`File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB). Maximum file size is 10MB. Please compress the PDF or reduce the number of pages before uploading.`);
     }
     
     // Convert to base64 using chunked approach to avoid memory issues
@@ -74,14 +74,13 @@ serve(async (req) => {
   "property_type": "Single Family" | "Condo" | "Townhouse" | "Multi-Family" | "Other",
   "sales_price": NUMBER (without dollar signs or commas),
   "loan_amount": NUMBER (if mentioned, otherwise null),
-  "down_payment": NUMBER (if mentioned, otherwise null),
   "subject_address_1": "Street address line 1",
   "subject_address_2": "Unit/Apt number or null",
   "city": "City name",
   "state": "Two letter state code",
   "zip": "ZIP code",
   "close_date": "YYYY-MM-DD format or null",
-  "finance_contingency": "YYYY-MM-DD format or null (look for financing contingency deadline)",
+  "finance_contingency": "YYYY-MM-DD format or null - CALCULATE THIS AS DESCRIBED BELOW",
   "buyer_agent": {
     "first_name": "string or null",
     "last_name": "string or null",
@@ -98,14 +97,25 @@ serve(async (req) => {
   }
 }
 
-Important:
-- For property_type, infer from context (single family home, condominium, townhouse, etc.)
-- Look for "Purchase Price", "Sales Price", or "Contract Price" for sales_price
-- Look for financing terms for loan_amount and down_payment
-- Look for "Closing Date", "Settlement Date", or "Close of Escrow" for close_date
-- Look for "Financing Contingency" deadline date
-- Extract agent information from buyer's agent and listing/seller's agent sections
-- Return ONLY the JSON object, no additional text`
+IMPORTANT INSTRUCTIONS:
+
+1. DO NOT extract down_payment or deposit amounts - ignore any deposit/earnest money fields.
+
+2. For finance_contingency date - YOU MUST CALCULATE IT:
+   - First, find Section 3 "TIME FOR ACCEPTANCE OF OFFER" to get the Effective Date
+   - Then, find Section 8 "FINANCING":
+     * If checkbox (a) "CASH (no financing)" is checked → finance_contingency = null
+     * If checkbox (b) is checked (financing contingency) → Look for the number of days (usually says "within ___ days after Effective Date" - default is 30 if blank)
+     * CALCULATE: finance_contingency = Effective Date + the number of days from option (b)
+   - Example: If Effective Date is December 3, 2024 and option (b) says "within 30 days", then finance_contingency = January 2, 2025
+
+3. For property_type, infer from context (single family home, condominium, townhouse, etc.)
+4. Look for "Purchase Price", "Sales Price", or "Contract Price" for sales_price
+5. Look for financing terms for loan_amount
+6. Look for "Closing Date", "Settlement Date", or "Close of Escrow" for close_date
+7. Extract agent information from buyer's agent and listing/seller's agent sections
+
+Return ONLY the JSON object, no additional text`
           }, {
             type: 'image_url',
             image_url: {
