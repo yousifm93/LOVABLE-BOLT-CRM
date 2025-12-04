@@ -295,14 +295,22 @@ const allAvailableColumns = useMemo(() => {
     localStorage.setItem('preapproved-filters', JSON.stringify(filters));
   }, [filters]);
   
-  // Filter columns definition
+  // Filter columns definition with proper types and options
   const filterColumns = [
-    { value: 'name', label: 'Name', type: 'text' as const },
+    { value: 'first_name', label: 'First Name', type: 'text' as const },
+    { value: 'last_name', label: 'Last Name', type: 'text' as const },
     { value: 'email', label: 'Email', type: 'text' as const },
     { value: 'phone', label: 'Phone', type: 'text' as const },
-    { value: 'status', label: 'Status', type: 'select' as const, options: convertedOptions.map(opt => opt.value) },
-    { value: 'baStatus', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(opt => opt.value) },
-    { value: 'preApprovedOn', label: 'Pre-Approved On', type: 'date' as const },
+    { value: 'converted', label: 'Status', type: 'select' as const, options: convertedOptions.map(o => o.value) },
+    { value: 'loan_type', label: 'Loan Type', type: 'select' as const, options: ['Purchase', 'Refinance', 'Cash Out Refinance', 'HELOC', 'Construction', 'VA Loan', 'FHA Loan', 'Conventional', 'Jumbo'] },
+    { value: 'ba_status', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(o => o.value) },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
+    { value: 'sales_price', label: 'Sales Price', type: 'number' as const },
+    { value: 'fico_score', label: 'Credit Score', type: 'number' as const },
+    { value: 'dti', label: 'DTI', type: 'number' as const },
+    { value: 'property_type', label: 'Property Type', type: 'select' as const, options: ['Single Family', 'Townhouse', 'Condo', 'Multi-Family', '2-4 Units', 'Other'] },
+    { value: 'pre_approved_at', label: 'Pre-Approved On', type: 'date' as const },
+    { value: 'task_eta', label: 'Due Date', type: 'date' as const },
   ];
   
   const clearAllFilters = () => {

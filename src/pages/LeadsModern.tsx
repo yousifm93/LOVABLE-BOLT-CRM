@@ -183,14 +183,21 @@ export function LeadsModern() {
     });
   };
 
+  // Filter columns definition with proper types and options
   const filterColumns = [
-    { value: 'created_at', label: 'Created Date', type: 'date' as const },
+    { value: 'first_name', label: 'First Name', type: 'text' as const },
+    { value: 'last_name', label: 'Last Name', type: 'text' as const },
+    { value: 'email', label: 'Email', type: 'text' as const },
+    { value: 'phone', label: 'Phone', type: 'text' as const },
     { value: 'converted', label: 'Status', type: 'select' as const, options: CONVERTED_OPTIONS.map(o => o.value) },
     { value: 'referred_via', label: 'Referred Via', type: 'select' as const, options: REFERRED_VIA_OPTIONS.map(o => o.value) },
     { value: 'referral_source', label: 'Referral Source', type: 'select' as const, options: REFERRAL_SOURCE_OPTIONS.map(o => o.value) },
-    { value: 'first_name', label: 'Lead Name', type: 'text' as const },
-    { value: 'email', label: 'Email', type: 'text' as const },
-    { value: 'phone', label: 'Phone', type: 'text' as const },
+    { value: 'lead_strength', label: 'Lead Strength', type: 'select' as const, options: ['Hot', 'Warm', 'Cold'] },
+    { value: 'likely_to_apply', label: 'Likely to Apply', type: 'select' as const, options: ['Very Likely', 'Likely', 'Unlikely', 'Very Unlikely'] },
+    { value: 'loan_type', label: 'Loan Type', type: 'select' as const, options: ['Purchase', 'Refinance', 'Cash Out Refinance', 'HELOC', 'Construction', 'VA Loan', 'FHA Loan', 'Conventional', 'Jumbo'] },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
+    { value: 'fico_score', label: 'Credit Score', type: 'number' as const },
+    { value: 'created_at', label: 'Created Date', type: 'date' as const },
   ];
 
   useEffect(() => {
