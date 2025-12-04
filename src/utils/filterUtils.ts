@@ -1,17 +1,17 @@
-import { FilterCondition } from "@/components/ui/simple-filter-builder";
+import { FilterCondition } from "@/components/ui/button-filter-builder";
 
 /**
  * Count only active/complete filters (those with column AND value set)
  */
 export function countActiveFilters(filters: FilterCondition[]): number {
   return filters.filter(f => 
-    f.column && (f.value || f.operator === 'is_empty' || f.operator === 'is_not_empty')
+    f.column && (f.value || f.operator === 'is_empty' || f.operator === 'is_not_empty' || f.operator === 'is_in_last_7' || f.operator === 'is_in_last_30')
   ).length;
 }
 
 /**
  * Shared utility function to apply advanced filters to any data array
- * Supports all filter operators defined in FilterBuilder
+ * Supports all filter operators defined in ButtonFilterBuilder
  */
 export function applyAdvancedFilters<T extends Record<string, any>>(
   items: T[],
@@ -24,8 +24,9 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
     return filters.every(filter => {
       if (!filter.column || !filter.operator) return true;
       
-      // is_empty and is_not_empty don't need a value
-      if (filter.operator !== 'is_empty' && filter.operator !== 'is_not_empty') {
+      // Operators that don't need a value
+      const noValueOperators = ['is_empty', 'is_not_empty', 'is_in_last_7', 'is_in_last_30'];
+      if (!noValueOperators.includes(filter.operator)) {
         if (filter.value === undefined || filter.value === '') return true;
       }
 
@@ -100,6 +101,22 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
         case 'is_before':
           if (!fieldValue) return false;
           return new Date(fieldValue) < new Date(filterValue as string);
+          
+        case 'is_in_last_7': {
+          if (!fieldValue) return false;
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 7);
+          cutoff.setHours(0, 0, 0, 0);
+          return new Date(fieldValue) >= cutoff;
+        }
+
+        case 'is_in_last_30': {
+          if (!fieldValue) return false;
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 30);
+          cutoff.setHours(0, 0, 0, 0);
+          return new Date(fieldValue) >= cutoff;
+        }
           
         case 'is_in_last': {
           if (!fieldValue) return false;

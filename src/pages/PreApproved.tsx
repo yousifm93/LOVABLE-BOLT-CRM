@@ -9,7 +9,7 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
-import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
@@ -1033,26 +1033,11 @@ const allAvailableColumns = useMemo(() => {
         {/* Inline Filter Section */}
         {isFilterOpen && (
           <div className="px-6 pb-4">
-            <div className="p-4 bg-muted/50 rounded-lg border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-sm">Filter Clients</h3>
-                <div className="flex items-center gap-2">
-                  {filters.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-7">
-                      Clear All
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFilterOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <SimpleFilterBuilder
-                filters={filters}
-                onFiltersChange={setFilters}
-                columns={filterColumns}
-              />
-            </div>
+            <ButtonFilterBuilder
+              filters={filters}
+              onFiltersChange={setFilters}
+              columns={filterColumns}
+            />
           </div>
         )}
         <CardContent>
