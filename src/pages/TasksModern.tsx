@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
 import { transformLeadToClient } from "@/utils/clientTransform";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
@@ -931,45 +931,50 @@ export default function TasksModern() {
               ))}
             </div>
             
-            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="relative">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                  {filters.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                      {filters.length}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-                <SheetHeader>
-                  <SheetTitle>Filter Tasks</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4 mt-4">
-                  {(filters.length > 0 || userFilter || searchTerm) && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={clearAllFilters}
-                      className="text-xs"
-                    >
-                      Clear All Filters
-                    </Button>
-                  )}
-                  <FilterBuilder
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    columns={filterColumns}
-                    onSaveAsView={handleSaveFilterAsView}
-                    showSaveAsView={true}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Button 
+              variant={isFilterOpen ? "default" : "outline"} 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+              {filters.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+                  {filters.length}
+                </Badge>
+              )}
+            </Button>
           </div>
         </CardHeader>
+        
+        {/* Inline Filter Section */}
+        {isFilterOpen && (
+          <div className="px-6 pb-4">
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">Filter Tasks</h3>
+                <div className="flex items-center gap-2">
+                  {(filters.length > 0 || userFilter || searchTerm) && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-7">
+                      Clear All
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFilterOpen(false)}>
+                    <XIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <FilterBuilder
+                filters={filters}
+                onFiltersChange={setFilters}
+                columns={filterColumns}
+                onSaveAsView={handleSaveFilterAsView}
+                showSaveAsView={true}
+              />
+            </div>
+          </div>
+        )}
+        
         <CardContent>
           {loading ? (
             <div className="flex justify-center items-center h-32">

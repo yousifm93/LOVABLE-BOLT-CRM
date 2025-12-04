@@ -30,7 +30,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+// Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
 import { databaseService } from "@/services/database";
@@ -1121,31 +1121,14 @@ export default function PastClients() {
             />
           </div>
 
-          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter {filters.length > 0 && `(${filters.length})`}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-              <SheetHeader>
-                <SheetTitle>Filter Past Clients</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-4 mt-4">
-                {filters.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                    Clear All Filters
-                  </Button>
-                )}
-                <FilterBuilder
-                  filters={filters}
-                  columns={filterColumns}
-                  onFiltersChange={setFilters}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <Button 
+            variant={isFilterOpen ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filter {filters.length > 0 && `(${filters.length})`}
+          </Button>
           
           <ColumnVisibilityButton 
             columns={columnVisibility} 
@@ -1193,6 +1176,30 @@ export default function PastClients() {
             onDeleteView={deleteView} 
           />
         </div>
+
+        {/* Inline Filter Section */}
+        {isFilterOpen && (
+          <div className="p-4 bg-muted/50 rounded-lg border mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-sm">Filter Past Clients</h3>
+              <div className="flex items-center gap-2">
+                {filters.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-xs h-7">
+                    Clear All
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFilterOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <FilterBuilder
+              filters={filters}
+              columns={filterColumns}
+              onFiltersChange={setFilters}
+            />
+          </div>
+        )}
 
         {filters.length > 0 && (
           <div className="flex flex-wrap gap-2">
