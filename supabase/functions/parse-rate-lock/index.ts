@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { file_url, lead_id } = await req.json();
+    const { file_url } = await req.json();
     
     console.log('[parse-rate-lock] Starting to parse rate lock confirmation');
     
@@ -106,43 +105,12 @@ Important:
     const parsed = JSON.parse(jsonMatch[0]);
     console.log('[parse-rate-lock] Successfully extracted data:', parsed);
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Update the lead with extracted data
-    const leadUpdate: Record<string, any> = {};
-    
-    if (parsed.note_rate) leadUpdate.interest_rate = parsed.note_rate;
-    if (parsed.lock_expiration) leadUpdate.lock_expiration_date = parsed.lock_expiration;
-    if (parsed.term) leadUpdate.term = parsed.term;
-    if (parsed.prepayment_penalty !== undefined && parsed.prepayment_penalty !== null) {
-      leadUpdate.prepayment_penalty = String(parsed.prepayment_penalty);
-    }
-    if (parsed.dscr_ratio) leadUpdate.dscr_ratio = parsed.dscr_ratio;
-    if (parsed.escrow_waiver) leadUpdate.escrows = parsed.escrow_waiver;
-
-    console.log('[parse-rate-lock] Updating lead with:', JSON.stringify(leadUpdate));
-
-    if (Object.keys(leadUpdate).length > 0 && lead_id) {
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update(leadUpdate)
-        .eq('id', lead_id);
-
-      if (updateError) {
-        console.error('[parse-rate-lock] Failed to update lead:', updateError);
-        throw updateError;
-      } else {
-        console.log('[parse-rate-lock] Lead updated successfully');
-      }
-    }
+    // DO NOT update the lead - just return extracted data for client confirmation
+    console.log('[parse-rate-lock] Returning extracted data for client confirmation');
     
     return new Response(JSON.stringify({ 
       success: true, 
-      extracted_data: parsed,
-      fields_updated: Object.keys(leadUpdate)
+      extracted_data: parsed
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
