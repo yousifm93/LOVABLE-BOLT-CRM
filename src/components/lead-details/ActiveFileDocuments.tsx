@@ -302,10 +302,13 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         [fieldKey]: uploadData.path
       });
 
-      // Get the field label for naming
+      // Get the field label for naming - format: DocumentType-LastName #LenderLoanNumber
       const fieldLabel = FILE_FIELDS.find(f => f.key === fieldKey)?.label || fieldKey;
-      const clientName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown';
-      const documentTitle = `${fieldLabel} - ${clientName}`;
+      const lastName = lead.last_name || 'Unknown';
+      const lenderLoanNumber = lead.lender_loan_number || '';
+      const documentTitle = lenderLoanNumber 
+        ? `${fieldLabel}-${lastName} #${lenderLoanNumber}`
+        : `${fieldLabel}-${lastName}`;
 
       // Also add to documents table so it appears in documents list
       const { data: userData } = await supabase.auth.getUser();
