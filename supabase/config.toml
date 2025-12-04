@@ -117,3 +117,6 @@ verify_jwt = false
 
 [functions.send-template-email]
 verify_jwt = false
+
+[functions.parse-rate-lock]
+verify_jwt = false
