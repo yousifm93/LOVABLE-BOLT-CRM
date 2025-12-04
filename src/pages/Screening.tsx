@@ -172,7 +172,6 @@ const allAvailableColumns = useMemo(() => {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
-  const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -290,12 +289,6 @@ const allAvailableColumns = useMemo(() => {
     fetchLeads();
     loadUsers();
     loadAgents();
-    
-    // Load sort lock state from localStorage
-    const savedSortLocked = localStorage.getItem('screening-sort-locked');
-    if (savedSortLocked) {
-      setSortLocked(JSON.parse(savedSortLocked));
-    }
     
     // Load filters from localStorage
     const savedFilters = localStorage.getItem('screening-filters');
@@ -1044,9 +1037,6 @@ const allAvailableColumns = useMemo(() => {
             columns={columns}
             data={displayData}
             searchTerm={searchTerm}
-            lockSort={sortLocked}
-            lockReorder={sortLocked}
-            lockResize={sortLocked}
             onRowClick={(row) => {
               const lead = leads.find(l => l.id === row.id);
               if (lead) handleRowClick(lead);

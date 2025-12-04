@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3, Lock, Unlock } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3 } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { fixUnclassifiedLeads } from "@/utils/fixUnclassifiedLeads";
 import { Button } from "@/components/ui/button";
@@ -277,10 +277,6 @@ export default function Leads() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
-  const [sortLocked, setSortLocked] = useState(() => {
-    const saved = localStorage.getItem('leads-sort-locked');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
 
   // Use column visibility with all available columns (core + database)
   const {
@@ -1067,18 +1063,6 @@ export default function Leads() {
               <Input placeholder="Search new leads..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
             
-            <Button variant={sortLocked ? "default" : "outline"} size="sm" onClick={() => {
-              const newValue = !sortLocked;
-              setSortLocked(newValue);
-              localStorage.setItem('leads-sort-locked', JSON.stringify(newValue));
-              toast({
-                title: newValue ? "View Locked" : "View Unlocked",
-                description: newValue ? "Sorting, resizing, and reordering are now locked" : "You can now sort, resize, and reorder columns"
-              });
-            }} title={sortLocked ? "Unlock view customization" : "Lock view customization"}>
-              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-            </Button>
-            
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="relative">
@@ -1134,7 +1118,7 @@ export default function Leads() {
         </CardHeader>
         <CardContent className="mx-0 py-[10px] px-[20px] rounded-none">
           <DataTable columns={columns} data={filteredLeads} searchTerm="" storageKey="leads-table" onRowClick={() => {}} // Disable generic row click
-          onViewDetails={handleRowClick} onEdit={handleRowClick} onDelete={handleDelete} onColumnReorder={handleColumnReorder} selectable selectedIds={selectedLeadIds} onSelectionChange={setSelectedLeadIds} getRowId={row => row.id} defaultSortColumn="createdAtTs" defaultSortDirection="desc" lockSort={sortLocked} lockReorder={sortLocked} lockResize={sortLocked} showRowNumbers />
+          onViewDetails={handleRowClick} onEdit={handleRowClick} onDelete={handleDelete} onColumnReorder={handleColumnReorder} selectable selectedIds={selectedLeadIds} onSelectionChange={setSelectedLeadIds} getRowId={row => row.id} defaultSortColumn="createdAtTs" defaultSortDirection="desc" showRowNumbers />
         </CardContent>
       </Card>
 

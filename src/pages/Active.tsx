@@ -807,7 +807,6 @@ export default function Active() {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
-  const [sortLocked, setSortLocked] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
@@ -933,12 +932,6 @@ export default function Active() {
       } catch (error) {
         console.error('Failed to parse saved filters:', error);
       }
-    }
-    
-    // Load sort lock state
-    const savedSortLocked = localStorage.getItem('active-sort-locked');
-    if (savedSortLocked) {
-      setSortLocked(JSON.parse(savedSortLocked));
     }
   }, []);
 

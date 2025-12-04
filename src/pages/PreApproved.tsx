@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useFields } from "@/contexts/FieldsContext";
-import { Search, Filter, Phone, Mail, Shield, Lock, Unlock, X } from "lucide-react";
+import { Search, Filter, Phone, Mail, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,7 +187,6 @@ const allAvailableColumns = useMemo(() => {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
-  const [sortLocked, setSortLocked] = useState(false);
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -279,12 +278,6 @@ const allAvailableColumns = useMemo(() => {
     fetchLeads();
     loadUsers();
     loadAgents();
-    
-    // Load sort lock state from localStorage
-    const savedSortLocked = localStorage.getItem('preapproved-sort-locked');
-    if (savedSortLocked) {
-      setSortLocked(JSON.parse(savedSortLocked));
-    }
     
     // Load filters from localStorage
     const savedFilters = localStorage.getItem('preapproved-filters');
@@ -974,25 +967,6 @@ const allAvailableColumns = useMemo(() => {
           <div className="flex gap-2">
             <Input placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
             
-            <Button
-              variant={sortLocked ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                const newValue = !sortLocked;
-                setSortLocked(newValue);
-                localStorage.setItem('preapproved-sort-locked', JSON.stringify(newValue));
-                toast({
-                  title: newValue ? "View Locked" : "View Unlocked",
-                  description: newValue 
-                    ? "Sorting, resizing, and reordering are now locked" 
-                    : "You can now sort, resize, and reorder columns",
-                });
-              }}
-              title={sortLocked ? "Unlock view customization" : "Lock view customization"}
-            >
-              {sortLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-            </Button>
-            
             <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="relative">
@@ -1070,9 +1044,6 @@ const allAvailableColumns = useMemo(() => {
             columns={columns}
             data={displayData} 
             searchTerm={searchTerm}
-            lockSort={sortLocked}
-            lockReorder={sortLocked}
-            lockResize={sortLocked}
             onRowClick={(row) => { const lead = leads.find(l => l.id === row.id); if (lead) handleRowClick(lead); }} 
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
