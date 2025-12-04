@@ -11,13 +11,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 
 export interface FilterCondition {
@@ -25,7 +18,7 @@ export interface FilterCondition {
   column: string;
   operator: string;
   value: string | Date;
-  endValue?: string | Date; // For "is between" operator
+  endValue?: string | Date;
 }
 
 interface FilterBuilderProps {
@@ -85,6 +78,9 @@ const relativeValues = [
   { value: '90_days', label: '90 days' },
 ];
 
+// Native select styling to match design system
+const nativeSelectClasses = "h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
 export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView, showSaveAsView = true }: FilterBuilderProps) {
   const [viewName, setViewName] = useState("");
 
@@ -132,6 +128,21 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
     }
   };
 
+  const handleColumnChange = (filterId: string, newColumn: string) => {
+    updateFilter(filterId, 'column', newColumn);
+    // Reset operator to first valid one for new column type
+    const ops = getOperators(newColumn);
+    updateFilter(filterId, 'operator', ops[0]?.value || 'is');
+    updateFilter(filterId, 'value', '');
+  };
+
+  const handleOperatorChange = (filterId: string, newOperator: string) => {
+    updateFilter(filterId, 'operator', newOperator);
+    // Clear value when switching operators
+    updateFilter(filterId, 'value', '');
+    updateFilter(filterId, 'endValue', undefined);
+  };
+
   const renderValueInput = (filter: FilterCondition) => {
     // Hide value input for is_empty/is_not_empty operators
     if (filter.operator === 'is_empty' || filter.operator === 'is_not_empty') {
@@ -152,24 +163,21 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
     const columnType = getColumnType(filter.column);
     const options = getColumnOptions(filter.column);
 
-    // Select type - show dropdown with options
+    // Select type - show native dropdown with options
     if (columnType === 'select' && options.length > 0) {
       return (
-        <Select
+        <select
           value={filter.value as string}
-          onValueChange={(value) => updateFilter(filter.id, 'value', value)}
+          onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+          className={cn(nativeSelectClasses, "w-40")}
         >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Select value" />
-          </SelectTrigger>
-          <SelectContent className="!z-[200] bg-popover">
-            {options.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Select value</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       );
     }
 
@@ -178,21 +186,18 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
       // For "is in last" operator, show relative options
       if (filter.operator === 'is_in_last') {
         return (
-          <Select
+          <select
             value={filter.value as string}
-            onValueChange={(value) => updateFilter(filter.id, 'value', value)}
+            onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+            className={cn(nativeSelectClasses, "w-40")}
           >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent className="!z-[200] bg-popover">
-              {relativeValues.map((rv) => (
-                <SelectItem key={rv.value} value={rv.value}>
-                  {rv.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">Select period</option>
+            {relativeValues.map((rv) => (
+              <option key={rv.value} value={rv.value}>
+                {rv.label}
+              </option>
+            ))}
+          </select>
         );
       }
 
@@ -316,50 +321,32 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
     <div className="space-y-3">
       {filters.map((filter) => (
         <div key={filter.id} className="flex items-center gap-2 p-3 bg-muted rounded-lg flex-wrap">
-          {/* Column Select */}
-          <Select
+          {/* Column Select - Native HTML */}
+          <select
             value={filter.column}
-            onValueChange={(value) => {
-              updateFilter(filter.id, 'column', value);
-              // Reset operator to first valid one for new column type
-              const ops = getOperators(value);
-              updateFilter(filter.id, 'operator', ops[0]?.value || 'is');
-              updateFilter(filter.id, 'value', '');
-            }}
+            onChange={(e) => handleColumnChange(filter.id, e.target.value)}
+            className={cn(nativeSelectClasses, "w-48")}
           >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select field" />
-            </SelectTrigger>
-            <SelectContent className="!z-[200] bg-popover">
-              {columns.map((column) => (
-                <SelectItem key={column.value} value={column.value}>
-                  {column.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">Select field</option>
+            {columns.map((column) => (
+              <option key={column.value} value={column.value}>
+                {column.label}
+              </option>
+            ))}
+          </select>
 
-          {/* Operator Select - Dynamic based on column type */}
-          <Select
+          {/* Operator Select - Native HTML */}
+          <select
             value={filter.operator}
-            onValueChange={(value) => {
-              updateFilter(filter.id, 'operator', value);
-              // Clear value when switching operators
-              updateFilter(filter.id, 'value', '');
-              updateFilter(filter.id, 'endValue', undefined);
-            }}
+            onChange={(e) => handleOperatorChange(filter.id, e.target.value)}
+            className={cn(nativeSelectClasses, "w-36")}
           >
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="!z-[200] bg-popover">
-              {getOperators(filter.column).map((operator) => (
-                <SelectItem key={operator.value} value={operator.value}>
-                  {operator.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {getOperators(filter.column).map((operator) => (
+              <option key={operator.value} value={operator.value}>
+                {operator.label}
+              </option>
+            ))}
+          </select>
 
           {/* Value Input - Dynamic based on column type */}
           {renderValueInput(filter)}
