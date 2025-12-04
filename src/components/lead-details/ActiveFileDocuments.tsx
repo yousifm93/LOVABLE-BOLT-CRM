@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
+import { DocumentExtractionConfirmationModal } from "@/components/modals/DocumentExtractionConfirmationModal";
 
 interface ActiveFileDocumentsProps {
   leadId: string;
@@ -29,10 +30,29 @@ const FILE_FIELDS = [
   { key: 'rate_lock_file', label: 'Rate Lock Confirmation' },
 ];
 
+interface ExtractedField {
+  key: string;
+  label: string;
+  value: any;
+  displayValue: string;
+}
+
+interface PendingExtraction {
+  type: 'contract' | 'rate_lock';
+  extractedData: any;
+  fieldsToUpdate: ExtractedField[];
+  agentInfo?: {
+    buyerAgent?: { name: string; id?: string; isNew?: boolean };
+    listingAgent?: { name: string; id?: string; isNew?: boolean };
+  };
+}
+
 export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [parsing, setParsing] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingExtraction, setPendingExtraction] = useState<PendingExtraction | null>(null);
   const { toast } = useToast();
 
   const parseContract = async (filePath: string) => {
@@ -53,37 +73,88 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         description: "Extracting information from contract..."
       });
 
-      // Call the parse-contract edge function
+      // Call the parse-contract edge function (no longer auto-saves)
       const { data, error } = await supabase.functions.invoke('parse-contract', {
         body: { 
-          file_url: signedUrlData.signedUrl,
-          lead_id: leadId 
+          file_url: signedUrlData.signedUrl
         }
       });
 
       if (error) throw error;
 
-      if (data?.success) {
-        const fieldsUpdated = data.fields_updated?.length || 0;
-        const extractedData = data.extracted_data;
+      if (data?.success && data?.extracted_data) {
+        const extracted = data.extracted_data;
+        const fieldsToUpdate: ExtractedField[] = [];
         
-        let description = `Extracted ${fieldsUpdated} fields from contract.`;
-        if (extractedData?.sales_price) {
-          description += ` Sales Price: $${extractedData.sales_price.toLocaleString()}.`;
+        // Build fields list from extracted data
+        if (extracted.property_type) {
+          fieldsToUpdate.push({ key: 'property_type', label: 'Property Type', value: extracted.property_type, displayValue: extracted.property_type });
         }
+        if (extracted.sales_price) {
+          fieldsToUpdate.push({ key: 'sales_price', label: 'Sales Price', value: extracted.sales_price, displayValue: `$${extracted.sales_price.toLocaleString()}` });
+        }
+        if (extracted.loan_amount) {
+          fieldsToUpdate.push({ key: 'loan_amount', label: 'Loan Amount', value: extracted.loan_amount, displayValue: `$${extracted.loan_amount.toLocaleString()}` });
+        }
+        if (extracted.sales_price && extracted.loan_amount) {
+          const downPmt = extracted.sales_price - extracted.loan_amount;
+          fieldsToUpdate.push({ key: 'down_pmt', label: 'Down Payment', value: String(downPmt), displayValue: `$${downPmt.toLocaleString()}` });
+        }
+        if (extracted.subject_address_1) {
+          fieldsToUpdate.push({ key: 'subject_address_1', label: 'Street Address', value: extracted.subject_address_1, displayValue: extracted.subject_address_1 });
+        }
+        if (extracted.subject_address_2) {
+          fieldsToUpdate.push({ key: 'subject_address_2', label: 'Address Line 2', value: extracted.subject_address_2, displayValue: extracted.subject_address_2 });
+        }
+        if (extracted.city) {
+          fieldsToUpdate.push({ key: 'subject_city', label: 'City', value: extracted.city, displayValue: extracted.city });
+        }
+        if (extracted.state) {
+          fieldsToUpdate.push({ key: 'subject_state', label: 'State', value: extracted.state, displayValue: extracted.state });
+        }
+        if (extracted.zip) {
+          fieldsToUpdate.push({ key: 'subject_zip', label: 'ZIP Code', value: extracted.zip, displayValue: extracted.zip });
+        }
+        if (extracted.close_date) {
+          fieldsToUpdate.push({ key: 'close_date', label: 'Closing Date', value: extracted.close_date, displayValue: extracted.close_date });
+        }
+        if (extracted.finance_contingency) {
+          fieldsToUpdate.push({ key: 'finance_contingency', label: 'Finance Contingency', value: extracted.finance_contingency, displayValue: extracted.finance_contingency });
+        }
+        
+        // Agent info
+        const agentInfo: PendingExtraction['agentInfo'] = {};
         if (data.buyer_agent_id) {
-          description += ' Buyer agent linked.';
+          const buyerAgentName = extracted.buyer_agent 
+            ? `${extracted.buyer_agent.first_name} ${extracted.buyer_agent.last_name}`
+            : 'Unknown';
+          fieldsToUpdate.push({ key: 'buyer_agent_id', label: "Buyer's Agent", value: data.buyer_agent_id, displayValue: buyerAgentName });
+          agentInfo.buyerAgent = { 
+            name: buyerAgentName, 
+            id: data.buyer_agent_id,
+            isNew: data.buyer_agent_created 
+          };
         }
         if (data.listing_agent_id) {
-          description += ' Listing agent linked.';
+          const listingAgentName = extracted.listing_agent 
+            ? `${extracted.listing_agent.first_name} ${extracted.listing_agent.last_name}`
+            : 'Unknown';
+          fieldsToUpdate.push({ key: 'listing_agent_id', label: 'Listing Agent', value: data.listing_agent_id, displayValue: listingAgentName });
+          agentInfo.listingAgent = { 
+            name: listingAgentName, 
+            id: data.listing_agent_id,
+            isNew: data.listing_agent_created 
+          };
         }
 
-        toast({
-          title: "Contract Parsed Successfully",
-          description
+        // Show confirmation modal
+        setPendingExtraction({
+          type: 'contract',
+          extractedData: extracted,
+          fieldsToUpdate,
+          agentInfo
         });
-        
-        onLeadUpdate();
+        setShowConfirmModal(true);
       } else {
         throw new Error(data?.error || 'Failed to parse contract');
       }
@@ -117,34 +188,46 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         description: "Extracting information from rate lock confirmation..."
       });
 
-      // Call the parse-rate-lock edge function
+      // Call the parse-rate-lock edge function (no longer auto-saves)
       const { data, error } = await supabase.functions.invoke('parse-rate-lock', {
         body: { 
-          file_url: signedUrlData.signedUrl,
-          lead_id: leadId 
+          file_url: signedUrlData.signedUrl
         }
       });
 
       if (error) throw error;
 
-      if (data?.success) {
-        const fieldsUpdated = data.fields_updated?.length || 0;
-        const extractedData = data.extracted_data;
+      if (data?.success && data?.extracted_data) {
+        const extracted = data.extracted_data;
+        const fieldsToUpdate: ExtractedField[] = [];
         
-        let description = `Extracted ${fieldsUpdated} fields from rate lock.`;
-        if (extractedData?.note_rate) {
-          description += ` Rate: ${extractedData.note_rate}%.`;
+        // Build fields list from extracted data
+        if (extracted.note_rate) {
+          fieldsToUpdate.push({ key: 'interest_rate', label: 'Interest Rate', value: extracted.note_rate, displayValue: `${extracted.note_rate}%` });
         }
-        if (extractedData?.lock_expiration) {
-          description += ` Expires: ${extractedData.lock_expiration}.`;
+        if (extracted.lock_expiration) {
+          fieldsToUpdate.push({ key: 'lock_expiration_date', label: 'Lock Expiration', value: extracted.lock_expiration, displayValue: extracted.lock_expiration });
+        }
+        if (extracted.term) {
+          fieldsToUpdate.push({ key: 'term', label: 'Loan Term', value: extracted.term, displayValue: `${extracted.term} months` });
+        }
+        if (extracted.prepayment_penalty !== undefined && extracted.prepayment_penalty !== null) {
+          fieldsToUpdate.push({ key: 'prepayment_penalty', label: 'Prepayment Penalty', value: String(extracted.prepayment_penalty), displayValue: `${extracted.prepayment_penalty} years` });
+        }
+        if (extracted.dscr_ratio) {
+          fieldsToUpdate.push({ key: 'dscr_ratio', label: 'DSCR Ratio', value: extracted.dscr_ratio, displayValue: String(extracted.dscr_ratio) });
+        }
+        if (extracted.escrow_waiver) {
+          fieldsToUpdate.push({ key: 'escrows', label: 'Escrows', value: extracted.escrow_waiver, displayValue: extracted.escrow_waiver });
         }
 
-        toast({
-          title: "Rate Lock Parsed Successfully",
-          description
+        // Show confirmation modal
+        setPendingExtraction({
+          type: 'rate_lock',
+          extractedData: extracted,
+          fieldsToUpdate
         });
-        
-        onLeadUpdate();
+        setShowConfirmModal(true);
       } else {
         throw new Error(data?.error || 'Failed to parse rate lock');
       }
@@ -157,6 +240,32 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
       });
     } finally {
       setParsing(null);
+    }
+  };
+
+  const handleConfirmExtraction = async (selectedFields: Record<string, any>) => {
+    try {
+      // Update the lead with selected fields
+      if (Object.keys(selectedFields).length > 0) {
+        await databaseService.updateLead(leadId, selectedFields);
+        
+        toast({
+          title: "Fields Updated",
+          description: `Successfully saved ${Object.keys(selectedFields).length} fields`
+        });
+        
+        onLeadUpdate();
+      }
+    } catch (error: any) {
+      console.error('Failed to update lead:', error);
+      toast({
+        title: "Update Failed",
+        description: error.message || "Could not save extracted fields",
+        variant: "destructive"
+      });
+    } finally {
+      setShowConfirmModal(false);
+      setPendingExtraction(null);
     }
   };
 
@@ -193,9 +302,34 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         [fieldKey]: uploadData.path
       });
 
+      // Get the field label for naming
+      const fieldLabel = FILE_FIELDS.find(f => f.key === fieldKey)?.label || fieldKey;
+      const clientName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown';
+      const documentTitle = `${fieldLabel} - ${clientName}`;
+
+      // Also add to documents table so it appears in documents list
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('user_id', userData?.user?.id)
+        .single();
+
+      if (userProfile?.user_id) {
+        await supabase.from('documents').insert({
+          lead_id: leadId,
+          file_name: documentTitle,
+          file_url: uploadData.path,
+          title: documentTitle,
+          mime_type: file.type || 'application/pdf',
+          size_bytes: file.size,
+          uploaded_by: userProfile.user_id
+        });
+      }
+
       toast({
         title: "File Uploaded",
-        description: `${FILE_FIELDS.find(f => f.key === fieldKey)?.label} uploaded successfully`
+        description: `${fieldLabel} uploaded successfully`
       });
       
       onLeadUpdate();
@@ -257,6 +391,13 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         [fieldKey]: null
       });
 
+      // Also remove from documents table
+      await supabase
+        .from('documents')
+        .delete()
+        .eq('lead_id', leadId)
+        .eq('file_url', filePath);
+
       toast({
         title: "File Deleted",
         description: "File removed successfully"
@@ -272,114 +413,124 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     }
   };
 
-  const getFileName = (filePath: string) => {
-    if (!filePath) return '';
-    const parts = filePath.split('/');
-    return parts[parts.length - 1];
-  };
-
   return (
-    <Card className="bg-gradient-card shadow-soft border-0">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOpen(!isOpen)}
-            className="h-6 w-6 p-0 hover:bg-muted"
-          >
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
-          <h3 className="text-sm font-semibold text-foreground">Active File Documents</h3>
-        </div>
-      </CardHeader>
-
-      {isOpen && (
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-4 gap-3">
-            {FILE_FIELDS.map((field) => {
-              const hasFile = !!lead[field.key];
-              const isUploading = uploading === field.key;
-              const isParsing = parsing === field.key;
-
-              return (
-                <div
-                  key={field.key}
-                  className="flex flex-col items-center p-2 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-1 mb-1">
-                    <FileText className={cn(
-                      "h-3 w-3 flex-shrink-0",
-                      hasFile ? "text-green-500" : "text-muted-foreground"
-                    )} />
-                    <span className="text-xs font-medium text-center">{field.label}</span>
-                  </div>
-                  
-                  {isParsing && (
-                    <span className="flex items-center gap-1 text-xs text-blue-500 mb-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Parsing...
-                    </span>
-                  )}
-
-                  {hasFile ? (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => handleFileView(field.key)}
-                        title="View"
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleFileDelete(field.key)}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(field.key, file);
-                          e.target.value = '';
-                        }}
-                        disabled={isUploading || isParsing}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 text-xs px-2"
-                        disabled={isUploading || isParsing}
-                        asChild
-                      >
-                        <span>
-                          <Upload className="h-3 w-3 mr-1" />
-                          {isUploading ? '...' : 'Upload'}
-                        </span>
-                      </Button>
-                    </label>
-                  )}
-                </div>
-              );
-            })}
+    <>
+      <Card className="bg-gradient-card shadow-soft border-0">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(!isOpen)}
+              className="h-6 w-6 p-0 hover:bg-muted"
+            >
+              {isOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+            <h3 className="text-sm font-semibold text-foreground">Active File Documents</h3>
           </div>
-        </CardContent>
+        </CardHeader>
+
+        {isOpen && (
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-4 gap-3">
+              {FILE_FIELDS.map((field) => {
+                const hasFile = !!lead[field.key];
+                const isUploading = uploading === field.key;
+                const isParsing = parsing === field.key;
+
+                return (
+                  <div
+                    key={field.key}
+                    className="flex flex-col items-center p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-1 mb-1">
+                      <FileText className={cn(
+                        "h-3 w-3 flex-shrink-0",
+                        hasFile ? "text-green-500" : "text-muted-foreground"
+                      )} />
+                      <span className="text-xs font-medium text-center">{field.label}</span>
+                    </div>
+                    
+                    {isParsing && (
+                      <span className="flex items-center gap-1 text-xs text-blue-500 mb-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Parsing...
+                      </span>
+                    )}
+
+                    {hasFile ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleFileView(field.key)}
+                          title="View"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                          onClick={() => handleFileDelete(field.key)}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(field.key, file);
+                            e.target.value = '';
+                          }}
+                          disabled={isUploading || isParsing}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          disabled={isUploading || isParsing}
+                          asChild
+                        >
+                          <span>
+                            <Upload className="h-3 w-3 mr-1" />
+                            {isUploading ? '...' : 'Upload'}
+                          </span>
+                        </Button>
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {pendingExtraction && (
+        <DocumentExtractionConfirmationModal
+          isOpen={showConfirmModal}
+          onClose={() => {
+            setShowConfirmModal(false);
+            setPendingExtraction(null);
+          }}
+          onConfirm={handleConfirmExtraction}
+          documentType={pendingExtraction.type}
+          extractedFields={pendingExtraction.fieldsToUpdate}
+          agentInfo={pendingExtraction.agentInfo}
+        />
       )}
-    </Card>
+    </>
   );
 }

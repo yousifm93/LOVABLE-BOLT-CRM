@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { file_url, lead_id } = await req.json();
+    const { file_url } = await req.json();
     
     console.log('[parse-contract] Starting to parse contract using base64 approach');
     
@@ -125,13 +125,14 @@ Important:
     const parsed = JSON.parse(jsonMatch[0]);
     console.log('[parse-contract] Successfully extracted contract data:', JSON.stringify(parsed));
 
-    // Initialize Supabase client for agent operations
+    // Initialize Supabase client for agent operations ONLY
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Process buyer's agent - search or create
     let buyer_agent_id = null;
+    let buyer_agent_created = false;
     if (parsed.buyer_agent?.first_name && parsed.buyer_agent?.last_name) {
       console.log('[parse-contract] Processing buyer agent:', parsed.buyer_agent);
       
@@ -162,6 +163,7 @@ Important:
 
         if (newAgent) {
           buyer_agent_id = newAgent.id;
+          buyer_agent_created = true;
           console.log('[parse-contract] Created new buyer agent:', buyer_agent_id);
         } else {
           console.error('[parse-contract] Failed to create buyer agent:', createError);
@@ -171,6 +173,7 @@ Important:
 
     // Process listing agent - search or create
     let listing_agent_id = null;
+    let listing_agent_created = false;
     if (parsed.listing_agent?.first_name && parsed.listing_agent?.last_name) {
       console.log('[parse-contract] Processing listing agent:', parsed.listing_agent);
       
@@ -201,6 +204,7 @@ Important:
 
         if (newAgent) {
           listing_agent_id = newAgent.id;
+          listing_agent_created = true;
           console.log('[parse-contract] Created new listing agent:', listing_agent_id);
         } else {
           console.error('[parse-contract] Failed to create listing agent:', createError);
@@ -208,47 +212,16 @@ Important:
       }
     }
 
-    // Update the lead with extracted data
-    const leadUpdate: Record<string, any> = {};
-    
-    if (parsed.property_type) leadUpdate.property_type = parsed.property_type;
-    if (parsed.sales_price) leadUpdate.sales_price = parsed.sales_price;
-    if (parsed.loan_amount) leadUpdate.loan_amount = parsed.loan_amount;
-    // Calculate down payment as sales_price - loan_amount (not parsed from contract)
-    if (parsed.sales_price && parsed.loan_amount) {
-      leadUpdate.down_pmt = String(parsed.sales_price - parsed.loan_amount);
-    }
-    if (parsed.subject_address_1) leadUpdate.subject_address_1 = parsed.subject_address_1;
-    if (parsed.subject_address_2) leadUpdate.subject_address_2 = parsed.subject_address_2;
-    if (parsed.city) leadUpdate.subject_city = parsed.city;
-    if (parsed.state) leadUpdate.subject_state = parsed.state;
-    if (parsed.zip) leadUpdate.subject_zip = parsed.zip;
-    if (parsed.close_date) leadUpdate.close_date = parsed.close_date;
-    if (parsed.finance_contingency) leadUpdate.finance_contingency = parsed.finance_contingency;
-    if (buyer_agent_id) leadUpdate.buyer_agent_id = buyer_agent_id;
-    if (listing_agent_id) leadUpdate.listing_agent_id = listing_agent_id;
-
-    console.log('[parse-contract] Updating lead with:', JSON.stringify(leadUpdate));
-
-    if (Object.keys(leadUpdate).length > 0 && lead_id) {
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update(leadUpdate)
-        .eq('id', lead_id);
-
-      if (updateError) {
-        console.error('[parse-contract] Failed to update lead:', updateError);
-      } else {
-        console.log('[parse-contract] Lead updated successfully');
-      }
-    }
+    // DO NOT update the lead - just return extracted data for client confirmation
+    console.log('[parse-contract] Returning extracted data for client confirmation');
 
     return new Response(JSON.stringify({ 
       success: true, 
       extracted_data: parsed,
       buyer_agent_id,
+      buyer_agent_created,
       listing_agent_id,
-      fields_updated: Object.keys(leadUpdate)
+      listing_agent_created
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
