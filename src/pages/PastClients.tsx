@@ -1128,7 +1128,7 @@ export default function PastClients() {
                 Filter {filters.length > 0 && `(${filters.length})`}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96 p-0" align="start">
+            <PopoverContent className="w-[32rem] bg-background border border-border shadow-lg z-50" align="start">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium">Filter Past Clients</h4>
