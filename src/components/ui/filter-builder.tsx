@@ -1,5 +1,6 @@
 import * as React from "react";
-import { CalendarIcon, X } from "lucide-react";
+import { useState } from "react";
+import { CalendarIcon, X, Save } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 export interface FilterCondition {
   id: string;
@@ -29,17 +31,33 @@ export interface FilterCondition {
 interface FilterBuilderProps {
   filters: FilterCondition[];
   onFiltersChange: (filters: FilterCondition[]) => void;
-  columns: Array<{ value: string; label: string; type?: 'date' | 'text' | 'select'; options?: string[] }>;
+  columns: Array<{ value: string; label: string; type?: 'date' | 'text' | 'select' | 'number'; options?: string[] }>;
+  onSaveAsView?: (viewName: string) => void;
+  showSaveAsView?: boolean;
 }
 
 const textOperators = [
   { value: 'is', label: 'is' },
   { value: 'is_not', label: 'is not' },
+  { value: 'text_is', label: 'text is' },
+  { value: 'text_is_not', label: 'text is not' },
   { value: 'contains', label: 'contains' },
+  { value: 'does_not_contain', label: "doesn't contain" },
+  { value: 'starts_with', label: 'starts with' },
+];
+
+const numberOperators = [
+  { value: 'is', label: 'is' },
+  { value: 'is_not', label: 'is not' },
+  { value: 'greater_than', label: 'greater than' },
+  { value: 'less_than', label: 'less than' },
+  { value: 'greater_or_equal', label: 'greater or equal' },
+  { value: 'less_or_equal', label: 'less or equal' },
 ];
 
 const dateOperators = [
   { value: 'is', label: 'is' },
+  { value: 'is_not', label: 'is not' },
   { value: 'is_after', label: 'is after' },
   { value: 'is_before', label: 'is before' },
   { value: 'is_in_last', label: 'is in last' },
@@ -59,7 +77,9 @@ const relativeValues = [
   { value: '90_days', label: '90 days' },
 ];
 
-export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuilderProps) {
+export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView, showSaveAsView = true }: FilterBuilderProps) {
+  const [viewName, setViewName] = useState("");
+
   const addFilter = () => {
     const newFilter: FilterCondition = {
       id: Date.now().toString(),
@@ -93,7 +113,15 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
     const type = getColumnType(columnValue);
     if (type === 'date') return dateOperators;
     if (type === 'select') return selectOperators;
+    if (type === 'number') return numberOperators;
     return textOperators;
+  };
+
+  const handleSaveAsView = () => {
+    if (viewName.trim() && onSaveAsView) {
+      onSaveAsView(viewName.trim());
+      setViewName("");
+    }
   };
 
   const renderValueInput = (filter: FilterCondition) => {
@@ -236,6 +264,19 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
       );
     }
 
+    // Number type - show number input
+    if (columnType === 'number') {
+      return (
+        <Input
+          type="number"
+          placeholder="Enter number"
+          value={filter.value as string}
+          onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+          className="w-44"
+        />
+      );
+    }
+
     // Text type - show text input
     return (
       <Input
@@ -318,6 +359,38 @@ export function FilterBuilder({ filters, onFiltersChange, columns }: FilterBuild
       >
         Add Filter
       </Button>
+
+      {/* Save as New View Section */}
+      {showSaveAsView && onSaveAsView && filters.length > 0 && (
+        <>
+          <Separator className="my-3" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Save filters as a new view</label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="View name"
+                value={viewName}
+                onChange={(e) => setViewName(e.target.value)}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveAsView();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleSaveAsView}
+                disabled={!viewName.trim()}
+                size="sm"
+                className="gap-1"
+              >
+                <Save className="h-4 w-4" />
+                Save View
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

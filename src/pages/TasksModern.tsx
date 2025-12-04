@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,9 @@ import { formatDateModern } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { ViewPills } from "@/components/ui/view-pills";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 
 interface ModernTask {
   id: string;
@@ -248,6 +251,19 @@ const columns = (
   },
 ];
 
+// Task columns for views system
+const TASK_COLUMNS = [
+  { id: "title", label: "Task", visible: true },
+  { id: "created_at", label: "Creation Log", visible: true },
+  { id: "borrower", label: "Borrower", visible: true },
+  { id: "borrower_stage", label: "Borrower Stage", visible: true },
+  { id: "priority", label: "Priority", visible: true },
+  { id: "assignee", label: "Assigned To", visible: true },
+  { id: "due_date", label: "Due Date", visible: true },
+  { id: "status", label: "Status", visible: true },
+  { id: "description", label: "Description", visible: false },
+];
+
 export default function TasksModern() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tasks, setTasks] = useState<ModernTask[]>([]);
@@ -271,16 +287,36 @@ export default function TasksModern() {
   const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  // Column visibility hook for views system
+  const {
+    columns: columnConfig,
+    views,
+    visibleColumns,
+    activeView,
+    isLoadingViews,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    loadView,
+    deleteView,
+    reorderColumns,
+  } = useColumnVisibility(TASK_COLUMNS, "tasks-columns");
+
   // Get assignable users
   const assignableUsers = users.filter(u => u.is_active === true && u.is_assignable !== false);
 
-  // Filter columns definition for the filter builder
-  const filterColumns = [
+  // Filter columns definition for the filter builder - expanded with more fields
+  const filterColumns = useMemo(() => [
+    { 
+      value: 'title', 
+      label: 'Task Name', 
+      type: 'text' as const
+    },
     { 
       value: 'priority', 
       label: 'Priority', 
       type: 'select' as const, 
-      options: ['High', 'Medium', 'Low'] 
+      options: ['Critical', 'High', 'Medium', 'Low'] 
     },
     { 
       value: 'status', 
@@ -298,8 +334,28 @@ export default function TasksModern() {
       value: 'due_date', 
       label: 'Due Date', 
       type: 'date' as const
+    },
+    { 
+      value: 'created_at', 
+      label: 'Created Date', 
+      type: 'date' as const
+    },
+    {
+      value: 'description',
+      label: 'Description',
+      type: 'text' as const
     }
-  ];
+  ], [assignableUsers]);
+
+  // Handle save filter as view
+  const handleSaveFilterAsView = (viewName: string) => {
+    saveView(viewName);
+    toast({
+      title: "View saved",
+      description: `View "${viewName}" has been saved with current filters and columns.`,
+    });
+    setIsFilterOpen(false);
+  };
 
   const loadTasks = async () => {
     try {
@@ -496,15 +552,16 @@ export default function TasksModern() {
   const applyAdvancedFilters = (tasks: ModernTask[], filters: FilterCondition[]) => {
     return tasks.filter(task => {
       return filters.every(filter => {
-        // Handle date column specially
-        if (filter.column === 'due_date') {
-          if (!task.due_date) {
+        // Handle date columns (due_date, created_at)
+        if (filter.column === 'due_date' || filter.column === 'created_at') {
+          const dateField = filter.column === 'due_date' ? task.due_date : task.created_at;
+          if (!dateField) {
             return filter.operator === 'is_not';
           }
           
-          const taskDateStr = task.due_date.includes('T') 
-            ? task.due_date 
-            : `${task.due_date}T00:00:00`;
+          const taskDateStr = dateField.includes('T') 
+            ? dateField 
+            : `${dateField}T00:00:00`;
           const taskDate = new Date(taskDateStr);
           taskDate.setHours(0, 0, 0, 0);
           
@@ -529,6 +586,12 @@ export default function TasksModern() {
         let taskValue: any;
         
         switch (filter.column) {
+          case 'title':
+            taskValue = task.title;
+            break;
+          case 'description':
+            taskValue = task.description || '';
+            break;
           case 'priority':
             taskValue = task.priority;
             break;
@@ -543,13 +606,24 @@ export default function TasksModern() {
             return true;
         }
 
+        const taskStr = taskValue?.toString().toLowerCase() || '';
+        const filterStr = filter.value.toString().toLowerCase();
+
         switch (filter.operator) {
           case 'is':
             return taskValue === filter.value;
           case 'is_not':
             return taskValue !== filter.value;
+          case 'text_is':
+            return taskStr === filterStr;
+          case 'text_is_not':
+            return taskStr !== filterStr;
           case 'contains':
-            return taskValue?.toString().toLowerCase().includes(filter.value.toString().toLowerCase());
+            return taskStr.includes(filterStr);
+          case 'does_not_contain':
+            return !taskStr.includes(filterStr);
+          case 'starts_with':
+            return taskStr.startsWith(filterStr);
           default:
             return true;
         }
@@ -788,7 +862,7 @@ export default function TasksModern() {
               </Button>
             </div>
           )}
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               className="bg-primary hover:bg-primary/90"
@@ -805,6 +879,38 @@ export default function TasksModern() {
                 className="pl-10"
               />
             </div>
+            
+            {/* Views System */}
+            <Button
+              variant={activeView === 'Main View' ? "default" : "outline"}
+              size="sm"
+              onClick={() => loadView('Main View')}
+              className="h-8"
+            >
+              Main View
+            </Button>
+            
+            <ViewPills
+              views={views}
+              activeView={activeView}
+              onLoadView={loadView}
+              onDeleteView={deleteView}
+            />
+            
+            <ColumnVisibilityButton
+              columns={columnConfig}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+              onReorderColumns={reorderColumns}
+              onViewSaved={(viewName) => {
+                toast({
+                  title: "View saved",
+                  description: `View "${viewName}" has been saved.`,
+                });
+              }}
+            />
+            
             {/* User Filter Icons */}
             <div className="flex items-center gap-2">
               {assignableUsers.map((user) => (
@@ -837,7 +943,7 @@ export default function TasksModern() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[32rem]" align="end">
+              <PopoverContent className="w-[36rem]" align="end">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Filter Tasks</h4>
@@ -856,6 +962,8 @@ export default function TasksModern() {
                     filters={filters}
                     onFiltersChange={setFilters}
                     columns={filterColumns}
+                    onSaveAsView={handleSaveFilterAsView}
+                    showSaveAsView={true}
                   />
                 </div>
               </PopoverContent>
