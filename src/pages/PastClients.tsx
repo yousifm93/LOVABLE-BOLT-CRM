@@ -30,6 +30,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
@@ -1127,7 +1128,7 @@ export default function PastClients() {
             onClick={() => setIsFilterOpen(!isFilterOpen)}
           >
             <Filter className="h-4 w-4 mr-2" />
-            Filter {filters.length > 0 && `(${filters.length})`}
+            Filter {countActiveFilters(filters) > 0 && `(${countActiveFilters(filters)})`}
           </Button>
           
           <ColumnVisibilityButton 

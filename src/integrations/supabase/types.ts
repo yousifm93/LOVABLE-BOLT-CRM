@@ -4024,7 +4024,7 @@ export type Database = {
         | "self_employed"
         | "rental"
         | "other"
-      condo_status: "Ordered" | "Received" | "Approved"
+      condo_status: "Ordered" | "Received" | "Approved" | "N/A"
       contact_type:
         | "Agent"
         | "Realtor"
@@ -4079,7 +4079,7 @@ export type Database = {
         | "spam"
         | "unsubscribe"
         | "delivered"
-      epo_status: "Send" | "Sent" | "Signed"
+      epo_status: "Send" | "Sent" | "Signed" | "N/A"
       hoi_status: "Quoted" | "Ordered" | "Received"
       ingestion_status: "pending" | "processing" | "completed" | "failed"
       lead_source:
@@ -4321,7 +4321,7 @@ export const Constants = {
         "rental",
         "other",
       ],
-      condo_status: ["Ordered", "Received", "Approved"],
+      condo_status: ["Ordered", "Received", "Approved", "N/A"],
       contact_type: [
         "Agent",
         "Realtor",
@@ -4380,7 +4380,7 @@ export const Constants = {
         "unsubscribe",
         "delivered",
       ],
-      epo_status: ["Send", "Sent", "Signed"],
+      epo_status: ["Send", "Sent", "Signed", "N/A"],
       hoi_status: ["Quoted", "Ordered", "Received"],
       ingestion_status: ["pending", "processing", "completed", "failed"],
       lead_source: [

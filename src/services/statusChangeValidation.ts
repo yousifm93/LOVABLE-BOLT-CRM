@@ -30,6 +30,11 @@ export const pipelineStageRules: PipelineStageRules = {
     requires: ['lead_strength', 'likely_to_apply'],
     message: 'Please update Lead Strength and Likely to Apply before moving to Pending App',
     actionLabel: 'Update Lead Details'
+  },
+  'active': {
+    requires: ['contract_file'],
+    message: 'Please upload a contract before moving to Active pipeline',
+    actionLabel: 'Upload Contract'
   }
 };
 

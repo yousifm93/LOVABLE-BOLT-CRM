@@ -10,6 +10,7 @@ import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -786,9 +787,9 @@ export default function TasksModern() {
               • Filtered by {assignableUsers.find(u => u.id === userFilter)?.first_name}
             </span>
           )}
-          {filters.length > 0 && (
+          {countActiveFilters(filters) > 0 && (
             <span className="ml-2 text-primary">
-              • {filters.length} filter{filters.length > 1 ? 's' : ''} active
+              • {countActiveFilters(filters)} filter{countActiveFilters(filters) > 1 ? 's' : ''} active
             </span>
           )}
         </p>

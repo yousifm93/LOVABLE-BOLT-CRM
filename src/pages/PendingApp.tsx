@@ -10,6 +10,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient, PipelineStage } from "@/types/crm";

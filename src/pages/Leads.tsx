@@ -29,6 +29,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { formatDateModern } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
@@ -1016,16 +1017,16 @@ export default function Leads() {
             <h1 className="text-2xl font-bold text-foreground">Leads ({filteredLeads.length})</h1>
             <p className="text-xs italic text-muted-foreground/70">
               Leads entering the pipeline
-              {filters.length > 0 && <span className="ml-2 text-primary">
-                  • {filters.length} filter{filters.length > 1 ? 's' : ''} active
+              {countActiveFilters(filters) > 0 && <span className="ml-2 text-primary">
+                  • {countActiveFilters(filters)} filter{countActiveFilters(filters) > 1 ? 's' : ''} active
                 </span>}
             </p>
           </div>
         </div>
 
-        {/* Filter Chips */}
-        {filters.length > 0 && <div className="mb-4 flex flex-wrap gap-2">
-            {filters.map(filter => <Badge key={filter.id} variant="secondary" className="flex items-center gap-2">
+        {/* Filter Chips - only show complete filters */}
+        {countActiveFilters(filters) > 0 && <div className="mb-4 flex flex-wrap gap-2">
+            {filters.filter(f => f.column && (f.value || f.operator === 'is_empty' || f.operator === 'is_not_empty')).map(filter => <Badge key={filter.id} variant="secondary" className="flex items-center gap-2">
                 <span className="text-xs">
                   {filterColumns.find(col => col.value === filter.column)?.label} {filter.operator} {typeof filter.value === 'string' ? filter.value : 'Date'}
                 </span>

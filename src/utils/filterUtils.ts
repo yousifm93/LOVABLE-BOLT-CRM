@@ -1,6 +1,15 @@
 import { FilterCondition } from "@/components/ui/simple-filter-builder";
 
 /**
+ * Count only active/complete filters (those with column AND value set)
+ */
+export function countActiveFilters(filters: FilterCondition[]): number {
+  return filters.filter(f => 
+    f.column && (f.value || f.operator === 'is_empty' || f.operator === 'is_not_empty')
+  ).length;
+}
+
+/**
  * Shared utility function to apply advanced filters to any data array
  * Supports all filter operators defined in FilterBuilder
  */
