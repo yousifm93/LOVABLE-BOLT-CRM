@@ -79,22 +79,11 @@ export function InlineEditApprovedLender({
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center w-full relative pl-6">
-            <Building2 className="h-3 w-3 flex-shrink-0 absolute left-1 top-1/2 -translate-y-1/2" />
-            {value ? (
-              <div className="flex flex-col items-start min-w-0 flex-1">
-                <span className="text-sm leading-tight truncate w-full">
-                  {value.lender_name}
-                </span>
-                {value.lender_type && (
-                  <span className="text-xs text-muted-foreground leading-tight truncate w-full">
-                    {value.lender_type}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span className="text-sm leading-tight text-muted-foreground">{placeholder}</span>
-            )}
+          <div className="flex items-center gap-1.5 w-full">
+            <Building2 className="h-3 w-3 flex-shrink-0" />
+            <span className={cn("text-sm leading-tight truncate", !value && "text-muted-foreground")}>
+              {value ? value.lender_name : placeholder}
+            </span>
           </div>
         </Button>
       </DropdownMenuTrigger>

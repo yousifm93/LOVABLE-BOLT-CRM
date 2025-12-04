@@ -162,7 +162,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Select value" />
           </SelectTrigger>
-          <SelectContent className="z-[100]">
+          <SelectContent className="!z-[200] bg-popover">
             {options.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
@@ -185,7 +185,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
-            <SelectContent className="z-[100]">
+            <SelectContent className="!z-[200] bg-popover">
               {relativeValues.map((rv) => (
                 <SelectItem key={rv.value} value={rv.value}>
                   {rv.label}
@@ -330,7 +330,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select field" />
             </SelectTrigger>
-            <SelectContent className="z-[100]">
+            <SelectContent className="!z-[200] bg-popover">
               {columns.map((column) => (
                 <SelectItem key={column.value} value={column.value}>
                   {column.label}
@@ -352,7 +352,7 @@ export function FilterBuilder({ filters, onFiltersChange, columns, onSaveAsView,
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[100]">
+            <SelectContent className="!z-[200] bg-popover">
               {getOperators(filter.column).map((operator) => (
                 <SelectItem key={operator.value} value={operator.value}>
                   {operator.label}
