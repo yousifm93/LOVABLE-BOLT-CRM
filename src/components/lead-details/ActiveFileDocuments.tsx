@@ -311,8 +311,9 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
 
       // Get the field label for naming - format: DocumentType-LastName #LenderLoanNumber
       const fieldLabel = FILE_FIELDS.find(f => f.key === fieldKey)?.label || fieldKey;
-      const lastName = lead.last_name || 'Unknown';
-      const lenderLoanNumber = lead.lender_loan_number || '';
+      // Handle both camelCase (transformed client) and snake_case (raw lead) formats
+      const lastName = lead.person?.lastName || lead.last_name || 'Unknown';
+      const lenderLoanNumber = lead.lenderLoanNumber || lead.lender_loan_number || '';
       const documentTitle = lenderLoanNumber 
         ? `${fieldLabel}-${lastName} #${lenderLoanNumber}`
         : `${fieldLabel}-${lastName}`;
