@@ -35,7 +35,7 @@ interface ColumnVisibilityModalProps {
   isOpen: boolean;
   onClose: () => void;
   columns: Column[];
-  onColumnToggle: (columnId: string) => void;
+  onColumnToggle: (columnId: string, label?: string) => void;
   onToggleAll: (visible: boolean) => void;
   onSaveView: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
@@ -44,7 +44,7 @@ interface ColumnVisibilityModalProps {
 
 interface SortableColumnItemProps {
   column: Column;
-  onToggle: (columnId: string) => void;
+  onToggle: (columnId: string, label?: string) => void;
 }
 
 function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
@@ -81,7 +81,7 @@ function SortableColumnItem({ column, onToggle }: SortableColumnItemProps) {
       <Checkbox
         id={column.id}
         checked={column.visible}
-        onCheckedChange={() => onToggle(column.id)}
+        onCheckedChange={() => onToggle(column.id, column.label)}
       />
       <label
         htmlFor={column.id}
