@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
@@ -175,7 +176,8 @@ const hoiStatusOptions = [
 const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
   { value: "Received", label: "Received" },
-  { value: "Approved", label: "Approved" }
+  { value: "Approved", label: "Approved" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const cdStatusOptions = [
@@ -200,7 +202,8 @@ const baStatusOptions = [
 const epoStatusOptions = [
   { value: "Send", label: "Send" },
   { value: "Sent", label: "Sent" },
-  { value: "Signed", label: "Signed" }
+  { value: "Signed", label: "Signed" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const createColumns = (
@@ -1321,7 +1324,7 @@ export default function Active() {
           onClick={() => setIsFilterOpen(!isFilterOpen)}
         >
           <Filter className="h-4 w-4 mr-2" />
-          Filter {filters.length > 0 && `(${filters.length})`}
+          Filter {countActiveFilters(filters) > 0 && `(${countActiveFilters(filters)})`}
         </Button>
         
         <ColumnVisibilityButton

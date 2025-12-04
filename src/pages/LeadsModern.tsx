@@ -12,6 +12,7 @@ import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
+import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { CreateLeadModalModern } from "@/components/modals/CreateLeadModalModern";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";

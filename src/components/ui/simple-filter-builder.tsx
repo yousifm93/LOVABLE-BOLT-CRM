@@ -195,8 +195,11 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
       return (
         <select
           value={filter.value as string}
-          onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-          style={{ ...selectStyle, width: '160px' }}
+          onChange={(e) => {
+            console.log('Value changed:', e.target.value);
+            updateFilter(filter.id, 'value', e.target.value);
+          }}
+          style={{ ...selectStyle, width: '160px', WebkitAppearance: 'menulist', appearance: 'menulist' }}
         >
           <option value="">Select value</option>
           {options.map((option) => (
@@ -214,8 +217,11 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
         return (
           <select
             value={filter.value as string}
-            onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-            style={{ ...selectStyle, width: '160px' }}
+            onChange={(e) => {
+              console.log('Period changed:', e.target.value);
+              updateFilter(filter.id, 'value', e.target.value);
+            }}
+            style={{ ...selectStyle, width: '160px', WebkitAppearance: 'menulist', appearance: 'menulist' }}
           >
             <option value="">Select period</option>
             {relativeValues.map((rv) => (
@@ -332,6 +338,9 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
     );
   };
 
+  // Count only complete filters (with column AND value set)
+  const activeFilterCount = filters.filter(f => f.column && (f.value || f.operator === 'is_empty' || f.operator === 'is_not_empty')).length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {filters.map((filter) => (
@@ -350,8 +359,11 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
           {/* Column Select */}
           <select
             value={filter.column}
-            onChange={(e) => handleColumnChange(filter.id, e.target.value)}
-            style={{ ...selectStyle, width: '200px' }}
+            onChange={(e) => {
+              console.log('Column changed:', e.target.value);
+              handleColumnChange(filter.id, e.target.value);
+            }}
+            style={{ ...selectStyle, width: '200px', WebkitAppearance: 'menulist', appearance: 'menulist' }}
           >
             <option value="">Select field</option>
             {columns.map((column) => (
@@ -364,8 +376,11 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
           {/* Operator Select */}
           <select
             value={filter.operator}
-            onChange={(e) => handleOperatorChange(filter.id, e.target.value)}
-            style={{ ...selectStyle, width: '140px' }}
+            onChange={(e) => {
+              console.log('Operator changed:', e.target.value);
+              handleOperatorChange(filter.id, e.target.value);
+            }}
+            style={{ ...selectStyle, width: '140px', WebkitAppearance: 'menulist', appearance: 'menulist' }}
           >
             {getOperators(filter.column).map((operator) => (
               <option key={operator.value} value={operator.value}>
@@ -392,9 +407,9 @@ export function SimpleFilterBuilder({ filters, onFiltersChange, columns, onSaveA
       <Button
         variant="outline"
         onClick={addFilter}
-        style={{ width: '100%' }}
+        style={{ width: 'auto', alignSelf: 'flex-start' }}
       >
-        Add Filter
+        + Add Filter
       </Button>
 
       {/* Save as New View Section */}
