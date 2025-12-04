@@ -739,16 +739,20 @@ export default function PastClients() {
     setActiveView
   } = useColumnVisibility(allAvailableColumns, 'past-clients-columns', 'past_clients');
 
+  // Filter columns definition with proper types and options
   const filterColumns = [
-    { value: 'borrower_name', label: 'Borrower Name', type: 'text' as const },
+    { value: 'first_name', label: 'First Name', type: 'text' as const },
+    { value: 'last_name', label: 'Last Name', type: 'text' as const },
+    { value: 'email', label: 'Email', type: 'text' as const },
+    { value: 'phone', label: 'Phone', type: 'text' as const },
     { value: 'mb_loan_number', label: 'Loan Number', type: 'text' as const },
-    { value: 'loan_amount', label: 'Loan Amount', type: 'text' as const },
-    { value: 'sales_price', label: 'Sales Price', type: 'text' as const },
-    { value: 'close_date', label: 'Close Date', type: 'date' as const },
-    { value: 'closed_at', label: 'Closed Date', type: 'date' as const },
+    { value: 'loan_type', label: 'Loan Type', type: 'select' as const, options: ['Purchase', 'Refinance', 'Cash Out Refinance', 'HELOC', 'Construction', 'VA Loan', 'FHA Loan', 'Conventional', 'Jumbo'] },
     { value: 'pr_type', label: 'P/R Type', type: 'select' as const, options: prTypeOptions.map(o => o.value) },
     { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(o => o.value) },
-    { value: 'lender', label: 'Lender', type: 'text' as const },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
+    { value: 'sales_price', label: 'Sales Price', type: 'number' as const },
+    { value: 'close_date', label: 'Close Date', type: 'date' as const },
+    { value: 'closed_at', label: 'Closed Date', type: 'date' as const },
   ];
 
   // Auto-load Main View on initial mount

@@ -353,36 +353,23 @@ export default function Leads() {
     localStorage.setItem('leads-filters', JSON.stringify(filters));
   }, [filters]);
 
-  // Filter columns definition for the filter builder
-  const filterColumns = [{
-    value: 'name',
-    label: 'Lead Name',
-    type: 'text' as const
-  }, {
-    value: 'referredVia',
-    label: 'Referred Via',
-    type: 'select' as const,
-    options: referredViaOptions.map(opt => opt.value)
-  }, {
-    value: 'referralSource',
-    label: 'Referral Source',
-    type: 'select' as const,
-    options: referralSourceOptions.map(opt => opt.value)
-  }, {
-    value: 'converted',
-    label: 'Converted',
-    type: 'select' as const,
-    options: convertedOptions.map(opt => opt.value)
-  }, {
-    value: 'leadStrength',
-    label: 'Lead Strength',
-    type: 'select' as const,
-    options: leadStrengthOptions.map(opt => opt.value)
-  }, {
-    value: 'dueDate',
-    label: 'Due Date',
-    type: 'date' as const
-  }];
+  // Filter columns definition with proper types and options
+  const filterColumns = [
+    { value: 'first_name', label: 'First Name', type: 'text' as const },
+    { value: 'last_name', label: 'Last Name', type: 'text' as const },
+    { value: 'email', label: 'Email', type: 'text' as const },
+    { value: 'phone', label: 'Phone', type: 'text' as const },
+    { value: 'referred_via', label: 'Referred Via', type: 'select' as const, options: referredViaOptions.map(o => o.value) },
+    { value: 'referral_source', label: 'Referral Source', type: 'select' as const, options: referralSourceOptions.map(o => o.value) },
+    { value: 'converted', label: 'Status', type: 'select' as const, options: convertedOptions.map(o => o.value) },
+    { value: 'lead_strength', label: 'Lead Strength', type: 'select' as const, options: leadStrengthOptions.map(o => o.value) },
+    { value: 'likely_to_apply', label: 'Likely to Apply', type: 'select' as const, options: ['Very Likely', 'Likely', 'Unlikely', 'Very Unlikely'] },
+    { value: 'loan_type', label: 'Loan Type', type: 'select' as const, options: ['Purchase', 'Refinance', 'Cash Out Refinance', 'HELOC', 'Construction', 'VA Loan', 'FHA Loan', 'Conventional', 'Jumbo'] },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
+    { value: 'fico_score', label: 'Credit Score', type: 'number' as const },
+    { value: 'task_eta', label: 'Due Date', type: 'date' as const },
+    { value: 'created_at', label: 'Created Date', type: 'date' as const },
+  ];
 
   // Field update handler
   const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined | null) => {

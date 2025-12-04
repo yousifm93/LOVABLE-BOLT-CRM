@@ -911,16 +911,25 @@ export default function Active() {
     });
   };
 
-  // Filter configuration
+  // Filter configuration with proper types and options
   const filterColumns = [
-    { value: 'borrower_name', label: 'Borrower', type: 'text' as const },
-    { value: 'lender', label: 'Lender', type: 'text' as const },
-    { value: 'pr_type', label: 'P/R', type: 'select' as const, options: prTypeOptions.map(opt => opt.value) },
-    { value: 'loan_amount', label: 'Loan Amount', type: 'text' as const },
-    { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(opt => opt.value) },
+    { value: 'first_name', label: 'First Name', type: 'text' as const },
+    { value: 'last_name', label: 'Last Name', type: 'text' as const },
+    { value: 'mb_loan_number', label: 'Loan Number', type: 'text' as const },
+    { value: 'pr_type', label: 'P/R', type: 'select' as const, options: prTypeOptions.map(o => o.value) },
+    { value: 'disclosure_status', label: 'Disclosure Status', type: 'select' as const, options: disclosureStatusOptions.map(o => o.value) },
+    { value: 'loan_status', label: 'Loan Status', type: 'select' as const, options: loanStatusOptions.map(o => o.value) },
+    { value: 'appraisal_status', label: 'Appraisal Status', type: 'select' as const, options: appraisalStatusOptions.map(o => o.value) },
+    { value: 'title_status', label: 'Title Status', type: 'select' as const, options: titleStatusOptions.map(o => o.value) },
+    { value: 'hoi_status', label: 'HOI Status', type: 'select' as const, options: hoiStatusOptions.map(o => o.value) },
+    { value: 'condo_status', label: 'Condo Status', type: 'select' as const, options: condoStatusOptions.map(o => o.value) },
+    { value: 'cd_status', label: 'CD Status', type: 'select' as const, options: cdStatusOptions.map(o => o.value) },
+    { value: 'package_status', label: 'Package Status', type: 'select' as const, options: packageStatusOptions.map(o => o.value) },
+    { value: 'ba_status', label: 'BA Status', type: 'select' as const, options: baStatusOptions.map(o => o.value) },
+    { value: 'epo_status', label: 'EPO Status', type: 'select' as const, options: epoStatusOptions.map(o => o.value) },
+    { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
     { value: 'close_date', label: 'Close Date', type: 'date' as const },
-    { value: 'disclosure_status', label: 'Disclosure Status', type: 'select' as const, options: disclosureStatusOptions.map(opt => opt.value) },
-    { value: 'appraisal_status', label: 'Appraisal Status', type: 'select' as const, options: appraisalStatusOptions.map(opt => opt.value) },
+    { value: 'lock_expiration_date', label: 'Lock Expiration', type: 'date' as const },
   ];
 
   // Load and save filters to localStorage
