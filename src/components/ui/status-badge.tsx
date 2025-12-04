@@ -45,14 +45,14 @@ const getStatusColor = (status: string): string => {
   // ACTIVE BOARD - LOAN STATUS
   if (statusLower === 'new' || statusLower === 'new rfp') return 'bg-green-300 text-green-900'; // Light Green
   if (statusLower === 'rfp') return 'bg-blue-500 text-white'; // Blue
-  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-purple-500 text-white'; // Purple
-  if (statusLower === 'awc') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-yellow-200 text-yellow-900'; // Light Yellow
+  if (statusLower === 'awc') return 'bg-gray-500 text-white'; // Dark Grey
   if (statusLower === 'ctc') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - DISCLOSURE STATUS
-  if (statusLower === 'sent' && status !== 'Sent') return 'bg-red-500 text-white'; // Red (context-aware)
+  if (statusLower === 'sent' && status !== 'Sent') return 'bg-green-300 text-green-900'; // Light Green for CD Sent
   if (statusLower === 'signed') return 'bg-green-500 text-white'; // Bright Green
-  if (statusLower === 'ordered') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'ordered') return 'bg-gray-500 text-white'; // Grey
   if (statusLower === 'need sig') return 'bg-orange-400 text-white'; // Orange
   
   // ACTIVE BOARD - APPRAISAL STATUS
@@ -62,7 +62,7 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'waiver') return 'bg-orange-400 text-white'; // Orange
   
   // ACTIVE BOARD - TITLE STATUS
-  if (statusLower === 'requested') return 'bg-blue-500 text-white'; // Blue
+  if (statusLower === 'requested') return 'bg-gray-500 text-white'; // Grey
   if (statusLower === 'on hold') return 'bg-blue-400 text-white'; // Light Blue
   
   // ACTIVE BOARD - HOI STATUS
@@ -72,11 +72,11 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'approved') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - CD STATUS
-  if (statusLower === 'cd sent' || (statusLower === 'sent' && status === 'Sent')) return 'bg-red-500 text-white'; // Red
+  if (statusLower === 'cd sent' || (statusLower === 'sent' && status === 'Sent')) return 'bg-green-300 text-green-900'; // Light Green
   if (statusLower === 'cd signed') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - PACKAGE STATUS
-  if (statusLower === 'initial') return 'bg-blue-400 text-white'; // Light Blue
+  if (statusLower === 'initial') return 'bg-gray-500 text-white'; // Grey
   if (statusLower === 'final') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - BA STATUS

@@ -29,7 +29,7 @@ const FILE_FIELDS = [
 ];
 
 export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [parsing, setParsing] = useState<string | null>(null);
   const { toast } = useToast();
@@ -220,7 +220,7 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
 
       {isOpen && (
         <CardContent className="pt-0">
-          <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-3">
             {FILE_FIELDS.map((field) => {
               const hasFile = !!lead[field.key];
               const isUploading = uploading === field.key;
@@ -229,77 +229,71 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
               return (
                 <div
                   key={field.key}
-                  className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex flex-col items-center p-2 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="flex items-center gap-1 mb-1">
                     <FileText className={cn(
-                      "h-4 w-4 flex-shrink-0",
+                      "h-3 w-3 flex-shrink-0",
                       hasFile ? "text-green-500" : "text-muted-foreground"
                     )} />
-                    <span className="text-sm font-medium">{field.label}</span>
-                    {hasFile && (
-                      <span className="text-xs text-muted-foreground truncate">
-                        {getFileName(lead[field.key])}
-                      </span>
-                    )}
-                    {isParsing && (
-                      <span className="flex items-center gap-1 text-xs text-blue-500">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Parsing...
-                      </span>
-                    )}
+                    <span className="text-xs font-medium text-center">{field.label}</span>
                   </div>
+                  
+                  {isParsing && (
+                    <span className="flex items-center gap-1 text-xs text-blue-500 mb-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Parsing...
+                    </span>
+                  )}
 
-                  <div className="flex items-center gap-1">
-                    {hasFile ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => handleFileView(field.key)}
-                          title="View"
-                        >
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleFileDelete(field.key)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    ) : (
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleFileUpload(field.key, file);
-                            e.target.value = '';
-                          }}
-                          disabled={isUploading || isParsing}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          disabled={isUploading || isParsing}
-                          asChild
-                        >
-                          <span>
-                            <Upload className="h-3 w-3 mr-1" />
-                            {isUploading ? 'Uploading...' : 'Upload'}
-                          </span>
-                        </Button>
-                      </label>
-                    )}
-                  </div>
+                  {hasFile ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleFileView(field.key)}
+                        title="View"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                        onClick={() => handleFileDelete(field.key)}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(field.key, file);
+                          e.target.value = '';
+                        }}
+                        disabled={isUploading || isParsing}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        disabled={isUploading || isParsing}
+                        asChild
+                      >
+                        <span>
+                          <Upload className="h-3 w-3 mr-1" />
+                          {isUploading ? '...' : 'Upload'}
+                        </span>
+                      </Button>
+                    </label>
+                  )}
                 </div>
               );
             })}

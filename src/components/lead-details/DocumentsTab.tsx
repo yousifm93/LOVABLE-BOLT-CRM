@@ -261,15 +261,6 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, lead }: Doc
 
   return (
     <div className="space-y-4">
-      {/* Active File Documents Section */}
-      {leadId && lead && (
-        <ActiveFileDocuments 
-          leadId={leadId} 
-          lead={lead} 
-          onLeadUpdate={onDocumentsChange} 
-        />
-      )}
-
       {/* Upload Zone */}
       <div
         className={cn(
@@ -348,6 +339,15 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, lead }: Doc
           </div>
         )}
       </div>
+
+      {/* Active File Documents Section - Below Drag & Drop */}
+      {leadId && lead && (
+        <ActiveFileDocuments 
+          leadId={leadId} 
+          lead={lead} 
+          onLeadUpdate={onDocumentsChange} 
+        />
+      )}
 
       {/* Documents List */}
       {documents.length === 0 ? (
