@@ -964,6 +964,39 @@ export default function TasksModern() {
                   </Button>
                 </div>
               </div>
+              {/* DEBUG TEST - Remove after testing */}
+              <div style={{
+                position: 'relative',
+                zIndex: 99999,
+                background: 'yellow',
+                padding: '20px',
+                marginBottom: '20px',
+                border: '3px solid red'
+              }}>
+                <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>DEBUG: Test if basic select works</p>
+                <select 
+                  style={{
+                    width: '200px',
+                    height: '40px',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    background: 'white',
+                    border: '2px solid blue'
+                  }}
+                  onChange={(e) => {
+                    console.log('TEST SELECT - Selected:', e.target.value);
+                    alert('Selected: ' + e.target.value);
+                  }}
+                >
+                  <option value="">Click me - Test Select</option>
+                  <option value="1">Option 1</option>
+                  <option value="2">Option 2</option>
+                  <option value="3">Option 3</option>
+                </select>
+                <p style={{ marginTop: '10px', fontSize: '12px' }}>If this works, FilterBuilder CSS is the issue. If not, something global is blocking.</p>
+              </div>
+              {/* END DEBUG TEST */}
+              
               <FilterBuilder
                 filters={filters}
                 onFiltersChange={setFilters}
