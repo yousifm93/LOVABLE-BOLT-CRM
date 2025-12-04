@@ -98,8 +98,21 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     }
   };
 
+  const MAX_FILE_SIZE_MB = 10;
+  const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
   const handleFileUpload = async (fieldKey: string, file: File) => {
     if (!leadId) return;
+    
+    // File size validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast({
+        title: "File Too Large",
+        description: `Maximum file size is ${MAX_FILE_SIZE_MB}MB. Please compress the PDF or reduce pages.`,
+        variant: "destructive"
+      });
+      return;
+    }
     
     setUploading(fieldKey);
     try {

@@ -14,31 +14,10 @@ serve(async (req) => {
   try {
     const { file_url, lead_id } = await req.json();
     
-    console.log('[parse-contract] Starting to parse contract from URL');
+    console.log('[parse-contract] Starting to parse contract using URL-based approach');
     
-    // Download file from signed URL
-    const response = await fetch(file_url);
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
-    }
-    
-    const blob = await response.blob();
-    console.log('[parse-contract] File downloaded, size:', blob.size, 'type:', blob.type);
-    
-    // Convert to base64 character by character to avoid stack overflow
-    const arrayBuffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = '';
-    
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    
-    const base64 = btoa(binary);
-    console.log('[parse-contract] Converted to base64, length:', base64.length);
-    
-    // Use Lovable AI Gateway with Gemini Vision
-    console.log('[parse-contract] Calling AI Gateway...');
+    // Use Lovable AI Gateway with Gemini Vision - pass URL directly
+    console.log('[parse-contract] Calling AI Gateway with file URL...');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -97,7 +76,7 @@ Important:
           }, {
             type: 'image_url',
             image_url: {
-              url: `data:application/pdf;base64,${base64}`
+              url: file_url
             }
           }]
         }]
