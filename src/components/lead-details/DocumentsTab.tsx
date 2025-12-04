@@ -27,6 +27,7 @@ interface DocumentsTabProps {
   leadId: string | null;
   documents: Document[];
   onDocumentsChange: () => void;
+  onLeadUpdated?: () => void;
   lead?: any;
 }
 
@@ -54,7 +55,7 @@ const getFileTypeBadge = (type: string) => {
   return 'FILE';
 };
 
-export function DocumentsTab({ leadId, documents, onDocumentsChange, lead }: DocumentsTabProps) {
+export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdated, lead }: DocumentsTabProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -345,7 +346,10 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, lead }: Doc
         <ActiveFileDocuments 
           leadId={leadId} 
           lead={lead} 
-          onLeadUpdate={onDocumentsChange} 
+          onLeadUpdate={() => {
+            onDocumentsChange();
+            onLeadUpdated?.();
+          }} 
         />
       )}
 
