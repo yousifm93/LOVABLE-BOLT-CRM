@@ -29,7 +29,7 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
-import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
@@ -1193,7 +1193,7 @@ export default function PastClients() {
                 </Button>
               </div>
             </div>
-            <FilterBuilder
+            <SimpleFilterBuilder
               filters={filters}
               columns={filterColumns}
               onFiltersChange={setFilters}

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
-import { FilterBuilder, FilterCondition } from "@/components/ui/filter-builder";
+import { SimpleFilterBuilder, FilterCondition } from "@/components/ui/simple-filter-builder";
 // Sheet removed - using inline filters
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
@@ -1388,7 +1388,7 @@ export default function Active() {
               </Button>
             </div>
           </div>
-          <FilterBuilder
+          <SimpleFilterBuilder
             filters={filters}
             columns={filterColumns}
             onFiltersChange={setFilters}

@@ -1,4 +1,4 @@
-import { FilterCondition } from "@/components/ui/filter-builder";
+import { FilterCondition } from "@/components/ui/simple-filter-builder";
 
 /**
  * Shared utility function to apply advanced filters to any data array
