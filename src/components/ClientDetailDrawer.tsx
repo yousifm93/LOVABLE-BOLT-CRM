@@ -110,6 +110,13 @@ export function ClientDetailDrawer({
   const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
   const [localNotes, setLocalNotes] = useState((client as any).meta?.notes ?? (client as any).notes ?? '');
   const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
+  
+  // Local state for Active stage gray box fields
+  const [localInterestRate, setLocalInterestRate] = useState<number | null>(null);
+  const [localFicoScore, setLocalFicoScore] = useState<number | null>(null);
+  const [localCloseDate, setLocalCloseDate] = useState<string | null>(null);
+  const [localCashToClose, setLocalCashToClose] = useState<number | null>(null);
+  const [localPiti, setLocalPiti] = useState<number | null>(null);
 
   // About the Borrower editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -157,6 +164,13 @@ export function ClientDetailDrawer({
       setIsEditingNotes(false);
       setHasUnsavedFileUpdates(false);
       setIsEditingFileUpdates(false);
+      
+      // Sync gray box fields for active stage
+      setLocalInterestRate((client as any).interestRate ?? (client as any).loan?.interestRate ?? null);
+      setLocalFicoScore((client as any).creditScore ?? (client as any).loan?.ficoScore ?? null);
+      setLocalCloseDate((client as any).closeDate ?? null);
+      setLocalCashToClose((client as any).cashToClose ?? null);
+      setLocalPiti((client as any).piti ?? null);
 
       // Load user info for timestamps
       if ((client as any).notes_updated_by) {
@@ -766,9 +780,22 @@ export function ClientDetailDrawer({
           </div>;
       default:
         // Calculate LTV
-        const loanAmount = (client as any).loanAmount || 0;
-        const salesPrice = (client as any).salesPrice || 0;
+        const loanAmount = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
+        const salesPrice = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
         const ltv = salesPrice > 0 ? ((loanAmount / salesPrice) * 100).toFixed(2) : null;
+        
+        // Calculate front-end and back-end DTI
+        const totalIncome = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        const monthlyLiabilities = (client as any).monthly_liabilities || 0;
+        const piti = localPiti ?? (client as any).piti ?? 0;
+        
+        const frontEndDti = totalIncome > 0 ? ((piti / totalIncome) * 100).toFixed(2) : null;
+        const backEndDti = totalIncome > 0 ? (((piti + monthlyLiabilities) / totalIncome) * 100).toFixed(2) : null;
+        const dtiDisplay = frontEndDti && backEndDti 
+          ? `${frontEndDti} / ${backEndDti}` 
+          : (client as any).dti 
+            ? `${(client as any).dti}%` 
+            : '—';
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
@@ -783,29 +810,65 @@ export function ClientDetailDrawer({
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">FICO Score</span>
-                <InlineEditNumber value={client.creditScore || null} onValueChange={value => handleLeadUpdate('fico_score', value)} placeholder="Enter score" />
+                <InlineEditNumber 
+                  value={localFicoScore} 
+                  onValueChange={value => {
+                    setLocalFicoScore(value);
+                    handleLeadUpdate('fico_score', value);
+                  }} 
+                  placeholder="Enter score" 
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Interest Rate</span>
-                <InlineEditPercentage value={client.interestRate || null} onValueChange={value => handleLeadUpdate('interest_rate', value)} decimals={3} />
+                <InlineEditPercentage 
+                  value={localInterestRate} 
+                  onValueChange={value => {
+                    setLocalInterestRate(value);
+                    handleLeadUpdate('interest_rate', value);
+                  }} 
+                  decimals={3} 
+                />
               </div>
               
               {/* Row 2: Closing Date, Cash to Close, PITI, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
-                <InlineEditDate value={(client as any).closeDate || null} onValueChange={value => handleLeadUpdate('closeDate', value)} placeholder="Select date" />
+                <InlineEditDate 
+                  value={localCloseDate} 
+                  onValueChange={value => {
+                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
+                    setLocalCloseDate(dateStr);
+                    handleLeadUpdate('closeDate', dateStr);
+                  }} 
+                  placeholder="Select date" 
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
-                <InlineEditCurrency value={(client as any).cashToClose || null} onValueChange={value => handleLeadUpdate('cashToClose', value)} placeholder="Enter amount" />
+                <InlineEditCurrency 
+                  value={localCashToClose} 
+                  onValueChange={value => {
+                    setLocalCashToClose(value);
+                    handleLeadUpdate('cashToClose', value);
+                  }} 
+                  placeholder="Enter amount" 
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
-                <InlineEditCurrency value={(client as any).piti || null} onValueChange={value => handleLeadUpdate('piti', value)} placeholder="Enter amount" />
+                <InlineEditCurrency 
+                  value={localPiti} 
+                  onValueChange={value => {
+                    setLocalPiti(value);
+                    handleLeadUpdate('piti', value);
+                  }} 
+                  placeholder="Enter amount" 
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
-                <InlineEditPercentage value={(client as any).dti || null} onValueChange={value => handleLeadUpdate('dti', value)} decimals={2} />
+                <span className="text-sm font-medium">{dtiDisplay}</span>
               </div>
             </div>
           </div>;

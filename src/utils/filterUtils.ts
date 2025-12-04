@@ -42,6 +42,12 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
       switch (filter.operator) {
         // Text/Select operators
         case 'is':
+          // For dates, compare day only (ignore time)
+          if (fieldValue && typeof filterValue === 'string' && filterValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+            const fieldDate = new Date(fieldValue).toISOString().split('T')[0];
+            const filterDate = new Date(filterValue).toISOString().split('T')[0];
+            return fieldDate === filterDate;
+          }
           if (typeof fieldValue === 'string') {
             return strFieldValue === strFilterValue;
           }

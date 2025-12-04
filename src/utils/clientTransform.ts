@@ -108,6 +108,10 @@ export function transformLeadToClient(lead: any): any {
   const cashToClose = (downPayment || 0) + (lead.closing_costs || 0);
   
   return {
+    // Top-level fields for gray box compatibility
+    creditScore: lead.fico_score || null,
+    interestRate: lead.interest_rate || null,
+    
     person: {
       id: lead.id,
       firstName: lead.first_name || '',

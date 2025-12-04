@@ -317,7 +317,7 @@ export default function TasksModern() {
       value: 'priority', 
       label: 'Priority', 
       type: 'select' as const, 
-      options: ['Critical', 'High', 'Medium', 'Low'] 
+      options: ['ASAP', 'High', 'Medium', 'Low'] 
     },
     { 
       value: 'status', 
