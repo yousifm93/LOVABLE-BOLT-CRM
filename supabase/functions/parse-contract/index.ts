@@ -14,16 +14,48 @@ serve(async (req) => {
   try {
     const { file_url } = await req.json();
     
-    console.log('[parse-contract] Starting to parse contract using URL approach');
+    console.log('[parse-contract] Starting to parse contract using base64 approach');
     console.log('[parse-contract] File URL provided:', file_url ? 'yes' : 'no');
     
-    // Use Lovable AI Gateway with Gemini Vision - pass URL directly
+    // Download file from signed URL
+    const response = await fetch(file_url);
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    console.log('[parse-contract] File downloaded, size:', blob.size, 'type:', blob.type);
+    
+    // Check file size - limit to 5MB to prevent memory issues
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (blob.size > MAX_SIZE) {
+      throw new Error(`File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 5MB. Please compress the PDF.`);
+    }
+    
+    // Convert to base64 using chunked approach to avoid memory issues
+    const arrayBuffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Process in chunks to avoid stack overflow
+    const CHUNK_SIZE = 32768; // 32KB chunks
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+      const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length));
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
+    }
+    
+    const base64 = btoa(binary);
+    console.log('[parse-contract] Converted to base64, length:', base64.length);
+    
+    // Use Lovable AI Gateway with Gemini Vision
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
     
-    console.log('[parse-contract] Calling AI Gateway with URL...');
+    console.log('[parse-contract] Calling AI Gateway...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -77,7 +109,7 @@ Important:
           }, {
             type: 'image_url',
             image_url: {
-              url: file_url
+              url: `data:application/pdf;base64,${base64}`
             }
           }]
         }]

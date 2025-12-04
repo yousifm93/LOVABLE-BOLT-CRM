@@ -259,6 +259,14 @@ export function transformLeadToClient(lead: any): any {
     closeDate: lead.close_date || null,
     financeContingency: lead.finance_contingency || null,
     
+    // Rate Lock Information
+    lock_expiration_date: lead.lock_expiration_date || null,
+    lockExpirationDate: lead.lock_expiration_date || null,
+    dscr_ratio: lead.dscr_ratio || null,
+    dscrRatio: lead.dscr_ratio || null,
+    prepayment_penalty: lead.prepayment_penalty || null,
+    prepaymentPenalty: lead.prepayment_penalty || null,
+    
     // PITI
     piti: lead.piti || null,
   };

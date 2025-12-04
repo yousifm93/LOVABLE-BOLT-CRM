@@ -445,13 +445,21 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
                 return (
                   <div
                     key={field.key}
-                    className="flex flex-col items-center p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className={cn(
+                      "flex flex-col items-center p-2 border rounded-lg transition-colors",
+                      hasFile 
+                        ? "bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-950/30 dark:border-green-800 dark:hover:bg-green-900/40" 
+                        : "hover:bg-muted/50"
+                    )}
                   >
                     <div className="flex items-center gap-1 mb-1">
-                      <FileText className={cn(
-                        "h-3 w-3 flex-shrink-0",
-                        hasFile ? "text-green-500" : "text-muted-foreground"
-                      )} />
+                      <FileText 
+                        className={cn(
+                          "h-3 w-3 flex-shrink-0",
+                          hasFile ? "text-green-500 cursor-pointer hover:text-green-700" : "text-muted-foreground"
+                        )}
+                        onClick={() => hasFile && handleFileView(field.key)}
+                      />
                       <span className="text-xs font-medium text-center">{field.label}</span>
                     </div>
                     
