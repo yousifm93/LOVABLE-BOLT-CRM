@@ -96,3 +96,24 @@ verify_jwt = false
 
 [functions.send-direct-email]
 verify_jwt = false
+
+[functions.update-active-pipeline-full]
+verify_jwt = false
+
+[functions.cleanup-test-mortgage-data]
+verify_jwt = false
+
+[functions.assistant-chat]
+verify_jwt = true
+
+[functions.trigger-task-automation]
+verify_jwt = false
+
+[functions.email-campaign-send]
+verify_jwt = false
+
+[functions.email-unsubscribe]
+verify_jwt = false
+
+[functions.send-template-email]
+verify_jwt = false
