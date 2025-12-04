@@ -170,10 +170,21 @@ export function useColumnVisibility(
     return true;
   }, [columns, mainViewConfig, activeView]);
 
-  const toggleColumn = useCallback((columnId: string) => {
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, visible: !col.visible } : col
-    ));
+  const toggleColumn = useCallback((columnId: string, label?: string) => {
+    setColumns(prev => {
+      const existing = prev.find(col => col.id === columnId);
+      if (existing) {
+        // Column exists - toggle visibility
+        return prev.map(col => 
+          col.id === columnId ? { ...col, visible: !col.visible } : col
+        );
+      }
+      // Column doesn't exist - add it as visible (if label provided)
+      if (label) {
+        return [...prev, { id: columnId, label, visible: true }];
+      }
+      return prev;
+    });
     // When user modifies columns, clear active view (unless it was already modified)
     if (activeView === 'Main View' && isMainViewActive) {
       setActiveView(null);

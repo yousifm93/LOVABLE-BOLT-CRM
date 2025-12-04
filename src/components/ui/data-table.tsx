@@ -130,7 +130,7 @@ function ResizeHandle({ columnKey, onResize, onAutoFit, minWidth = 50, maxWidth 
   return (
     <div
       className={cn(
-        "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary transition-colors",
+        "absolute right-0 top-0 h-full w-3 cursor-col-resize bg-border/30 hover:bg-primary transition-colors",
         isResizing && "bg-primary"
       )}
       onMouseDown={handleMouseDown}
