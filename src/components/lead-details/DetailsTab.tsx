@@ -46,6 +46,7 @@ import {
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
+import { calculatePrincipalAndInterest, calculatePITIComponents } from "@/hooks/usePITICalculation";
 
 interface DetailsTabProps {
   client: any;
@@ -211,7 +212,14 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
     setIsSaving(true);
     try {
-      await databaseService.updateLead(leadId, {
+      // Check if loan_amount, interest_rate, or term changed - recalculate P&I
+      const loanAmount = Number(editData.loan_amount) || 0;
+      const salesPrice = Number(editData.sales_price) || 0;
+      const interestRate = editData.interest_rate ?? 7.0;
+      const term = editData.term || 360;
+      const propertyType = editData.property_type || '';
+      
+      let updateData: Record<string, any> = {
         // Borrower Info
         first_name: editData.first_name,
         last_name: editData.last_name,
@@ -253,19 +261,53 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
         monthly_liabilities: editData.monthly_liabilities,
         fico_score: editData.fico_score,
         
-        // Monthly Payment Breakdown
-        principal_interest: editData.principal_interest,
-        property_taxes: editData.property_taxes,
-        homeowners_insurance: editData.homeowners_insurance,
-        mortgage_insurance: editData.mortgage_insurance,
-        hoa_dues: editData.hoa_dues,
-        piti: editData.piti,
-        
         // Rate Lock fields
         lock_expiration_date: editData.lock_expiration_date,
         dscr_ratio: editData.dscr_ratio,
         prepayment_penalty: editData.prepayment_penalty || null,
-      });
+      };
+      
+      // Recalculate P&I if loan amount is present
+      if (loanAmount > 0) {
+        const pitiComponents = calculatePITIComponents({
+          loanAmount,
+          salesPrice,
+          interestRate,
+          term,
+          propertyType
+        });
+        
+        // Only update PITI components if they weren't manually set or are currently 0
+        updateData.principal_interest = pitiComponents.principalInterest;
+        updateData.property_taxes = editData.property_taxes ?? pitiComponents.propertyTaxes;
+        updateData.homeowners_insurance = editData.homeowners_insurance ?? pitiComponents.homeownersInsurance;
+        updateData.mortgage_insurance = editData.mortgage_insurance ?? pitiComponents.mortgageInsurance;
+        updateData.hoa_dues = editData.hoa_dues ?? pitiComponents.hoaDues;
+        
+        // Recalculate total PITI
+        updateData.piti = 
+          updateData.principal_interest + 
+          (updateData.property_taxes || 0) + 
+          (updateData.homeowners_insurance || 0) + 
+          (updateData.mortgage_insurance || 0) + 
+          (updateData.hoa_dues || 0);
+        
+        console.log('[DetailsTab] Recalculated PITI:', {
+          loanAmount, interestRate, term,
+          principalInterest: updateData.principal_interest,
+          totalPiti: updateData.piti
+        });
+      } else {
+        // Use manual values if provided
+        updateData.principal_interest = editData.principal_interest;
+        updateData.property_taxes = editData.property_taxes;
+        updateData.homeowners_insurance = editData.homeowners_insurance;
+        updateData.mortgage_insurance = editData.mortgage_insurance;
+        updateData.hoa_dues = editData.hoa_dues;
+        updateData.piti = editData.piti;
+      }
+
+      await databaseService.updateLead(leadId, updateData);
 
       setIsEditing(false);
       
