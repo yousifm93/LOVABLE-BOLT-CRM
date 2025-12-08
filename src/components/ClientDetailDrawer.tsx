@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import * as React from "react";
 import { format } from "date-fns";
+import { calculatePrincipalAndInterest } from "@/hooks/usePITICalculation";
 import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -392,6 +393,60 @@ export function ClientDetailDrawer({
       console.error('Error loading documents:', error);
     }
   };
+  // Helper function to recalculate and save P&I when rate/amount/term changes
+  const recalculatePIFromField = useCallback(async (
+    fieldName: string,
+    newValue: number | null,
+    existingLoanAmount?: number,
+    existingRate?: number,
+    existingTerm?: number
+  ) => {
+    if (!leadId) return;
+    
+    // Get current values
+    const loanAmount = fieldName === 'loan_amount' 
+      ? (newValue ?? 0)
+      : (existingLoanAmount ?? (client as any).loan?.loanAmount ?? (client as any).loanAmount ?? 0);
+    const interestRate = fieldName === 'interest_rate'
+      ? (newValue ?? DEFAULT_INTEREST_RATE)
+      : (existingRate ?? (client as any).loan?.interestRate ?? localInterestRate ?? DEFAULT_INTEREST_RATE);
+    const term = fieldName === 'term'
+      ? (newValue ?? DEFAULT_TERM)
+      : (existingTerm ?? (client as any).loan?.term ?? DEFAULT_TERM);
+    
+    if (loanAmount <= 0) return;
+    
+    // Calculate P&I using mortgage formula
+    const principalInterest = calculatePrincipalAndInterest(loanAmount, interestRate, term);
+    
+    // Get existing PITI components
+    const existingTaxes = (client as any).propertyTaxes ?? 0;
+    const existingInsurance = (client as any).homeownersInsurance ?? 0;
+    const existingMI = (client as any).mortgageInsurance ?? 0;
+    const existingHOA = (client as any).hoaDues ?? 0;
+    
+    const newPiti = principalInterest + existingTaxes + existingInsurance + existingMI + existingHOA;
+    
+    console.log('[ClientDetailDrawer] Recalculating P&I:', {
+      loanAmount, interestRate, term,
+      principalInterest: Math.round(principalInterest),
+      newPiti: Math.round(newPiti)
+    });
+    
+    // Save P&I and PITI to database
+    try {
+      await databaseService.updateLead(leadId, {
+        principal_interest: Math.round(principalInterest),
+        piti: Math.round(newPiti)
+      });
+      
+      // Update local PITI state
+      setLocalPiti(Math.round(newPiti));
+    } catch (error) {
+      console.error('[ClientDetailDrawer] Error saving P&I:', error);
+    }
+  }, [leadId, client, localInterestRate]);
+
   const handleLeadUpdate = async (fieldName: string, value: any) => {
     if (!leadId) {
       toast({
@@ -419,6 +474,12 @@ export function ClientDetailDrawer({
       } else if (fieldName === 'notes') {
         setLocalNotes(value);
       }
+      
+      // Recalculate P&I when interest_rate, loan_amount, or term changes
+      if (fieldName === 'interest_rate' || fieldName === 'loan_amount' || fieldName === 'term') {
+        await recalculatePIFromField(dbFieldName, value);
+      }
+      
       if (onLeadUpdated) {
         await onLeadUpdated();
       }
