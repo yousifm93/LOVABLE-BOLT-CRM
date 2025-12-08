@@ -99,29 +99,43 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
         case 'less_or_equal':
           return Number(fieldValue) <= Number(filterValue);
 
-        // Date operators
-        case 'is_after':
+        // Date operators - normalize to start of day for proper comparison
+        case 'is_after': {
           if (!fieldValue) return false;
-          return new Date(fieldValue) > new Date(filterValue as string);
+          const fieldDateAfter = new Date(fieldValue);
+          fieldDateAfter.setHours(0, 0, 0, 0);
+          const filterDateAfter = new Date(filterValue as string);
+          filterDateAfter.setHours(0, 0, 0, 0);
+          return fieldDateAfter > filterDateAfter;
+        }
           
-        case 'is_before':
+        case 'is_before': {
           if (!fieldValue) return false;
-          return new Date(fieldValue) < new Date(filterValue as string);
+          const fieldDateBefore = new Date(fieldValue);
+          fieldDateBefore.setHours(0, 0, 0, 0);
+          const filterDateBefore = new Date(filterValue as string);
+          filterDateBefore.setHours(0, 0, 0, 0);
+          return fieldDateBefore < filterDateBefore;
+        }
           
         case 'is_in_last_7': {
           if (!fieldValue) return false;
-          const cutoff = new Date();
-          cutoff.setDate(cutoff.getDate() - 7);
-          cutoff.setHours(0, 0, 0, 0);
-          return new Date(fieldValue) >= cutoff;
+          const fieldDate7 = new Date(fieldValue);
+          fieldDate7.setHours(0, 0, 0, 0);
+          const cutoff7 = new Date();
+          cutoff7.setDate(cutoff7.getDate() - 7);
+          cutoff7.setHours(0, 0, 0, 0);
+          return fieldDate7 >= cutoff7;
         }
 
         case 'is_in_last_30': {
           if (!fieldValue) return false;
-          const cutoff = new Date();
-          cutoff.setDate(cutoff.getDate() - 30);
-          cutoff.setHours(0, 0, 0, 0);
-          return new Date(fieldValue) >= cutoff;
+          const fieldDate30 = new Date(fieldValue);
+          fieldDate30.setHours(0, 0, 0, 0);
+          const cutoff30 = new Date();
+          cutoff30.setDate(cutoff30.getDate() - 30);
+          cutoff30.setHours(0, 0, 0, 0);
+          return fieldDate30 >= cutoff30;
         }
           
         case 'is_in_last': {
