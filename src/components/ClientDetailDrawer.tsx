@@ -152,6 +152,88 @@ export function ClientDetailDrawer({
     toast
   } = useToast();
 
+  // Default interest rate constant
+  const DEFAULT_INTEREST_RATE = 7.0;
+  const DEFAULT_TERM = 360;
+
+  // Auto-calculate PITI components when key fields exist but PITI is empty
+  const autoCalculateAndSavePITI = React.useCallback(async () => {
+    if (!leadId) return;
+    
+    const loanAmount = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
+    const salesPrice = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
+    const propertyType = (client as any).property?.propertyType || (client as any).propertyType || '';
+    const currentInterestRate = (client as any).interestRate ?? (client as any).loan?.interestRate ?? null;
+    const currentPiti = (client as any).piti ?? null;
+    const term = (client as any).loan?.term || DEFAULT_TERM;
+    
+    // Only auto-calculate if we have loan amount and PITI is not set
+    if (loanAmount <= 0 || currentPiti !== null) return;
+    
+    const interestRate = currentInterestRate ?? DEFAULT_INTEREST_RATE;
+    
+    // Calculate P&I using mortgage formula
+    const monthlyRate = interestRate / 100 / 12;
+    let principalInterest = 0;
+    if (monthlyRate > 0) {
+      const numerator = monthlyRate * Math.pow(1 + monthlyRate, term);
+      const denominator = Math.pow(1 + monthlyRate, term) - 1;
+      principalInterest = loanAmount * (numerator / denominator);
+    } else {
+      principalInterest = loanAmount / term;
+    }
+    
+    // Calculate Property Taxes (1.5% of sales price annually / 12)
+    const propertyTaxes = salesPrice > 0 ? (salesPrice * 0.015) / 12 : 0;
+    
+    // Calculate Homeowners Insurance
+    const isCondo = propertyType?.toLowerCase()?.includes('condo');
+    const homeownersInsurance = isCondo ? 75 : Math.max(75, (salesPrice / 100000) * 75);
+    
+    // Calculate HOA Dues (condos only: $150 per $100K)
+    const hoaDues = isCondo ? (salesPrice / 100000) * 150 : 0;
+    
+    // Calculate Mortgage Insurance (if LTV > 80%)
+    const ltv = salesPrice > 0 ? (loanAmount / salesPrice) * 100 : 0;
+    const mortgageInsurance = ltv > 80 ? (loanAmount * 0.005) / 12 : 0;
+    
+    // Total PITI
+    const totalPiti = principalInterest + propertyTaxes + homeownersInsurance + hoaDues + mortgageInsurance;
+    
+    // Prepare update object
+    const updateData: Record<string, any> = {
+      principal_interest: Math.round(principalInterest),
+      property_taxes: Math.round(propertyTaxes),
+      homeowners_insurance: Math.round(homeownersInsurance),
+      hoa_dues: Math.round(hoaDues),
+      mortgage_insurance: Math.round(mortgageInsurance),
+      piti: Math.round(totalPiti),
+    };
+    
+    // Also save default interest rate if it was null
+    if (currentInterestRate === null) {
+      updateData.interest_rate = DEFAULT_INTEREST_RATE;
+    }
+    
+    try {
+      await databaseService.updateLead(leadId, updateData);
+      console.log('[ClientDetailDrawer] Auto-calculated and saved PITI:', updateData);
+      
+      // Update local state
+      setLocalPiti(Math.round(totalPiti));
+      if (currentInterestRate === null) {
+        setLocalInterestRate(DEFAULT_INTEREST_RATE);
+      }
+      
+      // Refresh parent if needed
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+    } catch (error) {
+      console.error('[ClientDetailDrawer] Error auto-saving PITI:', error);
+    }
+  }, [leadId, client, onLeadUpdated]);
+
   // Sync localNotes and fileUpdates when drawer opens or lead changes
   React.useEffect(() => {
     if (isOpen && leadId && !isEditingNotes && !isEditingFileUpdates) {
@@ -165,8 +247,9 @@ export function ClientDetailDrawer({
       setHasUnsavedFileUpdates(false);
       setIsEditingFileUpdates(false);
       
-      // Sync gray box fields for active stage
-      setLocalInterestRate((client as any).interestRate ?? (client as any).loan?.interestRate ?? null);
+      // Sync gray box fields for active stage - use 7% default if null
+      const currentInterestRate = (client as any).interestRate ?? (client as any).loan?.interestRate ?? null;
+      setLocalInterestRate(currentInterestRate ?? DEFAULT_INTEREST_RATE);
       setLocalFicoScore((client as any).creditScore ?? (client as any).loan?.ficoScore ?? null);
       setLocalCloseDate((client as any).closeDate ?? null);
       setLocalCashToClose((client as any).cashToClose ?? null);
@@ -179,8 +262,13 @@ export function ClientDetailDrawer({
       if ((client as any).latest_file_updates_updated_by) {
         loadUserInfo((client as any).latest_file_updates_updated_by, setFileUpdatesUpdatedByUser);
       }
+      
+      // Auto-calculate PITI for active leads if needed
+      if (client.ops.stage === 'active' || client.ops.stage === undefined) {
+        autoCalculateAndSavePITI();
+      }
     }
-  }, [isOpen, leadId, isEditingNotes, isEditingFileUpdates]);
+  }, [isOpen, leadId, isEditingNotes, isEditingFileUpdates, autoCalculateAndSavePITI]);
   const loadUserInfo = async (userId: string, setter: (user: any) => void) => {
     try {
       const users = await databaseService.getUsers();
