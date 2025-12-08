@@ -156,19 +156,39 @@ export function ClientDetailDrawer({
   const DEFAULT_INTEREST_RATE = 7.0;
   const DEFAULT_TERM = 360;
 
+  // Track if PITI has been calculated for this lead to prevent duplicates
+  const [hasCalculatedPITI, setHasCalculatedPITI] = React.useState(false);
+
+  // Reset PITI calculation flag when lead changes
+  React.useEffect(() => {
+    setHasCalculatedPITI(false);
+  }, [leadId]);
+
   // Auto-calculate PITI components when key fields exist but PITI is empty
   const autoCalculateAndSavePITI = React.useCallback(async () => {
-    if (!leadId) return;
+    if (!leadId || hasCalculatedPITI) return;
     
-    const loanAmount = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
-    const salesPrice = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
+    // Prioritize nested loan object which is reliably populated
+    const loanAmount = (client as any).loan?.loanAmount || (client as any).loanAmount || 0;
+    const salesPrice = (client as any).loan?.salesPrice || (client as any).salesPrice || 0;
     const propertyType = (client as any).property?.propertyType || (client as any).propertyType || '';
-    const currentInterestRate = (client as any).interestRate ?? (client as any).loan?.interestRate ?? null;
+    const currentInterestRate = (client as any).loan?.interestRate ?? (client as any).interestRate ?? null;
     const currentPiti = (client as any).piti ?? null;
     const term = (client as any).loan?.term || DEFAULT_TERM;
     
+    console.log('[PITI Debug] loanAmount:', loanAmount, 'salesPrice:', salesPrice, 'currentPiti:', currentPiti, 'currentInterestRate:', currentInterestRate);
+    
     // Only auto-calculate if we have loan amount and PITI is not set
-    if (loanAmount <= 0 || currentPiti !== null) return;
+    if (loanAmount <= 0) {
+      console.log('[PITI Debug] Skipping - no loan amount');
+      return;
+    }
+    
+    if (currentPiti !== null && currentPiti > 0) {
+      console.log('[PITI Debug] Skipping - PITI already set:', currentPiti);
+      setHasCalculatedPITI(true);
+      return;
+    }
     
     const interestRate = currentInterestRate ?? DEFAULT_INTEREST_RATE;
     
@@ -215,9 +235,14 @@ export function ClientDetailDrawer({
       updateData.interest_rate = DEFAULT_INTEREST_RATE;
     }
     
+    console.log('[PITI Debug] Saving PITI data:', updateData);
+    
     try {
       await databaseService.updateLead(leadId, updateData);
       console.log('[ClientDetailDrawer] Auto-calculated and saved PITI:', updateData);
+      
+      // Mark as calculated to prevent duplicates
+      setHasCalculatedPITI(true);
       
       // Update local state
       setLocalPiti(Math.round(totalPiti));
@@ -232,7 +257,7 @@ export function ClientDetailDrawer({
     } catch (error) {
       console.error('[ClientDetailDrawer] Error auto-saving PITI:', error);
     }
-  }, [leadId, client, onLeadUpdated]);
+  }, [leadId, client, hasCalculatedPITI, onLeadUpdated]);
 
   // Sync localNotes and fileUpdates when drawer opens or lead changes
   React.useEffect(() => {
@@ -248,9 +273,9 @@ export function ClientDetailDrawer({
       setIsEditingFileUpdates(false);
       
       // Sync gray box fields for active stage - use 7% default if null
-      const currentInterestRate = (client as any).interestRate ?? (client as any).loan?.interestRate ?? null;
+      const currentInterestRate = (client as any).loan?.interestRate ?? (client as any).interestRate ?? null;
       setLocalInterestRate(currentInterestRate ?? DEFAULT_INTEREST_RATE);
-      setLocalFicoScore((client as any).creditScore ?? (client as any).loan?.ficoScore ?? null);
+      setLocalFicoScore((client as any).loan?.ficoScore ?? (client as any).creditScore ?? null);
       setLocalCloseDate((client as any).closeDate ?? null);
       setLocalCashToClose((client as any).cashToClose ?? null);
       setLocalPiti((client as any).piti ?? null);
@@ -263,12 +288,22 @@ export function ClientDetailDrawer({
         loadUserInfo((client as any).latest_file_updates_updated_by, setFileUpdatesUpdatedByUser);
       }
       
-      // Auto-calculate PITI for active leads if needed
-      if (client.ops.stage === 'active' || client.ops.stage === undefined) {
+      // Save default interest rate to database if null
+      if (currentInterestRate === null && (client.ops.stage === 'active' || client.ops.stage === undefined)) {
+        databaseService.updateLead(leadId, { interest_rate: DEFAULT_INTEREST_RATE }).catch(console.error);
+      }
+    }
+  }, [isOpen, leadId, client, isEditingNotes, isEditingFileUpdates]);
+
+  // Separate effect for PITI auto-calculation - runs after client data is populated
+  React.useEffect(() => {
+    if (isOpen && leadId && !hasCalculatedPITI && (client.ops.stage === 'active' || client.ops.stage === undefined)) {
+      const loanAmount = (client as any).loan?.loanAmount || (client as any).loanAmount || 0;
+      if (loanAmount > 0) {
         autoCalculateAndSavePITI();
       }
     }
-  }, [isOpen, leadId, isEditingNotes, isEditingFileUpdates, autoCalculateAndSavePITI]);
+  }, [isOpen, leadId, client, hasCalculatedPITI, autoCalculateAndSavePITI]);
   const loadUserInfo = async (userId: string, setter: (user: any) => void) => {
     try {
       const users = await databaseService.getUsers();
