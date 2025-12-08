@@ -995,6 +995,22 @@ export default function Active() {
     }
   };
 
+  // Handler for lead updates that also refreshes selectedClient
+  const handleLeadUpdated = async () => {
+    await loadData();
+    // Refresh selectedClient if drawer is open
+    if (selectedClient?.databaseId) {
+      try {
+        const freshLead = await databaseService.getLeadByIdWithEmbeds(selectedClient.databaseId);
+        if (freshLead) {
+          setSelectedClient(transformLeadToClient(freshLead));
+        }
+      } catch (error) {
+        console.error('Error refreshing selected client:', error);
+      }
+    }
+  };
+
   const refreshRow = async (id: string) => {
     try {
       const fresh = await databaseService.getLeadByIdWithEmbeds(id);
@@ -1516,7 +1532,7 @@ export default function Active() {
             setSelectedClient(null);
           }}
           onStageChange={handleStageChange}
-          onLeadUpdated={loadData}
+          onLeadUpdated={handleLeadUpdated}
           pipelineType="active"
         />
       )}

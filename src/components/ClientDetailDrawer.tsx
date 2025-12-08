@@ -221,6 +221,17 @@ export function ClientDetailDrawer({
     // Total PITI
     const totalPiti = principalInterest + propertyTaxes + homeownersInsurance + hoaDues + mortgageInsurance;
     
+    // Calculate DTI if we have total income
+    const totalIncome = (client as any).total_monthly_income ?? (client as any).totalMonthlyIncome ?? 0;
+    const monthlyLiabilities = (client as any).monthly_liabilities ?? (client as any).monthlyLiabilities ?? 0;
+    
+    let calculatedDti: number | null = null;
+    if (totalIncome > 0) {
+      // Back-end DTI = (PITI + monthly liabilities) / total income * 100
+      calculatedDti = ((totalPiti + monthlyLiabilities) / totalIncome) * 100;
+      calculatedDti = Math.round(calculatedDti * 100) / 100; // Round to 2 decimals
+    }
+    
     // Prepare update object
     const updateData: Record<string, any> = {
       principal_interest: Math.round(principalInterest),
@@ -231,12 +242,17 @@ export function ClientDetailDrawer({
       piti: Math.round(totalPiti),
     };
     
+    // Add DTI if calculated
+    if (calculatedDti !== null) {
+      updateData.dti = calculatedDti;
+    }
+    
     // Also save default interest rate if it was null
     if (currentInterestRate === null) {
       updateData.interest_rate = DEFAULT_INTEREST_RATE;
     }
     
-    console.log('[PITI Debug] Saving PITI data:', updateData);
+    console.log('[PITI Debug] Saving PITI data:', updateData, 'DTI:', calculatedDti);
     
     try {
       await databaseService.updateLead(leadId, updateData);
@@ -433,12 +449,24 @@ export function ClientDetailDrawer({
       newPiti: Math.round(newPiti)
     });
     
-    // Save P&I and PITI to database
+    // Calculate DTI if we have total income
+    const totalIncome = (client as any).total_monthly_income ?? (client as any).totalMonthlyIncome ?? 0;
+    const monthlyLiabilities = (client as any).monthly_liabilities ?? (client as any).monthlyLiabilities ?? 0;
+    
+    const updateFields: Record<string, any> = {
+      principal_interest: Math.round(principalInterest),
+      piti: Math.round(newPiti)
+    };
+    
+    // Add DTI if we can calculate it
+    if (totalIncome > 0) {
+      const calculatedDti = ((newPiti + monthlyLiabilities) / totalIncome) * 100;
+      updateFields.dti = Math.round(calculatedDti * 100) / 100;
+    }
+    
+    // Save P&I, PITI, and DTI to database
     try {
-      await databaseService.updateLead(leadId, {
-        principal_interest: Math.round(principalInterest),
-        piti: Math.round(newPiti)
-      });
+      await databaseService.updateLead(leadId, updateFields);
       
       // Update local PITI state
       setLocalPiti(Math.round(newPiti));
