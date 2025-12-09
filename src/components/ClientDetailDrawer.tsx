@@ -1076,7 +1076,7 @@ export function ClientDetailDrawer({
                 />
               </div>
               
-              {/* Row 2: Closing Date, Cash to Close, PITI, DTI */}
+              {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
                 <InlineEditDate 
@@ -1112,12 +1112,6 @@ export function ClientDetailDrawer({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
-                <span className="text-sm font-medium">{dtiDisplay}</span>
-              </div>
-
-              {/* Row 3: Discount Points, Closing Costs, Lock Expiration, Occupancy */}
-              <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
                 <div className="flex flex-col">
                   <InlineEditPercentage 
@@ -1136,6 +1130,21 @@ export function ClientDetailDrawer({
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
+                <InlineEditSelect 
+                  value={(client as any).occupancy ?? null} 
+                  options={[
+                    { value: 'Primary Home', label: 'Primary Home' },
+                    { value: 'Second Home', label: 'Second Home' },
+                    { value: 'Investment', label: 'Investment' }
+                  ]}
+                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
+                  placeholder="Select..." 
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
@@ -1157,17 +1166,8 @@ export function ClientDetailDrawer({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
-                <InlineEditSelect 
-                  value={(client as any).occupancy ?? null} 
-                  options={[
-                    { value: 'Primary Home', label: 'Primary Home' },
-                    { value: 'Second Home', label: 'Second Home' },
-                    { value: 'Investment', label: 'Investment' }
-                  ]}
-                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
-                  placeholder="Select..." 
-                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
+                <span className="text-sm font-medium">{dtiDisplay}</span>
               </div>
             </div>
           </div>;
