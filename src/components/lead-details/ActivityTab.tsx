@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
+import { ReplyEmailModal } from "@/components/modals/ReplyEmailModal";
 import { cn } from "@/lib/utils";
 
 interface Activity {
@@ -23,6 +24,10 @@ interface Activity {
   direction?: 'In' | 'Out';
   from_email?: string;
   subject?: string;
+  body?: string;
+  html_body?: string;
+  lead_id?: string;
+  to_email?: string;
 }
 
 interface ActivityTabProps {
@@ -100,6 +105,8 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
   const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
   const [expandedActivities, setExpandedActivities] = React.useState<Set<number>>(new Set());
+  const [showReplyEmailModal, setShowReplyEmailModal] = React.useState(false);
+  const [selectedEmailForReply, setSelectedEmailForReply] = React.useState<Activity | null>(null);
 
   const toggleActivity = (id: number) => {
     const newExpanded = new Set(expandedActivities);
@@ -214,6 +221,10 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                         if (isClickable) {
                           if (activity.type === 'task' && onTaskActivityClick) {
                             onTaskActivityClick(activity);
+                          } else if (activity.type === 'email' && activity.direction === 'In') {
+                            // Open reply modal for inbound emails
+                            setSelectedEmailForReply(activity);
+                            setShowReplyEmailModal(true);
                           } else {
                             setSelectedNote(activity);
                             setShowNoteDetailModal(true);
@@ -237,6 +248,23 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
         onOpenChange={setShowNoteDetailModal}
         note={selectedNote}
         onActivityUpdated={onActivityUpdated}
+      />
+
+      <ReplyEmailModal
+        isOpen={showReplyEmailModal}
+        onClose={() => {
+          setShowReplyEmailModal(false);
+          setSelectedEmailForReply(null);
+        }}
+        originalEmail={selectedEmailForReply ? {
+          from_email: selectedEmailForReply.from_email || '',
+          subject: selectedEmailForReply.subject || '',
+          body: selectedEmailForReply.body,
+          html_body: selectedEmailForReply.html_body,
+          lead_id: selectedEmailForReply.lead_id,
+          to_email: selectedEmailForReply.to_email,
+        } : null}
+        onEmailSent={onActivityUpdated}
       />
     </div>
   );
