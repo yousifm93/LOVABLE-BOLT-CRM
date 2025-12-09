@@ -317,7 +317,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   <div className="flex items-center gap-2 text-sm group">
                     <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     <button
-                      className="text-primary hover:underline cursor-pointer text-left"
+                      className="text-foreground hover:underline cursor-pointer text-left"
                       onClick={() => {
                         if (client.person.email) {
                           navigator.clipboard.writeText(client.person.email);
@@ -327,7 +327,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                       title={client.person.email || "No email"}
                     >
                       <span className="group-hover:hidden">Email</span>
-                      <span className="hidden group-hover:inline truncate max-w-[150px]">
+                      <span className="hidden group-hover:inline truncate max-w-[100px]">
                         {client.person.email || "—"}
                       </span>
                     </button>

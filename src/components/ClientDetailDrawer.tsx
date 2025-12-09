@@ -1005,7 +1005,7 @@ export function ClientDetailDrawer({
         const frontEndDti = totalIncome > 0 ? ((piti / totalIncome) * 100).toFixed(2) : null;
         const backEndDti = totalIncome > 0 ? (((piti + monthlyLiabilities) / totalIncome) * 100).toFixed(2) : null;
         const dtiDisplay = frontEndDti && backEndDti 
-          ? `${frontEndDti} / ${backEndDti}` 
+          ? `${frontEndDti}% / ${backEndDti}%` 
           : (client as any).dti 
             ? `${(client as any).dti}%` 
             : '—';
