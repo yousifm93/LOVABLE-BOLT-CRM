@@ -177,6 +177,24 @@ export default function LoanEstimate() {
     }
   }, [formData.loanAmount]);
 
+  // Auto-calculate Prepaid Homeowners Insurance (monthly HOI × 12)
+  useEffect(() => {
+    if (formData.homeownersInsurance && formData.homeownersInsurance > 0) {
+      const prepaidHoi = formData.homeownersInsurance * 12;
+      setFormData(prev => ({ ...prev, prepaidHoi: Math.round(prepaidHoi * 100) / 100 }));
+    }
+  }, [formData.homeownersInsurance]);
+
+  // Auto-calculate Prepaid Interest (5 days of daily interest)
+  useEffect(() => {
+    if (formData.loanAmount && formData.loanAmount > 0 && formData.interestRate && formData.interestRate > 0) {
+      // Daily interest = (loanAmount × annualRate) / 365
+      const dailyInterest = (formData.loanAmount * formData.interestRate / 100) / 365;
+      const prepaidInterest = dailyInterest * 5; // 5 days
+      setFormData(prev => ({ ...prev, prepaidInterest: Math.round(prepaidInterest * 100) / 100 }));
+    }
+  }, [formData.loanAmount, formData.interestRate]);
+
   // When a lead is selected, populate the form
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);

@@ -771,7 +771,9 @@ export function ClientDetailDrawer({
 
   // Critical status information based on pipeline stage
   const renderCriticalStatusInfo = () => {
-    const stage = client.ops.stage;
+    // Normalize stage to handle both hyphenated and underscored variants
+    const rawStage = client.ops.stage;
+    const stage = rawStage?.replace(/_/g, '-') as typeof rawStage;
     switch (stage) {
       case 'leads':
         const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
