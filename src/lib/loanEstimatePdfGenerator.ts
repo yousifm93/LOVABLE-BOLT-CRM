@@ -55,6 +55,9 @@ export interface LoanEstimateData {
   // Cash to Close
   downPayment: number;
   adjustmentsCredits: number;
+  
+  // Additional settings
+  escrows?: string; // 'yes' or 'no'
 }
 
 // Position configuration - exported so it can be used by calibration panel
