@@ -1,297 +1,654 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Plus, Calculator } from "lucide-react";
+import { FileText, Download, Calculator, Search, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { generateLoanEstimatePDF, calculateTotals, LoanEstimateData } from "@/lib/loanEstimatePdfGenerator";
 
-interface LoanEstimateData {
-  borrowerName: string;
-  propertyAddress: string;
-  loanAmount: string;
-  interestRate: string;
-  loanTerm: string;
-  loanType: string;
-  monthlyPayment: string;
-  downPayment: string;
-  closingCosts: string;
-  notes: string;
+interface Lead {
+  id: string;
+  first_name: string;
+  last_name: string;
+  lender_loan_number: string | null;
+  subject_zip: string | null;
+  subject_state: string | null;
+  sales_price: number | null;
+  loan_amount: number | null;
+  interest_rate: number | null;
+  term: number | null;
+  discount_points: number | null;
+  underwriting_fee: number | null;
+  appraisal_fee: number | null;
+  credit_report_fee: number | null;
+  processing_fee: number | null;
+  lenders_title_insurance: number | null;
+  title_closing_fee: number | null;
+  intangible_tax: number | null;
+  transfer_tax: number | null;
+  recording_fees: number | null;
+  prepaid_hoi: number | null;
+  prepaid_interest: number | null;
+  escrow_hoi: number | null;
+  escrow_taxes: number | null;
+  principal_interest: number | null;
+  property_taxes: number | null;
+  homeowners_insurance: number | null;
+  mortgage_insurance: number | null;
+  hoa_dues: number | null;
+  adjustments_credits: number | null;
 }
 
 export default function LoanEstimate() {
-  const [estimateData, setEstimateData] = useState<LoanEstimateData>({
-    borrowerName: "",
-    propertyAddress: "",
-    loanAmount: "",
-    interestRate: "",
-    loanTerm: "30",
-    loanType: "Conventional",
-    monthlyPayment: "",
-    downPayment: "",
-    closingCosts: "",
-    notes: ""
-  });
-
-  const [savedEstimates, setSavedEstimates] = useState<LoanEstimateData[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const handleInputChange = (field: keyof LoanEstimateData, value: string) => {
-    setEstimateData(prev => ({ ...prev, [field]: value }));
+  // Form state for fees that may need to be entered manually
+  const [formData, setFormData] = useState<Partial<LoanEstimateData>>({
+    borrowerName: "",
+    lenderLoanNumber: "",
+    zipState: "",
+    date: new Date().toLocaleDateString(),
+    purchasePrice: 0,
+    loanAmount: 0,
+    interestRate: 0,
+    apr: 0,
+    loanTerm: 360,
+    discountPoints: 0,
+    underwritingFee: 995,
+    appraisalFee: 550,
+    creditReportFee: 75,
+    processingFee: 995,
+    lendersTitleInsurance: 0,
+    titleClosingFee: 450,
+    intangibleTax: 0,
+    transferTax: 0,
+    recordingFees: 350,
+    prepaidHoi: 0,
+    prepaidInterest: 0,
+    escrowHoi: 0,
+    escrowTaxes: 0,
+    principalInterest: 0,
+    propertyTaxes: 0,
+    homeownersInsurance: 0,
+    mortgageInsurance: 0,
+    hoaDues: 0,
+    downPayment: 0,
+    adjustmentsCredits: 0,
+  });
+
+  // Fetch leads
+  useEffect(() => {
+    const fetchLeads = async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, lender_loan_number, subject_zip, subject_state, sales_price, loan_amount, interest_rate, term, discount_points, underwriting_fee, appraisal_fee, credit_report_fee, processing_fee, lenders_title_insurance, title_closing_fee, intangible_tax, transfer_tax, recording_fees, prepaid_hoi, prepaid_interest, escrow_hoi, escrow_taxes, principal_interest, property_taxes, homeowners_insurance, mortgage_insurance, hoa_dues, adjustments_credits')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setLeads(data as Lead[]);
+      }
+    };
+
+    fetchLeads();
+  }, []);
+
+  // Filter leads based on search
+  const filteredLeads = useMemo(() => {
+    if (!searchTerm) return leads.slice(0, 20);
+    const term = searchTerm.toLowerCase();
+    return leads.filter(lead => 
+      `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(term) ||
+      lead.lender_loan_number?.toLowerCase().includes(term)
+    ).slice(0, 20);
+  }, [leads, searchTerm]);
+
+  // When a lead is selected, populate the form
+  const handleSelectLead = (lead: Lead) => {
+    setSelectedLead(lead);
+    setSearchOpen(false);
+    
+    const zipState = [lead.subject_zip, lead.subject_state].filter(Boolean).join(', ');
+    
+    setFormData({
+      borrowerName: `${lead.first_name} ${lead.last_name}`,
+      lenderLoanNumber: lead.lender_loan_number || "",
+      zipState,
+      date: new Date().toLocaleDateString(),
+      purchasePrice: lead.sales_price || 0,
+      loanAmount: lead.loan_amount || 0,
+      interestRate: lead.interest_rate || 0,
+      apr: lead.interest_rate ? lead.interest_rate + 0.125 : 0, // Estimate APR
+      loanTerm: lead.term || 360,
+      discountPoints: lead.discount_points || 0,
+      underwritingFee: lead.underwriting_fee || 995,
+      appraisalFee: lead.appraisal_fee || 550,
+      creditReportFee: lead.credit_report_fee || 75,
+      processingFee: lead.processing_fee || 995,
+      lendersTitleInsurance: lead.lenders_title_insurance || 0,
+      titleClosingFee: lead.title_closing_fee || 450,
+      intangibleTax: lead.intangible_tax || 0,
+      transferTax: lead.transfer_tax || 0,
+      recordingFees: lead.recording_fees || 350,
+      prepaidHoi: lead.prepaid_hoi || 0,
+      prepaidInterest: lead.prepaid_interest || 0,
+      escrowHoi: lead.escrow_hoi || 0,
+      escrowTaxes: lead.escrow_taxes || 0,
+      principalInterest: lead.principal_interest || 0,
+      propertyTaxes: lead.property_taxes || 0,
+      homeownersInsurance: lead.homeowners_insurance || 0,
+      mortgageInsurance: lead.mortgage_insurance || 0,
+      hoaDues: lead.hoa_dues || 0,
+      downPayment: (lead.sales_price && lead.loan_amount ? lead.sales_price - lead.loan_amount : 0),
+      adjustmentsCredits: lead.adjustments_credits || 0,
+    });
   };
 
-  const calculateMonthlyPayment = () => {
-    const principal = parseFloat(estimateData.loanAmount);
-    const rate = parseFloat(estimateData.interestRate) / 100 / 12;
-    const payments = parseInt(estimateData.loanTerm) * 12;
-
-    if (principal && rate && payments) {
-      const monthlyPayment = (principal * rate * Math.pow(1 + rate, payments)) / (Math.pow(1 + rate, payments) - 1);
-      setEstimateData(prev => ({ ...prev, monthlyPayment: monthlyPayment.toFixed(2) }));
-    }
+  const handleInputChange = (field: keyof LoanEstimateData, value: string | number) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    setFormData(prev => ({ ...prev, [field]: numValue }));
   };
 
-  const handleSaveEstimate = () => {
-    if (!estimateData.borrowerName || !estimateData.loanAmount) {
+  const handleGeneratePDF = async () => {
+    if (!formData.borrowerName) {
       toast({
         title: "Missing Information",
-        description: "Please fill in borrower name and loan amount.",
+        description: "Please select a borrower or enter borrower name.",
         variant: "destructive"
       });
       return;
     }
 
-    setSavedEstimates(prev => [...prev, { ...estimateData }]);
-    toast({
-      title: "Success",
-      description: "Loan estimate saved successfully.",
-    });
+    setIsGenerating(true);
+    try {
+      await generateLoanEstimatePDF(formData as LoanEstimateData, true);
+      toast({
+        title: "Success",
+        description: "Bolt Estimate PDF generated and downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleGenerateDocument = () => {
-    toast({
-      title: "Document Generated",
-      description: "Loan estimate document is ready for download.",
-    });
-  };
+  // Calculate totals for display
+  const totals = useMemo(() => calculateTotals(formData as LoanEstimateData), [formData]);
 
-  const handleClearForm = () => {
-    setEstimateData({
-      borrowerName: "",
-      propertyAddress: "",
-      loanAmount: "",
-      interestRate: "",
-      loanTerm: "30",
-      loanType: "Conventional",
-      monthlyPayment: "",
-      downPayment: "",
-      closingCosts: "",
-      notes: ""
-    });
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(value || 0);
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Loan Estimate Generator</h1>
-        <p className="text-muted-foreground">Create and manage loan estimates for borrowers</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Bolt Estimate Generator</h1>
+          <p className="text-muted-foreground">Generate professional loan estimates for borrowers</p>
+        </div>
+        <Button 
+          onClick={handleGeneratePDF} 
+          disabled={isGenerating}
+          size="lg"
+          className="gap-2"
+        >
+          <Download className="h-5 w-5" />
+          {isGenerating ? "Generating..." : "Generate PDF"}
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Loan Estimate Form */}
-        <Card className="bg-gradient-card shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calculator className="h-5 w-5 mr-2 text-primary" />
-              Loan Estimate Details
+      {/* Borrower Selection */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg">
+            <User className="h-5 w-5 mr-2 text-primary" />
+            Select Borrower
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                {selectedLead 
+                  ? `${selectedLead.first_name} ${selectedLead.last_name}${selectedLead.lender_loan_number ? ` - ${selectedLead.lender_loan_number}` : ''}`
+                  : "Search for a borrower..."
+                }
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0" align="start">
+              <Command>
+                <CommandInput 
+                  placeholder="Search by name or loan number..." 
+                  value={searchTerm}
+                  onValueChange={setSearchTerm}
+                />
+                <CommandList>
+                  <CommandEmpty>No borrowers found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredLeads.map(lead => (
+                      <CommandItem
+                        key={lead.id}
+                        value={`${lead.first_name} ${lead.last_name} ${lead.lender_loan_number || ''}`}
+                        onSelect={() => handleSelectLead(lead)}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{lead.first_name} {lead.last_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {lead.lender_loan_number || 'No loan number'} • {formatCurrency(lead.loan_amount || 0)}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </CardContent>
+      </Card>
+
+      {/* Loan Info Section */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center text-lg">
+            <FileText className="h-5 w-5 mr-2 text-primary" />
+            Loan Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">Borrower</Label>
+              <Input 
+                value={formData.borrowerName || ''} 
+                onChange={(e) => handleInputChange('borrowerName', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Loan Number</Label>
+              <Input 
+                value={formData.lenderLoanNumber || ''} 
+                onChange={(e) => handleInputChange('lenderLoanNumber', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Zip/State</Label>
+              <Input 
+                value={formData.zipState || ''} 
+                onChange={(e) => handleInputChange('zipState', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Date</Label>
+              <Input 
+                value={formData.date || ''} 
+                onChange={(e) => handleInputChange('date', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Purchase Price</Label>
+              <Input 
+                type="number"
+                value={formData.purchasePrice || ''} 
+                onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Loan Amount</Label>
+              <Input 
+                type="number"
+                value={formData.loanAmount || ''} 
+                onChange={(e) => handleInputChange('loanAmount', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Rate / APR</Label>
+              <div className="flex gap-1">
+                <Input 
+                  type="number"
+                  step="0.001"
+                  value={formData.interestRate || ''} 
+                  onChange={(e) => handleInputChange('interestRate', e.target.value)}
+                  placeholder="Rate"
+                />
+                <Input 
+                  type="number"
+                  step="0.001"
+                  value={formData.apr || ''} 
+                  onChange={(e) => handleInputChange('apr', e.target.value)}
+                  placeholder="APR"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Loan Term (months)</Label>
+              <Input 
+                type="number"
+                value={formData.loanTerm || 360} 
+                onChange={(e) => handleInputChange('loanTerm', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fee Sections Grid */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Section A: Lender Fees */}
+        <Card>
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>A. Lender Fees</span>
+              <span className="text-primary font-bold">{formatCurrency(totals.sectionA)}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="borrowerName">Borrower Name</Label>
-                <Input
-                  id="borrowerName"
-                  value={estimateData.borrowerName}
-                  onChange={(e) => handleInputChange("borrowerName", e.target.value)}
-                  placeholder="Enter borrower name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="loanAmount">Loan Amount</Label>
-                <Input
-                  id="loanAmount"
-                  type="number"
-                  value={estimateData.loanAmount}
-                  onChange={(e) => handleInputChange("loanAmount", e.target.value)}
-                  placeholder="Enter loan amount"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="propertyAddress">Property Address</Label>
-              <Input
-                id="propertyAddress"
-                value={estimateData.propertyAddress}
-                onChange={(e) => handleInputChange("propertyAddress", e.target.value)}
-                placeholder="Enter property address"
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Discount Points</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.discountPoints || ''} 
+                onChange={(e) => handleInputChange('discountPoints', e.target.value)}
               />
             </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="interestRate">Interest Rate (%)</Label>
-                <Input
-                  id="interestRate"
-                  type="number"
-                  step="0.01"
-                  value={estimateData.interestRate}
-                  onChange={(e) => handleInputChange("interestRate", e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="loanTerm">Loan Term (Years)</Label>
-                <Select value={estimateData.loanTerm} onValueChange={(value) => handleInputChange("loanTerm", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 Years</SelectItem>
-                    <SelectItem value="20">20 Years</SelectItem>
-                    <SelectItem value="25">25 Years</SelectItem>
-                    <SelectItem value="30">30 Years</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="loanType">Loan Type</Label>
-                <Select value={estimateData.loanType} onValueChange={(value) => handleInputChange("loanType", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Conventional">Conventional</SelectItem>
-                    <SelectItem value="FHA">FHA</SelectItem>
-                    <SelectItem value="VA">VA</SelectItem>
-                    <SelectItem value="USDA">USDA</SelectItem>
-                    <SelectItem value="Jumbo">Jumbo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="monthlyPayment">Monthly Payment</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="monthlyPayment"
-                    type="number"
-                    value={estimateData.monthlyPayment}
-                    onChange={(e) => handleInputChange("monthlyPayment", e.target.value)}
-                    placeholder="0.00"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={calculateMonthlyPayment}
-                  >
-                    Calc
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="downPayment">Down Payment</Label>
-                <Input
-                  id="downPayment"
-                  type="number"
-                  value={estimateData.downPayment}
-                  onChange={(e) => handleInputChange("downPayment", e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="closingCosts">Estimated Closing Costs</Label>
-                <Input
-                  id="closingCosts"
-                  type="number"
-                  value={estimateData.closingCosts}
-                  onChange={(e) => handleInputChange("closingCosts", e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={estimateData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                placeholder="Additional notes or conditions"
-                rows={3}
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Underwriting Fee</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.underwritingFee || ''} 
+                onChange={(e) => handleInputChange('underwritingFee', e.target.value)}
               />
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleSaveEstimate} className="flex-1">
-                <Plus className="h-4 w-4 mr-2" />
-                Save Estimate
-              </Button>
-              <Button onClick={handleGenerateDocument} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Generate PDF
-              </Button>
-              <Button onClick={handleClearForm} variant="outline">
-                Clear
-              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Saved Estimates */}
-        <Card className="bg-gradient-card shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="h-5 w-5 mr-2 text-primary" />
-              Saved Estimates ({savedEstimates.length})
+        {/* Section C: Taxes & Government Fees */}
+        <Card>
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>C. Taxes & Government Fees</span>
+              <span className="text-primary font-bold">{formatCurrency(totals.sectionC)}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {savedEstimates.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No saved estimates yet</p>
-                <p className="text-sm text-muted-foreground">Create your first loan estimate using the form</p>
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Intangible Tax</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.intangibleTax || ''} 
+                onChange={(e) => handleInputChange('intangibleTax', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Transfer Tax</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.transferTax || ''} 
+                onChange={(e) => handleInputChange('transferTax', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Recording Fees</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.recordingFees || ''} 
+                onChange={(e) => handleInputChange('recordingFees', e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section B: Third Party Fees */}
+        <Card>
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>B. Third Party Fees</span>
+              <span className="text-primary font-bold">{formatCurrency(totals.sectionB)}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Services You Cannot Shop For</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Appraisal</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.appraisalFee || ''} 
+                    onChange={(e) => handleInputChange('appraisalFee', e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Credit Report</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.creditReportFee || ''} 
+                    onChange={(e) => handleInputChange('creditReportFee', e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Processing Fee</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.processingFee || ''} 
+                    onChange={(e) => handleInputChange('processingFee', e.target.value)}
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {savedEstimates.map((estimate, index) => (
-                  <div key={index} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{estimate.borrowerName}</h4>
-                        <p className="text-sm text-muted-foreground">{estimate.propertyAddress}</p>
-                      </div>
-                      <Button size="sm" variant="outline">
-                        <Download className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span>Loan: ${parseFloat(estimate.loanAmount || "0").toLocaleString()}</span>
-                      <span>Rate: {estimate.interestRate}%</span>
-                      <span>Payment: ${estimate.monthlyPayment}</span>
-                      <span>Type: {estimate.loanType}</span>
-                    </div>
-                  </div>
-                ))}
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Services You Can Shop For</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Lender's Title Insurance</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.lendersTitleInsurance || ''} 
+                    onChange={(e) => handleInputChange('lendersTitleInsurance', e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Title Closing Fee</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.titleClosingFee || ''} 
+                    onChange={(e) => handleInputChange('titleClosingFee', e.target.value)}
+                  />
+                </div>
               </div>
-            )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section D: Prepaids & Escrow */}
+        <Card>
+          <CardHeader className="pb-3 bg-muted/30">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>D. Prepaids & Escrow</span>
+              <span className="text-primary font-bold">{formatCurrency(totals.sectionD)}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Prepaids</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Homeowners Insurance</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.prepaidHoi || ''} 
+                    onChange={(e) => handleInputChange('prepaidHoi', e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Prepaid Interest</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.prepaidInterest || ''} 
+                    onChange={(e) => handleInputChange('prepaidInterest', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Initial Escrow at Closing</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Homeowners Insurance</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.escrowHoi || ''} 
+                    onChange={(e) => handleInputChange('escrowHoi', e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Property Taxes</Label>
+                  <Input 
+                    type="number"
+                    className="w-32 text-right"
+                    value={formData.escrowTaxes || ''} 
+                    onChange={(e) => handleInputChange('escrowTaxes', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Sections */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Estimated Monthly Payment */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-lg">
+              <Calculator className="h-5 w-5 mr-2 text-primary" />
+              Estimated Monthly Payment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Mortgage (P&I)</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.principalInterest || ''} 
+                onChange={(e) => handleInputChange('principalInterest', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Property Taxes</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.propertyTaxes || ''} 
+                onChange={(e) => handleInputChange('propertyTaxes', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Homeowner's Insurance</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.homeownersInsurance || ''} 
+                onChange={(e) => handleInputChange('homeownersInsurance', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Mortgage Insurance</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.mortgageInsurance || ''} 
+                onChange={(e) => handleInputChange('mortgageInsurance', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">HOA Dues</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.hoaDues || ''} 
+                onChange={(e) => handleInputChange('hoaDues', e.target.value)}
+              />
+            </div>
+            <div className="border-t pt-3 flex items-center justify-between">
+              <Label className="text-base font-semibold">Total Monthly Payment</Label>
+              <span className="text-xl font-bold text-primary">{formatCurrency(totals.totalMonthlyPayment)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Estimated Cash to Close */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-lg">
+              <Calculator className="h-5 w-5 mr-2 text-primary" />
+              Estimated Cash to Close
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Down Payment</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.downPayment || ''} 
+                onChange={(e) => handleInputChange('downPayment', e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Closing Costs (A+B+C)</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(totals.closingCosts)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Prepaids & Escrow (D)</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(totals.prepaidsEscrow)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Adjustments & Credits</Label>
+              <Input 
+                type="number"
+                className="w-32 text-right"
+                value={formData.adjustmentsCredits || ''} 
+                onChange={(e) => handleInputChange('adjustmentsCredits', e.target.value)}
+              />
+            </div>
+            <div className="border-t pt-3 flex items-center justify-between">
+              <Label className="text-base font-semibold">Total Cash to Close</Label>
+              <span className="text-xl font-bold text-primary">{formatCurrency(totals.totalCashToClose)}</span>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1893,9 +1893,11 @@ export type Database = {
         Row: {
           account_id: string
           active_at: string | null
+          adjustments_credits: number | null
           app_complete_at: string | null
           appr_date_time: string | null
           appr_eta: string | null
+          appraisal_fee: number | null
           appraisal_file: string | null
           appraisal_notes: string | null
           appraisal_ordered_date: string | null
@@ -1934,6 +1936,7 @@ export type Database = {
           converted: Database["public"]["Enums"]["converted_status"] | null
           created_at: string
           created_by: string
+          credit_report_fee: number | null
           ctc_at: string | null
           decl_borrowing_undisclosed: boolean | null
           decl_ownership_interest: boolean | null
@@ -1953,6 +1956,8 @@ export type Database = {
           dti: number | null
           email: string | null
           epo_status: Database["public"]["Enums"]["epo_status"] | null
+          escrow_hoi: number | null
+          escrow_taxes: number | null
           escrows: string | null
           fcp_file: string | null
           fico_score: number | null
@@ -1975,6 +1980,7 @@ export type Database = {
           insurance_policy_file: string | null
           insurance_quoted_date: string | null
           insurance_received_date: string | null
+          intangible_tax: number | null
           interest_rate: number | null
           is_closed: boolean | null
           last_follow_up_date: string | null
@@ -1987,6 +1993,7 @@ export type Database = {
           lead_strength: Database["public"]["Enums"]["lead_strength"] | null
           lender_id: string | null
           lender_loan_number: string | null
+          lenders_title_insurance: number | null
           les_file: string | null
           likely_to_apply: string | null
           listing_agent_id: string | null
@@ -2018,13 +2025,17 @@ export type Database = {
           pr_type: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at: string | null
           pre_qualified_at: string | null
+          prepaid_hoi: number | null
+          prepaid_interest: number | null
           prepayment_penalty: string | null
           principal_interest: number | null
           priority: string | null
+          processing_fee: number | null
           program: string | null
           property_taxes: number | null
           property_type: string | null
           rate_lock_file: string | null
+          recording_fees: number | null
           referral_source: Database["public"]["Enums"]["referral_source"] | null
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           reo: boolean | null
@@ -2046,20 +2057,25 @@ export type Database = {
           term: number | null
           time_at_current_address_months: number | null
           time_at_current_address_years: number | null
+          title_closing_fee: number | null
           title_eta: string | null
           title_file: string | null
           title_notes: string | null
           title_ordered_date: string | null
           title_status: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income: number | null
+          transfer_tax: number | null
+          underwriting_fee: number | null
           updated_at: string
         }
         Insert: {
           account_id: string
           active_at?: string | null
+          adjustments_credits?: number | null
           app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null
+          appraisal_fee?: number | null
           appraisal_file?: string | null
           appraisal_notes?: string | null
           appraisal_ordered_date?: string | null
@@ -2098,6 +2114,7 @@ export type Database = {
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by: string
+          credit_report_fee?: number | null
           ctc_at?: string | null
           decl_borrowing_undisclosed?: boolean | null
           decl_ownership_interest?: boolean | null
@@ -2117,6 +2134,8 @@ export type Database = {
           dti?: number | null
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
+          escrow_hoi?: number | null
+          escrow_taxes?: number | null
           escrows?: string | null
           fcp_file?: string | null
           fico_score?: number | null
@@ -2139,6 +2158,7 @@ export type Database = {
           insurance_policy_file?: string | null
           insurance_quoted_date?: string | null
           insurance_received_date?: string | null
+          intangible_tax?: number | null
           interest_rate?: number | null
           is_closed?: boolean | null
           last_follow_up_date?: string | null
@@ -2151,6 +2171,7 @@ export type Database = {
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
           lender_loan_number?: string | null
+          lenders_title_insurance?: number | null
           les_file?: string | null
           likely_to_apply?: string | null
           listing_agent_id?: string | null
@@ -2182,13 +2203,17 @@ export type Database = {
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
+          prepaid_hoi?: number | null
+          prepaid_interest?: number | null
           prepayment_penalty?: string | null
           principal_interest?: number | null
           priority?: string | null
+          processing_fee?: number | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null
           rate_lock_file?: string | null
+          recording_fees?: number | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
             | null
@@ -2212,20 +2237,25 @@ export type Database = {
           term?: number | null
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null
+          title_closing_fee?: number | null
           title_eta?: string | null
           title_file?: string | null
           title_notes?: string | null
           title_ordered_date?: string | null
           title_status?: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income?: number | null
+          transfer_tax?: number | null
+          underwriting_fee?: number | null
           updated_at?: string
         }
         Update: {
           account_id?: string
           active_at?: string | null
+          adjustments_credits?: number | null
           app_complete_at?: string | null
           appr_date_time?: string | null
           appr_eta?: string | null
+          appraisal_fee?: number | null
           appraisal_file?: string | null
           appraisal_notes?: string | null
           appraisal_ordered_date?: string | null
@@ -2264,6 +2294,7 @@ export type Database = {
           converted?: Database["public"]["Enums"]["converted_status"] | null
           created_at?: string
           created_by?: string
+          credit_report_fee?: number | null
           ctc_at?: string | null
           decl_borrowing_undisclosed?: boolean | null
           decl_ownership_interest?: boolean | null
@@ -2283,6 +2314,8 @@ export type Database = {
           dti?: number | null
           email?: string | null
           epo_status?: Database["public"]["Enums"]["epo_status"] | null
+          escrow_hoi?: number | null
+          escrow_taxes?: number | null
           escrows?: string | null
           fcp_file?: string | null
           fico_score?: number | null
@@ -2305,6 +2338,7 @@ export type Database = {
           insurance_policy_file?: string | null
           insurance_quoted_date?: string | null
           insurance_received_date?: string | null
+          intangible_tax?: number | null
           interest_rate?: number | null
           is_closed?: boolean | null
           last_follow_up_date?: string | null
@@ -2317,6 +2351,7 @@ export type Database = {
           lead_strength?: Database["public"]["Enums"]["lead_strength"] | null
           lender_id?: string | null
           lender_loan_number?: string | null
+          lenders_title_insurance?: number | null
           les_file?: string | null
           likely_to_apply?: string | null
           listing_agent_id?: string | null
@@ -2348,13 +2383,17 @@ export type Database = {
           pr_type?: Database["public"]["Enums"]["pr_type"] | null
           pre_approved_at?: string | null
           pre_qualified_at?: string | null
+          prepaid_hoi?: number | null
+          prepaid_interest?: number | null
           prepayment_penalty?: string | null
           principal_interest?: number | null
           priority?: string | null
+          processing_fee?: number | null
           program?: string | null
           property_taxes?: number | null
           property_type?: string | null
           rate_lock_file?: string | null
+          recording_fees?: number | null
           referral_source?:
             | Database["public"]["Enums"]["referral_source"]
             | null
@@ -2378,12 +2417,15 @@ export type Database = {
           term?: number | null
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null
+          title_closing_fee?: number | null
           title_eta?: string | null
           title_file?: string | null
           title_notes?: string | null
           title_ordered_date?: string | null
           title_status?: Database["public"]["Enums"]["title_status"] | null
           total_monthly_income?: number | null
+          transfer_tax?: number | null
+          underwriting_fee?: number | null
           updated_at?: string
         }
         Relationships: [
