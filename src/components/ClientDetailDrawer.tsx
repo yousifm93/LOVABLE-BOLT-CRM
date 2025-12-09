@@ -369,8 +369,8 @@ export function ClientDetailDrawer({
         // Get description based on activity type
         let description = '';
         if (activity.type === 'email') {
-          // For inbound emails, show body if available, otherwise snippet
-          description = activity.body || activity.snippet || '';
+          // Use HTML body for proper formatting (line breaks, bullet points, etc.)
+          description = activity.html_body || activity.body || activity.snippet || '';
         } else if (activity.type === 'call') {
           description = activity.notes || '';
         } else if (activity.type === 'sms') {
