@@ -1083,6 +1083,48 @@ export function ClientDetailDrawer({
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
                 <span className="text-sm font-medium">{dtiDisplay}</span>
               </div>
+
+              {/* Row 3: Discount Points, Closing Costs, Lock Expiration, Occupancy */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
+                <InlineEditNumber 
+                  value={(client as any).discount_points ?? null} 
+                  onValueChange={value => handleLeadUpdate('discount_points', value)} 
+                  placeholder="0.00" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
+                <InlineEditCurrency 
+                  value={(client as any).closing_costs ?? (client as any).closingCosts ?? null} 
+                  onValueChange={value => handleLeadUpdate('closing_costs', value)} 
+                  placeholder="Enter amount" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Lock Expiration</span>
+                <InlineEditDate 
+                  value={(client as any).lock_expiration_date ?? null} 
+                  onValueChange={value => {
+                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
+                    handleLeadUpdate('lock_expiration_date', dateStr);
+                  }} 
+                  placeholder="-" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
+                <InlineEditSelect 
+                  value={(client as any).occupancy ?? null} 
+                  options={[
+                    { value: 'Primary Home', label: 'Primary Home' },
+                    { value: 'Second Home', label: 'Second Home' },
+                    { value: 'Investment', label: 'Investment' }
+                  ]}
+                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
+                  placeholder="Select..." 
+                />
+              </div>
             </div>
           </div>;
     }
