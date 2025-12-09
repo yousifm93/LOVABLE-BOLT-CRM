@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MissingMergeTagsModal } from "@/components/modals/MissingMergeTagsModal";
 
 interface SendEmailTemplatesCardProps {
   leadId: string;
@@ -29,6 +30,11 @@ interface User {
   is_assignable: boolean;
 }
 
+interface MissingField {
+  tag: string;
+  label: string;
+}
+
 export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedSender, setSelectedSender] = useState<string>("");
@@ -44,6 +50,8 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   const [loading, setLoading] = useState(false);
   const [borrowerEmail, setBorrowerEmail] = useState<string | null>(null);
   const [agentEmail, setAgentEmail] = useState<string | null>(null);
+  const [missingFields, setMissingFields] = useState<MissingField[]>([]);
+  const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -101,6 +109,33 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     }
   };
 
+  const validateMergeTags = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-template-merge-tags", {
+        body: {
+          leadId,
+          templateId: selectedTemplate,
+        },
+      });
+
+      if (error) {
+        console.error("Error validating merge tags:", error);
+        return true; // Allow sending if validation fails
+      }
+
+      if (!data.valid && data.missingFields?.length > 0) {
+        setMissingFields(data.missingFields);
+        setShowMissingFieldsModal(true);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error validating merge tags:", error);
+      return true; // Allow sending if validation fails
+    }
+  };
+
   const handleSendEmail = async () => {
     if (!selectedTemplate) {
       toast({ title: "Error", description: "Please select an email template", variant: "destructive" });
@@ -138,6 +173,13 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
     }
 
     setLoading(true);
+
+    // Validate merge tags before sending
+    const isValid = await validateMergeTags();
+    if (!isValid) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("send-template-email", {
@@ -178,104 +220,112 @@ export function SendEmailTemplatesCard({ leadId }: SendEmailTemplatesCardProps) 
   };
 
   return (
-    <Card className="h-[320px] flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Mail className="h-4 w-4" />
-          Send Email Templates
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 flex-1 overflow-y-auto">
-        <div>
-          <Label htmlFor="from-sender" className="text-sm font-medium">
-            From
-          </Label>
-          <Select value={selectedSender} onValueChange={setSelectedSender}>
-            <SelectTrigger id="from-sender" className="mt-1">
-              <SelectValue placeholder="Select sender" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.first_name} {user.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="email-template" className="text-sm font-medium">
-            Email Template
-          </Label>
-          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-            <SelectTrigger id="email-template" className="mt-1">
-              <SelectValue placeholder="Select a template" />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((template) => (
-                <SelectItem key={template.id} value={template.id}>
-                  {template.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-4">
-            <Label className="text-sm font-medium">Recipients</Label>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="borrower"
-                checked={recipients.borrower}
-                onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
-                disabled={!borrowerEmail}
-              />
-              <Label htmlFor="borrower" className="text-sm">
-                Borrower
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="agent"
-                checked={recipients.agent}
-                onCheckedChange={(checked) => handleRecipientChange("agent", checked as boolean)}
-                disabled={!agentEmail}
-              />
-              <Label htmlFor="agent" className="text-sm">
-                BA
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="third-party"
-                checked={recipients.thirdParty}
-                onCheckedChange={(checked) => handleRecipientChange("thirdParty", checked as boolean)}
-              />
-              <Label htmlFor="third-party" className="text-sm">3rd</Label>
-            </div>
+    <>
+      <Card className="h-[320px] flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Send Email Templates
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 flex-1 overflow-y-auto">
+          <div>
+            <Label htmlFor="from-sender" className="text-sm font-medium">
+              From
+            </Label>
+            <Select value={selectedSender} onValueChange={setSelectedSender}>
+              <SelectTrigger id="from-sender" className="mt-1">
+                <SelectValue placeholder="Select sender" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.first_name} {user.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          
-          {showThirdPartyEmail && (
-            <div className="mt-2">
-              <Input
-                placeholder="Enter third party email address"
-                value={thirdPartyEmail}
-                onChange={(e) => setThirdPartyEmail(e.target.value)}
-                className="w-full"
-              />
-            </div>
-          )}
-        </div>
 
-        <Button onClick={handleSendEmail} className="w-full mt-6" disabled={loading}>
-          {loading ? "Sending..." : "Send Email"}
-        </Button>
-      </CardContent>
-    </Card>
+          <div>
+            <Label htmlFor="email-template" className="text-sm font-medium">
+              Email Template
+            </Label>
+            <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+              <SelectTrigger id="email-template" className="mt-1">
+                <SelectValue placeholder="Select a template" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-4">
+              <Label className="text-sm font-medium">Recipients</Label>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="borrower"
+                  checked={recipients.borrower}
+                  onCheckedChange={(checked) => handleRecipientChange("borrower", checked as boolean)}
+                  disabled={!borrowerEmail}
+                />
+                <Label htmlFor="borrower" className="text-sm">
+                  Borrower
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="agent"
+                  checked={recipients.agent}
+                  onCheckedChange={(checked) => handleRecipientChange("agent", checked as boolean)}
+                  disabled={!agentEmail}
+                />
+                <Label htmlFor="agent" className="text-sm">
+                  BA
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="third-party"
+                  checked={recipients.thirdParty}
+                  onCheckedChange={(checked) => handleRecipientChange("thirdParty", checked as boolean)}
+                />
+                <Label htmlFor="third-party" className="text-sm">3rd</Label>
+              </div>
+            </div>
+            
+            {showThirdPartyEmail && (
+              <div className="mt-2">
+                <Input
+                  placeholder="Enter third party email address"
+                  value={thirdPartyEmail}
+                  onChange={(e) => setThirdPartyEmail(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+
+          <Button onClick={handleSendEmail} className="w-full mt-6" disabled={loading}>
+            {loading ? "Sending..." : "Send Email"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <MissingMergeTagsModal
+        open={showMissingFieldsModal}
+        onOpenChange={setShowMissingFieldsModal}
+        missingFields={missingFields}
+      />
+    </>
   );
 }
