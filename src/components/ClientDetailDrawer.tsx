@@ -1087,11 +1087,23 @@ export function ClientDetailDrawer({
               {/* Row 3: Discount Points, Closing Costs, Lock Expiration, Occupancy */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
-                <InlineEditNumber 
-                  value={(client as any).discount_points ?? null} 
-                  onValueChange={value => handleLeadUpdate('discount_points', value)} 
-                  placeholder="0.00" 
-                />
+                <div className="flex flex-col">
+                  <InlineEditPercentage 
+                    value={(client as any).discount_points_percentage ?? null} 
+                    onValueChange={async (value) => {
+                      const loanAmount = Number(client.loan?.loanAmount) || 0;
+                      const dollarAmount = value && loanAmount ? (value / 100) * loanAmount : null;
+                      await handleLeadUpdate('discount_points_percentage', value);
+                      await handleLeadUpdate('discount_points', dollarAmount);
+                    }} 
+                    decimals={3}
+                  />
+                  {(client as any).discount_points_percentage && client.loan?.loanAmount && (
+                    <span className="text-xs text-muted-foreground">
+                      (${(((client as any).discount_points_percentage / 100) * Number(client.loan.loanAmount)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
