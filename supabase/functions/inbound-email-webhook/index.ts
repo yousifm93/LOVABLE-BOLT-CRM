@@ -29,90 +29,56 @@ function calculateMatchScore(
 ): LeadMatch | null {
   const subjectLower = subject.toLowerCase();
   const contentLower = emailContent.toLowerCase();
-  
-  let score = 0;
-  const matchMethods: string[] = [];
+  const combinedContent = `${subject} ${emailContent}`;
 
-  // Check lender loan number (100 points - most specific)
-  if (lead.lender_loan_number && lead.lender_loan_number.trim()) {
+  // Escape special regex characters in a string
+  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Check lender loan number - EXACT WORD MATCH ONLY (minimum 5 chars)
+  if (lead.lender_loan_number && lead.lender_loan_number.trim().length >= 5) {
     const loanNum = lead.lender_loan_number.trim();
-    if (subjectLower.includes(loanNum.toLowerCase()) || contentLower.includes(loanNum.toLowerCase())) {
-      score += 100;
-      matchMethods.push('lender_loan_number');
+    const loanRegex = new RegExp(`\\b${escapeRegex(loanNum)}\\b`, 'i');
+    if (loanRegex.test(combinedContent)) {
+      console.log(`[Match] Lead ${lead.id} matched by lender_loan_number: ${loanNum}`);
+      return { leadId: lead.id, score: 100, matchMethod: 'lender_loan_number' };
     }
   }
 
-  // Check MB app number (100 points - most specific)
-  if (lead.mb_loan_number && lead.mb_loan_number.trim()) {
+  // Check MB app number - EXACT WORD MATCH ONLY (minimum 5 chars)
+  if (lead.mb_loan_number && lead.mb_loan_number.trim().length >= 5) {
     const mbNum = lead.mb_loan_number.trim();
-    if (subjectLower.includes(mbNum.toLowerCase()) || contentLower.includes(mbNum.toLowerCase())) {
-      score += 100;
-      matchMethods.push('mb_loan_number');
+    const mbRegex = new RegExp(`\\b${escapeRegex(mbNum)}\\b`, 'i');
+    if (mbRegex.test(combinedContent)) {
+      console.log(`[Match] Lead ${lead.id} matched by mb_loan_number: ${mbNum}`);
+      return { leadId: lead.id, score: 100, matchMethod: 'mb_loan_number' };
     }
   }
 
-  // Check borrower email in content (80 points)
-  if (lead.email && lead.email.trim()) {
-    const email = lead.email.trim().toLowerCase();
-    if (contentLower.includes(email)) {
-      score += 80;
-      matchMethods.push('email_in_content');
-    }
-  }
-
-  // Check co-borrower email in content (80 points)
-  if (lead.co_borrower_email && lead.co_borrower_email.trim()) {
-    const coEmail = lead.co_borrower_email.trim().toLowerCase();
-    if (contentLower.includes(coEmail)) {
-      score += 80;
-      matchMethods.push('co_borrower_email_in_content');
-    }
-  }
-
-  // Check first name + last name together (60 points)
-  const firstName = lead.first_name?.trim().toLowerCase();
-  const lastName = lead.last_name?.trim().toLowerCase();
+  // Check first name + last name together (guaranteed match)
+  const firstName = lead.first_name?.trim();
+  const lastName = lead.last_name?.trim();
   
   if (firstName && lastName && firstName.length >= 2 && lastName.length >= 2) {
-    const fullName = `${firstName} ${lastName}`;
+    const fullName = `${firstName} ${lastName}`.toLowerCase();
     if (subjectLower.includes(fullName) || contentLower.includes(fullName)) {
-      score += 60;
-      matchMethods.push('full_name');
-    } else {
-      // Check last name only in subject (30 points) - more specific
-      if (lastName.length >= 3 && subjectLower.includes(lastName)) {
-        score += 30;
-        matchMethods.push('last_name_in_subject');
-      }
-      // Check first name only in subject (10 points) - less specific, common names
-      if (firstName.length >= 3 && subjectLower.includes(firstName)) {
-        score += 10;
-        matchMethods.push('first_name_in_subject');
-      }
+      console.log(`[Match] Lead ${lead.id} matched by full_name: ${fullName}`);
+      return { leadId: lead.id, score: 100, matchMethod: 'full_name' };
     }
   }
 
-  // Check co-borrower first name + last name together (50 points)
-  const coFirstName = lead.co_borrower_first_name?.trim().toLowerCase();
-  const coLastName = lead.co_borrower_last_name?.trim().toLowerCase();
+  // Check co-borrower first name + last name together
+  const coFirstName = lead.co_borrower_first_name?.trim();
+  const coLastName = lead.co_borrower_last_name?.trim();
   
   if (coFirstName && coLastName && coFirstName.length >= 2 && coLastName.length >= 2) {
-    const coFullName = `${coFirstName} ${coLastName}`;
+    const coFullName = `${coFirstName} ${coLastName}`.toLowerCase();
     if (subjectLower.includes(coFullName) || contentLower.includes(coFullName)) {
-      score += 50;
-      matchMethods.push('co_borrower_full_name');
+      console.log(`[Match] Lead ${lead.id} matched by co_borrower_full_name: ${coFullName}`);
+      return { leadId: lead.id, score: 100, matchMethod: 'co_borrower_full_name' };
     }
   }
 
-  if (score > 0) {
-    return {
-      leadId: lead.id,
-      score,
-      matchMethod: matchMethods.join(', ')
-    };
-  }
-
-  return null;
+  return null; // No match - removed all partial matching
 }
 
 serve(async (req) => {
