@@ -45,6 +45,7 @@ export interface DashboardEmail {
   snippet: string | null;
   timestamp: string;
   delivery_status: string | null;
+  ai_summary: string | null;
   lead?: {
     first_name: string;
     last_name: string;
@@ -414,7 +415,7 @@ export const useDashboardData = () => {
       
       const { data, error } = await supabase
         .from('email_logs')
-        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, ai_summary, leads!inner(first_name, last_name)')
         .gte('timestamp', startOfMonthTimestamp)
         .lt('timestamp', startOfNextMonthTimestamp)
         .order('timestamp', { ascending: false });
@@ -434,7 +435,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_logs')
-        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, ai_summary, leads!inner(first_name, last_name)')
         .gte('timestamp', yesterdayBoundaries.start)
         .lte('timestamp', yesterdayBoundaries.end)
         .order('timestamp', { ascending: false });
@@ -454,7 +455,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_logs')
-        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, ai_summary, leads!inner(first_name, last_name)')
         .gte('timestamp', todayBoundaries.start)
         .lte('timestamp', todayBoundaries.end)
         .order('timestamp', { ascending: false });
@@ -474,7 +475,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_logs')
-        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, ai_summary, leads!inner(first_name, last_name)')
         .order('timestamp', { ascending: false })
         .limit(500);
       
