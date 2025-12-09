@@ -709,12 +709,23 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       label: "Loan Program",
       value: client.loan?.loanProgram || "—",
       editComponent: isEditing ? (
-        <Input
-          value={editData.loan_program}
-          onChange={(e) => setEditData({ ...editData, loan_program: e.target.value })}
-          className="h-8"
-          placeholder="e.g. Conventional, FHA, VA"
-        />
+        <Select
+          value={editData.loan_program || ""}
+          onValueChange={(value) => setEditData({ ...editData, loan_program: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select program" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Conventional">Conventional</SelectItem>
+            <SelectItem value="FHA">FHA</SelectItem>
+            <SelectItem value="VA">VA</SelectItem>
+            <SelectItem value="DSCR">DSCR</SelectItem>
+            <SelectItem value="Jumbo">Jumbo</SelectItem>
+            <SelectItem value="USDA">USDA</SelectItem>
+            <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+          </SelectContent>
+        </Select>
       ) : undefined
     },
     { 
@@ -1167,13 +1178,22 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 label: "Amortization Term", 
                 value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
                 editComponent: isEditing ? (
-                  <Input
-                    type="number"
-                    value={editData.term || ""}
-                    onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
-                    className="h-8"
-                    placeholder="360"
-                  />
+                  <Select
+                    value={String(editData.term || 360)}
+                    onValueChange={(value) => setEditData({ ...editData, term: parseInt(value) })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="120">120 months (10 years)</SelectItem>
+                      <SelectItem value="180">180 months (15 years)</SelectItem>
+                      <SelectItem value="240">240 months (20 years)</SelectItem>
+                      <SelectItem value="300">300 months (25 years)</SelectItem>
+                      <SelectItem value="360">360 months (30 years)</SelectItem>
+                      <SelectItem value="480">480 months (40 years)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 ) : undefined
               },
               { 

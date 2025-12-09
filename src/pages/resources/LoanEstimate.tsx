@@ -529,6 +529,7 @@ export default function LoanEstimate() {
                   <SelectItem value="DSCR">DSCR</SelectItem>
                   <SelectItem value="Jumbo">Jumbo</SelectItem>
                   <SelectItem value="USDA">USDA</SelectItem>
+                  <SelectItem value="Bank Statement">Bank Statement</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -676,12 +677,22 @@ export default function LoanEstimate() {
             </div>
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">
               <Label className="text-xs text-muted-foreground">TERM (M)</Label>
-              <Input 
-                type="number"
-                className="h-8 text-sm"
-                value={formData.loanTerm || 360} 
-                onChange={(e) => handleInputChange('loanTerm', e.target.value)}
-              />
+              <Select
+                value={String(formData.loanTerm || 360)}
+                onValueChange={(value) => handleInputChange('loanTerm', value)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Select term" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="120">120 months</SelectItem>
+                  <SelectItem value="180">180 months</SelectItem>
+                  <SelectItem value="240">240 months</SelectItem>
+                  <SelectItem value="300">300 months</SelectItem>
+                  <SelectItem value="360">360 months</SelectItem>
+                  <SelectItem value="480">480 months</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">
               <Label className="text-xs text-muted-foreground">DISC PT</Label>
