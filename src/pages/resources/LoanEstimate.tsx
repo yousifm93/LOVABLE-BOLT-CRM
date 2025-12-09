@@ -489,66 +489,37 @@ export default function LoanEstimate() {
         </CardContent>
       </Card>
 
-      {/* Loan Info Section - Restructured */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center text-lg">
-            <FileText className="h-5 w-5 mr-2 text-primary" />
-            Loan Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Row 1: Name, Loan Number, Zip, State */}
-          <div className="grid grid-cols-5 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">First Name</Label>
+      {/* 4-Box Grid Layout */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Box 1: LOAN INFO */}
+        <Card>
+          <CardHeader className="pb-2 bg-muted/50">
+            <CardTitle className="text-sm font-semibold tracking-wide">LOAN INFO</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">BRWR NAME</Label>
               <Input 
-                value={formData.firstName || ''} 
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                value={`${formData.firstName || ''} ${formData.lastName || ''}`.trim()} 
+                disabled
+                className="h-8 text-sm bg-muted/30"
               />
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Last Name</Label>
-              <Input 
-                value={formData.lastName || ''} 
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Loan Number</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">LOAN #</Label>
               <Input 
                 value={formData.lenderLoanNumber || ''} 
                 onChange={(e) => handleInputChange('lenderLoanNumber', e.target.value)}
+                className="h-8 text-sm"
               />
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Zip</Label>
-              <Input 
-                value={formData.subjectZip || ''} 
-                onChange={(e) => handleInputChange('subjectZip', e.target.value)}
-                placeholder="33131"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">State</Label>
-              <Input 
-                value={formData.subjectState || ''} 
-                onChange={(e) => handleInputChange('subjectState', e.target.value.toUpperCase())}
-                placeholder="FL"
-                maxLength={2}
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Loan Program, Property Type, Purchase Price, Loan Amount, LTV */}
-          <div className="grid grid-cols-5 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">Loan Program</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">PROGRAM</Label>
               <Select 
                 value={formData.loanProgram || ''} 
                 onValueChange={(value) => handleInputChange('loanProgram', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -561,13 +532,22 @@ export default function LoanEstimate() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Property Type</Label>
+          </CardContent>
+        </Card>
+
+        {/* Box 2: PROPERTY INFO */}
+        <Card>
+          <CardHeader className="pb-2 bg-muted/50">
+            <CardTitle className="text-sm font-semibold tracking-wide">PROPERTY INFO</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">PROP TYPE</Label>
               <Select 
                 value={formData.propertyType || ''} 
                 onValueChange={(value) => handleInputChange('propertyType', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -579,112 +559,149 @@ export default function LoanEstimate() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Purchase Price</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">SALES PRICE</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input 
                   type="number"
-                  className="pl-7"
+                  className="h-8 text-sm pl-5"
                   value={formData.purchasePrice || ''} 
                   onChange={(e) => handlePurchasePriceChange(e.target.value)}
                 />
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Loan Amount</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">LOAN AMOUNT</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input 
                   type="number"
-                  className="pl-7"
+                  className="h-8 text-sm pl-5"
                   value={formData.loanAmount || ''} 
                   onChange={(e) => handleLoanAmountChange(e.target.value)}
                 />
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">LTV</Label>
+          </CardContent>
+        </Card>
+
+        {/* Box 3: MONTHLY PAYMENT */}
+        <Card>
+          <CardHeader className="pb-2 bg-muted/50">
+            <CardTitle className="text-sm font-semibold tracking-wide">MONTHLY PAYMENT</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">P&I</Label>
               <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input 
                   type="number"
-                  step="0.01"
-                  className="pr-7"
-                  value={formData.ltv || ''} 
-                  onChange={(e) => handleLTVChange(e.target.value)}
+                  className="h-8 text-sm pl-5 bg-muted/30"
+                  value={formData.principalInterest?.toFixed(2) || ''} 
+                  onChange={(e) => handleInputChange('principalInterest', e.target.value)}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
             </div>
-          </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">TAX</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                <Input 
+                  type="number"
+                  className="h-8 text-sm pl-5"
+                  value={formData.propertyTaxes || ''} 
+                  onChange={(e) => handleInputChange('propertyTaxes', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">HOI</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                <Input 
+                  type="number"
+                  className="h-8 text-sm pl-5"
+                  value={formData.homeownersInsurance || ''} 
+                  onChange={(e) => handleInputChange('homeownersInsurance', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">MI</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                <Input 
+                  type="number"
+                  className="h-8 text-sm pl-5"
+                  value={formData.mortgageInsurance || ''} 
+                  onChange={(e) => handleInputChange('mortgageInsurance', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">HOA</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                <Input 
+                  type="number"
+                  className="h-8 text-sm pl-5"
+                  value={formData.hoaDues || ''} 
+                  onChange={(e) => handleInputChange('hoaDues', e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Row 3: Rate, APR, Loan Term, Discount Points, Credits */}
-          <div className="grid grid-cols-5 gap-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">Rate</Label>
+        {/* Box 4: LOAN TERMS */}
+        <Card>
+          <CardHeader className="pb-2 bg-muted/50">
+            <CardTitle className="text-sm font-semibold tracking-wide">LOAN TERMS</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3 space-y-2">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">RATE</Label>
               <div className="relative">
                 <Input 
                   type="number"
                   step="0.001"
-                  className="pr-7"
+                  className="h-8 text-sm pr-6"
                   value={formData.interestRate || ''} 
                   onChange={(e) => handleInputChange('interestRate', e.target.value)}
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">APR</Label>
-              <div className="relative">
-                <Input 
-                  type="number"
-                  step="0.001"
-                  className="pr-7"
-                  value={formData.apr || ''} 
-                  onChange={(e) => handleInputChange('apr', e.target.value)}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Loan Term (months)</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">TERM (M)</Label>
               <Input 
                 type="number"
+                className="h-8 text-sm"
                 value={formData.loanTerm || 360} 
                 onChange={(e) => handleInputChange('loanTerm', e.target.value)}
               />
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Discount Points</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">DISC PT</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input 
                   type="number"
-                  className="pl-7"
+                  className="h-8 text-sm pl-5"
                   value={formData.discountPoints || ''} 
                   onChange={(e) => handleInputChange('discountPoints', e.target.value)}
                 />
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Credits</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7"
-                  value={formData.credits || ''} 
-                  onChange={(e) => handleInputChange('credits', e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Escrows</Label>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">ESCROW</Label>
               <Select 
                 value={formData.escrows as string || 'yes'} 
                 onValueChange={(value) => handleInputChange('escrows' as keyof LoanEstimateData, value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -693,9 +710,34 @@ export default function LoanEstimate() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">LTV</Label>
+              <div className="relative">
+                <Input 
+                  type="number"
+                  step="0.01"
+                  className="h-8 text-sm pr-6"
+                  value={formData.ltv || ''} 
+                  onChange={(e) => handleLTVChange(e.target.value)}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-2">
+              <Label className="text-xs text-muted-foreground">CREDITS</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                <Input 
+                  type="number"
+                  className="h-8 text-sm pl-5"
+                  value={formData.credits || ''} 
+                  onChange={(e) => handleInputChange('credits', e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Fee Sections Grid */}
       <div className="grid grid-cols-2 gap-6">
@@ -947,74 +989,34 @@ export default function LoanEstimate() {
 
       {/* Summary Sections */}
       <div className="grid grid-cols-2 gap-6">
-        {/* Estimated Monthly Payment */}
-        <Card className="bg-primary/5 border-primary/20">
+        {/* Estimated Monthly Payment - Grayed Out Summary */}
+        <Card className="bg-muted/30 border-muted">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-lg">
-              <Calculator className="h-5 w-5 mr-2 text-primary" />
+            <CardTitle className="flex items-center text-lg text-muted-foreground">
+              <Calculator className="h-5 w-5 mr-2" />
               Estimated Monthly Payment
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Mortgage (P&I)</Label>
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7 text-right bg-muted/50"
-                  value={formData.principalInterest?.toFixed(2) || ''} 
-                  onChange={(e) => handleInputChange('principalInterest', e.target.value)}
-                />
-              </div>
+              <Label className="text-sm text-muted-foreground">Mortgage (P&I)</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(formData.principalInterest || 0)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Property Taxes</Label>
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7 text-right"
-                  value={formData.propertyTaxes || ''} 
-                  onChange={(e) => handleInputChange('propertyTaxes', e.target.value)}
-                />
-              </div>
+              <Label className="text-sm text-muted-foreground">Property Taxes</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(formData.propertyTaxes || 0)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Homeowner's Insurance</Label>
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7 text-right"
-                  value={formData.homeownersInsurance || ''} 
-                  onChange={(e) => handleInputChange('homeownersInsurance', e.target.value)}
-                />
-              </div>
+              <Label className="text-sm text-muted-foreground">Homeowner's Insurance</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(formData.homeownersInsurance || 0)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Mortgage Insurance</Label>
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7 text-right"
-                  value={formData.mortgageInsurance || ''} 
-                  onChange={(e) => handleInputChange('mortgageInsurance', e.target.value)}
-                />
-              </div>
+              <Label className="text-sm text-muted-foreground">Mortgage Insurance</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(formData.mortgageInsurance || 0)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-sm">HOA Dues</Label>
-              <div className="relative w-32">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input 
-                  type="number"
-                  className="pl-7 text-right"
-                  value={formData.hoaDues || ''} 
-                  onChange={(e) => handleInputChange('hoaDues', e.target.value)}
-                />
-              </div>
+              <Label className="text-sm text-muted-foreground">HOA Dues</Label>
+              <span className="text-sm font-medium w-32 text-right">{formatCurrency(formData.hoaDues || 0)}</span>
             </div>
             <div className="border-t pt-3 flex items-center justify-between">
               <Label className="text-base font-semibold">Total Monthly Payment</Label>
