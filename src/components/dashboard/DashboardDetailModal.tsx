@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatDateShort } from "@/utils/formatters";
 
 interface Lead {
@@ -142,16 +142,16 @@ export function DashboardDetailModal({
         <DialogHeader>
           <DialogTitle>{title} ({data.length})</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-[60vh]">
-          <div className="overflow-x-auto">
-            <Table className="min-w-[900px]">
+        <ScrollArea className="h-[60vh] w-full">
+          <div className="min-w-[1000px]">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[120px]">Name</TableHead>
                   <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
                   <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
-                  {getFourthColumnTitle() && <TableHead className="min-w-[250px]">{getFourthColumnTitle()}</TableHead>}
-                  {getFifthColumnTitle() && <TableHead className="min-w-[200px]">{getFifthColumnTitle()}</TableHead>}
+                  {getFourthColumnTitle() && <TableHead className="min-w-[300px]">{getFourthColumnTitle()}</TableHead>}
+                  {getFifthColumnTitle() && <TableHead className="min-w-[250px]">{getFifthColumnTitle()}</TableHead>}
                 </TableRow>
               </TableHeader>
             <TableBody>
@@ -204,6 +204,7 @@ export function DashboardDetailModal({
             </TableBody>
             </Table>
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </DialogContent>
     </Dialog>
