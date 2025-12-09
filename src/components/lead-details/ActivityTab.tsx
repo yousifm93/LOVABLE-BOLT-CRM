@@ -20,6 +20,9 @@ interface Activity {
   task_id?: string;
   task_status?: string;
   completed_by_user?: any;
+  direction?: 'In' | 'Out';
+  from_email?: string;
+  subject?: string;
 }
 
 interface ActivityTabProps {
@@ -55,7 +58,7 @@ const getActivityBadgeLabel = (activity: Activity): string => {
     case 'call':
       return 'CALL LOGGED';
     case 'email':
-      return 'EMAIL LOGGED';
+      return activity.direction === 'In' ? 'EMAIL RECEIVED' : 'EMAIL LOGGED';
     case 'sms':
       return 'SMS LOGGED';
     case 'note':
@@ -72,7 +75,8 @@ const getActivityBadgeVariant = (activity: Activity) => {
     case 'call':
       return 'default';
     case 'email':
-      return 'secondary';
+      // Inbound emails get a distinct green variant
+      return activity.direction === 'In' ? 'default' : 'secondary';
     case 'sms':
       return 'outline';
     case 'note':
@@ -83,6 +87,13 @@ const getActivityBadgeVariant = (activity: Activity) => {
     default:
       return 'default';
   }
+};
+
+const getEmailBadgeClassName = (activity: Activity): string => {
+  if (activity.type === 'email' && activity.direction === 'In') {
+    return 'bg-green-100 hover:bg-green-100 border-green-200 text-green-800';
+  }
+  return '';
 };
 
 export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: ActivityTabProps) {
@@ -169,7 +180,8 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                 className={cn(
                   "text-xs flex items-center gap-1",
                   activity.type === 'task' && activity.task_status !== 'Done' && 
-                  "bg-orange-100 hover:bg-orange-100 border-orange-200"
+                  "bg-orange-100 hover:bg-orange-100 border-orange-200",
+                  getEmailBadgeClassName(activity)
                 )}
               >
                 {getActivityIcon(activity.type)}

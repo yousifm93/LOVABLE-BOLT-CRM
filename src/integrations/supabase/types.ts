@@ -1320,6 +1320,9 @@ export type Database = {
       }
       email_logs: {
         Row: {
+          agent_id: string | null
+          attachments_json: Json | null
+          body: string | null
           bounced_at: string | null
           clicked_at: string | null
           created_at: string
@@ -1327,6 +1330,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["log_direction"]
           error_details: string | null
           from_email: string
+          html_body: string | null
           id: string
           lead_id: string
           opened_at: string | null
@@ -1338,6 +1342,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          agent_id?: string | null
+          attachments_json?: Json | null
+          body?: string | null
           bounced_at?: string | null
           clicked_at?: string | null
           created_at?: string
@@ -1345,6 +1352,7 @@ export type Database = {
           direction: Database["public"]["Enums"]["log_direction"]
           error_details?: string | null
           from_email: string
+          html_body?: string | null
           id?: string
           lead_id: string
           opened_at?: string | null
@@ -1356,6 +1364,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          agent_id?: string | null
+          attachments_json?: Json | null
+          body?: string | null
           bounced_at?: string | null
           clicked_at?: string | null
           created_at?: string
@@ -1363,6 +1374,7 @@ export type Database = {
           direction?: Database["public"]["Enums"]["log_direction"]
           error_details?: string | null
           from_email?: string
+          html_body?: string | null
           id?: string
           lead_id?: string
           opened_at?: string | null
@@ -1374,6 +1386,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_logs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_logs_lead_id_fkey"
             columns: ["lead_id"]

@@ -1353,7 +1353,8 @@ export const databaseService = {
         .from('email_logs')
         .select(`
           *,
-          user:users(*)
+          user:users(*),
+          agent:buyer_agents(*)
         `)
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false }),
