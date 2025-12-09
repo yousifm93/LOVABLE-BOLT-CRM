@@ -889,163 +889,157 @@ export function ClientDetailDrawer({
           </div>
         );
       case 'pending-app':
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-medium text-sm">Application Status</h4>
-                <span className="text-xs text-muted-foreground">
-                  Updated: {formatDateModern(localUpdatedAt)}
-                </span>
-              </div>
-              {(client as any).mb_loan_number && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App Number:</span>
-                  <span className="font-medium">{(client as any).mb_loan_number}</span>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {/* Column 1: Status Info */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Current Status</span>
-                  <InlineEditSelect value={localStatus} options={[{
-                  value: 'Pending App',
-                  label: 'Pending App'
-                }, {
-                  value: 'App Complete',
-                  label: 'App Complete'
-                }, {
-                  value: 'Standby',
-                  label: 'Standby'
-                }, {
-                  value: 'DNA',
-                  label: 'DNA'
-                }]} onValueChange={value => handleLeadUpdate('status', value)} showAsStatusBadge />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Priority</span>
-                  <InlineEditSelect value={localPriority} options={[{
-                  value: 'High',
-                  label: 'High'
-                }, {
-                  value: 'Medium',
-                  label: 'Medium'
-                }, {
-                  value: 'Low',
-                  label: 'Low'
-                }]} onValueChange={value => handleLeadUpdate('priority', value)} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Pending App On</span>
-                  <span className="text-sm">{formatDateModern((client as any).pending_app_at)}</span>
-                </div>
-              </div>
-
-              {/* Column 2: Financial Goals */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Monthly Payment Goal</span>
-                  <InlineEditCurrency value={(client as any).monthly_pmt_goal || null} onValueChange={value => handleLeadUpdate('monthly_pmt_goal', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Cash to Close Goal</span>
-                  <InlineEditCurrency value={(client as any).cash_to_close_goal || null} onValueChange={value => handleLeadUpdate('cash_to_close_goal', value)} placeholder="Enter amount" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Lead Created</span>
-                  <span className="text-sm">{formatDateModern((client as any).created_at)}</span>
-                </div>
-              </div>
-
-              {/* Column 3: Follow-Up Tracking */}
-              <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Last Follow-Up</span>
-                  <InlineEditDate value={(client as any).last_follow_up_date || null} onValueChange={date => handleLeadUpdate('last_follow_up_date', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Next Follow-Up</span>
-                  <InlineEditDate value={(client as any).task_eta || (client as any).dueDate || null} onValueChange={date => handleLeadUpdate('task_eta', date ? format(date, 'yyyy-MM-dd') : null)} placeholder="Select date" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Follow-Ups</span>
-                  <span className="text-xl font-bold text-primary">
-                    {(client as any).follow_up_count || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>;
       case 'screening':
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Initial Verification</h4>
-              {(client as any).mb_loan_number && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App Number:</span>
-                  <span className="font-medium">{(client as any).mb_loan_number}</span>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• Income type: {(client as any).incomeType || 'W2'}</div>
-                <div>• Next step: {(client as any).nextStep || 'Income Verification'}</div>
-                <div>• Verification status: In progress</div>
-              </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• Credit score range: 720-750</div>
-                <div>• Documentation complete: 75%</div>
-              </div>
-            </div>
-          </div>;
       case 'pre-qualified':
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
-              {(client as any).mb_loan_number && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App Number:</span>
-                  <span className="font-medium">{(client as any).mb_loan_number}</span>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
-                <div>• DTI ratio: {(client as any).dti || 'N/A'}%</div>
-                <div>• Expires: {(client as any).expirationDate || 'N/A'}</div>
+      case 'pre-approved': {
+        // Calculate LTV for early stages
+        const loanAmountEarly = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
+        const salesPriceEarly = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
+        const ltvEarly = salesPriceEarly > 0 ? ((loanAmountEarly / salesPriceEarly) * 100).toFixed(2) : null;
+        
+        // Calculate front-end and back-end DTI for early stages
+        const totalIncomeEarly = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        const monthlyLiabilitiesEarly = (client as any).monthly_liabilities || 0;
+        const pitiEarly = localPiti ?? (client as any).piti ?? 0;
+        
+        const frontEndDtiEarly = totalIncomeEarly > 0 ? ((pitiEarly / totalIncomeEarly) * 100).toFixed(2) : null;
+        const backEndDtiEarly = totalIncomeEarly > 0 ? (((pitiEarly + monthlyLiabilitiesEarly) / totalIncomeEarly) * 100).toFixed(2) : null;
+        const dtiDisplayEarly = frontEndDtiEarly && backEndDtiEarly 
+          ? `${frontEndDtiEarly}% / ${backEndDtiEarly}%` 
+          : (client as any).dti 
+            ? `${(client as any).dti}%` 
+            : '—';
+
+        return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-4 gap-4">
+              {/* Row 1: MB App Number, LTV, FICO Score, Interest Rate */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">MB App Number</span>
+                <InlineEditText value={(client as any).mbLoanNumber || (client as any).mb_loan_number || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="Enter #" />
               </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• Interest rate range: 6.5% - 7.0%</div>
-                <div>• Next step: Pre-approval documentation</div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">LTV</span>
+                <span className="text-sm font-medium">{ltvEarly ? `${ltvEarly}%` : '—'}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">FICO Score</span>
+                <InlineEditNumber 
+                  value={localFicoScore} 
+                  onValueChange={value => {
+                    setLocalFicoScore(value);
+                    handleLeadUpdate('fico_score', value);
+                  }} 
+                  placeholder="Enter score" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Interest Rate</span>
+                <InlineEditPercentage 
+                  value={localInterestRate} 
+                  onValueChange={value => {
+                    setLocalInterestRate(value);
+                    handleLeadUpdate('interest_rate', value);
+                  }} 
+                  decimals={3} 
+                />
+              </div>
+              
+              {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
+                <InlineEditDate 
+                  value={localCloseDate} 
+                  onValueChange={value => {
+                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
+                    setLocalCloseDate(dateStr);
+                    handleLeadUpdate('closeDate', dateStr);
+                  }} 
+                  placeholder="Select date" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
+                <InlineEditCurrency 
+                  value={localCashToClose} 
+                  onValueChange={value => {
+                    setLocalCashToClose(value);
+                    handleLeadUpdate('cashToClose', value);
+                  }} 
+                  placeholder="Enter amount" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
+                <InlineEditCurrency 
+                  value={localPiti} 
+                  onValueChange={value => {
+                    setLocalPiti(value);
+                    handleLeadUpdate('piti', value);
+                  }} 
+                  placeholder="Enter amount" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
+                <div className="flex items-center gap-1">
+                  <InlineEditCurrency 
+                    value={(client as any).discount_points ?? null} 
+                    onValueChange={async (value) => {
+                      const loanAmount = Number(client.loan?.loanAmount) || 0;
+                      const percentage = value && loanAmount ? (value / loanAmount) * 100 : null;
+                      await handleLeadUpdate('discount_points', value);
+                      await handleLeadUpdate('discount_points_percentage', percentage);
+                    }} 
+                    placeholder="$0"
+                  />
+                  {(client as any).discount_points && client.loan?.loanAmount && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      ({(((client as any).discount_points / Number(client.loan.loanAmount)) * 100).toFixed(3)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
+                <InlineEditSelect 
+                  value={(client as any).occupancy ?? null} 
+                  options={[
+                    { value: 'Primary Home', label: 'Primary Home' },
+                    { value: 'Second Home', label: 'Second Home' },
+                    { value: 'Investment', label: 'Investment' }
+                  ]}
+                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
+                  placeholder="Select..." 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
+                <InlineEditCurrency 
+                  value={(client as any).closing_costs ?? (client as any).closingCosts ?? null} 
+                  onValueChange={value => handleLeadUpdate('closing_costs', value)} 
+                  placeholder="Enter amount" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Lock Expiration</span>
+                <InlineEditDate 
+                  value={(client as any).lock_expiration_date ?? null} 
+                  onValueChange={value => {
+                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
+                    handleLeadUpdate('lock_expiration_date', dateStr);
+                  }} 
+                  placeholder="-" 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
+                <span className="text-sm font-medium">{dtiDisplayEarly}</span>
               </div>
             </div>
           </div>;
-      case 'pre-approved':
-        return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-sm">Pre-Approval Status</h4>
-              {(client as any).mb_loan_number && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App Number:</span>
-                  <span className="font-medium">{(client as any).mb_loan_number}</span>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• Shopping status: {client.ops.status || 'New'}</div>
-                <div>• Buyer's agent: {(client as any).buyersAgent || 'Not assigned'}</div>
-                <div>• Agreement: {(client as any).buyersAgreement || 'Pending'}</div>
-              </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div>• House hunting active: Yes</div>
-                <div>• Rate lock available: 60 days</div>
-              </div>
-            </div>
-          </div>;
+      }
       default:
         // Calculate LTV
         const loanAmount = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
