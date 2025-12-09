@@ -263,6 +263,8 @@ const handler = async (req: Request): Promise<Response> => {
       from_email: sender.email,
       subject: subject,
       snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
+      html_body: htmlContent,
+      body: htmlContent.replace(/<[^>]*>/g, ''),
       provider_message_id: messageId,
       delivery_status: 'sent',
     });
