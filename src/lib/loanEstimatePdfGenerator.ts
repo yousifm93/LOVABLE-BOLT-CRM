@@ -1,4 +1,5 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -115,14 +116,14 @@ export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   homeownersInsurance: { x: 280, y: 462, rightAlign: true, fontSize: 7 },
   mortgageInsurance: { x: 280, y: 474, rightAlign: true, fontSize: 7 },
   hoaDues: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
-  totalMonthlyPayment: { x: 280, y: 572, rightAlign: true, bold: true, fontSize: 9 },
+  totalMonthlyPayment: { x: 280, y: 523, rightAlign: true, bold: true, fontSize: 9 },
   
   // Estimated Cash to Close (items 7, bold 9)
   downPayment: { x: 555, y: 439, rightAlign: true, fontSize: 7 },
   closingCosts: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
   prepaidsEscrow: { x: 555, y: 461, rightAlign: true, fontSize: 7 },
   adjustmentsCredits: { x: 555, y: 480, rightAlign: true, fontSize: 7 },
-  totalCashToClose: { x: 555, y: 572, rightAlign: true, bold: true, fontSize: 9 },
+  totalCashToClose: { x: 555, y: 523, rightAlign: true, bold: true, fontSize: 9 },
 };
 
 // Calculate totals
@@ -205,9 +206,20 @@ export const generateLoanEstimatePDF = async (
       height: height,
     });
 
-    // Embed fonts
-    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    // Register fontkit for custom fonts
+    pdfDoc.registerFontkit(fontkit);
+
+    // Fetch and embed Open Sans fonts from Google Fonts CDN
+    const openSansRegularUrl = 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVI.ttf';
+    const openSansBoldUrl = 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1x4gaVI.ttf';
+
+    const [regularFontBytes, boldFontBytes] = await Promise.all([
+      fetch(openSansRegularUrl).then(res => res.arrayBuffer()),
+      fetch(openSansBoldUrl).then(res => res.arrayBuffer())
+    ]);
+
+    const regularFont = await pdfDoc.embedFont(regularFontBytes);
+    const boldFont = await pdfDoc.embedFont(boldFontBytes);
     
     const black = rgb(0, 0, 0);
 
