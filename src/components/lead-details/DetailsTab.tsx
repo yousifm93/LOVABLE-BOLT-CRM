@@ -138,6 +138,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     prepayment_penalty: (client as any).prepayment_penalty || "",
     discount_points_percentage: (client as any).discount_points_percentage || null,
     adjustments_credits: (client as any).adjustments_credits || null,
+    apr: (client as any).apr || null,
   });
 
   // Helper function for PITI calculation
@@ -249,6 +250,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       prepayment_penalty: (client as any).prepayment_penalty || "",
       discount_points_percentage: (client as any).discount_points_percentage || null,
       adjustments_credits: (client as any).adjustments_credits || null,
+      apr: (client as any).apr || null,
     });
   };
 
@@ -333,6 +335,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           ? (editData.discount_points_percentage / 100) * loanAmount 
           : null,
         adjustments_credits: editData.adjustments_credits,
+        apr: editData.apr,
       };
       
       // Recalculate P&I if loan amount is present
@@ -1205,6 +1208,21 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                     onChange={(e) => setEditData({ ...editData, interest_rate: parseFloat(e.target.value) || null })}
                     className="h-8"
                     placeholder="7.0"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Percent, 
+                label: "APR", 
+                value: (client as any).apr ? `${(client as any).apr.toFixed(3)}%` : "—",
+                editComponent: isEditing ? (
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={editData.apr || ""}
+                    onChange={(e) => setEditData({ ...editData, apr: parseFloat(e.target.value) || null })}
+                    className="h-8"
+                    placeholder="7.125"
                   />
                 ) : undefined
               },
