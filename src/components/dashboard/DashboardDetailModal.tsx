@@ -143,16 +143,17 @@ export function DashboardDetailModal({
           <DialogTitle>{title} ({data.length})</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[60vh]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>{getDateColumnTitle()}</TableHead>
-                <TableHead>{getThirdColumnTitle()}</TableHead>
-                {getFourthColumnTitle() && <TableHead>{getFourthColumnTitle()}</TableHead>}
-                {getFifthColumnTitle() && <TableHead>{getFifthColumnTitle()}</TableHead>}
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]">Name</TableHead>
+                  <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
+                  <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
+                  {getFourthColumnTitle() && <TableHead className="min-w-[250px]">{getFourthColumnTitle()}</TableHead>}
+                  {getFifthColumnTitle() && <TableHead className="min-w-[200px]">{getFifthColumnTitle()}</TableHead>}
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {data.map((item) => (
                 <TableRow key={item.id}>
@@ -201,7 +202,8 @@ export function DashboardDetailModal({
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
