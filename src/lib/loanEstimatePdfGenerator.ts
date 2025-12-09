@@ -98,134 +98,36 @@ export const generateLoanEstimatePDF = async (
   shouldDownload: boolean = true
 ): Promise<Uint8Array> => {
   try {
-    // Create a new PDF document
+    // Download the PDF template from Supabase
+    const { data: templateData, error } = await supabase.storage
+      .from('pdf-templates')
+      .download('Copy of Copy of LE - FORMATTED FOR AUTOMATION (8.5 x 11 in) (2).pdf');
+
+    if (error || !templateData) {
+      console.error('Failed to load PDF template:', error);
+      throw new Error('PDF template not found in storage');
+    }
+
+    // Load the template PDF
+    const templateBytes = await templateData.arrayBuffer();
+    const templateDoc = await PDFDocument.load(templateBytes);
+    
+    // Create new PDF and copy the first page (blank template)
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]); // Standard letter size
-    const { width, height } = page.getSize();
+    const [templatePage] = await templateDoc.copyPages(templateDoc, [0]);
+    pdfDoc.addPage(templatePage);
+    
+    const page = pdfDoc.getPages()[0];
+    const { height } = page.getSize();
 
     // Embed fonts
     const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
     
-    // Colors
     const black = rgb(0, 0, 0);
-    const darkGray = rgb(0.3, 0.3, 0.3);
-    const yellow = rgb(0.98, 0.78, 0.05); // Gold/Yellow for ESTIMATE
-    const lightGray = rgb(0.95, 0.95, 0.95);
-
-    // Try to load template image
-    let useTemplate = false;
-    try {
-      const { data: templateData, error } = await supabase.storage
-        .from('pdf-templates')
-        .download('bolt-estimate-template.png');
-
-      if (!error && templateData) {
-        const imageBytes = await templateData.arrayBuffer();
-        const templateImg = await pdfDoc.embedPng(imageBytes);
-        page.drawImage(templateImg, {
-          x: 0,
-          y: 0,
-          width: width,
-          height: height,
-        });
-        useTemplate = true;
-      }
-    } catch (error) {
-      console.log('Template not found, generating from scratch');
-    }
-
-    // If no template, draw the layout
-    if (!useTemplate) {
-      // Header - BOLT ESTIMATE
-      page.drawText('BOLT', { x: 50, y: height - 60, size: 36, font: boldFont, color: black });
-      page.drawText('ESTIMATE', { x: 132, y: height - 60, size: 36, font: regularFont, color: yellow });
-      
-      // Disclaimer
-      page.drawText('Your actual rate, payment and costs could be higher. Get an official Loan Estimate before choosing a loan.', {
-        x: 50, y: height - 80, size: 8, font: italicFont, color: darkGray
-      });
-
-      // Draw section boxes
-      const drawBox = (x: number, y: number, w: number, h: number) => {
-        page.drawRectangle({ x, y: height - y - h, width: w, height: h, borderColor: darkGray, borderWidth: 1 });
-      };
-
-      // Top info box
-      drawBox(50, 95, 512, 70);
-      
-      // Section A & C
-      drawBox(50, 175, 250, 80);
-      drawBox(312, 175, 250, 80);
-      
-      // Section B & D
-      drawBox(50, 265, 250, 120);
-      drawBox(312, 265, 250, 120);
-      
-      // Monthly Payment & Cash to Close
-      drawBox(50, 395, 250, 130);
-      drawBox(312, 395, 250, 130);
-    }
 
     // Calculate totals
     const totals = calculateTotals(data);
-
-    // Position configurations for overlaying data
-    const positions = {
-      // Top info section (left column)
-      borrowerName: { x: 115, y: height - 115, size: 10 },
-      loanNumber: { x: 115, y: height - 130, size: 10 },
-      zipState: { x: 115, y: height - 145, size: 10 },
-      date: { x: 115, y: height - 160, size: 10 },
-      
-      // Top info section (right column)
-      purchasePrice: { x: 450, y: height - 115, size: 10 },
-      loanAmount: { x: 450, y: height - 130, size: 10 },
-      rateApr: { x: 450, y: height - 145, size: 10 },
-      loanTerm: { x: 450, y: height - 160, size: 10 },
-
-      // Section A: Lender Fees
-      sectionATotal: { x: 250, y: height - 190, size: 10 },
-      discountPoints: { x: 250, y: height - 210, size: 9 },
-      underwritingFee: { x: 250, y: height - 225, size: 9 },
-
-      // Section B: Third Party Fees
-      sectionBTotal: { x: 250, y: height - 280, size: 10 },
-      appraisalFee: { x: 250, y: height - 310, size: 9 },
-      creditReportFee: { x: 250, y: height - 325, size: 9 },
-      processingFee: { x: 250, y: height - 340, size: 9 },
-      lendersTitleInsurance: { x: 250, y: height - 365, size: 9 },
-      titleClosingFee: { x: 250, y: height - 380, size: 9 },
-
-      // Section C: Taxes & Government Fees
-      sectionCTotal: { x: 512, y: height - 190, size: 10 },
-      intangibleTax: { x: 512, y: height - 210, size: 9 },
-      transferTax: { x: 512, y: height - 225, size: 9 },
-      recordingFees: { x: 512, y: height - 240, size: 9 },
-
-      // Section D: Prepaids & Escrow
-      sectionDTotal: { x: 512, y: height - 280, size: 10 },
-      prepaidHoi: { x: 512, y: height - 310, size: 9 },
-      prepaidInterest: { x: 512, y: height - 325, size: 9 },
-      escrowHoi: { x: 512, y: height - 355, size: 9 },
-      escrowTaxes: { x: 512, y: height - 370, size: 9 },
-
-      // Monthly Payment
-      principalInterest: { x: 250, y: height - 420, size: 9 },
-      propertyTaxes: { x: 250, y: height - 435, size: 9 },
-      homeownersInsurance: { x: 250, y: height - 450, size: 9 },
-      mortgageInsurance: { x: 250, y: height - 465, size: 9 },
-      hoaDues: { x: 250, y: height - 480, size: 9 },
-      totalMonthlyPayment: { x: 250, y: height - 510, size: 11 },
-
-      // Cash to Close
-      downPayment: { x: 512, y: height - 420, size: 9 },
-      closingCosts: { x: 512, y: height - 435, size: 9 },
-      prepaidsEscrow: { x: 512, y: height - 450, size: 9 },
-      adjustmentsCredits: { x: 512, y: height - 465, size: 9 },
-      totalCashToClose: { x: 512, y: height - 510, size: 11 },
-    };
 
     // Helper to draw right-aligned text
     const drawRightAligned = (text: string, x: number, y: number, size: number, font = regularFont) => {
@@ -233,59 +135,139 @@ export const generateLoanEstimatePDF = async (
       page.drawText(text, { x: x - textWidth, y, size, font, color: black });
     };
 
-    // Draw all the data
-    // Top info - left column
-    page.drawText(data.borrowerName || '', { ...positions.borrowerName, font: regularFont, color: black });
-    page.drawText(data.lenderLoanNumber || '', { ...positions.loanNumber, font: regularFont, color: black });
-    page.drawText(data.zipState || '', { ...positions.zipState, font: regularFont, color: black });
-    page.drawText(data.date || new Date().toLocaleDateString(), { ...positions.date, font: regularFont, color: black });
+    // Position configurations calibrated for the Bolt Estimate template
+    // PDF coordinates: y=0 is bottom, y=792 is top for letter size
+    
+    // Top info section - LEFT column (labels are pre-printed, we just add values)
+    // Borrower row
+    page.drawText(data.borrowerName || '', { 
+      x: 100, y: height - 134, size: 10, font: regularFont, color: black 
+    });
+    
+    // Loan Number row
+    page.drawText(data.lenderLoanNumber || '', { 
+      x: 100, y: height - 152, size: 10, font: regularFont, color: black 
+    });
+    
+    // Zip & State row
+    page.drawText(data.zipState || '', { 
+      x: 100, y: height - 170, size: 10, font: regularFont, color: black 
+    });
+    
+    // Date row
+    page.drawText(data.date || new Date().toLocaleDateString(), { 
+      x: 100, y: height - 188, size: 10, font: regularFont, color: black 
+    });
 
-    // Top info - right column (right aligned)
-    drawRightAligned(formatCurrency(data.purchasePrice), positions.purchasePrice.x, positions.purchasePrice.y, positions.purchasePrice.size);
-    drawRightAligned(formatCurrency(data.loanAmount), positions.loanAmount.x, positions.loanAmount.y, positions.loanAmount.size);
-    drawRightAligned(`${data.interestRate?.toFixed(3) || '0.000'}% / ${data.apr?.toFixed(3) || '0.000'}%`, positions.rateApr.x, positions.rateApr.y, positions.rateApr.size);
-    drawRightAligned(`${data.loanTerm || 360} months`, positions.loanTerm.x, positions.loanTerm.y, positions.loanTerm.size);
+    // Top info section - RIGHT column (right-aligned values)
+    // Purchase Price
+    drawRightAligned(formatCurrency(data.purchasePrice), 555, height - 134, 10);
+    
+    // Loan Amount
+    drawRightAligned(formatCurrency(data.loanAmount), 555, height - 152, 10);
+    
+    // Rate / APR
+    drawRightAligned(`${data.interestRate?.toFixed(3) || '0.000'}% / ${data.apr?.toFixed(3) || '0.000'}%`, 555, height - 170, 10);
+    
+    // Loan Term
+    drawRightAligned(`${data.loanTerm || 360} months`, 555, height - 188, 10);
 
-    // Section A
-    drawRightAligned(formatCurrency(totals.sectionA), positions.sectionATotal.x, positions.sectionATotal.y, positions.sectionATotal.size, boldFont);
-    drawRightAligned(formatCurrency(data.discountPoints), positions.discountPoints.x, positions.discountPoints.y, positions.discountPoints.size);
-    drawRightAligned(formatCurrency(data.underwritingFee), positions.underwritingFee.x, positions.underwritingFee.y, positions.underwritingFee.size);
+    // SECTION A: Lender Fees (left box, below header)
+    // Section A Total (right side of header bar)
+    drawRightAligned(formatCurrency(totals.sectionA), 280, height - 224, 10, boldFont);
+    
+    // Discount Points
+    drawRightAligned(formatCurrency(data.discountPoints), 280, height - 248, 9);
+    
+    // Underwriting Fee
+    drawRightAligned(formatCurrency(data.underwritingFee), 280, height - 266, 9);
 
-    // Section B
-    drawRightAligned(formatCurrency(totals.sectionB), positions.sectionBTotal.x, positions.sectionBTotal.y, positions.sectionBTotal.size, boldFont);
-    drawRightAligned(formatCurrency(data.appraisalFee), positions.appraisalFee.x, positions.appraisalFee.y, positions.appraisalFee.size);
-    drawRightAligned(formatCurrency(data.creditReportFee), positions.creditReportFee.x, positions.creditReportFee.y, positions.creditReportFee.size);
-    drawRightAligned(formatCurrency(data.processingFee), positions.processingFee.x, positions.processingFee.y, positions.processingFee.size);
-    drawRightAligned(formatCurrency(data.lendersTitleInsurance), positions.lendersTitleInsurance.x, positions.lendersTitleInsurance.y, positions.lendersTitleInsurance.size);
-    drawRightAligned(formatCurrency(data.titleClosingFee), positions.titleClosingFee.x, positions.titleClosingFee.y, positions.titleClosingFee.size);
+    // SECTION B: Third Party Fees (left box, below Section A)
+    // Section B Total
+    drawRightAligned(formatCurrency(totals.sectionB), 280, height - 302, 10, boldFont);
+    
+    // Services You Cannot Shop For
+    // Appraisal
+    drawRightAligned(formatCurrency(data.appraisalFee), 280, height - 336, 9);
+    
+    // Credit Report
+    drawRightAligned(formatCurrency(data.creditReportFee), 280, height - 354, 9);
+    
+    // Processing Fee
+    drawRightAligned(formatCurrency(data.processingFee), 280, height - 372, 9);
+    
+    // Services You Can Shop For
+    // Lender's Title Insurance
+    drawRightAligned(formatCurrency(data.lendersTitleInsurance), 280, height - 406, 9);
+    
+    // Title/Closing Fee
+    drawRightAligned(formatCurrency(data.titleClosingFee), 280, height - 424, 9);
 
-    // Section C
-    drawRightAligned(formatCurrency(totals.sectionC), positions.sectionCTotal.x, positions.sectionCTotal.y, positions.sectionCTotal.size, boldFont);
-    drawRightAligned(formatCurrency(data.intangibleTax), positions.intangibleTax.x, positions.intangibleTax.y, positions.intangibleTax.size);
-    drawRightAligned(formatCurrency(data.transferTax), positions.transferTax.x, positions.transferTax.y, positions.transferTax.size);
-    drawRightAligned(formatCurrency(data.recordingFees), positions.recordingFees.x, positions.recordingFees.y, positions.recordingFees.size);
+    // SECTION C: Taxes & Government Fees (right box, top)
+    // Section C Total
+    drawRightAligned(formatCurrency(totals.sectionC), 555, height - 224, 10, boldFont);
+    
+    // Intangible Tax
+    drawRightAligned(formatCurrency(data.intangibleTax), 555, height - 248, 9);
+    
+    // Transfer Tax
+    drawRightAligned(formatCurrency(data.transferTax), 555, height - 266, 9);
+    
+    // Recording Fees
+    drawRightAligned(formatCurrency(data.recordingFees), 555, height - 284, 9);
 
-    // Section D
-    drawRightAligned(formatCurrency(totals.sectionD), positions.sectionDTotal.x, positions.sectionDTotal.y, positions.sectionDTotal.size, boldFont);
-    drawRightAligned(formatCurrency(data.prepaidHoi), positions.prepaidHoi.x, positions.prepaidHoi.y, positions.prepaidHoi.size);
-    drawRightAligned(formatCurrency(data.prepaidInterest), positions.prepaidInterest.x, positions.prepaidInterest.y, positions.prepaidInterest.size);
-    drawRightAligned(formatCurrency(data.escrowHoi), positions.escrowHoi.x, positions.escrowHoi.y, positions.escrowHoi.size);
-    drawRightAligned(formatCurrency(data.escrowTaxes), positions.escrowTaxes.x, positions.escrowTaxes.y, positions.escrowTaxes.size);
+    // SECTION D: Prepaids & Escrow (right box, below Section C)
+    // Section D Total
+    drawRightAligned(formatCurrency(totals.sectionD), 555, height - 302, 10, boldFont);
+    
+    // Prepaids
+    // Prepaid Homeowners Insurance
+    drawRightAligned(formatCurrency(data.prepaidHoi), 555, height - 336, 9);
+    
+    // Prepaid Interest
+    drawRightAligned(formatCurrency(data.prepaidInterest), 555, height - 354, 9);
+    
+    // Initial Escrow at Closing
+    // Homeowners Insurance (Escrow)
+    drawRightAligned(formatCurrency(data.escrowHoi), 555, height - 388, 9);
+    
+    // Property Taxes (Escrow)
+    drawRightAligned(formatCurrency(data.escrowTaxes), 555, height - 406, 9);
 
-    // Monthly Payment
-    drawRightAligned(formatCurrency(data.principalInterest), positions.principalInterest.x, positions.principalInterest.y, positions.principalInterest.size);
-    drawRightAligned(formatCurrency(data.propertyTaxes), positions.propertyTaxes.x, positions.propertyTaxes.y, positions.propertyTaxes.size);
-    drawRightAligned(formatCurrency(data.homeownersInsurance), positions.homeownersInsurance.x, positions.homeownersInsurance.y, positions.homeownersInsurance.size);
-    drawRightAligned(formatCurrency(data.mortgageInsurance), positions.mortgageInsurance.x, positions.mortgageInsurance.y, positions.mortgageInsurance.size);
-    drawRightAligned(formatCurrency(data.hoaDues), positions.hoaDues.x, positions.hoaDues.y, positions.hoaDues.size);
-    drawRightAligned(formatCurrency(totals.totalMonthlyPayment), positions.totalMonthlyPayment.x, positions.totalMonthlyPayment.y, positions.totalMonthlyPayment.size, boldFont);
+    // ESTIMATED MONTHLY PAYMENT (bottom left box)
+    // Principal & Interest
+    drawRightAligned(formatCurrency(data.principalInterest), 280, height - 470, 9);
+    
+    // Taxes (Property Taxes)
+    drawRightAligned(formatCurrency(data.propertyTaxes), 280, height - 488, 9);
+    
+    // Insurance (Homeowners)
+    drawRightAligned(formatCurrency(data.homeownersInsurance), 280, height - 506, 9);
+    
+    // Mortgage Insurance
+    drawRightAligned(formatCurrency(data.mortgageInsurance), 280, height - 524, 9);
+    
+    // HOA Dues
+    drawRightAligned(formatCurrency(data.hoaDues), 280, height - 542, 9);
+    
+    // Total Monthly Payment
+    drawRightAligned(formatCurrency(totals.totalMonthlyPayment), 280, height - 572, 11, boldFont);
 
-    // Cash to Close
-    drawRightAligned(formatCurrency(data.downPayment), positions.downPayment.x, positions.downPayment.y, positions.downPayment.size);
-    drawRightAligned(formatCurrency(totals.closingCosts), positions.closingCosts.x, positions.closingCosts.y, positions.closingCosts.size);
-    drawRightAligned(formatCurrency(totals.prepaidsEscrow), positions.prepaidsEscrow.x, positions.prepaidsEscrow.y, positions.prepaidsEscrow.size);
-    drawRightAligned(formatCurrency(data.adjustmentsCredits), positions.adjustmentsCredits.x, positions.adjustmentsCredits.y, positions.adjustmentsCredits.size);
-    drawRightAligned(formatCurrency(totals.totalCashToClose), positions.totalCashToClose.x, positions.totalCashToClose.y, positions.totalCashToClose.size, boldFont);
+    // ESTIMATED CASH TO CLOSE (bottom right box)
+    // Down Payment
+    drawRightAligned(formatCurrency(data.downPayment), 555, height - 470, 9);
+    
+    // Closing Costs (A + B + C)
+    drawRightAligned(formatCurrency(totals.closingCosts), 555, height - 488, 9);
+    
+    // Prepaids & Escrow (D)
+    drawRightAligned(formatCurrency(totals.prepaidsEscrow), 555, height - 506, 9);
+    
+    // Adjustments & Other Credits
+    drawRightAligned(data.adjustmentsCredits > 0 ? `-${formatCurrency(data.adjustmentsCredits)}` : formatCurrency(0), 555, height - 524, 9);
+    
+    // Total Estimated Cash to Close
+    drawRightAligned(formatCurrency(totals.totalCashToClose), 555, height - 572, 11, boldFont);
 
     // Generate PDF bytes
     const pdfBytes = await pdfDoc.save();
