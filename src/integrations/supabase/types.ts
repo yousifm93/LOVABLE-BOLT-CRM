@@ -1927,6 +1927,7 @@ export type Database = {
             | null
           appraisal_value: string | null
           approved_lender_id: string | null
+          apr: number | null
           assets: number | null
           ba_status: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address: string | null
@@ -2106,6 +2107,7 @@ export type Database = {
             | null
           appraisal_value?: string | null
           approved_lender_id?: string | null
+          apr?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
@@ -2287,6 +2289,7 @@ export type Database = {
             | null
           appraisal_value?: string | null
           approved_lender_id?: string | null
+          apr?: number | null
           assets?: number | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null

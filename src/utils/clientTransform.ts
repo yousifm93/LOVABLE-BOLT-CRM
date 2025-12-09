@@ -144,8 +144,8 @@ export function transformLeadToClient(lead: any): any {
     buyer_agent: lead.buyer_agent || null,
     listing_agent_id: lead.listing_agent_id || null,
     listing_agent: lead.listing_agent || null,
-    ops: {
-      stage: lead.pipeline_stage?.name || 'leads',
+  ops: {
+      stage: (lead.pipeline_stage?.name || 'leads').toLowerCase().replace(/\s+/g, '-') as PipelineStage,
       status: lead.status,
       referralSource: lead.referral_source || null,
     },
@@ -289,5 +289,6 @@ export function transformLeadToClient(lead: any): any {
     subject_property_rental_income: lead.subject_property_rental_income || null,
     discount_points: lead.discount_points || null,
     discount_points_percentage: lead.discount_points_percentage || null,
+    apr: lead.apr || null,
   };
 }

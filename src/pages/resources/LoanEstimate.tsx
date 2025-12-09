@@ -195,6 +195,60 @@ export default function LoanEstimate() {
     }
   }, [formData.loanAmount, formData.interestRate]);
 
+  // Auto-calculate APR using Newton-Raphson method
+  // APR = rate that makes PV of payments equal to loan amount minus finance charges
+  useEffect(() => {
+    if (formData.loanAmount && formData.loanAmount > 0 && formData.principalInterest && formData.principalInterest > 0 && formData.loanTerm) {
+      // Finance charges: discount points, appraisal, processing, title closing, recording fees
+      const discountPointsDollar = (formData.discountPoints || 0); // Already in dollars
+      const financeCharges = 
+        discountPointsDollar +
+        (formData.appraisalFee || 0) +
+        (formData.processingFee || 0) +
+        (formData.titleClosingFee || 0) +
+        (formData.recordingFees || 0);
+      
+      // Adjusted principal = loan amount - finance charges (what borrower actually receives)
+      const adjustedPrincipal = formData.loanAmount - financeCharges;
+      const pmt = formData.principalInterest;
+      const n = formData.loanTerm;
+      
+      if (adjustedPrincipal > 0 && pmt > 0 && n > 0) {
+        // Newton-Raphson to find monthly rate that satisfies: PMT = P * r / (1 - (1+r)^-n)
+        let rate = (formData.interestRate || 7) / 100 / 12; // Initial guess from note rate
+        
+        for (let i = 0; i < 100; i++) {
+          const powTerm = Math.pow(1 + rate, -n);
+          const f = adjustedPrincipal * rate / (1 - powTerm) - pmt;
+          
+          // Derivative: df/dr
+          const denominator = 1 - powTerm;
+          const numerator = adjustedPrincipal * denominator + adjustedPrincipal * rate * n * Math.pow(1 + rate, -n - 1);
+          const df = numerator / (denominator * denominator);
+          
+          if (Math.abs(df) < 1e-15) break;
+          
+          const newRate = rate - f / df;
+          if (Math.abs(newRate - rate) < 1e-10) {
+            rate = newRate;
+            break;
+          }
+          rate = newRate;
+          
+          // Prevent negative or extremely high rates
+          if (rate < 0.0001 / 12) rate = 0.0001 / 12;
+          if (rate > 0.5 / 12) rate = 0.5 / 12;
+        }
+        
+        // Convert monthly rate to annual percentage
+        const apr = rate * 12 * 100;
+        if (apr > 0 && apr < 50) { // Sanity check
+          setFormData(prev => ({ ...prev, apr: Math.round(apr * 1000) / 1000 }));
+        }
+      }
+    }
+  }, [formData.loanAmount, formData.principalInterest, formData.loanTerm, formData.discountPoints, formData.appraisalFee, formData.processingFee, formData.titleClosingFee, formData.recordingFees, formData.interestRate]);
+
   // When a lead is selected, populate the form
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
@@ -527,8 +581,8 @@ export default function LoanEstimate() {
         </CardContent>
       </Card>
 
-      {/* 4-Box Grid Layout */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* 4-Box Horizontal Layout */}
+      <div className="grid grid-cols-4 gap-4">
         {/* Box 1: LOAN INFO */}
         <Card>
           <CardHeader className="pb-2 bg-muted/50">
