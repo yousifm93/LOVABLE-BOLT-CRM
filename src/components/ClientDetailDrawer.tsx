@@ -1065,10 +1065,10 @@ export function ClientDetailDrawer({
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
-              {/* Row 1: MB App Number, LTV, FICO Score, Interest Rate */}
+              {/* Row 1: Lender Loan #, LTV, FICO Score, Interest Rate */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">MB App Number</span>
-                <InlineEditText value={(client as any).mbLoanNumber || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="Enter #" />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Lender Loan #</span>
+                <InlineEditText value={(client as any).lenderLoanNumber || (client as any).lender_loan_number || null} onValueChange={value => handleLeadUpdate('lender_loan_number', value)} placeholder="Enter #" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">LTV</span>
