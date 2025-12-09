@@ -1,5 +1,4 @@
-import { PDFDocument, rgb } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -206,20 +205,9 @@ export const generateLoanEstimatePDF = async (
       height: height,
     });
 
-    // Register fontkit for custom fonts
-    pdfDoc.registerFontkit(fontkit);
-
-    // Fetch and embed Open Sans fonts from Google Fonts CDN
-    const openSansRegularUrl = 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVI.ttf';
-    const openSansBoldUrl = 'https://fonts.gstatic.com/s/opensans/v40/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsg-1x4gaVI.ttf';
-
-    const [regularFontBytes, boldFontBytes] = await Promise.all([
-      fetch(openSansRegularUrl).then(res => res.arrayBuffer()),
-      fetch(openSansBoldUrl).then(res => res.arrayBuffer())
-    ]);
-
-    const regularFont = await pdfDoc.embedFont(regularFontBytes);
-    const boldFont = await pdfDoc.embedFont(boldFontBytes);
+    // Embed Helvetica fonts (regular and bold)
+    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
     const black = rgb(0, 0, 0);
 
