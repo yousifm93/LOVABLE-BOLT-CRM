@@ -69,60 +69,60 @@ export interface FieldPosition {
   bold?: boolean;
 }
 
-// LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template
+// LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template (from user screenshot)
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   // Top info section - LEFT column (font size 8)
-  borrowerName: { x: 100, y: 114, fontSize: 8 },
+  borrowerName: { x: 100, y: 120, fontSize: 8 },
   lenderLoanNumber: { x: 100, y: 132, fontSize: 8 },
-  zipState: { x: 100, y: 150, fontSize: 8 },
-  date: { x: 100, y: 168, fontSize: 8 },
+  zipState: { x: 100, y: 143, fontSize: 8 },
+  date: { x: 100, y: 154, fontSize: 8 },
   
   // Top info section - RIGHT column (right-aligned, font size 8)
-  purchasePrice: { x: 555, y: 114, rightAlign: true, fontSize: 8 },
+  purchasePrice: { x: 555, y: 121, rightAlign: true, fontSize: 8 },
   loanAmount: { x: 555, y: 132, rightAlign: true, fontSize: 8 },
-  rateApr: { x: 555, y: 150, rightAlign: true, fontSize: 8 },
-  loanTerm: { x: 555, y: 168, rightAlign: true, fontSize: 8 },
+  rateApr: { x: 555, y: 143, rightAlign: true, fontSize: 8 },
+  loanTerm: { x: 555, y: 153, rightAlign: true, fontSize: 8 },
   
   // Section A: Lender Fees (bold 9, items 7)
-  sectionATotal: { x: 280, y: 204, rightAlign: true, bold: true, fontSize: 9 },
-  discountPoints: { x: 280, y: 228, rightAlign: true, fontSize: 7 },
-  underwritingFee: { x: 280, y: 246, rightAlign: true, fontSize: 7 },
+  sectionATotal: { x: 280, y: 192, rightAlign: true, bold: true, fontSize: 9 },
+  discountPoints: { x: 280, y: 215, rightAlign: true, fontSize: 7 },
+  underwritingFee: { x: 280, y: 229, rightAlign: true, fontSize: 7 },
   
   // Section B: Third Party Fees (bold 9, items 7)
-  sectionBTotal: { x: 280, y: 282, rightAlign: true, bold: true, fontSize: 9 },
-  appraisalFee: { x: 280, y: 316, rightAlign: true, fontSize: 7 },
-  creditReportFee: { x: 280, y: 334, rightAlign: true, fontSize: 7 },
-  processingFee: { x: 280, y: 352, rightAlign: true, fontSize: 7 },
-  lendersTitleInsurance: { x: 280, y: 386, rightAlign: true, fontSize: 7 },
-  titleClosingFee: { x: 280, y: 404, rightAlign: true, fontSize: 7 },
+  sectionBTotal: { x: 280, y: 275, rightAlign: true, bold: true, fontSize: 9 },
+  appraisalFee: { x: 280, y: 308, rightAlign: true, fontSize: 7 },
+  creditReportFee: { x: 280, y: 320, rightAlign: true, fontSize: 7 },
+  processingFee: { x: 280, y: 331, rightAlign: true, fontSize: 7 },
+  lendersTitleInsurance: { x: 280, y: 364, rightAlign: true, fontSize: 7 },
+  titleClosingFee: { x: 280, y: 375, rightAlign: true, fontSize: 7 },
   
   // Section C: Taxes & Government Fees (bold 9, items 7)
-  sectionCTotal: { x: 555, y: 204, rightAlign: true, bold: true, fontSize: 9 },
-  intangibleTax: { x: 555, y: 228, rightAlign: true, fontSize: 7 },
-  transferTax: { x: 555, y: 246, rightAlign: true, fontSize: 7 },
-  recordingFees: { x: 555, y: 264, rightAlign: true, fontSize: 7 },
+  sectionCTotal: { x: 555, y: 192, rightAlign: true, bold: true, fontSize: 9 },
+  intangibleTax: { x: 555, y: 213, rightAlign: true, fontSize: 7 },
+  transferTax: { x: 555, y: 222, rightAlign: true, fontSize: 7 },
+  recordingFees: { x: 555, y: 232, rightAlign: true, fontSize: 7 },
   
   // Section D: Prepaids & Escrow (bold 9, items 7)
-  sectionDTotal: { x: 555, y: 282, rightAlign: true, bold: true, fontSize: 9 },
-  prepaidHoi: { x: 555, y: 316, rightAlign: true, fontSize: 7 },
-  prepaidInterest: { x: 555, y: 334, rightAlign: true, fontSize: 7 },
-  escrowHoi: { x: 555, y: 368, rightAlign: true, fontSize: 7 },
-  escrowTaxes: { x: 555, y: 386, rightAlign: true, fontSize: 7 },
+  sectionDTotal: { x: 555, y: 275, rightAlign: true, bold: true, fontSize: 9 },
+  prepaidHoi: { x: 555, y: 311, rightAlign: true, fontSize: 7 },
+  prepaidInterest: { x: 555, y: 322, rightAlign: true, fontSize: 7 },
+  escrowHoi: { x: 555, y: 355, rightAlign: true, fontSize: 7 },
+  escrowTaxes: { x: 555, y: 366, rightAlign: true, fontSize: 7 },
   
   // Estimated Monthly Payment (items 7, bold 9)
-  principalInterest: { x: 280, y: 450, rightAlign: true, fontSize: 7 },
-  propertyTaxes: { x: 280, y: 468, rightAlign: true, fontSize: 7 },
-  homeownersInsurance: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
-  mortgageInsurance: { x: 280, y: 504, rightAlign: true, fontSize: 7 },
-  hoaDues: { x: 280, y: 522, rightAlign: true, fontSize: 7 },
-  totalMonthlyPayment: { x: 280, y: 552, rightAlign: true, bold: true, fontSize: 9 },
+  principalInterest: { x: 280, y: 439, rightAlign: true, fontSize: 7 },
+  propertyTaxes: { x: 280, y: 450, rightAlign: true, fontSize: 7 },
+  homeownersInsurance: { x: 280, y: 462, rightAlign: true, fontSize: 7 },
+  mortgageInsurance: { x: 280, y: 474, rightAlign: true, fontSize: 7 },
+  hoaDues: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
+  totalMonthlyPayment: { x: 280, y: 572, rightAlign: true, bold: true, fontSize: 9 },
   
   // Estimated Cash to Close (items 7, bold 9)
-  downPayment: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
-  closingCosts: { x: 555, y: 468, rightAlign: true, fontSize: 7 },
-  prepaidsEscrow: { x: 555, y: 486, rightAlign: true, fontSize: 7 },
-  adjustmentsCredits: { x: 555, y: 504, rightAlign: true, fontSize: 7 },
-  totalCashToClose: { x: 555, y: 552, rightAlign: true, bold: true, fontSize: 9 },
+  downPayment: { x: 555, y: 439, rightAlign: true, fontSize: 7 },
+  closingCosts: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
+  prepaidsEscrow: { x: 555, y: 461, rightAlign: true, fontSize: 7 },
+  adjustmentsCredits: { x: 555, y: 480, rightAlign: true, fontSize: 7 },
+  totalCashToClose: { x: 555, y: 572, rightAlign: true, bold: true, fontSize: 9 },
 };
 
 // Calculate totals

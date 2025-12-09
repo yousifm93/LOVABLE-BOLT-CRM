@@ -876,7 +876,7 @@ export function ClientDetailDrawer({
               </div>
               {(client as any).mb_loan_number && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="text-muted-foreground">MB App Number:</span>
                   <span className="font-medium">{(client as any).mb_loan_number}</span>
                 </div>
               )}
@@ -960,7 +960,7 @@ export function ClientDetailDrawer({
               <h4 className="font-medium text-sm">Initial Verification</h4>
               {(client as any).mb_loan_number && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="text-muted-foreground">MB App Number:</span>
                   <span className="font-medium">{(client as any).mb_loan_number}</span>
                 </div>
               )}
@@ -983,7 +983,7 @@ export function ClientDetailDrawer({
               <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
               {(client as any).mb_loan_number && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="text-muted-foreground">MB App Number:</span>
                   <span className="font-medium">{(client as any).mb_loan_number}</span>
                 </div>
               )}
@@ -1006,7 +1006,7 @@ export function ClientDetailDrawer({
               <h4 className="font-medium text-sm">Pre-Approval Status</h4>
               {(client as any).mb_loan_number && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="text-muted-foreground">MB App Number:</span>
                   <span className="font-medium">{(client as any).mb_loan_number}</span>
                 </div>
               )}
@@ -1113,20 +1113,20 @@ export function ClientDetailDrawer({
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
-                <div className="flex flex-col">
-                  <InlineEditPercentage 
-                    value={(client as any).discount_points_percentage ?? null} 
+                <div className="flex items-center gap-1">
+                  <InlineEditCurrency 
+                    value={(client as any).discount_points ?? null} 
                     onValueChange={async (value) => {
                       const loanAmount = Number(client.loan?.loanAmount) || 0;
-                      const dollarAmount = value && loanAmount ? (value / 100) * loanAmount : null;
-                      await handleLeadUpdate('discount_points_percentage', value);
-                      await handleLeadUpdate('discount_points', dollarAmount);
+                      const percentage = value && loanAmount ? (value / loanAmount) * 100 : null;
+                      await handleLeadUpdate('discount_points', value);
+                      await handleLeadUpdate('discount_points_percentage', percentage);
                     }} 
-                    decimals={3}
+                    placeholder="$0"
                   />
-                  {(client as any).discount_points_percentage && client.loan?.loanAmount && (
-                    <span className="text-xs text-muted-foreground">
-                      (${(((client as any).discount_points_percentage / 100) * Number(client.loan.loanAmount)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+                  {(client as any).discount_points && client.loan?.loanAmount && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      ({(((client as any).discount_points / Number(client.loan.loanAmount)) * 100).toFixed(3)}%)
                     </span>
                   )}
                 </div>

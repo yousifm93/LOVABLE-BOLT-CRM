@@ -137,6 +137,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     dscr_ratio: (client as any).dscr_ratio || null,
     prepayment_penalty: (client as any).prepayment_penalty || "",
     discount_points_percentage: (client as any).discount_points_percentage || null,
+    adjustments_credits: (client as any).adjustments_credits || null,
   });
 
   // Helper function for PITI calculation
@@ -247,6 +248,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       dscr_ratio: (client as any).dscr_ratio || null,
       prepayment_penalty: (client as any).prepayment_penalty || "",
       discount_points_percentage: (client as any).discount_points_percentage || null,
+      adjustments_credits: (client as any).adjustments_credits || null,
     });
   };
 
@@ -330,6 +332,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         discount_points: editData.discount_points_percentage && loanAmount 
           ? (editData.discount_points_percentage / 100) * loanAmount 
           : null,
+        adjustments_credits: editData.adjustments_credits,
       };
       
       // Recalculate P&I if loan amount is present
@@ -557,7 +560,24 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     { 
       icon: Mail, 
       label: "Borrower Email", 
-      value: client.person?.email || "—",
+      value: client.person?.email ? (
+        <div 
+          className="group relative cursor-pointer"
+          onClick={() => {
+            if (client.person?.email) {
+              navigator.clipboard.writeText(client.person.email);
+              toast({ title: "Email copied", description: client.person.email });
+            }
+          }}
+        >
+          <span className="text-sm font-medium group-hover:hidden truncate max-w-[150px] block">
+            Email
+          </span>
+          <span className="text-sm font-medium hidden group-hover:block text-primary underline truncate max-w-[200px]">
+            {client.person.email}
+          </span>
+        </div>
+      ) : "—",
       editComponent: isEditing ? (
         <Input
           type="email"
@@ -1312,6 +1332,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                     </SelectContent>
                   </Select>
                 ) : undefined
+              },
+              { 
+                icon: DollarSign, 
+                label: "Credits", 
+                value: formatCurrency((client as any).adjustments_credits || 0),
+                editComponent: isEditing ? (
+                  <InlineEditCurrency
+                    value={editData.adjustments_credits}
+                    onValueChange={(value) => setEditData(prev => ({ ...prev, adjustments_credits: value || 0 }))}
+                    className="w-full"
+                  />
+                ) : null
               },
             ]} />
           </div>

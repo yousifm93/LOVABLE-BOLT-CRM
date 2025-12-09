@@ -24,6 +24,7 @@ interface Lead {
   interest_rate: number | null;
   term: number | null;
   discount_points: number | null;
+  discount_points_percentage: number | null;
   underwriting_fee: number | null;
   appraisal_fee: number | null;
   credit_report_fee: number | null;
@@ -45,6 +46,7 @@ interface Lead {
   adjustments_credits: number | null;
   program: string | null;
   property_type: string | null;
+  escrows: string | null;
 }
 
 // String fields that should NOT be parsed as numbers
@@ -106,7 +108,7 @@ export default function LoanEstimate() {
     const fetchLeads = async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, lender_loan_number, subject_zip, subject_state, sales_price, loan_amount, interest_rate, term, discount_points, underwriting_fee, appraisal_fee, credit_report_fee, processing_fee, lenders_title_insurance, title_closing_fee, intangible_tax, transfer_tax, recording_fees, prepaid_hoi, prepaid_interest, escrow_hoi, escrow_taxes, principal_interest, property_taxes, homeowners_insurance, mortgage_insurance, hoa_dues, adjustments_credits, program, property_type')
+        .select('id, first_name, last_name, lender_loan_number, subject_zip, subject_state, sales_price, loan_amount, interest_rate, term, discount_points, discount_points_percentage, underwriting_fee, appraisal_fee, credit_report_fee, processing_fee, lenders_title_insurance, title_closing_fee, intangible_tax, transfer_tax, recording_fees, prepaid_hoi, prepaid_interest, escrow_hoi, escrow_taxes, principal_interest, property_taxes, homeowners_insurance, mortgage_insurance, hoa_dues, adjustments_credits, program, property_type, escrows')
         .order('created_at', { ascending: false });
 
       if (!error && data) {
@@ -184,6 +186,23 @@ export default function LoanEstimate() {
     const loanAmount = lead.loan_amount || 0;
     const ltv = purchasePrice > 0 ? (loanAmount / purchasePrice) * 100 : 0;
     
+    // Calculate discount points: prefer percentage-based calculation, fallback to stored dollar amount
+    let discountPoints = lead.discount_points || 0;
+    if (lead.discount_points_percentage && loanAmount > 0) {
+      discountPoints = (lead.discount_points_percentage / 100) * loanAmount;
+    }
+    
+    // Normalize escrows value: convert "Escrowed"/"Waived" to "yes"/"no"
+    let escrowsValue = 'yes';
+    if (lead.escrows) {
+      const normalized = lead.escrows.toLowerCase();
+      if (normalized === 'no' || normalized === 'waived') {
+        escrowsValue = 'no';
+      } else if (normalized === 'yes' || normalized === 'escrowed') {
+        escrowsValue = 'yes';
+      }
+    }
+    
     setFormData({
       firstName: lead.first_name,
       lastName: lead.last_name,
@@ -198,7 +217,7 @@ export default function LoanEstimate() {
       loanTerm: lead.term || 360,
       loanProgram: lead.program || "",
       propertyType: lead.property_type || "",
-      discountPoints: lead.discount_points || 0,
+      discountPoints,
       credits: 0,
       // Fixed fee defaults (always use these)
       underwritingFee: 995,
@@ -221,6 +240,7 @@ export default function LoanEstimate() {
       hoaDues: lead.hoa_dues || 0,
       downPayment: purchasePrice - loanAmount,
       adjustmentsCredits: lead.adjustments_credits || 0,
+      escrows: escrowsValue,
     });
   };
 
