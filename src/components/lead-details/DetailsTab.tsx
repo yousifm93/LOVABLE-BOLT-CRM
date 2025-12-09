@@ -181,6 +181,17 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     editData.hoa_dues
   ]);
 
+  // Auto-calculate DSCR ratio when subject property rental income or PITI changes
+  useEffect(() => {
+    const rentalIncome = editData.subject_property_rental_income || 0;
+    const piti = editData.piti || 0;
+    
+    if (rentalIncome > 0 && piti > 0) {
+      const calculatedDSCR = Math.round((rentalIncome / piti) * 100) / 100;
+      setEditData(prev => ({ ...prev, dscr_ratio: calculatedDSCR }));
+    }
+  }, [editData.subject_property_rental_income, editData.piti]);
+
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -716,37 +727,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
     },
     { 
-      icon: Percent, 
-      label: "Interest Rate", 
-      value: client.loan?.interestRate ? formatPercentage(client.loan.interestRate) : formatPercentage(7.0),
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          step="0.001"
-          value={editData.interest_rate || ""}
-          onChange={(e) => setEditData({ ...editData, interest_rate: parseFloat(e.target.value) || null })}
-          className="h-8"
-          placeholder="7.0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Calendar, 
-      label: "Amortization Term", 
-      value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.term || ""}
-          onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
-          className="h-8"
-          placeholder="360"
-        />
-      ) : undefined
-    },
-    { 
       icon: Building, 
-      label: "Escrow Waiver", 
+      label: "Escrow Waiver",
       value: formatYesNo(client.loan?.escrowWaiver || false),
       editComponent: isEditing ? (
         <Select
@@ -930,22 +912,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
   ];
 
-  // Other Liabilities data
-  const otherLiabilitiesData = [
-    {
-      icon: CreditCard,
-      label: "Monthly Liabilities",
-      value: isEditing ? null : formatCurrency((client as any).monthlyLiabilities),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.monthly_liabilities}
-          onValueChange={(value) => setEditData(prev => ({ ...prev, monthly_liabilities: value || 0 }))}
-          className="w-full"
-        />
-      ) : null
-    },
-  ];
-
   // ============================================
   // FINANCIAL SUMMARY DATA
   // ============================================
@@ -1096,7 +1062,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     {
       icon: Calculator,
-      label: "PITI (Total Monthly Payment)",
+      label: "PITI",
       value: formatCurrency(isEditing ? calculatePITI() : ((client as any).piti || 0)),
       isCalculated: true
     }
@@ -1293,12 +1259,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
             <FourColumnDetailLayout items={monthlyPaymentData} />
-          </div>
-
-          {/* Other Liabilities Section */}
-          <div className="mt-4">
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Other Liabilities</h4>
-            <FourColumnDetailLayout items={otherLiabilitiesData} />
           </div>
         </div>
 
