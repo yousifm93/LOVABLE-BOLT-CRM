@@ -3,20 +3,27 @@ import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface LoanEstimateData {
-  // Borrower Info
-  borrowerName: string;
+  // Borrower Info - now separate fields
+  firstName: string;
+  lastName: string;
   lenderLoanNumber: string;
-  zipState: string;
-  date: string;
+  subjectZip: string;
+  subjectState: string;
+  
+  // Loan Info
   purchasePrice: number;
   loanAmount: number;
+  ltv: number;
   interestRate: number;
   apr: number;
   loanTerm: number; // in months
+  loanProgram: string;
+  propertyType: string;
   
   // Section A: Lender Fees
   discountPoints: number;
   underwritingFee: number;
+  credits: number;
   
   // Section B: Third Party Fees - Services You Cannot Shop For
   appraisalFee: number;
@@ -59,25 +66,26 @@ export interface FieldPosition {
   bold?: boolean;
 }
 
+// LOCKED DEFAULT POSITIONS - calibrated to match the Bolt Estimate template
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
-  // Top info section - LEFT column (font size 8, y-20)
+  // Top info section - LEFT column (font size 8)
   borrowerName: { x: 100, y: 114, fontSize: 8 },
   lenderLoanNumber: { x: 100, y: 132, fontSize: 8 },
   zipState: { x: 100, y: 150, fontSize: 8 },
   date: { x: 100, y: 168, fontSize: 8 },
   
-  // Top info section - RIGHT column (right-aligned, font size 8, y-20)
+  // Top info section - RIGHT column (right-aligned, font size 8)
   purchasePrice: { x: 555, y: 114, rightAlign: true, fontSize: 8 },
   loanAmount: { x: 555, y: 132, rightAlign: true, fontSize: 8 },
   rateApr: { x: 555, y: 150, rightAlign: true, fontSize: 8 },
   loanTerm: { x: 555, y: 168, rightAlign: true, fontSize: 8 },
   
-  // Section A: Lender Fees (bold 9, items 7, y-20)
+  // Section A: Lender Fees (bold 9, items 7)
   sectionATotal: { x: 280, y: 204, rightAlign: true, bold: true, fontSize: 9 },
   discountPoints: { x: 280, y: 228, rightAlign: true, fontSize: 7 },
   underwritingFee: { x: 280, y: 246, rightAlign: true, fontSize: 7 },
   
-  // Section B: Third Party Fees (bold 9, items 7, y-20)
+  // Section B: Third Party Fees (bold 9, items 7)
   sectionBTotal: { x: 280, y: 282, rightAlign: true, bold: true, fontSize: 9 },
   appraisalFee: { x: 280, y: 316, rightAlign: true, fontSize: 7 },
   creditReportFee: { x: 280, y: 334, rightAlign: true, fontSize: 7 },
@@ -85,20 +93,20 @@ export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   lendersTitleInsurance: { x: 280, y: 386, rightAlign: true, fontSize: 7 },
   titleClosingFee: { x: 280, y: 404, rightAlign: true, fontSize: 7 },
   
-  // Section C: Taxes & Government Fees (bold 9, items 7, y-20)
+  // Section C: Taxes & Government Fees (bold 9, items 7)
   sectionCTotal: { x: 555, y: 204, rightAlign: true, bold: true, fontSize: 9 },
   intangibleTax: { x: 555, y: 228, rightAlign: true, fontSize: 7 },
   transferTax: { x: 555, y: 246, rightAlign: true, fontSize: 7 },
   recordingFees: { x: 555, y: 264, rightAlign: true, fontSize: 7 },
   
-  // Section D: Prepaids & Escrow (bold 9, items 7, y-20)
+  // Section D: Prepaids & Escrow (bold 9, items 7)
   sectionDTotal: { x: 555, y: 282, rightAlign: true, bold: true, fontSize: 9 },
   prepaidHoi: { x: 555, y: 316, rightAlign: true, fontSize: 7 },
   prepaidInterest: { x: 555, y: 334, rightAlign: true, fontSize: 7 },
   escrowHoi: { x: 555, y: 368, rightAlign: true, fontSize: 7 },
   escrowTaxes: { x: 555, y: 386, rightAlign: true, fontSize: 7 },
   
-  // Estimated Monthly Payment (items 7, bold 9, y-20)
+  // Estimated Monthly Payment (items 7, bold 9)
   principalInterest: { x: 280, y: 450, rightAlign: true, fontSize: 7 },
   propertyTaxes: { x: 280, y: 468, rightAlign: true, fontSize: 7 },
   homeownersInsurance: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
@@ -106,7 +114,7 @@ export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
   hoaDues: { x: 280, y: 522, rightAlign: true, fontSize: 7 },
   totalMonthlyPayment: { x: 280, y: 552, rightAlign: true, bold: true, fontSize: 9 },
   
-  // Estimated Cash to Close (items 7, bold 9, y-20)
+  // Estimated Cash to Close (items 7, bold 9)
   downPayment: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
   closingCosts: { x: 555, y: 468, rightAlign: true, fontSize: 7 },
   prepaidsEscrow: { x: 555, y: 486, rightAlign: true, fontSize: 7 },
@@ -131,8 +139,9 @@ export const calculateTotals = (data: LoanEstimateData) => {
                               (data.homeownersInsurance || 0) + (data.mortgageInsurance || 0) + 
                               (data.hoaDues || 0);
   
-  const totalCashToClose = (data.downPayment || 0) + closingCosts + prepaidsEscrow - 
-                           (data.adjustmentsCredits || 0);
+  // Apply credits as a reduction
+  const totalCredits = (data.adjustmentsCredits || 0) + (data.credits || 0);
+  const totalCashToClose = (data.downPayment || 0) + closingCosts + prepaidsEscrow - totalCredits;
   
   return {
     sectionA,
@@ -218,11 +227,23 @@ export const generateLoanEstimatePDF = async (
       }
     };
 
+    // Combine firstName and lastName for PDF output
+    const borrowerName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+    
+    // Combine zip and state for PDF output (e.g., "33131/FL")
+    const zipState = data.subjectZip && data.subjectState 
+      ? `${data.subjectZip}/${data.subjectState.toUpperCase()}` 
+      : data.subjectZip || (data.subjectState ? data.subjectState.toUpperCase() : '');
+
+    // Auto-generate today's date
+    const today = new Date();
+    const dateStr = today.toLocaleDateString();
+
     // Top info section - LEFT column
-    drawField('borrowerName', data.borrowerName || '');
+    drawField('borrowerName', borrowerName);
     drawField('lenderLoanNumber', data.lenderLoanNumber || '');
-    drawField('zipState', data.zipState || '');
-    drawField('date', data.date || new Date().toLocaleDateString());
+    drawField('zipState', zipState);
+    drawField('date', dateStr);
 
     // Top info section - RIGHT column
     drawField('purchasePrice', formatCurrency(data.purchasePrice));
@@ -265,10 +286,11 @@ export const generateLoanEstimatePDF = async (
     drawField('totalMonthlyPayment', formatCurrency(totals.totalMonthlyPayment));
 
     // Estimated Cash to Close
+    const totalCredits = (data.adjustmentsCredits || 0) + (data.credits || 0);
     drawField('downPayment', formatCurrency(data.downPayment));
     drawField('closingCosts', formatCurrency(totals.closingCosts));
     drawField('prepaidsEscrow', formatCurrency(totals.prepaidsEscrow));
-    drawField('adjustmentsCredits', data.adjustmentsCredits > 0 ? `-${formatCurrency(data.adjustmentsCredits)}` : formatCurrency(0));
+    drawField('adjustmentsCredits', totalCredits > 0 ? `-${formatCurrency(totalCredits)}` : formatCurrency(0));
     drawField('totalCashToClose', formatCurrency(totals.totalCashToClose));
 
     // Generate PDF bytes
@@ -279,18 +301,16 @@ export const generateLoanEstimatePDF = async (
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       
       // Extract initials for filename
-      const nameParts = (data.borrowerName || 'Unknown').trim().split(' ');
-      const firstInitial = nameParts[0]?.charAt(0).toUpperCase() || '';
-      const lastInitial = nameParts[nameParts.length - 1]?.charAt(0).toUpperCase() || '';
+      const firstInitial = (data.firstName || '').charAt(0).toUpperCase();
+      const lastInitial = (data.lastName || '').charAt(0).toUpperCase();
 
       // Format date
-      const today = new Date();
       const month = today.getMonth() + 1;
       const day = today.getDate();
       const year = today.getFullYear().toString().slice(-2);
-      const dateStr = `${month}.${day}.${year}`;
+      const fileDateStr = `${month}.${day}.${year}`;
 
-      const filename = `Bolt Estimate - ${firstInitial}${lastInitial} ${dateStr}.pdf`;
+      const filename = `Bolt Estimate - ${firstInitial}${lastInitial} ${fileDateStr}.pdf`;
       saveAs(blob, filename);
     }
 
