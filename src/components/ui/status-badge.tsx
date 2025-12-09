@@ -67,8 +67,10 @@ const getStatusColor = (status: string): string => {
   
   // ACTIVE BOARD - HOI STATUS
   if (statusLower === 'quoted') return 'bg-gray-500 text-white'; // Grey
+  if (statusLower === 'bound') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - CONDO STATUS
+  if (statusLower === 'docs received') return 'bg-green-300 text-green-900'; // Light Green
   if (statusLower === 'approved') return 'bg-green-500 text-white'; // Bright Green
   
   // N/A STATUS - For Condo, CD, BA, EPO columns

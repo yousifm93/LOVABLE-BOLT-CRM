@@ -170,12 +170,12 @@ const titleStatusOptions = [
 const hoiStatusOptions = [
   { value: "Quoted", label: "Quoted" },
   { value: "Ordered", label: "Ordered" },
-  { value: "Received", label: "Received" }
+  { value: "Bound", label: "Bound" }
 ];
 
 const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
-  { value: "Received", label: "Received" },
+  { value: "Docs Received", label: "Docs Received" },
   { value: "Approved", label: "Approved" },
   { value: "N/A", label: "N/A" }
 ];

@@ -34,8 +34,9 @@ interface CondoDetails {
 
 const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
-  { value: "Received", label: "Received" },
-  { value: "Approved", label: "Approved" }
+  { value: "Docs Received", label: "Docs Received" },
+  { value: "Approved", label: "Approved" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const condoApprovalTypeOptions = [
