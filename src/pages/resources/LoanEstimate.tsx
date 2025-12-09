@@ -518,7 +518,7 @@ export default function LoanEstimate() {
             </div>
           </div>
 
-          {/* Row 2: Loan Program, Property Type */}
+          {/* Row 2: Loan Program, Property Type, Purchase Price, Loan Amount, LTV */}
           <div className="grid grid-cols-5 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Loan Program</Label>
@@ -557,11 +557,6 @@ export default function LoanEstimate() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3" />
-          </div>
-
-          {/* Row 3: Purchase Price, Loan Amount, LTV (bidirectional) */}
-          <div className="grid grid-cols-5 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Purchase Price</Label>
               <div className="relative">
@@ -599,10 +594,9 @@ export default function LoanEstimate() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
             </div>
-            <div className="col-span-2" />
           </div>
 
-          {/* Row 4: Rate, APR, Loan Term, Discount Points, Credits */}
+          {/* Row 3: Rate, APR, Loan Term, Discount Points, Credits */}
           <div className="grid grid-cols-5 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Rate</Label>
@@ -695,9 +689,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.underwritingFee || ''} 
-                  onChange={(e) => handleInputChange('underwritingFee', e.target.value)}
                 />
               </div>
             </div>
@@ -719,9 +713,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.intangibleTax || ''} 
-                  onChange={(e) => handleInputChange('intangibleTax', e.target.value)}
                 />
               </div>
             </div>
@@ -731,9 +725,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.transferTax || ''} 
-                  onChange={(e) => handleInputChange('transferTax', e.target.value)}
                 />
               </div>
             </div>
@@ -743,9 +737,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.recordingFees || ''} 
-                  onChange={(e) => handleInputChange('recordingFees', e.target.value)}
                 />
               </div>
             </div>
@@ -770,9 +764,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.appraisalFee || ''} 
-                      onChange={(e) => handleInputChange('appraisalFee', e.target.value)}
                     />
                   </div>
                 </div>
@@ -782,9 +776,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.creditReportFee || ''} 
-                      onChange={(e) => handleInputChange('creditReportFee', e.target.value)}
                     />
                   </div>
                 </div>
@@ -794,9 +788,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.processingFee || ''} 
-                      onChange={(e) => handleInputChange('processingFee', e.target.value)}
                     />
                   </div>
                 </div>
@@ -811,9 +805,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.lendersTitleInsurance || ''} 
-                      onChange={(e) => handleInputChange('lendersTitleInsurance', e.target.value)}
                     />
                   </div>
                 </div>
@@ -823,9 +817,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.titleClosingFee || ''} 
-                      onChange={(e) => handleInputChange('titleClosingFee', e.target.value)}
                     />
                   </div>
                 </div>
@@ -852,9 +846,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.prepaidHoi || ''} 
-                      onChange={(e) => handleInputChange('prepaidHoi', e.target.value)}
                     />
                   </div>
                 </div>
@@ -864,9 +858,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.prepaidInterest || ''} 
-                      onChange={(e) => handleInputChange('prepaidInterest', e.target.value)}
                     />
                   </div>
                 </div>
@@ -881,9 +875,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.escrowHoi || ''} 
-                      onChange={(e) => handleInputChange('escrowHoi', e.target.value)}
                     />
                   </div>
                 </div>
@@ -893,9 +887,9 @@ export default function LoanEstimate() {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
                       type="number"
-                      className="pl-7 text-right"
+                      className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                      disabled
                       value={formData.escrowTaxes || ''} 
-                      onChange={(e) => handleInputChange('escrowTaxes', e.target.value)}
                     />
                   </div>
                 </div>
@@ -998,9 +992,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right bg-muted/50"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.downPayment || ''} 
-                  onChange={(e) => handleInputChange('downPayment', e.target.value)}
                 />
               </div>
             </div>
