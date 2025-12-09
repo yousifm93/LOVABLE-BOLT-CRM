@@ -32,8 +32,27 @@ import {
   FileText,
   Phone,
   Mail,
-  Lock
+  Lock,
+  Trash2,
+  MapPin,
+  Landmark,
+  ClipboardCheck
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
+import { InlineEditContact } from "@/components/ui/inline-edit-contact";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   formatCurrency, 
   formatPercentage, 
@@ -52,12 +71,17 @@ interface DetailsTabProps {
   client: any;
   leadId: string | null;
   onLeadUpdated?: () => void;
+  onClose?: () => void;
 }
 
-export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
+export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTabProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [lenders, setLenders] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [editData, setEditData] = useState({
     // Borrower Info
     first_name: client.person?.firstName || "",
@@ -121,6 +145,25 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       (editData.hoa_dues || 0)
     );
   };
+
+  // Load agents, lenders, and contacts for the Contacts section
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [agentsRes, lendersRes, contactsRes] = await Promise.all([
+          supabase.from('buyer_agents').select('*').order('first_name'),
+          supabase.from('lenders').select('*').order('lender_name'),
+          supabase.from('contacts').select('*').order('first_name')
+        ]);
+        if (agentsRes.data) setAgents(agentsRes.data);
+        if (lendersRes.data) setLenders(lendersRes.data);
+        if (contactsRes.data) setContacts(contactsRes.data);
+      } catch (error) {
+        console.error('Error loading contacts data:', error);
+      }
+    };
+    loadData();
+  }, []);
 
   // Auto-calculate PITI when payment breakdown components change
   useEffect(() => {
@@ -369,6 +412,63 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!leadId) {
+      toast({
+        title: "Error",
+        description: "Lead ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      // Delete the lead - the database will throw an error if there are associated tasks due to FK constraint
+      const { error: deleteError } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadId);
+      
+      if (deleteError) {
+        // Check if it's a foreign key violation (associated tasks exist)
+        if (deleteError.code === '23503' || deleteError.message?.includes('foreign key') || deleteError.message?.includes('violates')) {
+          toast({
+            title: "Cannot Delete Lead",
+            description: "There are tasks associated with this lead. Please complete or delete the associated tasks first, then try again.",
+            variant: "destructive",
+          });
+          setIsDeleting(false);
+          return;
+        }
+        throw deleteError;
+      }
+      
+      toast({
+        title: "Lead Deleted",
+        description: "The lead has been successfully deleted",
+      });
+      
+      // Close the drawer if callback provided
+      if (onClose) {
+        onClose();
+      }
+      
+      if (onLeadUpdated) {
+        await onLeadUpdated();
+      }
+    } catch (error: any) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete lead",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -744,6 +844,91 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
     },
   ];
 
+  // Subject Property Address fields
+  const subjectPropertyAddressData = [
+    { 
+      icon: MapPin, 
+      label: "Subject Address 1", 
+      value: (client as any).subject_address_1 || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_address_1}
+          onChange={(e) => setEditData({ ...editData, subject_address_1: e.target.value })}
+          className="h-8"
+          placeholder="Street address"
+        />
+      ) : undefined
+    },
+    { 
+      icon: MapPin, 
+      label: "Subject Address 2", 
+      value: (client as any).subject_address_2 || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_address_2}
+          onChange={(e) => setEditData({ ...editData, subject_address_2: e.target.value })}
+          className="h-8"
+          placeholder="Unit, suite, etc."
+        />
+      ) : undefined
+    },
+    { 
+      icon: MapPin, 
+      label: "City", 
+      value: (client as any).subject_city || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_city}
+          onChange={(e) => setEditData({ ...editData, subject_city: e.target.value })}
+          className="h-8"
+          placeholder="City"
+        />
+      ) : undefined
+    },
+    { 
+      icon: MapPin, 
+      label: "State", 
+      value: (client as any).subject_state || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_state}
+          onChange={(e) => setEditData({ ...editData, subject_state: e.target.value })}
+          className="h-8"
+          placeholder="State"
+        />
+      ) : undefined
+    },
+    { 
+      icon: MapPin, 
+      label: "Zip", 
+      value: (client as any).subject_zip || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.subject_zip}
+          onChange={(e) => setEditData({ ...editData, subject_zip: e.target.value })}
+          className="h-8"
+          placeholder="Zip code"
+        />
+      ) : undefined
+    },
+  ];
+
+  // Other Liabilities data
+  const otherLiabilitiesData = [
+    {
+      icon: CreditCard,
+      label: "Monthly Liabilities",
+      value: isEditing ? null : formatCurrency((client as any).monthlyLiabilities),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.monthly_liabilities}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, monthly_liabilities: value || 0 }))}
+          className="w-full"
+        />
+      ) : null
+    },
+  ];
+
   // ============================================
   // FINANCIAL SUMMARY DATA
   // ============================================
@@ -931,7 +1116,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-4 pt-2">
+      <div className="space-y-3 pt-0">
         {/* Single Edit/Save button set at top */}
         <div className="flex items-center justify-end gap-2">
           {isEditing ? (
@@ -977,6 +1162,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Property</h4>
             <FourColumnDetailLayout items={propertyData} />
+          </div>
+
+          {/* Subject Property Address */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Subject Property Address</h4>
+            <FourColumnDetailLayout items={subjectPropertyAddressData} />
           </div>
 
           {/* Rate Lock Information Subheading */}
@@ -1104,6 +1295,108 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
             <FourColumnDetailLayout items={monthlyPaymentData} />
           </div>
+
+          {/* Other Liabilities Section */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Other Liabilities</h4>
+            <FourColumnDetailLayout items={otherLiabilitiesData} />
+          </div>
+        </div>
+
+        {/* 4. CONTACTS */}
+        <div className="space-y-4 pt-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Contacts
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+            {/* Buyer's Agent */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1">
+                <User className="h-3 w-3" /> Buyer's Agent
+              </Label>
+              <InlineEditAgent
+                value={(client as any).buyer_agent_id ? agents.find(a => a.id === (client as any).buyer_agent_id) : null}
+                agents={agents}
+                onValueChange={async (agent) => {
+                  if (!leadId) return;
+                  try {
+                    await databaseService.updateLead(leadId, { buyer_agent_id: agent?.id || null });
+                    if (onLeadUpdated) await onLeadUpdated();
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  }
+                }}
+                placeholder="Select buyer's agent..."
+              />
+            </div>
+
+            {/* Listing Agent */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1">
+                <User className="h-3 w-3" /> Listing Agent
+              </Label>
+              <InlineEditAgent
+                value={(client as any).listing_agent_id ? agents.find(a => a.id === (client as any).listing_agent_id) : null}
+                agents={agents}
+                onValueChange={async (agent) => {
+                  if (!leadId) return;
+                  try {
+                    await databaseService.updateLead(leadId, { listing_agent_id: agent?.id || null });
+                    if (onLeadUpdated) await onLeadUpdated();
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  }
+                }}
+                placeholder="Select listing agent..."
+              />
+            </div>
+
+            {/* Lender */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1">
+                <Landmark className="h-3 w-3" /> Lender
+              </Label>
+              <InlineEditApprovedLender
+                value={(client as any).approved_lender_id ? lenders.find(l => l.id === (client as any).approved_lender_id) : null}
+                lenders={lenders}
+                onValueChange={async (lender) => {
+                  if (!leadId) return;
+                  try {
+                    await databaseService.updateLead(leadId, { approved_lender_id: lender?.id || null });
+                    if (onLeadUpdated) await onLeadUpdated();
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  }
+                }}
+                placeholder="Select lender..."
+              />
+            </div>
+
+            {/* Title Company - placeholder for future */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1 text-muted-foreground">
+                <Building className="h-3 w-3" /> Title Company
+              </Label>
+              <span className="text-sm text-muted-foreground">Coming soon</span>
+            </div>
+
+            {/* Insurance Provider - placeholder for future */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1 text-muted-foreground">
+                <Shield className="h-3 w-3" /> Insurance Provider
+              </Label>
+              <span className="text-sm text-muted-foreground">Coming soon</span>
+            </div>
+
+            {/* Appraisal Company - placeholder for future */}
+            <div className="space-y-1">
+              <Label className="text-sm font-medium flex items-center gap-1 text-muted-foreground">
+                <ClipboardCheck className="h-3 w-3" /> Appraisal Company
+              </Label>
+              <span className="text-sm text-muted-foreground">Coming soon</span>
+            </div>
+          </div>
         </div>
 
         {/* Co-Borrower Information Section */}
@@ -1167,8 +1460,35 @@ export function DetailsTab({ client, leadId, onLeadUpdated }: DetailsTabProps) {
             </div>
           </div>
           
-          {/* Mark as Closed Button */}
-          <div className="flex justify-end">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {isDeleting ? "Deleting..." : "Delete Lead"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the lead
+                    and all associated data. If there are tasks associated with this lead,
+                    you will need to delete them first.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteLead} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button 
               variant="default" 
               onClick={handleCloseLoan}
