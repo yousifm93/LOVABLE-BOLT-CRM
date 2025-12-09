@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, Calculator, Search, User } from "lucide-react";
+import { FileText, Download, Calculator, Search, User, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { generateLoanEstimatePDF, calculateTotals, LoanEstimateData } from "@/lib/loanEstimatePdfGenerator";
+import { generateLoanEstimatePDF, calculateTotals, LoanEstimateData, DEFAULT_FIELD_POSITIONS, FieldPosition } from "@/lib/loanEstimatePdfGenerator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Lead {
   id: string;
@@ -43,12 +44,17 @@ interface Lead {
   adjustments_credits: number | null;
 }
 
+// String fields that should NOT be parsed as numbers
+const STRING_FIELDS = ['borrowerName', 'lenderLoanNumber', 'zipState', 'date'];
+
 export default function LoanEstimate() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [calibrationOpen, setCalibrationOpen] = useState(false);
+  const [positionOverrides, setPositionOverrides] = useState<Record<string, FieldPosition>>({});
   const { toast } = useToast();
 
   // Form state for fees that may need to be entered manually
@@ -116,7 +122,10 @@ export default function LoanEstimate() {
     setSelectedLead(lead);
     setSearchOpen(false);
     
-    const zipState = [lead.subject_zip, lead.subject_state].filter(Boolean).join(', ');
+    // Format as ZIP/STATE with uppercase state (e.g., "33131/FL")
+    const zipState = lead.subject_zip && lead.subject_state 
+      ? `${lead.subject_zip}/${lead.subject_state.toUpperCase()}` 
+      : lead.subject_zip || (lead.subject_state ? lead.subject_state.toUpperCase() : '');
     
     setFormData({
       borrowerName: `${lead.first_name} ${lead.last_name}`,
@@ -152,9 +161,33 @@ export default function LoanEstimate() {
     });
   };
 
+  // Fixed: Handle string fields vs number fields separately
   const handleInputChange = (field: keyof LoanEstimateData, value: string | number) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-    setFormData(prev => ({ ...prev, [field]: numValue }));
+    if (STRING_FIELDS.includes(field)) {
+      // Keep string fields as strings
+      setFormData(prev => ({ ...prev, [field]: value }));
+    } else {
+      // Parse number fields
+      const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+      setFormData(prev => ({ ...prev, [field]: numValue }));
+    }
+  };
+
+  // Handle position changes for calibration
+  const handlePositionChange = (fieldName: string, axis: 'x' | 'y', value: number) => {
+    setPositionOverrides(prev => ({
+      ...prev,
+      [fieldName]: {
+        ...DEFAULT_FIELD_POSITIONS[fieldName],
+        ...prev[fieldName],
+        [axis]: value
+      }
+    }));
+  };
+
+  // Get current position for a field (override or default)
+  const getCurrentPosition = (fieldName: string): FieldPosition => {
+    return positionOverrides[fieldName] || DEFAULT_FIELD_POSITIONS[fieldName];
   };
 
   const handleGeneratePDF = async () => {
@@ -169,12 +202,13 @@ export default function LoanEstimate() {
 
     setIsGenerating(true);
     try {
-      await generateLoanEstimatePDF(formData as LoanEstimateData, true);
+      await generateLoanEstimatePDF(formData as LoanEstimateData, true, positionOverrides);
       toast({
         title: "Success",
         description: "Bolt Estimate PDF generated and downloaded.",
       });
     } catch (error) {
+      console.error('PDF generation error:', error);
       toast({
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
@@ -196,6 +230,18 @@ export default function LoanEstimate() {
     }).format(value || 0);
   };
 
+  // Group fields for calibration panel
+  const fieldGroups = {
+    "Top Left (Borrower Info)": ['borrowerName', 'lenderLoanNumber', 'zipState', 'date'],
+    "Top Right (Loan Info)": ['purchasePrice', 'loanAmount', 'rateApr', 'loanTerm'],
+    "Section A: Lender Fees": ['sectionATotal', 'discountPoints', 'underwritingFee'],
+    "Section B: Third Party": ['sectionBTotal', 'appraisalFee', 'creditReportFee', 'processingFee', 'lendersTitleInsurance', 'titleClosingFee'],
+    "Section C: Taxes": ['sectionCTotal', 'intangibleTax', 'transferTax', 'recordingFees'],
+    "Section D: Prepaids": ['sectionDTotal', 'prepaidHoi', 'prepaidInterest', 'escrowHoi', 'escrowTaxes'],
+    "Monthly Payment": ['principalInterest', 'propertyTaxes', 'homeownersInsurance', 'mortgageInsurance', 'hoaDues', 'totalMonthlyPayment'],
+    "Cash to Close": ['downPayment', 'closingCosts', 'prepaidsEscrow', 'adjustmentsCredits', 'totalCashToClose'],
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -203,16 +249,94 @@ export default function LoanEstimate() {
           <h1 className="text-3xl font-bold text-foreground">Bolt Estimate Generator</h1>
           <p className="text-muted-foreground">Generate professional loan estimates for borrowers</p>
         </div>
-        <Button 
-          onClick={handleGeneratePDF} 
-          disabled={isGenerating}
-          size="lg"
-          className="gap-2"
-        >
-          <Download className="h-5 w-5" />
-          {isGenerating ? "Generating..." : "Generate PDF"}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setCalibrationOpen(!calibrationOpen)}
+            className="gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Calibrate Positions
+          </Button>
+          <Button 
+            onClick={handleGeneratePDF} 
+            disabled={isGenerating}
+            size="lg"
+            className="gap-2"
+          >
+            <Download className="h-5 w-5" />
+            {isGenerating ? "Generating..." : "Generate PDF"}
+          </Button>
+        </div>
       </div>
+
+      {/* Calibration Panel */}
+      <Collapsible open={calibrationOpen} onOpenChange={setCalibrationOpen}>
+        <CollapsibleContent>
+          <Card className="border-amber-500/50 bg-amber-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg text-amber-700">
+                <Settings className="h-5 w-5 mr-2" />
+                PDF Position Calibration
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  Adjust X/Y coordinates to align fields on the PDF template
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-4 max-h-96 overflow-y-auto">
+                {Object.entries(fieldGroups).map(([groupName, fields]) => (
+                  <div key={groupName} className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground border-b pb-1">{groupName}</p>
+                    {fields.map(fieldName => {
+                      const pos = getCurrentPosition(fieldName);
+                      return (
+                        <div key={fieldName} className="grid grid-cols-3 gap-1 items-center">
+                          <span className="text-xs truncate" title={fieldName}>{fieldName}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground">X:</span>
+                            <Input
+                              type="number"
+                              value={pos.x}
+                              onChange={(e) => handlePositionChange(fieldName, 'x', parseInt(e.target.value) || 0)}
+                              className="h-6 text-xs w-14 px-1"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground">Y:</span>
+                            <Input
+                              type="number"
+                              value={pos.y}
+                              onChange={(e) => handlePositionChange(fieldName, 'y', parseInt(e.target.value) || 0)}
+                              className="h-6 text-xs w-14 px-1"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPositionOverrides({})}
+                >
+                  Reset to Defaults
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={handleGeneratePDF}
+                  disabled={isGenerating}
+                >
+                  Test Generate PDF
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Borrower Selection */}
       <Card>
@@ -294,6 +418,7 @@ export default function LoanEstimate() {
               <Input 
                 value={formData.zipState || ''} 
                 onChange={(e) => handleInputChange('zipState', e.target.value)}
+                placeholder="33131/FL"
               />
             </div>
             <div>
