@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, Contact, Home, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
+import { Calculator, Home, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DTITab } from "./DTITab";
-import { ContactsTab } from "./ContactsTab"; 
 import { DatesTab } from "./DatesTab";
 import { PITITab } from "./PITITab";
 
@@ -25,20 +24,16 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
             ) : (
               <ChevronRight className="h-4 w-4" />
             )}
-            <CardTitle className="text-base font-medium">DTI, Contacts & Address</CardTitle>
+            <CardTitle className="text-base font-medium">DTI, Address & PITI</CardTitle>
           </CollapsibleTrigger>
         </CardHeader>
         <CollapsibleContent>
           <CardContent>
             <Tabs defaultValue="dti" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-2">
+              <TabsList className="grid w-full grid-cols-3 mb-2">
                 <TabsTrigger value="dti" className="text-xs flex items-center gap-1">
                   <Calculator className="h-3 w-3" />
                   DTI
-                </TabsTrigger>
-                <TabsTrigger value="contacts" className="text-xs flex items-center gap-1">
-                  <Contact className="h-3 w-3" />
-                  Contacts
                 </TabsTrigger>
                 <TabsTrigger value="dates" className="text-xs flex items-center gap-1">
                   <Home className="h-3 w-3" />
@@ -52,10 +47,6 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
               
               <TabsContent value="dti" className="mt-0">
                 <DTITab leadId={leadId} />
-              </TabsContent>
-              
-              <TabsContent value="contacts" className="mt-0">
-                <ContactsTab leadId={leadId} />
               </TabsContent>
               
               <TabsContent value="dates" className="mt-0">
