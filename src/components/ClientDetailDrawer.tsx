@@ -867,11 +867,19 @@ export function ClientDetailDrawer({
         );
       case 'pending-app':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="mb-3">
-              <h4 className="font-medium text-sm">Application Status</h4>
-              <span className="text-xs text-muted-foreground">
-                Updated: {formatDateModern(localUpdatedAt)}
-              </span>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="font-medium text-sm">Application Status</h4>
+                <span className="text-xs text-muted-foreground">
+                  Updated: {formatDateModern(localUpdatedAt)}
+                </span>
+              </div>
+              {(client as any).mb_loan_number && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="font-medium">{(client as any).mb_loan_number}</span>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-3 gap-4">
               {/* Column 1: Status Info */}
@@ -948,7 +956,15 @@ export function ClientDetailDrawer({
           </div>;
       case 'screening':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Initial Verification</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Initial Verification</h4>
+              {(client as any).mb_loan_number && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="font-medium">{(client as any).mb_loan_number}</span>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Income type: {(client as any).incomeType || 'W2'}</div>
@@ -963,7 +979,15 @@ export function ClientDetailDrawer({
           </div>;
       case 'pre-qualified':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Pre-Qualification Details</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Pre-Qualification Details</h4>
+              {(client as any).mb_loan_number && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="font-medium">{(client as any).mb_loan_number}</span>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Qualified amount: {(client as any).qualifiedAmount || 'N/A'}</div>
@@ -978,7 +1002,15 @@ export function ClientDetailDrawer({
           </div>;
       case 'pre-approved':
         return <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
-            <h4 className="font-medium text-sm mb-3">Pre-Approval Status</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-sm">Pre-Approval Status</h4>
+              {(client as any).mb_loan_number && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">MB App #:</span>
+                  <span className="font-medium">{(client as any).mb_loan_number}</span>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>• Shopping status: {client.ops.status || 'New'}</div>
