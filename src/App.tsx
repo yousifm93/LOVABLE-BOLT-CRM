@@ -27,6 +27,7 @@ import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
 import PropertyValue from "./pages/resources/PropertyValue";
 import PropertyValuePublic from "./pages/resources/PropertyValuePublic";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
+import ChatbaseBoltBot from "@/pages/resources/ChatbaseBoltBot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import { LoanPricer } from "@/pages/resources/LoanPricer";
 import Condolist from "@/pages/resources/Condolist";
@@ -105,6 +106,7 @@ function AppRoutes() {
               <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
               <Route path="/resources/loan-pricer" element={<LoanPricer />} />
               <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
+              <Route path="/resources/chatbot2" element={<ChatbaseBoltBot />} />
               <Route path="/resources/property-value" element={<PropertyValue />} />
               <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
               <Route path="/resources/email-marketing/*" element={<EmailMarketing />} />

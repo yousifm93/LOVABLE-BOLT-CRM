@@ -68,6 +68,7 @@ const calculatorItems = [
 
 const resourceItems = [
   { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
+  { title: "Bolt Bot 2", url: "/resources/chatbot2", icon: Bot },
   { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail },
   { title: "Condo List", url: "/resources/condolist", icon: Search },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
