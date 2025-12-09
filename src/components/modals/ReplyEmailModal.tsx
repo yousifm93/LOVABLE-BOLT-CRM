@@ -73,7 +73,7 @@ export function ReplyEmailModal({ isOpen, onClose, originalEmail, onEmailSent }:
           to: originalEmail.from_email,
           subject,
           html: body,
-          from_email: "scenarios@mortgagebolt.org",
+          from_email: "yousif@mortgagebolt.org",
           from_name: "Mortgage Bolt",
           cc: cc || undefined,
           reply_to: originalEmail.to_email || "yousif@mortgagebolt.org",
@@ -89,7 +89,7 @@ export function ReplyEmailModal({ isOpen, onClose, originalEmail, onEmailSent }:
         await supabase.from("email_logs").insert({
           lead_id: originalEmail.lead_id,
           direction: "Out",
-          from_email: "scenarios@mortgagebolt.org",
+          from_email: "yousif@mortgagebolt.org",
           to_email: originalEmail.from_email,
           subject,
           body: body.replace(/<[^>]*>/g, ''), // Strip HTML for plain text
@@ -145,7 +145,7 @@ export function ReplyEmailModal({ isOpen, onClose, originalEmail, onEmailSent }:
             <Label htmlFor="from">From</Label>
             <Input
               id="from"
-              value="scenarios@mortgagebolt.org"
+              value="yousif@mortgagebolt.org"
               disabled
               className="bg-muted"
             />
