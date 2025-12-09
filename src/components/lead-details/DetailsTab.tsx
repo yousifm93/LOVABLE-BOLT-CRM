@@ -136,7 +136,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     lock_expiration_date: (client as any).lock_expiration_date || null,
     dscr_ratio: (client as any).dscr_ratio || null,
     prepayment_penalty: (client as any).prepayment_penalty || "",
-    discount_points: (client as any).discount_points || null,
+    discount_points_percentage: (client as any).discount_points_percentage || null,
   });
 
   // Helper function for PITI calculation
@@ -246,7 +246,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       lock_expiration_date: (client as any).lock_expiration_date || null,
       dscr_ratio: (client as any).dscr_ratio || null,
       prepayment_penalty: (client as any).prepayment_penalty || "",
-      discount_points: (client as any).discount_points || null,
+      discount_points_percentage: (client as any).discount_points_percentage || null,
     });
   };
 
@@ -325,6 +325,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         lock_expiration_date: editData.lock_expiration_date,
         dscr_ratio: editData.dscr_ratio,
         prepayment_penalty: editData.prepayment_penalty || null,
+        discount_points_percentage: editData.discount_points_percentage,
+        // Calculate and save dollar amount from percentage
+        discount_points: editData.discount_points_percentage && loanAmount 
+          ? (editData.discount_points_percentage / 100) * loanAmount 
+          : null,
       };
       
       // Recalculate P&I if loan amount is present
@@ -1133,10 +1138,35 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <FourColumnDetailLayout items={propertyData} />
           </div>
 
-          {/* Subject Property Address */}
+          {/* Subject Property Address - Custom 2-Row Grid */}
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Subject Property Address</h4>
-            <FourColumnDetailLayout items={subjectPropertyAddressData} />
+            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+              {/* Row 1: Address 1, Address 2, City, State */}
+              {subjectPropertyAddressData.slice(0, 4).map((item, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className="text-sm font-medium">{item.value}</span>
+                  )}
+                </div>
+              ))}
+              {/* Row 2: Zip Code only */}
+              {subjectPropertyAddressData.slice(4, 5).map((item, index) => (
+                <div key={index + 4} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className="text-sm font-medium">{item.value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Rate Lock Information Subheading */}
@@ -1161,16 +1191,31 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
               { 
                 icon: Hash, 
                 label: "Discount Points", 
-                value: (client as any).discount_points ? String((client as any).discount_points) : "—",
+                value: (() => {
+                  const pct = (client as any).discount_points_percentage;
+                  const loanAmt = client.loan?.loanAmount || 0;
+                  if (pct && loanAmt > 0) {
+                    const dollarAmt = (pct / 100) * loanAmt;
+                    return `${pct.toFixed(3)}% ($${dollarAmt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
+                  }
+                  return pct ? `${pct.toFixed(3)}%` : "—";
+                })(),
                 editComponent: isEditing ? (
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={editData.discount_points || ""}
-                    onChange={(e) => setEditData({ ...editData, discount_points: parseFloat(e.target.value) || null })}
-                    className="h-8"
-                    placeholder="1.27"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      value={editData.discount_points_percentage || ""}
+                      onChange={(e) => setEditData({ ...editData, discount_points_percentage: parseFloat(e.target.value) || null })}
+                      className="h-8 w-24"
+                      placeholder="1.246"
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {editData.discount_points_percentage && editData.loan_amount 
+                        ? `($${((editData.discount_points_percentage / 100) * editData.loan_amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`
+                        : ''}
+                    </span>
+                  </div>
                 ) : undefined
               },
               { 
@@ -1283,10 +1328,35 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           {/* Real Estate Owned Section */}
           {leadId && <RealEstateOwnedSection leadId={leadId} />}
           
-          {/* Monthly Payment Breakdown */}
+          {/* Monthly Payment Breakdown - Custom 2-Row Grid */}
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
-            <FourColumnDetailLayout items={monthlyPaymentData} />
+            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+              {/* Row 1: P&I, Property Taxes, Monthly HOI, Monthly MI */}
+              {monthlyPaymentData.slice(0, 4).map((item, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className="text-sm font-medium">{item.value}</span>
+                  )}
+                </div>
+              ))}
+              {/* Row 2: HOA Dues, PITI */}
+              {monthlyPaymentData.slice(4, 6).map((item, index) => (
+                <div key={index + 4} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className={`text-sm font-medium ${(item as any).isCalculated ? 'text-primary font-semibold' : ''}`}>{item.value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1397,13 +1467,25 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           </div>
         )}
 
-        {/* Goals Section */}
+        {/* Goals Section - Vertical Stack */}
         <div className="space-y-4 pt-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
             Goals
           </h3>
-          <FourColumnDetailLayout items={goalsData} />
+          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+            {goalsData.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <item.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium whitespace-nowrap">{item.label}:</span>
+                {isEditing && item.editComponent ? (
+                  <div className="flex-1 max-w-xs">{item.editComponent}</div>
+                ) : (
+                  <span className="text-sm font-semibold">{item.value}</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Paper Application Section */}
