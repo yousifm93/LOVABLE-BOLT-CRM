@@ -54,6 +54,8 @@ export function RealEstateOwnedSection({ leadId }: RealEstateOwnedSectionProps) 
 
   const totalProperties = properties.length;
   const totalValue = properties.reduce((sum, p) => sum + (p.property_value || 0), 0);
+  const totalRentalIncome = properties.reduce((sum, p) => sum + (p.monthly_rent || 0), 0);
+  const totalMonthlyExpenses = properties.reduce((sum, p) => sum + (p.monthly_expenses || 0), 0);
   const totalNetIncome = properties.reduce((sum, p) => sum + (p.net_income || 0), 0);
 
   if (loading) {
@@ -66,7 +68,7 @@ export function RealEstateOwnedSection({ leadId }: RealEstateOwnedSectionProps) 
         <Home className="h-4 w-4" />
         Real Estate Owned
       </h4>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">Total Properties</span>
           <span className="text-sm font-medium">{totalProperties}</span>
@@ -76,7 +78,19 @@ export function RealEstateOwnedSection({ leadId }: RealEstateOwnedSectionProps) 
           <span className="text-sm font-medium">{formatCurrency(totalValue)}</span>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Total Net Income</span>
+          <span className="text-xs text-muted-foreground">Total Rental Income</span>
+          <span className="text-sm font-medium text-green-600">
+            {formatCurrency(totalRentalIncome)}/mo
+          </span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Total Monthly Expenses</span>
+          <span className="text-sm font-medium text-red-600">
+            {formatCurrency(totalMonthlyExpenses)}/mo
+          </span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Net Income</span>
           <span className={`text-sm font-medium ${totalNetIncome > 0 ? "text-green-600" : totalNetIncome < 0 ? "text-red-600" : ""}`}>
             {formatCurrency(totalNetIncome)}/mo
           </span>

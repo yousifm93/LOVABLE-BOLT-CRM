@@ -92,9 +92,9 @@ export default function MortgageAppAdmin() {
 
       if (appUsersError) throw appUsersError;
 
-      // Filter out users who have completed applications
-      const completedUserIds = new Set(data?.map(app => app.id) || []);
-      const startedOnly = appUsers?.filter(user => !completedUserIds.has(user.id)) || [];
+      // Filter out users who have completed applications (compare by email, not ID)
+      const completedEmails = new Set(data?.map(app => app.email?.toLowerCase()) || []);
+      const startedOnly = appUsers?.filter(user => !completedEmails.has(user.email?.toLowerCase())) || [];
       setStartedApps(startedOnly);
 
       // Calculate stats
