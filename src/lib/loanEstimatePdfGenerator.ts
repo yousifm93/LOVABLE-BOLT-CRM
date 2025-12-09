@@ -98,27 +98,32 @@ export const generateLoanEstimatePDF = async (
   shouldDownload: boolean = true
 ): Promise<Uint8Array> => {
   try {
-    // Download the PDF template from Supabase
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([612, 792]); // Standard letter size
+    const { width, height } = page.getSize();
+
+    // Download the PNG template from Supabase
     const { data: templateData, error } = await supabase.storage
       .from('pdf-templates')
-      .download('Copy of Copy of LE - FORMATTED FOR AUTOMATION (8.5 x 11 in) (2).pdf');
+      .download('Copy of Copy of LE - FORMATTED FOR AUTOMATION (8.5 x 11 in).png');
 
     if (error || !templateData) {
-      console.error('Failed to load PDF template:', error);
-      throw new Error('PDF template not found in storage');
+      console.error('Failed to load PNG template:', error);
+      throw new Error('PNG template not found in storage');
     }
 
-    // Load the template PDF
-    const templateBytes = await templateData.arrayBuffer();
-    const templateDoc = await PDFDocument.load(templateBytes);
-    
-    // Create new PDF and copy the first page (blank template)
-    const pdfDoc = await PDFDocument.create();
-    const [templatePage] = await templateDoc.copyPages(templateDoc, [0]);
-    pdfDoc.addPage(templatePage);
-    
-    const page = pdfDoc.getPages()[0];
-    const { height } = page.getSize();
+    // Embed the PNG as page background
+    const imageBytes = await templateData.arrayBuffer();
+    const templateImg = await pdfDoc.embedPng(imageBytes);
+
+    // Draw template as full-page background
+    page.drawImage(templateImg, {
+      x: 0,
+      y: 0,
+      width: width,
+      height: height,
+    });
 
     // Embed fonts
     const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
