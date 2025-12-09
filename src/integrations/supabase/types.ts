@@ -1321,6 +1321,7 @@ export type Database = {
       email_logs: {
         Row: {
           agent_id: string | null
+          ai_summary: string | null
           attachments_json: Json | null
           body: string | null
           bounced_at: string | null
@@ -1343,6 +1344,7 @@ export type Database = {
         }
         Insert: {
           agent_id?: string | null
+          ai_summary?: string | null
           attachments_json?: Json | null
           body?: string | null
           bounced_at?: string | null
@@ -1365,6 +1367,7 @@ export type Database = {
         }
         Update: {
           agent_id?: string | null
+          ai_summary?: string | null
           attachments_json?: Json | null
           body?: string | null
           bounced_at?: string | null

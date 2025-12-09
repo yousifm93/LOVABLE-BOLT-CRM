@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
@@ -28,6 +29,7 @@ interface Activity {
   html_body?: string;
   lead_id?: string;
   to_email?: string;
+  ai_summary?: string;
 }
 
 interface ActivityTabProps {
@@ -182,18 +184,40 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                   
                   <div className="flex-1 space-y-1 min-w-0 text-left">
                     <div className="flex items-center gap-2 flex-wrap">
-              <Badge 
-                variant={getActivityBadgeVariant(activity)} 
-                className={cn(
-                  "text-xs flex items-center gap-1",
-                  activity.type === 'task' && activity.task_status !== 'Done' && 
-                  "bg-orange-100 hover:bg-orange-100 border-orange-200",
-                  getEmailBadgeClassName(activity)
-                )}
-              >
-                {getActivityIcon(activity.type)}
-                {getActivityBadgeLabel(activity)}
+              {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant={getActivityBadgeVariant(activity)} 
+                        className={cn(
+                          "text-xs flex items-center gap-1 cursor-help",
+                          getEmailBadgeClassName(activity)
+                        )}
+                      >
+                        {getActivityIcon(activity.type)}
+                        {getActivityBadgeLabel(activity)}
                       </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm">{activity.ai_summary}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Badge 
+                  variant={getActivityBadgeVariant(activity)} 
+                  className={cn(
+                    "text-xs flex items-center gap-1",
+                    activity.type === 'task' && activity.task_status !== 'Done' && 
+                    "bg-orange-100 hover:bg-orange-100 border-orange-200",
+                    getEmailBadgeClassName(activity)
+                  )}
+                >
+                  {getActivityIcon(activity.type)}
+                  {getActivityBadgeLabel(activity)}
+                </Badge>
+              )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                       </span>
