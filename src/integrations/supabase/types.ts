@@ -1946,6 +1946,7 @@ export type Database = {
           disclosure_status:
             | Database["public"]["Enums"]["disclosure_status"]
             | null
+          discount_points: number | null
           dob: string | null
           down_pmt: string | null
           dscr_ratio: number | null
@@ -2109,6 +2110,7 @@ export type Database = {
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
             | null
+          discount_points?: number | null
           dob?: string | null
           down_pmt?: string | null
           dscr_ratio?: number | null
@@ -2274,6 +2276,7 @@ export type Database = {
           disclosure_status?:
             | Database["public"]["Enums"]["disclosure_status"]
             | null
+          discount_points?: number | null
           dob?: string | null
           down_pmt?: string | null
           dscr_ratio?: number | null
