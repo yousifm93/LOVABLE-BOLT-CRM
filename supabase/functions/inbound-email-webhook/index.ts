@@ -81,6 +81,14 @@ function calculateMatchScore(
   return null; // No match - removed all partial matching
 }
 
+// Email addresses to ignore as they are forwarding addresses, not actual senders
+const IGNORED_FORWARDING_EMAILS = [
+  'yousif@mortgagebolt.com',
+  'yousif@mortgagebolt.org',
+  'yousifminc@gmail.com',
+  'scenarios@mortgagebolt.org',
+];
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -132,11 +140,22 @@ serve(async (req) => {
       return raw.trim().toLowerCase();
     };
 
-    // Prioritize the raw 'from' field (actual sender) over envelope.from (which may be the forwarding address)
-    const senderEmail = extractEmail(fromRaw) || (envelope.from ? envelope.from.toLowerCase() : '');
+    // Extract sender email, checking if it's a forwarding address
+    let senderEmail = extractEmail(fromRaw) || (envelope.from ? envelope.from.toLowerCase() : '');
     const recipientEmail = envelope.to?.[0]?.toLowerCase() || extractEmail(toRaw);
     
-    console.log('[Inbound Email Webhook] Parsed sender email:', senderEmail);
+    // Check if the extracted sender is a forwarding/team address that should be ignored
+    const isForwardingAddress = IGNORED_FORWARDING_EMAILS.some(
+      ignored => senderEmail.toLowerCase() === ignored.toLowerCase()
+    );
+    
+    if (isForwardingAddress) {
+      console.log('[Inbound Email Webhook] Ignoring forwarding address:', senderEmail);
+      console.log('[Inbound Email Webhook] Will rely on content-based matching instead');
+      senderEmail = ''; // Clear so we skip sender-based matching and use content matching
+    }
+    
+    console.log('[Inbound Email Webhook] Parsed sender email:', senderEmail || '(ignored - using content matching)');
     console.log('[Inbound Email Webhook] Parsed recipient email:', recipientEmail);
 
     // Extract sender name from raw format
@@ -151,21 +170,25 @@ serve(async (req) => {
     let matchedAgent: { id: string } | null = null;
     let matchMethod = 'none';
 
-    // STEP 1: Try to match by sender email (existing behavior)
-    const { data: matchingLeads, error: leadError } = await supabase
-      .from('leads')
-      .select('id, first_name, last_name, email')
-      .or(`email.ilike.%${senderEmail}%,co_borrower_email.ilike.%${senderEmail}%`)
-      .limit(1);
+    // STEP 1: Try to match by sender email (only if not a forwarding address)
+    if (senderEmail) {
+      const { data: matchingLeads, error: leadError } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, email')
+        .or(`email.ilike.%${senderEmail}%,co_borrower_email.ilike.%${senderEmail}%`)
+        .limit(1);
 
-    if (leadError) {
-      console.error('[Inbound Email Webhook] Error searching leads by sender:', leadError);
-    }
+      if (leadError) {
+        console.error('[Inbound Email Webhook] Error searching leads by sender:', leadError);
+      }
 
-    if (matchingLeads?.[0]) {
-      leadId = matchingLeads[0].id;
-      matchMethod = 'sender_email';
-      console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
+      if (matchingLeads?.[0]) {
+        leadId = matchingLeads[0].id;
+        matchMethod = 'sender_email';
+        console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
+      }
+    } else {
+      console.log('[Inbound Email Webhook] Skipping sender-based matching (forwarding address detected)');
     }
 
     // STEP 2: If no match by sender, try matching by subject/content
@@ -218,19 +241,21 @@ serve(async (req) => {
       }
     }
 
-    // STEP 3: Search for matching buyer agent by sender email
-    const { data: matchingAgents, error: agentError } = await supabase
-      .from('buyer_agents')
-      .select('id, first_name, last_name, email')
-      .ilike('email', `%${senderEmail}%`)
-      .limit(1);
+    // STEP 3: Search for matching buyer agent by sender email (only if not a forwarding address)
+    if (senderEmail) {
+      const { data: matchingAgents, error: agentError } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, email')
+        .ilike('email', `%${senderEmail}%`)
+        .limit(1);
 
-    if (agentError) {
-      console.error('[Inbound Email Webhook] Error searching agents:', agentError);
+      if (agentError) {
+        console.error('[Inbound Email Webhook] Error searching agents:', agentError);
+      }
+
+      matchedAgent = matchingAgents?.[0] || null;
+      console.log('[Inbound Email Webhook] Matched agent:', matchedAgent?.id || 'none');
     }
-
-    matchedAgent = matchingAgents?.[0] || null;
-    console.log('[Inbound Email Webhook] Matched agent:', matchedAgent?.id || 'none');
 
     // If still no lead found, check if agent has associated leads
     if (!leadId && matchedAgent) {
