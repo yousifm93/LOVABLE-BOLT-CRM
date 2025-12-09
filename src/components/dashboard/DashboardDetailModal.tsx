@@ -117,12 +117,12 @@ export function DashboardDetailModal({
   };
 
   const getFourthColumnTitle = () => {
-    if (type === "emails") return "Subject";
+    if (type === "emails") return "AI Summary";
     return null;
   };
 
   const getFifthColumnTitle = () => {
-    if (type === "emails") return "AI Summary";
+    if (type === "emails") return "Subject";
     return null;
   };
 
@@ -184,17 +184,17 @@ export function DashboardDetailModal({
                       </span>
                     )}
                   </TableCell>
-                  {type === "emails" && "subject" in item && (
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground line-clamp-1">
-                        {item.subject || "—"}
-                      </span>
-                    </TableCell>
-                  )}
                   {type === "emails" && (
                     <TableCell>
                       <span className="text-sm text-muted-foreground line-clamp-2">
                         {(item as Email).ai_summary || "—"}
+                      </span>
+                    </TableCell>
+                  )}
+                  {type === "emails" && "subject" in item && (
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground line-clamp-1">
+                        {item.subject || "—"}
                       </span>
                     </TableCell>
                   )}
