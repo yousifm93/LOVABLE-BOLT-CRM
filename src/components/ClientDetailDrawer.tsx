@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import * as React from "react";
 import { format } from "date-fns";
 import { calculatePrincipalAndInterest } from "@/hooks/usePITICalculation";
-import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle } from "lucide-react";
+import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, Task, Document } from "@/types/crm";
@@ -1603,45 +1604,54 @@ export function ClientDetailDrawer({
             <LeadTeamContactsDatesCard leadId={leadId || ""} />
 
 
-            {/* Chat with Borrower */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-bold">Chat with Borrower</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
-                  <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                      <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
-                      <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+            {/* Chat with Borrower - Collapsible */}
+            <Collapsible defaultOpen={false}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                    <CardTitle className="text-sm font-bold flex items-center justify-between">
+                      Chat with Borrower
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
+                      <div className="flex justify-end">
+                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                          <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
+                          <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-start">
+                        <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
+                          <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
+                          <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                          <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
+                          <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
-                      <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
-                      <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                    <div className="flex gap-2">
+                      <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }} />
+                      <Button size="sm" onClick={handleSendMessage}>
+                        <Send className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                      <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
-                      <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }} />
-                  <Button size="sm" onClick={handleSendMessage}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </div>
 
           {/* Center Column - Status Tracker & Lead Information */}

@@ -104,8 +104,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     interest_rate: client.loan?.interestRate ?? 7.0,
     term: client.loan?.term || 360,
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-    cash_to_close: (client as any).cash_to_close || null,
-    closing_costs: (client as any).closing_costs || null,
+    cash_to_close: (client as any).cash_to_close || (client as any).cashToClose || null,
+    closing_costs: (client as any).closing_costs || (client as any).closingCosts || null,
     
     // Loan & Property - Property
     occupancy: (client as any).occupancy || "",
@@ -115,6 +115,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     subject_city: (client as any).subject_city || "",
     subject_state: (client as any).subject_state || "",
     subject_zip: (client as any).subject_zip || "",
+    subject_property_rental_income: (client as any).subject_property_rental_income || null,
     
     // Financial Summary
     monthly_payment_goal: (client as any).monthly_payment_goal || null,
@@ -206,8 +207,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       interest_rate: client.loan?.interestRate ?? 7.0,
       term: client.loan?.term || 360,
       escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
-      cash_to_close: (client as any).cash_to_close || null,
-      closing_costs: (client as any).closing_costs || null,
+      cash_to_close: (client as any).cash_to_close || (client as any).cashToClose || null,
+      closing_costs: (client as any).closing_costs || (client as any).closingCosts || null,
       occupancy: (client as any).occupancy || "",
       property_type: client.property?.propertyType || "",
       subject_address_1: (client as any).subject_address_1 || "",
@@ -215,6 +216,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       subject_city: (client as any).subject_city || "",
       subject_state: (client as any).subject_state || "",
       subject_zip: (client as any).subject_zip || "",
+      subject_property_rental_income: (client as any).subject_property_rental_income || null,
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
       cash_to_close_goal: (client as any).cash_to_close_goal || null,
       total_monthly_income: (client as any).totalMonthlyIncome || null,
@@ -227,7 +229,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       mortgage_insurance: (client as any).mortgageInsurance || null,
       hoa_dues: (client as any).hoaDues || null,
       piti: client.piti || null,
-      // Rate Lock fields
       lock_expiration_date: (client as any).lock_expiration_date || null,
       dscr_ratio: (client as any).dscr_ratio || null,
       prepayment_penalty: (client as any).prepayment_penalty || "",
@@ -295,6 +296,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         subject_city: editData.subject_city || null,
         subject_state: editData.subject_state || null,
         subject_zip: editData.subject_zip || null,
+        subject_property_rental_income: editData.subject_property_rental_income || null,
         
         // Financial Summary
         monthly_pmt_goal: editData.monthly_payment_goal,
@@ -474,6 +476,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
 
   // ============================================
   // BORROWER INFORMATION DATA (Horizontal flow: 3 columns)
+  // Reordered: Row 1: First/Last/DOB, Row 2: Phone/Email/Address, Row 3: Marital/Residency/Gender
   // ============================================
   const borrowerData = [
     // Row 1
@@ -516,7 +519,49 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : undefined
     },
-    // Row 2
+    // Row 2: Phone, Email, Current Address (moved up)
+    { 
+      icon: Phone, 
+      label: "Borrower Phone", 
+      value: client.person?.phone || client.person?.phoneMobile || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="tel"
+          value={editData.phone}
+          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+          className="h-8"
+          placeholder="Phone number"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Mail, 
+      label: "Borrower Email", 
+      value: client.person?.email || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="email"
+          value={editData.email}
+          onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+          className="h-8"
+          placeholder="Email address"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Home, 
+      label: "Current Property Address", 
+      value: (client as any).borrower_current_address || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.borrower_current_address}
+          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
+          className="h-8"
+          placeholder="Street, City, State, ZIP"
+        />
+      ) : undefined
+    },
+    // Row 3: Marital, Residency, Gender (moved down)
     { 
       icon: Users, 
       label: "Marital Status", 
@@ -579,53 +624,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         </Select>
       ) : undefined
     },
-    // Row 3
-    { 
-      icon: Phone, 
-      label: "Borrower Phone", 
-      value: client.person?.phone || client.person?.phoneMobile || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="tel"
-          value={editData.phone}
-          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-          className="h-8"
-          placeholder="Phone number"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Mail, 
-      label: "Borrower Email", 
-      value: client.person?.email || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="email"
-          value={editData.email}
-          onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-          className="h-8"
-          placeholder="Email address"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Home, 
-      label: "Current Property Address", 
-      value: (client as any).borrower_current_address || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.borrower_current_address}
-          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
-          className="h-8"
-          placeholder="Street, City, State, ZIP"
-        />
-      ) : undefined
-    },
   ];
 
   // ============================================
   // LOAN & PROPERTY - TRANSACTION DETAILS
   // ============================================
+  // Reordered: Closing Costs above Cash to Close
   const transactionDetailsData = [
     { 
       icon: ArrowRightLeft, 
@@ -759,15 +763,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         </Select>
       ) : undefined
     },
+    // Closing Costs moved ABOVE Cash to Close
     { 
       icon: DollarSign, 
-      label: "Cash to Close", 
-      value: formatCurrency((client as any).cash_to_close || 0),
+      label: "Closing Costs", 
+      value: formatCurrency((client as any).closingCosts || (client as any).closing_costs || 0),
       editComponent: isEditing ? (
         <Input
           type="text"
-          value={editData.cash_to_close || ""}
-          onChange={(e) => setEditData({ ...editData, cash_to_close: e.target.value || null })}
+          value={editData.closing_costs || ""}
+          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
           className="h-8"
           placeholder="0"
         />
@@ -775,13 +780,13 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     { 
       icon: DollarSign, 
-      label: "Closing Costs", 
-      value: formatCurrency((client as any).closing_costs || 0),
+      label: "Cash to Close", 
+      value: formatCurrency((client as any).cashToClose || (client as any).cash_to_close || 0),
       editComponent: isEditing ? (
         <Input
           type="text"
-          value={editData.closing_costs || ""}
-          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
+          value={editData.cash_to_close || ""}
+          onChange={(e) => setEditData({ ...editData, cash_to_close: e.target.value || null })}
           className="h-8"
           placeholder="0"
         />
@@ -841,6 +846,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           </SelectContent>
         </Select>
       ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Subject Property Rental Income", 
+      value: formatCurrency((client as any).subject_property_rental_income || 0),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.subject_property_rental_income}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, subject_property_rental_income: value || 0 }))}
+          className="w-full"
+        />
+      ) : null
     },
   ];
 
@@ -1117,24 +1134,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 pt-0">
-        {/* Single Edit/Save button set at top */}
-        <div className="flex items-center justify-end gap-2">
-          {isEditing ? (
-            <>
-              <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save All"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" size="sm" onClick={handleEdit}>
-              <Pencil className="h-3 w-3 mr-1" />
-              Edit All
-            </Button>
-          )}
-        </div>
 
         {/* 1. BORROWER INFORMATION */}
         <div>
@@ -1462,6 +1461,21 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">
+            {isEditing ? (
+              <>
+                <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save All"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Pencil className="h-3 w-3 mr-1" />
+                Edit All
+              </Button>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 

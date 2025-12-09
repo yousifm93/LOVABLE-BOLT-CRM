@@ -1899,6 +1899,7 @@ export type Database = {
           appraisal_file: string | null
           appraisal_notes: string | null
           appraisal_ordered_date: string | null
+          appraisal_received_on: string | null
           appraisal_scheduled_date: string | null
           appraisal_status:
             | Database["public"]["Enums"]["appraisal_status"]
@@ -2035,6 +2036,7 @@ export type Database = {
           subject_address_1: string | null
           subject_address_2: string | null
           subject_city: string | null
+          subject_property_rental_income: number | null
           subject_state: string | null
           subject_zip: string | null
           submitted_at: string | null
@@ -2060,6 +2062,7 @@ export type Database = {
           appraisal_file?: string | null
           appraisal_notes?: string | null
           appraisal_ordered_date?: string | null
+          appraisal_received_on?: string | null
           appraisal_scheduled_date?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
@@ -2198,6 +2201,7 @@ export type Database = {
           subject_address_1?: string | null
           subject_address_2?: string | null
           subject_city?: string | null
+          subject_property_rental_income?: number | null
           subject_state?: string | null
           subject_zip?: string | null
           submitted_at?: string | null
@@ -2223,6 +2227,7 @@ export type Database = {
           appraisal_file?: string | null
           appraisal_notes?: string | null
           appraisal_ordered_date?: string | null
+          appraisal_received_on?: string | null
           appraisal_scheduled_date?: string | null
           appraisal_status?:
             | Database["public"]["Enums"]["appraisal_status"]
@@ -2361,6 +2366,7 @@ export type Database = {
           subject_address_1?: string | null
           subject_address_2?: string | null
           subject_city?: string | null
+          subject_property_rental_income?: number | null
           subject_state?: string | null
           subject_zip?: string | null
           submitted_at?: string | null

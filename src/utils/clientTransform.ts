@@ -283,5 +283,9 @@ export function transformLeadToClient(lead: any): any {
     title_file: lead.title_file || null,
     condo_file: lead.condo_file || null,
     rate_lock_file: lead.rate_lock_file || null,
+    
+    // New fields
+    appraisal_received_on: lead.appraisal_received_on || null,
+    subject_property_rental_income: lead.subject_property_rental_income || null,
   };
 }
