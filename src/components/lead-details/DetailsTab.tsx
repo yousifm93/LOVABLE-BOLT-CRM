@@ -36,7 +36,9 @@ import {
   Trash2,
   MapPin,
   Landmark,
-  ClipboardCheck
+  ClipboardCheck,
+  Hash,
+  Target
 } from "lucide-react";
 import {
   AlertDialog,
@@ -1146,15 +1148,31 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 ) : undefined
               },
               { 
-                icon: Calendar, 
-                label: "Lock Expiration", 
-                value: formatDate((client as any).lock_expiration_date),
+                icon: Hash, 
+                label: "Discount Points", 
+                value: (client as any).discount_points ? String((client as any).discount_points) : "—",
                 editComponent: isEditing ? (
                   <Input
-                    type="date"
-                    value={editData.lock_expiration_date || ""}
-                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
+                    type="number"
+                    step="0.01"
+                    value={editData.discount_points || ""}
+                    onChange={(e) => setEditData({ ...editData, discount_points: parseFloat(e.target.value) || null })}
                     className="h-8"
+                    placeholder="1.27"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Calendar, 
+                label: "Amortization Term", 
+                value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
+                editComponent: isEditing ? (
+                  <Input
+                    type="number"
+                    value={editData.term || ""}
+                    onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
+                    className="h-8"
+                    placeholder="360"
                   />
                 ) : undefined
               },
@@ -1172,6 +1190,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                     onChange={(e) => setEditData({ ...editData, dscr_ratio: parseFloat(e.target.value) || null })}
                     className="h-8"
                     placeholder="1.25"
+                  />
+                ) : undefined
+              },
+              { 
+                icon: Calendar, 
+                label: "Lock Expiration", 
+                value: formatDate((client as any).lock_expiration_date),
+                editComponent: isEditing ? (
+                  <Input
+                    type="date"
+                    value={editData.lock_expiration_date || ""}
+                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
+                    className="h-8"
                   />
                 ) : undefined
               },
@@ -1196,20 +1227,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                       <SelectItem value="5">5 Years</SelectItem>
                     </SelectContent>
                   </Select>
-                ) : undefined
-              },
-              { 
-                icon: Calendar, 
-                label: "Amortization Term", 
-                value: client.loan?.term ? formatAmortizationTerm(client.loan.term) : formatAmortizationTerm(360),
-                editComponent: isEditing ? (
-                  <Input
-                    type="number"
-                    value={editData.term || ""}
-                    onChange={(e) => setEditData({ ...editData, term: parseInt(e.target.value) || 360 })}
-                    className="h-8"
-                    placeholder="360"
-                  />
                 ) : undefined
               },
               { 
@@ -1359,6 +1376,15 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <FourColumnDetailLayout items={coBorrowerData} />
           </div>
         )}
+
+        {/* Goals Section */}
+        <div className="space-y-4 pt-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            Goals
+          </h3>
+          <FourColumnDetailLayout items={goalsData} />
+        </div>
 
         {/* Paper Application Section */}
         <div>
