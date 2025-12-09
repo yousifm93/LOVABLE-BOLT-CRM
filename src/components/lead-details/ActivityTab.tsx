@@ -154,6 +154,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
           <p className="text-sm mt-1">Activities will appear here as they occur</p>
         </div>
       ) : (
+        <TooltipProvider delayDuration={0}>
         <ScrollArea className="h-[400px] w-full">
           <div className="space-y-3">
         {activities.map((activity, index) => {
@@ -185,25 +186,24 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                   <div className="flex-1 space-y-1 min-w-0 text-left">
                     <div className="flex items-center gap-2 flex-wrap">
               {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge 
-                        variant={getActivityBadgeVariant(activity)} 
-                        className={cn(
-                          "text-xs flex items-center gap-1 cursor-help",
-                          getEmailBadgeClassName(activity)
-                        )}
-                      >
-                        {getActivityIcon(activity.type)}
-                        {getActivityBadgeLabel(activity)}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs">
-                      <p className="text-sm">{activity.ai_summary}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant={getActivityBadgeVariant(activity)} 
+                      className={cn(
+                        "text-xs flex items-center gap-1 cursor-help",
+                        getEmailBadgeClassName(activity)
+                      )}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      {getActivityIcon(activity.type)}
+                      {getActivityBadgeLabel(activity)}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-sm">{activity.ai_summary}</p>
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <Badge 
                   variant={getActivityBadgeVariant(activity)} 
@@ -265,6 +265,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
         })}
           </div>
         </ScrollArea>
+        </TooltipProvider>
       )}
 
       <NoteDetailModal

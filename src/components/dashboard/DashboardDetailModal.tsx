@@ -48,6 +48,7 @@ interface Email {
   snippet?: string | null;
   timestamp: string;
   delivery_status?: string | null;
+  ai_summary?: string | null;
   lead?: {
     first_name: string;
     last_name: string;
@@ -86,7 +87,9 @@ export function DashboardDetailModal({
       return item.last_agent_call ? new Date(item.last_agent_call).toLocaleDateString() : "—";
     }
     if (type === "emails" && "timestamp" in item) {
-      return item.timestamp ? new Date(item.timestamp).toLocaleDateString() : "—";
+      return item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+      }) : "—";
     }
     return "—";
   };
@@ -118,6 +121,11 @@ export function DashboardDetailModal({
     return null;
   };
 
+  const getFifthColumnTitle = () => {
+    if (type === "emails") return "AI Summary";
+    return null;
+  };
+
   const getName = (item: Lead | Agent | Email) => {
     if (type === "emails" && "lead" in item && item.lead) {
       return `${item.lead.first_name || ''} ${item.lead.last_name || ''}`.trim() || "Unknown";
@@ -142,6 +150,7 @@ export function DashboardDetailModal({
                 <TableHead>{getDateColumnTitle()}</TableHead>
                 <TableHead>{getThirdColumnTitle()}</TableHead>
                 {getFourthColumnTitle() && <TableHead>{getFourthColumnTitle()}</TableHead>}
+                {getFifthColumnTitle() && <TableHead>{getFifthColumnTitle()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -179,6 +188,13 @@ export function DashboardDetailModal({
                     <TableCell>
                       <span className="text-sm text-muted-foreground line-clamp-1">
                         {item.subject || "—"}
+                      </span>
+                    </TableCell>
+                  )}
+                  {type === "emails" && "ai_summary" in item && (
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground line-clamp-2">
+                        {item.ai_summary || "—"}
                       </span>
                     </TableCell>
                   )}
