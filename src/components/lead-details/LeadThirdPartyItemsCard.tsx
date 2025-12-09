@@ -25,7 +25,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('first_name, last_name, appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes, sales_price')
+        .select('first_name, last_name, appraisal_status, appraisal_ordered_date, appraisal_scheduled_date, appr_date_time, appr_eta, appraisal_value, appraisal_file, appraisal_notes, appraisal_received_on, title_ordered_date, title_eta, title_file, title_status, title_notes, hoi_status, insurance_quoted_date, insurance_ordered_date, insurance_received_date, insurance_policy_file, insurance_inspection_file, insurance_notes, condo_id, condo_status, condo_ordered_date, condo_eta, condo_approval_type, condo_notes, sales_price')
         .eq('id', leadId)
         .single();
       if (error) throw error;
@@ -118,6 +118,7 @@ export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps
                     appraisal_value: lead.appraisal_value,
                     appraisal_file: lead.appraisal_file,
                     appraisal_notes: lead.appraisal_notes,
+                    appraisal_received_on: lead.appraisal_received_on,
                     sales_price: lead.sales_price
                   }}
                   onUpdate={handleUpdate}
