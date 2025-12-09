@@ -138,7 +138,7 @@ export function DashboardDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-6xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{title} ({data.length})</DialogTitle>
         </DialogHeader>
