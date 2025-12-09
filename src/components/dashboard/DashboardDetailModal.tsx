@@ -191,10 +191,10 @@ export function DashboardDetailModal({
                       </span>
                     </TableCell>
                   )}
-                  {type === "emails" && "ai_summary" in item && (
+                  {type === "emails" && (
                     <TableCell>
                       <span className="text-sm text-muted-foreground line-clamp-2">
-                        {item.ai_summary || "—"}
+                        {(item as Email).ai_summary || "—"}
                       </span>
                     </TableCell>
                   )}

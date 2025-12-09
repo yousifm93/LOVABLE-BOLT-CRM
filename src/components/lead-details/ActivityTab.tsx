@@ -175,65 +175,66 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
               onOpenChange={() => toggleActivity(activity.id)}
               className="pb-3 border-b last:border-0"
             >
-              <CollapsibleTrigger className="w-full">
-                <div className="flex items-start gap-3 p-2 -m-2 cursor-pointer hover:bg-muted/50 rounded transition-colors">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 space-y-1 min-w-0 text-left">
-                    <div className="flex items-center gap-2 flex-wrap">
-              {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      variant={getActivityBadgeVariant(activity)} 
-                      className={cn(
-                        "text-xs flex items-center gap-1 cursor-help",
-                        getEmailBadgeClassName(activity)
-                      )}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      {getActivityIcon(activity.type)}
-                      {getActivityBadgeLabel(activity)}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="text-sm">{activity.ai_summary}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Badge 
-                  variant={getActivityBadgeVariant(activity)} 
-                  className={cn(
-                    "text-xs flex items-center gap-1",
-                    activity.type === 'task' && activity.task_status !== 'Done' && 
-                    "bg-orange-100 hover:bg-orange-100 border-orange-200",
-                    getEmailBadgeClassName(activity)
-                  )}
-                >
-                  {getActivityIcon(activity.type)}
-                  {getActivityBadgeLabel(activity)}
-                </Badge>
-              )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
-                      )}
-                    </div>
-                    
-                    <p className="text-xs text-muted-foreground">
-                      by {activity.user}
-                    </p>
+              <div className="flex items-start gap-3 p-2 -m-2 rounded transition-colors">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex-1 space-y-1 min-w-0 text-left">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant={getActivityBadgeVariant(activity)} 
+                            className={cn(
+                              "text-xs flex items-center gap-1 cursor-help",
+                              getEmailBadgeClassName(activity)
+                            )}
+                          >
+                            {getActivityIcon(activity.type)}
+                            {getActivityBadgeLabel(activity)}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p className="text-sm">{activity.ai_summary}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Badge 
+                        variant={getActivityBadgeVariant(activity)} 
+                        className={cn(
+                          "text-xs flex items-center gap-1",
+                          activity.type === 'task' && activity.task_status !== 'Done' && 
+                          "bg-orange-100 hover:bg-orange-100 border-orange-200",
+                          getEmailBadgeClassName(activity)
+                        )}
+                      >
+                        {getActivityIcon(activity.type)}
+                        {getActivityBadgeLabel(activity)}
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button className="ml-auto hover:bg-muted p-1 rounded">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
                   </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    by {activity.user}
+                  </p>
                 </div>
-              </CollapsibleTrigger>
+              </div>
               
               {activity.description && (
                 <CollapsibleContent>
