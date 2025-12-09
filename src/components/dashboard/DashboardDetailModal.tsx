@@ -38,12 +38,28 @@ interface Agent {
   meeting_summary?: string | null;
 }
 
+interface Email {
+  id: string;
+  lead_id: string;
+  direction: 'In' | 'Out';
+  from_email: string;
+  to_email: string;
+  subject: string;
+  snippet?: string | null;
+  timestamp: string;
+  delivery_status?: string | null;
+  lead?: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
 interface DashboardDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  data: Lead[] | Agent[];
-  type: "leads" | "applications" | "meetings" | "calls";
+  data: Lead[] | Agent[] | Email[];
+  type: "leads" | "applications" | "meetings" | "calls" | "emails";
   onLeadClick?: (leadId: string) => void;
 }
 
@@ -56,7 +72,7 @@ export function DashboardDetailModal({
   onLeadClick,
 }: DashboardDetailModalProps) {
 
-  const renderDate = (item: Lead | Agent) => {
+  const renderDate = (item: Lead | Agent | Email) => {
     if (type === "leads" && "lead_on_date" in item) {
       return item.lead_on_date ? formatDateShort(item.lead_on_date) : "—";
     }
@@ -68,6 +84,9 @@ export function DashboardDetailModal({
     }
     if (type === "calls" && "last_agent_call" in item) {
       return item.last_agent_call ? new Date(item.last_agent_call).toLocaleDateString() : "—";
+    }
+    if (type === "emails" && "timestamp" in item) {
+      return item.timestamp ? new Date(item.timestamp).toLocaleDateString() : "—";
     }
     return "—";
   };
@@ -82,13 +101,31 @@ export function DashboardDetailModal({
         return "Meeting Date";
       case "calls":
         return "Call Date";
+      case "emails":
+        return "Email Date";
       default:
         return "Date";
     }
   };
 
   const getThirdColumnTitle = () => {
+    if (type === "emails") return "Direction";
     return (type === "meetings" || type === "calls") ? "Notes" : "Current Stage";
+  };
+
+  const getFourthColumnTitle = () => {
+    if (type === "emails") return "Subject";
+    return null;
+  };
+
+  const getName = (item: Lead | Agent | Email) => {
+    if (type === "emails" && "lead" in item && item.lead) {
+      return `${item.lead.first_name || ''} ${item.lead.last_name || ''}`.trim() || "Unknown";
+    }
+    if ("first_name" in item) {
+      return `${item.first_name} ${item.last_name}`;
+    }
+    return "Unknown";
   };
 
   return (
@@ -104,33 +141,47 @@ export function DashboardDetailModal({
                 <TableHead>Name</TableHead>
                 <TableHead>{getDateColumnTitle()}</TableHead>
                 <TableHead>{getThirdColumnTitle()}</TableHead>
+                {getFourthColumnTitle() && <TableHead>{getFourthColumnTitle()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell 
-                    className="font-medium cursor-pointer hover:text-primary hover:underline"
+                    className={`font-medium ${type === "emails" && "lead_id" in item ? "cursor-pointer hover:text-primary hover:underline" : ('pipeline_stage_id' in item && onLeadClick ? "cursor-pointer hover:text-primary hover:underline" : "")}`}
                     onClick={() => {
-                      if ('pipeline_stage_id' in item && onLeadClick) {
+                      if (type === "emails" && "lead_id" in item && onLeadClick) {
+                        onLeadClick(item.lead_id);
+                      } else if ('pipeline_stage_id' in item && onLeadClick) {
                         onLeadClick(item.id);
                       }
                     }}
                   >
-                    {item.first_name} {item.last_name}
+                    {getName(item)}
                   </TableCell>
                   <TableCell>{renderDate(item)}</TableCell>
                   <TableCell>
-                    {'pipeline_stage_id' in item ? (
+                    {type === "emails" && "direction" in item ? (
+                      <Badge variant={item.direction === 'Out' ? 'default' : 'secondary'}>
+                        {item.direction === 'Out' ? 'Sent' : 'Received'}
+                      </Badge>
+                    ) : 'pipeline_stage_id' in item ? (
                       <Badge variant="secondary">
                         {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
                       </Badge>
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        {('meeting_summary' in item && item.meeting_summary) || item.notes || "—"}
+                        {('meeting_summary' in item && item.meeting_summary) || ('notes' in item && item.notes) || "—"}
                       </span>
                     )}
                   </TableCell>
+                  {type === "emails" && "subject" in item && (
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground line-clamp-1">
+                        {item.subject || "—"}
+                      </span>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
