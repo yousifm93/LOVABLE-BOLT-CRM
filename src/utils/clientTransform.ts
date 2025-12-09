@@ -287,5 +287,6 @@ export function transformLeadToClient(lead: any): any {
     // New fields
     appraisal_received_on: lead.appraisal_received_on || null,
     subject_property_rental_income: lead.subject_property_rental_income || null,
+    discount_points: lead.discount_points || null,
   };
 }

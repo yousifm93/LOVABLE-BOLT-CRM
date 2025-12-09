@@ -134,6 +134,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     lock_expiration_date: (client as any).lock_expiration_date || null,
     dscr_ratio: (client as any).dscr_ratio || null,
     prepayment_penalty: (client as any).prepayment_penalty || "",
+    discount_points: (client as any).discount_points || null,
   });
 
   // Helper function for PITI calculation
@@ -225,7 +226,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       subject_address_1: (client as any).subject_address_1 || "",
       subject_address_2: (client as any).subject_address_2 || "",
       subject_city: (client as any).subject_city || "",
-      subject_state: (client as any).subject_state || "",
+      subject_state: (client as any).subject_city || "",
       subject_zip: (client as any).subject_zip || "",
       subject_property_rental_income: (client as any).subject_property_rental_income || null,
       monthly_payment_goal: (client as any).monthly_payment_goal || null,
@@ -243,6 +244,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       lock_expiration_date: (client as any).lock_expiration_date || null,
       dscr_ratio: (client as any).dscr_ratio || null,
       prepayment_penalty: (client as any).prepayment_penalty || "",
+      discount_points: (client as any).discount_points || null,
     });
   };
 
@@ -561,7 +563,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     { 
       icon: Home, 
-      label: "Current Property Address", 
+      label: "Borrower's Current Address", 
       value: (client as any).borrower_current_address || "—",
       editComponent: isEditing ? (
         <Input
@@ -638,10 +640,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   ];
 
   // ============================================
-  // LOAN & PROPERTY - TRANSACTION DETAILS
+  // LOAN & PROPERTY - TRANSACTION DETAILS (4x2 Grid)
+  // Row 1: Transaction Type, Purchase Price, LTV, Closing Costs
+  // Row 2: Loan Program, Loan Amount, Down Payment, Cash to Close
   // ============================================
-  // Reordered: Closing Costs above Cash to Close
   const transactionDetailsData = [
+    // Row 1
     { 
       icon: ArrowRightLeft, 
       label: "Transaction Type", 
@@ -679,6 +683,39 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
+      icon: Percent, 
+      label: "LTV", 
+      value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
+    },
+    { 
+      icon: DollarSign, 
+      label: "Closing Costs", 
+      value: formatCurrency((client as any).closingCosts || (client as any).closing_costs || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.closing_costs || ""}
+          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    // Row 2
+    { 
+      icon: FileText, 
+      label: "Loan Program",
+      value: client.loan?.loanProgram || "—",
+      editComponent: isEditing ? (
+        <Input
+          value={editData.loan_program}
+          onChange={(e) => setEditData({ ...editData, loan_program: e.target.value })}
+          className="h-8"
+          placeholder="e.g. Conventional, FHA, VA"
+        />
+      ) : undefined
+    },
+    { 
       icon: DollarSign, 
       label: "Loan Amount",
       value: formatCurrency(client.loan?.loanAmount || 0),
@@ -695,19 +732,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
-      icon: FileText, 
-      label: "Loan Program",
-      value: client.loan?.loanProgram || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.loan_program}
-          onChange={(e) => setEditData({ ...editData, loan_program: e.target.value })}
-          className="h-8"
-          placeholder="e.g. Conventional, FHA, VA"
-        />
-      ) : undefined
-    },
-    { 
       icon: DollarSign, 
       label: "Down Payment",
       value: formatCurrency(client.loan?.downPayment || 0),
@@ -716,45 +740,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           type="text"
           value={editData.down_pmt || ""}
           onChange={(e) => setEditData({ ...editData, down_pmt: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Percent, 
-      label: "LTV", 
-      value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
-    },
-    { 
-      icon: Building, 
-      label: "Escrow Waiver",
-      value: formatYesNo(client.loan?.escrowWaiver || false),
-      editComponent: isEditing ? (
-        <Select
-          value={editData.escrows}
-          onValueChange={(value) => setEditData({ ...editData, escrows: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Escrowed">Escrowed</SelectItem>
-            <SelectItem value="Waived">Waived</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    // Closing Costs moved ABOVE Cash to Close
-    { 
-      icon: DollarSign, 
-      label: "Closing Costs", 
-      value: formatCurrency((client as any).closingCosts || (client as any).closing_costs || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.closing_costs || ""}
-          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
           className="h-8"
           placeholder="0"
         />
@@ -913,9 +898,65 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   ];
 
   // ============================================
-  // FINANCIAL SUMMARY DATA
+  // FINANCIAL SUMMARY DATA (4 fields only)
   // ============================================
   const financialSummaryData = [
+    {
+      icon: DollarSign,
+      label: "Total Monthly Income",
+      value: isEditing ? null : formatCurrency((client as any).totalMonthlyIncome),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.total_monthly_income}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, total_monthly_income: value || 0 }))}
+          className="w-full"
+        />
+      ) : null
+    },
+    {
+      icon: CreditCard,
+      label: "Total Monthly Liabilities",
+      value: isEditing ? null : formatCurrency((client as any).monthlyLiabilities),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.monthly_liabilities}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, monthly_liabilities: value || 0 }))}
+          className="w-full"
+        />
+      ) : null
+    },
+    {
+      icon: Wallet,
+      label: "Total Assets",
+      value: isEditing ? null : formatCurrency((client as any).assets),
+      editComponent: isEditing ? (
+        <InlineEditCurrency
+          value={editData.assets}
+          onValueChange={(value) => setEditData(prev => ({ ...prev, assets: value || 0 }))}
+          className="w-full"
+        />
+      ) : null
+    },
+    { 
+      icon: CreditCard, 
+      label: "Credit Score", 
+      value: client.loan?.ficoScore?.toString() || "—",
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          value={editData.fico_score || ""}
+          onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
+          className="h-8"
+          placeholder="Credit score"
+        />
+      ) : undefined
+    },
+  ];
+
+  // ============================================
+  // GOALS DATA (Monthly Payment Goal, Cash to Close Goal)
+  // ============================================
+  const goalsData = [
     { 
       icon: DollarSign, 
       label: "Monthly Payment Goal", 
@@ -943,56 +984,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           className="h-8"
           placeholder="0"
           min="0"
-        />
-      ) : undefined
-    },
-    {
-      icon: DollarSign,
-      label: "Total Monthly Income",
-      value: isEditing ? null : formatCurrency((client as any).totalMonthlyIncome),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.total_monthly_income}
-          onValueChange={(value) => setEditData(prev => ({ ...prev, total_monthly_income: value || 0 }))}
-          className="w-full"
-        />
-      ) : null
-    },
-    {
-      icon: Wallet,
-      label: "Total Assets",
-      value: isEditing ? null : formatCurrency((client as any).assets),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.assets}
-          onValueChange={(value) => setEditData(prev => ({ ...prev, assets: value || 0 }))}
-          className="w-full"
-        />
-      ) : null
-    },
-    {
-      icon: CreditCard,
-      label: "Total Monthly Liabilities",
-      value: isEditing ? null : formatCurrency((client as any).monthlyLiabilities),
-      editComponent: isEditing ? (
-        <InlineEditCurrency
-          value={editData.monthly_liabilities}
-          onValueChange={(value) => setEditData(prev => ({ ...prev, monthly_liabilities: value || 0 }))}
-          className="w-full"
-        />
-      ) : null
-    },
-    { 
-      icon: CreditCard, 
-      label: "Credit Score", 
-      value: client.loan?.ficoScore?.toString() || "—",
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.fico_score || ""}
-          onChange={(e) => setEditData({ ...editData, fico_score: parseInt(e.target.value) || null })}
-          className="h-8"
-          placeholder="Credit score"
         />
       ) : undefined
     },
