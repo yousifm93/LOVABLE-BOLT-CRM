@@ -60,58 +60,58 @@ export interface FieldPosition {
 }
 
 export const DEFAULT_FIELD_POSITIONS: Record<string, FieldPosition> = {
-  // Top info section - LEFT column (font size 8, y-10)
-  borrowerName: { x: 100, y: 124, fontSize: 8 },
-  lenderLoanNumber: { x: 100, y: 142, fontSize: 8 },
-  zipState: { x: 100, y: 160, fontSize: 8 },
-  date: { x: 100, y: 178, fontSize: 8 },
+  // Top info section - LEFT column (font size 8, y-20)
+  borrowerName: { x: 100, y: 114, fontSize: 8 },
+  lenderLoanNumber: { x: 100, y: 132, fontSize: 8 },
+  zipState: { x: 100, y: 150, fontSize: 8 },
+  date: { x: 100, y: 168, fontSize: 8 },
   
-  // Top info section - RIGHT column (right-aligned, font size 8, y-10)
-  purchasePrice: { x: 555, y: 124, rightAlign: true, fontSize: 8 },
-  loanAmount: { x: 555, y: 142, rightAlign: true, fontSize: 8 },
-  rateApr: { x: 555, y: 160, rightAlign: true, fontSize: 8 },
-  loanTerm: { x: 555, y: 178, rightAlign: true, fontSize: 8 },
+  // Top info section - RIGHT column (right-aligned, font size 8, y-20)
+  purchasePrice: { x: 555, y: 114, rightAlign: true, fontSize: 8 },
+  loanAmount: { x: 555, y: 132, rightAlign: true, fontSize: 8 },
+  rateApr: { x: 555, y: 150, rightAlign: true, fontSize: 8 },
+  loanTerm: { x: 555, y: 168, rightAlign: true, fontSize: 8 },
   
-  // Section A: Lender Fees (bold 9, items 7, y-10)
-  sectionATotal: { x: 280, y: 214, rightAlign: true, bold: true, fontSize: 9 },
-  discountPoints: { x: 280, y: 238, rightAlign: true, fontSize: 7 },
-  underwritingFee: { x: 280, y: 256, rightAlign: true, fontSize: 7 },
+  // Section A: Lender Fees (bold 9, items 7, y-20)
+  sectionATotal: { x: 280, y: 204, rightAlign: true, bold: true, fontSize: 9 },
+  discountPoints: { x: 280, y: 228, rightAlign: true, fontSize: 7 },
+  underwritingFee: { x: 280, y: 246, rightAlign: true, fontSize: 7 },
   
-  // Section B: Third Party Fees (bold 9, items 7, y-10)
-  sectionBTotal: { x: 280, y: 292, rightAlign: true, bold: true, fontSize: 9 },
-  appraisalFee: { x: 280, y: 326, rightAlign: true, fontSize: 7 },
-  creditReportFee: { x: 280, y: 344, rightAlign: true, fontSize: 7 },
-  processingFee: { x: 280, y: 362, rightAlign: true, fontSize: 7 },
-  lendersTitleInsurance: { x: 280, y: 396, rightAlign: true, fontSize: 7 },
-  titleClosingFee: { x: 280, y: 414, rightAlign: true, fontSize: 7 },
+  // Section B: Third Party Fees (bold 9, items 7, y-20)
+  sectionBTotal: { x: 280, y: 282, rightAlign: true, bold: true, fontSize: 9 },
+  appraisalFee: { x: 280, y: 316, rightAlign: true, fontSize: 7 },
+  creditReportFee: { x: 280, y: 334, rightAlign: true, fontSize: 7 },
+  processingFee: { x: 280, y: 352, rightAlign: true, fontSize: 7 },
+  lendersTitleInsurance: { x: 280, y: 386, rightAlign: true, fontSize: 7 },
+  titleClosingFee: { x: 280, y: 404, rightAlign: true, fontSize: 7 },
   
-  // Section C: Taxes & Government Fees (bold 9, items 7, y-10)
-  sectionCTotal: { x: 555, y: 214, rightAlign: true, bold: true, fontSize: 9 },
-  intangibleTax: { x: 555, y: 238, rightAlign: true, fontSize: 7 },
-  transferTax: { x: 555, y: 256, rightAlign: true, fontSize: 7 },
-  recordingFees: { x: 555, y: 274, rightAlign: true, fontSize: 7 },
+  // Section C: Taxes & Government Fees (bold 9, items 7, y-20)
+  sectionCTotal: { x: 555, y: 204, rightAlign: true, bold: true, fontSize: 9 },
+  intangibleTax: { x: 555, y: 228, rightAlign: true, fontSize: 7 },
+  transferTax: { x: 555, y: 246, rightAlign: true, fontSize: 7 },
+  recordingFees: { x: 555, y: 264, rightAlign: true, fontSize: 7 },
   
-  // Section D: Prepaids & Escrow (bold 9, items 7, y-10)
-  sectionDTotal: { x: 555, y: 292, rightAlign: true, bold: true, fontSize: 9 },
-  prepaidHoi: { x: 555, y: 326, rightAlign: true, fontSize: 7 },
-  prepaidInterest: { x: 555, y: 344, rightAlign: true, fontSize: 7 },
-  escrowHoi: { x: 555, y: 378, rightAlign: true, fontSize: 7 },
-  escrowTaxes: { x: 555, y: 396, rightAlign: true, fontSize: 7 },
+  // Section D: Prepaids & Escrow (bold 9, items 7, y-20)
+  sectionDTotal: { x: 555, y: 282, rightAlign: true, bold: true, fontSize: 9 },
+  prepaidHoi: { x: 555, y: 316, rightAlign: true, fontSize: 7 },
+  prepaidInterest: { x: 555, y: 334, rightAlign: true, fontSize: 7 },
+  escrowHoi: { x: 555, y: 368, rightAlign: true, fontSize: 7 },
+  escrowTaxes: { x: 555, y: 386, rightAlign: true, fontSize: 7 },
   
-  // Estimated Monthly Payment (items 7, bold 9, y-10)
-  principalInterest: { x: 280, y: 460, rightAlign: true, fontSize: 7 },
-  propertyTaxes: { x: 280, y: 478, rightAlign: true, fontSize: 7 },
-  homeownersInsurance: { x: 280, y: 496, rightAlign: true, fontSize: 7 },
-  mortgageInsurance: { x: 280, y: 514, rightAlign: true, fontSize: 7 },
-  hoaDues: { x: 280, y: 532, rightAlign: true, fontSize: 7 },
-  totalMonthlyPayment: { x: 280, y: 562, rightAlign: true, bold: true, fontSize: 9 },
+  // Estimated Monthly Payment (items 7, bold 9, y-20)
+  principalInterest: { x: 280, y: 450, rightAlign: true, fontSize: 7 },
+  propertyTaxes: { x: 280, y: 468, rightAlign: true, fontSize: 7 },
+  homeownersInsurance: { x: 280, y: 486, rightAlign: true, fontSize: 7 },
+  mortgageInsurance: { x: 280, y: 504, rightAlign: true, fontSize: 7 },
+  hoaDues: { x: 280, y: 522, rightAlign: true, fontSize: 7 },
+  totalMonthlyPayment: { x: 280, y: 552, rightAlign: true, bold: true, fontSize: 9 },
   
-  // Estimated Cash to Close (items 7, bold 9, y-10)
-  downPayment: { x: 555, y: 460, rightAlign: true, fontSize: 7 },
-  closingCosts: { x: 555, y: 478, rightAlign: true, fontSize: 7 },
-  prepaidsEscrow: { x: 555, y: 496, rightAlign: true, fontSize: 7 },
-  adjustmentsCredits: { x: 555, y: 514, rightAlign: true, fontSize: 7 },
-  totalCashToClose: { x: 555, y: 562, rightAlign: true, bold: true, fontSize: 9 },
+  // Estimated Cash to Close (items 7, bold 9, y-20)
+  downPayment: { x: 555, y: 450, rightAlign: true, fontSize: 7 },
+  closingCosts: { x: 555, y: 468, rightAlign: true, fontSize: 7 },
+  prepaidsEscrow: { x: 555, y: 486, rightAlign: true, fontSize: 7 },
+  adjustmentsCredits: { x: 555, y: 504, rightAlign: true, fontSize: 7 },
+  totalCashToClose: { x: 555, y: 552, rightAlign: true, bold: true, fontSize: 9 },
 };
 
 // Calculate totals
