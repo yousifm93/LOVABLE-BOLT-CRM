@@ -57,7 +57,8 @@ serve(async (req) => {
       return raw.trim().toLowerCase();
     };
 
-    const senderEmail = envelope.from ? envelope.from.toLowerCase() : extractEmail(fromRaw);
+    // Prioritize the raw 'from' field (actual sender) over envelope.from (which may be the forwarding address)
+    const senderEmail = extractEmail(fromRaw) || (envelope.from ? envelope.from.toLowerCase() : '');
     const recipientEmail = envelope.to?.[0]?.toLowerCase() || extractEmail(toRaw);
     
     console.log('[Inbound Email Webhook] Parsed sender email:', senderEmail);
