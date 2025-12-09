@@ -35,6 +35,22 @@ export interface DashboardCall {
   notes?: string | null;
 }
 
+export interface DashboardEmail {
+  id: string;
+  lead_id: string;
+  direction: 'In' | 'Out';
+  from_email: string;
+  to_email: string;
+  subject: string;
+  snippet: string | null;
+  timestamp: string;
+  delivery_status: string | null;
+  lead?: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
 export const useDashboardData = () => {
   // Get current date in local timezone
   const today = new Date();
@@ -389,7 +405,88 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // Recent Stage Changes
+  // This Month's Emails
+  const { data: thisMonthEmails, isLoading: isLoadingThisMonthEmails } = useQuery({
+    queryKey: ['emails', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const startOfMonthTimestamp = startOfMonth.toISOString();
+      const startOfNextMonthTimestamp = startOfNextMonth.toISOString();
+      
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .gte('timestamp', startOfMonthTimestamp)
+        .lt('timestamp', startOfNextMonthTimestamp)
+        .order('timestamp', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(email => ({
+        ...email,
+        lead: email.leads as any
+      })) as DashboardEmail[];
+    },
+    staleTime: 30000,
+  });
+
+  // Yesterday's Emails
+  const { data: yesterdayEmails, isLoading: isLoadingYesterdayEmails } = useQuery({
+    queryKey: ['emails', 'yesterday', formatDate(yesterday)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .gte('timestamp', yesterdayBoundaries.start)
+        .lte('timestamp', yesterdayBoundaries.end)
+        .order('timestamp', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(email => ({
+        ...email,
+        lead: email.leads as any
+      })) as DashboardEmail[];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Emails
+  const { data: todayEmails, isLoading: isLoadingTodayEmails } = useQuery({
+    queryKey: ['emails', 'today', formatDate(today)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .gte('timestamp', todayBoundaries.start)
+        .lte('timestamp', todayBoundaries.end)
+        .order('timestamp', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(email => ({
+        ...email,
+        lead: email.leads as any
+      })) as DashboardEmail[];
+    },
+    staleTime: 30000,
+  });
+
+  // All Emails
+  const { data: allEmails, isLoading: isLoadingAllEmails } = useQuery({
+    queryKey: ['emails', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('id, lead_id, direction, from_email, to_email, subject, snippet, timestamp, delivery_status, leads!inner(first_name, last_name)')
+        .order('timestamp', { ascending: false })
+        .limit(500);
+      
+      if (error) throw error;
+      return (data || []).map(email => ({
+        ...email,
+        lead: email.leads as any
+      })) as DashboardEmail[];
+    },
+    staleTime: 30000,
+  });
+
   const { data: recentStageChanges, isLoading: isLoadingStageChanges } = useQuery({
     queryKey: ['recentStageChanges'],
     queryFn: async () => {
@@ -842,6 +939,10 @@ export const useDashboardData = () => {
     isLoadingYesterdayCalls ||
     isLoadingTodayCalls ||
     isLoadingAllCalls ||
+    isLoadingThisMonthEmails ||
+    isLoadingYesterdayEmails ||
+    isLoadingTodayEmails ||
+    isLoadingAllEmails ||
     isLoadingStageChanges ||
     isLoadingStageCounts ||
     isLoadingCurrentMonth ||
@@ -875,6 +976,10 @@ export const useDashboardData = () => {
     yesterdayCalls: yesterdayCalls || [],
     todayCalls: todayCalls || [],
     allCalls: allCalls || [],
+    thisMonthEmails: thisMonthEmails || [],
+    yesterdayEmails: yesterdayEmails || [],
+    todayEmails: todayEmails || [],
+    allEmails: allEmails || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],
     activeMetrics: activeMetrics || { total_units: 0, total_volume: 0, avg_interest_rate: 0, avg_loan_amount: 0, avg_ctc_days: null },
