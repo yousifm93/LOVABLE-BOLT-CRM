@@ -695,15 +695,23 @@ export default function LoanEstimate() {
               </Select>
             </div>
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">
-              <Label className="text-xs text-muted-foreground">DISC PT</Label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
-                <Input 
-                  type="number"
-                  className="h-8 text-sm pl-5"
-                  value={formData.discountPoints || ''} 
-                  onChange={(e) => handleInputChange('discountPoints', e.target.value)}
-                />
+              <Label className="text-xs text-muted-foreground">DISC PT %</Label>
+              <div className="flex items-center gap-1">
+                <div className="relative flex-1">
+                  <Input 
+                    type="number"
+                    step="0.001"
+                    className="h-8 text-sm pr-6"
+                    value={formData.discountPoints || ''} 
+                    onChange={(e) => handleInputChange('discountPoints', e.target.value)}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                </div>
+                {formData.discountPoints && formData.loanAmount ? (
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    (${((formData.discountPoints / 100) * formData.loanAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+                  </span>
+                ) : null}
               </div>
             </div>
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">

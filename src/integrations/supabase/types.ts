@@ -1950,6 +1950,7 @@ export type Database = {
             | Database["public"]["Enums"]["disclosure_status"]
             | null
           discount_points: number | null
+          discount_points_percentage: number | null
           dob: string | null
           down_pmt: string | null
           dscr_ratio: number | null
@@ -2128,6 +2129,7 @@ export type Database = {
             | Database["public"]["Enums"]["disclosure_status"]
             | null
           discount_points?: number | null
+          discount_points_percentage?: number | null
           dob?: string | null
           down_pmt?: string | null
           dscr_ratio?: number | null
@@ -2308,6 +2310,7 @@ export type Database = {
             | Database["public"]["Enums"]["disclosure_status"]
             | null
           discount_points?: number | null
+          discount_points_percentage?: number | null
           dob?: string | null
           down_pmt?: string | null
           dscr_ratio?: number | null
