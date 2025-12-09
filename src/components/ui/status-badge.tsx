@@ -44,8 +44,8 @@ const getStatusColor = (status: string): string => {
   
   // ACTIVE BOARD - LOAN STATUS
   if (statusLower === 'new' || statusLower === 'new rfp') return 'bg-green-300 text-green-900'; // Light Green
-  if (statusLower === 'rfp') return 'bg-blue-500 text-white'; // Blue
-  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-yellow-200 text-yellow-900'; // Light Yellow
+  if (statusLower === 'rfp') return 'bg-blue-400 text-white'; // Light Blue
+  if (statusLower === 'sub' || statusLower === 'suv') return 'bg-blue-500 text-white'; // Blue
   if (statusLower === 'awc') return 'bg-gray-500 text-white'; // Dark Grey
   if (statusLower === 'ctc') return 'bg-green-500 text-white'; // Bright Green
   
@@ -70,6 +70,9 @@ const getStatusColor = (status: string): string => {
   
   // ACTIVE BOARD - CONDO STATUS
   if (statusLower === 'approved') return 'bg-green-500 text-white'; // Bright Green
+  
+  // N/A STATUS - For Condo, CD, BA, EPO columns
+  if (statusLower === 'na' || statusLower === 'n/a' || statusLower === 'not applicable') return 'bg-green-500 text-white'; // Bright Green
   
   // ACTIVE BOARD - CD STATUS
   if (statusLower === 'cd sent' || (statusLower === 'sent' && status === 'Sent')) return 'bg-green-300 text-green-900'; // Light Green
