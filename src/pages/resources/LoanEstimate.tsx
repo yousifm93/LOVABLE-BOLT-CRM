@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, Calculator, Search, User, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, Download, Calculator, Search, User, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateLoanEstimatePDF, calculateTotals, LoanEstimateData, DEFAULT_FIELD_POSITIONS, FieldPosition } from "@/lib/loanEstimatePdfGenerator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface Lead {
   id: string;
@@ -42,10 +43,12 @@ interface Lead {
   mortgage_insurance: number | null;
   hoa_dues: number | null;
   adjustments_credits: number | null;
+  program: string | null;
+  property_type: string | null;
 }
 
 // String fields that should NOT be parsed as numbers
-const STRING_FIELDS = ['borrowerName', 'lenderLoanNumber', 'zipState', 'date'];
+const STRING_FIELDS = ['firstName', 'lastName', 'lenderLoanNumber', 'subjectZip', 'subjectState', 'loanProgram', 'propertyType'];
 
 export default function LoanEstimate() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -57,24 +60,30 @@ export default function LoanEstimate() {
   const [positionOverrides, setPositionOverrides] = useState<Record<string, FieldPosition>>({});
   const { toast } = useToast();
 
-  // Form state for fees that may need to be entered manually
+  // Form state with fixed fee defaults
   const [formData, setFormData] = useState<Partial<LoanEstimateData>>({
-    borrowerName: "",
+    firstName: "",
+    lastName: "",
     lenderLoanNumber: "",
-    zipState: "",
-    date: new Date().toLocaleDateString(),
+    subjectZip: "",
+    subjectState: "",
     purchasePrice: 0,
     loanAmount: 0,
+    ltv: 0,
     interestRate: 0,
     apr: 0,
     loanTerm: 360,
+    loanProgram: "",
+    propertyType: "",
     discountPoints: 0,
+    credits: 0,
+    // Fixed fee defaults
     underwritingFee: 995,
     appraisalFee: 550,
-    creditReportFee: 75,
+    creditReportFee: 95,
     processingFee: 995,
+    titleClosingFee: 600,
     lendersTitleInsurance: 0,
-    titleClosingFee: 450,
     intangibleTax: 0,
     transferTax: 0,
     recordingFees: 350,
@@ -96,7 +105,7 @@ export default function LoanEstimate() {
     const fetchLeads = async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, lender_loan_number, subject_zip, subject_state, sales_price, loan_amount, interest_rate, term, discount_points, underwriting_fee, appraisal_fee, credit_report_fee, processing_fee, lenders_title_insurance, title_closing_fee, intangible_tax, transfer_tax, recording_fees, prepaid_hoi, prepaid_interest, escrow_hoi, escrow_taxes, principal_interest, property_taxes, homeowners_insurance, mortgage_insurance, hoa_dues, adjustments_credits')
+        .select('id, first_name, last_name, lender_loan_number, subject_zip, subject_state, sales_price, loan_amount, interest_rate, term, discount_points, underwriting_fee, appraisal_fee, credit_report_fee, processing_fee, lenders_title_insurance, title_closing_fee, intangible_tax, transfer_tax, recording_fees, prepaid_hoi, prepaid_interest, escrow_hoi, escrow_taxes, principal_interest, property_taxes, homeowners_insurance, mortgage_insurance, hoa_dues, adjustments_credits, program, property_type')
         .order('created_at', { ascending: false });
 
       if (!error && data) {
@@ -117,33 +126,65 @@ export default function LoanEstimate() {
     ).slice(0, 20);
   }, [leads, searchTerm]);
 
+  // Calculate P&I based on loan amount, rate, and term
+  const calculatePI = useCallback((loanAmount: number, rate: number, term: number): number => {
+    if (!loanAmount || !rate || !term) return 0;
+    const monthlyRate = (rate / 100) / 12;
+    const numPayments = term;
+    if (monthlyRate <= 0) return loanAmount / numPayments;
+    return loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  }, []);
+
+  // Auto-calculate P&I when loan amount, rate, or term changes
+  useEffect(() => {
+    if (formData.loanAmount && formData.interestRate && formData.loanTerm) {
+      const pi = calculatePI(formData.loanAmount, formData.interestRate, formData.loanTerm);
+      if (pi !== formData.principalInterest) {
+        setFormData(prev => ({ ...prev, principalInterest: Math.round(pi * 100) / 100 }));
+      }
+    }
+  }, [formData.loanAmount, formData.interestRate, formData.loanTerm, calculatePI]);
+
+  // Auto-calculate down payment when purchase price or loan amount changes
+  useEffect(() => {
+    const downPayment = (formData.purchasePrice || 0) - (formData.loanAmount || 0);
+    if (downPayment >= 0 && downPayment !== formData.downPayment) {
+      setFormData(prev => ({ ...prev, downPayment }));
+    }
+  }, [formData.purchasePrice, formData.loanAmount]);
+
   // When a lead is selected, populate the form
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
     setSearchOpen(false);
     
-    // Format as ZIP/STATE with uppercase state (e.g., "33131/FL")
-    const zipState = lead.subject_zip && lead.subject_state 
-      ? `${lead.subject_zip}/${lead.subject_state.toUpperCase()}` 
-      : lead.subject_zip || (lead.subject_state ? lead.subject_state.toUpperCase() : '');
+    const purchasePrice = lead.sales_price || 0;
+    const loanAmount = lead.loan_amount || 0;
+    const ltv = purchasePrice > 0 ? (loanAmount / purchasePrice) * 100 : 0;
     
     setFormData({
-      borrowerName: `${lead.first_name} ${lead.last_name}`,
+      firstName: lead.first_name,
+      lastName: lead.last_name,
       lenderLoanNumber: lead.lender_loan_number || "",
-      zipState,
-      date: new Date().toLocaleDateString(),
-      purchasePrice: lead.sales_price || 0,
-      loanAmount: lead.loan_amount || 0,
+      subjectZip: lead.subject_zip || "",
+      subjectState: lead.subject_state || "",
+      purchasePrice,
+      loanAmount,
+      ltv: Math.round(ltv * 100) / 100,
       interestRate: lead.interest_rate || 0,
-      apr: lead.interest_rate ? lead.interest_rate + 0.125 : 0, // Estimate APR
+      apr: lead.interest_rate ? lead.interest_rate + 0.125 : 0,
       loanTerm: lead.term || 360,
+      loanProgram: lead.program || "",
+      propertyType: lead.property_type || "",
       discountPoints: lead.discount_points || 0,
-      underwritingFee: lead.underwriting_fee || 995,
-      appraisalFee: lead.appraisal_fee || 550,
-      creditReportFee: lead.credit_report_fee || 75,
-      processingFee: lead.processing_fee || 995,
+      credits: 0,
+      // Fixed fee defaults (always use these)
+      underwritingFee: 995,
+      appraisalFee: 550,
+      creditReportFee: 95,
+      processingFee: 995,
+      titleClosingFee: 600,
       lendersTitleInsurance: lead.lenders_title_insurance || 0,
-      titleClosingFee: lead.title_closing_fee || 450,
       intangibleTax: lead.intangible_tax || 0,
       transferTax: lead.transfer_tax || 0,
       recordingFees: lead.recording_fees || 350,
@@ -156,21 +197,58 @@ export default function LoanEstimate() {
       homeownersInsurance: lead.homeowners_insurance || 0,
       mortgageInsurance: lead.mortgage_insurance || 0,
       hoaDues: lead.hoa_dues || 0,
-      downPayment: (lead.sales_price && lead.loan_amount ? lead.sales_price - lead.loan_amount : 0),
+      downPayment: purchasePrice - loanAmount,
       adjustmentsCredits: lead.adjustments_credits || 0,
     });
   };
 
-  // Fixed: Handle string fields vs number fields separately
+  // Handle string fields vs number fields separately
   const handleInputChange = (field: keyof LoanEstimateData, value: string | number) => {
     if (STRING_FIELDS.includes(field)) {
-      // Keep string fields as strings
       setFormData(prev => ({ ...prev, [field]: value }));
     } else {
-      // Parse number fields
       const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
       setFormData(prev => ({ ...prev, [field]: numValue }));
     }
+  };
+
+  // Handle loan amount change → update LTV
+  const handleLoanAmountChange = (value: string) => {
+    const loanAmount = parseFloat(value) || 0;
+    const ltv = formData.purchasePrice && formData.purchasePrice > 0 
+      ? (loanAmount / formData.purchasePrice) * 100 
+      : 0;
+    setFormData(prev => ({ 
+      ...prev, 
+      loanAmount, 
+      ltv: Math.round(ltv * 100) / 100 
+    }));
+  };
+
+  // Handle LTV change → update loan amount
+  const handleLTVChange = (value: string) => {
+    const ltv = parseFloat(value) || 0;
+    const loanAmount = formData.purchasePrice 
+      ? (ltv / 100) * formData.purchasePrice 
+      : 0;
+    setFormData(prev => ({ 
+      ...prev, 
+      ltv, 
+      loanAmount: Math.round(loanAmount) 
+    }));
+  };
+
+  // Handle purchase price change → recalculate LTV
+  const handlePurchasePriceChange = (value: string) => {
+    const purchasePrice = parseFloat(value) || 0;
+    const ltv = purchasePrice > 0 && formData.loanAmount 
+      ? (formData.loanAmount / purchasePrice) * 100 
+      : 0;
+    setFormData(prev => ({ 
+      ...prev, 
+      purchasePrice, 
+      ltv: Math.round(ltv * 100) / 100 
+    }));
   };
 
   // Handle position changes for calibration
@@ -191,7 +269,7 @@ export default function LoanEstimate() {
   };
 
   const handleGeneratePDF = async () => {
-    if (!formData.borrowerName) {
+    if (!formData.firstName && !formData.lastName) {
       toast({
         title: "Missing Information",
         description: "Please select a borrower or enter borrower name.",
@@ -389,7 +467,7 @@ export default function LoanEstimate() {
         </CardContent>
       </Card>
 
-      {/* Loan Info Section */}
+      {/* Loan Info Section - Restructured */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center text-lg">
@@ -397,13 +475,21 @@ export default function LoanEstimate() {
             Loan Information
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+        <CardContent className="space-y-4">
+          {/* Row 1: Name, Loan Number, Zip, State */}
+          <div className="grid grid-cols-5 gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Borrower</Label>
+              <Label className="text-xs text-muted-foreground">First Name</Label>
               <Input 
-                value={formData.borrowerName || ''} 
-                onChange={(e) => handleInputChange('borrowerName', e.target.value)}
+                value={formData.firstName || ''} 
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Last Name</Label>
+              <Input 
+                value={formData.lastName || ''} 
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
               />
             </div>
             <div>
@@ -414,53 +500,134 @@ export default function LoanEstimate() {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Zip/State</Label>
+              <Label className="text-xs text-muted-foreground">Zip</Label>
               <Input 
-                value={formData.zipState || ''} 
-                onChange={(e) => handleInputChange('zipState', e.target.value)}
-                placeholder="33131/FL"
+                value={formData.subjectZip || ''} 
+                onChange={(e) => handleInputChange('subjectZip', e.target.value)}
+                placeholder="33131"
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Date</Label>
+              <Label className="text-xs text-muted-foreground">State</Label>
               <Input 
-                value={formData.date || ''} 
-                onChange={(e) => handleInputChange('date', e.target.value)}
+                value={formData.subjectState || ''} 
+                onChange={(e) => handleInputChange('subjectState', e.target.value.toUpperCase())}
+                placeholder="FL"
+                maxLength={2}
               />
             </div>
+          </div>
+
+          {/* Row 2: Loan Program, Property Type */}
+          <div className="grid grid-cols-5 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">Loan Program</Label>
+              <Select 
+                value={formData.loanProgram || ''} 
+                onValueChange={(value) => handleInputChange('loanProgram', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Conventional">Conventional</SelectItem>
+                  <SelectItem value="FHA">FHA</SelectItem>
+                  <SelectItem value="VA">VA</SelectItem>
+                  <SelectItem value="DSCR">DSCR</SelectItem>
+                  <SelectItem value="Jumbo">Jumbo</SelectItem>
+                  <SelectItem value="USDA">USDA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Property Type</Label>
+              <Select 
+                value={formData.propertyType || ''} 
+                onValueChange={(value) => handleInputChange('propertyType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single Family">Single Family</SelectItem>
+                  <SelectItem value="Condo">Condo</SelectItem>
+                  <SelectItem value="Townhouse">Townhouse</SelectItem>
+                  <SelectItem value="Multi-Family">Multi-Family</SelectItem>
+                  <SelectItem value="Manufactured">Manufactured</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-3" />
+          </div>
+
+          {/* Row 3: Purchase Price, Loan Amount, LTV (bidirectional) */}
+          <div className="grid grid-cols-5 gap-4">
             <div>
               <Label className="text-xs text-muted-foreground">Purchase Price</Label>
-              <Input 
-                type="number"
-                value={formData.purchasePrice || ''} 
-                onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7"
+                  value={formData.purchasePrice || ''} 
+                  onChange={(e) => handlePurchasePriceChange(e.target.value)}
+                />
+              </div>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Loan Amount</Label>
-              <Input 
-                type="number"
-                value={formData.loanAmount || ''} 
-                onChange={(e) => handleInputChange('loanAmount', e.target.value)}
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7"
+                  value={formData.loanAmount || ''} 
+                  onChange={(e) => handleLoanAmountChange(e.target.value)}
+                />
+              </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Rate / APR</Label>
-              <div className="flex gap-1">
+              <Label className="text-xs text-muted-foreground">LTV</Label>
+              <div className="relative">
+                <Input 
+                  type="number"
+                  step="0.01"
+                  className="pr-7"
+                  value={formData.ltv || ''} 
+                  onChange={(e) => handleLTVChange(e.target.value)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+              </div>
+            </div>
+            <div className="col-span-2" />
+          </div>
+
+          {/* Row 4: Rate, APR, Loan Term, Discount Points, Credits */}
+          <div className="grid grid-cols-5 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">Rate</Label>
+              <div className="relative">
                 <Input 
                   type="number"
                   step="0.001"
+                  className="pr-7"
                   value={formData.interestRate || ''} 
                   onChange={(e) => handleInputChange('interestRate', e.target.value)}
-                  placeholder="Rate"
                 />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">APR</Label>
+              <div className="relative">
                 <Input 
                   type="number"
                   step="0.001"
+                  className="pr-7"
                   value={formData.apr || ''} 
                   onChange={(e) => handleInputChange('apr', e.target.value)}
-                  placeholder="APR"
                 />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
               </div>
             </div>
             <div>
@@ -470,6 +637,30 @@ export default function LoanEstimate() {
                 value={formData.loanTerm || 360} 
                 onChange={(e) => handleInputChange('loanTerm', e.target.value)}
               />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Discount Points</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7"
+                  value={formData.discountPoints || ''} 
+                  onChange={(e) => handleInputChange('discountPoints', e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Credits</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7"
+                  value={formData.credits || ''} 
+                  onChange={(e) => handleInputChange('credits', e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -488,21 +679,27 @@ export default function LoanEstimate() {
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Discount Points</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.discountPoints || ''} 
-                onChange={(e) => handleInputChange('discountPoints', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.discountPoints || ''} 
+                  onChange={(e) => handleInputChange('discountPoints', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Underwriting Fee</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.underwritingFee || ''} 
-                onChange={(e) => handleInputChange('underwritingFee', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.underwritingFee || ''} 
+                  onChange={(e) => handleInputChange('underwritingFee', e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -518,30 +715,39 @@ export default function LoanEstimate() {
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Intangible Tax</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.intangibleTax || ''} 
-                onChange={(e) => handleInputChange('intangibleTax', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.intangibleTax || ''} 
+                  onChange={(e) => handleInputChange('intangibleTax', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Transfer Tax</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.transferTax || ''} 
-                onChange={(e) => handleInputChange('transferTax', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.transferTax || ''} 
+                  onChange={(e) => handleInputChange('transferTax', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Recording Fees</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.recordingFees || ''} 
-                onChange={(e) => handleInputChange('recordingFees', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.recordingFees || ''} 
+                  onChange={(e) => handleInputChange('recordingFees', e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -560,30 +766,39 @@ export default function LoanEstimate() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Appraisal</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.appraisalFee || ''} 
-                    onChange={(e) => handleInputChange('appraisalFee', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.appraisalFee || ''} 
+                      onChange={(e) => handleInputChange('appraisalFee', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Credit Report</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.creditReportFee || ''} 
-                    onChange={(e) => handleInputChange('creditReportFee', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.creditReportFee || ''} 
+                      onChange={(e) => handleInputChange('creditReportFee', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Processing Fee</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.processingFee || ''} 
-                    onChange={(e) => handleInputChange('processingFee', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.processingFee || ''} 
+                      onChange={(e) => handleInputChange('processingFee', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -592,21 +807,27 @@ export default function LoanEstimate() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Lender's Title Insurance</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.lendersTitleInsurance || ''} 
-                    onChange={(e) => handleInputChange('lendersTitleInsurance', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.lendersTitleInsurance || ''} 
+                      onChange={(e) => handleInputChange('lendersTitleInsurance', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Title Closing Fee</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.titleClosingFee || ''} 
-                    onChange={(e) => handleInputChange('titleClosingFee', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.titleClosingFee || ''} 
+                      onChange={(e) => handleInputChange('titleClosingFee', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -627,21 +848,27 @@ export default function LoanEstimate() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Homeowners Insurance</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.prepaidHoi || ''} 
-                    onChange={(e) => handleInputChange('prepaidHoi', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.prepaidHoi || ''} 
+                      onChange={(e) => handleInputChange('prepaidHoi', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Prepaid Interest</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.prepaidInterest || ''} 
-                    onChange={(e) => handleInputChange('prepaidInterest', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.prepaidInterest || ''} 
+                      onChange={(e) => handleInputChange('prepaidInterest', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -650,21 +877,27 @@ export default function LoanEstimate() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Homeowners Insurance</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.escrowHoi || ''} 
-                    onChange={(e) => handleInputChange('escrowHoi', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.escrowHoi || ''} 
+                      onChange={(e) => handleInputChange('escrowHoi', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Property Taxes</Label>
-                  <Input 
-                    type="number"
-                    className="w-32 text-right"
-                    value={formData.escrowTaxes || ''} 
-                    onChange={(e) => handleInputChange('escrowTaxes', e.target.value)}
-                  />
+                  <div className="relative w-32">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                    <Input 
+                      type="number"
+                      className="pl-7 text-right"
+                      value={formData.escrowTaxes || ''} 
+                      onChange={(e) => handleInputChange('escrowTaxes', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -685,48 +918,63 @@ export default function LoanEstimate() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Mortgage (P&I)</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.principalInterest || ''} 
-                onChange={(e) => handleInputChange('principalInterest', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right bg-muted/50"
+                  value={formData.principalInterest?.toFixed(2) || ''} 
+                  onChange={(e) => handleInputChange('principalInterest', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Property Taxes</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.propertyTaxes || ''} 
-                onChange={(e) => handleInputChange('propertyTaxes', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.propertyTaxes || ''} 
+                  onChange={(e) => handleInputChange('propertyTaxes', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Homeowner's Insurance</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.homeownersInsurance || ''} 
-                onChange={(e) => handleInputChange('homeownersInsurance', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.homeownersInsurance || ''} 
+                  onChange={(e) => handleInputChange('homeownersInsurance', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Mortgage Insurance</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.mortgageInsurance || ''} 
-                onChange={(e) => handleInputChange('mortgageInsurance', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.mortgageInsurance || ''} 
+                  onChange={(e) => handleInputChange('mortgageInsurance', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">HOA Dues</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.hoaDues || ''} 
-                onChange={(e) => handleInputChange('hoaDues', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.hoaDues || ''} 
+                  onChange={(e) => handleInputChange('hoaDues', e.target.value)}
+                />
+              </div>
             </div>
             <div className="border-t pt-3 flex items-center justify-between">
               <Label className="text-base font-semibold">Total Monthly Payment</Label>
@@ -746,12 +994,15 @@ export default function LoanEstimate() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Down Payment</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.downPayment || ''} 
-                onChange={(e) => handleInputChange('downPayment', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right bg-muted/50"
+                  value={formData.downPayment || ''} 
+                  onChange={(e) => handleInputChange('downPayment', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Closing Costs (A+B+C)</Label>
@@ -763,12 +1014,15 @@ export default function LoanEstimate() {
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-sm">Adjustments & Credits</Label>
-              <Input 
-                type="number"
-                className="w-32 text-right"
-                value={formData.adjustmentsCredits || ''} 
-                onChange={(e) => handleInputChange('adjustmentsCredits', e.target.value)}
-              />
+              <div className="relative w-32">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input 
+                  type="number"
+                  className="pl-7 text-right"
+                  value={formData.adjustmentsCredits || ''} 
+                  onChange={(e) => handleInputChange('adjustmentsCredits', e.target.value)}
+                />
+              </div>
             </div>
             <div className="border-t pt-3 flex items-center justify-between">
               <Label className="text-base font-semibold">Total Cash to Close</Label>
