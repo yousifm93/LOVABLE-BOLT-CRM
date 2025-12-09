@@ -414,6 +414,7 @@ export function ClientDetailDrawer({
           html_body: activity.html_body,
           lead_id: activity.lead_id || leadId,
           to_email: activity.to_email,
+          ai_summary: activity.ai_summary,
         };
       });
       setActivities(transformedActivities);

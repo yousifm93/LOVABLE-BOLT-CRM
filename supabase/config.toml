@@ -126,3 +126,6 @@ verify_jwt = false
 
 [functions.validate-template-merge-tags]
 verify_jwt = false
+
+[functions.summarize-email]
+verify_jwt = false

@@ -74,6 +74,7 @@ interface ActiveLoan {
   loan_amount: number | null;
   sales_price: number | null;
   mb_loan_number: string | null;
+  lender_loan_number: string | null;
   pr_type: string | null;
   occupancy: string | null;
   disclosure_status: string | null;
@@ -331,6 +332,25 @@ const createColumns = (
           }
           placeholder="MB-"
           className="w-20"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "lender_loan_number",
+    header: "LENDER LOAN #",
+    className: "text-center",
+    headerClassName: "text-center",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.lender_loan_number || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "lender_loan_number", value)
+          }
+          placeholder="Lender #"
+          className="w-24"
         />
       </div>
     ),

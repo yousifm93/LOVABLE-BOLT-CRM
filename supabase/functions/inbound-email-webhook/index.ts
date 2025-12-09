@@ -309,6 +309,40 @@ serve(async (req) => {
     console.log('[Inbound Email Webhook] Successfully logged inbound email:', emailLog.id);
     console.log('[Inbound Email Webhook] Match method:', matchMethod);
 
+    // Generate AI summary asynchronously (don't block the response)
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const summaryResponse = await fetch(`${supabaseUrl}/functions/v1/summarize-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          subject: subject,
+          body: textBody,
+          htmlBody: htmlBody,
+        }),
+      });
+
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json();
+        if (summaryData.summary) {
+          // Update the email log with the AI summary
+          await supabase
+            .from('email_logs')
+            .update({ ai_summary: summaryData.summary })
+            .eq('id', emailLog.id);
+          console.log('[Inbound Email Webhook] AI summary added:', summaryData.summary);
+        }
+      } else {
+        console.log('[Inbound Email Webhook] Failed to generate AI summary:', await summaryResponse.text());
+      }
+    } catch (summaryError) {
+      console.error('[Inbound Email Webhook] Error generating AI summary:', summaryError);
+      // Don't fail the webhook if summary generation fails
+    }
+
     return new Response(JSON.stringify({
       success: true,
       emailLogId: emailLog.id,

@@ -249,6 +249,14 @@ export interface Activity {
   timestamp: string;
   user?: string;
   metadata?: Record<string, any>;
+  direction?: 'In' | 'Out';
+  from_email?: string;
+  subject?: string;
+  body?: string;
+  html_body?: string;
+  lead_id?: string;
+  to_email?: string;
+  ai_summary?: string;
 }
 
 export interface Task {
