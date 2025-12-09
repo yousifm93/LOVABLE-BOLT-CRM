@@ -25,6 +25,7 @@ interface AppraisalTabProps {
     appraisal_file: string | null;
     appraisal_notes: string | null;
     sales_price: number | null;
+    appraisal_received_on: string | null;
   };
   onUpdate: (field: string, value: any) => void;
 }
@@ -100,6 +101,8 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         await onUpdate('appraisal_value', functionData.appraised_value);
         // Set status to Received
         await onUpdate('appraisal_status', 'Received');
+        // Set received date to today
+        await onUpdate('appraisal_received_on', new Date().toISOString().split('T')[0]);
         
         toast({
           title: "Appraisal Parsed Successfully",
@@ -205,27 +208,41 @@ export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: Appra
         </div>
       </div>
 
-      {/* Document Upload */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <FileText className="h-3 w-3" />
-          Appraisal Report
-        </Label>
-        <FileUploadButton
-          leadId={leadId}
-          fieldName="appraisal_file"
-          currentFile={data.appraisal_file}
-          onUpload={handleAppraisalUpload}
-          config={{
-            storage_path: 'files/{lead_id}/appraisal/',
-            allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
-          }}
-        />
-        {isParsing && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Extracting appraised value...
-          </p>
-        )}
+      {/* Row 4: Document Upload and Received On Date */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <FileText className="h-3 w-3" />
+            Appraisal Report
+          </Label>
+          <FileUploadButton
+            leadId={leadId}
+            fieldName="appraisal_file"
+            currentFile={data.appraisal_file}
+            onUpload={handleAppraisalUpload}
+            config={{
+              storage_path: 'files/{lead_id}/appraisal/',
+              allowed_types: ['.pdf', '.jpg', '.jpeg', '.png']
+            }}
+          />
+          {isParsing && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Extracting appraised value...
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Received On
+          </Label>
+          <InlineEditDate
+            value={data.appraisal_received_on}
+            onValueChange={(value) => onUpdate('appraisal_received_on', value)}
+            placeholder="-"
+          />
+        </div>
       </div>
     </div>
   );

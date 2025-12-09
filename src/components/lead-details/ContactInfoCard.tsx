@@ -281,49 +281,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
               <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
             )}
             
-            <div className="flex gap-2 ml-4">
-              {!isEditing ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    size="default" 
-                    className="px-4 py-2"
-                    onClick={handleEdit}
-                  >
-                    Edit
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="default" 
-                    className="px-4 py-2"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    Delete
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button 
-                    variant="default" 
-                    size="default" 
-                    className="px-4 py-2"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? "Saving..." : "Save"}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="default" 
-                    className="px-4 py-2"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              )}
-            </div>
+            {/* Edit/Delete buttons removed - editing available in DetailsTab */}
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto">
@@ -356,18 +314,23 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     className="h-8"
                   />
                 ) : (
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm group">
                     <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    <span 
-                      className="truncate cursor-pointer hover:underline max-w-[120px]" 
-                      title={client.person.email}
+                    <button
+                      className="text-primary hover:underline cursor-pointer text-left"
                       onClick={() => {
-                        navigator.clipboard.writeText(client.person.email);
-                        toast({ title: "Email copied to clipboard" });
+                        if (client.person.email) {
+                          navigator.clipboard.writeText(client.person.email);
+                          toast({ title: "Email copied to clipboard" });
+                        }
                       }}
+                      title={client.person.email || "No email"}
                     >
-                      {client.person.email}
-                    </span>
+                      <span className="group-hover:hidden">Email</span>
+                      <span className="hidden group-hover:inline truncate max-w-[150px]">
+                        {client.person.email || "—"}
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>
