@@ -3929,6 +3929,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_principal_interest: {
+        Args: {
+          p_interest_rate: number
+          p_loan_amount: number
+          p_term_months?: number
+        }
+        Returns: number
+      }
       calculate_qualification_probability: {
         Args: {
           credit_score: number
