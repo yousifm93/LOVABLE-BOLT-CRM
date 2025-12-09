@@ -48,7 +48,7 @@ interface Lead {
 }
 
 // String fields that should NOT be parsed as numbers
-const STRING_FIELDS = ['firstName', 'lastName', 'lenderLoanNumber', 'subjectZip', 'subjectState', 'loanProgram', 'propertyType'];
+const STRING_FIELDS = ['firstName', 'lastName', 'lenderLoanNumber', 'subjectZip', 'subjectState', 'loanProgram', 'propertyType', 'escrows'];
 
 export default function LoanEstimate() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -98,6 +98,7 @@ export default function LoanEstimate() {
     hoaDues: 0,
     downPayment: 0,
     adjustmentsCredits: 0,
+    escrows: 'yes',
   });
 
   // Fetch leads
@@ -152,6 +153,27 @@ export default function LoanEstimate() {
       setFormData(prev => ({ ...prev, downPayment }));
     }
   }, [formData.purchasePrice, formData.loanAmount]);
+
+  // Auto-calculate loan-amount-based fees (Intangible Tax, Transfer Tax, Lender's Title Insurance)
+  useEffect(() => {
+    if (formData.loanAmount && formData.loanAmount > 0) {
+      const loanAmount = formData.loanAmount;
+      
+      // Section C: Taxes & Government Fees
+      const intangibleTax = loanAmount * 0.002;      // 0.2% of loan amount
+      const transferTax = loanAmount * 0.005;        // 0.5% of loan amount
+      
+      // Section B: Lender's Title Insurance
+      const lendersTitleInsurance = loanAmount * 0.005646;  // 0.5646% of loan amount
+      
+      setFormData(prev => ({
+        ...prev,
+        intangibleTax: Math.round(intangibleTax * 100) / 100,
+        transferTax: Math.round(transferTax * 100) / 100,
+        lendersTitleInsurance: Math.round(lendersTitleInsurance * 100) / 100,
+      }));
+    }
+  }, [formData.loanAmount]);
 
   // When a lead is selected, populate the form
   const handleSelectLead = (lead: Lead) => {
@@ -656,6 +678,21 @@ export default function LoanEstimate() {
                 />
               </div>
             </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Escrows</Label>
+              <Select 
+                value={formData.escrows as string || 'yes'} 
+                onValueChange={(value) => handleInputChange('escrows' as keyof LoanEstimateData, value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -677,9 +714,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
                   value={formData.discountPoints || ''} 
-                  onChange={(e) => handleInputChange('discountPoints', e.target.value)}
                 />
               </div>
             </div>
@@ -708,7 +745,10 @@ export default function LoanEstimate() {
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Intangible Tax</Label>
+              <div>
+                <Label className="text-sm">Intangible Tax</Label>
+                <p className="text-[10px] text-muted-foreground">0.2% of loan amount</p>
+              </div>
               <div className="relative w-32">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
@@ -720,7 +760,10 @@ export default function LoanEstimate() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Transfer Tax</Label>
+              <div>
+                <Label className="text-sm">Transfer Tax</Label>
+                <p className="text-[10px] text-muted-foreground">0.5% of loan amount</p>
+              </div>
               <div className="relative w-32">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
@@ -800,7 +843,10 @@ export default function LoanEstimate() {
               <p className="text-xs font-medium text-muted-foreground mb-2">Services You Can Shop For</p>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm">Lender's Title Insurance</Label>
+                  <div>
+                    <Label className="text-sm">Lender's Title Insurance</Label>
+                    <p className="text-[10px] text-muted-foreground">0.5646% of loan amount</p>
+                  </div>
                   <div className="relative w-32">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                     <Input 
@@ -1012,9 +1058,9 @@ export default function LoanEstimate() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input 
                   type="number"
-                  className="pl-7 text-right"
-                  value={formData.adjustmentsCredits || ''} 
-                  onChange={(e) => handleInputChange('adjustmentsCredits', e.target.value)}
+                  className="pl-7 text-right bg-muted/50 cursor-not-allowed"
+                  disabled
+                  value={formData.credits || ''} 
                 />
               </div>
             </div>
