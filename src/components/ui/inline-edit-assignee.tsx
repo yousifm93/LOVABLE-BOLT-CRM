@@ -27,6 +27,7 @@ interface InlineEditAssigneeProps {
   className?: string;
   disabled?: boolean;
   showNameText?: boolean;
+  avatarSize?: "xs" | "sm" | "md" | "lg";
 }
 
 export function InlineEditAssignee({
@@ -37,7 +38,8 @@ export function InlineEditAssignee({
   placeholder = "Assign to...",
   className,
   disabled = false,
-  showNameText = true
+  showNameText = true,
+  avatarSize = "sm"
 }: InlineEditAssigneeProps) {
   const [open, setOpen] = React.useState(false);
   
@@ -59,7 +61,7 @@ export function InlineEditAssignee({
         firstName={currentUser.first_name}
         lastName={currentUser.last_name}
         email={currentUser.email}
-        size="sm"
+        size={avatarSize}
         className={className}
       />
     ) : (
@@ -87,7 +89,7 @@ export function InlineEditAssignee({
                   firstName={currentUser.first_name}
                   lastName={currentUser.last_name}
                   email={currentUser.email}
-                  size="sm"
+                  size={avatarSize}
                   className={cn("flex-shrink-0", showNameText ? "absolute left-1 top-1/2 -translate-y-1/2" : "")}
                 />
                 {showNameText && (

@@ -59,14 +59,14 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'scheduled') return 'bg-cyan-500 text-white'; // Cyan
   if (statusLower === 'inspected') return 'bg-purple-400 text-white'; // Purple
   if (statusLower === 'received') return 'bg-green-500 text-white'; // Bright Green
-  if (statusLower === 'waiver') return 'bg-orange-400 text-white'; // Orange
+  if (statusLower === 'waiver') return 'bg-green-500 text-white'; // Bright Green (same as Received)
   
   // ACTIVE BOARD - TITLE STATUS
   if (statusLower === 'requested') return 'bg-gray-500 text-white'; // Grey
   if (statusLower === 'on hold') return 'bg-blue-400 text-white'; // Light Blue
   
   // ACTIVE BOARD - HOI STATUS
-  if (statusLower === 'quoted') return 'bg-blue-400 text-white'; // Light Blue
+  if (statusLower === 'quoted') return 'bg-gray-500 text-white'; // Grey
   
   // ACTIVE BOARD - CONDO STATUS
   if (statusLower === 'approved') return 'bg-green-500 text-white'; // Bright Green

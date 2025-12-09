@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
-import { countActiveFilters } from "@/utils/filterUtils";
+import { countActiveFilters, applyAdvancedFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
@@ -276,7 +276,7 @@ const createColumns = (
     headerClassName: "text-center",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
-        <div className="w-12">
+        <div className="w-8">
           <InlineEditAssignee
             assigneeId={row.original.teammate_assigned}
             users={users}
@@ -284,6 +284,7 @@ const createColumns = (
               handleUpdate(row.original.id, "teammate_assigned", userId)
             }
             showNameText={false}
+            avatarSize="xs"
           />
         </div>
       </div>
@@ -293,8 +294,8 @@ const createColumns = (
   {
     accessorKey: "lender",
     header: "LENDER",
-    className: "text-center",
-    headerClassName: "text-center",
+    className: "text-left",
+    headerClassName: "text-left",
     cell: ({ row }) => {
       const matchedLender = row.original.approved_lender
         ? lenders.find(l => l.id === row.original.approved_lender!.id)
@@ -616,6 +617,7 @@ const createColumns = (
           onValueChange={(date) => 
             handleUpdate(row.original.id, "lock_expiration_date", date?.toISOString().split('T')[0] || null)
           }
+          placeholder="-"
         />
       </div>
     ),
@@ -666,8 +668,8 @@ const createColumns = (
   {
     accessorKey: "buyer_agent",
     header: "BUYER'S AGENT",
-    className: "text-center",
-    headerClassName: "text-center",
+    className: "text-left",
+    headerClassName: "text-left",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditAgent
@@ -692,8 +694,8 @@ const createColumns = (
   {
     accessorKey: "listing_agent",
     header: "LISTING AGENT",
-    className: "text-center",
-    headerClassName: "text-center",
+    className: "text-left",
+    headerClassName: "text-left",
     cell: ({ row }) => (
       <div onClick={(e) => e.stopPropagation()}>
         <InlineEditAgent
@@ -1226,54 +1228,18 @@ export default function Active() {
     handleRowClick(loan);
   };
 
-  // Advanced filter functionality
-  const applyAdvancedFilters = (loans: ActiveLoan[]) => {
-    if (filters.length === 0) return loans;
-
-    return loans.filter(loan => {
-      return filters.every(filter => {
-        if (!filter.column || !filter.operator || filter.value === undefined) return true;
-
-        let fieldValue: any;
-        switch (filter.column) {
-          case 'borrower_name':
-            fieldValue = `${loan.first_name} ${loan.last_name}`.toLowerCase();
-            break;
-          case 'lender':
-            fieldValue = loan.lender ? `${loan.lender.first_name} ${loan.lender.last_name}`.toLowerCase() : '';
-            break;
-          case 'loan_amount':
-            fieldValue = loan.loan_amount || 0;
-            break;
-          case 'close_date':
-            fieldValue = loan.close_date;
-            break;
-          default:
-            fieldValue = loan[filter.column as keyof ActiveLoan];
-        }
-
-        const filterValue = filter.value;
-
-        switch (filter.operator) {
-          case 'equals':
-            return fieldValue === filterValue;
-          case 'contains':
-            return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
-          case 'not_equals':
-            return fieldValue !== filterValue;
-          case 'greater_than':
-            return Number(fieldValue) > Number(filterValue);
-          case 'less_than':
-            return Number(fieldValue) < Number(filterValue);
-          case 'is_after':
-            return fieldValue && new Date(fieldValue) > new Date(filterValue);
-          case 'is_before':
-            return fieldValue && new Date(fieldValue) < new Date(filterValue);
-          default:
-            return true;
-        }
-      });
-    });
+  // Advanced filter functionality using shared utility
+  const fieldAccessor = (loan: ActiveLoan, column: string): any => {
+    switch (column) {
+      case 'borrower_name':
+        return `${loan.first_name} ${loan.last_name}`;
+      case 'lender':
+        return loan.approved_lender?.lender_name || '';
+      case 'team':
+        return loan.teammate_assigned;
+      default:
+        return loan[column as keyof ActiveLoan];
+    }
   };
 
   const clearAllFilters = () => {
@@ -1304,7 +1270,7 @@ export default function Active() {
 
   // Group loans by pipeline section and apply filters
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
-    const filteredLoans = applyAdvancedFilters(activeLoans);
+    const filteredLoans = applyAdvancedFilters(activeLoans, filters, fieldAccessor);
     
     const live = filteredLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
     const incoming = filteredLoans.filter(loan => loan.pipeline_section === 'Incoming');
