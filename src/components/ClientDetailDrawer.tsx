@@ -409,7 +409,11 @@ export function ClientDetailDrawer({
           task_id: isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null,
           direction: activity.direction,
           from_email: activity.from_email,
-          subject: activity.subject
+          subject: activity.subject,
+          body: activity.body,
+          html_body: activity.html_body,
+          lead_id: activity.lead_id || leadId,
+          to_email: activity.to_email,
         };
       });
       setActivities(transformedActivities);
