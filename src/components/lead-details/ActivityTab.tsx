@@ -187,6 +187,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                       <Popover>
                         <PopoverTrigger asChild>
                           <Badge 
+                            onClick={(e) => e.stopPropagation()}
                             variant={getActivityBadgeVariant(activity)} 
                             className={cn(
                               "text-xs flex items-center gap-1 cursor-pointer",
@@ -197,7 +198,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                             {getActivityBadgeLabel(activity)}
                           </Badge>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80" side="top">
+                        <PopoverContent className="w-80 z-50" side="top">
                           <div className="space-y-2">
                             <h4 className="font-medium text-sm">Email Summary</h4>
                             <p className="text-sm text-muted-foreground">{activity.ai_summary}</p>
@@ -222,7 +223,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                       {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                     </span>
                     <CollapsibleTrigger asChild>
-                      <button className="ml-auto hover:bg-muted p-1 rounded">
+                      <button className="ml-auto hover:bg-muted p-1 rounded flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         ) : (
