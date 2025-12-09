@@ -369,7 +369,8 @@ export function ClientDetailDrawer({
         // Get description based on activity type
         let description = '';
         if (activity.type === 'email') {
-          description = activity.snippet || '';
+          // For inbound emails, show body if available, otherwise snippet
+          description = activity.body || activity.snippet || '';
         } else if (activity.type === 'call') {
           description = activity.notes || '';
         } else if (activity.type === 'sms') {
@@ -384,15 +385,31 @@ export function ClientDetailDrawer({
           }
         }
         const activityType = isTaskLog ? 'task' : activity.type;
+        
+        // For inbound emails, show who sent it instead of a user
+        let displayUser = activity.author 
+          ? `${activity.author.first_name} ${activity.author.last_name}` 
+          : activity.user 
+            ? `${activity.user.first_name} ${activity.user.last_name}` 
+            : 'System';
+        
+        // For inbound emails, use the sender's email/name
+        if (activity.type === 'email' && activity.direction === 'In') {
+          displayUser = activity.from_email || 'Unknown sender';
+        }
+        
         return {
           id: activity.id,
           type: activityType,
-          title: isTaskLog ? 'Task created' : activity.type === 'note' ? 'Note added' : activity.type === 'call' ? 'Call logged' : activity.type === 'sms' ? 'SMS logged' : 'Email logged',
+          title: isTaskLog ? 'Task created' : activity.type === 'note' ? 'Note added' : activity.type === 'call' ? 'Call logged' : activity.type === 'sms' ? 'SMS logged' : activity.direction === 'In' ? 'Email received' : 'Email logged',
           description,
           timestamp: activity.timestamp || activity.created_at,
-          user: activity.author ? `${activity.author.first_name} ${activity.author.last_name}` : activity.user ? `${activity.user.first_name} ${activity.user.last_name}` : 'System',
+          user: displayUser,
           author_id: activity.author_id || activity.user_id,
-          task_id: isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null
+          task_id: isTaskLog ? activity.body.split('\n')[0].replace('Task created: ', '') : null,
+          direction: activity.direction,
+          from_email: activity.from_email,
+          subject: activity.subject
         };
       });
       setActivities(transformedActivities);
