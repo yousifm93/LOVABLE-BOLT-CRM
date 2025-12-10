@@ -149,7 +149,6 @@ const columns = (
     header: "Borrower Stage",
     cell: ({ row }) => {
       const stage = row.original.borrower?.pipeline_stage?.name;
-      const loanStatus = (row.original as any).lead?.loan_status;
       
       if (!row.original.borrower_id) {
         return <span className="text-muted-foreground text-sm">-</span>;
@@ -162,15 +161,7 @@ const columns = (
         );
       }
       
-      // If pipeline stage is "Active", show the loan_status instead (e.g., AWC, CTC, SUB)
-      if (stage.toLowerCase() === 'active' && loanStatus) {
-        return (
-          <div className="flex justify-center">
-            <StatusBadge status={loanStatus} />
-          </div>
-        );
-      }
-      
+      // Always show the pipeline stage name (e.g., "Active"), not the loan substatus
       return (
         <div className="flex justify-center">
           <StatusBadge status={stage} />
@@ -993,7 +984,10 @@ export default function TasksModern() {
             setSelectedLead(null);
           }}
           onStageChange={() => setIsLeadDrawerOpen(false)}
-          pipelineType="leads"
+          pipelineType={
+            selectedLead.ops?.stage?.toLowerCase() === 'active' ? 'active' :
+            selectedLead.ops?.stage?.toLowerCase() === 'past-clients' ? 'past-clients' : 'leads'
+          }
           onLeadUpdated={loadTasks}
         />
       )}

@@ -147,7 +147,7 @@ const titleStatusOptions = [
 const hoiStatusOptions = [
   { value: "Quoted", label: "Quoted" },
   { value: "Ordered", label: "Ordered" },
-  { value: "Bound", label: "Bound" }
+  { value: "Received", label: "Received" }
 ];
 
 const condoStatusOptions = [
