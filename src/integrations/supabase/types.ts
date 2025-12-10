@@ -1249,6 +1249,69 @@ export type Database = {
           },
         ]
       }
+      email_field_suggestions: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          current_value: string | null
+          email_log_id: string
+          field_display_name: string
+          field_name: string
+          id: string
+          lead_id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_value: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          current_value?: string | null
+          email_log_id: string
+          field_display_name: string
+          field_name: string
+          id?: string
+          lead_id: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_value: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          current_value?: string | null
+          email_log_id?: string
+          field_display_name?: string
+          field_name?: string
+          id?: string
+          lead_id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_field_suggestions_email_log_id_fkey"
+            columns: ["email_log_id"]
+            isOneToOne: false
+            referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_field_suggestions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_list_memberships: {
         Row: {
           contact_id: string

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, NavLink } from "react-router-dom";
 import {
   Home,
@@ -35,6 +35,9 @@ import {
 } from "@/components/ui/sidebar";
 
 import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
@@ -50,8 +53,6 @@ const pipelineItems = [
   { title: "Active", url: "/active", icon: Calendar },
   { title: "Past Clients", url: "/past-clients", icon: PieChart },
 ];
-
-// Removed individual task items - consolidated into single "Tasks" item in dashboard
 
 const contactItems = [
   { title: "Real Estate Agents", url: "/contacts/agents", icon: Phone },
@@ -87,6 +88,35 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  
+  const [pendingSuggestionCount, setPendingSuggestionCount] = useState(0);
+  const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
+
+  // Fetch pending suggestion count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from('email_field_suggestions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingSuggestionCount(count || 0);
+    };
+
+    fetchPendingCount();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('email_field_suggestions_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'email_field_suggestions' },
+        () => fetchPendingCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -101,121 +131,149 @@ export function AppSidebar() {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 p-3">
-          <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
-            <Zap className="h-7 w-7 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div className="flex items-baseline">
-              <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
-              <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
+    <>
+      <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
+        <SidebarHeader className="border-b border-sidebar-border">
+          <div className="flex items-center gap-3 p-3">
+            <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
+              <Zap className="h-7 w-7 text-primary-foreground" />
             </div>
-          )}
-        </div>
-      </SidebarHeader>
+            {!collapsed && (
+              <div className="flex items-baseline">
+                <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+                <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
+              </div>
+            )}
+          </div>
+        </SidebarHeader>
 
-      <SidebarContent className="gap-0">
-        {/* Dashboard */}
-        <SidebarGroup className="mb-4">
-          <SidebarMenu>
-            {dashboardItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
+        <SidebarContent className="gap-0">
+          {/* Dashboard */}
+          <SidebarGroup className="mb-4">
+            <SidebarMenu>
+              {dashboardItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavClassName}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
 
-        {/* Removed Tasks collapsible group - Tasks is now in dashboard items */}
+          {/* Pipeline */}
+          <CollapsibleSidebarGroup title="Pipeline" className="mb-4">
+            <SidebarMenu>
+              {pipelineItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    {item.title === "Active" ? (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.title}
+                            {pendingSuggestionCount > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSuggestionsModalOpen(true);
+                                }}
+                              >
+                                {pendingSuggestionCount}
+                              </Badge>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    ) : (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
 
-        {/* Pipeline */}
-        <CollapsibleSidebarGroup title="Pipeline" className="mb-4">
-          <SidebarMenu>
-            {pipelineItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
+          {/* Contacts */}
+          <CollapsibleSidebarGroup title="Contacts" className="mb-4">
+            <SidebarMenu>
+              {contactItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavClassName}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
 
+          {/* Resources */}
+          <CollapsibleSidebarGroup title="Resources" className="mb-4">
+            <SidebarMenu>
+              {resourceItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavClassName}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
 
-        {/* Contacts */}
-        <CollapsibleSidebarGroup title="Contacts" className="mb-4">
-          <SidebarMenu>
-            {contactItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
+          {/* Calculators */}
+          <CollapsibleSidebarGroup title="Calculators" className="mb-4">
+            <SidebarMenu>
+              {calculatorItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavClassName}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
 
-        {/* Resources */}
-        <CollapsibleSidebarGroup title="Resources" className="mb-4">
-          <SidebarMenu>
-            {resourceItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
+          {/* Admin */}
+          <CollapsibleSidebarGroup title="Admin">
+            <SidebarMenu>
+              {adminItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={item.url} className={getNavClassName}>
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
+        </SidebarContent>
+      </Sidebar>
 
-        {/* Calculators */}
-        <CollapsibleSidebarGroup title="Calculators" className="mb-4">
-          <SidebarMenu>
-            {calculatorItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
-
-        {/* Admin */}
-        <CollapsibleSidebarGroup title="Admin">
-          <SidebarMenu>
-            {adminItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <NavLink to={item.url} className={getNavClassName}>
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </CollapsibleSidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+      <EmailFieldSuggestionsModal
+        open={suggestionsModalOpen}
+        onOpenChange={setSuggestionsModalOpen}
+      />
+    </>
   );
 }
