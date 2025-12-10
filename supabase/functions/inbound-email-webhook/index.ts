@@ -476,6 +476,74 @@ serve(async (req) => {
     console.log('[Inbound Email Webhook] Match method:', matchMethod);
     console.log('[Inbound Email Webhook] From email stored:', fromEmailToStore);
 
+    // Upload attachments to storage and create document records
+    if (attachmentCount > 0 && leadId) {
+      console.log('[Inbound Email Webhook] Uploading', attachmentCount, 'attachments to documents...');
+      
+      // Fetch lead name for file naming
+      const { data: leadInfo } = await supabase
+        .from('leads')
+        .select('first_name, last_name')
+        .eq('id', leadId)
+        .single();
+      
+      const lastName = leadInfo?.last_name || 'Unknown';
+      
+      for (let i = 1; i <= attachmentCount; i++) {
+        const attachment = formData.get(`attachment${i}`) as File | null;
+        if (attachment) {
+          try {
+            // Generate unique filename
+            const timestamp = Date.now();
+            const safeName = attachment.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filePath = `${leadId}/email-attachments/${safeName}-${lastName}-${timestamp}`;
+            
+            // Convert File to ArrayBuffer then Uint8Array
+            const arrayBuffer = await attachment.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Upload to storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('lead-documents')
+              .upload(filePath, uint8Array, {
+                contentType: attachment.type,
+                upsert: false
+              });
+            
+            if (uploadError) {
+              console.error('[Inbound Email Webhook] Upload error for', attachment.name, ':', uploadError);
+              continue;
+            }
+            
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('lead-documents')
+              .getPublicUrl(filePath);
+            
+            // Create document record
+            const { error: docError } = await supabase.from('documents').insert({
+              lead_id: leadId,
+              file_name: `${attachment.name}-${lastName}`,
+              file_url: urlData.publicUrl,
+              mime_type: attachment.type,
+              size_bytes: attachment.size,
+              uploaded_by: '08e73d69-4707-4773-84a4-69ce2acd6a11', // System user (Yousif)
+              notes: `Received via email: ${subject}`,
+              status: 'pending',
+            });
+            
+            if (docError) {
+              console.error('[Inbound Email Webhook] Document record error:', docError);
+            } else {
+              console.log('[Inbound Email Webhook] Uploaded attachment:', attachment.name);
+            }
+          } catch (attachError) {
+            console.error('[Inbound Email Webhook] Error uploading attachment:', attachError);
+          }
+        }
+      }
+    }
+
     // Generate AI summary asynchronously (don't block the response)
     try {
       const summaryResponse = await fetch(`${supabaseUrl}/functions/v1/summarize-email`, {
