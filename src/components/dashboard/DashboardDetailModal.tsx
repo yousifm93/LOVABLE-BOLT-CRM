@@ -231,21 +231,21 @@ export function DashboardDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[80vh]">
+      <DialogContent className="max-w-[95vw] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{title} ({data.length})</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[60vh] w-full">
-          <div className="min-w-[1200px]">
+          <div className="min-w-[1400px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[120px]">Name</TableHead>
                   <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
                   <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
-                  {getFourthColumnTitle() && <TableHead className="min-w-[250px]">{getFourthColumnTitle()}</TableHead>}
-                  {getFifthColumnTitle() && <TableHead className="min-w-[200px]">{getFifthColumnTitle()}</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[300px]">CRM Update</TableHead>}
+                  {getFourthColumnTitle() && <TableHead className="min-w-[300px]">{getFourthColumnTitle()}</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[350px]">CRM Update</TableHead>}
+                  {getFifthColumnTitle() && <TableHead className="min-w-[250px]">{getFifthColumnTitle()}</TableHead>}
                 </TableRow>
               </TableHeader>
             <TableBody>
@@ -291,13 +291,6 @@ export function DashboardDetailModal({
                         </span>
                       </TableCell>
                     )}
-                    {type === "emails" && "subject" in item && (
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground line-clamp-1">
-                          {item.subject || "—"}
-                        </span>
-                      </TableCell>
-                    )}
                     {type === "emails" && (
                       <TableCell>
                         {suggestions.length > 0 ? (
@@ -336,6 +329,13 @@ export function DashboardDetailModal({
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                    )}
+                    {type === "emails" && "subject" in item && (
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground line-clamp-1">
+                          {item.subject || "—"}
+                        </span>
                       </TableCell>
                     )}
                   </TableRow>
