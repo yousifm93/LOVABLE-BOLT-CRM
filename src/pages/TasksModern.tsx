@@ -494,6 +494,17 @@ export default function TasksModern() {
 
   // Field accessor for shared filter utility - maps filter columns to task properties
   const taskFieldAccessor = (task: ModernTask, column: string): any => {
+    // Handle nested properties like 'borrower.pipeline_stage.name'
+    if (column.includes('.')) {
+      const parts = column.split('.');
+      let value: any = task;
+      for (const part of parts) {
+        value = value?.[part];
+        if (value === undefined || value === null) break;
+      }
+      return value;
+    }
+    
     switch (column) {
       case 'title': return task.title;
       case 'description': return task.description || '';
@@ -800,8 +811,8 @@ export default function TasksModern() {
                 const yesterdayStr = yesterday.toISOString().split('T')[0];
                 
                 setFilters([
-                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'equals', value: 'Active' },
-                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
+                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'is', value: 'Active' },
+                  { id: 'review-due', column: 'due_date', operator: 'is_before', value: new Date().toISOString().split('T')[0] }
                 ]);
                 setIsReviewActive(true);
               }}

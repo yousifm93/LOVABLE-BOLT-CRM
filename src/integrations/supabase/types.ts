@@ -3999,6 +3999,77 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          admin: string
+          calculators: string
+          contacts: string
+          created_at: string
+          id: string
+          overview: string
+          pipeline: string
+          pipeline_active: string
+          pipeline_leads: string
+          pipeline_past_clients: string
+          pipeline_pending_app: string
+          pipeline_pre_approved: string
+          pipeline_pre_qualified: string
+          pipeline_screening: string
+          resources: string
+          tasks: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin?: string
+          calculators?: string
+          contacts?: string
+          created_at?: string
+          id?: string
+          overview?: string
+          pipeline?: string
+          pipeline_active?: string
+          pipeline_leads?: string
+          pipeline_past_clients?: string
+          pipeline_pending_app?: string
+          pipeline_pre_approved?: string
+          pipeline_pre_qualified?: string
+          pipeline_screening?: string
+          resources?: string
+          tasks?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin?: string
+          calculators?: string
+          contacts?: string
+          created_at?: string
+          id?: string
+          overview?: string
+          pipeline?: string
+          pipeline_active?: string
+          pipeline_leads?: string
+          pipeline_past_clients?: string
+          pipeline_pending_app?: string
+          pipeline_pre_approved?: string
+          pipeline_pre_qualified?: string
+          pipeline_screening?: string
+          resources?: string
+          tasks?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null

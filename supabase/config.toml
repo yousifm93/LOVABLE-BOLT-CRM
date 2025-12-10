@@ -135,3 +135,6 @@ verify_jwt = false
 
 [functions.send-mention-notification]
 verify_jwt = false
+
+[functions.analyze-document-content]
+verify_jwt = true
