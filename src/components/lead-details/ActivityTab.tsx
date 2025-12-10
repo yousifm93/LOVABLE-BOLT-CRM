@@ -4,12 +4,40 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { ReplyEmailModal } from "@/components/modals/ReplyEmailModal";
 import { cn } from "@/lib/utils";
+
+// Strip forwarding headers and signatures, start from actual forwarded content
+const stripForwardingContent = (content: string): string => {
+  if (!content) return '';
+  
+  // Look for forwarded message patterns
+  const forwardedPatterns = [
+    /---------- Forwarded message ---------/i,
+    /-------- Original Message --------/i,
+  ];
+  
+  for (const pattern of forwardedPatterns) {
+    const match = content.match(pattern);
+    if (match && match.index !== undefined) {
+      // Get everything from the forwarded marker onwards
+      const afterMarker = content.substring(match.index);
+      // Find the "From:" line after the forwarded marker
+      const fromMatch = afterMarker.match(/From:\s*[^\n<]+(?:<[^>]+>)?/i);
+      if (fromMatch && fromMatch.index !== undefined) {
+        // Start from "From: ..." line
+        return afterMarker.substring(fromMatch.index);
+      }
+      // If no From: found, just return from the marker
+      return afterMarker;
+    }
+  }
+  
+  return content;
+};
 
 interface Activity {
   id: number;
@@ -183,42 +211,25 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                 
                 <div className="flex-1 space-y-1 min-w-0 text-left">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary ? (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Badge 
-                            onClick={(e) => e.stopPropagation()}
-                            variant={getActivityBadgeVariant(activity)} 
-                            className={cn(
-                              "text-xs flex items-center gap-1 cursor-pointer",
-                              getEmailBadgeClassName(activity)
-                            )}
-                          >
-                            {getActivityIcon(activity.type)}
-                            {getActivityBadgeLabel(activity)}
-                          </Badge>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 z-50" side="top">
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm">Email Summary</h4>
-                            <p className="text-sm text-muted-foreground">{activity.ai_summary}</p>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <Badge 
-                        variant={getActivityBadgeVariant(activity)} 
-                        className={cn(
-                          "text-xs flex items-center gap-1",
-                          activity.type === 'task' && activity.task_status !== 'Done' && 
-                          "bg-orange-100 hover:bg-orange-100 border-orange-200",
-                          getEmailBadgeClassName(activity)
-                        )}
-                      >
-                        {getActivityIcon(activity.type)}
-                        {getActivityBadgeLabel(activity)}
-                      </Badge>
-                    )}
+                    <Badge 
+                      onClick={(e) => {
+                        if (activity.type === 'email' && activity.direction === 'In') {
+                          e.stopPropagation();
+                          toggleActivity(activity.id);
+                        }
+                      }}
+                      variant={getActivityBadgeVariant(activity)} 
+                      className={cn(
+                        "text-xs flex items-center gap-1",
+                        activity.type === 'email' && activity.direction === 'In' && "cursor-pointer",
+                        activity.type === 'task' && activity.task_status !== 'Done' && 
+                        "bg-orange-100 hover:bg-orange-100 border-orange-200",
+                        getEmailBadgeClassName(activity)
+                      )}
+                    >
+                      {getActivityIcon(activity.type)}
+                      {getActivityBadgeLabel(activity)}
+                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                     </span>
@@ -241,7 +252,20 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
               
               {activity.description && (
                 <CollapsibleContent>
-                  <div className="pl-11 pr-2 pt-2">
+                  <div className="pl-11 pr-2 pt-2 space-y-3">
+                    {/* AI Summary Box - only for inbound emails with summary */}
+                    {activity.type === 'email' && activity.direction === 'In' && activity.ai_summary && (
+                      <div className="bg-muted/50 rounded-lg p-3 border border-border">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Summary of Email Received
+                        </p>
+                        <p className="text-sm text-foreground">
+                          {activity.ai_summary}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Email Content - with forwarding stripped for inbound emails */}
                     <div 
                       className="text-sm text-muted-foreground prose prose-sm max-w-none cursor-pointer hover:text-foreground transition-colors"
                       onClick={(e) => {
@@ -259,7 +283,11 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                           }
                         }
                       }}
-                      dangerouslySetInnerHTML={{ __html: activity.description }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: activity.type === 'email' && activity.direction === 'In'
+                          ? stripForwardingContent(activity.description || '')
+                          : activity.description 
+                      }}
                     />
                   </div>
                 </CollapsibleContent>
