@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MentionableRichTextEditor } from '@/components/ui/mentionable-rich-text-editor';
@@ -46,8 +46,18 @@ export function ActivityCommentSection({
   const [commentBody, setCommentBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mentions, setMentions] = useState<TeamMember[]>([]);
+  const commentFormRef = useRef<HTMLDivElement>(null);
   const { crmUser } = useAuth();
   const { toast } = useToast();
+
+  // Auto-scroll to comment form when it opens
+  useEffect(() => {
+    if (isAdding && commentFormRef.current) {
+      setTimeout(() => {
+        commentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [isAdding]);
 
   // Send mention notifications
   const sendMentionNotifications = async (commentId: string, mentionedMembers: TeamMember[]) => {
@@ -109,6 +119,8 @@ export function ActivityCommentSection({
       setCommentBody('');
       setMentions([]);
       setIsAdding(false);
+      // Keep comments expanded after posting so user can see their comment
+      setIsExpanded(true);
       onCommentAdded?.();
       toast({
         title: 'Comment added',
@@ -175,7 +187,7 @@ export function ActivityCommentSection({
 
           {/* Add Comment Form */}
           {isAdding ? (
-            <div className="space-y-2 bg-background border rounded-lg p-2">
+            <div ref={commentFormRef} className="space-y-2 bg-background border rounded-lg p-2">
               <MentionableRichTextEditor
                 value={commentBody}
                 onChange={setCommentBody}

@@ -24,7 +24,7 @@ interface InsuranceTabProps {
 const hoiStatusOptions = [
   { value: "Quoted", label: "Quoted" },
   { value: "Ordered", label: "Ordered" },
-  { value: "Bound", label: "Bound" }
+  { value: "Received", label: "Received" }
 ];
 
 export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {

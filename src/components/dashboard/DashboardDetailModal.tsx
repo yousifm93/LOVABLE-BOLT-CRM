@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { formatDateShort } from "@/utils/formatters";
 import { Check, X, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,7 @@ interface Email {
   timestamp: string;
   delivery_status?: string | null;
   ai_summary?: string | null;
+  user_notes?: string | null;
   lead?: {
     first_name: string;
     last_name: string;
@@ -69,6 +71,7 @@ interface EmailSuggestion {
   suggested_value: string;
   reason: string;
   status: string;
+  confidence?: number | null;
 }
 
 interface DashboardDetailModalProps {
@@ -249,8 +252,10 @@ export function DashboardDetailModal({
                   <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
                   <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
                   {getFourthColumnTitle() && <TableHead className="min-w-[300px]">{getFourthColumnTitle()}</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[80px]">Confidence</TableHead>}
                   {type === "emails" && <TableHead className="min-w-[350px]">CRM Update</TableHead>}
                   {getFifthColumnTitle() && <TableHead className="min-w-[250px]">{getFifthColumnTitle()}</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[200px]">Notes</TableHead>}
                 </TableRow>
               </TableHeader>
             <TableBody>
@@ -294,6 +299,17 @@ export function DashboardDetailModal({
                         <span className="text-sm text-muted-foreground line-clamp-2">
                           {(item as Email).ai_summary || "—"}
                         </span>
+                      </TableCell>
+                    )}
+                    {type === "emails" && (
+                      <TableCell>
+                        {suggestions.length > 0 ? (
+                          <span className="text-xs font-medium">
+                            {Math.round((suggestions[0].confidence || 0.75) * 100)}%
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     )}
                     {type === "emails" && (
@@ -352,6 +368,29 @@ export function DashboardDetailModal({
                         <span className="text-sm text-muted-foreground line-clamp-1">
                           {item.subject || "—"}
                         </span>
+                      </TableCell>
+                    )}
+                    {type === "emails" && (
+                      <TableCell>
+                        <Input
+                          className="h-7 text-xs"
+                          placeholder="Add notes..."
+                          defaultValue={(item as Email).user_notes || ''}
+                          onBlur={async (e) => {
+                            const newNotes = e.target.value;
+                            if (newNotes !== ((item as Email).user_notes || '')) {
+                              try {
+                                await supabase
+                                  .from('email_logs')
+                                  .update({ user_notes: newNotes })
+                                  .eq('id', (item as Email).id);
+                                toast.success('Notes saved');
+                              } catch (error) {
+                                toast.error('Failed to save notes');
+                              }
+                            }
+                          }}
+                        />
                       </TableCell>
                     )}
                   </TableRow>

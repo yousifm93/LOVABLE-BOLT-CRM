@@ -1317,9 +1317,13 @@ export function ClientDetailDrawer({
         }
       }
 
-      // If moving to Active, also update the pipeline_section to Incoming
+      // If moving to Active, also update the pipeline_section to Incoming and set default loan_status
       if (normalizedLabel === 'Active') {
         updateData.pipeline_section = 'Incoming';
+        // Auto-assign NEW loan_status when moving to Active stage
+        if (!(client as any).loan_status) {
+          updateData.loan_status = 'NEW';
+        }
       }
       await databaseService.updateLead(leadId, updateData);
       toast({
@@ -1890,7 +1894,16 @@ export function ClientDetailDrawer({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 bg-gray-50">
-                {loadingTasks ? <p className="text-xs text-muted-foreground">Loading tasks...</p> : leadTasks.length > 0 ? leadTasks.map(task => <div key={task.id} className="flex items-center gap-2">
+                {loadingTasks ? <p className="text-xs text-muted-foreground">Loading tasks...</p> : leadTasks.length > 0 ? [...leadTasks].sort((a, b) => {
+                  // Open tasks (not Done) first
+                  if (a.status === 'Done' && b.status !== 'Done') return 1;
+                  if (a.status !== 'Done' && b.status === 'Done') return -1;
+                  // Then by due date (earliest first)
+                  if (a.due_date && b.due_date) return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+                  if (a.due_date && !b.due_date) return -1;
+                  if (!a.due_date && b.due_date) return 1;
+                  return 0;
+                }).map(task => <div key={task.id} className="flex items-center gap-2">
                       <Checkbox checked={task.status === "Done"} onCheckedChange={() => handleTaskToggle(task.id, task.status)} />
                       <div className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1" onClick={() => {
                   setSelectedTask(task);

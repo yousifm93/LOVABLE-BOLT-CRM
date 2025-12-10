@@ -1455,6 +1455,7 @@ export type Database = {
           timestamp: string
           to_email: string
           user_id: string | null
+          user_notes: string | null
         }
         Insert: {
           agent_id?: string | null
@@ -1478,6 +1479,7 @@ export type Database = {
           timestamp?: string
           to_email: string
           user_id?: string | null
+          user_notes?: string | null
         }
         Update: {
           agent_id?: string | null
@@ -1501,6 +1503,7 @@ export type Database = {
           timestamp?: string
           to_email?: string
           user_id?: string | null
+          user_notes?: string | null
         }
         Relationships: [
           {
