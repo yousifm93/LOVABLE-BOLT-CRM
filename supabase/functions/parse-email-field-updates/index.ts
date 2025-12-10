@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Field definitions with display names and valid values
+// Field definitions with display names and valid values (TITLE CASE for select values)
 const FIELD_DEFINITIONS = {
   loan_status: {
     displayName: 'Loan Status',
@@ -15,22 +15,22 @@ const FIELD_DEFINITIONS = {
   appraisal_status: {
     displayName: 'Appraisal Status',
     type: 'select',
-    validValues: ['ORDERED', 'SCHEDULED', 'INSPECTED', 'RECEIVED', 'WAIVER', 'TRANSFER'],
+    validValues: ['Ordered', 'Scheduled', 'Inspected', 'Received', 'Waiver', 'Transfer'],
   },
   title_status: {
     displayName: 'Title Status',
     type: 'select',
-    validValues: ['ORDERED', 'RECEIVED', 'CLEARED'],
+    validValues: ['Ordered', 'Received', 'Cleared'],
   },
   hoi_status: {
     displayName: 'Insurance Status',
     type: 'select',
-    validValues: ['QUOTED', 'ORDERED', 'BOUND'],
+    validValues: ['Quoted', 'Ordered', 'Bound'],
   },
   condo_status: {
     displayName: 'Condo Status',
     type: 'select',
-    validValues: ['ORDERED', 'RECEIVED', 'APPROVED', 'WAIVED'],
+    validValues: ['Ordered', 'Received', 'Approved', 'Waived'],
   },
   disclosure_status: {
     displayName: 'Disclosure Status',
@@ -40,12 +40,12 @@ const FIELD_DEFINITIONS = {
   cd_status: {
     displayName: 'CD Status',
     type: 'select',
-    validValues: ['Not Started', 'Sent', 'Signed'],
+    validValues: ['N/A', 'Requested', 'Sent', 'Signed'],
   },
   package_status: {
     displayName: 'Package Status',
     type: 'select',
-    validValues: ['Not Started', 'In Progress', 'Completed'],
+    validValues: ['Initial', 'Final'],
   },
   epo_status: {
     displayName: 'EPO Status',
@@ -80,6 +80,17 @@ const FIELD_DEFINITIONS = {
     displayName: 'Appraisal Value',
     type: 'currency',
   },
+};
+
+// Status progression rules - a status cannot go backwards in its progression
+const STATUS_PROGRESSIONS: Record<string, string[]> = {
+  appraisal_status: ['Ordered', 'Scheduled', 'Inspected', 'Received'],
+  package_status: ['Initial', 'Final'],
+  title_status: ['Ordered', 'Received', 'Cleared'],
+  cd_status: ['N/A', 'Requested', 'Sent', 'Signed'],
+  hoi_status: ['Quoted', 'Ordered', 'Bound'],
+  condo_status: ['Ordered', 'Received', 'Approved'],
+  loan_status: ['New', 'RFP', 'SUB', 'AWC', 'CTC', 'CLOSED'],
 };
 
 serve(async (req) => {
@@ -130,6 +141,31 @@ ${fieldList}
 CURRENT LEAD VALUES:
 ${currentValuesContext}
 
+CRITICAL DOMAIN-SPECIFIC RULES:
+
+1. **INTERNAL EMAILS**: If the email is FROM an @mortgagebolt.com address, return an empty array []. Do not suggest updates for internal team emails.
+
+2. **APPRAISAL CODE "1073"**: The code "1073" in an email refers to an APPRAISAL form (it's the appraisal form code). If you see "1073" being ordered or scheduled, suggest appraisal_status update, NOT condo_status.
+
+3. **WIRE AMOUNTS**: Wire transfer amounts do NOT indicate loan_amount changes. Only suggest loan_amount changes if the email explicitly states "new loan amount", "loan amount changed", or similar phrasing that clearly indicates the loan amount itself is being modified.
+
+4. **STATUS PROGRESSION - NEVER DOWNGRADE**: Never suggest a status that is EARLIER in the workflow than the current value. Status progressions are:
+   - Appraisal: Ordered → Scheduled → Inspected → Received (if current is "Inspected", never suggest "Ordered" or "Scheduled")
+   - Package: Initial → Final (if current is "Final", never suggest "Initial")
+   - Title: Ordered → Received → Cleared
+   - CD: N/A → Requested → Sent → Signed
+   - Insurance (HOI): Quoted → Ordered → Bound
+   - Condo: Ordered → Received → Approved
+
+5. **PACKAGE STATUS MAPPING**: 
+   - "in progress", "started", "beginning" → suggest "Initial"
+   - "final", "complete", "finished", "closing package" → suggest "Final"
+   - NEVER suggest "Completed" or "In Progress" as these are NOT valid values
+
+6. **CLOSING DATE CONFIRMATION**: Only suggest close_date if the email explicitly confirms a closing date (e.g., "closing on 12/12", "scheduled to close"). Do not change close_date based on estimated or tentative dates.
+
+7. **TITLE CASE FOR STATUS VALUES**: All status field values should use Title Case (e.g., "Ordered", "Received", "Scheduled"), not UPPERCASE.
+
 INSTRUCTIONS:
 1. Analyze the email subject and body for any status updates or field changes
 2. Look for phrases like "clear to close", "CTC", "appraisal received", "rate locked", "closing date confirmed", etc.
@@ -138,11 +174,12 @@ INSTRUCTIONS:
 5. For numbers/currency, use plain numbers (no $ or % symbols)
 6. Be conservative - only suggest updates you're confident about
 7. Don't suggest changes if the current value already matches what the email indicates
+8. VALIDATE against current values to avoid downgrading statuses
 
 Return a JSON array of suggestions. Each suggestion should have:
 - field_name: the database field name
 - field_display_name: human-readable name
-- suggested_value: the new value to set
+- suggested_value: the new value to set (must be from valid values for select fields)
 - reason: brief explanation of why (1-2 sentences)
 - confidence: number 0.0-1.0
 
@@ -219,12 +256,46 @@ Analyze this email and identify any CRM field updates that should be made.`;
         confidence: s.confidence || 0.8,
       }));
 
+      // CRITICAL: Validate status progression - filter out downgrades
+      suggestions = suggestions.filter((s: any) => {
+        const fieldName = s.field_name;
+        
+        // Check if this field has a status progression
+        if (fieldName in STATUS_PROGRESSIONS && currentLeadData) {
+          const progression = STATUS_PROGRESSIONS[fieldName];
+          const currentValue = currentLeadData[fieldName];
+          const suggestedValue = s.suggested_value;
+          
+          // Find indices in progression
+          const currentIndex = progression.findIndex(
+            (v: string) => v.toLowerCase() === (currentValue?.toLowerCase() || '')
+          );
+          const suggestedIndex = progression.findIndex(
+            (v: string) => v.toLowerCase() === suggestedValue.toLowerCase()
+          );
+          
+          // If both values are in the progression and suggested is earlier, reject
+          if (currentIndex !== -1 && suggestedIndex !== -1 && suggestedIndex < currentIndex) {
+            console.log(`[parse-email-field-updates] Rejecting downgrade: ${fieldName} from "${currentValue}" to "${suggestedValue}"`);
+            return false;
+          }
+          
+          // If suggested value equals current value, reject (no change needed)
+          if (currentValue && currentValue.toLowerCase() === suggestedValue.toLowerCase()) {
+            console.log(`[parse-email-field-updates] Rejecting same value: ${fieldName} already is "${currentValue}"`);
+            return false;
+          }
+        }
+        
+        return true;
+      });
+
     } catch (parseError) {
       console.error('[parse-email-field-updates] Error parsing AI response:', parseError);
       suggestions = [];
     }
 
-    console.log('[parse-email-field-updates] Detected suggestions:', suggestions.length);
+    console.log('[parse-email-field-updates] Detected suggestions after validation:', suggestions.length);
 
     return new Response(JSON.stringify({ suggestions }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
