@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CreateUserModal } from "@/components/modals/CreateUserModal";
-import { Mail, UserPlus, Power, Pencil, UserCheck } from "lucide-react";
+import { Mail, UserPlus, Power, Pencil, UserCheck, Shield } from "lucide-react";
 import { EditUserModal } from "@/components/modals/EditUserModal";
+import { UserPermissionsEditor } from "@/components/admin/UserPermissionsEditor";
 
 interface User {
   id: string;
@@ -134,7 +136,7 @@ export default function UserManagement() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-3xl font-bold text-foreground">User Management</h2>
-          <p className="text-muted-foreground">Manage team members and authentication</p>
+          <p className="text-muted-foreground">Manage team members, authentication, and permissions</p>
         </div>
         <Button onClick={() => setCreateModalOpen(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -142,225 +144,241 @@ export default function UserManagement() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Admins</CardTitle>
-          <CardDescription>
-            System administrators with full access
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Password</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {adminUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.first_name} {user.last_name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.email || "No email"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.phone || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_active ? "default" : "secondary"}>
-                      {user.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.display_password ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setRevealedPasswords(prev => {
-                            const next = new Set(prev);
-                            if (next.has(user.id)) {
-                              next.delete(user.id);
-                            } else {
-                              next.add(user.id);
-                            }
-                            return next;
-                          });
-                        }}
-                        className="font-mono text-xs"
-                      >
-                        {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
-                      </Button>
-                    ) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditUser(user)}
-                      title="Edit user"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCreateAuthAccount(user)}
-                      disabled={!user.email}
-                      title="Create auth account"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSendPasswordReset(user.email!)}
-                      disabled={!user.email}
-                      title="Send password reset email"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleActive(user.id, user.is_active)}
-                      title={user.is_active ? "Deactivate user" : "Activate user"}
-                    >
-                      <Power className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="permissions" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Permissions
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Admins</CardTitle>
+              <CardDescription>
+                System administrators with full access
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Password</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {adminUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.email || "No email"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.phone || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.is_active ? "default" : "secondary"}>
+                          {user.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.display_password ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setRevealedPasswords(prev => {
+                                const next = new Set(prev);
+                                if (next.has(user.id)) {
+                                  next.delete(user.id);
+                                } else {
+                                  next.add(user.id);
+                                }
+                                return next;
+                              });
+                            }}
+                            className="font-mono text-xs"
+                          >
+                            {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
+                          </Button>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          title="Edit user"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCreateAuthAccount(user)}
+                          disabled={!user.email}
+                          title="Create auth account"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSendPasswordReset(user.email!)}
+                          disabled={!user.email}
+                          title="Send password reset email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleActive(user.id, user.is_active)}
+                          title={user.is_active ? "Deactivate user" : "Activate user"}
+                        >
+                          <Power className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
-          <CardDescription>
-            All users have shared access to CRM data. Activity tracking shows who performed each action.
-            <br />
-            <span className="text-xs text-muted-foreground mt-1 block">
-              Passwords are securely managed by Supabase. Use "Send Password Reset" to allow users to set new passwords.
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Password</TableHead>
-                <TableHead>Assignable</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamMembers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.first_name} {user.last_name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.email || "No email"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.phone || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_active ? "default" : "secondary"}>
-                      {user.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.display_password ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setRevealedPasswords(prev => {
-                            const next = new Set(prev);
-                            if (next.has(user.id)) {
-                              next.delete(user.id);
-                            } else {
-                              next.add(user.id);
-                            }
-                            return next;
-                          });
-                        }}
-                        className="font-mono text-xs"
-                      >
-                        {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
-                      </Button>
-                    ) : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_assignable !== false ? "default" : "outline"}>
-                      {user.is_assignable !== false ? "Yes" : "No"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditUser(user)}
-                      title="Edit user"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCreateAuthAccount(user)}
-                      disabled={!user.email}
-                      title="Create auth account"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSendPasswordReset(user.email!)}
-                      disabled={!user.email}
-                      title="Send password reset email"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleActive(user.id, user.is_active)}
-                      title={user.is_active ? "Deactivate user" : "Activate user"}
-                    >
-                      <Power className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Members</CardTitle>
+              <CardDescription>
+                All users have shared access to CRM data. Activity tracking shows who performed each action.
+                <br />
+                <span className="text-xs text-muted-foreground mt-1 block">
+                  Passwords are securely managed by Supabase. Use "Send Password Reset" to allow users to set new passwords.
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Password</TableHead>
+                    <TableHead>Assignable</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMembers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.email || "No email"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.phone || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.is_active ? "default" : "secondary"}>
+                          {user.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.display_password ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setRevealedPasswords(prev => {
+                                const next = new Set(prev);
+                                if (next.has(user.id)) {
+                                  next.delete(user.id);
+                                } else {
+                                  next.add(user.id);
+                                }
+                                return next;
+                              });
+                            }}
+                            className="font-mono text-xs"
+                          >
+                            {revealedPasswords.has(user.id) ? user.display_password : '••••••••'}
+                          </Button>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.is_assignable !== false ? "default" : "outline"}>
+                          {user.is_assignable !== false ? "Yes" : "No"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                          title="Edit user"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCreateAuthAccount(user)}
+                          disabled={!user.email}
+                          title="Create auth account"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSendPasswordReset(user.email!)}
+                          disabled={!user.email}
+                          title="Send password reset email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleActive(user.id, user.is_active)}
+                          title={user.is_active ? "Deactivate user" : "Activate user"}
+                        >
+                          <Power className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="permissions">
+          <UserPermissionsEditor />
+        </TabsContent>
+      </Tabs>
 
       <CreateUserModal
         open={createModalOpen}

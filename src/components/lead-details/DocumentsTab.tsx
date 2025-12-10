@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, File, Upload, Trash2, X } from "lucide-react";
+import { FileText, Download, Eye, File, Upload, Trash2, X, Sparkles, Loader2 } from "lucide-react";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { Button } from "@/components/ui/button";
 import { formatDistance } from "date-fns";
@@ -10,6 +10,7 @@ import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { ActiveFileDocuments } from "./ActiveFileDocuments";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Document {
   id: string;
@@ -60,6 +61,7 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<{ 
     name: string; 
     url: string | null; 
@@ -73,6 +75,48 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   });
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAIRename = async (doc: Document) => {
+    setRenamingDocId(doc.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-document-content', {
+        body: {
+          fileName: doc.file_name,
+          mimeType: doc.mime_type,
+          borrowerLastName: lead?.last_name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.suggestedName) {
+        const newName = data.suggestedNameWithBorrower || data.suggestedName;
+        await databaseService.updateLeadDocument(doc.id, { title: newName });
+        
+        toast({
+          title: "Document Renamed",
+          description: `Renamed to "${newName}"`,
+        });
+        
+        onDocumentsChange();
+      } else {
+        toast({
+          title: "Could not determine name",
+          description: "AI couldn't suggest a better name for this document",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('AI rename error:', error);
+      toast({
+        title: "Rename Failed",
+        description: error.message || "Could not rename document with AI",
+        variant: "destructive",
+      });
+    } finally {
+      setRenamingDocId(null);
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -403,6 +447,20 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
                 </div>
                 
                 <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => handleAIRename(doc)}
+                    disabled={renamingDocId === doc.id}
+                    title="AI Rename"
+                  >
+                    {renamingDocId === doc.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

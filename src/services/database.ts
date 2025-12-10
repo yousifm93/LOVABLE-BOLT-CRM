@@ -2233,6 +2233,25 @@ export const databaseService = {
   },
 
   async getDocumentSignedUrl(storagePath: string, expiresIn = 3600) {
+    // Handle different storage paths - try lead-documents bucket first for email attachments
+    // Then fall back to documents bucket
+    const buckets = ['lead-documents', 'documents'];
+    
+    for (const bucket of buckets) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(storagePath, expiresIn);
+        
+        if (!error && data?.signedUrl) {
+          return data.signedUrl;
+        }
+      } catch (e) {
+        // Continue to next bucket
+      }
+    }
+    
+    // Final attempt with original bucket
     const { data, error } = await supabase.storage
       .from('documents')
       .createSignedUrl(storagePath, expiresIn);
