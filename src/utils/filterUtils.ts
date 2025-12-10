@@ -117,6 +117,15 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
           filterDateBefore.setHours(0, 0, 0, 0);
           return fieldDateBefore < filterDateBefore;
         }
+
+        case 'is_on_or_before': {
+          if (!fieldValue) return false;
+          const fieldDateOnOrBefore = new Date(fieldValue);
+          fieldDateOnOrBefore.setHours(0, 0, 0, 0);
+          const filterDateOnOrBefore = new Date(filterValue as string);
+          filterDateOnOrBefore.setHours(0, 0, 0, 0);
+          return fieldDateOnOrBefore <= filterDateOnOrBefore;
+        }
           
         case 'is_in_last_7': {
           if (!fieldValue) return false;

@@ -883,6 +883,7 @@ export const databaseService = {
           first_name, 
           last_name,
           phone,
+          loan_status,
           buyer_agent_id,
           listing_agent_id,
           pipeline_stage:pipeline_stages(id, name, order_index)

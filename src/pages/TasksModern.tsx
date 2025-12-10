@@ -149,6 +149,8 @@ const columns = (
     header: "Borrower Stage",
     cell: ({ row }) => {
       const stage = row.original.borrower?.pipeline_stage?.name;
+      const loanStatus = (row.original as any).lead?.loan_status;
+      
       if (!row.original.borrower_id) {
         return <span className="text-muted-foreground text-sm">-</span>;
       }
@@ -159,6 +161,16 @@ const columns = (
           </div>
         );
       }
+      
+      // If pipeline stage is "Active", show the loan_status instead (e.g., AWC, CTC, SUB)
+      if (stage.toLowerCase() === 'active' && loanStatus) {
+        return (
+          <div className="flex justify-center">
+            <StatusBadge status={loanStatus} />
+          </div>
+        );
+      }
+      
       return (
         <div className="flex justify-center">
           <StatusBadge status={stage} />
@@ -805,14 +817,14 @@ export default function TasksModern() {
               variant={isReviewActive ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                // Review View: Active borrowers with due date <= yesterday
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                // Review View: Active borrowers with due date <= today (including today)
+                const todayStr = new Date().toISOString().split('T')[0];
                 
+                // Use contains for stage matching to handle case sensitivity
                 setFilters([
-                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'is', value: 'Active' },
-                  { id: 'review-due', column: 'due_date', operator: 'is_before', value: new Date().toISOString().split('T')[0] }
+                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'contains', value: 'Active' },
+                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: todayStr },
+                  { id: 'review-status', column: 'status', operator: 'is_not', value: 'Done' }
                 ]);
                 setIsReviewActive(true);
               }}

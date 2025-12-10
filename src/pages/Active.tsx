@@ -1433,16 +1433,14 @@ export default function Active() {
             setColumns(newColumnOrder);
             setActiveView("Review");
             
-            // Filter to show only leads with tasks due yesterday or earlier
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            // Filter to show leads with tasks due today or earlier
+            const todayStr = new Date().toISOString().split('T')[0];
             
             setFilters([{
               id: 'review-due-date',
               column: 'earliest_task_due_date',
-              operator: 'is_before',
-              value: yesterdayStr
+              operator: 'is_on_or_before',
+              value: todayStr
             }]);
             
             toast({

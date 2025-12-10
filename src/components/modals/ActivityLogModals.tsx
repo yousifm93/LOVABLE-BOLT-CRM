@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { MentionableRichTextEditor } from '@/components/ui/mentionable-rich-text-editor';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -138,10 +137,10 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <RichTextEditor
+            <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Enter call notes..."
+              placeholder="Enter call notes... Use @ to mention team members"
             />
           </div>
 
@@ -254,10 +253,10 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <RichTextEditor
+            <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Enter SMS notes..."
+              placeholder="Enter SMS notes... Use @ to mention team members"
             />
           </div>
 
@@ -371,10 +370,10 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
-            <RichTextEditor
+            <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Enter email notes..."
+              placeholder="Enter email notes... Use @ to mention team members"
             />
           </div>
 
