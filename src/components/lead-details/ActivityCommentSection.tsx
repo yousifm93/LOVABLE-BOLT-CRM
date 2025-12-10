@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { MentionableRichTextEditor } from '@/components/ui/mentionable-rich-text-editor';
 import { MessageSquare, Send, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance } from 'date-fns';
+
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 interface ActivityComment {
   id: string;
@@ -38,15 +45,45 @@ export function ActivityCommentSection({
   const [isAdding, setIsAdding] = useState(false);
   const [commentBody, setCommentBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mentions, setMentions] = useState<TeamMember[]>([]);
   const { crmUser } = useAuth();
   const { toast } = useToast();
+
+  // Send mention notifications
+  const sendMentionNotifications = async (commentId: string, mentionedMembers: TeamMember[]) => {
+    const { data: leadData } = await supabase
+      .from('leads')
+      .select('first_name, last_name')
+      .eq('id', leadId)
+      .single();
+
+    const leadName = leadData ? `${leadData.first_name} ${leadData.last_name}` : 'Unknown Lead';
+    const mentionerName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : 'A team member';
+
+    for (const member of mentionedMembers) {
+      try {
+        await supabase.functions.invoke('send-mention-notification', {
+          body: {
+            mentionedUserId: member.id,
+            mentionerName,
+            noteContent: commentBody,
+            leadId,
+            leadName,
+            noteId: commentId,
+          }
+        });
+      } catch (error) {
+        console.error('Error sending mention notification:', error);
+      }
+    }
+  };
 
   const handleSubmitComment = async () => {
     if (!commentBody.trim() || !crmUser) return;
     
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('activity_comments')
         .insert({
           activity_type: activityType,
@@ -54,11 +91,23 @@ export function ActivityCommentSection({
           lead_id: leadId,
           author_id: crmUser.id,
           body: commentBody.trim(),
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Send mention notifications if there are mentions
+      if (mentions.length > 0 && data?.id) {
+        await sendMentionNotifications(data.id, mentions);
+        toast({
+          title: 'Notifications Sent',
+          description: `${mentions.length} team member(s) were notified.`,
+        });
+      }
+
       setCommentBody('');
+      setMentions([]);
       setIsAdding(false);
       onCommentAdded?.();
       toast({
@@ -127,10 +176,11 @@ export function ActivityCommentSection({
           {/* Add Comment Form */}
           {isAdding ? (
             <div className="space-y-2 bg-background border rounded-lg p-2">
-              <RichTextEditor
+              <MentionableRichTextEditor
                 value={commentBody}
                 onChange={setCommentBody}
-                placeholder="Write a comment..."
+                placeholder="Write a comment... Use @ to mention team members"
+                onMentionsChange={setMentions}
               />
               <div className="flex justify-end gap-2">
                 <Button

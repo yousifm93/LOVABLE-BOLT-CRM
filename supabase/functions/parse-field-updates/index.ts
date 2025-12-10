@@ -38,7 +38,7 @@ serve(async (req) => {
 
 Current date is: ${currentDate}
 
-Analyze the transcription and extract any field update requests AND task creation requests. Only extract items that are clearly stated - do not infer or guess.
+Analyze the transcription and extract any field update requests AND task creation requests.
 
 ## FIELD UPDATES
 
@@ -53,6 +53,8 @@ IMPORTANT - DATE PARSING:
 - Parse natural language dates relative to current date (${currentDate})
 - "next Sunday" or "this Sunday" → calculate the actual date
 - "December 14th" or "12/14" → use current year unless context suggests otherwise
+- "today" → ${currentDate}
+- "tomorrow" → add 1 day to current date
 - Always return dates in YYYY-MM-DD format
 
 Available fields that can be updated (use exact field names):
@@ -66,14 +68,13 @@ Available fields that can be updated (use exact field names):
 - title_status (values: Not Ordered, Ordered, In Process, Received)
 - condo_eta (date, format: YYYY-MM-DD)
 - condo_status (values: Not Ordered, Ordered, In Process, Received, N/A)
-- insurance_eta (date, format: YYYY-MM-DD)
+- insurance_eta (date, format: YYYY-MM-DD) - also called "HOI ETA", "insurance receipt date"
+- insurance_receipt_date (date, format: YYYY-MM-DD) - when insurance was received
 - hoi_status (values: Not Quoted, Quoted, Received)
 - loan_status (values: NEW, RFP, SUB, COND, CTC, DOCS, FUNDED, Suspended)
 - disclosure_status (values: Not Sent, Sent, Signed)
 - close_date (date, format: YYYY-MM-DD)
 - lock_expiration_date (date, format: YYYY-MM-DD) - also called "lock expiration", "rate lock expiration"
-- loan_amount (number)
-- sales_price (number)
 - interest_rate (percentage number, e.g., 6.5)
 - cd_status (values: Not Ordered, Requested, Received, Sent, Signed, N/A)
 - ba_status (values: Pending, Approved, Rejected, N/A)
@@ -84,26 +85,34 @@ Available fields that can be updated (use exact field names):
 - loan_program (values: Conventional, FHA, VA, USDA, DSCR, Non-QM, Jumbo, Other) - also called "loan type"
 - dscr_ratio (number between 0-2, e.g., 1.0, 1.25)
 - fico_score (number) - also called "credit score"
+- discount_points (number) - also called "points"
 
-## TASK SUGGESTIONS
+## TASK SUGGESTIONS - CRITICAL
 
-Detect when the user mentions creating a task, follow-up, reminder, or to-do item. Look for phrases like:
-- "create a task to..."
-- "we need to follow up on..."
+You MUST detect task creation requests. Look for ANY of these patterns:
+- "create a task to..." / "create task to..."
+- "add a task to..." / "add task to..."
+- "make a task to..." / "make task to..."
+- "need to follow up" / "follow up with" / "follow up on"
 - "remind me to..."
-- "make sure to..."
-- "I need to..."
-- "task for..."
-- "follow up with..."
+- "we should..." / "I should..."
+- "need to call..." / "call the..."
+- "need to email..." / "email the..."
 - "schedule a call to..."
-- "need to call..."
-- "check on..."
+- "check on..." / "check in with..."
+- "reach out to..."
+- "contact the..."
+- "send a..." / "send the..."
+- "get the..." / "get a..."
+- "update the..." (when referring to an action, not a field)
+
+IMPORTANT: If the user says ANYTHING about creating a task, following up, calling someone, or needing to do something - CREATE A TASK SUGGESTION.
 
 For task suggestions, extract:
-- title: A clear, concise task title
-- description: Additional context if provided (optional)
-- dueDate: If a specific date/time is mentioned (format: YYYY-MM-DD)
-- priority: low, medium, or high based on urgency words (default: medium)
+- title: A clear, concise task title (e.g., "Call buyer's agent", "Follow up with underwriter")
+- description: Additional context if provided (optional, can be empty string)
+- dueDate: If a specific date/time is mentioned, parse it (format: YYYY-MM-DD). If "tomorrow" is mentioned, calculate the date. Default to null if no date mentioned.
+- priority: "low", "medium", or "high" based on urgency words like "urgent", "ASAP", "immediately" = high; "when you get a chance" = low; default to "medium"
 
 Current lead data for context:
 ${JSON.stringify(currentLeadData, null, 2)}
@@ -119,12 +128,13 @@ Each field update should have:
 - newValue: the new value to set (properly formatted)
 
 Each task suggestion should have:
-- title: string (required)
-- description: string (optional, can be empty)
-- dueDate: string in YYYY-MM-DD format (optional, can be null)
+- title: string (required) - short, action-oriented title
+- description: string (can be empty string "")
+- dueDate: string in YYYY-MM-DD format (or null if no date specified)
 - priority: "low" | "medium" | "high" (default to "medium")
 
 EXAMPLES:
+
 Input: "The borrower is looking to purchase around 400,000 with 20% down"
 Output:
 {
@@ -135,16 +145,36 @@ Output:
   "taskSuggestions": []
 }
 
-Input: "We need to create a task to follow up on the appraisal by next Friday"
+Input: "Create a task to follow up with the underwriter"
 Output:
 {
   "detectedUpdates": [],
   "taskSuggestions": [
-    {"title": "Follow up on appraisal", "description": "", "dueDate": "2024-12-20", "priority": "medium"}
+    {"title": "Follow up with underwriter", "description": "", "dueDate": null, "priority": "medium"}
   ]
 }
 
-Input: "Appraisal came back at 425,000 and we need to call the buyer's agent tomorrow to discuss"
+Input: "We need to call the buyer's agent tomorrow about the appraisal"
+Output:
+{
+  "detectedUpdates": [],
+  "taskSuggestions": [
+    {"title": "Call buyer's agent about appraisal", "description": "", "dueDate": "${new Date(Date.now() + 86400000).toISOString().split('T')[0]}", "priority": "medium"}
+  ]
+}
+
+Input: "Change the insurance receipt date to today and create a task to call the borrower"
+Output:
+{
+  "detectedUpdates": [
+    {"field": "insurance_receipt_date", "fieldLabel": "Insurance Receipt Date", "currentValue": null, "newValue": "${currentDate}"}
+  ],
+  "taskSuggestions": [
+    {"title": "Call borrower", "description": "", "dueDate": null, "priority": "medium"}
+  ]
+}
+
+Input: "Appraisal came back at 425,000 and we need to call the buyer's agent ASAP to discuss"
 Output:
 {
   "detectedUpdates": [
@@ -152,7 +182,7 @@ Output:
     {"field": "appraisal_status", "fieldLabel": "Appraisal Status", "currentValue": null, "newValue": "Received"}
   ],
   "taskSuggestions": [
-    {"title": "Call buyer's agent to discuss appraisal", "description": "Appraisal came back at $425,000", "dueDate": "2024-12-11", "priority": "high"}
+    {"title": "Call buyer's agent to discuss appraisal", "description": "Appraisal came back at $425,000", "dueDate": null, "priority": "high"}
   ]
 }
 
