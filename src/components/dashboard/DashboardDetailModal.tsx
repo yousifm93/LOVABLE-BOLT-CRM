@@ -91,7 +91,7 @@ export function DashboardDetailModal({
   const [emailSuggestions, setEmailSuggestions] = useState<Record<string, EmailSuggestion[]>>({});
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  // Fetch suggestions for emails
+  // Fetch suggestions for emails - include all statuses for logging
   useEffect(() => {
     if (type === 'emails' && open && data.length > 0) {
       const fetchSuggestions = async () => {
@@ -99,8 +99,7 @@ export function DashboardDetailModal({
         const { data: suggestions } = await supabase
           .from('email_field_suggestions')
           .select('*')
-          .in('email_log_id', emailIds)
-          .eq('status', 'pending');
+          .in('email_log_id', emailIds);
 
         if (suggestions) {
           const grouped = suggestions.reduce((acc, s) => {
@@ -128,9 +127,12 @@ export function DashboardDetailModal({
         .update({ status: 'approved', reviewed_at: new Date().toISOString() })
         .eq('id', suggestion.id);
 
+      // Update local state to reflect approved status instead of removing
       setEmailSuggestions(prev => ({
         ...prev,
-        [suggestion.email_log_id]: prev[suggestion.email_log_id]?.filter(s => s.id !== suggestion.id) || [],
+        [suggestion.email_log_id]: prev[suggestion.email_log_id]?.map(s => 
+          s.id === suggestion.id ? { ...s, status: 'approved' } : s
+        ) || [],
       }));
       toast.success(`Updated ${suggestion.field_display_name}`);
     } catch (error) {
@@ -151,9 +153,12 @@ export function DashboardDetailModal({
         .update({ status: 'denied', reviewed_at: new Date().toISOString() })
         .eq('id', suggestion.id);
 
+      // Update local state to reflect denied status instead of removing
       setEmailSuggestions(prev => ({
         ...prev,
-        [suggestion.email_log_id]: prev[suggestion.email_log_id]?.filter(s => s.id !== suggestion.id) || [],
+        [suggestion.email_log_id]: prev[suggestion.email_log_id]?.map(s => 
+          s.id === suggestion.id ? { ...s, status: 'denied' } : s
+        ) || [],
       }));
       toast.success('Suggestion denied');
     } catch (error) {
@@ -303,26 +308,37 @@ export function DashboardDetailModal({
                                   <ArrowRight className="h-3 w-3" />
                                   <span className="text-primary font-medium">{suggestion.suggested_value}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                    onClick={() => handleDenySuggestion(suggestion)}
-                                    disabled={processingIds.has(suggestion.id)}
+                                {suggestion.status === 'pending' ? (
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleDenySuggestion(suggestion)}
+                                      disabled={processingIds.has(suggestion.id)}
+                                    >
+                                      {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0 text-green-600 hover:bg-green-600/10"
+                                      onClick={() => leadId && handleApproveSuggestion(suggestion, leadId)}
+                                      disabled={processingIds.has(suggestion.id)}
+                                    >
+                                      {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Badge 
+                                    variant={suggestion.status === 'approved' ? 'default' : 'secondary'}
+                                    className={suggestion.status === 'approved' 
+                                      ? 'bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0' 
+                                      : 'bg-muted text-muted-foreground text-[10px] px-1.5 py-0'}
                                   >
-                                    {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 text-green-600 hover:bg-green-600/10"
-                                    onClick={() => leadId && handleApproveSuggestion(suggestion, leadId)}
-                                    disabled={processingIds.has(suggestion.id)}
-                                  >
-                                    {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                                  </Button>
-                                </div>
+                                    {suggestion.status === 'approved' ? 'Approved' : 'Denied'}
+                                  </Badge>
+                                )}
                               </div>
                             ))}
                           </div>

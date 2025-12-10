@@ -1765,36 +1765,50 @@ export function ClientDetailDrawer({
               <CardHeader className="pb-3 flex-shrink-0">
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto">
-              {(pipelineType === 'leads' || pipelineType === 'active' || pipelineType === 'past-clients') && (
-                <PipelineStageBar 
-                  stages={PIPELINE_CONFIGS[pipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []} 
-                  currentStage={pipelineType === 'active' ? (() => {
-                    const raw = (client as any).loanStatus || (client as any).loan_status || client.ops.status || '';
-                    const upper = String(raw).toUpperCase();
-                    return upper === 'SUV' ? 'SUB' : upper;
-                  })() : pipelineType === 'past-clients' ? (() => {
-                    const loanStatus = (client as any).loanStatus || (client as any).loan_status || 'Closed';
-                    // Map loan_status to stage labels
-                    if (loanStatus === 'Closed') return 'Closed';
-                    if (loanStatus === 'Needs Support' || loanStatus === 'Need Support') return 'Needs Support';
-                    if (loanStatus === 'New Lead') return 'New Lead';
-                    return 'Closed'; // default
-                  })() : (() => {
-                    const s = client.ops.stage;
-                    const config = PIPELINE_CONFIGS['leads'];
-                    if (!s) return 'New';
-                    // Try key match (e.g., 'leads', 'pending-app', etc.)
-                    const byKey = config.find(st => st.key === s);
-                    if (byKey) return byKey.label;
-                    // Try label match (e.g., 'Pending App', 'Pre-Approved')
-                    const byLabel = config.find(st => st.label.toLowerCase() === String(s).toLowerCase());
-                    return byLabel ? byLabel.label : 'New';
-                  })()} 
-                  size="md" 
-                  clickable={true} 
-                  onStageClick={pipelineType === 'active' ? handleActiveLoanStatusClick : pipelineType === 'past-clients' ? handlePastClientsStatusClick : handlePipelineStageClick} 
-                />
-              )}
+              {(pipelineType === 'leads' || pipelineType === 'active' || pipelineType === 'past-clients') && (() => {
+                // Check if lead is in Active pipeline stage by checking pipeline_stage.name or pipeline_stage_id
+                const pipelineStageName = (client as any).pipeline_stage?.name || '';
+                const isActiveStage = pipelineStageName.toLowerCase() === 'active' || 
+                  (client as any).pipeline_stage_id === '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+                
+                // Check if lead is in Past Clients pipeline stage
+                const isPastClientsStage = pipelineStageName.toLowerCase() === 'past clients' || 
+                  (client as any).pipeline_stage_id === 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
+                
+                // Determine which stages to show based on actual pipeline stage (not pipelineType prop)
+                const effectivePipelineType = isActiveStage ? 'active' : isPastClientsStage ? 'past-clients' : pipelineType;
+                
+                return (
+                  <PipelineStageBar 
+                    stages={PIPELINE_CONFIGS[effectivePipelineType]?.map(stage => stage.label.replace(/([a-z])([A-Z])/g, '$1 $2')) || []} 
+                    currentStage={effectivePipelineType === 'active' || isActiveStage ? (() => {
+                      const raw = (client as any).loanStatus || (client as any).loan_status || client.ops.status || '';
+                      const upper = String(raw).toUpperCase();
+                      return upper === 'SUV' ? 'SUB' : upper;
+                    })() : effectivePipelineType === 'past-clients' || isPastClientsStage ? (() => {
+                      const loanStatus = (client as any).loanStatus || (client as any).loan_status || 'Closed';
+                      // Map loan_status to stage labels
+                      if (loanStatus === 'Closed') return 'Closed';
+                      if (loanStatus === 'Needs Support' || loanStatus === 'Need Support') return 'Needs Support';
+                      if (loanStatus === 'New Lead') return 'New Lead';
+                      return 'Closed'; // default
+                    })() : (() => {
+                      const s = client.ops.stage;
+                      const config = PIPELINE_CONFIGS['leads'];
+                      if (!s) return 'New';
+                      // Try key match (e.g., 'leads', 'pending-app', etc.)
+                      const byKey = config.find(st => st.key === s);
+                      if (byKey) return byKey.label;
+                      // Try label match (e.g., 'Pending App', 'Pre-Approved')
+                      const byLabel = config.find(st => st.label.toLowerCase() === String(s).toLowerCase());
+                      return byLabel ? byLabel.label : 'New';
+                    })()} 
+                    size="md" 
+                    clickable={true} 
+                    onStageClick={effectivePipelineType === 'active' || isActiveStage ? handleActiveLoanStatusClick : effectivePipelineType === 'past-clients' || isPastClientsStage ? handlePastClientsStatusClick : handlePipelineStageClick} 
+                  />
+                );
+              })()}
 
                 {/* Critical Status Information - Dynamic based on stage */}
                 <div className="mt-4">

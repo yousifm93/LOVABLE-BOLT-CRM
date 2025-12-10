@@ -30,6 +30,7 @@ import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 interface ModernTask {
   id: string;
@@ -289,6 +290,10 @@ export default function TasksModern() {
   const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
   const [openTasksExpanded, setOpenTasksExpanded] = useState(true);
   const [doneTasksExpanded, setDoneTasksExpanded] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<ModernTask | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   // Column visibility hook for views system
@@ -544,23 +549,32 @@ export default function TasksModern() {
     setIsDetailModalOpen(true);
   };
 
-  const handleDelete = async (task: ModernTask) => {
-    if (window.confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      try {
-        await databaseService.deleteTask(task.id);
-        setTasks(prev => prev.filter(t => t.id !== task.id));
-        toast({
-          title: "Task deleted successfully",
-          duration: 2000,
-        });
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        toast({
-          title: "Error deleting task",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
+  const handleDelete = (task: ModernTask) => {
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!taskToDelete) return;
+    setIsDeleting(true);
+    try {
+      await databaseService.deleteTask(taskToDelete.id);
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
+      toast({
+        title: "Task deleted successfully",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error deleting task",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -588,17 +602,21 @@ export default function TasksModern() {
     setSearchTerm("");
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedTaskIds.length} task(s)?`)) return;
-    
+  const handleBulkDelete = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setIsDeleting(true);
     try {
       for (const taskId of selectedTaskIds) {
         await databaseService.deleteTask(taskId);
       }
+      const deletedCount = selectedTaskIds.length;
       setSelectedTaskIds([]);
       loadTasks();
       toast({
-        title: `${selectedTaskIds.length} task(s) deleted successfully`,
+        title: `${deletedCount} task(s) deleted successfully`,
         duration: 2000,
       });
     } catch (error) {
@@ -608,6 +626,9 @@ export default function TasksModern() {
         description: "Please try again",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+      setBulkDeleteDialogOpen(false);
     }
   };
 
@@ -983,6 +1004,25 @@ export default function TasksModern() {
             type: "date"
           }
         ]}
+      />
+
+      {/* Delete Confirmation Dialogs */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete task?"
+        description={`Are you sure you want to delete "${taskToDelete?.title}"? This action cannot be undone.`}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+      />
+
+      <DeleteConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+        title={`Delete ${selectedTaskIds.length} task(s)?`}
+        description="This action cannot be undone. Are you sure you want to delete the selected tasks?"
+        onConfirm={confirmBulkDelete}
+        isLoading={isDeleting}
       />
     </div>
   );
