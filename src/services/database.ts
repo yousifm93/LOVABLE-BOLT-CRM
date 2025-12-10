@@ -1649,8 +1649,35 @@ export const databaseService = {
           lender: null,
           approved_lender: null,
           listing_agent: null,
-          teammate: null
+          teammate: null,
+          earliest_task_due_date: null
         })) || [];
+      }
+      
+      // Fetch earliest task due dates for all active loans
+      const leadIds = data?.map(loan => loan.id) || [];
+      let taskDueDates: Record<string, string | null> = {};
+      
+      if (leadIds.length > 0) {
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select('borrower_id, due_date')
+          .in('borrower_id', leadIds)
+          .is('deleted_at', null)
+          .neq('status', 'Done')
+          .not('due_date', 'is', null)
+          .order('due_date', { ascending: true });
+        
+        // Group by borrower_id and get earliest date
+        if (tasksData) {
+          for (const task of tasksData) {
+            if (task.borrower_id && task.due_date) {
+              if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+                taskDueDates[task.borrower_id] = task.due_date;
+              }
+            }
+          }
+        }
       }
       
       return data?.map(loan => ({
@@ -1660,6 +1687,7 @@ export const databaseService = {
         approved_lender: Array.isArray((loan as any).approved_lender) ? (loan as any).approved_lender[0] || null : (loan as any).approved_lender || null,
         listing_agent: Array.isArray((loan as any).listing_agent) ? (loan as any).listing_agent[0] || null : (loan as any).listing_agent || null,
         teammate: Array.isArray((loan as any).teammate) ? (loan as any).teammate[0] || null : (loan as any).teammate || null,
+        earliest_task_due_date: taskDueDates[loan.id] || null,
       })) || [];
     } catch (error: any) {
       console.error('Failed to load active loans:', error);

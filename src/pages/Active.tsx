@@ -59,6 +59,7 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "lock_expiration_date",
   "ba_status",
   "epo_status",
+  "earliest_task_due_date",
   "buyer_agent",
   "listing_agent"
 ];
@@ -98,6 +99,7 @@ interface ActiveLoan {
   is_closed: boolean | null;
   closed_at: string | null;
   notes: string | null;
+  earliest_task_due_date?: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -737,6 +739,33 @@ const createColumns = (
     sortable: true,
   },
   {
+    accessorKey: "earliest_task_due_date",
+    header: "TASK DUE",
+    className: "text-center",
+    headerClassName: "text-center",
+    cell: ({ row }) => {
+      const dueDate = row.original.earliest_task_due_date;
+      if (!dueDate) return <span className="text-muted-foreground text-sm">-</span>;
+      
+      const date = new Date(dueDate.includes("T") ? dueDate : `${dueDate}T00:00:00`);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDateObj = new Date(date);
+      dueDateObj.setHours(0, 0, 0, 0);
+      const isOverdue = dueDateObj.getTime() < today.getTime();
+      const isToday = dueDateObj.getTime() === today.getTime();
+      
+      const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      return (
+        <span className={`text-sm font-medium ${isOverdue ? 'text-destructive' : isToday ? 'text-warning' : 'text-muted-foreground'}`}>
+          {formattedDate}
+        </span>
+      );
+    },
+    sortable: true,
+  },
+  {
     accessorKey: "is_closed",
     header: "CLOSED",
     className: "text-center",
@@ -796,6 +825,7 @@ export default function Active() {
         "listing_agent": "LISTING AGENT",
         "pr_type": "P/R",
         "occupancy": "OCCUPANCY",
+        "earliest_task_due_date": "TASK DUE",
         "is_closed": "CLOSED",
       };
       
