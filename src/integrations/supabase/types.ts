@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_comments: {
+        Row: {
+          activity_id: string
+          activity_type: string
+          attachment_url: string | null
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          lead_id: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          activity_type: string
+          attachment_url?: string | null
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          activity_type?: string
+          attachment_url?: string | null
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_comments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_call_logs: {
         Row: {
           agent_id: string
@@ -2762,6 +2813,65 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "application_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_mentions: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          mentioned_user_id: string
+          mentioner_id: string | null
+          note_id: string
+          notification_sent: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          mentioned_user_id: string
+          mentioner_id?: string | null
+          note_id: string
+          notification_sent?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          mentioned_user_id?: string
+          mentioner_id?: string | null
+          note_id?: string
+          notification_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_mentions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_mentions_mentioned_user_id_fkey"
+            columns: ["mentioned_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_mentions_mentioner_id_fkey"
+            columns: ["mentioner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_mentions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
             referencedColumns: ["id"]
           },
         ]

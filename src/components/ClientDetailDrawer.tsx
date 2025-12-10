@@ -24,7 +24,7 @@ import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { PreApprovalLetterModal } from "@/components/modals/PreApprovalLetterModal";
-import { FieldUpdateConfirmationModal } from "@/components/modals/FieldUpdateConfirmationModal";
+import { VoiceUpdateConfirmationModal } from "@/components/modals/VoiceUpdateConfirmationModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
 import { LeadThirdPartyItemsCard } from "@/components/lead-details/LeadThirdPartyItemsCard";
@@ -671,8 +671,9 @@ export function ClientDetailDrawer({
           body: { transcription, currentLeadData }
         });
 
-        if (!fieldUpdateError && fieldUpdateData?.detectedUpdates?.length > 0) {
-          setDetectedFieldUpdates(fieldUpdateData.detectedUpdates);
+        if (!fieldUpdateError && (fieldUpdateData?.detectedUpdates?.length > 0 || fieldUpdateData?.taskSuggestions?.length > 0)) {
+          setDetectedFieldUpdates(fieldUpdateData.detectedUpdates || []);
+          // Store task suggestions in state - need to add state variable
           setShowFieldUpdateModal(true);
         }
       } catch (fieldParseError) {
@@ -2429,11 +2430,34 @@ export function ClientDetailDrawer({
 
           <PreApprovalLetterModal isOpen={showPreApprovalModal} onClose={() => setShowPreApprovalModal(false)} client={client} />
 
-          <FieldUpdateConfirmationModal 
+          <VoiceUpdateConfirmationModal 
             isOpen={showFieldUpdateModal} 
             onClose={() => setShowFieldUpdateModal(false)} 
             detectedUpdates={detectedFieldUpdates}
-            onApply={handleApplyFieldUpdates}
+            taskSuggestions={[]}
+            onApplyFieldUpdates={handleApplyFieldUpdates}
+            onCreateTasks={async (tasks) => {
+              for (const task of tasks) {
+                try {
+                  await databaseService.createTask({
+                    title: task.title,
+                    description: task.description || '',
+                    due_date: task.dueDate || null,
+                    priority: task.priority.charAt(0).toUpperCase() + task.priority.slice(1) as any,
+                    borrower_id: leadId,
+                    status: 'To Do',
+                  });
+                } catch (error) {
+                  console.error('Error creating task:', error);
+                }
+              }
+              if (tasks.length > 0) {
+                toast({
+                  title: 'Tasks Created',
+                  description: `${tasks.length} task(s) created successfully.`,
+                });
+              }
+            }}
           />
         </>}
     </div>;

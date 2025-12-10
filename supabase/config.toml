@@ -132,3 +132,6 @@ verify_jwt = false
 
 [functions.parse-email-field-updates]
 verify_jwt = false
+
+[functions.send-mention-notification]
+verify_jwt = false
