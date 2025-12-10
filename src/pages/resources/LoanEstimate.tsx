@@ -59,7 +59,11 @@ export default function LoanEstimate() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [calibrationOpen, setCalibrationOpen] = useState(false);
-  const [positionOverrides, setPositionOverrides] = useState<Record<string, FieldPosition>>({});
+  const [positionOverrides, setPositionOverrides] = useState<Record<string, FieldPosition>>(() => {
+    // Load saved positions from localStorage on mount
+    const saved = localStorage.getItem('loan-estimate-field-positions');
+    return saved ? JSON.parse(saved) : {};
+  });
   const { toast } = useToast();
 
   // Form state with fixed fee defaults
@@ -513,7 +517,23 @@ export default function LoanEstimate() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setPositionOverrides({})}
+                  onClick={() => {
+                    localStorage.setItem('loan-estimate-field-positions', JSON.stringify(positionOverrides));
+                    toast({
+                      title: "Defaults Saved",
+                      description: "Current positions saved as new defaults.",
+                    });
+                  }}
+                >
+                  Save as Defaults
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setPositionOverrides({});
+                    localStorage.removeItem('loan-estimate-field-positions');
+                  }}
                 >
                   Reset to Defaults
                 </Button>

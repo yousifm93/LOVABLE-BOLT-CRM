@@ -3579,6 +3579,44 @@ export type Database = {
           },
         ]
       }
+      status_change_logs: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          field_name: string
+          id: string
+          lead_id: string | null
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          field_name: string
+          id?: string
+          lead_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          lead_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_change_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_automation_executions: {
         Row: {
           automation_id: string
