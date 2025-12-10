@@ -105,14 +105,14 @@ interface ApplicationData {
 
 // ============= VALUE NORMALIZATION MAPS =============
 
-// Normalize loan_type to UPPERCASE (matching CRM dropdown)
+// Normalize loan_type to Title Case (matching CRM dropdown)
 const loanTypeMap: Record<string, string> = {
-  'purchase': 'PURCHASE',
-  'refinance': 'REFINANCE',
-  'refi': 'REFINANCE',
+  'purchase': 'Purchase',
+  'refinance': 'Refinance',
+  'refi': 'Refinance',
   'heloc': 'HELOC',
-  'cash-out': 'REFINANCE',
-  'cash_out': 'REFINANCE',
+  'cash-out': 'Refinance',
+  'cash_out': 'Refinance',
 };
 
 // Normalize property_type to match CRM dropdown exactly
@@ -516,8 +516,11 @@ Deno.serve(async (req) => {
       interest_rate: interestRate,
       term: termMonths,
       
-      // Subject property address
-      subject_address_1: 'TBD',
+      // Subject property address - use actual address from application
+      subject_address_1: mortgageInfo.location?.address || 
+                         (mortgageInfo as any).propertyAddress || 
+                         (mortgageInfo as any).subjectAddress ||
+                         null,
       subject_address_2: null,
       subject_city: subjectCity,
       subject_state: subjectState,

@@ -204,6 +204,7 @@ export function transformLeadToClient(lead: any): any {
   auto_loans: lead.auto_loans || null,
   student_loans: lead.student_loans || null,
   other_monthly_debts: lead.other_monthly_debts || null,
+  monthlyLiabilities: lead.monthly_liabilities || null,
   monthly_liabilities: lead.monthly_liabilities || null,
   dti: lead.dti || null,
   
