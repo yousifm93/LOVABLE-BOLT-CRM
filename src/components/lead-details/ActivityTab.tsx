@@ -4,11 +4,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight, ThumbsUp, Reply } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { ReplyEmailModal } from "@/components/modals/ReplyEmailModal";
+import { ActivityCommentSection } from "@/components/lead-details/ActivityCommentSection";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 // Strip forwarding headers and signatures, start from actual forwarded content
 const stripForwardingContent = (content: string): string => {
@@ -152,6 +154,43 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
   const [expandedActivities, setExpandedActivities] = React.useState<Set<number>>(new Set());
   const [showReplyEmailModal, setShowReplyEmailModal] = React.useState(false);
   const [selectedEmailForReply, setSelectedEmailForReply] = React.useState<Activity | null>(null);
+  const [activityComments, setActivityComments] = React.useState<Record<string, any[]>>({});
+
+  // Load comments for all activities
+  React.useEffect(() => {
+    const loadComments = async () => {
+      if (activities.length === 0) return;
+      
+      const leadId = activities[0]?.lead_id;
+      if (!leadId) return;
+
+      const { data, error } = await supabase
+        .from('activity_comments')
+        .select(`
+          *,
+          author:users(first_name, last_name)
+        `)
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        // Group comments by activity
+        const grouped: Record<string, any[]> = {};
+        data.forEach(comment => {
+          const key = `${comment.activity_type}-${comment.activity_id}`;
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(comment);
+        });
+        setActivityComments(grouped);
+      }
+    };
+    loadComments();
+  }, [activities]);
+
+  const getCommentsForActivity = (activity: Activity) => {
+    const key = `${activity.type}-${activity.id}`;
+    return activityComments[key] || [];
+  };
 
   const toggleActivity = (id: number) => {
     const newExpanded = new Set(expandedActivities);
@@ -161,6 +200,33 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
       newExpanded.add(id);
     }
     setExpandedActivities(newExpanded);
+  };
+
+  const handleCommentAdded = () => {
+    // Refresh comments
+    if (activities.length > 0 && activities[0]?.lead_id) {
+      const loadComments = async () => {
+        const { data, error } = await supabase
+          .from('activity_comments')
+          .select(`
+            *,
+            author:users(first_name, last_name)
+          `)
+          .eq('lead_id', activities[0].lead_id!)
+          .order('created_at', { ascending: true });
+
+        if (!error && data) {
+          const grouped: Record<string, any[]> = {};
+          data.forEach(comment => {
+            const key = `${comment.activity_type}-${comment.activity_id}`;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(comment);
+          });
+          setActivityComments(grouped);
+        }
+      };
+      loadComments();
+    }
   };
 
   return (
@@ -307,6 +373,17 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                     />
                   </div>
                 </CollapsibleContent>
+              )}
+              
+              {/* Activity Comments Section */}
+              {activity.lead_id && (
+                <ActivityCommentSection
+                  activityType={activity.type}
+                  activityId={String(activity.id)}
+                  leadId={activity.lead_id}
+                  comments={getCommentsForActivity(activity)}
+                  onCommentAdded={handleCommentAdded}
+                />
               )}
             </Collapsible>
           );

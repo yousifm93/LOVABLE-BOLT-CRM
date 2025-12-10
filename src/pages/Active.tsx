@@ -1397,6 +1397,7 @@ export default function Active() {
             const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
             setColumns(newColumnOrder);
             setActiveView("Main View");
+            setFilters([]);
             
             toast({
               title: "Main View Loaded",
@@ -1406,6 +1407,52 @@ export default function Active() {
           className="h-8 text-xs"
         >
           Main View
+        </Button>
+
+        <Button
+          variant={activeView === "Review" ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            // Show earliest_task_due_date column prominently
+            const reviewColumns = [...mainViewColumns];
+            if (!reviewColumns.includes('earliest_task_due_date')) {
+              reviewColumns.push('earliest_task_due_date');
+            }
+            
+            const orderedReviewColumns = reviewColumns
+              .map(id => columnVisibility.find(col => col.id === id))
+              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+              .map(col => ({ ...col, visible: true }));
+            
+            const existingIds = new Set(reviewColumns);
+            const remainingColumns = columnVisibility
+              .filter(col => !existingIds.has(col.id))
+              .map(col => ({ ...col, visible: false }));
+            
+            const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
+            setColumns(newColumnOrder);
+            setActiveView("Review");
+            
+            // Filter to show only leads with tasks due yesterday or earlier
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            setFilters([{
+              id: 'review-due-date',
+              column: 'earliest_task_due_date',
+              operator: 'is_before',
+              value: yesterdayStr
+            }]);
+            
+            toast({
+              title: "Review View Loaded",
+              description: "Showing loans with overdue tasks"
+            });
+          }}
+          className="h-8 text-xs"
+        >
+          Review
         </Button>
 
         <Button

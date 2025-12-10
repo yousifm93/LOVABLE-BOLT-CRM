@@ -5,10 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { MentionableRichTextEditor } from '@/components/ui/mentionable-rich-text-editor';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
+
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 interface ActivityLogModalProps {
   open: boolean;
@@ -389,11 +397,42 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
   const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
+  const [mentions, setMentions] = useState<TeamMember[]>([]);
 
   // UUID validation helper
   const isValidUUID = (uuid: string): boolean => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
+  };
+
+  // Send mention notifications
+  const sendMentionNotifications = async (noteId: string, mentionedMembers: TeamMember[]) => {
+    // Get lead name for notification
+    const { data: leadData } = await supabase
+      .from('leads')
+      .select('first_name, last_name')
+      .eq('id', leadId)
+      .single();
+
+    const leadName = leadData ? `${leadData.first_name} ${leadData.last_name}` : 'Unknown Lead';
+    const mentionerName = crmUser ? `${crmUser.first_name} ${crmUser.last_name}` : 'A team member';
+
+    for (const member of mentionedMembers) {
+      try {
+        await supabase.functions.invoke('send-mention-notification', {
+          body: {
+            mentionedUserId: member.id,
+            mentionerName,
+            noteContent: noteBody,
+            leadId,
+            leadName,
+            noteId,
+          }
+        });
+      } catch (error) {
+        console.error('Error sending mention notification:', error);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -429,9 +468,20 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
       };
 
       const newNote = await databaseService.createNote(noteData);
+      
+      // Send mention notifications if there are mentions
+      if (mentions.length > 0 && newNote?.id) {
+        await sendMentionNotifications(newNote.id, mentions);
+        toast({
+          title: 'Notifications Sent',
+          description: `${mentions.length} team member(s) were notified of your mention.`,
+        });
+      }
+
       onActivityCreated(newNote);
       onOpenChange(false);
       setNoteBody('');
+      setMentions([]);
 
       toast({
         title: 'Success',
@@ -476,11 +526,12 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="note">Note</Label>
-            <RichTextEditor
+            <Label htmlFor="note">Note <span className="text-xs text-muted-foreground">(Type @ to mention team members)</span></Label>
+            <MentionableRichTextEditor
               value={noteBody}
               onChange={setNoteBody}
-              placeholder="Enter your note here..."
+              placeholder="Enter your note here... Use @ to mention team members"
+              onMentionsChange={setMentions}
             />
           </div>
 

@@ -141,6 +141,12 @@ export function ClientDetailDrawer({
     currentValue: string | number | null;
     newValue: string | number;
   }>>([]);
+  const [detectedTaskSuggestions, setDetectedTaskSuggestions] = useState<Array<{
+    title: string;
+    description?: string;
+    dueDate?: string | null;
+    priority: 'low' | 'medium' | 'high';
+  }>>([]);
 
   // Pipeline stage validation state
   const [pipelineValidationModalOpen, setPipelineValidationModalOpen] = useState(false);
@@ -673,7 +679,7 @@ export function ClientDetailDrawer({
 
         if (!fieldUpdateError && (fieldUpdateData?.detectedUpdates?.length > 0 || fieldUpdateData?.taskSuggestions?.length > 0)) {
           setDetectedFieldUpdates(fieldUpdateData.detectedUpdates || []);
-          // Store task suggestions in state - need to add state variable
+          setDetectedTaskSuggestions(fieldUpdateData.taskSuggestions || []);
           setShowFieldUpdateModal(true);
         }
       } catch (fieldParseError) {
@@ -2434,7 +2440,7 @@ export function ClientDetailDrawer({
             isOpen={showFieldUpdateModal} 
             onClose={() => setShowFieldUpdateModal(false)} 
             detectedUpdates={detectedFieldUpdates}
-            taskSuggestions={[]}
+            taskSuggestions={detectedTaskSuggestions}
             onApplyFieldUpdates={handleApplyFieldUpdates}
             onCreateTasks={async (tasks) => {
               for (const task of tasks) {
