@@ -15,6 +15,7 @@ import { countActiveFilters, applyAdvancedFilters } from "@/utils/filterUtils";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -44,6 +45,7 @@ interface ModernTask {
   task_order: number;
   created_at: string;
   updated_at: string;
+  reviewed?: boolean;
   assignee?: { first_name: string; last_name: string; email: string };
   borrower?: { 
     first_name: string; 
@@ -255,6 +257,19 @@ const columns = (
     ),
     sortable: true,
   },
+  {
+    accessorKey: "reviewed",
+    header: "Reviewed",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        <Checkbox
+          checked={row.original.reviewed || false}
+          onCheckedChange={(checked) => handleUpdate(row.original.id, "reviewed", checked)}
+        />
+      </div>
+    ),
+    sortable: true,
+  },
 ];
 
 // Task columns for views system
@@ -267,6 +282,7 @@ const TASK_COLUMNS = [
   { id: "assignee", label: "Assigned To", visible: true },
   { id: "due_date", label: "Due Date", visible: true },
   { id: "status", label: "Status", visible: true },
+  { id: "reviewed", label: "Reviewed", visible: true },
   { id: "description", label: "Description", visible: false },
 ];
 
@@ -808,14 +824,14 @@ export default function TasksModern() {
               variant={isReviewActive ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                // Review View: Active borrowers with due date <= today (including today)
-                const todayStr = new Date().toISOString().split('T')[0];
+                // Review View: All tasks with due date on or before yesterday (dynamic)
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
                 
-                // Use contains for stage matching to handle case sensitivity
+                // Only filter by due date - show all tasks due on or before yesterday
                 setFilters([
-                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'contains', value: 'Active' },
-                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: todayStr },
-                  { id: 'review-status', column: 'status', operator: 'is_not', value: 'Done' }
+                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
                 ]);
                 setIsReviewActive(true);
               }}

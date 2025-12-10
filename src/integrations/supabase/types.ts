@@ -3874,6 +3874,7 @@ export type Database = {
           due_date: string | null
           id: string
           priority: Database["public"]["Enums"]["task_priority"]
+          reviewed: boolean | null
           status: Database["public"]["Enums"]["task_status"]
           task_order: number
           title: string
@@ -3892,6 +3893,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
+          reviewed?: boolean | null
           status?: Database["public"]["Enums"]["task_status"]
           task_order?: number
           title: string
@@ -3910,6 +3912,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
+          reviewed?: boolean | null
           status?: Database["public"]["Enums"]["task_status"]
           task_order?: number
           title?: string

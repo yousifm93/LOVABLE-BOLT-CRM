@@ -251,11 +251,12 @@ export function DashboardDetailModal({
                   <TableHead className="min-w-[120px]">Name</TableHead>
                   <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
                   <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
-                  {getFourthColumnTitle() && <TableHead className="min-w-[300px]">{getFourthColumnTitle()}</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[80px]">Confidence</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[350px]">CRM Update</TableHead>}
-                  {getFifthColumnTitle() && <TableHead className="min-w-[250px]">{getFifthColumnTitle()}</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[200px]">Notes</TableHead>}
+                  {getFourthColumnTitle() && <TableHead className="min-w-[280px]">{getFourthColumnTitle()}</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[70px]">Confidence</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[300px]">CRM Update</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[220px]">Notes</TableHead>}
+                  {getFifthColumnTitle() && <TableHead className="min-w-[175px]">{getFifthColumnTitle()}</TableHead>}
+                  {type === "emails" && <TableHead className="min-w-[250px]">CRM Update Explanation</TableHead>}
                 </TableRow>
               </TableHeader>
             <TableBody>
@@ -363,18 +364,12 @@ export function DashboardDetailModal({
                         )}
                       </TableCell>
                     )}
-                    {type === "emails" && "subject" in item && (
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground line-clamp-1">
-                          {item.subject || "—"}
-                        </span>
-                      </TableCell>
-                    )}
                     {type === "emails" && (
                       <TableCell>
-                        <Input
-                          className="h-7 text-xs"
+                        <textarea
+                          className="w-full min-h-[50px] p-2 text-xs border rounded-md resize-none bg-background"
                           placeholder="Add notes..."
+                          rows={2}
                           defaultValue={(item as Email).user_notes || ''}
                           onBlur={async (e) => {
                             const newNotes = e.target.value;
@@ -391,6 +386,28 @@ export function DashboardDetailModal({
                             }
                           }}
                         />
+                      </TableCell>
+                    )}
+                    {type === "emails" && "subject" in item && (
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground line-clamp-2">
+                          {item.subject || "—"}
+                        </span>
+                      </TableCell>
+                    )}
+                    {type === "emails" && (
+                      <TableCell>
+                        {suggestions.length > 0 ? (
+                          <div className="space-y-1">
+                            {suggestions.map((suggestion) => (
+                              <p key={suggestion.id} className="text-xs text-muted-foreground line-clamp-3">
+                                {suggestion.reason || "—"}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
