@@ -12,6 +12,104 @@ interface LeadMatch {
   matchMethod: string;
 }
 
+// Team member names to exclude from content-based matching
+const EXCLUDED_TEAM_NAMES = [
+  { first_name: 'yousif', last_name: 'mohamed' },
+  { first_name: 'salma', last_name: 'mohamed' },
+  { first_name: 'herman', last_name: 'daza' },
+  { first_name: 'juan', last_name: 'diego' },
+  { first_name: 'ashley', last_name: 'merizio' },
+];
+
+// Team member emails to exclude from lead matching
+const EXCLUDED_TEAM_EMAILS = [
+  'yousif@mortgagebolt.com',
+  'yousif@mortgagebolt.org',
+  'yousifminc@gmail.com',
+  'scenarios@mortgagebolt.org',
+  'salma@mortgagebolt.com',
+  'salma@mortgagebolt.org',
+  'herman@mortgagebolt.com',
+  'herman@mortgagebolt.org',
+  'juan@mortgagebolt.com',
+  'juan@mortgagebolt.org',
+  'processing@mortgagebolt.org',
+];
+
+// Email addresses to ignore as they are forwarding addresses, not actual senders
+const IGNORED_FORWARDING_EMAILS = [
+  'yousif@mortgagebolt.com',
+  'yousif@mortgagebolt.org',
+  'yousifminc@gmail.com',
+  'scenarios@mortgagebolt.org',
+];
+
+/**
+ * Extract the original sender from a forwarded email body
+ * Looks for patterns like:
+ * - "---------- Forwarded message ---------" followed by "From: Name <email>"
+ * - "-------- Original Message --------" followed by "From: Name <email>"
+ * - Direct "From:" line at the start of content
+ */
+function extractForwardedSender(textBody: string, htmlBody: string): string | null {
+  const content = textBody || htmlBody || '';
+  
+  console.log('[extractForwardedSender] Analyzing content for forwarded sender...');
+  
+  // Patterns to find the original sender in forwarded emails
+  const patterns = [
+    // Gmail forwarded message format
+    /---------- Forwarded message ---------[\s\S]*?From:\s*(?:[^<\n]*<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/i,
+    // Outlook/Generic forwarded message format
+    /-------- Original Message --------[\s\S]*?From:\s*(?:[^<\n]*<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/i,
+    // Simple "From:" pattern for forwarded content
+    /^From:\s*(?:[^<\n]*<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/im,
+    // Alternative pattern with "From:" after a line break
+    /\nFrom:\s*(?:[^<\n]*<)?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      const extractedEmail = match[1].toLowerCase().trim();
+      
+      // Make sure we didn't extract a team email (which would be in CC or the forwarder)
+      if (!IGNORED_FORWARDING_EMAILS.includes(extractedEmail) && 
+          !EXCLUDED_TEAM_EMAILS.includes(extractedEmail)) {
+        console.log('[extractForwardedSender] Found original sender:', extractedEmail);
+        return extractedEmail;
+      } else {
+        console.log('[extractForwardedSender] Skipping team email found in forward:', extractedEmail);
+      }
+    }
+  }
+  
+  console.log('[extractForwardedSender] No original sender found in forwarded content');
+  return null;
+}
+
+/**
+ * Check if a lead matches a team member (should be excluded from matching)
+ */
+function isTeamMemberLead(lead: { first_name: string | null; last_name: string | null; email: string | null }): boolean {
+  // Check by email
+  if (lead.email && EXCLUDED_TEAM_EMAILS.includes(lead.email.toLowerCase())) {
+    return true;
+  }
+  
+  // Check by name
+  const firstName = lead.first_name?.toLowerCase().trim() || '';
+  const lastName = lead.last_name?.toLowerCase().trim() || '';
+  
+  for (const teamMember of EXCLUDED_TEAM_NAMES) {
+    if (firstName === teamMember.first_name && lastName === teamMember.last_name) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 function calculateMatchScore(
   lead: {
     id: string;
@@ -27,6 +125,12 @@ function calculateMatchScore(
   subject: string,
   emailContent: string
 ): LeadMatch | null {
+  // Skip team member leads entirely
+  if (isTeamMemberLead(lead)) {
+    console.log(`[calculateMatchScore] Skipping team member lead: ${lead.first_name} ${lead.last_name}`);
+    return null;
+  }
+
   const subjectLower = subject.toLowerCase();
   const contentLower = emailContent.toLowerCase();
   const combinedContent = `${subject} ${emailContent}`;
@@ -34,60 +138,68 @@ function calculateMatchScore(
   // Escape special regex characters in a string
   const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Check lender loan number - EXACT WORD MATCH ONLY (minimum 5 chars)
+  // HIGHEST PRIORITY: Check lender loan number - EXACT WORD MATCH ONLY (minimum 5 chars)
   if (lead.lender_loan_number && lead.lender_loan_number.trim().length >= 5) {
     const loanNum = lead.lender_loan_number.trim();
     const loanRegex = new RegExp(`\\b${escapeRegex(loanNum)}\\b`, 'i');
     if (loanRegex.test(combinedContent)) {
-      console.log(`[Match] Lead ${lead.id} matched by lender_loan_number: ${loanNum}`);
+      console.log(`[Match] Lead ${lead.id} matched by lender_loan_number: ${loanNum} (PRIORITY)`);
       return { leadId: lead.id, score: 100, matchMethod: 'lender_loan_number' };
     }
   }
 
-  // Check MB app number - EXACT WORD MATCH ONLY (minimum 5 chars)
+  // HIGHEST PRIORITY: Check MB app number - EXACT WORD MATCH ONLY (minimum 5 chars)
   if (lead.mb_loan_number && lead.mb_loan_number.trim().length >= 5) {
     const mbNum = lead.mb_loan_number.trim();
     const mbRegex = new RegExp(`\\b${escapeRegex(mbNum)}\\b`, 'i');
     if (mbRegex.test(combinedContent)) {
-      console.log(`[Match] Lead ${lead.id} matched by mb_loan_number: ${mbNum}`);
+      console.log(`[Match] Lead ${lead.id} matched by mb_loan_number: ${mbNum} (PRIORITY)`);
       return { leadId: lead.id, score: 100, matchMethod: 'mb_loan_number' };
     }
   }
 
-  // Check first name + last name together (guaranteed match)
+  // Check first name + last name together in SUBJECT ONLY (higher priority - score 80)
   const firstName = lead.first_name?.trim();
   const lastName = lead.last_name?.trim();
   
   if (firstName && lastName && firstName.length >= 2 && lastName.length >= 2) {
     const fullName = `${firstName} ${lastName}`.toLowerCase();
-    if (subjectLower.includes(fullName) || contentLower.includes(fullName)) {
-      console.log(`[Match] Lead ${lead.id} matched by full_name: ${fullName}`);
-      return { leadId: lead.id, score: 100, matchMethod: 'full_name' };
+    
+    // Subject match is more reliable (score 80)
+    if (subjectLower.includes(fullName)) {
+      console.log(`[Match] Lead ${lead.id} matched by full_name in subject: ${fullName}`);
+      return { leadId: lead.id, score: 80, matchMethod: 'full_name_subject' };
+    }
+    
+    // Body match is less reliable due to CC lists (score 50)
+    if (contentLower.includes(fullName)) {
+      console.log(`[Match] Lead ${lead.id} matched by full_name in body: ${fullName}`);
+      return { leadId: lead.id, score: 50, matchMethod: 'full_name_body' };
     }
   }
 
-  // Check co-borrower first name + last name together
+  // Check co-borrower first name + last name together in SUBJECT ONLY
   const coFirstName = lead.co_borrower_first_name?.trim();
   const coLastName = lead.co_borrower_last_name?.trim();
   
   if (coFirstName && coLastName && coFirstName.length >= 2 && coLastName.length >= 2) {
     const coFullName = `${coFirstName} ${coLastName}`.toLowerCase();
-    if (subjectLower.includes(coFullName) || contentLower.includes(coFullName)) {
-      console.log(`[Match] Lead ${lead.id} matched by co_borrower_full_name: ${coFullName}`);
-      return { leadId: lead.id, score: 100, matchMethod: 'co_borrower_full_name' };
+    
+    // Subject match (score 80)
+    if (subjectLower.includes(coFullName)) {
+      console.log(`[Match] Lead ${lead.id} matched by co_borrower_full_name in subject: ${coFullName}`);
+      return { leadId: lead.id, score: 80, matchMethod: 'co_borrower_full_name_subject' };
+    }
+    
+    // Body match (score 50)
+    if (contentLower.includes(coFullName)) {
+      console.log(`[Match] Lead ${lead.id} matched by co_borrower_full_name in body: ${coFullName}`);
+      return { leadId: lead.id, score: 50, matchMethod: 'co_borrower_full_name_body' };
     }
   }
 
-  return null; // No match - removed all partial matching
+  return null; // No match
 }
-
-// Email addresses to ignore as they are forwarding addresses, not actual senders
-const IGNORED_FORWARDING_EMAILS = [
-  'yousif@mortgagebolt.com',
-  'yousif@mortgagebolt.org',
-  'yousifminc@gmail.com',
-  'scenarios@mortgagebolt.org',
-];
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -119,7 +231,7 @@ serve(async (req) => {
     const attachmentCount = parseInt(formData.get('attachments') as string || '0', 10);
     const envelopeRaw = formData.get('envelope') as string || '{}';
     
-    console.log('[Inbound Email Webhook] From:', fromRaw);
+    console.log('[Inbound Email Webhook] From (raw):', fromRaw);
     console.log('[Inbound Email Webhook] To:', toRaw);
     console.log('[Inbound Email Webhook] Subject:', subject);
     console.log('[Inbound Email Webhook] Attachments:', attachmentCount);
@@ -140,23 +252,36 @@ serve(async (req) => {
       return raw.trim().toLowerCase();
     };
 
-    // Extract sender email, checking if it's a forwarding address
-    let senderEmail = extractEmail(fromRaw) || (envelope.from ? envelope.from.toLowerCase() : '');
+    // Extract sender email from header
+    let headerSenderEmail = extractEmail(fromRaw) || (envelope.from ? envelope.from.toLowerCase() : '');
     const recipientEmail = envelope.to?.[0]?.toLowerCase() || extractEmail(toRaw);
     
-    // Check if the extracted sender is a forwarding/team address that should be ignored
+    // Check if the header sender is a forwarding/team address
     const isForwardingAddress = IGNORED_FORWARDING_EMAILS.some(
-      ignored => senderEmail.toLowerCase() === ignored.toLowerCase()
+      ignored => headerSenderEmail.toLowerCase() === ignored.toLowerCase()
     );
     
+    // Try to extract the REAL sender from forwarded email content
+    let actualSenderEmail = headerSenderEmail;
+    let isForwardedEmail = false;
+    
     if (isForwardingAddress) {
-      console.log('[Inbound Email Webhook] Ignoring forwarding address:', senderEmail);
-      console.log('[Inbound Email Webhook] Will rely on content-based matching instead');
-      senderEmail = ''; // Clear so we skip sender-based matching and use content matching
+      console.log('[Inbound Email Webhook] Header sender is a forwarding address:', headerSenderEmail);
+      console.log('[Inbound Email Webhook] Attempting to extract original sender from email body...');
+      
+      const forwardedSender = extractForwardedSender(textBody, htmlBody);
+      if (forwardedSender) {
+        actualSenderEmail = forwardedSender;
+        isForwardedEmail = true;
+        console.log('[Inbound Email Webhook] Extracted original sender:', actualSenderEmail);
+      } else {
+        console.log('[Inbound Email Webhook] Could not extract original sender, will use content-based matching');
+        actualSenderEmail = ''; // Clear so we rely on content matching
+      }
     }
     
-    console.log('[Inbound Email Webhook] Parsed sender email:', senderEmail || '(ignored - using content matching)');
-    console.log('[Inbound Email Webhook] Parsed recipient email:', recipientEmail);
+    console.log('[Inbound Email Webhook] Actual sender email:', actualSenderEmail || '(using content matching)');
+    console.log('[Inbound Email Webhook] Is forwarded email:', isForwardedEmail);
 
     // Extract sender name from raw format
     const extractName = (raw: string): string => {
@@ -164,18 +289,18 @@ serve(async (req) => {
       if (match) return match[1].trim();
       return '';
     };
-    const senderName = extractName(fromRaw) || senderEmail;
+    const senderName = extractName(fromRaw) || actualSenderEmail;
 
     let leadId: string | null = null;
     let matchedAgent: { id: string } | null = null;
     let matchMethod = 'none';
 
-    // STEP 1: Try to match by sender email (only if not a forwarding address)
-    if (senderEmail) {
+    // STEP 1: Try to match by actual sender email (only if we have a valid non-team email)
+    if (actualSenderEmail && !EXCLUDED_TEAM_EMAILS.includes(actualSenderEmail.toLowerCase())) {
       const { data: matchingLeads, error: leadError } = await supabase
         .from('leads')
         .select('id, first_name, last_name, email')
-        .or(`email.ilike.%${senderEmail}%,co_borrower_email.ilike.%${senderEmail}%`)
+        .or(`email.ilike.%${actualSenderEmail}%,co_borrower_email.ilike.%${actualSenderEmail}%`)
         .limit(1);
 
       if (leadError) {
@@ -183,15 +308,20 @@ serve(async (req) => {
       }
 
       if (matchingLeads?.[0]) {
-        leadId = matchingLeads[0].id;
-        matchMethod = 'sender_email';
-        console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
+        // Make sure it's not a team member lead
+        if (!isTeamMemberLead(matchingLeads[0])) {
+          leadId = matchingLeads[0].id;
+          matchMethod = 'sender_email';
+          console.log('[Inbound Email Webhook] Matched lead by sender email:', leadId);
+        } else {
+          console.log('[Inbound Email Webhook] Skipping team member lead match');
+        }
       }
     } else {
-      console.log('[Inbound Email Webhook] Skipping sender-based matching (forwarding address detected)');
+      console.log('[Inbound Email Webhook] Skipping sender-based matching (no valid sender or team email)');
     }
 
-    // STEP 2: If no match by sender, try matching by subject/content
+    // STEP 2: If no match by sender, try matching by subject/content (ALWAYS do this for forwarded emails)
     if (!leadId) {
       console.log('[Inbound Email Webhook] No sender match, trying content-based matching...');
       
@@ -199,6 +329,7 @@ serve(async (req) => {
       const emailContent = `${subject} ${textBody} ${htmlBody}`;
       
       // Fetch all leads with identifiers to check against content
+      // Exclude team member emails from the query
       const { data: allLeads, error: allLeadsError } = await supabase
         .from('leads')
         .select('id, first_name, last_name, email, lender_loan_number, mb_loan_number, co_borrower_email, co_borrower_first_name, co_borrower_last_name')
@@ -223,8 +354,14 @@ serve(async (req) => {
           matches.sort((a, b) => b.score - a.score);
           const bestMatch = matches[0];
           
-          // Only accept matches with score >= 30 (at least a last name in subject)
-          if (bestMatch.score >= 30) {
+          console.log('[Inbound Email Webhook] Top matches:', matches.slice(0, 3).map(m => ({
+            leadId: m.leadId,
+            score: m.score,
+            method: m.matchMethod
+          })));
+          
+          // Only accept matches with score >= 50 (at least a full name in body)
+          if (bestMatch.score >= 50) {
             leadId = bestMatch.leadId;
             matchMethod = bestMatch.matchMethod;
             console.log('[Inbound Email Webhook] Content match found:', {
@@ -241,12 +378,12 @@ serve(async (req) => {
       }
     }
 
-    // STEP 3: Search for matching buyer agent by sender email (only if not a forwarding address)
-    if (senderEmail) {
+    // STEP 3: Search for matching buyer agent by sender email (only if not a team email)
+    if (actualSenderEmail && !EXCLUDED_TEAM_EMAILS.includes(actualSenderEmail.toLowerCase())) {
       const { data: matchingAgents, error: agentError } = await supabase
         .from('buyer_agents')
         .select('id, first_name, last_name, email')
-        .ilike('email', `%${senderEmail}%`)
+        .ilike('email', `%${actualSenderEmail}%`)
         .limit(1);
 
       if (agentError) {
@@ -261,12 +398,12 @@ serve(async (req) => {
     if (!leadId && matchedAgent) {
       const { data: agentLeads } = await supabase
         .from('leads')
-        .select('id')
+        .select('id, first_name, last_name, email')
         .or(`buyer_agent_id.eq.${matchedAgent.id},listing_agent_id.eq.${matchedAgent.id}`)
         .order('created_at', { ascending: false })
         .limit(1);
       
-      if (agentLeads?.[0]) {
+      if (agentLeads?.[0] && !isTeamMemberLead(agentLeads[0])) {
         leadId = agentLeads[0].id;
         matchMethod = 'agent_association';
         console.log('[Inbound Email Webhook] Found lead through agent:', leadId);
@@ -277,13 +414,14 @@ serve(async (req) => {
     if (!leadId) {
       console.log('[Inbound Email Webhook] No matching lead found for email');
       console.log('[Inbound Email Webhook] Subject:', subject);
-      console.log('[Inbound Email Webhook] Sender:', senderEmail);
+      console.log('[Inbound Email Webhook] Actual Sender:', actualSenderEmail);
       
       return new Response(JSON.stringify({
         success: true,
         message: 'Email received but no matching lead found',
-        senderEmail,
+        senderEmail: actualSenderEmail,
         subject,
+        isForwarded: isForwardedEmail,
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -306,6 +444,9 @@ serve(async (req) => {
     // Create snippet from text body (first 200 chars)
     const snippet = textBody.substring(0, 200) + (textBody.length > 200 ? '...' : '');
 
+    // Store the ACTUAL sender email (extracted from forwarded content if applicable)
+    const fromEmailToStore = actualSenderEmail || headerSenderEmail || 'unknown';
+
     // Insert email log with direction 'In'
     const { data: emailLog, error: insertError } = await supabase
       .from('email_logs')
@@ -313,7 +454,7 @@ serve(async (req) => {
         lead_id: leadId,
         agent_id: matchedAgent?.id || null,
         direction: 'In',
-        from_email: senderEmail,
+        from_email: fromEmailToStore,
         to_email: recipientEmail,
         subject: subject,
         snippet: snippet,
@@ -333,10 +474,10 @@ serve(async (req) => {
 
     console.log('[Inbound Email Webhook] Successfully logged inbound email:', emailLog.id);
     console.log('[Inbound Email Webhook] Match method:', matchMethod);
+    console.log('[Inbound Email Webhook] From email stored:', fromEmailToStore);
 
     // Generate AI summary asynchronously (don't block the response)
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const summaryResponse = await fetch(`${supabaseUrl}/functions/v1/summarize-email`, {
         method: 'POST',
         headers: {
@@ -374,6 +515,8 @@ serve(async (req) => {
       matchedLeadId: leadId,
       matchedAgentId: matchedAgent?.id || null,
       matchMethod,
+      isForwarded: isForwardedEmail,
+      actualSender: fromEmailToStore,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
