@@ -129,3 +129,6 @@ verify_jwt = false
 
 [functions.summarize-email]
 verify_jwt = false
+
+[functions.parse-email-field-updates]
+verify_jwt = false
