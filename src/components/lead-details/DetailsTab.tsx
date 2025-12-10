@@ -152,6 +152,28 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     );
   };
 
+  // Helper function for closing costs calculation from Loan Estimate fee fields
+  const calculateClosingCosts = () => {
+    const loanAmount = Number(editData.loan_amount) || 0;
+    const discountPointsPercentage = Number(editData.discount_points_percentage) || 0;
+    const discountPointsDollar = (discountPointsPercentage / 100) * loanAmount;
+    
+    // Sum all fee fields from Loan Estimate
+    const fees = 
+      ((client as any).underwriting_fee || 500) + // Default underwriting fee
+      ((client as any).appraisal_fee || 500) + // Default appraisal fee
+      ((client as any).credit_report_fee || 65) + // Default credit report fee
+      ((client as any).processing_fee || 995) + // Default processing fee
+      ((client as any).lenders_title_insurance || 1000) + // Default lender's title insurance
+      ((client as any).title_closing_fee || 450) + // Default title closing fee
+      ((client as any).intangible_tax || 0) +
+      ((client as any).transfer_tax || 0) +
+      ((client as any).recording_fees || 300) + // Default recording fees
+      discountPointsDollar;
+    
+    return Math.round(fees);
+  };
+
   // Load agents, lenders, and contacts for the Contacts section
   useEffect(() => {
     const loadData = async () => {
@@ -196,6 +218,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       setEditData(prev => ({ ...prev, dscr_ratio: calculatedDSCR }));
     }
   }, [editData.subject_property_rental_income, editData.piti]);
+
+  // Auto-calculate closing costs when loan amount or discount points change
+  useEffect(() => {
+    const loanAmount = Number(editData.loan_amount) || 0;
+    if (loanAmount > 0) {
+      const calculatedClosingCosts = calculateClosingCosts();
+      // Only update if no closing costs are set or they're 0
+      if (!editData.closing_costs || editData.closing_costs === 0) {
+        setEditData(prev => ({ ...prev, closing_costs: calculatedClosingCosts }));
+      }
+    }
+  }, [editData.loan_amount, editData.discount_points_percentage]);
 
   const handleEdit = () => {
     setIsEditing(true);
