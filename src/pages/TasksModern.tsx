@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { countActiveFilters, applyAdvancedFilters } from "@/utils/filterUtils";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { X } from "lucide-react";
@@ -286,6 +287,8 @@ export default function TasksModern() {
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false);
+  const [openTasksExpanded, setOpenTasksExpanded] = useState(true);
+  const [doneTasksExpanded, setDoneTasksExpanded] = useState(false);
   const { toast } = useToast();
 
   // Column visibility hook for views system
@@ -630,7 +633,9 @@ export default function TasksModern() {
     }
   };
 
-  const completedTasks = filteredTasks.filter(task => task.status === "Done").length;
+  const openTasks = filteredTasks.filter(task => task.status !== "Done");
+  const doneTasks = filteredTasks.filter(task => task.status === "Done");
+  const completedTasks = doneTasks.length;
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
     const dueDateStr = task.due_date.includes("T") 
@@ -828,25 +833,67 @@ export default function TasksModern() {
           </div>
         )}
         
-        <CardContent>
+        <CardContent className="space-y-4">
           {loading ? (
             <div className="flex justify-center items-center h-32">
               <div className="text-muted-foreground">Loading tasks...</div>
             </div>
           ) : (
-            <DataTable
-              columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
-              data={filteredTasks}
-              searchTerm={searchTerm}
-              onViewDetails={handleViewDetails}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              selectable={true}
-              selectedIds={selectedTaskIds}
-              onSelectionChange={setSelectedTaskIds}
-              getRowId={(row) => row.id}
-              showRowNumbers={true}
-            />
+            <>
+              {/* Open Tasks Section */}
+              <Collapsible open={openTasksExpanded} onOpenChange={setOpenTasksExpanded}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 hover:bg-muted/50 rounded-lg transition-colors">
+                  {openTasksExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="font-semibold text-foreground">Open Tasks ({openTasks.length})</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <DataTable
+                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
+                    data={openTasks}
+                    searchTerm={searchTerm}
+                    onViewDetails={handleViewDetails}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    selectable={true}
+                    selectedIds={selectedTaskIds}
+                    onSelectionChange={setSelectedTaskIds}
+                    getRowId={(row) => row.id}
+                    showRowNumbers={true}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Completed Tasks Section */}
+              <Collapsible open={doneTasksExpanded} onOpenChange={setDoneTasksExpanded}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 hover:bg-muted/50 rounded-lg transition-colors border-t pt-4">
+                  {doneTasksExpanded ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="font-semibold text-muted-foreground">Completed Tasks ({doneTasks.length})</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <DataTable
+                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
+                    data={doneTasks}
+                    searchTerm={searchTerm}
+                    onViewDetails={handleViewDetails}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    selectable={true}
+                    selectedIds={selectedTaskIds}
+                    onSelectionChange={setSelectedTaskIds}
+                    getRowId={(row) => row.id}
+                    showRowNumbers={true}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </>
           )}
         </CardContent>
       </Card>

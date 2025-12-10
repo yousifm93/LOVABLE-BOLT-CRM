@@ -41,7 +41,7 @@ const stripForwardingContent = (content: string): string => {
 
 interface Activity {
   id: number;
-  type: 'call' | 'email' | 'sms' | 'note' | 'task';
+  type: 'call' | 'email' | 'sms' | 'note' | 'task' | 'status_change';
   title: string;
   description?: string;
   timestamp: string;
@@ -58,6 +58,8 @@ interface Activity {
   lead_id?: string;
   to_email?: string;
   ai_summary?: string;
+  old_value?: string;
+  new_value?: string;
 }
 
 interface ActivityTabProps {
@@ -83,6 +85,8 @@ const getActivityIcon = (type: Activity['type']) => {
       return <FileText className="h-3 w-3" />;
     case 'task':
       return <Plus className="h-3 w-3" />;
+    case 'status_change':
+      return <Circle className="h-3 w-3" />;
     default:
       return <Circle className="h-3 w-3" />;
   }
@@ -100,6 +104,8 @@ const getActivityBadgeLabel = (activity: Activity): string => {
       return 'NOTE ADDED';
     case 'task':
       return activity.task_status === 'Done' ? 'TASK COMPLETED' : 'TASK CREATED';
+    case 'status_change':
+      return 'STATUS CHANGED';
     default:
       return 'ACTIVITY';
   }
@@ -119,9 +125,18 @@ const getActivityBadgeVariant = (activity: Activity) => {
     case 'task':
       // Full orange if completed, lighter if not
       return activity.task_status === 'Done' ? 'default' : 'outline';
+    case 'status_change':
+      return 'default';
     default:
       return 'default';
   }
+};
+
+const getStatusChangeBadgeClassName = (activity: Activity): string => {
+  if (activity.type === 'status_change') {
+    return 'bg-purple-100 hover:bg-purple-100 border-purple-200 text-purple-800';
+  }
+  return '';
 };
 
 const getEmailBadgeClassName = (activity: Activity): string => {
@@ -192,7 +207,7 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
             .toUpperCase()
             .slice(0, 2);
 
-          const isClickable = ['note', 'email', 'sms', 'call', 'task'].includes(activity.type);
+          const isClickable = ['note', 'email', 'sms', 'call', 'task', 'status_change'].includes(activity.type);
           const isExpanded = expandedActivities.has(activity.id);
 
           return (
@@ -224,7 +239,8 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                         activity.type === 'email' && activity.direction === 'In' && "cursor-pointer",
                         activity.type === 'task' && activity.task_status !== 'Done' && 
                         "bg-orange-100 hover:bg-orange-100 border-orange-200",
-                        getEmailBadgeClassName(activity)
+                        getEmailBadgeClassName(activity),
+                        getStatusChangeBadgeClassName(activity)
                       )}
                     >
                       {getActivityIcon(activity.type)}
