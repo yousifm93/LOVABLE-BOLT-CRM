@@ -294,6 +294,7 @@ export default function TasksModern() {
   const [taskToDelete, setTaskToDelete] = useState<ModernTask | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReviewActive, setIsReviewActive] = useState(false);
   const { toast } = useToast();
 
   // Column visibility hook for views system
@@ -600,6 +601,7 @@ export default function TasksModern() {
     setFilters([]);
     setUserFilter("");
     setSearchTerm("");
+    setIsReviewActive(false);
   };
 
   const handleBulkDelete = () => {
@@ -776,18 +778,45 @@ export default function TasksModern() {
             
             {/* Views System */}
             <Button
-              variant={activeView === 'Main View' ? "default" : "outline"}
+              variant={activeView === 'Main View' && !isReviewActive ? "default" : "outline"}
               size="sm"
-              onClick={() => loadView('Main View')}
+              onClick={() => {
+                loadView('Main View');
+                setFilters([]);
+                setIsReviewActive(false);
+              }}
               className="h-8"
             >
               Main View
             </Button>
             
+            <Button
+              variant={isReviewActive ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                // Review View: Active borrowers with due date <= yesterday
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                
+                setFilters([
+                  { id: 'review-stage', column: 'borrower.pipeline_stage.name', operator: 'equals', value: 'Active' },
+                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
+                ]);
+                setIsReviewActive(true);
+              }}
+              className="h-8"
+            >
+              Review
+            </Button>
+            
             <ViewPills
               views={views}
               activeView={activeView}
-              onLoadView={loadView}
+              onLoadView={(viewName) => {
+                loadView(viewName);
+                setIsReviewActive(false);
+              }}
               onDeleteView={deleteView}
             />
             
