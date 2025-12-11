@@ -1625,29 +1625,69 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           </h3>
           <div className="p-4 bg-muted/30 rounded-lg">
             <Label>Application PDF</Label>
-            <FileUpload 
-              value={(client as any).paper_application_url}
-              onValueChange={async (url) => {
-                if (!leadId) return;
-                try {
-                  await databaseService.updateLead(leadId, { paper_application_url: url });
-                  if (onLeadUpdated) await onLeadUpdated();
-                  toast({
-                    title: "Success",
-                    description: "Paper application updated successfully",
-                  });
-                } catch (error: any) {
-                  toast({
-                    title: "Error",
-                    description: error.message || "Failed to update paper application",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              bucket="lead-attachments"
-              accept=".pdf"
-              placeholder="Upload application PDF"
-            />
+            {(client as any).paper_application_url ? (
+              <div className="mt-2 flex items-center gap-3 p-3 bg-background border rounded-lg">
+                <FileText className="h-8 w-8 text-primary" />
+                <div className="flex-1">
+                  <p className="font-medium">Mortgage Application</p>
+                  <p className="text-sm text-muted-foreground">PDF Document</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open((client as any).paper_application_url, '_blank')}
+                >
+                  View PDF
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (!leadId) return;
+                    try {
+                      await databaseService.updateLead(leadId, { paper_application_url: null });
+                      if (onLeadUpdated) await onLeadUpdated();
+                      toast({
+                        title: "Success",
+                        description: "Paper application removed",
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error.message || "Failed to remove paper application",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <FileUpload 
+                value={null}
+                onValueChange={async (url) => {
+                  if (!leadId) return;
+                  try {
+                    await databaseService.updateLead(leadId, { paper_application_url: url });
+                    if (onLeadUpdated) await onLeadUpdated();
+                    toast({
+                      title: "Success",
+                      description: "Paper application uploaded successfully",
+                    });
+                  } catch (error: any) {
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to upload paper application",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                bucket="lead-attachments"
+                accept=".pdf"
+                placeholder="Upload application PDF"
+              />
+            )}
           </div>
         </div>
 

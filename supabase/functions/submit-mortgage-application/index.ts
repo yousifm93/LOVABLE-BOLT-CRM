@@ -438,6 +438,15 @@ Deno.serve(async (req) => {
       350;                                         // Recording fees
 
     console.log(`Closing costs: ${closingCosts}, Discount points: ${discountPointsDollar} (${discountPointsPercentage}%)`);
+    console.log('Pre-leadData field values verification:', {
+      discountPointsPercentage,
+      closingCosts,
+      dscrRatio,
+      hoaDues,
+      interestRate,
+      termMonths,
+      piti
+    });
 
     // Calculate APR using Newton-Raphson method
     let apr = interestRate; // Default to note rate
@@ -764,44 +773,68 @@ Deno.serve(async (req) => {
     console.log('Prepared lead data:', JSON.stringify(leadData, null, 2));
     console.log('Checking for existing lead by email/phone...');
 
-    // Check for existing lead by email or phone
-    const { data: existingLeads } = await supabase
+    // Check for recent duplicate submission (same email within last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentDuplicate } = await supabase
       .from('leads')
-      .select('id, pipeline_stage_id')
-      .or(`email.eq.${personalInfo.email},phone.eq.${personalInfo.phone || personalInfo.cellPhone || 'null'}`)
-      .in('pipeline_stage_id', [
-        '8606cf2a-4fbc-4e0d-81ce-ea7e93d0f2f2', // Leads
-        '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945', // Pending App
-      ])
+      .select('id')
+      .eq('email', personalInfo.email)
+      .gte('created_at', fiveMinutesAgo)
       .limit(1);
 
     let result;
 
-    if (existingLeads && existingLeads.length > 0) {
-      console.log('Found existing lead, updating and moving to Screening...');
-      // Update existing lead and move to Screening
+    if (recentDuplicate && recentDuplicate.length > 0) {
+      console.log('Found recent duplicate submission (within 5 minutes), updating existing lead:', recentDuplicate[0].id);
+      // Update existing recent submission instead of creating new
       const { data, error } = await supabase
         .from('leads')
         .update(leadData)
-        .eq('id', existingLeads[0].id)
+        .eq('id', recentDuplicate[0].id)
         .select()
         .single();
 
       if (error) throw error;
       result = data;
-      console.log('Successfully updated existing lead:', result.id);
+      console.log('Successfully updated recent duplicate lead:', result.id);
     } else {
-      console.log('No existing lead found, creating new lead in Screening...');
-      // Create new lead in Screening
-      const { data, error } = await supabase
+      // Check for existing lead by email or phone in early stages
+      const { data: existingLeads } = await supabase
         .from('leads')
-        .insert([leadData])
-        .select()
-        .single();
+        .select('id, pipeline_stage_id')
+        .or(`email.eq.${personalInfo.email},phone.eq.${personalInfo.phone || personalInfo.cellPhone || 'null'}`)
+        .in('pipeline_stage_id', [
+          '8606cf2a-4fbc-4e0d-81ce-ea7e93d0f2f2', // Leads
+          '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945', // Pending App
+        ])
+        .limit(1);
 
-      if (error) throw error;
-      result = data;
-      console.log('Successfully created new lead:', result.id);
+      if (existingLeads && existingLeads.length > 0) {
+        console.log('Found existing lead in early stage, updating and moving to Screening...');
+        // Update existing lead and move to Screening
+        const { data, error } = await supabase
+          .from('leads')
+          .update(leadData)
+          .eq('id', existingLeads[0].id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        console.log('Successfully updated existing lead:', result.id);
+      } else {
+        console.log('No existing lead found, creating new lead in Screening...');
+        // Create new lead in Screening
+        const { data, error } = await supabase
+          .from('leads')
+          .insert([leadData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        console.log('Successfully created new lead:', result.id);
+      }
     }
 
     // Insert real estate properties if any
