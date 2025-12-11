@@ -645,7 +645,22 @@ const allAvailableColumns = useMemo(() => {
     {
       accessorKey: "appCompleteOn",
       header: "App Complete On",
-      cell: ({ row }) => formatDateShort(row.original.appCompleteOn),
+      cell: ({ row }) => {
+        const dateVal = row.original.appCompleteOn;
+        if (!dateVal || dateVal === '—') return '—';
+        try {
+          const date = new Date(dateVal);
+          return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+        } catch {
+          return '—';
+        }
+      },
       sortable: true,
     },
     {

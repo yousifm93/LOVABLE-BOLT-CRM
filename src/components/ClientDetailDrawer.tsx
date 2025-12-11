@@ -1038,7 +1038,7 @@ export function ClientDetailDrawer({
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Total Assets</span>
-                <span className="text-sm font-medium">{(client as any).total_assets ?? (client as any).totalAssets ? `$${((client as any).total_assets ?? (client as any).totalAssets).toLocaleString()}` : '—'}</span>
+                <span className="text-sm font-medium">{(client as any).assets ?? (client as any).total_assets ?? (client as any).totalAssets ? `$${((client as any).assets ?? (client as any).total_assets ?? (client as any).totalAssets).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>

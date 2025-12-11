@@ -757,8 +757,16 @@ Deno.serve(async (req) => {
       app_complete_at: currentTimestamp,
       new_at: currentTimestamp,
       pending_app_at: currentTimestamp,
-      status: 'Working on it',
+      converted: 'Just Applied',
       lead_on_date: new Date().toISOString().split('T')[0],
+      
+      // Assign to Herman Daza with due date tomorrow
+      teammate_assigned: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
+      task_eta: (() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().split('T')[0];
+      })(),
       
       // MB Loan Number
       mb_loan_number: mbRefNumber,
