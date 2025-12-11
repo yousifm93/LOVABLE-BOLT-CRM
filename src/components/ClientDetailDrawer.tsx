@@ -52,6 +52,7 @@ interface ClientDetailDrawerProps {
   onStageChange: (clientId: number, newStage: PipelineStage) => void;
   pipelineType: 'leads' | 'active' | 'past-clients';
   onLeadUpdated?: () => void | Promise<void>;
+  autoStartRecording?: boolean;
 }
 export function ClientDetailDrawer({
   client,
@@ -59,7 +60,8 @@ export function ClientDetailDrawer({
   onClose,
   onStageChange,
   pipelineType,
-  onLeadUpdated
+  onLeadUpdated,
+  autoStartRecording = false
 }: ClientDetailDrawerProps) {
   // Extract lead UUID - handle both CRMClient and database Lead objects
   const getLeadId = (): string | null => {
@@ -132,6 +134,7 @@ export function ClientDetailDrawer({
   const [isSavingFileUpdates, setIsSavingFileUpdates] = useState(false);
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
+  const hasAutoStartedRecording = React.useRef(false);
 
   // Field update confirmation modal state
   const [showFieldUpdateModal, setShowFieldUpdateModal] = useState(false);
@@ -346,6 +349,22 @@ export function ClientDetailDrawer({
       loadLeadTasks();
     }
   }, [isOpen, leadId]);
+
+  // Auto-start recording when opening from Review mode
+  React.useEffect(() => {
+    if (isOpen && autoStartRecording && leadId && !hasAutoStartedRecording.current && !isRecordingFileUpdates && !isSummarizingTranscript) {
+      hasAutoStartedRecording.current = true;
+      // Small delay to let the drawer fully open
+      const timer = setTimeout(() => {
+        handleVoiceRecordingStart();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    // Reset auto-start flag when drawer closes
+    if (!isOpen) {
+      hasAutoStartedRecording.current = false;
+    }
+  }, [isOpen, autoStartRecording, leadId, isRecordingFileUpdates, isSummarizingTranscript]);
   const loadActivities = async () => {
     if (!leadId) return;
     try {
@@ -695,6 +714,22 @@ export function ClientDetailDrawer({
       });
     } finally {
       setIsSummarizingTranscript(false);
+      
+      // Update last_morning_review_at timestamp for Review workflow
+      if (leadId) {
+        try {
+          await databaseService.updateLead(leadId, { 
+            last_morning_review_at: new Date().toISOString() 
+          });
+          console.log('[ClientDetailDrawer] Updated last_morning_review_at');
+          // Refresh parent list to remove this lead from Review filter
+          if (onLeadUpdated) {
+            await onLeadUpdated();
+          }
+        } catch (reviewError) {
+          console.error('Error updating last_morning_review_at:', reviewError);
+        }
+      }
     }
   };
 
