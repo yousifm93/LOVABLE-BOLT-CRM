@@ -387,7 +387,7 @@ export function ClientDetailDrawer({
             id: activity.id,
             type: 'task' as const,
             title: activity.status === 'Done' ? 'Task completed' : 'Task created',
-            description: activity.body || `${activity.title}\n${activity.description || ''}`,
+            description: activity.body || `Task: ${activity.title}${activity.description ? `\nDescription: ${activity.description}` : ''}`,
             timestamp: activity.status === 'Done' ? activity.completed_at || activity.updated_at : activity.created_at,
             user: displayUser,
             author_id: activity.author?.id || activity.user?.id,
@@ -955,127 +955,64 @@ export function ClientDetailDrawer({
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
-              {/* Row 1: MB App Number, LTV, FICO Score, Interest Rate */}
+              {/* Row 1: MB App Number, LTV, Credit Score, Interest Rate */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">MB App Number</span>
-                <InlineEditText value={(client as any).mbLoanNumber || (client as any).mb_loan_number || null} onValueChange={value => handleLeadUpdate('mb_loan_number', value)} placeholder="Enter #" />
+                <span className="text-sm font-medium">{(client as any).mbLoanNumber || (client as any).mb_loan_number || '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">LTV</span>
                 <span className="text-sm font-medium">{ltvEarly ? `${ltvEarly}%` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">FICO Score</span>
-                <InlineEditNumber 
-                  value={localFicoScore} 
-                  onValueChange={value => {
-                    setLocalFicoScore(value);
-                    handleLeadUpdate('fico_score', value);
-                  }} 
-                  placeholder="Enter score" 
-                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Credit Score</span>
+                <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Interest Rate</span>
-                <InlineEditPercentage 
-                  value={localInterestRate} 
-                  onValueChange={value => {
-                    setLocalInterestRate(value);
-                    handleLeadUpdate('interest_rate', value);
-                  }} 
-                  decimals={3}
-                  className="text-sm"
-                />
+                <span className="text-sm font-medium">{localInterestRate ?? (client as any).interest_rate ? `${localInterestRate ?? (client as any).interest_rate}%` : '—'}</span>
               </div>
               
               {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
-                <InlineEditDate 
-                  value={localCloseDate} 
-                  onValueChange={value => {
-                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
-                    setLocalCloseDate(dateStr);
-                    handleLeadUpdate('closeDate', dateStr);
-                  }} 
-                  placeholder="Select date" 
-                />
+                <span className="text-sm font-medium">{localCloseDate ? format(new Date(localCloseDate), 'MMM d, yyyy') : (client as any).close_date ? format(new Date((client as any).close_date), 'MMM d, yyyy') : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
-                <InlineEditCurrency 
-                  value={localCashToClose} 
-                  onValueChange={value => {
-                    setLocalCashToClose(value);
-                    handleLeadUpdate('cashToClose', value);
-                  }} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{localCashToClose ?? (client as any).cash_to_close ?? (client as any).cashToClose ? `$${(localCashToClose ?? (client as any).cash_to_close ?? (client as any).cashToClose).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
-                <InlineEditCurrency 
-                  value={localPiti} 
-                  onValueChange={value => {
-                    setLocalPiti(value);
-                    handleLeadUpdate('piti', value);
-                  }} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{localPiti ?? (client as any).piti ? `$${(localPiti ?? (client as any).piti).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
-                <div className="flex items-center gap-1">
-                  <InlineEditCurrency 
-                    value={(client as any).discount_points ?? null} 
-                    onValueChange={async (value) => {
-                      const loanAmount = Number(client.loan?.loanAmount) || 0;
-                      const percentage = value && loanAmount ? (value / loanAmount) * 100 : null;
-                      await handleLeadUpdate('discount_points', value);
-                      await handleLeadUpdate('discount_points_percentage', percentage);
-                    }} 
-                    placeholder="$0"
-                  />
-                  {(client as any).discount_points && client.loan?.loanAmount && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      ({(((client as any).discount_points / Number(client.loan.loanAmount)) * 100).toFixed(3)}%)
-                    </span>
-                  )}
-                </div>
+                <span className="text-sm font-medium">
+                  {(() => {
+                    const pct = (client as any).discount_points_percentage;
+                    const loanAmt = Number(client.loan?.loanAmount) || 0;
+                    if (pct && loanAmt > 0) {
+                      const dollarAmt = (pct / 100) * loanAmt;
+                      return `${pct.toFixed(3)}% ($${dollarAmt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
+                    }
+                    return pct ? `${pct.toFixed(3)}%` : '—';
+                  })()}
+                </span>
               </div>
 
               {/* Row 3: Transaction Type, Closing Costs, Lock Expiration, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Transaction Type</span>
-                <InlineEditSelect 
-                  value={(client as any).loan_type ?? (client as any).loan?.loanType ?? null} 
-                  options={[
-                    { value: 'Purchase', label: 'Purchase' },
-                    { value: 'Refinance', label: 'Refinance' },
-                    { value: 'HELOC', label: 'HELOC' }
-                  ]}
-                  onValueChange={value => handleLeadUpdate('loan_type', value)} 
-                  placeholder="Select..." 
-                />
+                <span className="text-sm font-medium">{(client as any).loan_type ?? (client as any).loan?.loanType ?? '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
-                <InlineEditCurrency 
-                  value={(client as any).closing_costs ?? (client as any).closingCosts ?? null} 
-                  onValueChange={value => handleLeadUpdate('closing_costs', value)} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{(client as any).closing_costs ?? (client as any).closingCosts ? `$${((client as any).closing_costs ?? (client as any).closingCosts).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Lock Expiration</span>
-                <InlineEditDate 
-                  value={(client as any).lock_expiration_date ?? null} 
-                  onValueChange={value => {
-                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
-                    handleLeadUpdate('lock_expiration_date', dateStr);
-                  }} 
-                  placeholder="-" 
-                />
+                <span className="text-sm font-medium">{(client as any).lock_expiration_date ? format(new Date((client as any).lock_expiration_date), 'MMM d, yyyy') : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
@@ -1105,130 +1042,89 @@ export function ClientDetailDrawer({
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
-              {/* Row 1: Lender Loan #, LTV, FICO Score, Interest Rate */}
+              {/* Row 1: Lender Loan #, LTV, Credit Score, Interest Rate */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Lender Loan #</span>
-                <InlineEditText value={(client as any).lenderLoanNumber || (client as any).lender_loan_number || null} onValueChange={value => handleLeadUpdate('lender_loan_number', value)} placeholder="Enter #" />
+                <span className="text-sm font-medium">{(client as any).lenderLoanNumber || (client as any).lender_loan_number || '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">LTV</span>
                 <span className="text-sm font-medium">{ltv ? `${ltv}%` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">FICO Score</span>
-                <InlineEditNumber 
-                  value={localFicoScore} 
-                  onValueChange={value => {
-                    setLocalFicoScore(value);
-                    handleLeadUpdate('fico_score', value);
-                  }} 
-                  placeholder="Enter score" 
-                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Credit Score</span>
+                <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Interest Rate</span>
-                <InlineEditPercentage 
-                  value={localInterestRate} 
-                  onValueChange={value => {
-                    setLocalInterestRate(value);
-                    handleLeadUpdate('interest_rate', value);
-                  }} 
-                  decimals={3}
-                  className="text-sm"
-                />
+                <span className="text-sm font-medium">{localInterestRate ?? (client as any).interest_rate ? `${localInterestRate ?? (client as any).interest_rate}%` : '—'}</span>
               </div>
               
               {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
-                <InlineEditDate 
-                  value={localCloseDate} 
-                  onValueChange={value => {
-                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
-                    setLocalCloseDate(dateStr);
-                    handleLeadUpdate('closeDate', dateStr);
-                  }} 
-                  placeholder="Select date" 
-                />
+                <span className="text-sm font-medium">{localCloseDate ? format(new Date(localCloseDate), 'MMM d, yyyy') : (client as any).close_date ? format(new Date((client as any).close_date), 'MMM d, yyyy') : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
-                <InlineEditCurrency 
-                  value={localCashToClose} 
-                  onValueChange={value => {
-                    setLocalCashToClose(value);
-                    handleLeadUpdate('cashToClose', value);
-                  }} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{localCashToClose ?? (client as any).cash_to_close ?? (client as any).cashToClose ? `$${(localCashToClose ?? (client as any).cash_to_close ?? (client as any).cashToClose).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">PITI</span>
-                <InlineEditCurrency 
-                  value={localPiti} 
-                  onValueChange={value => {
-                    setLocalPiti(value);
-                    handleLeadUpdate('piti', value);
-                  }} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{localPiti ?? (client as any).piti ? `$${(localPiti ?? (client as any).piti).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Discount Points</span>
-                <div className="flex items-center gap-1">
-                  <InlineEditCurrency 
-                    value={(client as any).discount_points ?? null} 
-                    onValueChange={async (value) => {
-                      const loanAmount = Number(client.loan?.loanAmount) || 0;
-                      const percentage = value && loanAmount ? (value / loanAmount) * 100 : null;
-                      await handleLeadUpdate('discount_points', value);
-                      await handleLeadUpdate('discount_points_percentage', percentage);
-                    }} 
-                    placeholder="$0"
-                  />
-                  {(client as any).discount_points && client.loan?.loanAmount && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      ({(((client as any).discount_points / Number(client.loan.loanAmount)) * 100).toFixed(3)}%)
-                    </span>
-                  )}
-                </div>
+                <span className="text-sm font-medium">
+                  {(() => {
+                    const pct = (client as any).discount_points_percentage;
+                    const loanAmt = Number(client.loan?.loanAmount) || 0;
+                    if (pct && loanAmt > 0) {
+                      const dollarAmt = (pct / 100) * loanAmt;
+                      return `${pct.toFixed(3)}% ($${dollarAmt.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})`;
+                    }
+                    return pct ? `${pct.toFixed(3)}%` : '—';
+                  })()}
+                </span>
               </div>
 
               {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
-                <InlineEditSelect
-                  value={localOccupancy} 
-                  options={[
-                    { value: 'Primary', label: 'Primary' },
-                    { value: 'Second Home', label: 'Second Home' },
-                    { value: 'Investment', label: 'Investment' }
-                  ]}
-                  onValueChange={value => {
-                    setLocalOccupancy(value);
-                    handleLeadUpdate('occupancy', value);
-                  }} 
-                  placeholder="Select..." 
-                />
+                <span className="text-sm font-medium">{localOccupancy ?? (client as any).occupancy ?? '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
-                <InlineEditCurrency 
-                  value={(client as any).closing_costs ?? (client as any).closingCosts ?? null} 
-                  onValueChange={value => handleLeadUpdate('closing_costs', value)} 
-                  placeholder="Enter amount" 
-                />
+                <span className="text-sm font-medium">{(client as any).closing_costs ?? (client as any).closingCosts ? `$${((client as any).closing_costs ?? (client as any).closingCosts).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Lock Expiration</span>
-                <InlineEditDate 
-                  value={(client as any).lock_expiration_date ?? null} 
-                  onValueChange={value => {
-                    const dateStr = value ? format(value, 'yyyy-MM-dd') : null;
-                    handleLeadUpdate('lock_expiration_date', dateStr);
-                  }} 
-                  placeholder="-" 
-                />
+                <span className={cn(
+                  "text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1",
+                  (() => {
+                    const closeDate = (client as any).close_date || localCloseDate;
+                    const lockExpiration = (client as any).lock_expiration_date;
+                    if (!closeDate || lockExpiration) return false;
+                    const closeDateObj = new Date(closeDate);
+                    const now = new Date();
+                    const diffDays = Math.ceil((closeDateObj.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    return diffDays >= 0 && diffDays <= 30;
+                  })() && "text-red-600 font-medium"
+                )}>
+                  <Calendar className={cn(
+                    "h-3 w-3",
+                    (() => {
+                      const closeDate = (client as any).close_date || localCloseDate;
+                      const lockExpiration = (client as any).lock_expiration_date;
+                      if (!closeDate || lockExpiration) return false;
+                      const closeDateObj = new Date(closeDate);
+                      const now = new Date();
+                      const diffDays = Math.ceil((closeDateObj.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                      return diffDays >= 0 && diffDays <= 30;
+                    })() && "text-red-600"
+                  )} />
+                  Lock Expiration
+                </span>
+                <span className="text-sm font-medium">{(client as any).lock_expiration_date ? format(new Date((client as any).lock_expiration_date), 'MMM d, yyyy') : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
@@ -1557,15 +1453,26 @@ export function ClientDetailDrawer({
     }
   };
   const handleTaskActivityClick = async (activity: any) => {
-    // Extract task title from activity description
-    // Format: "Task created: [title]\nAssigned to: [name]\nDue: [date]"
-    const taskTitle = activity.task_id; // We stored the task title in task_id field
-
-    if (!leadId || !taskTitle) return;
+    if (!leadId) return;
+    
     try {
-      // Find the task by title and lead_id
       const tasks = await databaseService.getLeadTasks(leadId);
-      const matchingTask = tasks.find(t => t.title === taskTitle);
+      
+      // For task activities from tasks table, activity.id IS the task ID
+      // For legacy note-based task logs, activity.task_id stores the title
+      let matchingTask;
+      
+      if (activity.type === 'task' && activity.task_id) {
+        // Direct task activity - use task_id which is the actual task UUID
+        matchingTask = tasks.find(t => t.id === String(activity.task_id));
+      }
+      
+      // Fallback: search by title if not found by ID
+      if (!matchingTask) {
+        const taskTitle = activity.task_id;
+        matchingTask = tasks.find(t => t.title === taskTitle);
+      }
+      
       if (matchingTask) {
         setSelectedTask(matchingTask);
         setShowTaskDetailModal(true);
