@@ -235,12 +235,21 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   const handleDownload = async (doc: Document) => {
     try {
       const signedUrl = await databaseService.getDocumentSignedUrl(doc.file_url);
+      
+      // Fetch as blob to bypass Chrome's cross-origin download blocking
+      const response = await fetch(signedUrl);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
       const link = document.createElement('a');
-      link.href = signedUrl;
-      link.download = doc.file_name;
+      link.href = blobUrl;
+      link.download = doc.title || doc.file_name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
       
       toast({
         title: "Download Started",

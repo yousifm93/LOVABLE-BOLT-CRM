@@ -193,6 +193,25 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     loadData();
   }, []);
 
+  // Sync address fields when client prop changes (e.g., edited in DatesTab)
+  useEffect(() => {
+    setEditData(prev => ({
+      ...prev,
+      subject_address_1: (client as any).subject_address_1 || "",
+      subject_address_2: (client as any).subject_address_2 || "",
+      subject_city: (client as any).subject_city || "",
+      subject_state: (client as any).subject_state || "",
+      subject_zip: (client as any).subject_zip || "",
+      occupancy: (client as any).occupancy || "",
+    }));
+  }, [
+    (client as any).subject_address_1,
+    (client as any).subject_address_2,
+    (client as any).subject_city,
+    (client as any).subject_state,
+    (client as any).subject_zip,
+    (client as any).occupancy
+  ]);
   // Auto-calculate PITI when payment breakdown components change
   useEffect(() => {
     if (isEditing) {

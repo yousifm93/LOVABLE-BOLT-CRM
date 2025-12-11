@@ -121,6 +121,7 @@ export function ClientDetailDrawer({
   const [localCloseDate, setLocalCloseDate] = useState<string | null>(null);
   const [localCashToClose, setLocalCashToClose] = useState<number | null>(null);
   const [localPiti, setLocalPiti] = useState<number | null>(null);
+  const [localOccupancy, setLocalOccupancy] = useState<string | null>(null);
 
   // About the Borrower editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -307,6 +308,7 @@ export function ClientDetailDrawer({
       setLocalCloseDate((client as any).closeDate ?? null);
       setLocalCashToClose((client as any).cashToClose ?? null);
       setLocalPiti((client as any).piti ?? null);
+      setLocalOccupancy((client as any).occupancy ?? null);
 
       // Load user info for timestamps
       if ((client as any).notes_updated_by) {
@@ -975,7 +977,8 @@ export function ClientDetailDrawer({
                     setLocalInterestRate(value);
                     handleLeadUpdate('interest_rate', value);
                   }} 
-                  decimals={3} 
+                  decimals={3}
+                  className="text-sm"
                 />
               </div>
               
@@ -1124,7 +1127,8 @@ export function ClientDetailDrawer({
                     setLocalInterestRate(value);
                     handleLeadUpdate('interest_rate', value);
                   }} 
-                  decimals={3} 
+                  decimals={3}
+                  className="text-sm"
                 />
               </div>
               
@@ -1188,13 +1192,16 @@ export function ClientDetailDrawer({
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
                 <InlineEditSelect 
-                  value={(client as any).occupancy ?? null} 
+                  value={localOccupancy} 
                   options={[
                     { value: 'Primary Home', label: 'Primary Home' },
                     { value: 'Second Home', label: 'Second Home' },
                     { value: 'Investment', label: 'Investment' }
                   ]}
-                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
+                  onValueChange={value => {
+                    setLocalOccupancy(value);
+                    handleLeadUpdate('occupancy', value);
+                  }} 
                   placeholder="Select..." 
                 />
               </div>

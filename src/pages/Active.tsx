@@ -1498,8 +1498,8 @@ export default function Active() {
         </div>
       )}
 
-      {/* Filter chips */}
-      {filters.length > 0 && (
+      {/* Filter chips - hide when in Review mode unless filter panel is open */}
+      {filters.length > 0 && (!isReviewMode || isFilterOpen) && (
         <div className="flex flex-wrap gap-2 mb-4">
           {filters.map((filter) => (
             <Badge key={filter.id} variant="secondary" className="gap-1">
