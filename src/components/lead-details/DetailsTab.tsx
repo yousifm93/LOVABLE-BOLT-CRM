@@ -907,6 +907,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : null
     },
+    { 
+      icon: Calendar, 
+      label: "Closing Date", 
+      value: formatDate((client as any).close_date),
+      editComponent: isEditing ? (
+        <Input
+          type="date"
+          value={editData.close_date || ""}
+          onChange={(e) => setEditData({ ...editData, close_date: e.target.value || null })}
+          className="h-8"
+        />
+      ) : undefined
+    },
   ];
 
   // Property section removed - merged into Transaction Details

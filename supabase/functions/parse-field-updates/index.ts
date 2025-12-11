@@ -82,10 +82,15 @@ Available fields that can be updated (use exact field names):
 - epo_status (values: Not Started, In Review, Approved, Rejected)
 - property_type (values: Single Family, Condo, Townhouse, Multi-Family, Other)
 - occupancy (values: Primary Residence, Second Home, Investment)
-- loan_program (values: Conventional, FHA, VA, USDA, DSCR, Non-QM, Jumbo, Other) - also called "loan type"
+- program (values: Conventional, FHA, VA, USDA, DSCR, Non-QM, Jumbo, Other) - also called "loan program", "loan type"
 - dscr_ratio (number between 0-2, e.g., 1.0, 1.25)
 - fico_score (number) - also called "credit score"
-- discount_points (number) - also called "points"
+- discount_points_percentage (number) - also called "discount points", "points" - percentage value like 1.5
+
+IMPORTANT: NEVER suggest updates for these calculated fields (they are auto-calculated from other values):
+- ltv (calculated from loan_amount / sales_price)
+- piti_total or piti (calculated sum of P&I, taxes, insurance, MI, HOA)
+- dti (calculated debt-to-income ratio)
 
 ## TASK SUGGESTIONS - CRITICAL
 
@@ -250,6 +255,21 @@ IMPORTANT: Return ONLY the JSON object, no other text.`;
 
     console.log('Detected updates:', result.detectedUpdates);
     console.log('Task suggestions:', result.taskSuggestions);
+
+    // Apply field name mappings to convert friendly names to actual database column names
+    const FIELD_NAME_MAP: Record<string, string> = {
+      'loan_program': 'program',
+      'discount_points': 'discount_points_percentage',
+    };
+
+    // Map field names and filter out calculated fields
+    const CALCULATED_FIELDS = ['ltv', 'piti_total', 'piti', 'dti'];
+    result.detectedUpdates = result.detectedUpdates
+      .filter((update: any) => !CALCULATED_FIELDS.includes(update.field))
+      .map((update: any) => ({
+        ...update,
+        field: FIELD_NAME_MAP[update.field] || update.field,
+      }));
 
     return new Response(
       JSON.stringify(result),

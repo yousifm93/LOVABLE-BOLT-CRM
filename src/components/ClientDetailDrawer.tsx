@@ -667,13 +667,29 @@ export function ClientDetailDrawer({
           : summaryData.summary;
         
         setLocalFileUpdates(newContent);
-        setHasUnsavedFileUpdates(true);
-        setIsEditingFileUpdates(true);
         
-        toast({
-          title: 'Voice Note Added',
-          description: 'Your voice note has been transcribed and summarized.',
-        });
+        // AUTO-SAVE immediately instead of requiring manual save
+        if (leadId) {
+          try {
+            await databaseService.updateLead(leadId, { latest_file_updates: newContent });
+            toast({
+              title: 'Voice Note Saved',
+              description: 'Your voice note has been transcribed and saved automatically.',
+            });
+          } catch (saveError) {
+            console.error('Error auto-saving voice note:', saveError);
+            // Fallback to manual save if auto-save fails
+            setHasUnsavedFileUpdates(true);
+            setIsEditingFileUpdates(true);
+            toast({
+              title: 'Voice Note Added',
+              description: 'Your voice note has been transcribed. Please save manually.',
+            });
+          }
+        } else {
+          setHasUnsavedFileUpdates(true);
+          setIsEditingFileUpdates(true);
+        }
       }
 
       // Check for field update requests in the transcription
@@ -699,6 +715,8 @@ export function ClientDetailDrawer({
           ba_status: (client as any).ba_status,
           package_status: (client as any).package_status,
           epo_status: (client as any).epo_status,
+          program: (client as any).program,
+          discount_points_percentage: (client as any).discount_points_percentage,
         };
 
         const { data: fieldUpdateData, error: fieldUpdateError } = await supabase.functions.invoke('parse-field-updates', {
@@ -742,7 +760,15 @@ export function ClientDetailDrawer({
   }>) => {
     for (const update of selectedUpdates) {
       try {
-        await handleLeadUpdate(update.field, update.newValue);
+        let fieldName = update.field;
+        let fieldValue: string | number = update.newValue;
+        
+        // Handle date fields - add time component to prevent timezone shift
+        if (fieldName === 'close_date' && typeof fieldValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fieldValue)) {
+          fieldValue = `${fieldValue}T12:00:00`;
+        }
+        
+        await handleLeadUpdate(fieldName, fieldValue);
       } catch (error) {
         console.error(`Error updating ${update.field}:`, error);
       }
