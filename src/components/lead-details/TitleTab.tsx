@@ -20,6 +20,7 @@ interface TitleTabProps {
 }
 
 const titleStatusOptions = [
+  { value: "Requested", label: "Requested" },
   { value: "Ordered", label: "Ordered" },
   { value: "Received", label: "Received" },
   { value: "On Hold", label: "On Hold" }
@@ -37,7 +38,13 @@ export function TitleTab({ leadId, data, onUpdate }: TitleTabProps) {
           </Label>
           <InlineEditSelect
             value={data.title_status}
-            onValueChange={(value) => onUpdate('title_status', value)}
+            onValueChange={(value) => {
+              onUpdate('title_status', value);
+              // Auto-populate ordered date when status changes to "Ordered"
+              if (value === 'Ordered' && !data.title_ordered_date) {
+                onUpdate('title_ordered_date', new Date().toISOString().split('T')[0]);
+              }
+            }}
             options={titleStatusOptions}
             placeholder="Select status"
             showAsStatusBadge={false}

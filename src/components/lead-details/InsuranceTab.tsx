@@ -38,7 +38,13 @@ export function InsuranceTab({ leadId, data, onUpdate }: InsuranceTabProps) {
         </Label>
         <InlineEditSelect
           value={data.hoi_status}
-          onValueChange={(value) => onUpdate('hoi_status', value)}
+          onValueChange={(value) => {
+            onUpdate('hoi_status', value);
+            // Auto-populate ordered date when status changes to "Ordered"
+            if (value === 'Ordered' && !data.insurance_ordered_date) {
+              onUpdate('insurance_ordered_date', new Date().toISOString().split('T')[0]);
+            }
+          }}
           options={hoiStatusOptions}
           placeholder="Select status"
           showAsStatusBadge={false}
