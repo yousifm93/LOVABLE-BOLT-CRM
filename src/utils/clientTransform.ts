@@ -9,18 +9,24 @@ const calculateDownPayment = (salesPrice: number | null, loanAmount: number | nu
   return null;
 };
 
-// Helper to calculate LTV
+// Helper to calculate LTV - uses MIN(sales_price, appraised_value) per industry standard
 const calculateLTV = (loanAmount: number | null, appraisalValue: string | null, salesPrice: number | null): number | null => {
-  if (loanAmount && appraisalValue) {
-    const appraisalNum = parseFloat(appraisalValue);
-    if (appraisalNum > 0) {
-      return (loanAmount / appraisalNum) * 100;
-    }
-  }
-  // Fall back to sales price for pre-contract leads
-  if (loanAmount && salesPrice && salesPrice > 0) {
+  if (!loanAmount || loanAmount <= 0) return null;
+  
+  const appraisalNum = appraisalValue ? parseFloat(appraisalValue) : null;
+  const hasAppraisal = appraisalNum && appraisalNum > 0;
+  const hasSalesPrice = salesPrice && salesPrice > 0;
+  
+  if (hasAppraisal && hasSalesPrice) {
+    // Use the lesser of sales price or appraised value
+    const denominator = Math.min(salesPrice, appraisalNum);
+    return (loanAmount / denominator) * 100;
+  } else if (hasAppraisal) {
+    return (loanAmount / appraisalNum) * 100;
+  } else if (hasSalesPrice) {
     return (loanAmount / salesPrice) * 100;
   }
+  
   return null;
 };
 
