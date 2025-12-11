@@ -887,23 +887,27 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       label: "Occupancy", 
       value: (() => {
         const occ = (client as any).occupancy;
-        if (occ === "Primary Residence") return "Primary";
-        if (occ === "Second Home") return "Second";
+        if (occ === "Primary Residence" || occ === "Primary Home") return "Primary";
         if (occ === "Investment Property") return "Investment";
         return occ || "—";
       })(),
       editComponent: isEditing ? (
         <Select
-          value={editData.occupancy}
+          value={(() => {
+            const occ = editData.occupancy;
+            if (occ === "Primary Residence" || occ === "Primary Home") return "Primary";
+            if (occ === "Investment Property") return "Investment";
+            return occ;
+          })()}
           onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
         >
           <SelectTrigger className="h-8">
             <SelectValue placeholder="Select occupancy" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Primary Residence">Primary</SelectItem>
-            <SelectItem value="Second Home">Second</SelectItem>
-            <SelectItem value="Investment Property">Investment</SelectItem>
+            <SelectItem value="Primary">Primary</SelectItem>
+            <SelectItem value="Second Home">Second Home</SelectItem>
+            <SelectItem value="Investment">Investment</SelectItem>
           </SelectContent>
         </Select>
       ) : undefined

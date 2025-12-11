@@ -308,7 +308,12 @@ export function ClientDetailDrawer({
       setLocalCloseDate((client as any).closeDate ?? null);
       setLocalCashToClose((client as any).cashToClose ?? null);
       setLocalPiti((client as any).piti ?? null);
-      setLocalOccupancy((client as any).occupancy ?? null);
+      // Normalize occupancy values to match dropdown options
+      const rawOccupancy = (client as any).occupancy ?? null;
+      const normalizedOccupancy = rawOccupancy === 'Primary Residence' || rawOccupancy === 'Primary Home' 
+        ? 'Primary' 
+        : rawOccupancy;
+      setLocalOccupancy(normalizedOccupancy);
 
       // Load user info for timestamps
       if ((client as any).notes_updated_by) {
