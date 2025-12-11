@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // Field definitions with display names and valid values (TITLE CASE for select values)
-const FIELD_DEFINITIONS = {
+const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; validValues?: string[] }> = {
   loan_status: {
     displayName: 'Loan Status',
     type: 'select',
@@ -116,6 +116,41 @@ const FIELD_DEFINITIONS = {
     type: 'select',
     validValues: ['Yes', 'No'],
   },
+  // Additional fields for comprehensive email parsing
+  occupancy: {
+    displayName: 'Occupancy',
+    type: 'select',
+    validValues: ['Primary Home', 'Second Home', 'Investment'],
+  },
+  transaction_type: {
+    displayName: 'Transaction Type',
+    type: 'select',
+    validValues: ['Purchase', 'Refinance', 'HELOC'],
+  },
+  total_monthly_income: {
+    displayName: 'Total Monthly Income',
+    type: 'currency',
+  },
+  insurance_amount: {
+    displayName: 'Monthly Insurance',
+    type: 'currency',
+  },
+  piti_total: {
+    displayName: 'Total Monthly Payment (PITI)',
+    type: 'currency',
+  },
+  monthly_taxes: {
+    displayName: 'Monthly Taxes',
+    type: 'currency',
+  },
+  dti: {
+    displayName: 'DTI Ratio',
+    type: 'number',
+  },
+  cash_to_close: {
+    displayName: 'Cash to Close',
+    type: 'currency',
+  },
 };
 
 // Status progression rules - a status cannot go backwards in its progression
@@ -128,6 +163,27 @@ const STATUS_PROGRESSIONS: Record<string, string[]> = {
   condo_status: ['Ordered', 'Received', 'Approved'],
   loan_status: ['New', 'RFP', 'SUB', 'AWC', 'CTC', 'CLOSED'],
 };
+
+// Helper to normalize values for comparison
+function normalizeValue(value: any, type: string): string {
+  if (value === null || value === undefined) return '';
+  
+  const strValue = String(value).trim();
+  
+  if (type === 'date') {
+    // Normalize dates to YYYY-MM-DD
+    return strValue.substring(0, 10);
+  }
+  
+  if (type === 'number' || type === 'currency') {
+    // Remove currency symbols and normalize numbers
+    const num = parseFloat(strValue.replace(/[$,%]/g, ''));
+    return isNaN(num) ? '' : num.toString();
+  }
+  
+  // String/select - case-insensitive comparison
+  return strValue.toLowerCase();
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -212,7 +268,7 @@ CRITICAL DOMAIN-SPECIFIC RULES:
 9. **RATE LOCK CONFIRMATION EMAILS**: These emails contain extremely valuable structured data. Look for:
    - Subject containing "Lock Confirmation" or "Rate Lock"
    - Tabular data with fields like: Interest Rate, Note Rate, Points, Program, Property Type, LTV, DSCR, FICO, Lock Expiration
-   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow
+   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow, occupancy, total_monthly_income, insurance_amount, piti_total, monthly_taxes, dti, cash_to_close
    - For rate lock emails from automated lender systems, use confidence 1.0 (100%)
    - Match program names: "DSCR" → "DSCR", "Conv" or "Conventional" → "Conventional", "FHA" → "FHA"
    - Property types: "SFR" or "Single Family" → "Single Family", "Condo" or "Condominium" → "Condo", "Townhouse" → "Townhouse"
@@ -222,6 +278,16 @@ CRITICAL DOMAIN-SPECIFIC RULES:
     - 0.9-0.95: Clear status updates with explicit keywords ("Clear to Close", "Appraisal Received")
     - 0.7-0.85: Implied updates requiring interpretation
     - Below 0.7: Uncertain or ambiguous
+
+11. **OCCUPANCY MAPPING**:
+    - "Primary", "Primary Residence", "Owner Occupied" → "Primary Home"
+    - "Second Home", "Vacation Home" → "Second Home"
+    - "Investment", "Non-Owner Occupied", "Rental" → "Investment"
+
+12. **TRANSACTION TYPE MAPPING**:
+    - "Purchase", "Buy" → "Purchase"
+    - "Refinance", "Refi", "Rate/Term" → "Refinance"
+    - "HELOC", "Home Equity" → "HELOC"
 
 INSTRUCTIONS:
 1. Analyze the email subject and body for any status updates or field changes
@@ -233,6 +299,7 @@ INSTRUCTIONS:
 7. Don't suggest changes if the current value already matches what the email indicates
 8. VALIDATE against current values to avoid downgrading statuses
 9. For rate lock confirmation emails, extract ALL available data points
+10. For condition update emails with detailed loan info, extract ALL financial fields
 
 Return a JSON array of suggestions. Each suggestion should have:
 - field_name: the database field name
@@ -314,6 +381,33 @@ Analyze this email and identify any CRM field updates that should be made.`;
         confidence: s.confidence || 0.8,
       }));
 
+      // CRITICAL: Filter out suggestions where value already matches current value
+      suggestions = suggestions.filter((s: any) => {
+        const fieldName = s.field_name;
+        const def = FIELD_DEFINITIONS[fieldName];
+        
+        if (!def || !currentLeadData) return true;
+        
+        const currentValue = currentLeadData[fieldName];
+        const suggestedValue = s.suggested_value;
+        
+        // If current value is null/undefined, suggestion is valid
+        if (currentValue === null || currentValue === undefined || currentValue === '') {
+          return true;
+        }
+        
+        // Normalize and compare values
+        const normalizedCurrent = normalizeValue(currentValue, def.type);
+        const normalizedSuggested = normalizeValue(suggestedValue, def.type);
+        
+        if (normalizedCurrent === normalizedSuggested) {
+          console.log(`[parse-email-field-updates] Skipping identical value: ${fieldName} is already "${currentValue}"`);
+          return false;
+        }
+        
+        return true;
+      });
+
       // CRITICAL: Validate status progression - filter out downgrades
       suggestions = suggestions.filter((s: any) => {
         const fieldName = s.field_name;
@@ -335,12 +429,6 @@ Analyze this email and identify any CRM field updates that should be made.`;
           // If both values are in the progression and suggested is earlier, reject
           if (currentIndex !== -1 && suggestedIndex !== -1 && suggestedIndex < currentIndex) {
             console.log(`[parse-email-field-updates] Rejecting downgrade: ${fieldName} from "${currentValue}" to "${suggestedValue}"`);
-            return false;
-          }
-          
-          // If suggested value equals current value, reject (no change needed)
-          if (currentValue && currentValue.toLowerCase() === suggestedValue.toLowerCase()) {
-            console.log(`[parse-email-field-updates] Rejecting same value: ${fieldName} already is "${currentValue}"`);
             return false;
           }
         }
