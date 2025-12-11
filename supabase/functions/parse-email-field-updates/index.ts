@@ -80,6 +80,42 @@ const FIELD_DEFINITIONS = {
     displayName: 'Appraisal Value',
     type: 'currency',
   },
+  // Rate lock confirmation fields
+  loan_program: {
+    displayName: 'Loan Program',
+    type: 'select',
+    validValues: ['Conventional', 'FHA', 'VA', 'DSCR', 'Jumbo', 'USDA', 'Bank Statement'],
+  },
+  property_type: {
+    displayName: 'Property Type',
+    type: 'select',
+    validValues: ['Single Family', 'Townhouse', 'Condo', 'Multi-Family', '2-4 Unit', 'PUD'],
+  },
+  ltv: {
+    displayName: 'LTV',
+    type: 'number',
+  },
+  dscr_ratio: {
+    displayName: 'DSCR Ratio',
+    type: 'number',
+  },
+  fico_score: {
+    displayName: 'FICO Score',
+    type: 'number',
+  },
+  term: {
+    displayName: 'Loan Term (months)',
+    type: 'number',
+  },
+  prepayment_penalty: {
+    displayName: 'Prepayment Penalty (years)',
+    type: 'number',
+  },
+  escrow: {
+    displayName: 'Escrow',
+    type: 'select',
+    validValues: ['Yes', 'No'],
+  },
 };
 
 // Status progression rules - a status cannot go backwards in its progression
@@ -162,9 +198,30 @@ CRITICAL DOMAIN-SPECIFIC RULES:
    - "final", "complete", "finished", "closing package" → suggest "Final"
    - NEVER suggest "Completed" or "In Progress" as these are NOT valid values
 
-6. **CLOSING DATE CONFIRMATION**: Only suggest close_date if the email explicitly confirms a closing date (e.g., "closing on 12/12", "scheduled to close"). Do not change close_date based on estimated or tentative dates.
+6. **CD vs PACKAGE - CRITICAL DISTINCTION**:
+   - **cd_status (Initial Closing Disclosure)**: The CD is sent when the file is ALMOST at the finish line but not quite. Look for: "CD sent", "Initial Closing Disclosure", "Closing Disclosure sent", "CD for review"
+   - **package_status (Final Closing Package)**: The Package is the FINAL closing package that the title company works on with the broker's closing department. Look for: "Closing package sent", "Final package", "Documents sent to settlement agent", "Closing docs ready", "Package for signing"
+   - These are DIFFERENT fields - do NOT confuse them!
+   - If email mentions "closing package" or "documents to title/settlement" → package_status
+   - If email mentions "CD" or "closing disclosure" specifically → cd_status
 
-7. **TITLE CASE FOR STATUS VALUES**: All status field values should use Title Case (e.g., "Ordered", "Received", "Scheduled"), not UPPERCASE.
+7. **CLOSING DATE CONFIRMATION**: Only suggest close_date if the email explicitly confirms a closing date (e.g., "closing on 12/12", "scheduled to close"). Do not change close_date based on estimated or tentative dates.
+
+8. **TITLE CASE FOR STATUS VALUES**: All status field values should use Title Case (e.g., "Ordered", "Received", "Scheduled"), not UPPERCASE.
+
+9. **RATE LOCK CONFIRMATION EMAILS**: These emails contain extremely valuable structured data. Look for:
+   - Subject containing "Lock Confirmation" or "Rate Lock"
+   - Tabular data with fields like: Interest Rate, Note Rate, Points, Program, Property Type, LTV, DSCR, FICO, Lock Expiration
+   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow
+   - For rate lock emails from automated lender systems, use confidence 1.0 (100%)
+   - Match program names: "DSCR" → "DSCR", "Conv" or "Conventional" → "Conventional", "FHA" → "FHA"
+   - Property types: "SFR" or "Single Family" → "Single Family", "Condo" or "Condominium" → "Condo", "Townhouse" → "Townhouse"
+
+10. **CONFIDENCE SCORING**:
+    - 1.0 (100%): Automated lender emails with clear structured data (rate locks, package confirmations from noreply@ addresses)
+    - 0.9-0.95: Clear status updates with explicit keywords ("Clear to Close", "Appraisal Received")
+    - 0.7-0.85: Implied updates requiring interpretation
+    - Below 0.7: Uncertain or ambiguous
 
 INSTRUCTIONS:
 1. Analyze the email subject and body for any status updates or field changes
@@ -175,6 +232,7 @@ INSTRUCTIONS:
 6. Be conservative - only suggest updates you're confident about
 7. Don't suggest changes if the current value already matches what the email indicates
 8. VALIDATE against current values to avoid downgrading statuses
+9. For rate lock confirmation emails, extract ALL available data points
 
 Return a JSON array of suggestions. Each suggestion should have:
 - field_name: the database field name
