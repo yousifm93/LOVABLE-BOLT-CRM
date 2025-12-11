@@ -275,11 +275,13 @@ export function DashboardDetailModal({
         .single();
 
       // Run both parsers in parallel: field updates AND AI summary AND response-needed
+      // Prioritize html_body over plain body for better content parsing
+      const emailBody = email.html_body || email.body || email.snippet;
       const [parseResult, summaryResult, responseResult] = await Promise.all([
         supabase.functions.invoke('parse-email-field-updates', {
           body: {
             subject: email.subject,
-            body: email.body || email.snippet,
+            body: emailBody,
             htmlBody: email.html_body,
             leadId: email.lead_id,
             currentLeadData: leadData
@@ -288,14 +290,14 @@ export function DashboardDetailModal({
         supabase.functions.invoke('summarize-email', {
           body: {
             subject: email.subject,
-            body: email.body,
+            body: emailBody,
             htmlBody: email.html_body
           }
         }),
         supabase.functions.invoke('parse-email-response-needed', {
           body: {
             subject: email.subject,
-            body: email.body,
+            body: emailBody,
             htmlBody: email.html_body,
             fromEmail: email.from_email,
             direction: email.direction,

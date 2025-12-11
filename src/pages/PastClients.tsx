@@ -34,6 +34,7 @@ import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
+import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -861,38 +862,32 @@ export default function PastClients() {
     }
   };
 
-  const handleRowClick = (loan: PastClientLoan) => {
-    // Convert PastClientLoan to CRMClient for the drawer
-    const crmClient: CRMClient = {
-      person: {
-        id: Date.now(), // Placeholder numeric ID for legacy compatibility
-        firstName: loan.first_name,
-        lastName: loan.last_name,
-        email: "", // PastClientLoan doesn't have email, will be empty
-        phoneMobile: "" // PastClientLoan doesn't have phone, will be empty
-      },
-      databaseId: loan.id, // Real UUID from database
-      loan: {
-        loanAmount: loan.loan_amount ? `$${loan.loan_amount.toLocaleString()}` : "",
-        loanType: loan.pr_type || "Purchase",
-        prType: loan.pr_type || "",
-        closeDate: loan.close_date,
-        disclosureStatus: loan.disclosure_status
-      },
-      ops: {
-        stage: "past-clients",
-        status: "Closed",
-        priority: "Low"
-      },
-      dates: {
-        createdOn: new Date().toISOString(),
-        appliedOn: new Date().toISOString()
-      },
-      meta: {},
-      name: `${loan.first_name} ${loan.last_name}`,
-    };
-    setSelectedClient(crmClient);
-    setIsDrawerOpen(true);
+  const handleRowClick = async (loan: PastClientLoan) => {
+    try {
+      // Fetch FULL lead data just like Active.tsx does
+      const dbLead = await databaseService.getLeadByIdWithEmbeds(loan.id);
+      if (!dbLead) {
+        console.error('Lead not found');
+        toast({
+          title: "Error",
+          description: "Failed to load client details",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Transform using the full lead data
+      const crmClient = transformLeadToClient(dbLead);
+      setSelectedClient(crmClient);
+      setIsDrawerOpen(true);
+    } catch (error) {
+      console.error('Error loading lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load client details",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDelete = async (row: PastClientLoan) => {
