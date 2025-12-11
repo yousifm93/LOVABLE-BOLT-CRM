@@ -1191,11 +1191,10 @@ export function ClientDetailDrawer({
               {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
-                <InlineEditSelect 
+                <InlineEditSelect
                   value={localOccupancy} 
                   options={[
-                    { value: 'Primary Home', label: 'Primary Home' },
-                    { value: 'Primary Residence', label: 'Primary Residence' },
+                    { value: 'Primary', label: 'Primary' },
                     { value: 'Second Home', label: 'Second Home' },
                     { value: 'Investment', label: 'Investment' }
                   ]}
