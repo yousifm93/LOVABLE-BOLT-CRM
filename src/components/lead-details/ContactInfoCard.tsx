@@ -56,6 +56,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     phone: client.person?.phone || client.person?.phoneMobile || "",
     email: client.person?.email || "",
     buyer_agent_id: (client as any).buyer_agent_id || null,
+    listing_agent_id: (client as any).listing_agent_id || null,
     loanAmount: client.loan?.loanAmount || null,
     salesPrice: client.loan?.salesPrice || null,
     appraisal_value: client.loan?.appraisedValue || null,
@@ -64,6 +65,14 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
     loanProgram: client.loan?.loanProgram || "",
     occupancy: (client as any).occupancy || "",
   });
+
+  // Determine if lead is in Active or Past Clients stage
+  const isActiveOrPastClient = (() => {
+    const stage = client.ops?.stage?.replace(/_/g, '-');
+    const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
+    return stage === 'active' || stage === 'past-clients' || 
+           pipelineStageName === 'active' || pipelineStageName === 'past clients';
+  })();
 
   // Auto-sync appraised value with purchase price during editing
   useEffect(() => {
@@ -118,6 +127,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
       phone: client.person?.phone || client.person?.phoneMobile || "",
       email: client.person?.email || "",
       buyer_agent_id: (client as any).buyer_agent_id || null,
+      listing_agent_id: (client as any).listing_agent_id || null,
       loanAmount: client.loan?.loanAmount || null,
       salesPrice: client.loan?.salesPrice || null,
       appraisal_value: client.loan?.appraisedValue || null,
@@ -174,6 +184,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
         phone: sanitizedData.phone,
         email: sanitizedData.email,
         buyer_agent_id: editData.buyer_agent_id,
+        listing_agent_id: editData.listing_agent_id,
         loan_amount: sanitizedData.loanAmount,
         sales_price: sanitizedData.salesPrice,
         appraisal_value: sanitizedData.salesPrice?.toString() || null, // Sync with purchase price
@@ -357,38 +368,64 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                   </div>
                 )}
               </div>
-              {/* Occupancy */}
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Occupancy</Label>
-                {isEditing ? (
-                  <Select
-                    value={(() => {
-                      const occ = (client as any).occupancy || "";
-                      if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
-                      return occ;
-                    })()}
-                    onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Select occupancy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Primary">Primary</SelectItem>
-                      <SelectItem value="Second Home">Second Home</SelectItem>
-                      <SelectItem value="Investment">Investment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Home className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium">{(() => {
-                      const occ = (client as any).occupancy;
-                      if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
-                      return occ || "—";
-                    })()}</span>
-                  </div>
-                )}
-              </div>
+              {/* Conditional: Listing Agent for Active/Past Clients, Occupancy for others */}
+              {isActiveOrPastClient ? (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Listing Agent</Label>
+                  {isEditing ? (
+                    <InlineEditAgent
+                      value={listingAgent}
+                      agents={agents}
+                      onValueChange={(agent) => setEditData({ ...editData, listing_agent_id: agent?.id || null })}
+                      placeholder="Select listing agent"
+                      type="listing"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <button
+                        onClick={() => handleAgentClick((client as any).listing_agent_id)}
+                        className="text-primary hover:underline cursor-pointer disabled:text-muted-foreground disabled:no-underline disabled:cursor-default"
+                        disabled={!(client as any).listing_agent_id}
+                      >
+                        {listingAgent ? `${listingAgent.first_name} ${listingAgent.last_name}` : "—"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Occupancy</Label>
+                  {isEditing ? (
+                    <Select
+                      value={(() => {
+                        const occ = (client as any).occupancy || "";
+                        if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
+                        return occ;
+                      })()}
+                      onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select occupancy" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Primary">Primary</SelectItem>
+                        <SelectItem value="Second Home">Second Home</SelectItem>
+                        <SelectItem value="Investment">Investment</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Home className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-medium">{(() => {
+                        const occ = (client as any).occupancy;
+                        if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
+                        return occ || "—";
+                      })()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             {/* Right Column */}
