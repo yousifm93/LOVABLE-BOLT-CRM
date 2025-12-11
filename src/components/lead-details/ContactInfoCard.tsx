@@ -362,7 +362,11 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 <Label className="text-xs text-muted-foreground">Occupancy</Label>
                 {isEditing ? (
                   <Select
-                    value={(client as any).occupancy || ""}
+                    value={(() => {
+                      const occ = (client as any).occupancy || "";
+                      if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
+                      return occ;
+                    })()}
                     onValueChange={(value) => setEditData({ ...editData, occupancy: value })}
                   >
                     <SelectTrigger className="h-8">
@@ -377,7 +381,11 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <Home className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-medium">{(client as any).occupancy || "—"}</span>
+                    <span className="font-medium">{(() => {
+                      const occ = (client as any).occupancy;
+                      if (occ === 'Primary Residence' || occ === 'Primary Home') return 'Primary';
+                      return occ || "—";
+                    })()}</span>
                   </div>
                 )}
               </div>
