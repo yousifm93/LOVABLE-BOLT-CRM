@@ -90,10 +90,32 @@ export function useEmailSuggestions() {
 
   const approveSuggestion = useCallback(async (suggestion: EmailFieldSuggestion) => {
     try {
+      // Map field names from suggestion to actual database column names
+      const fieldNameMap: Record<string, string> = {
+        'loan_program': 'program',
+        'monthly_taxes': 'property_taxes',
+        'escrow': 'escrows',
+      };
+      
+      const actualFieldName = fieldNameMap[suggestion.field_name] || suggestion.field_name;
+      
+      // Map escrow values: Yes/No to database values
+      let actualValue = suggestion.suggested_value;
+      if (suggestion.field_name === 'escrow' || actualFieldName === 'escrows') {
+        // Store as Yes/No in database
+        if (actualValue.toLowerCase() === 'yes' || actualValue.toLowerCase() === 'escrowed' || actualValue.toLowerCase() === 'not waived') {
+          actualValue = 'Yes';
+        } else if (actualValue.toLowerCase() === 'no' || actualValue.toLowerCase() === 'waived') {
+          actualValue = 'No';
+        }
+      }
+      
+      console.log(`[useEmailSuggestions] Approving suggestion: ${suggestion.field_name} -> ${actualFieldName} = ${actualValue}`);
+      
       // Update the lead field
       const { error: updateError } = await supabase
         .from('leads')
-        .update({ [suggestion.field_name]: suggestion.suggested_value })
+        .update({ [actualFieldName]: actualValue })
         .eq('id', suggestion.lead_id);
 
       if (updateError) {

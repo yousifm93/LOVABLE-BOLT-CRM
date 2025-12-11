@@ -91,10 +91,11 @@ const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; val
     type: 'select',
     validValues: ['Single Family', 'Townhouse', 'Condo', 'Multi-Family', '2-4 Unit', 'PUD'],
   },
-  ltv: {
-    displayName: 'LTV',
-    type: 'number',
-  },
+  // NOTE: LTV, DTI, and PITI Total are CALCULATED fields - never parse from emails
+  // ltv = loan_amount / MIN(sales_price, appraisal_value)
+  // dti = calculated debt-to-income ratio
+  // piti_total = sum of P&I + taxes + insurance + MI + HOA
+  
   dscr_ratio: {
     displayName: 'DSCR Ratio',
     type: 'number',
@@ -135,17 +136,9 @@ const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; val
     displayName: 'Monthly Insurance',
     type: 'currency',
   },
-  piti_total: {
-    displayName: 'Total Monthly Payment (PITI)',
-    type: 'currency',
-  },
   monthly_taxes: {
     displayName: 'Monthly Taxes',
     type: 'currency',
-  },
-  dti: {
-    displayName: 'DTI Ratio',
-    type: 'number',
   },
   cash_to_close: {
     displayName: 'Cash to Close',
@@ -159,10 +152,21 @@ const STATUS_PROGRESSIONS: Record<string, string[]> = {
   package_status: ['Initial', 'Final'],
   title_status: ['Ordered', 'Received', 'Cleared'],
   cd_status: ['N/A', 'Requested', 'Sent', 'Signed'],
+  disclosure_status: ['Not Started', 'Sent', 'Signed'],
   hoi_status: ['Quoted', 'Ordered', 'Bound'],
   condo_status: ['Ordered', 'Received', 'Approved'],
   loan_status: ['New', 'RFP', 'SUB', 'AWC', 'CTC', 'CLOSED'],
 };
+
+// Field name mapping: AI uses friendly names, database uses actual column names
+const FIELD_NAME_MAP: Record<string, string> = {
+  'loan_program': 'program',
+  'monthly_taxes': 'property_taxes',
+  'escrow': 'escrows',
+};
+
+// Fields that are calculated and should NEVER be suggested for update
+const CALCULATED_FIELDS = ['ltv', 'piti_total', 'dti'];
 
 // Helper to normalize values for comparison
 function normalizeValue(value: any, type: string): string {
@@ -267,8 +271,9 @@ CRITICAL DOMAIN-SPECIFIC RULES:
 
 9. **RATE LOCK CONFIRMATION EMAILS**: These emails contain extremely valuable structured data. Look for:
    - Subject containing "Lock Confirmation" or "Rate Lock"
-   - Tabular data with fields like: Interest Rate, Note Rate, Points, Program, Property Type, LTV, DSCR, FICO, Lock Expiration
-   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow, occupancy, total_monthly_income, insurance_amount, piti_total, monthly_taxes, dti, cash_to_close, appraisal_value, close_date
+   - Tabular data with fields like: Interest Rate, Note Rate, Points, Program, Property Type, DSCR, FICO, Lock Expiration
+   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow, occupancy, total_monthly_income, insurance_amount, monthly_taxes, cash_to_close, appraisal_value, close_date
+   - **NEVER** parse LTV, DTI, or PITI Total - these are calculated fields
    - For rate lock emails from automated lender systems, use confidence 1.0 (100%)
    - Match program names: "DSCR" → "DSCR", "Conv" or "Conventional" → "Conventional", "FHA" → "FHA"
    - Property types: "SFR" or "Single Family" → "Single Family", "Condo" or "Condominium" → "Condo", "Townhouse" → "Townhouse"
@@ -276,20 +281,24 @@ CRITICAL DOMAIN-SPECIFIC RULES:
 9b. **CONDITIONS UPDATE EMAILS (e.g., from PennyMac, eThinkHawaiian)**: These contain detailed loan summary data in tabular format. Extract ALL fields:
    - "Note Rate" or "Interest Rate" → interest_rate
    - "Loan Amount" → loan_amount
-   - "LTV" → ltv
    - "Total Monthly Income" or "Monthly Income" → total_monthly_income
    - "Insurance" or "Hazard Insurance" → insurance_amount
-   - "Total Payment" or "Monthly Payment" or "PITI" → piti_total
    - "Lock Expiration" or "Lock Exp" → lock_expiration_date
    - "Occupancy" → occupancy (map to "Primary", "Second Home", or "Investment")
    - "Appraised Value" or "Appraisal Value" → appraisal_value
-   - "DTI" or "Debt-to-Income" → dti
    - "Term" or "Amortization" → term (convert years to months: 30yr = 360)
    - "Est. Monthly Taxes" or "Property Taxes" → monthly_taxes
    - "Impounds" or "Escrow" → escrow ("Yes" or "No", "Not Waived" = "Yes", "Waived" = "No")
    - "Est. Cash to Close" or "Cash to Close" → cash_to_close
    - "Est. Closing Date" or "Closing Date" → close_date (only if confirmed, not tentative)
+   - **NEVER** suggest changes to LTV, DTI, or PITI Total - these are CALCULATED fields
    - For automated lender condition emails, use confidence 0.95-1.0
+
+9c. **CALCULATED FIELDS - NEVER SUGGEST**:
+   - **ltv** (Loan-to-Value): Calculated from loan_amount / MIN(sales_price, appraisal_value)
+   - **dti** (Debt-to-Income): Calculated from total monthly debts / total monthly income
+   - **piti_total** (Total Monthly Payment): Calculated as sum of P&I + taxes + insurance + MI + HOA
+   - These fields are AUTO-CALCULATED in the CRM. Do NOT return suggestions for them.
 
 10. **CONFIDENCE SCORING**:
     - 1.0 (100%): Automated lender emails with clear structured data (rate locks, package confirmations from noreply@ addresses)
@@ -384,20 +393,42 @@ Analyze this email and identify any CRM field updates that should be made.`;
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       suggestions = JSON.parse(cleanContent);
       
-      // Validate suggestions
+      // Validate suggestions and filter out calculated fields
       suggestions = suggestions.filter((s: any) => {
+        // Filter out calculated fields (LTV, DTI, PITI Total)
+        if (CALCULATED_FIELDS.includes(s.field_name)) {
+          console.log(`[parse-email-field-updates] Skipping calculated field: ${s.field_name}`);
+          return false;
+        }
         return s.field_name && 
                s.suggested_value && 
                s.reason &&
-               s.field_name in FIELD_DEFINITIONS;
+               (s.field_name in FIELD_DEFINITIONS || FIELD_NAME_MAP[s.field_name]);
       });
 
-      // Add display names if missing
-      suggestions = suggestions.map((s: any) => ({
-        ...s,
-        field_display_name: s.field_display_name || FIELD_DEFINITIONS[s.field_name as keyof typeof FIELD_DEFINITIONS]?.displayName || s.field_name,
-        confidence: s.confidence || 0.8,
-      }));
+      // Map field names to actual database column names and add display names
+      suggestions = suggestions.map((s: any) => {
+        const mappedFieldName = FIELD_NAME_MAP[s.field_name] || s.field_name;
+        const fieldDef = FIELD_DEFINITIONS[s.field_name as keyof typeof FIELD_DEFINITIONS];
+        
+        // Map escrow values: Yes = NOT WAIVED, No = WAIVED
+        let suggestedValue = s.suggested_value;
+        if (s.field_name === 'escrow') {
+          if (suggestedValue.toLowerCase() === 'yes' || suggestedValue.toLowerCase() === 'escrowed' || suggestedValue.toLowerCase() === 'not waived') {
+            suggestedValue = 'Yes';
+          } else if (suggestedValue.toLowerCase() === 'no' || suggestedValue.toLowerCase() === 'waived') {
+            suggestedValue = 'No';
+          }
+        }
+        
+        return {
+          ...s,
+          field_name: mappedFieldName,
+          suggested_value: suggestedValue,
+          field_display_name: s.field_display_name || fieldDef?.displayName || s.field_name,
+          confidence: s.confidence || 0.8,
+        };
+      });
 
       // CRITICAL: Filter out suggestions where value already matches current value
       suggestions = suggestions.filter((s: any) => {
