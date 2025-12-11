@@ -347,6 +347,9 @@ Deno.serve(async (req) => {
 
     // Calculate Principal & Interest (P&I) using standard amortization formula
     const interestRate = 7.0; // 7% default
+    const discountPointsPercentage = 1.0; // 1% default
+    const discountPointsDollar = Math.round(loanAmount * 0.01);
+    const dscrRatio = 1.3; // Default DSCR ratio
     const termMonths = 360; // 30 years default
     const monthlyRate = interestRate / 100 / 12;
     const principalInterest = loanAmount > 0 
@@ -361,13 +364,51 @@ Deno.serve(async (req) => {
     const isCondo = rawPropertyType.includes('condo');
     const homeownersInsurance = isCondo ? 75 : Math.round((salesPrice / 100000) * 75);
     
-    // HOA dues - only for condos
-    const hoaDues = isCondo ? Math.round((salesPrice / 100000) * 150) : 0;
+    // HOA dues - $300 per $100k of loan amount for condos
+    const hoaDues = isCondo ? Math.round((loanAmount / 100000) * 300) : 0;
     
     // Calculate total PITI
     const piti = principalInterest + propertyTaxes + homeownersInsurance + hoaDues;
 
     console.log(`PITI breakdown - P&I: ${principalInterest}, Taxes: ${propertyTaxes}, Insurance: ${homeownersInsurance}, HOA: ${hoaDues}, Total: ${piti}`);
+
+    // Calculate closing costs using BOLT Estimate Generator formula
+    const closingCosts = 
+      discountPointsDollar +                      // 1% of loan
+      995 +                                        // Underwriting fee
+      550 +                                        // Appraisal fee
+      95 +                                         // Credit report fee
+      995 +                                        // Processing fee
+      600 +                                        // Title closing fee
+      Math.round(loanAmount * 0.005646) +         // Lender's title insurance (0.5646%)
+      Math.round(loanAmount * 0.002) +            // Intangible tax (0.2%)
+      Math.round(loanAmount * 0.005) +            // Transfer tax (0.5%)
+      350;                                         // Recording fees
+
+    console.log(`Closing costs: ${closingCosts}, Discount points: ${discountPointsDollar} (${discountPointsPercentage}%)`);
+
+    // Calculate APR using Newton-Raphson method
+    let apr = interestRate; // Default to note rate
+    const financeCharges = discountPointsDollar + 550 + 995 + 600 + 350; // Key fees
+    const adjustedPrincipal = loanAmount - financeCharges;
+
+    if (adjustedPrincipal > 0 && principalInterest > 0 && termMonths > 0) {
+      let rate = interestRate / 100 / 12;
+      for (let i = 0; i < 100; i++) {
+        const powTerm = Math.pow(1 + rate, -termMonths);
+        const f = adjustedPrincipal * rate / (1 - powTerm) - principalInterest;
+        const denominator = 1 - powTerm;
+        const numerator = adjustedPrincipal * denominator + adjustedPrincipal * rate * termMonths * Math.pow(1 + rate, -termMonths - 1);
+        const df = numerator / (denominator * denominator);
+        if (Math.abs(df) < 1e-15) break;
+        const newRate = rate - f / df;
+        if (Math.abs(newRate - rate) < 1e-10) { rate = newRate; break; }
+        rate = Math.max(0.0001 / 12, Math.min(0.5 / 12, newRate));
+      }
+      apr = Math.round(rate * 12 * 100 * 1000) / 1000; // Round to 3 decimal places
+    }
+
+    console.log(`APR calculated: ${apr}%, DSCR ratio default: ${dscrRatio}`);
 
     // Generate MB reference number
     const mbRefNumber = `MB-${Date.now().toString().slice(-8)}`;
@@ -516,6 +557,12 @@ Deno.serve(async (req) => {
       interest_rate: interestRate,
       term: termMonths,
       
+      // New default values
+      discount_points_percentage: discountPointsPercentage,
+      closing_costs: closingCosts > 0 ? closingCosts : null,
+      apr: apr > 0 ? apr : null,
+      dscr_ratio: dscrRatio,
+      
       // Subject property address - use actual address from application
       subject_address_1: mortgageInfo.location?.address || 
                          (mortgageInfo as any).propertyAddress || 
@@ -612,16 +659,25 @@ Deno.serve(async (req) => {
 
     // Insert real estate properties if any
     if (realEstate?.properties && realEstate.properties.length > 0) {
-      console.log('Inserting real estate properties...');
-      const propertyRecords = realEstate.properties.map((property: any) => ({
-        lead_id: result.id,
-        property_address: property.address || 'Unknown Address',
-        property_type: property.propertyType || null,
-        property_usage: property.propertyUsage || null,
-        property_value: property.propertyValue ? parseCurrency(property.propertyValue) : null,
-        monthly_expenses: property.monthlyExpenses ? parseCurrency(property.monthlyExpenses) : null,
-        monthly_rent: property.monthlyRent ? parseCurrency(property.monthlyRent) : null,
-      }));
+      console.log('Inserting real estate properties...', JSON.stringify(realEstate.properties, null, 2));
+      const propertyRecords = realEstate.properties.map((property: any) => {
+        const monthlyRent = property.monthlyRent ? parseCurrency(property.monthlyRent) : 0;
+        const monthlyExpenses = property.monthlyExpenses ? parseCurrency(property.monthlyExpenses) : 0;
+        const netIncome = monthlyRent - monthlyExpenses;
+        
+        console.log(`Property: ${property.address}, Rent: ${monthlyRent}, Expenses: ${monthlyExpenses}, Net: ${netIncome}`);
+        
+        return {
+          lead_id: result.id,
+          property_address: property.address || 'Unknown Address',
+          property_type: property.propertyType || null,
+          property_usage: property.propertyUsage || null,
+          property_value: property.propertyValue ? parseCurrency(property.propertyValue) : null,
+          monthly_expenses: monthlyExpenses || null,
+          monthly_rent: monthlyRent || null,
+          net_income: netIncome !== 0 ? netIncome : null,
+        };
+      });
 
       const { error: propertiesError } = await supabase
         .from('real_estate_properties')
@@ -631,7 +687,7 @@ Deno.serve(async (req) => {
         console.error('Error inserting properties:', propertiesError);
         // Don't fail the entire submission if properties fail to insert
       } else {
-        console.log(`Successfully inserted ${propertyRecords.length} properties`);
+        console.log(`Successfully inserted ${propertyRecords.length} properties with net_income calculated`);
       }
     }
 
