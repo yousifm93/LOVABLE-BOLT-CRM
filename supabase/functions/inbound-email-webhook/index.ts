@@ -515,16 +515,21 @@ serve(async (req) => {
               continue;
             }
             
-            // Get public URL
-            const { data: urlData } = supabase.storage
+            // Get signed URL (1 year expiration) since bucket is private
+            const { data: signedUrlData, error: signedUrlError } = await supabase.storage
               .from('lead-documents')
-              .getPublicUrl(filePath);
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year in seconds
+            
+            if (signedUrlError) {
+              console.error('[Inbound Email Webhook] Signed URL error:', signedUrlError);
+              continue;
+            }
             
             // Create document record
             const { error: docError } = await supabase.from('documents').insert({
               lead_id: leadId,
               file_name: `${attachment.name}-${lastName}`,
-              file_url: urlData.publicUrl,
+              file_url: signedUrlData.signedUrl,
               mime_type: attachment.type,
               size_bytes: attachment.size,
               uploaded_by: '08e73d69-4707-4773-84a4-69ce2acd6a11', // System user (Yousif)
