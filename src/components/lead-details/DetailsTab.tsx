@@ -781,6 +781,30 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         </Select>
       ) : undefined
     },
+    { 
+      icon: FileText, 
+      label: "Loan Program", 
+      value: (client as any).program || client.loan?.loanProgram || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.loan_program}
+          onValueChange={(value) => setEditData({ ...editData, loan_program: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select loan program" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Conventional">Conventional</SelectItem>
+            <SelectItem value="FHA">FHA</SelectItem>
+            <SelectItem value="VA">VA</SelectItem>
+            <SelectItem value="DSCR">DSCR</SelectItem>
+            <SelectItem value="Jumbo">Jumbo</SelectItem>
+            <SelectItem value="USDA">USDA</SelectItem>
+            <SelectItem value="Bank Statement">Bank Statement</SelectItem>
+          </SelectContent>
+        </Select>
+      ) : undefined
+    },
     // Row 2
     {
       icon: DollarSign, 
