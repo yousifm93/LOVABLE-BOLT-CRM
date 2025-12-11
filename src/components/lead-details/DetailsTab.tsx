@@ -305,6 +305,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       discount_points_percentage: (client as any).discount_points_percentage || null,
       adjustments_credits: (client as any).adjustments_credits || null,
       apr: (client as any).apr || null,
+      close_date: (client as any).close_date || null,
     });
   };
 
