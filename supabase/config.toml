@@ -141,3 +141,6 @@ verify_jwt = true
 
 [functions.bulk-update-leads]
 verify_jwt = false
+
+[functions.parse-email-response-needed]
+verify_jwt = false
