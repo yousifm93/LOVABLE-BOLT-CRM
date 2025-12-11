@@ -14,11 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface LeadThirdPartyItemsCardProps {
   leadId: string;
+  defaultCollapsed?: boolean;
 }
 
-export function LeadThirdPartyItemsCard({ leadId }: LeadThirdPartyItemsCardProps) {
+export function LeadThirdPartyItemsCard({ leadId, defaultCollapsed = false }: LeadThirdPartyItemsCardProps) {
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead-third-party', leadId],
