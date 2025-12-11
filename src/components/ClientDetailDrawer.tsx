@@ -135,6 +135,7 @@ export function ClientDetailDrawer({
   const [isRecordingFileUpdates, setIsRecordingFileUpdates] = useState(false);
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
   const hasAutoStartedRecording = React.useRef(false);
+  const needsReviewUpdate = React.useRef(false);
 
   // Field update confirmation modal state
   const [showFieldUpdateModal, setShowFieldUpdateModal] = useState(false);
@@ -715,20 +716,11 @@ export function ClientDetailDrawer({
     } finally {
       setIsSummarizingTranscript(false);
       
-      // Update last_morning_review_at timestamp for Review workflow
-      if (leadId) {
-        try {
-          await databaseService.updateLead(leadId, { 
-            last_morning_review_at: new Date().toISOString() 
-          });
-          console.log('[ClientDetailDrawer] Updated last_morning_review_at');
-          // Refresh parent list to remove this lead from Review filter
-          if (onLeadUpdated) {
-            await onLeadUpdated();
-          }
-        } catch (reviewError) {
-          console.error('Error updating last_morning_review_at:', reviewError);
-        }
+      // Mark that review timestamp needs updating when drawer closes
+      // This prevents refreshing the parent list while user is still interacting
+      if (leadId && autoStartRecording) {
+        needsReviewUpdate.current = true;
+        console.log('[ClientDetailDrawer] Marked for review update on close');
       }
     }
   };
@@ -1722,13 +1714,31 @@ export function ClientDetailDrawer({
       onClose();
     }
   };
-  const handleDrawerClose = () => {
+  const handleDrawerClose = async () => {
     setNewNote("");
     setShowCreateTaskModal(false);
     setShowCallLogModal(false);
     setShowSmsLogModal(false);
     setShowEmailLogModal(false);
     setShowAddNoteModal(false);
+    
+    // Update last_morning_review_at if this was a review session
+    if (needsReviewUpdate.current && leadId) {
+      try {
+        await databaseService.updateLead(leadId, { 
+          last_morning_review_at: new Date().toISOString() 
+        });
+        console.log('[ClientDetailDrawer] Updated last_morning_review_at on close');
+        needsReviewUpdate.current = false;
+        // Refresh parent list to remove this lead from Review filter
+        if (onLeadUpdated) {
+          await onLeadUpdated();
+        }
+      } catch (reviewError) {
+        console.error('Error updating last_morning_review_at:', reviewError);
+      }
+    }
+    
     onClose();
   };
   return <div className="fixed inset-0 z-50 flex" onClick={handleOverlayClick}>
