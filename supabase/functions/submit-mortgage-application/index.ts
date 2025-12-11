@@ -838,11 +838,66 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Upload Paper Application PDF if provided
+    let paperApplicationUrl = null;
+    const pdfBase64 = (await req.clone().json()).pdfBase64;
+    
+    if (pdfBase64) {
+      try {
+        console.log('Processing paper application PDF...');
+        
+        // Decode base64 to Uint8Array
+        const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+        
+        // Generate filename with safe characters
+        const safeName = `${personalInfo.firstName}-${personalInfo.lastName}`.replace(/[^a-zA-Z0-9-]/g, '');
+        const fileName = `applications/${result.id}/${safeName}-application-${Date.now()}.pdf`;
+        
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(fileName, pdfBytes, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+        
+        if (uploadError) {
+          console.error('PDF upload error:', uploadError);
+        } else {
+          // Create signed URL valid for 1 year
+          const { data: urlData, error: urlError } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(fileName, 3600 * 24 * 365);
+          
+          if (urlError) {
+            console.error('Error creating signed URL:', urlError);
+          } else {
+            paperApplicationUrl = urlData?.signedUrl;
+            console.log('Paper application PDF uploaded:', paperApplicationUrl);
+            
+            // Update lead with PDF URL
+            const { error: updateError } = await supabase
+              .from('leads')
+              .update({ paper_application_url: paperApplicationUrl })
+              .eq('id', result.id);
+            
+            if (updateError) {
+              console.error('Error updating lead with PDF URL:', updateError);
+            }
+          }
+        }
+      } catch (pdfError) {
+        console.error('Error processing PDF:', pdfError);
+        // Don't fail the entire submission if PDF upload fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         leadId: result.id,
         mbRefNumber: mbRefNumber,
+        paperApplicationUrl: paperApplicationUrl,
         message: 'Application submitted successfully'
       }),
       { 
