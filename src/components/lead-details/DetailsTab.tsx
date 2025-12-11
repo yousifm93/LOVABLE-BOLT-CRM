@@ -557,10 +557,13 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
 
   // ============================================
   // BORROWER INFORMATION DATA (Horizontal flow: 3 columns)
-  // Reordered: Row 1: First/Last/DOB, Row 2: Phone/Email/Address, Row 3: Marital/Residency/Gender
   // ============================================
-  const borrowerData = [
-    // Row 1
+  // BORROWER INFORMATION - 4 Column Layout
+  // Row 1: First Name, Phone, Marital Status, DOB
+  // Row 2: Last Name, Email, Residence Type, Gender
+  // Row 3: Current Address (spans full width)
+  // ============================================
+  const borrowerDataRow1 = [
     { 
       icon: User, 
       label: "First Name", 
@@ -575,16 +578,37 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
-      icon: User, 
-      label: "Last Name", 
-      value: client.person?.lastName || "—",
+      icon: Phone, 
+      label: "Borrower Phone", 
+      value: client.person?.phone || client.person?.phoneMobile || "—",
       editComponent: isEditing ? (
         <Input
-          value={editData.last_name}
-          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+          type="tel"
+          value={editData.phone}
+          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
           className="h-8"
-          placeholder="Last name"
+          placeholder="Phone number"
         />
+      ) : undefined
+    },
+    { 
+      icon: Users, 
+      label: "Marital Status", 
+      value: (client as any).marital_status || "—",
+      editComponent: isEditing ? (
+        <Select
+          value={editData.marital_status}
+          onValueChange={(value) => setEditData({ ...editData, marital_status: value })}
+        >
+          <SelectTrigger className="h-8">
+            <SelectValue placeholder="Select marital status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Unmarried">Unmarried</SelectItem>
+            <SelectItem value="Married">Married</SelectItem>
+            <SelectItem value="Separated">Separated</SelectItem>
+          </SelectContent>
+        </Select>
       ) : undefined
     },
     { 
@@ -600,18 +624,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : undefined
     },
-    // Row 2: Phone, Email, Current Address (moved up)
+  ];
+
+  const borrowerDataRow2 = [
     { 
-      icon: Phone, 
-      label: "Borrower Phone", 
-      value: client.person?.phone || client.person?.phoneMobile || "—",
+      icon: User, 
+      label: "Last Name", 
+      value: client.person?.lastName || "—",
       editComponent: isEditing ? (
         <Input
-          type="tel"
-          value={editData.phone}
-          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+          value={editData.last_name}
+          onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
           className="h-8"
-          placeholder="Phone number"
+          placeholder="Last name"
         />
       ) : undefined
     },
@@ -647,42 +672,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
-      icon: Home, 
-      label: "Borrower's Current Address", 
-      value: (client as any).borrower_current_address || "—",
-      editComponent: isEditing ? (
-        <Input
-          value={editData.borrower_current_address}
-          onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
-          className="h-8"
-          placeholder="Street, City, State, ZIP"
-        />
-      ) : undefined
-    },
-    // Row 3: Marital, Residency, Gender (moved down)
-    { 
-      icon: Users, 
-      label: "Marital Status", 
-      value: (client as any).marital_status || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.marital_status}
-          onValueChange={(value) => setEditData({ ...editData, marital_status: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select marital status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Unmarried">Unmarried</SelectItem>
-            <SelectItem value="Married">Married</SelectItem>
-            <SelectItem value="Separated">Separated</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    { 
       icon: Shield, 
-      label: "Residency Type", 
+      label: "Residence Type", 
       value: (client as any).residency_type || "—",
       editComponent: isEditing ? (
         <Select
@@ -725,9 +716,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   ];
 
   // ============================================
-  // LOAN & PROPERTY - TRANSACTION DETAILS (4x2 Grid)
-  // Row 1: Transaction Type, Purchase Price, LTV, Closing Costs
-  // Row 2: Loan Program, Loan Amount, Down Payment, Cash to Close
+  // LOAN & PROPERTY - TRANSACTION DETAILS (3x3 Grid)
+  // Row 1: Transaction Type, Loan Amount, Property Type
+  // Row 2: Purchase Price, Down Payment, Occupancy
+  // Row 3: Closing Costs, Cash to Close, Subject Property Rental Income
   // ============================================
   const transactionDetailsData = [
     // Row 1
@@ -752,79 +744,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
-      icon: Calendar, 
-      label: "Closing Date", 
-      value: formatDate((client as any).close_date),
-      editComponent: isEditing ? (
-        <Input
-          type="date"
-          value={(client as any).close_date?.split('T')[0] || ""}
-          onChange={(e) => setEditData({ ...editData, close_date: e.target.value || null })}
-          className="h-8"
-        />
-      ) : undefined
-    },
-    {
-      icon: DollarSign, 
-      label: "Purchase Price",
-      value: formatCurrency(client.loan?.salesPrice || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          step="1000"
-          min="0"
-          value={editData.sales_price || ""}
-          onChange={(e) => setEditData({ ...editData, sales_price: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: Percent, 
-      label: "LTV", 
-      value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
-    },
-    { 
-      icon: DollarSign, 
-      label: "Closing Costs", 
-      value: formatCurrency((client as any).closingCosts || (client as any).closing_costs || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.closing_costs || ""}
-          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    // Row 2
-    { 
-      icon: FileText, 
-      label: "Loan Program",
-      value: client.loan?.loanProgram || "—",
-      editComponent: isEditing ? (
-        <Select
-          value={editData.loan_program || ""}
-          onValueChange={(value) => setEditData({ ...editData, loan_program: value })}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Select program" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Conventional">Conventional</SelectItem>
-            <SelectItem value="FHA">FHA</SelectItem>
-            <SelectItem value="VA">VA</SelectItem>
-            <SelectItem value="DSCR">DSCR</SelectItem>
-            <SelectItem value="Jumbo">Jumbo</SelectItem>
-            <SelectItem value="USDA">USDA</SelectItem>
-            <SelectItem value="Bank Statement">Bank Statement</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : undefined
-    },
-    { 
       icon: DollarSign, 
       label: "Loan Amount",
       value: formatCurrency(client.loan?.loanAmount || 0),
@@ -840,41 +759,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : undefined
     },
-    { 
-      icon: DollarSign, 
-      label: "Down Payment",
-      value: formatCurrency(client.loan?.downPayment || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.down_pmt || ""}
-          onChange={(e) => setEditData({ ...editData, down_pmt: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-    { 
-      icon: DollarSign, 
-      label: "Cash to Close", 
-      value: formatCurrency((client as any).cashToClose || (client as any).cash_to_close || 0),
-      editComponent: isEditing ? (
-        <Input
-          type="text"
-          value={editData.cash_to_close || ""}
-          onChange={(e) => setEditData({ ...editData, cash_to_close: e.target.value || null })}
-          className="h-8"
-          placeholder="0"
-        />
-      ) : undefined
-    },
-  ];
-
-  // ============================================
-  // LOAN & PROPERTY - PROPERTY (Row 1: Type + Occupancy, Row 2: Address fields)
-  // ============================================
-  const propertyData = [
-    // Row 1
     { 
       icon: Building, 
       label: "Property Type", 
@@ -895,6 +779,37 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
+      ) : undefined
+    },
+    // Row 2
+    {
+      icon: DollarSign, 
+      label: "Purchase Price",
+      value: formatCurrency(client.loan?.salesPrice || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="number"
+          step="1000"
+          min="0"
+          value={editData.sales_price || ""}
+          onChange={(e) => setEditData({ ...editData, sales_price: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Down Payment",
+      value: formatCurrency(client.loan?.downPayment || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.down_pmt || ""}
+          onChange={(e) => setEditData({ ...editData, down_pmt: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
       ) : undefined
     },
     { 
@@ -927,6 +842,35 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         </Select>
       ) : undefined
     },
+    // Row 3
+    { 
+      icon: DollarSign, 
+      label: "Closing Costs", 
+      value: formatCurrency((client as any).closingCosts || (client as any).closing_costs || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.closing_costs || ""}
+          onChange={(e) => setEditData({ ...editData, closing_costs: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: DollarSign, 
+      label: "Cash to Close", 
+      value: formatCurrency((client as any).cashToClose || (client as any).cash_to_close || 0),
+      editComponent: isEditing ? (
+        <Input
+          type="text"
+          value={editData.cash_to_close || ""}
+          onChange={(e) => setEditData({ ...editData, cash_to_close: e.target.value || null })}
+          className="h-8"
+          placeholder="0"
+        />
+      ) : undefined
+    },
     { 
       icon: DollarSign, 
       label: "Subject Property Rental Income", 
@@ -940,6 +884,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : null
     },
   ];
+
+  // Property section removed - merged into Transaction Details
 
   // Subject Property Address fields
   const subjectPropertyAddressData = [
@@ -1205,13 +1151,61 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     <ScrollArea className="h-full">
       <div className="space-y-3 pt-0">
 
-        {/* 1. BORROWER INFORMATION */}
+        {/* 1. BORROWER INFORMATION - 4 columns */}
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
             <User className="h-5 w-5 text-primary" />
             Borrower Information
           </h3>
-          <FourColumnDetailLayout items={borrowerData} columns={3} />
+          <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+            {/* Row 1: First Name, Phone, Marital Status, DOB */}
+            <div className="grid grid-cols-4 gap-4">
+              {borrowerDataRow1.map((item, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className="text-sm font-medium">{item.value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Row 2: Last Name, Email, Residence Type, Gender */}
+            <div className="grid grid-cols-4 gap-4">
+              {borrowerDataRow2.map((item, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <item.icon className="h-3 w-3" />
+                    <span>{item.label}</span>
+                  </div>
+                  {isEditing && item.editComponent ? item.editComponent : (
+                    <span className="text-sm font-medium">{typeof item.value === 'string' ? item.value : item.value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Row 3: Current Address (full width) */}
+            <div className="grid grid-cols-1">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Home className="h-3 w-3" />
+                  <span>Current Address</span>
+                </div>
+                {isEditing ? (
+                  <Input
+                    value={editData.borrower_current_address}
+                    onChange={(e) => setEditData({ ...editData, borrower_current_address: e.target.value })}
+                    className="h-8"
+                    placeholder="Street, City, State, ZIP"
+                  />
+                ) : (
+                  <span className="text-sm font-medium">{(client as any).borrower_current_address || "—"}</span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 2. LOAN & PROPERTY INFORMATION */}
@@ -1221,16 +1215,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             Loan & Property Information
           </h3>
           
-          {/* Transaction Details Subheading */}
+          {/* Transaction Details Subheading - 3x3 Grid */}
           <div className="mb-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Transaction Details</h4>
-            <FourColumnDetailLayout items={transactionDetailsData} />
-          </div>
-          
-          {/* Property Subheading */}
-          <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Property</h4>
-            <FourColumnDetailLayout items={propertyData} />
+            <FourColumnDetailLayout items={transactionDetailsData} columns={3} />
           </div>
 
           {/* Subject Property Address - Single Row Grid */}
@@ -1251,7 +1239,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             </div>
           </div>
 
-          {/* Rate Lock Information Subheading */}
+          {/* Rate Lock Information Subheading - Reordered: Prepayment Penalty → Lock Expiration, Escrow Waiver → Credits */}
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Rate Lock Information</h4>
             <FourColumnDetailLayout items={[
@@ -1356,17 +1344,9 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 ) : undefined
               },
               { 
-                icon: Calendar, 
-                label: "Lock Expiration", 
-                value: formatDate((client as any).lock_expiration_date),
-                editComponent: isEditing ? (
-                  <Input
-                    type="date"
-                    value={editData.lock_expiration_date || ""}
-                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
-                    className="h-8"
-                  />
-                ) : undefined
+                icon: Percent, 
+                label: "LTV", 
+                value: client.loan?.ltv ? formatPercentage(client.loan.ltv) : "—"
               },
               { 
                 icon: Lock, 
@@ -1389,6 +1369,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                       <SelectItem value="5">5 Years</SelectItem>
                     </SelectContent>
                   </Select>
+                ) : undefined
+              },
+              { 
+                icon: Calendar, 
+                label: "Lock Expiration", 
+                value: formatDate((client as any).lock_expiration_date),
+                editComponent: isEditing ? (
+                  <Input
+                    type="date"
+                    value={editData.lock_expiration_date || ""}
+                    onChange={(e) => setEditData({ ...editData, lock_expiration_date: e.target.value || null })}
+                    className="h-8"
+                  />
                 ) : undefined
               },
               { 
