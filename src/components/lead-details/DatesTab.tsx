@@ -51,7 +51,7 @@ export function DatesTab({ leadId, onLeadUpdated }: DatesTabProps) {
   return (
     <div className="space-y-2">
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground">Subject Address 1</span>
+        <span className="text-xs text-muted-foreground">Address 1</span>
         <InlineEditText
           value={lead.subject_address_1 || ""}
           onValueChange={(value) => handleFieldUpdate('subject_address_1', value || null)}
@@ -59,7 +59,7 @@ export function DatesTab({ leadId, onLeadUpdated }: DatesTabProps) {
         />
       </div>
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs text-muted-foreground">Subject Address 2</span>
+        <span className="text-xs text-muted-foreground">Address 2</span>
         <InlineEditText
           value={lead.subject_address_2 || ""}
           onValueChange={(value) => handleFieldUpdate('subject_address_2', value || null)}
