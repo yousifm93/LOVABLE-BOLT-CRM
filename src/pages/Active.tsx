@@ -1201,7 +1201,8 @@ export default function Active() {
       await databaseService.updateLead(loanToClose, {
         pipeline_section: 'Closed',
         is_closed: true,
-        closed_at: new Date().toISOString()
+        closed_at: new Date().toISOString(),
+        loan_status: 'Closed'
       });
       
       // Remove from active loans list
