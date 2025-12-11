@@ -1106,7 +1106,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const monthlyPaymentData = [
     {
       icon: Home,
-      label: "Principal & Interest",
+      label: "P&I",
       value: isEditing ? null : formatCurrency((client as any).principalInterest),
       editComponent: isEditing ? (
         <InlineEditCurrency
@@ -1118,7 +1118,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     {
       icon: Receipt,
-      label: "Property Taxes",
+      label: "Taxes",
       value: isEditing ? null : formatCurrency((client as any).propertyTaxes),
       editComponent: isEditing ? (
         <InlineEditCurrency
@@ -1130,7 +1130,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     {
       icon: Shield,
-      label: "Monthly HOI",
+      label: "HOI",
       value: isEditing ? null : formatCurrency((client as any).homeownersInsurance),
       editComponent: isEditing ? (
         <InlineEditCurrency
@@ -1142,7 +1142,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     {
       icon: Shield,
-      label: "Monthly MI",
+      label: "MI",
       value: isEditing ? null : formatCurrency((client as any).mortgageInsurance),
       editComponent: isEditing ? (
         <InlineEditCurrency
@@ -1154,7 +1154,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     {
       icon: Building2,
-      label: "HOA Dues",
+      label: "HOA",
       value: isEditing ? null : formatCurrency((client as any).hoaDues),
       editComponent: isEditing ? (
         <InlineEditCurrency
@@ -1437,25 +1437,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           {/* Real Estate Owned Section */}
           {leadId && <RealEstateOwnedSection leadId={leadId} />}
           
-          {/* Monthly Payment Breakdown - Custom 2-Row Grid */}
+          {/* Monthly Payment Breakdown - Single Row */}
           <div className="mt-6">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-              {/* Row 1: P&I, Property Taxes, Monthly HOI, Monthly MI */}
-              {monthlyPaymentData.slice(0, 4).map((item, index) => (
+            <div className="grid grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg">
+              {monthlyPaymentData.map((item, index) => (
                 <div key={index} className="space-y-1">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <item.icon className="h-3 w-3" />
-                    <span>{item.label}</span>
-                  </div>
-                  {isEditing && item.editComponent ? item.editComponent : (
-                    <span className="text-sm font-medium">{item.value}</span>
-                  )}
-                </div>
-              ))}
-              {/* Row 2: HOA Dues, PITI */}
-              {monthlyPaymentData.slice(4, 6).map((item, index) => (
-                <div key={index + 4} className="space-y-1">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <item.icon className="h-3 w-3" />
                     <span>{item.label}</span>
