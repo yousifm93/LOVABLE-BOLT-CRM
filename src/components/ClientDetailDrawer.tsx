@@ -1008,17 +1008,17 @@ export function ClientDetailDrawer({
                 </div>
               </div>
 
-              {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
+              {/* Row 3: Transaction Type, Closing Costs, Lock Expiration, DTI */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Transaction Type</span>
                 <InlineEditSelect 
-                  value={(client as any).occupancy ?? null} 
+                  value={(client as any).loan_type ?? (client as any).loan?.loanType ?? null} 
                   options={[
-                    { value: 'Primary Home', label: 'Primary Home' },
-                    { value: 'Second Home', label: 'Second Home' },
-                    { value: 'Investment', label: 'Investment' }
+                    { value: 'Purchase', label: 'Purchase' },
+                    { value: 'Refinance', label: 'Refinance' },
+                    { value: 'HELOC', label: 'HELOC' }
                   ]}
-                  onValueChange={value => handleLeadUpdate('occupancy', value)} 
+                  onValueChange={value => handleLeadUpdate('loan_type', value)} 
                   placeholder="Select..." 
                 />
               </div>
