@@ -364,8 +364,9 @@ Deno.serve(async (req) => {
     const isCondo = rawPropertyType.includes('condo');
     const homeownersInsurance = isCondo ? 75 : Math.round((salesPrice / 100000) * 75);
     
-    // HOA dues - $300 per $100k of loan amount for condos
-    const hoaDues = isCondo ? Math.round((loanAmount / 100000) * 300) : 0;
+  // HOA dues - $150 per $100k of sales price for condos
+  const hoaDues = isCondo ? Math.round((salesPrice / 100000) * 150) : 0;
+  console.log(`HOA dues calculated: ${hoaDues} (isCondo: ${isCondo}, salesPrice: ${salesPrice})`);
     
     // Calculate total PITI
     const piti = principalInterest + propertyTaxes + homeownersInsurance + hoaDues;

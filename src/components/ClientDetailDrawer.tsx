@@ -999,10 +999,10 @@ export function ClientDetailDrawer({
                 <span className="text-sm font-medium">{localInterestRate ?? (client as any).interest_rate ? `${localInterestRate ?? (client as any).interest_rate}%` : '—'}</span>
               </div>
               
-              {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
+              {/* Row 2: Monthly Income, Cash to Close, PITI, Discount Points */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
-                <span className="text-sm font-medium">{localCloseDate ? format(new Date(localCloseDate), 'MMM d, yyyy') : (client as any).close_date ? format(new Date((client as any).close_date), 'MMM d, yyyy') : '—'}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Monthly Income</span>
+                <span className="text-sm font-medium">{totalIncomeEarly ? `$${totalIncomeEarly.toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
@@ -1027,7 +1027,7 @@ export function ClientDetailDrawer({
                 </span>
               </div>
 
-              {/* Row 3: Transaction Type, Closing Costs, Lock Expiration, DTI */}
+              {/* Row 3: Transaction Type, Closing Costs, Total Assets, DTI */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Transaction Type</span>
                 <span className="text-sm font-medium">{(client as any).loan_type ?? (client as any).loan?.loanType ?? '—'}</span>
@@ -1037,8 +1037,8 @@ export function ClientDetailDrawer({
                 <span className="text-sm font-medium">{(client as any).closing_costs ?? (client as any).closingCosts ? `$${((client as any).closing_costs ?? (client as any).closingCosts).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Lock Expiration</span>
-                <span className="text-sm font-medium">{(client as any).lock_expiration_date ? format(new Date((client as any).lock_expiration_date), 'MMM d, yyyy') : '—'}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Total Assets</span>
+                <span className="text-sm font-medium">{(client as any).total_assets ?? (client as any).totalAssets ? `$${((client as any).total_assets ?? (client as any).totalAssets).toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
