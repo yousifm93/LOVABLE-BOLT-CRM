@@ -999,7 +999,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const financialSummaryData = [
     {
       icon: DollarSign,
-      label: "Total Monthly Income",
+      label: "Total Employment Income",
       value: isEditing ? null : formatCurrency((client as any).totalMonthlyIncome),
       editComponent: isEditing ? (
         <InlineEditCurrency
