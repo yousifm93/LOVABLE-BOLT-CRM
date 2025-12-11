@@ -397,7 +397,12 @@ export function DashboardDetailModal({
                       )}
                       {type === "emails" && (
                         <TableCell className="py-1.5">
-                          {suggestions.length > 0 ? (
+                          {rerunningIds.has((item as Email).id) ? (
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Processing...</span>
+                            </div>
+                          ) : suggestions.length > 0 ? (
                             <div className="space-y-1">
                               {suggestions.map((suggestion) => (
                                 <div key={suggestion.id} className="flex items-center gap-1 text-[11px]">
@@ -448,9 +453,16 @@ export function DashboardDetailModal({
                       )}
                       {type === "emails" && (
                         <TableCell className="py-1.5">
-                          <span className="text-[11px] text-muted-foreground line-clamp-3">
-                            {(item as Email).ai_summary || "—"}
-                          </span>
+                          {rerunningIds.has((item as Email).id) ? (
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Reanalyzing...</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground line-clamp-3">
+                              {(item as Email).ai_summary || "—"}
+                            </span>
+                          )}
                         </TableCell>
                       )}
                       {type === "emails" && "subject" in item && (
@@ -462,7 +474,12 @@ export function DashboardDetailModal({
                       )}
                       {type === "emails" && (
                         <TableCell className="py-1.5">
-                          {suggestions.length > 0 ? (
+                          {rerunningIds.has((item as Email).id) ? (
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Processing...</span>
+                            </div>
+                          ) : suggestions.length > 0 ? (
                             <div className="space-y-0.5">
                               {suggestions.map((suggestion) => (
                                 <p key={suggestion.id} className="text-[10px] text-muted-foreground line-clamp-3">
