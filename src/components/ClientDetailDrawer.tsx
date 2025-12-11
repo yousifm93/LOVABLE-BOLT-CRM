@@ -392,7 +392,8 @@ export function ClientDetailDrawer({
             user: displayUser,
             author_id: activity.author?.id || activity.user?.id,
             task_id: activity.id,
-            task_status: activity.status // Include task status for color coding
+            task_status: activity.status,
+            lead_id: activity.borrower_id || leadId
           };
         }
 

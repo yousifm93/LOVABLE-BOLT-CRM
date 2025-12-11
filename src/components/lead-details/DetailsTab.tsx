@@ -930,7 +930,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const subjectPropertyAddressData = [
     { 
       icon: MapPin, 
-      label: "Subject Address 1", 
+      label: "Address 1", 
       value: (client as any).subject_address_1 || "—",
       editComponent: isEditing ? (
         <Input
@@ -943,7 +943,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     },
     { 
       icon: MapPin, 
-      label: "Subject Address 2", 
+      label: "Address 2", 
       value: (client as any).subject_address_2 || "—",
       editComponent: isEditing ? (
         <Input

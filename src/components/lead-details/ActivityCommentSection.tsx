@@ -146,7 +146,16 @@ export function ActivityCommentSection({
     <div className="mt-2 pl-11">
       {/* Toggle and Comment Count */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => {
+          if (comments.length === 0) {
+            // No comments - expand and open input directly
+            setIsExpanded(true);
+            setIsAdding(true);
+          } else {
+            // Has comments - just toggle expansion
+            setIsExpanded(!isExpanded);
+          }
+        }}
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <MessageSquare className="h-3 w-3" />
