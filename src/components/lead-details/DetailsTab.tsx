@@ -108,6 +108,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     escrows: client.loan?.escrowWaiver ? "Waived" : "Escrowed",
     cash_to_close: (client as any).cash_to_close || (client as any).cashToClose || null,
     closing_costs: (client as any).closing_costs || (client as any).closingCosts || null,
+    close_date: (client as any).close_date || null,
     
     // Loan & Property - Property
     occupancy: (client as any).occupancy || "",
@@ -750,6 +751,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       ) : undefined
     },
     { 
+      icon: Calendar, 
+      label: "Closing Date", 
+      value: formatDate((client as any).close_date),
+      editComponent: isEditing ? (
+        <Input
+          type="date"
+          value={(client as any).close_date?.split('T')[0] || ""}
+          onChange={(e) => setEditData({ ...editData, close_date: e.target.value || null })}
+          className="h-8"
+        />
+      ) : undefined
+    },
+    {
       icon: DollarSign, 
       label: "Purchase Price",
       value: formatCurrency(client.loan?.salesPrice || 0),

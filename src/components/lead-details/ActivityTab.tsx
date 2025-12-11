@@ -294,15 +294,12 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge 
                       onClick={(e) => {
-                        if (activity.type === 'email' && activity.direction === 'In') {
-                          e.stopPropagation();
-                          toggleActivity(activity.id);
-                        }
+                        e.stopPropagation();
+                        toggleActivity(activity.id);
                       }}
                       variant={getActivityBadgeVariant(activity)} 
                       className={cn(
-                        "text-xs flex items-center gap-1",
-                        activity.type === 'email' && activity.direction === 'In' && "cursor-pointer",
+                        "text-xs flex items-center gap-1 cursor-pointer",
                         activity.type === 'task' && activity.task_status !== 'Done' && 
                         "bg-orange-100 hover:bg-orange-100 border-orange-200",
                         getEmailBadgeClassName(activity),
