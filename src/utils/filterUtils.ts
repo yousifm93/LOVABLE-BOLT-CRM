@@ -126,6 +126,16 @@ export function applyAdvancedFilters<T extends Record<string, any>>(
           filterDateOnOrBefore.setHours(0, 0, 0, 0);
           return fieldDateOnOrBefore <= filterDateOnOrBefore;
         }
+
+        // Special operator: field is empty OR field date is before today
+        case 'is_empty_or_before_today': {
+          if (!fieldValue) return true; // Empty passes
+          const fieldDateForReview = new Date(fieldValue);
+          fieldDateForReview.setHours(0, 0, 0, 0);
+          const todayForReview = new Date();
+          todayForReview.setHours(0, 0, 0, 0);
+          return fieldDateForReview < todayForReview;
+        }
           
         case 'is_in_last_7': {
           if (!fieldValue) return false;

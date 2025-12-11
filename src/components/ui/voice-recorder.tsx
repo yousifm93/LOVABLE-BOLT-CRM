@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,14 +8,35 @@ import { cn } from '@/lib/utils';
 interface VoiceRecorderProps {
   onTranscriptionComplete: (text: string) => void;
   disabled?: boolean;
+  autoStart?: boolean;
+  onRecordingStateChange?: (isRecording: boolean) => void;
 }
 
-export function VoiceRecorder({ onTranscriptionComplete, disabled }: VoiceRecorderProps) {
+export function VoiceRecorder({ 
+  onTranscriptionComplete, 
+  disabled, 
+  autoStart = false,
+  onRecordingStateChange 
+}: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const hasAutoStarted = useRef(false);
   const { toast } = useToast();
+
+  // Auto-start recording when autoStart prop is true
+  useEffect(() => {
+    if (autoStart && !hasAutoStarted.current && !disabled && !isRecording && !isTranscribing) {
+      hasAutoStarted.current = true;
+      startRecording();
+    }
+  }, [autoStart, disabled, isRecording, isTranscribing]);
+
+  // Notify parent of recording state changes
+  useEffect(() => {
+    onRecordingStateChange?.(isRecording);
+  }, [isRecording, onRecordingStateChange]);
 
   const startRecording = async () => {
     try {

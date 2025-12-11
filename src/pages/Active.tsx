@@ -870,6 +870,7 @@ export default function Active() {
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [isEditMainViewOpen, setIsEditMainViewOpen] = useState(false);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   
   const { toast } = useToast();
 
@@ -1400,6 +1401,7 @@ export default function Active() {
             setColumns(newColumnOrder);
             setActiveView("Main View");
             setFilters([]);
+            setIsReviewMode(false);
             
             toast({
               title: "Main View Loaded",
@@ -1434,20 +1436,29 @@ export default function Active() {
             const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
             setColumns(newColumnOrder);
             setActiveView("Review");
+            setIsReviewMode(true);
             
-            // Filter to show leads with tasks due today or earlier
+            // Filter to show leads with tasks due today or earlier AND not reviewed today
             const todayStr = new Date().toISOString().split('T')[0];
             
-            setFilters([{
-              id: 'review-due-date',
-              column: 'earliest_task_due_date',
-              operator: 'is_on_or_before',
-              value: todayStr
-            }]);
+            setFilters([
+              {
+                id: 'review-due-date',
+                column: 'earliest_task_due_date',
+                operator: 'is_on_or_before',
+                value: todayStr
+              },
+              {
+                id: 'review-not-reviewed-today',
+                column: 'last_morning_review_at',
+                operator: 'is_empty_or_before_today',
+                value: todayStr
+              }
+            ]);
             
             toast({
               title: "Review View Loaded",
-              description: "Showing loans with overdue tasks"
+              description: "Showing loans with overdue tasks not yet reviewed today"
             });
           }}
           className="h-8 text-xs"
@@ -1607,6 +1618,7 @@ export default function Active() {
           onStageChange={handleStageChange}
           onLeadUpdated={handleLeadUpdated}
           pipelineType="active"
+          autoStartRecording={isReviewMode}
         />
       )}
 
