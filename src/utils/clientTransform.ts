@@ -291,5 +291,12 @@ export function transformLeadToClient(lead: any): any {
     discount_points: lead.discount_points || null,
     discount_points_percentage: lead.discount_points_percentage || null,
     apr: lead.apr || null,
+    
+    // Subject address fields for DetailsTab sync
+    subject_address_1: lead.subject_address_1 || null,
+    subject_address_2: lead.subject_address_2 || null,
+    subject_city: lead.subject_city || null,
+    subject_state: lead.subject_state || null,
+    subject_zip: lead.subject_zip || null,
   };
 }

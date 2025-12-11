@@ -120,7 +120,7 @@ const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; val
   occupancy: {
     displayName: 'Occupancy',
     type: 'select',
-    validValues: ['Primary Home', 'Second Home', 'Investment'],
+    validValues: ['Primary', 'Second Home', 'Investment'],
   },
   transaction_type: {
     displayName: 'Transaction Type',
@@ -268,10 +268,28 @@ CRITICAL DOMAIN-SPECIFIC RULES:
 9. **RATE LOCK CONFIRMATION EMAILS**: These emails contain extremely valuable structured data. Look for:
    - Subject containing "Lock Confirmation" or "Rate Lock"
    - Tabular data with fields like: Interest Rate, Note Rate, Points, Program, Property Type, LTV, DSCR, FICO, Lock Expiration
-   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow, occupancy, total_monthly_income, insurance_amount, piti_total, monthly_taxes, dti, cash_to_close
+   - Parse ALL available fields: interest_rate, discount_points, loan_program, property_type, ltv, dscr_ratio, fico_score, lock_expiration_date, loan_amount, term, prepayment_penalty, escrow, occupancy, total_monthly_income, insurance_amount, piti_total, monthly_taxes, dti, cash_to_close, appraisal_value, close_date
    - For rate lock emails from automated lender systems, use confidence 1.0 (100%)
    - Match program names: "DSCR" → "DSCR", "Conv" or "Conventional" → "Conventional", "FHA" → "FHA"
    - Property types: "SFR" or "Single Family" → "Single Family", "Condo" or "Condominium" → "Condo", "Townhouse" → "Townhouse"
+
+9b. **CONDITIONS UPDATE EMAILS (e.g., from PennyMac, eThinkHawaiian)**: These contain detailed loan summary data in tabular format. Extract ALL fields:
+   - "Note Rate" or "Interest Rate" → interest_rate
+   - "Loan Amount" → loan_amount
+   - "LTV" → ltv
+   - "Total Monthly Income" or "Monthly Income" → total_monthly_income
+   - "Insurance" or "Hazard Insurance" → insurance_amount
+   - "Total Payment" or "Monthly Payment" or "PITI" → piti_total
+   - "Lock Expiration" or "Lock Exp" → lock_expiration_date
+   - "Occupancy" → occupancy (map to "Primary", "Second Home", or "Investment")
+   - "Appraised Value" or "Appraisal Value" → appraisal_value
+   - "DTI" or "Debt-to-Income" → dti
+   - "Term" or "Amortization" → term (convert years to months: 30yr = 360)
+   - "Est. Monthly Taxes" or "Property Taxes" → monthly_taxes
+   - "Impounds" or "Escrow" → escrow ("Yes" or "No", "Not Waived" = "Yes", "Waived" = "No")
+   - "Est. Cash to Close" or "Cash to Close" → cash_to_close
+   - "Est. Closing Date" or "Closing Date" → close_date (only if confirmed, not tentative)
+   - For automated lender condition emails, use confidence 0.95-1.0
 
 10. **CONFIDENCE SCORING**:
     - 1.0 (100%): Automated lender emails with clear structured data (rate locks, package confirmations from noreply@ addresses)
@@ -280,7 +298,7 @@ CRITICAL DOMAIN-SPECIFIC RULES:
     - Below 0.7: Uncertain or ambiguous
 
 11. **OCCUPANCY MAPPING**:
-    - "Primary", "Primary Residence", "Owner Occupied" → "Primary Home"
+    - "Primary", "Primary Residence", "Owner Occupied", "Primary Home" → "Primary"
     - "Second Home", "Vacation Home" → "Second Home"
     - "Investment", "Non-Owner Occupied", "Rental" → "Investment"
 
