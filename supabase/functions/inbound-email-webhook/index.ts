@@ -158,9 +158,31 @@ function calculateMatchScore(
     }
   }
 
+  // NEW: Match by last name + partial loan number (at least 5 consecutive digits in subject)
+  const lastName = lead.last_name?.trim();
+  if (lastName && lastName.length >= 2) {
+    const lastNameLower = lastName.toLowerCase();
+    
+    // Check if last name appears in subject
+    if (subjectLower.includes(lastNameLower)) {
+      // Look for 5+ consecutive digit sequences in the subject
+      const digitMatches = subject.match(/\d{5,}/g) || [];
+      
+      for (const digits of digitMatches) {
+        // Check if any lead's loan number contains these digits
+        const loanNum = lead.lender_loan_number?.trim() || '';
+        const mbNum = lead.mb_loan_number?.trim() || '';
+        
+        if ((loanNum && loanNum.includes(digits)) || (mbNum && mbNum.includes(digits))) {
+          console.log(`[Match] Lead ${lead.id} matched by last_name + partial_loan_number: ${lastNameLower} + ${digits}`);
+          return { leadId: lead.id, score: 90, matchMethod: 'last_name_partial_loan' };
+        }
+      }
+    }
+  }
+
   // Check first name + last name together in SUBJECT ONLY (higher priority - score 80)
   const firstName = lead.first_name?.trim();
-  const lastName = lead.last_name?.trim();
   
   if (firstName && lastName && firstName.length >= 2 && lastName.length >= 2) {
     const fullName = `${firstName} ${lastName}`.toLowerCase();

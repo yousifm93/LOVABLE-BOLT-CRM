@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatDateShort } from "@/utils/formatters";
-import { Check, X, ArrowRight, Loader2 } from "lucide-react";
+import { Check, X, ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -51,6 +51,8 @@ interface Email {
   to_email: string;
   subject: string;
   snippet?: string | null;
+  body?: string | null;
+  html_body?: string | null;
   timestamp: string;
   delivery_status?: string | null;
   ai_summary?: string | null;
@@ -92,6 +94,7 @@ export function DashboardDetailModal({
 }: DashboardDetailModalProps) {
   const [emailSuggestions, setEmailSuggestions] = useState<Record<string, EmailSuggestion[]>>({});
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [rerunningIds, setRerunningIds] = useState<Set<string>>(new Set());
 
   // Fetch suggestions for emails - include all statuses for logging
   useEffect(() => {
@@ -173,6 +176,82 @@ export function DashboardDetailModal({
     });
   };
 
+  const handleRerunParsing = async (email: Email) => {
+    setRerunningIds(prev => new Set(prev).add(email.id));
+    try {
+      // Get current lead data
+      const { data: leadData } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', email.lead_id)
+        .single();
+
+      // Call parse-email-field-updates
+      const { data: parseResult, error } = await supabase.functions.invoke('parse-email-field-updates', {
+        body: {
+          subject: email.subject,
+          body: email.body || email.snippet,
+          htmlBody: email.html_body,
+          leadId: email.lead_id,
+          currentLeadData: leadData
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (parseResult?.suggestions?.length > 0) {
+        // Delete old pending suggestions for this email
+        await supabase
+          .from('email_field_suggestions')
+          .delete()
+          .eq('email_log_id', email.id)
+          .eq('status', 'pending');
+
+        // Insert new suggestions
+        for (const s of parseResult.suggestions) {
+          await supabase.from('email_field_suggestions').insert({
+            email_log_id: email.id,
+            lead_id: email.lead_id,
+            field_name: s.field_name,
+            field_display_name: s.field_display_name,
+            current_value: leadData?.[s.field_name] || null,
+            suggested_value: s.suggested_value,
+            reason: s.reason,
+            confidence: s.confidence,
+            status: 'pending'
+          });
+        }
+
+        // Refresh suggestions for this email
+        const { data: newSuggestions } = await supabase
+          .from('email_field_suggestions')
+          .select('*')
+          .eq('email_log_id', email.id);
+
+        if (newSuggestions) {
+          setEmailSuggestions(prev => ({
+            ...prev,
+            [email.id]: newSuggestions,
+          }));
+        }
+
+        toast.success(`Found ${parseResult.suggestions.length} new suggestion(s)`);
+      } else {
+        toast.info('No new suggestions found');
+      }
+    } catch (error) {
+      console.error('Error rerunning parsing:', error);
+      toast.error('Failed to rerun parsing');
+    }
+    setRerunningIds(prev => {
+      const next = new Set(prev);
+      next.delete(email.id);
+      return next;
+    });
+  };
+
   const renderDate = (item: Lead | Agent | Email) => {
     if (type === "leads" && "lead_on_date" in item) {
       return item.lead_on_date ? formatDateShort(item.lead_on_date) : "—";
@@ -233,7 +312,7 @@ export function DashboardDetailModal({
           <DialogTitle className="text-sm">{title} ({data.length})</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[70vh] w-full">
-          <div className="min-w-[1100px]">
+          <div className="min-w-[1200px]">
             <Table className="text-xs">
               <TableHeader>
                 <TableRow className="text-[11px]">
@@ -241,6 +320,7 @@ export function DashboardDetailModal({
                   <TableHead className="w-[85px] py-2">{getDateColumnTitle()}</TableHead>
                   <TableHead className="w-[50px] py-2">{getThirdColumnTitle()}</TableHead>
                   {type === "emails" && <TableHead className="w-[45px] py-2 text-center">Conf</TableHead>}
+                  {type === "emails" && <TableHead className="w-[45px] py-2 text-center">Rerun</TableHead>}
                   {type === "emails" && <TableHead className="w-[200px] py-2">CRM Update</TableHead>}
                   {type === "emails" && <TableHead className="w-[180px] py-2">AI Summary</TableHead>}
                   {type === "emails" && <TableHead className="w-[140px] py-2">Subject</TableHead>}
@@ -295,6 +375,24 @@ export function DashboardDetailModal({
                           ) : (
                             <span className="text-[11px] text-muted-foreground">—</span>
                           )}
+                        </TableCell>
+                      )}
+                      {type === "emails" && (
+                        <TableCell className="py-1.5 text-center">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleRerunParsing(item as Email)}
+                            disabled={rerunningIds.has((item as Email).id)}
+                            title="Rerun AI parsing"
+                          >
+                            {rerunningIds.has((item as Email).id) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         </TableCell>
                       )}
                       {type === "emails" && (
@@ -399,6 +497,22 @@ export function DashboardDetailModal({
                               }
                             }}
                           />
+                        </TableCell>
+                      )}
+                      {type !== "emails" && (type === "meetings" || type === "calls") && (
+                        <TableCell className="py-1.5">
+                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                            {('meeting_summary' in item && item.meeting_summary) || ('notes' in item && item.notes) || "—"}
+                          </span>
+                        </TableCell>
+                      )}
+                      {type !== "emails" && type !== "meetings" && type !== "calls" && (
+                        <TableCell className="py-1.5">
+                          {'pipeline_stage_id' in item ? (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                              {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
+                            </Badge>
+                          ) : "—"}
                         </TableCell>
                       )}
                     </TableRow>

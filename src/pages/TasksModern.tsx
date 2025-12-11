@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,11 +59,19 @@ interface ModernTask {
   };
 }
 
+// Permission helper IDs - Herman and Salma can reassign tasks
+const REASSIGN_ALLOWED_USER_IDS = [
+  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+  '159376ae-30e9-4997-b61f-76ab8d7f224b', // Salma
+];
+
 const columns = (
   handleUpdate: (taskId: string, field: string, value: any) => void, 
   leads: any[], 
   users: any[],
-  handleBorrowerClick: (borrowerId: string) => void
+  handleBorrowerClick: (borrowerId: string) => void,
+  canDeleteOrChangeDueDate: boolean,
+  canReassign: boolean
 ): ColumnDef<ModernTask>[] => [
   {
     accessorKey: "title",
@@ -195,13 +204,24 @@ const columns = (
     accessorKey: "assignee",
     header: "Assigned To",
     cell: ({ row }) => (
-      <InlineEditAssignee
-        assigneeId={row.original.assignee_id}
-        users={users}
-        onValueChange={(userId) => handleUpdate(row.original.id, 'assignee_id', userId)}
-        className="w-32"
-        showNameText={false}
-      />
+      canReassign ? (
+        <InlineEditAssignee
+          assigneeId={row.original.assignee_id}
+          users={users}
+          onValueChange={(userId) => handleUpdate(row.original.id, 'assignee_id', userId)}
+          className="w-32"
+          showNameText={false}
+        />
+      ) : (
+        <InlineEditAssignee
+          assigneeId={row.original.assignee_id}
+          users={users}
+          onValueChange={() => {}}
+          className="w-32"
+          showNameText={false}
+          disabled={true}
+        />
+      )
     ),
     sortable: true,
   },
@@ -225,15 +245,20 @@ const columns = (
       
       return (
         <div className={isOverdue ? "text-destructive" : ""}>
-          <InlineEditDate
-            value={row.original.due_date}
-            onValueChange={(date) => {
-              // Store date as-is to avoid timezone conversion
-              const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
-              handleUpdate(row.original.id, "due_date", dateStr);
-            }}
-            placeholder="No date"
-          />
+          {canDeleteOrChangeDueDate ? (
+            <InlineEditDate
+              value={row.original.due_date}
+              onValueChange={(date) => {
+                const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+                handleUpdate(row.original.id, "due_date", dateStr);
+              }}
+              placeholder="No date"
+            />
+          ) : (
+            <span className="text-sm">
+              {row.original.due_date ? formatDateModern(row.original.due_date) : "—"}
+            </span>
+          )}
         </div>
       );
     },
@@ -315,6 +340,11 @@ export default function TasksModern() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
   const { toast } = useToast();
+  const { crmUser } = useAuth();
+
+  // Permission checks
+  const canDeleteOrChangeDueDate = crmUser?.role === 'Admin';
+  const canReassign = crmUser?.role === 'Admin' || REASSIGN_ALLOWED_USER_IDS.includes(crmUser?.id || '');
 
   // Column visibility hook for views system
   const {
@@ -772,13 +802,15 @@ export default function TasksModern() {
               >
                 <Edit className="h-4 w-4 mr-2" /> Edit Selected
               </Button>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleBulkDelete}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Selected
-              </Button>
+              {canDeleteOrChangeDueDate && (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete Selected
+                </Button>
+              )}
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -932,12 +964,12 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
+                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
                     data={openTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onDelete={canDeleteOrChangeDueDate ? handleDelete : undefined}
                     selectable={true}
                     selectedIds={selectedTaskIds}
                     onSelectionChange={setSelectedTaskIds}
@@ -959,12 +991,12 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick)}
+                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
                     data={doneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
+                    onDelete={canDeleteOrChangeDueDate ? handleDelete : undefined}
                     selectable={true}
                     selectedIds={selectedTaskIds}
                     onSelectionChange={setSelectedTaskIds}
