@@ -22,7 +22,7 @@ function DetailRow({ icon: Icon, label, value, badgeVariant, editComponent, isCa
     <div className="flex items-start gap-3 py-2">
       <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
       <div className="flex-1 min-w-0 flex flex-col gap-1">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium text-muted-foreground whitespace-nowrap">{label}</p>
         {editComponent ? (
           <div className={isCalculated ? "opacity-60" : ""}>
             {editComponent}

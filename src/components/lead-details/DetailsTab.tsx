@@ -1218,25 +1218,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <FourColumnDetailLayout items={propertyData} />
           </div>
 
-          {/* Subject Property Address - Custom 2-Row Grid */}
+          {/* Subject Property Address - Single Row Grid */}
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Subject Property Address</h4>
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-              {/* Row 1: Address 1, Address 2, City, State */}
-              {subjectPropertyAddressData.slice(0, 4).map((item, index) => (
+            <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
+              {subjectPropertyAddressData.map((item, index) => (
                 <div key={index} className="space-y-1">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <item.icon className="h-3 w-3" />
-                    <span>{item.label}</span>
-                  </div>
-                  {isEditing && item.editComponent ? item.editComponent : (
-                    <span className="text-sm font-medium">{item.value}</span>
-                  )}
-                </div>
-              ))}
-              {/* Row 2: Zip Code only */}
-              {subjectPropertyAddressData.slice(4, 5).map((item, index) => (
-                <div key={index + 4} className="space-y-1">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <item.icon className="h-3 w-3" />
                     <span>{item.label}</span>
