@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Pencil } from "lucide-react";
+import { Search, Filter, X, Pencil, Activity } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import { CRMClient, PipelineStage } from "@/types/crm";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { usePipelineView } from "@/hooks/usePipelineView";
+import { ActivityLogModal } from "@/components/modals/ActivityLogModal";
 
 // Main view - streamlined columns (default)
 const DEFAULT_MAIN_VIEW_COLUMNS = [
@@ -868,6 +869,7 @@ export default function Active() {
   const [loanToClose, setLoanToClose] = useState<string | null>(null);
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [isEditMainViewOpen, setIsEditMainViewOpen] = useState(false);
+  const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -1454,6 +1456,16 @@ export default function Active() {
         </Button>
 
         <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsActivityLogOpen(true)}
+          className="h-8 text-xs"
+        >
+          <Activity className="h-4 w-4 mr-1" />
+          Activity Log
+        </Button>
+
+        <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsEditMainViewOpen(true)}
@@ -1737,6 +1749,13 @@ export default function Active() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ActivityLogModal
+        isOpen={isActivityLogOpen}
+        onClose={() => setIsActivityLogOpen(false)}
+        pipelineStage="Active"
+        title="Activity Log"
+      />
     </div>
   );
 }
