@@ -547,11 +547,12 @@ serve(async (req) => {
               continue;
             }
             
-            // Create document record
+            // Create document record - store storage PATH, not signed URL
+            // The signed URL will be generated fresh when viewing/downloading
             const { error: docError } = await supabase.from('documents').insert({
               lead_id: leadId,
               file_name: `${attachment.name}-${lastName}`,
-              file_url: signedUrlData.signedUrl,
+              file_url: filePath, // Store just the storage path, not the signed URL
               mime_type: attachment.type,
               size_bytes: attachment.size,
               uploaded_by: '08e73d69-4707-4773-84a4-69ce2acd6a11', // System user (Yousif)

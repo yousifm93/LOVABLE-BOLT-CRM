@@ -2233,7 +2233,26 @@ export const databaseService = {
     return data;
   },
 
-  async getDocumentSignedUrl(storagePath: string, expiresIn = 3600) {
+  async getDocumentSignedUrl(storagePathOrUrl: string, expiresIn = 3600) {
+    // Handle legacy data where full signed URLs were stored instead of paths
+    let storagePath = storagePathOrUrl;
+    
+    if (storagePathOrUrl.startsWith('https://') && storagePathOrUrl.includes('/storage/v1/')) {
+      // Extract the storage path from the signed URL
+      // URL format: https://xxx.supabase.co/storage/v1/object/sign/bucket-name/path?token=xxx
+      try {
+        const url = new URL(storagePathOrUrl);
+        const pathMatch = url.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
+        if (pathMatch) {
+          storagePath = decodeURIComponent(pathMatch[2]);
+          console.log('[getDocumentSignedUrl] Extracted path from legacy URL:', storagePath);
+        }
+      } catch (e) {
+        console.error('[getDocumentSignedUrl] Failed to parse legacy URL:', e);
+        // Fall through and try using original value
+      }
+    }
+    
     // Handle different storage paths - try lead-documents bucket first for email attachments
     // Then fall back to documents bucket
     const buckets = ['lead-documents', 'documents'];
