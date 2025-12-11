@@ -1195,6 +1195,7 @@ export function ClientDetailDrawer({
                   value={localOccupancy} 
                   options={[
                     { value: 'Primary Home', label: 'Primary Home' },
+                    { value: 'Primary Residence', label: 'Primary Residence' },
                     { value: 'Second Home', label: 'Second Home' },
                     { value: 'Investment', label: 'Investment' }
                   ]}
@@ -1768,7 +1769,7 @@ export function ClientDetailDrawer({
             <LeadThirdPartyItemsCard leadId={leadId || ""} />
 
             {/* Team / Contacts / Dates */}
-            <LeadTeamContactsDatesCard leadId={leadId || ""} />
+            <LeadTeamContactsDatesCard leadId={leadId || ""} onLeadUpdated={onLeadUpdated} />
 
 
             {/* Chat with Borrower - Collapsible */}
