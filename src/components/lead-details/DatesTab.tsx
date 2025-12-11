@@ -7,9 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface DatesTabProps {
   leadId: string;
+  onLeadUpdated?: () => void;
 }
 
-export function DatesTab({ leadId }: DatesTabProps) {
+export function DatesTab({ leadId, onLeadUpdated }: DatesTabProps) {
   const { toast } = useToast();
 
   const { data: lead, refetch } = useQuery({
@@ -30,6 +31,7 @@ export function DatesTab({ leadId }: DatesTabProps) {
     try {
       await databaseService.updateLead(leadId, { [fieldName]: value });
       await refetch();
+      onLeadUpdated?.();
       toast({
         title: "Updated",
         description: "Address updated successfully.",

@@ -370,6 +370,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Primary Home">Primary Home</SelectItem>
+                      <SelectItem value="Primary Residence">Primary Residence</SelectItem>
                       <SelectItem value="Second Home">Second Home</SelectItem>
                       <SelectItem value="Investment">Investment</SelectItem>
                     </SelectContent>

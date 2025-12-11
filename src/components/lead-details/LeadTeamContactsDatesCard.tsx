@@ -9,9 +9,10 @@ import { PITITab } from "./PITITab";
 
 interface LeadTeamContactsDatesCardProps {
   leadId: string;
+  onLeadUpdated?: () => void;
 }
 
-export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardProps) {
+export function LeadTeamContactsDatesCard({ leadId, onLeadUpdated }: LeadTeamContactsDatesCardProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -50,7 +51,7 @@ export function LeadTeamContactsDatesCard({ leadId }: LeadTeamContactsDatesCardP
               </TabsContent>
               
               <TabsContent value="dates" className="mt-0">
-                <DatesTab leadId={leadId} />
+                <DatesTab leadId={leadId} onLeadUpdated={onLeadUpdated} />
               </TabsContent>
               
               <TabsContent value="piti" className="mt-0">
