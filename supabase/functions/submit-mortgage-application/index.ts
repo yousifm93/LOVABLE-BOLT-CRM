@@ -99,6 +99,16 @@ interface ApplicationData {
   realEstate?: {
     properties: Array<any>;
   };
+  liabilities?: {
+    liabilities: Array<{
+      description?: string;
+      type?: string;
+      monthlyPayment?: number | string;
+      amount?: number | string;
+    }>;
+    noLiabilities?: boolean;
+    hasNoLiabilities?: boolean;
+  };
   declarations: Array<{
     id: string;
     answer: boolean | null;
@@ -320,7 +330,7 @@ Deno.serve(async (req) => {
     }, 0);
 
     // Calculate monthly liabilities from real estate (expenses only, not rent)
-    const monthlyLiabilities = (realEstate?.properties || []).reduce((sum: number, property: any) => {
+    const reoLiabilities = (realEstate?.properties || []).reduce((sum: number, property: any) => {
       const raw = property.monthlyExpenses || property.expenses || 0;
       let expenses: number;
       if (typeof raw === 'string') {
@@ -330,6 +340,23 @@ Deno.serve(async (req) => {
       }
       return sum + expenses;
     }, 0);
+
+    // Calculate explicit liabilities from Liabilities section (Car Loan, Student Loan, etc.)
+    const { liabilities: liabilitiesData } = applicationData;
+    const explicitLiabilities = (liabilitiesData?.liabilities || []).reduce((sum: number, liability: any) => {
+      const raw = liability.monthlyPayment || liability.amount || 0;
+      let payment: number;
+      if (typeof raw === 'string') {
+        payment = parseFloat(raw.replace(/[,$]/g, '')) || 0;
+      } else {
+        payment = raw || 0;
+      }
+      return sum + payment;
+    }, 0);
+
+    // Total monthly liabilities = REO expenses + explicit liabilities (Car Loan, Student Loan, etc.)
+    const monthlyLiabilities = reoLiabilities + explicitLiabilities;
+    console.log(`Liabilities breakdown: REO expenses: $${reoLiabilities}, Explicit liabilities: $${explicitLiabilities}, Total: $${monthlyLiabilities}`);
 
     // Map credit score - handle both numeric input (777) and dropdown values (740-plus)
     const creditScoreMap: Record<string, number> = {
