@@ -1673,66 +1673,250 @@ export function ClientDetailDrawer({
         {/* Main Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
           {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
-          <div className="space-y-4 overflow-y-auto">
-            {/* Contact Info Card - Moved from top row */}
-            <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
+          {(() => {
+            // Determine if this is Active or Past Clients stage
+            const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
+            const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+            
+            return (
+              <div className="space-y-4 overflow-y-auto">
+                {/* Contact Info Card - Always first */}
+                <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
 
-            {/* Third Party Items */}
-            <LeadThirdPartyItemsCard leadId={leadId || ""} />
-
-            {/* Team / Contacts / Dates */}
-            <LeadTeamContactsDatesCard leadId={leadId || ""} onLeadUpdated={onLeadUpdated} />
-
-
-            {/* Chat with Borrower - Collapsible */}
-            <Collapsible defaultOpen={false}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <CardTitle className="text-sm font-bold flex items-center justify-between">
-                      Chat with Borrower
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </CardTitle>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
-                      <div className="flex justify-end">
-                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                          <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
-                          <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                {/* For early stages (Leads, Pending App, Screening, Pre-Qualified, Pre-Approved): 
+                    Move About the Borrower and Latest File Updates here */}
+                {!isActiveOrPastClient && (
+                  <>
+                    {/* About the Borrower Section */}
+                    <Card className="h-[160px]">
+                      <CardHeader className="pb-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                          {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                              Edit
+                            </Button>}
                         </div>
-                      </div>
-                      <div className="flex justify-start">
-                        <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
-                          <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
-                          <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                      </CardHeader>
+                      <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
+                        {isEditingNotes || !localNotes ? <>
+                            <Textarea key="notes-textarea-left" value={localNotes} onChange={e => {
+                          setLocalNotes(e.target.value);
+                          setHasUnsavedNotes(true);
+                        }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[160px] resize-none bg-white mb-2" />
+                            {hasUnsavedNotes && <div className="flex gap-2">
+                                <Button size="sm" onClick={async () => {
+                            const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                            if (localNotes === currentNotes) {
+                              toast({ title: "No Changes", description: "Notes haven't changed." });
+                              setHasUnsavedNotes(false);
+                              setIsEditingNotes(false);
+                              return;
+                            }
+                            setIsSavingNotes(true);
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              await databaseService.updateLead(leadId!, {
+                                notes: localNotes,
+                                notes_updated_by: user?.id || null,
+                                notes_updated_at: new Date().toISOString()
+                              });
+                              if (onLeadUpdated) await onLeadUpdated();
+                              setHasUnsavedNotes(false);
+                              setIsEditingNotes(false);
+                              toast({ title: "Saved", description: "About the Borrower section has been updated." });
+                            } catch (error) {
+                              console.error('Error saving notes:', error);
+                              toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                            } finally {
+                              setIsSavingNotes(false);
+                            }
+                          }} disabled={isSavingNotes}>
+                                  {isSavingNotes ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => {
+                            setLocalNotes((client as any).notes || '');
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                          }}>
+                                  Cancel
+                                </Button>
+                              </div>}
+                          </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                            {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          </div>}
+                        {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {notesUpdatedByUser && <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                              </>}
+                          </div>}
+                      </CardContent>
+                    </Card>
+
+                    {/* Latest File Updates Section */}
+                    <Card className="h-[160px]">
+                      <CardHeader className="pb-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                if (isRecordingFileUpdates) {
+                                  handleVoiceRecordingStop();
+                                } else {
+                                  handleVoiceRecordingStart();
+                                }
+                              }}
+                              disabled={isSummarizingTranscript}
+                              className={cn(
+                                "w-8 h-8 rounded-full transition-all",
+                                isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                              )}
+                              title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                            >
+                              {isSummarizingTranscript ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                              )}
+                            </Button>
+                          </div>
+                          {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                              Edit
+                            </Button>}
                         </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                          <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
-                          <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
+                      </CardHeader>
+                      <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
+                        {isEditingFileUpdates || !localFileUpdates ? <>
+                            <Textarea key="file-updates-textarea-left" value={localFileUpdates} onChange={e => {
+                          setLocalFileUpdates(e.target.value);
+                          setHasUnsavedFileUpdates(true);
+                        }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[160px] resize-none bg-white mb-2" />
+                            {hasUnsavedFileUpdates && <div className="flex gap-2">
+                                <Button size="sm" onClick={async () => {
+                            const currentFileUpdates = (client as any).latest_file_updates ?? '';
+                            if (localFileUpdates === currentFileUpdates) {
+                              toast({ title: "No Changes", description: "File updates haven't changed." });
+                              setHasUnsavedFileUpdates(false);
+                              setIsEditingFileUpdates(false);
+                              return;
+                            }
+                            setIsSavingFileUpdates(true);
+                            try {
+                              const { data: { user } } = await supabase.auth.getUser();
+                              await databaseService.updateLead(leadId!, {
+                                latest_file_updates: localFileUpdates,
+                                latest_file_updates_updated_by: user?.id || null,
+                                latest_file_updates_updated_at: new Date().toISOString()
+                              });
+                              if (onLeadUpdated) await onLeadUpdated();
+                              setHasUnsavedFileUpdates(false);
+                              setIsEditingFileUpdates(false);
+                              toast({ title: "Saved", description: "Latest File Updates section has been updated." });
+                            } catch (error) {
+                              console.error('Error saving file updates:', error);
+                              toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                            } finally {
+                              setIsSavingFileUpdates(false);
+                            }
+                          }} disabled={isSavingFileUpdates}>
+                                  {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => {
+                            setLocalFileUpdates((client as any).latest_file_updates || '');
+                            setHasUnsavedFileUpdates(false);
+                            setIsEditingFileUpdates(false);
+                          }}>
+                                  Cancel
+                                </Button>
+                              </div>}
+                          </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                            {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                          </div>}
+                        {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                            {fileUpdatesUpdatedByUser && <>
+                                <span>•</span>
+                                <User className="h-3 w-3" />
+                                {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                              </>}
+                          </div>}
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+
+                {/* For Active/Past Clients: Third Party Items at top */}
+                {isActiveOrPastClient && (
+                  <LeadThirdPartyItemsCard leadId={leadId || ""} />
+                )}
+
+                {/* Team / Contacts / Dates */}
+                <LeadTeamContactsDatesCard leadId={leadId || ""} onLeadUpdated={onLeadUpdated} />
+
+                {/* For early stages: Third Party Items collapsed at bottom */}
+                {!isActiveOrPastClient && (
+                  <LeadThirdPartyItemsCard leadId={leadId || ""} defaultCollapsed={true} />
+                )}
+
+                {/* Chat with Borrower - Collapsible */}
+                <Collapsible defaultOpen={false}>
+                  <Card>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <CardTitle className="text-sm font-bold flex items-center justify-between">
+                          Chat with Borrower
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        </CardTitle>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 min-h-[300px] max-h-[300px] overflow-y-auto border rounded p-2 bg-muted/30">
+                          <div className="flex justify-end">
+                            <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                              <p className="text-sm">Hi John! Just wanted to check in on your loan application. How are things going?</p>
+                              <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                            </div>
+                          </div>
+                          <div className="flex justify-start">
+                            <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
+                              <p className="text-sm">Hi! Everything is going well. I just submitted the additional documents you requested.</p>
+                              <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                              <p className="text-sm">Great! I'll review them and get back to you by tomorrow.</p>
+                              <p className="text-xs opacity-75 mt-1">Today 3:00 PM</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }} />
-                      <Button size="sm" onClick={handleSendMessage}>
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          </div>
+                        <div className="flex gap-2">
+                          <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }} />
+                          <Button size="sm" onClick={handleSendMessage}>
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              </div>
+            );
+          })()}
 
           {/* Center Column - Status Tracker & Lead Information */}
           <div className="space-y-4 overflow-y-auto flex flex-col">
@@ -1889,7 +2073,12 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* About the Borrower Section */}
+            {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
+            {(() => {
+              const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
+              const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+              if (!isActiveOrPastClient) return null;
+              return (
             <Card className="h-[160px]">
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
@@ -1978,8 +2167,15 @@ export function ClientDetailDrawer({
                   </div>}
               </CardContent>
             </Card>
+              );
+            })()}
 
-            {/* Latest File Updates Section */}
+            {/* Latest File Updates Section - Only show for Active/Past Clients in right column */}
+            {(() => {
+              const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
+              const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+              if (!isActiveOrPastClient) return null;
+              return (
             <Card className="h-[160px]">
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
@@ -2091,6 +2287,8 @@ export function ClientDetailDrawer({
                   </div>}
               </CardContent>
             </Card>
+              );
+            })()}
 
             {/* Quick Actions */}
             <Card>

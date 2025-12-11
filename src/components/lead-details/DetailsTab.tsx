@@ -1221,10 +1221,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <FourColumnDetailLayout items={transactionDetailsData} columns={3} />
           </div>
 
-          {/* Subject Property Address - Single Row Grid */}
+          {/* Subject Property Address - Single Row Grid with weighted columns */}
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Subject Property Address</h4>
-            <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-[2fr_1fr_1fr_0.5fr_1fr] gap-4 p-4 bg-muted/30 rounded-lg">
               {subjectPropertyAddressData.map((item, index) => (
                 <div key={index} className="space-y-1">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -1425,15 +1425,18 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             <Wallet className="h-5 w-5 text-primary" />
             Financial Summary
           </h3>
-          <FourColumnDetailLayout items={financialSummaryData} />
+          {/* Financial Summary fields in gray box */}
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <FourColumnDetailLayout items={financialSummaryData} />
+          </div>
           
           {/* Real Estate Owned Section */}
-          {leadId && <RealEstateOwnedSection leadId={leadId} />}
+          {leadId && <div className="mt-6"><RealEstateOwnedSection leadId={leadId} /></div>}
           
-          {/* Monthly Payment Breakdown - Single Row */}
-          <div className="mt-6">
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2 pl-1">Monthly Payment Breakdown</h4>
-            <div className="grid grid-cols-6 gap-4 p-4 bg-muted/30 rounded-lg">
+          {/* Monthly Payment Breakdown - Title inside gray box */}
+          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+            <h4 className="text-sm font-semibold text-muted-foreground mb-3">Monthly Payment Breakdown</h4>
+            <div className="grid grid-cols-6 gap-4">
               {monthlyPaymentData.map((item, index) => (
                 <div key={index} className="space-y-1">
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
