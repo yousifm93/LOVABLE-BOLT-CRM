@@ -7,6 +7,12 @@ const corsHeaders = {
 
 interface ApplicationData {
   loanPurpose?: string;
+  loanProgram?: string;  // NEW: Loan program selected by borrower
+  workingWithAgent?: boolean;  // NEW: Yes/No toggle for real estate agent
+  agentFirstName?: string;  // NEW: Agent details if workingWithAgent is true
+  agentLastName?: string;
+  agentPhone?: string;
+  agentEmail?: string;
   mortgageInfo: {
     propertyType?: string;
     occupancy?: string;
@@ -20,6 +26,7 @@ interface ApplicationData {
       state?: string;
       zipCode?: string;
       countyName?: string;
+      address?: string;
     };
     city?: string;
     state?: string;
@@ -213,6 +220,23 @@ const maritalStatusMap: Record<string, string> = {
   'unmarried': 'Single',
   'divorced': 'Separated',
   'widowed': 'Single',
+};
+
+// Map loan program values - default "Not Sure Yet" to Conventional
+const programMap: Record<string, string> = {
+  'conventional': 'Conventional',
+  'fha': 'FHA',
+  'va': 'VA',
+  'dscr': 'DSCR',
+  'jumbo': 'Jumbo',
+  'usda': 'USDA',
+  'bank statement': 'Bank Statement',
+  'bank-statement': 'Bank Statement',
+  'bankstatement': 'Bank Statement',
+  'not sure yet': 'Conventional',  // Default to Conventional
+  'not-sure-yet': 'Conventional',
+  'notsureyet': 'Conventional',
+  'unsure': 'Conventional',
 };
 
 // Helper to normalize a value using a map
@@ -519,6 +543,95 @@ Deno.serve(async (req) => {
     // Cash to close = down payment (will add closing costs later when available)
     const cashToClose = downPayment;
 
+    // ============= LOAN PROGRAM NORMALIZATION =============
+    const rawProgram = applicationData.loanProgram;
+    let normalizedProgram = 'Conventional'; // Default
+    if (rawProgram) {
+      const lower = rawProgram.toLowerCase().trim();
+      normalizedProgram = programMap[lower] || rawProgram;
+    }
+    console.log(`Loan program raw: ${rawProgram}, normalized: ${normalizedProgram}`);
+
+    // ============= BUYER AGENT LOOKUP/CREATION =============
+    let buyer_agent_id: string | null = null;
+    if (applicationData.workingWithAgent === true && 
+        applicationData.agentFirstName && 
+        applicationData.agentLastName) {
+      
+      console.log('Processing buyer agent from application:', {
+        firstName: applicationData.agentFirstName,
+        lastName: applicationData.agentLastName,
+        phone: applicationData.agentPhone,
+        email: applicationData.agentEmail
+      });
+      
+      // Try to match by phone first
+      if (applicationData.agentPhone) {
+        const cleanPhone = applicationData.agentPhone.replace(/\D/g, '');
+        const { data: phoneMatch } = await supabase
+          .from('buyer_agents')
+          .select('id, first_name, last_name')
+          .eq('phone', cleanPhone)
+          .limit(1);
+        
+        if (phoneMatch && phoneMatch.length > 0) {
+          buyer_agent_id = phoneMatch[0].id;
+          console.log('Found existing buyer agent by phone:', buyer_agent_id);
+        }
+      }
+      
+      // Try email match if not found by phone
+      if (!buyer_agent_id && applicationData.agentEmail) {
+        const { data: emailMatch } = await supabase
+          .from('buyer_agents')
+          .select('id')
+          .ilike('email', applicationData.agentEmail)
+          .limit(1);
+        
+        if (emailMatch && emailMatch.length > 0) {
+          buyer_agent_id = emailMatch[0].id;
+          console.log('Found existing buyer agent by email:', buyer_agent_id);
+        }
+      }
+      
+      // Try name match if not found by phone or email
+      if (!buyer_agent_id) {
+        const { data: nameMatch } = await supabase
+          .from('buyer_agents')
+          .select('id')
+          .ilike('first_name', applicationData.agentFirstName)
+          .ilike('last_name', applicationData.agentLastName)
+          .limit(1);
+        
+        if (nameMatch && nameMatch.length > 0) {
+          buyer_agent_id = nameMatch[0].id;
+          console.log('Found existing buyer agent by name:', buyer_agent_id);
+        }
+      }
+      
+      // Create new agent if not found
+      if (!buyer_agent_id) {
+        const { data: newAgent, error: createError } = await supabase
+          .from('buyer_agents')
+          .insert({
+            first_name: applicationData.agentFirstName,
+            last_name: applicationData.agentLastName,
+            phone: applicationData.agentPhone?.replace(/\D/g, '') || null,
+            email: applicationData.agentEmail || null,
+            brokerage: 'Unknown'  // Required field
+          })
+          .select('id')
+          .single();
+        
+        if (newAgent) {
+          buyer_agent_id = newAgent.id;
+          console.log('Created new buyer agent:', buyer_agent_id);
+        } else {
+          console.error('Failed to create buyer agent:', createError);
+        }
+      }
+    }
+
     // Prepare lead data with normalized values
     const leadData = {
       first_name: personalInfo.firstName,
@@ -613,6 +726,12 @@ Deno.serve(async (req) => {
       
       // MB Loan Number
       mb_loan_number: mbRefNumber,
+      
+      // Loan program (defaults to Conventional if "Not Sure Yet")
+      program: normalizedProgram,
+      
+      // Buyer agent if working with one
+      buyer_agent_id: buyer_agent_id,
     };
 
     console.log('Prepared lead data:', JSON.stringify(leadData, null, 2));
