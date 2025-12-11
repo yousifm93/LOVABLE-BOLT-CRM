@@ -1674,90 +1674,20 @@ export function ClientDetailDrawer({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4 h-[calc(100vh-80px)] p-4 pt-0">
           {/* Left Column - Contact Info, Team & Contacts, Tasks, Chat */}
           {(() => {
-            // Determine if this is Active or Past Clients stage
-            const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
-            const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+            // Determine if this is Active or Past Clients stage using ops.stage
+            const opsStage = client.ops?.stage?.toLowerCase() || '';
+            const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
             
             return (
               <div className="space-y-4 overflow-y-auto">
                 {/* Contact Info Card - Always first */}
                 <ContactInfoCard client={client} onClose={handleDrawerClose} leadId={leadId} onLeadUpdated={onLeadUpdated} />
 
-                {/* For early stages (Leads, Pending App, Screening, Pre-Qualified, Pre-Approved): 
-                    Move About the Borrower and Latest File Updates here */}
+                {/* For early stages: Latest File Updates here (About the Borrower moved to after Stage History) */}
                 {!isActiveOrPastClient && (
                   <>
-                    {/* About the Borrower Section */}
-                    <Card className="h-[160px]">
-                      <CardHeader className="pb-3 bg-white">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
-                          {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
-                              Edit
-                            </Button>}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
-                        {isEditingNotes || !localNotes ? <>
-                            <Textarea key="notes-textarea-left" value={localNotes} onChange={e => {
-                          setLocalNotes(e.target.value);
-                          setHasUnsavedNotes(true);
-                        }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[160px] resize-none bg-white mb-2" />
-                            {hasUnsavedNotes && <div className="flex gap-2">
-                                <Button size="sm" onClick={async () => {
-                            const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                            if (localNotes === currentNotes) {
-                              toast({ title: "No Changes", description: "Notes haven't changed." });
-                              setHasUnsavedNotes(false);
-                              setIsEditingNotes(false);
-                              return;
-                            }
-                            setIsSavingNotes(true);
-                            try {
-                              const { data: { user } } = await supabase.auth.getUser();
-                              await databaseService.updateLead(leadId!, {
-                                notes: localNotes,
-                                notes_updated_by: user?.id || null,
-                                notes_updated_at: new Date().toISOString()
-                              });
-                              if (onLeadUpdated) await onLeadUpdated();
-                              setHasUnsavedNotes(false);
-                              setIsEditingNotes(false);
-                              toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                            } catch (error) {
-                              console.error('Error saving notes:', error);
-                              toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                            } finally {
-                              setIsSavingNotes(false);
-                            }
-                          }} disabled={isSavingNotes}>
-                                  {isSavingNotes ? 'Saving...' : 'Save'}
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => {
-                            setLocalNotes((client as any).notes || '');
-                            setHasUnsavedNotes(false);
-                            setIsEditingNotes(false);
-                          }}>
-                                  Cancel
-                                </Button>
-                              </div>}
-                          </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
-                            {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                          </div>}
-                        {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                            {notesUpdatedByUser && <>
-                                <span>•</span>
-                                <User className="h-3 w-3" />
-                                {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                              </>}
-                          </div>}
-                      </CardContent>
-                    </Card>
-
                     {/* Latest File Updates Section */}
-                    <Card className="h-[160px]">
+                    <Card>
                       <CardHeader className="pb-3 bg-white">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -1792,12 +1722,12 @@ export function ClientDetailDrawer({
                             </Button>}
                         </div>
                       </CardHeader>
-                      <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
+                      <CardContent className="bg-gray-50">
                         {isEditingFileUpdates || !localFileUpdates ? <>
                             <Textarea key="file-updates-textarea-left" value={localFileUpdates} onChange={e => {
                           setLocalFileUpdates(e.target.value);
                           setHasUnsavedFileUpdates(true);
-                        }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[160px] resize-none bg-white mb-2" />
+                        }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[100px] resize-none bg-white mb-2" />
                             {hasUnsavedFileUpdates && <div className="flex gap-2">
                                 <Button size="sm" onClick={async () => {
                             const currentFileUpdates = (client as any).latest_file_updates ?? '';
@@ -1836,7 +1766,7 @@ export function ClientDetailDrawer({
                                   Cancel
                                 </Button>
                               </div>}
-                          </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                          </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
                             {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
                           </div>}
                         {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
@@ -2075,11 +2005,11 @@ export function ClientDetailDrawer({
 
             {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
             {(() => {
-              const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
-              const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
               if (!isActiveOrPastClient) return null;
               return (
-            <Card className="h-[160px]">
+            <Card>
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
@@ -2088,7 +2018,7 @@ export function ClientDetailDrawer({
                     </Button>}
                 </div>
               </CardHeader>
-              <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
+              <CardContent className="bg-gray-50">
                 {isEditingNotes || !localNotes ? <>
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
@@ -2153,7 +2083,7 @@ export function ClientDetailDrawer({
                           Cancel
                         </Button>
                       </div>}
-                  </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
                     {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
                   </div>}
                 {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
@@ -2172,11 +2102,11 @@ export function ClientDetailDrawer({
 
             {/* Latest File Updates Section - Only show for Active/Past Clients in right column */}
             {(() => {
-              const pipelineStageName = (client as any).pipeline_stage?.name?.toLowerCase() || '';
-              const isActiveOrPastClient = pipelineStageName === 'active' || pipelineStageName === 'past clients';
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
               if (!isActiveOrPastClient) return null;
               return (
-            <Card className="h-[160px]">
+            <Card>
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2210,9 +2140,9 @@ export function ClientDetailDrawer({
                       Edit
                     </Button>}
                 </div>
-              </CardHeader>
-              <CardContent className="bg-gray-50 h-[calc(100%-60px)] overflow-y-auto">
-                {isEditingFileUpdates || !localFileUpdates ? <>
+                      </CardHeader>
+                      <CardContent className="bg-gray-50">
+                        {isEditingFileUpdates || !localFileUpdates ? <>
                     <Textarea key="file-updates-textarea" value={localFileUpdates} onChange={e => {
                   setLocalFileUpdates(e.target.value);
                   setHasUnsavedFileUpdates(true);
@@ -2273,7 +2203,7 @@ export function ClientDetailDrawer({
                           Cancel
                         </Button>
                       </div>}
-                  </> : <div className="bg-white rounded-md p-3 min-h-[100px] text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
+                          </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingFileUpdates(true)}>
                     {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
                   </div>}
                 {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
@@ -2528,6 +2458,82 @@ export function ClientDetailDrawer({
               })()}
               </CardContent>
             </Card>
+
+            {/* About the Borrower Section - For early stages, appears after Stage History */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
+              if (isActiveOrPastClient) return null;
+              return (
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                      Edit
+                    </Button>}
+                </div>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                {isEditingNotes || !localNotes ? <>
+                    <Textarea key="notes-textarea-early" value={localNotes} onChange={e => {
+                  setLocalNotes(e.target.value);
+                  setHasUnsavedNotes(true);
+                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                    {hasUnsavedNotes && <div className="flex gap-2">
+                        <Button size="sm" onClick={async () => {
+                    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                    if (localNotes === currentNotes) {
+                      toast({ title: "No Changes", description: "Notes haven't changed." });
+                      setHasUnsavedNotes(false);
+                      setIsEditingNotes(false);
+                      return;
+                    }
+                    setIsSavingNotes(true);
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      await databaseService.updateLead(leadId!, {
+                        notes: localNotes,
+                        notes_updated_by: user?.id || null,
+                        notes_updated_at: new Date().toISOString()
+                      });
+                      if (onLeadUpdated) await onLeadUpdated();
+                      setHasUnsavedNotes(false);
+                      setIsEditingNotes(false);
+                      toast({ title: "Saved", description: "About the Borrower section has been updated." });
+                    } catch (error) {
+                      console.error('Error saving notes:', error);
+                      toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                    } finally {
+                      setIsSavingNotes(false);
+                    }
+                  }} disabled={isSavingNotes}>
+                          {isSavingNotes ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                    setLocalNotes((client as any).notes || '');
+                    setHasUnsavedNotes(false);
+                    setIsEditingNotes(false);
+                  }}>
+                          Cancel
+                        </Button>
+                      </div>}
+                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                    {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                  </div>}
+                {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                    {notesUpdatedByUser && <>
+                        <span>•</span>
+                        <User className="h-3 w-3" />
+                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                      </>}
+                  </div>}
+              </CardContent>
+            </Card>
+              );
+            })()}
           </div>
         </div>
       </div>
