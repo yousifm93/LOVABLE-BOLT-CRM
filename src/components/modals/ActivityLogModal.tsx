@@ -79,6 +79,13 @@ export function ActivityLogModal({
   const fetchActivities = async () => {
     setLoading(true);
     try {
+      // First, get the pipeline stage ID for the given stage name
+      const { data: stagesData } = await supabase
+        .from("pipeline_stages")
+        .select("id, name");
+      
+      const targetStageId = stagesData?.find(s => s.name === pipelineStage)?.id;
+
       // Calculate date range based on filter
       const now = new Date();
       let startDate = new Date();
@@ -108,7 +115,7 @@ export function ActivityLogModal({
         .eq("table_name", "leads")
         .gte("changed_at", startDate.toISOString())
         .order("changed_at", { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (actionFilter !== "all") {
         query = query.eq("action", actionFilter as "insert" | "update" | "delete");
@@ -121,16 +128,16 @@ export function ActivityLogModal({
         return;
       }
 
-      // Filter by pipeline stage if specified
+      // Filter by pipeline stage ID (UUID) instead of name
       const filteredData = auditData?.filter((entry) => {
         const afterData = entry.after_data as Record<string, any> | null;
         const beforeData = entry.before_data as Record<string, any> | null;
         
-        // Check if the lead was in the specified pipeline stage
-        const afterStage = afterData?.pipeline_stage?.name || afterData?.pipeline_stage;
-        const beforeStage = beforeData?.pipeline_stage?.name || beforeData?.pipeline_stage;
+        // Check by pipeline_stage_id (UUID)
+        const afterStageId = afterData?.pipeline_stage_id;
+        const beforeStageId = beforeData?.pipeline_stage_id;
         
-        return afterStage === pipelineStage || beforeStage === pipelineStage;
+        return afterStageId === targetStageId || beforeStageId === targetStageId;
       }) || [];
 
       // Transform audit data into activity entries
