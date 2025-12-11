@@ -4,7 +4,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
 import { formatDateShort } from "@/utils/formatters";
 import { Check, X, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,25 +205,15 @@ export function DashboardDetailModal({
       case "calls":
         return "Call Date";
       case "emails":
-        return "Email Date";
+        return "Date";
       default:
         return "Date";
     }
   };
 
   const getThirdColumnTitle = () => {
-    if (type === "emails") return "Direction";
+    if (type === "emails") return "Dir";
     return (type === "meetings" || type === "calls") ? "Notes" : "Current Stage";
-  };
-
-  const getFourthColumnTitle = () => {
-    if (type === "emails") return "AI Summary";
-    return null;
-  };
-
-  const getFifthColumnTitle = () => {
-    if (type === "emails") return "Subject";
-    return null;
   };
 
   const getName = (item: Lead | Agent | Email) => {
@@ -239,181 +228,183 @@ export function DashboardDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[80vh]">
+      <DialogContent className="max-w-[98vw] max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle>{title} ({data.length})</DialogTitle>
+          <DialogTitle className="text-sm">{title} ({data.length})</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-[60vh] w-full">
-          <div className="min-w-[1400px]">
-            <Table>
+        <ScrollArea className="h-[70vh] w-full">
+          <div className="min-w-[1100px]">
+            <Table className="text-xs">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[120px]">Name</TableHead>
-                  <TableHead className="min-w-[130px]">{getDateColumnTitle()}</TableHead>
-                  <TableHead className="min-w-[100px]">{getThirdColumnTitle()}</TableHead>
-                  {getFourthColumnTitle() && <TableHead className="min-w-[280px]">{getFourthColumnTitle()}</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[70px]">Confidence</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[300px]">CRM Update</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[220px]">Notes</TableHead>}
-                  {getFifthColumnTitle() && <TableHead className="min-w-[175px]">{getFifthColumnTitle()}</TableHead>}
-                  {type === "emails" && <TableHead className="min-w-[250px]">CRM Update Explanation</TableHead>}
+                <TableRow className="text-[11px]">
+                  <TableHead className="w-[90px] py-2">Name</TableHead>
+                  <TableHead className="w-[85px] py-2">{getDateColumnTitle()}</TableHead>
+                  <TableHead className="w-[50px] py-2">{getThirdColumnTitle()}</TableHead>
+                  {type === "emails" && <TableHead className="w-[45px] py-2 text-center">Conf</TableHead>}
+                  {type === "emails" && <TableHead className="w-[200px] py-2">CRM Update</TableHead>}
+                  {type === "emails" && <TableHead className="w-[180px] py-2">AI Summary</TableHead>}
+                  {type === "emails" && <TableHead className="w-[140px] py-2">Subject</TableHead>}
+                  {type === "emails" && <TableHead className="w-[160px] py-2">Explanation</TableHead>}
+                  {type === "emails" && <TableHead className="w-[120px] py-2">Notes</TableHead>}
+                  {type !== "emails" && (type === "meetings" || type === "calls") && <TableHead>Notes</TableHead>}
+                  {type !== "emails" && type !== "meetings" && type !== "calls" && <TableHead>Current Stage</TableHead>}
                 </TableRow>
               </TableHeader>
-            <TableBody>
-              {data.map((item) => {
-                const emailId = type === "emails" ? (item as Email).id : null;
-                const suggestions = emailId ? emailSuggestions[emailId] || [] : [];
-                const leadId = type === "emails" ? (item as Email).lead_id : null;
+              <TableBody>
+                {data.map((item) => {
+                  const emailId = type === "emails" ? (item as Email).id : null;
+                  const suggestions = emailId ? emailSuggestions[emailId] || [] : [];
+                  const leadId = type === "emails" ? (item as Email).lead_id : null;
 
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell 
-                      className={`font-medium ${type === "emails" && "lead_id" in item ? "cursor-pointer hover:text-primary hover:underline" : ('pipeline_stage_id' in item && onLeadClick ? "cursor-pointer hover:text-primary hover:underline" : "")}`}
-                      onClick={() => {
-                        if (type === "emails" && "lead_id" in item && onLeadClick) {
-                          onLeadClick(item.lead_id);
-                        } else if ('pipeline_stage_id' in item && onLeadClick) {
-                          onLeadClick(item.id);
-                        }
-                      }}
-                    >
-                      {getName(item)}
-                    </TableCell>
-                    <TableCell>{renderDate(item)}</TableCell>
-                    <TableCell>
-                      {type === "emails" && "direction" in item ? (
-                        <Badge variant={item.direction === 'Out' ? 'default' : 'secondary'}>
-                          {item.direction === 'Out' ? 'Sent' : 'Received'}
-                        </Badge>
-                      ) : 'pipeline_stage_id' in item ? (
-                        <Badge variant="secondary">
-                          {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
-                        </Badge>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
-                          {('meeting_summary' in item && item.meeting_summary) || ('notes' in item && item.notes) || "—"}
-                        </span>
-                      )}
-                    </TableCell>
-                    {type === "emails" && (
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground line-clamp-2">
-                          {(item as Email).ai_summary || "—"}
-                        </span>
+                  return (
+                    <TableRow key={item.id} className="text-xs">
+                      <TableCell 
+                        className={`py-1.5 font-medium text-xs ${type === "emails" && "lead_id" in item ? "cursor-pointer hover:text-primary hover:underline" : ('pipeline_stage_id' in item && onLeadClick ? "cursor-pointer hover:text-primary hover:underline" : "")}`}
+                        onClick={() => {
+                          if (type === "emails" && "lead_id" in item && onLeadClick) {
+                            onLeadClick(item.lead_id);
+                          } else if ('pipeline_stage_id' in item && onLeadClick) {
+                            onLeadClick(item.id);
+                          }
+                        }}
+                      >
+                        <span className="line-clamp-1">{getName(item)}</span>
                       </TableCell>
-                    )}
-                    {type === "emails" && (
-                      <TableCell>
-                        {suggestions.length > 0 ? (
-                          <span className="text-xs font-medium">
-                            {Math.round((suggestions[0].confidence || 0.75) * 100)}%
+                      <TableCell className="py-1.5 text-[11px] text-muted-foreground">{renderDate(item)}</TableCell>
+                      <TableCell className="py-1.5">
+                        {type === "emails" && "direction" in item ? (
+                          <Badge variant={item.direction === 'Out' ? 'default' : 'secondary'} className="text-[10px] px-1 py-0">
+                            {item.direction === 'Out' ? 'Out' : 'In'}
+                          </Badge>
+                        ) : 'pipeline_stage_id' in item ? (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            {STAGE_ID_TO_NAME[item.pipeline_stage_id || ''] || "Unknown"}
+                          </Badge>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                            {('meeting_summary' in item && item.meeting_summary) || ('notes' in item && item.notes) || "—"}
                           </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                    )}
-                    {type === "emails" && (
-                      <TableCell>
-                        {suggestions.length > 0 ? (
-                          <div className="space-y-2">
-                            {suggestions.map((suggestion) => (
-                              <div key={suggestion.id} className="flex items-center gap-2 text-xs">
-                                <div className="flex-1 flex items-center gap-1">
-                                  <span className="font-medium">{suggestion.field_display_name}:</span>
-                                  <span className="text-muted-foreground">{suggestion.current_value || 'Empty'}</span>
-                                  <ArrowRight className="h-3 w-3" />
-                                  <span className="text-primary font-medium">{suggestion.suggested_value}</span>
-                                </div>
-                                {suggestion.status === 'pending' ? (
-                                  <div className="flex items-center gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                                      onClick={() => handleDenySuggestion(suggestion)}
-                                      disabled={processingIds.has(suggestion.id)}
-                                    >
-                                      {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 w-6 p-0 text-green-600 hover:bg-green-600/10"
-                                      onClick={() => leadId && handleApproveSuggestion(suggestion, leadId)}
-                                      disabled={processingIds.has(suggestion.id)}
-                                    >
-                                      {processingIds.has(suggestion.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                                    </Button>
+                      {type === "emails" && (
+                        <TableCell className="py-1.5 text-center">
+                          {suggestions.length > 0 ? (
+                            <span className="text-[11px] font-semibold">
+                              {Math.round((suggestions[0].confidence || 0.75) * 100)}%
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {type === "emails" && (
+                        <TableCell className="py-1.5">
+                          {suggestions.length > 0 ? (
+                            <div className="space-y-1">
+                              {suggestions.map((suggestion) => (
+                                <div key={suggestion.id} className="flex items-center gap-1 text-[11px]">
+                                  <div className="flex-1 flex items-center gap-0.5 min-w-0">
+                                    <span className="font-medium truncate">{suggestion.field_display_name}:</span>
+                                    <span className="text-muted-foreground truncate">{suggestion.current_value || '∅'}</span>
+                                    <ArrowRight className="h-2.5 w-2.5 flex-shrink-0" />
+                                    <span className="text-primary font-medium truncate">{suggestion.suggested_value}</span>
                                   </div>
-                                ) : (
-                                  <Badge 
-                                    variant={suggestion.status === 'approved' ? 'default' : 'secondary'}
-                                    className={suggestion.status === 'approved' 
-                                      ? 'bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0' 
-                                      : 'bg-muted text-muted-foreground text-[10px] px-1.5 py-0'}
-                                  >
-                                    {suggestion.status === 'approved' ? 'Approved' : 'Denied'}
-                                  </Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {type === "emails" && (
-                      <TableCell>
-                        <textarea
-                          className="w-full min-h-[50px] p-2 text-xs border rounded-md resize-none bg-background"
-                          placeholder="Add notes..."
-                          rows={2}
-                          defaultValue={(item as Email).user_notes || ''}
-                          onBlur={async (e) => {
-                            const newNotes = e.target.value;
-                            if (newNotes !== ((item as Email).user_notes || '')) {
-                              try {
-                                await supabase
-                                  .from('email_logs')
-                                  .update({ user_notes: newNotes })
-                                  .eq('id', (item as Email).id);
-                                toast.success('Notes saved');
-                              } catch (error) {
-                                toast.error('Failed to save notes');
+                                  {suggestion.status === 'pending' ? (
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleDenySuggestion(suggestion)}
+                                        disabled={processingIds.has(suggestion.id)}
+                                      >
+                                        {processingIds.has(suggestion.id) ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <X className="h-2.5 w-2.5" />}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-5 w-5 p-0 text-green-600 hover:bg-green-600/10"
+                                        onClick={() => leadId && handleApproveSuggestion(suggestion, leadId)}
+                                        disabled={processingIds.has(suggestion.id)}
+                                      >
+                                        {processingIds.has(suggestion.id) ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Check className="h-2.5 w-2.5" />}
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Badge 
+                                      variant={suggestion.status === 'approved' ? 'default' : 'secondary'}
+                                      className={suggestion.status === 'approved' 
+                                        ? 'bg-green-600 hover:bg-green-600 text-white text-[9px] px-1 py-0' 
+                                        : 'bg-muted text-muted-foreground text-[9px] px-1 py-0'}
+                                    >
+                                      {suggestion.status === 'approved' ? '✓' : '✗'}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {type === "emails" && (
+                        <TableCell className="py-1.5">
+                          <span className="text-[11px] text-muted-foreground line-clamp-3">
+                            {(item as Email).ai_summary || "—"}
+                          </span>
+                        </TableCell>
+                      )}
+                      {type === "emails" && "subject" in item && (
+                        <TableCell className="py-1.5">
+                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                            {item.subject || "—"}
+                          </span>
+                        </TableCell>
+                      )}
+                      {type === "emails" && (
+                        <TableCell className="py-1.5">
+                          {suggestions.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {suggestions.map((suggestion) => (
+                                <p key={suggestion.id} className="text-[10px] text-muted-foreground line-clamp-3">
+                                  {suggestion.reason || "—"}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {type === "emails" && (
+                        <TableCell className="py-1.5">
+                          <textarea
+                            className="w-full min-h-[36px] p-1 text-[10px] border rounded resize-none bg-background"
+                            placeholder="Notes..."
+                            rows={2}
+                            defaultValue={(item as Email).user_notes || ''}
+                            onBlur={async (e) => {
+                              const newNotes = e.target.value;
+                              if (newNotes !== ((item as Email).user_notes || '')) {
+                                try {
+                                  await supabase
+                                    .from('email_logs')
+                                    .update({ user_notes: newNotes })
+                                    .eq('id', (item as Email).id);
+                                  toast.success('Notes saved');
+                                } catch (error) {
+                                  toast.error('Failed to save notes');
+                                }
                               }
-                            }
-                          }}
-                        />
-                      </TableCell>
-                    )}
-                    {type === "emails" && "subject" in item && (
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground line-clamp-2">
-                          {item.subject || "—"}
-                        </span>
-                      </TableCell>
-                    )}
-                    {type === "emails" && (
-                      <TableCell>
-                        {suggestions.length > 0 ? (
-                          <div className="space-y-1">
-                            {suggestions.map((suggestion) => (
-                              <p key={suggestion.id} className="text-xs text-muted-foreground line-clamp-3">
-                                {suggestion.reason || "—"}
-                              </p>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
+                            }}
+                          />
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
             </Table>
           </div>
           <ScrollBar orientation="horizontal" />
