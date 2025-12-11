@@ -1529,6 +1529,63 @@ export type Database = {
           },
         ]
       }
+      email_response_suggestions: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          email_log_id: string
+          id: string
+          lead_id: string
+          needs_response: boolean
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          urgency: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          email_log_id: string
+          id?: string
+          lead_id: string
+          needs_response?: boolean
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          urgency?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          email_log_id?: string
+          id?: string
+          lead_id?: string
+          needs_response?: boolean
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_response_suggestions_email_log_id_fkey"
+            columns: ["email_log_id"]
+            isOneToOne: false
+            referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_response_suggestions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_segments: {
         Row: {
           created_at: string
@@ -2125,6 +2182,7 @@ export type Database = {
           interest_rate: number | null
           is_closed: boolean | null
           last_follow_up_date: string | null
+          last_morning_review_at: string | null
           last_name: string
           latest_file_updates: string | null
           latest_file_updates_updated_at: string | null
@@ -2305,6 +2363,7 @@ export type Database = {
           interest_rate?: number | null
           is_closed?: boolean | null
           last_follow_up_date?: string | null
+          last_morning_review_at?: string | null
           last_name: string
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
@@ -2487,6 +2546,7 @@ export type Database = {
           interest_rate?: number | null
           is_closed?: boolean | null
           last_follow_up_date?: string | null
+          last_morning_review_at?: string | null
           last_name?: string
           latest_file_updates?: string | null
           latest_file_updates_updated_at?: string | null
