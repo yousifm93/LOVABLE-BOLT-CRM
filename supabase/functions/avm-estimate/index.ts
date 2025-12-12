@@ -12,6 +12,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 );
 
+const rentcastApiKey = Deno.env.get('RENTCAST_API_KEY');
+
 interface EstimateRequest {
   address: string;
   beds?: number;
@@ -20,33 +22,70 @@ interface EstimateRequest {
   mode: 'internal' | 'public';
 }
 
-function generateMockData(address: string, beds?: number, baths?: number, sqft?: number) {
-  // Generate somewhat realistic mock data based on address
-  const baseEstimate = 400000 + (Math.random() * 400000); // $400k-800k base
-  const variance = baseEstimate * 0.15; // 15% variance
-  
-  const estimate = Math.round(baseEstimate);
-  const low = Math.round(estimate - variance);
-  const high = Math.round(estimate + variance);
-  const confidence = 0.6 + (Math.random() * 0.3); // 60-90% confidence
+interface RentcastResponse {
+  price: number;
+  priceRangeLow: number;
+  priceRangeHigh: number;
+  pricePerSquareFoot?: number;
+  comparables?: Array<{
+    formattedAddress: string;
+    distance: number;
+    bedrooms: number;
+    bathrooms: number;
+    squareFootage: number;
+    price: number;
+    listedDate?: string;
+    correlationScore?: number;
+  }>;
+}
 
-  const comps = Array.from({ length: 4 }, (_, i) => ({
-    address: `${123 + i} Mock Street, Miami, FL 33101`,
-    distance_miles: Math.round((0.1 + Math.random() * 0.8) * 10) / 10,
-    beds: beds || (2 + Math.floor(Math.random() * 3)),
-    baths: baths || (1 + Math.floor(Math.random() * 2.5)),
-    sqft: sqft || Math.round(1200 + Math.random() * 800),
-    sale_price: Math.round(estimate * (0.9 + Math.random() * 0.2)),
-    sale_date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+async function fetchRentcastEstimate(address: string, beds?: number, baths?: number, sqft?: number) {
+  const params = new URLSearchParams({ address });
+  if (beds) params.append('bedrooms', beds.toString());
+  if (baths) params.append('bathrooms', baths.toString());
+  if (sqft) params.append('squareFootage', sqft.toString());
+
+  console.log(`Calling Rentcast API for address: ${address}`);
+
+  const response = await fetch(`https://api.rentcast.io/v1/avm/value?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'X-Api-Key': rentcastApiKey || '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Rentcast API error: ${response.status} - ${errorText}`);
+    throw new Error(`Rentcast API error: ${response.status}`);
+  }
+
+  const data: RentcastResponse = await response.json();
+  console.log('Rentcast API response received:', JSON.stringify(data).substring(0, 500));
+
+  // Map Rentcast response to our format
+  const comps = (data.comparables || []).map(comp => ({
+    address: comp.formattedAddress,
+    distance_miles: Math.round(comp.distance * 10) / 10,
+    beds: comp.bedrooms,
+    baths: comp.bathrooms,
+    sqft: comp.squareFootage,
+    sale_price: comp.price,
+    sale_date: comp.listedDate || null,
     photo_url: null
   }));
 
+  // Calculate confidence based on price range spread
+  const priceSpread = data.priceRangeHigh - data.priceRangeLow;
+  const confidence = Math.max(0.5, Math.min(0.95, 1 - (priceSpread / data.price / 2)));
+
   return {
-    estimate,
-    low,
-    high,
+    estimate: data.price,
+    low: data.priceRangeLow,
+    high: data.priceRangeHigh,
     confidence: Math.round(confidence * 100) / 100,
-    provider: "mock",
+    provider: "rentcast",
     cached: false,
     comps
   };
@@ -113,10 +152,9 @@ serve(async (req) => {
       });
     }
 
-    // Generate mock data since no API keys are available
-    const mockResult = generateMockData(address, beds, baths, squareFootage);
+    // Call Rentcast API
+    const result = await fetchRentcastEstimate(address, beds, baths, squareFootage);
     
-    // Store the request and results
     const { data: requestData, error: requestError } = await supabase
       .from('valuation_requests')
       .insert({
@@ -126,8 +164,8 @@ serve(async (req) => {
         baths,
         sqft: squareFootage,
         requester_type: mode,
-        provider_primary: 'mock',
-        provider_used: 'mock',
+        provider_primary: 'rentcast',
+        provider_used: 'rentcast',
         status: 'success'
       })
       .select()
@@ -143,11 +181,11 @@ serve(async (req) => {
       .from('property_valuations')
       .insert({
         request_id: requestData.id,
-        estimate: mockResult.estimate,
-        low: mockResult.low,
-        high: mockResult.high,
-        confidence: mockResult.confidence,
-        provider_payload: mockResult,
+        estimate: result.estimate,
+        low: result.low,
+        high: result.high,
+        confidence: result.confidence,
+        provider_payload: result,
         cached_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       })
       .select()
@@ -159,11 +197,11 @@ serve(async (req) => {
     }
 
     // Store comparables
-    if (mockResult.comps?.length) {
+    if (result.comps?.length) {
       const { error: compsError } = await supabase
         .from('valuation_comparables')
         .insert(
-          mockResult.comps.map(comp => ({
+          result.comps.map(comp => ({
             valuation_id: valuationData.id,
             ...comp
           }))
@@ -175,7 +213,7 @@ serve(async (req) => {
     }
 
     console.log(`Successfully processed valuation for ${address}`);
-    return new Response(JSON.stringify(mockResult), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
