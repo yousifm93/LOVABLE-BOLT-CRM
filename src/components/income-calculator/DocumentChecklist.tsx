@@ -22,10 +22,11 @@ interface IncomeDocument {
 interface DocumentChecklistProps {
   program: string;
   documents: IncomeDocument[];
-  onUploadClick?: (docType: string) => void;
+  onUploadClick?: (docType: string, fileInputRef: React.RefObject<HTMLInputElement>) => void;
+  fileInputRef?: React.RefObject<HTMLInputElement>;
 }
 
-export function DocumentChecklist({ program, documents, onUploadClick }: DocumentChecklistProps) {
+export function DocumentChecklist({ program, documents, onUploadClick, fileInputRef }: DocumentChecklistProps) {
   const programReqs = LOAN_PROGRAM_REQUIREMENTS[program];
   
   if (!programReqs) {
@@ -138,11 +139,14 @@ export function DocumentChecklist({ program, documents, onUploadClick }: Documen
                   </div>
                 </div>
                 
-                {status !== 'complete' && onUploadClick && (
+                {status !== 'complete' && onUploadClick && fileInputRef && (
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => onUploadClick(req.docType)}
+                    onClick={() => {
+                      onUploadClick(req.docType, fileInputRef);
+                      fileInputRef.current?.click();
+                    }}
                     className="h-7 text-xs"
                   >
                     <Upload className="h-3 w-3 mr-1" />
@@ -186,11 +190,14 @@ export function DocumentChecklist({ program, documents, onUploadClick }: Documen
                     </div>
                   </div>
                   
-                  {!hasDoc && onUploadClick && (
+                  {!hasDoc && onUploadClick && fileInputRef && (
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => onUploadClick(req.docType)}
+                      onClick={() => {
+                        onUploadClick(req.docType, fileInputRef);
+                        fileInputRef.current?.click();
+                      }}
                       className="h-7 text-xs opacity-50 hover:opacity-100"
                     >
                       <Upload className="h-3 w-3 mr-1" />

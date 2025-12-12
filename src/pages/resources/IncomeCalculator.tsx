@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus, Calculator, FileText, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +59,7 @@ export default function IncomeCalculator() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingDocType, setPendingDocType] = useState<string | null>(null);
+  const checklistFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -130,7 +131,10 @@ export default function IncomeCalculator() {
           .from('income-docs')
           .upload(fileName, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw uploadError;
+        }
 
         const insertData = {
           borrower_id: selectedBorrower.id,
@@ -148,7 +152,10 @@ export default function IncomeCalculator() {
           .select()
           .single();
 
-        if (docError) throw docError;
+        if (docError) {
+          console.error('Document insert error:', docError);
+          throw docError;
+        }
 
         // Trigger OCR processing
         if (docData) {
@@ -303,6 +310,22 @@ export default function IncomeCalculator() {
                 program={selectedProgram}
                 documents={documents}
                 onUploadClick={(docType) => setPendingDocType(docType)}
+                fileInputRef={checklistFileInputRef}
+              />
+              {/* Hidden file input for checklist uploads */}
+              <input
+                ref={checklistFileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    handleFileUpload(files, pendingDocType || undefined);
+                  }
+                  e.target.value = '';
+                }}
               />
             </div>
 
