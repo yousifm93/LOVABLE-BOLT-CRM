@@ -150,3 +150,6 @@ verify_jwt = false
 
 [functions.send-closing-day-emails]
 verify_jwt = false
+
+[functions.send-loanestimate-email]
+verify_jwt = false

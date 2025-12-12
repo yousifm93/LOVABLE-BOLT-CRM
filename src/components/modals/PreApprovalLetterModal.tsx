@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Send } from 'lucide-react';
 import { generatePreApprovalPDF, PreApprovalData } from '@/lib/pdfGenerator';
 import { useToast } from '@/hooks/use-toast';
@@ -17,18 +18,67 @@ interface PreApprovalLetterModalProps {
 }
 
 type ModalMode = 'initial' | 'email';
-type RecipientType = 'borrower' | 'borrower_ba' | 'third_party';
+
+const LOAN_TYPE_OPTIONS = [
+  'Conventional',
+  'FHA',
+  'VA',
+  'DSCR',
+  'Jumbo',
+  'USDA',
+  'Bank Statement'
+];
 
 export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalLetterModalProps) {
   const [mode, setMode] = useState<ModalMode>('initial');
-  const [selectedRecipients, setSelectedRecipients] = useState<RecipientType>('borrower');
   const [thirdPartyEmail, setThirdPartyEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
+  // Multi-select recipients
+  const [sendToBorrower, setSendToBorrower] = useState(true);
+  const [sendToBuyerAgent, setSendToBuyerAgent] = useState(false);
+  const [sendToThirdParty, setSendToThirdParty] = useState(false);
+
+  // Editable form fields
+  const [formData, setFormData] = useState({
+    propertyAddress: '',
+    loanType: 'Conventional',
+    salesPrice: '',
+    loanAmount: ''
+  });
+
+  // Initialize form data from client when modal opens
+  useEffect(() => {
+    if (isOpen && client) {
+      let propertyAddress = "No Address Yet";
+      if (client.subjectAddress1) {
+        const parts = [
+          client.subjectAddress1,
+          client.subjectCity,
+          client.subjectState,
+          client.subjectZip
+        ].filter(Boolean);
+        propertyAddress = parts.join(", ");
+      }
+
+      const loanType = client.loanProgram || client.loan?.loanProgram || "Conventional";
+      const salesPrice = client.loan?.salesPrice?.toString() || '';
+      const loanAmount = client.loan?.loanAmount?.toString() || '';
+
+      setFormData({
+        propertyAddress,
+        loanType,
+        salesPrice,
+        loanAmount
+      });
+    }
+  }, [isOpen, client]);
+
   const formatCurrency = (value: string | number | undefined): string => {
     if (!value) return "$0";
     const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) : value;
+    if (isNaN(numValue)) return "$0";
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -40,27 +90,12 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
   const extractPreApprovalData = (): PreApprovalData => {
     const fullName = `${client.person.firstName || ''} ${client.person.lastName || ''}`.trim();
     
-    let propertyAddress = "No Address Yet";
-    if (client.subjectAddress1) {
-      const parts = [
-        client.subjectAddress1,
-        client.subjectCity,
-        client.subjectState,
-        client.subjectZip
-      ].filter(Boolean);
-      propertyAddress = parts.join(", ");
-    }
-    
-    const loanType = client.loanProgram || client.loan?.loanProgram || "Conventional";
-    const salesPrice = formatCurrency(client.loan?.salesPrice);
-    const loanAmount = formatCurrency(client.loan?.loanAmount);
-    
     return {
       fullName,
-      propertyAddress,
-      loanType,
-      salesPrice,
-      loanAmount
+      propertyAddress: formData.propertyAddress,
+      loanType: formData.loanType,
+      salesPrice: formatCurrency(formData.salesPrice),
+      loanAmount: formatCurrency(formData.loanAmount)
     };
   };
 
@@ -76,8 +111,7 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
         description: "Pre-approval letter downloaded successfully."
       });
       
-      onClose();
-      setMode('initial');
+      handleClose();
     } catch (error) {
       console.error('Error downloading letter:', error);
       toast({
@@ -91,7 +125,17 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
   };
 
   const handleEmailLetter = async () => {
-    if (selectedRecipients === 'third_party' && !thirdPartyEmail) {
+    // Validate recipients
+    if (!sendToBorrower && !sendToBuyerAgent && !sendToThirdParty) {
+      toast({
+        title: "Error",
+        description: "Please select at least one recipient.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (sendToThirdParty && !thirdPartyEmail) {
       toast({
         title: "Error",
         description: "Please enter a third party email address.",
@@ -100,7 +144,7 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
       return;
     }
 
-    if (selectedRecipients === 'third_party' && !thirdPartyEmail.includes('@')) {
+    if (sendToThirdParty && !thirdPartyEmail.includes('@')) {
       toast({
         title: "Error",
         description: "Please enter a valid email address.",
@@ -127,13 +171,26 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
         reader.readAsDataURL(blob);
       });
       
-      let primaryEmail = client.person.email;
-      let secondaryEmail = undefined;
-      
-      if (selectedRecipients === 'borrower_ba') {
-        secondaryEmail = client.buyer_agent?.email;
-      } else if (selectedRecipients === 'third_party') {
-        primaryEmail = thirdPartyEmail;
+      // Build recipient list
+      const recipients: string[] = [];
+      if (sendToBorrower && client.person.email) {
+        recipients.push(client.person.email);
+      }
+      if (sendToBuyerAgent && client.buyer_agent?.email) {
+        recipients.push(client.buyer_agent.email);
+      }
+      if (sendToThirdParty && thirdPartyEmail) {
+        recipients.push(thirdPartyEmail);
+      }
+
+      if (recipients.length === 0) {
+        toast({
+          title: "Error",
+          description: "No valid email addresses found for selected recipients.",
+          variant: "destructive"
+        });
+        setIsProcessing(false);
+        return;
       }
       
       const firstInitial = client.person.firstName?.charAt(0)?.toUpperCase() || '';
@@ -142,10 +199,14 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
       const formattedDate = `${today.getMonth() + 1}.${today.getDate()}.${today.getFullYear().toString().slice(-2)}`;
       const fileName = `Pre-Approval Letter - ${firstInitial}${lastInitial} ${formattedDate}.pdf`;
       
+      // Send to primary email, CC others
+      const primaryEmail = recipients[0];
+      const secondaryEmails = recipients.slice(1);
+
       const { error } = await supabase.functions.invoke('send-preapproval-email', {
         body: {
           primaryEmail,
-          secondaryEmail,
+          secondaryEmail: secondaryEmails.length > 0 ? secondaryEmails.join(',') : undefined,
           customerName: preApprovalData.fullName,
           pdfAttachment: base64PDF,
           fileName
@@ -156,12 +217,10 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
       
       toast({
         title: "Success!",
-        description: "Pre-approval letter sent successfully."
+        description: `Pre-approval letter sent to ${recipients.length} recipient(s).`
       });
       
-      onClose();
-      setMode('initial');
-      setThirdPartyEmail('');
+      handleClose();
     } catch (error) {
       console.error('Error emailing letter:', error);
       toast({
@@ -176,107 +235,157 @@ export function PreApprovalLetterModal({ isOpen, onClose, client }: PreApprovalL
 
   const handleClose = () => {
     setMode('initial');
-    setSelectedRecipients('borrower');
+    setSendToBorrower(true);
+    setSendToBuyerAgent(false);
+    setSendToThirdParty(false);
     setThirdPartyEmail('');
     onClose();
   };
 
-  if (!client.person.email && mode === 'email') {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cannot Send Email</DialogTitle>
-            <DialogDescription>
-              This borrower does not have an email address on file.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={handleClose}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const handleCurrencyChange = (field: 'salesPrice' | 'loanAmount', value: string) => {
+    // Remove non-numeric characters except decimal
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    setFormData(prev => ({ ...prev, [field]: numericValue }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Generate Pre-Approval Letter</DialogTitle>
+          <DialogDescription>
+            For: {client.person.firstName} {client.person.lastName}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Editable Fields Section */}
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="propertyAddress">Property Address</Label>
+            <Input
+              id="propertyAddress"
+              value={formData.propertyAddress}
+              onChange={(e) => setFormData(prev => ({ ...prev, propertyAddress: e.target.value }))}
+              placeholder="Enter property address"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="loanType">Loan Type</Label>
+            <Select 
+              value={formData.loanType} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, loanType: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select loan type" />
+              </SelectTrigger>
+              <SelectContent>
+                {LOAN_TYPE_OPTIONS.map(option => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="salesPrice">Sales Price</Label>
+              <Input
+                id="salesPrice"
+                value={formData.salesPrice ? formatCurrency(formData.salesPrice) : ''}
+                onChange={(e) => handleCurrencyChange('salesPrice', e.target.value)}
+                placeholder="$0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="loanAmount">Loan Amount</Label>
+              <Input
+                id="loanAmount"
+                value={formData.loanAmount ? formatCurrency(formData.loanAmount) : ''}
+                onChange={(e) => handleCurrencyChange('loanAmount', e.target.value)}
+                placeholder="$0"
+              />
+            </div>
+          </div>
+        </div>
+
         {mode === 'initial' ? (
           <>
-            <DialogHeader>
-              <DialogTitle>Generate Pre-Approval Letter</DialogTitle>
-              <DialogDescription>
-                For: {client.person.firstName} {client.person.lastName}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-2 gap-4 py-6">
+            <div className="grid grid-cols-2 gap-4 py-4">
               <Button
                 variant="outline"
                 size="lg"
-                className="h-32 flex flex-col gap-2"
+                className="h-24 flex flex-col gap-2"
                 onClick={handleDownloadLetter}
                 disabled={isProcessing}
               >
-                <Download className="h-8 w-8" />
+                <Download className="h-6 w-6" />
                 <span>Download Letter</span>
               </Button>
               
               <Button
                 variant="outline"
                 size="lg"
-                className="h-32 flex flex-col gap-2"
+                className="h-24 flex flex-col gap-2"
                 onClick={() => setMode('email')}
                 disabled={isProcessing || !client.person.email}
               >
-                <Send className="h-8 w-8" />
+                <Send className="h-6 w-6" />
                 <span>Email Letter</span>
               </Button>
             </div>
           </>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle>Send Pre-Approval Letter</DialogTitle>
-              <DialogDescription>Select recipients</DialogDescription>
-            </DialogHeader>
-
             <div className="py-4 space-y-4">
-              <RadioGroup value={selectedRecipients} onValueChange={(value) => setSelectedRecipients(value as RecipientType)}>
+              <Label className="text-sm font-medium">Select Recipients</Label>
+              
+              <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="borrower" id="borrower" />
-                  <Label htmlFor="borrower" className="flex-1 cursor-pointer">
-                    Borrower ({client.person.email})
+                  <Checkbox 
+                    id="borrower" 
+                    checked={sendToBorrower}
+                    onCheckedChange={(checked) => setSendToBorrower(checked === true)}
+                  />
+                  <Label htmlFor="borrower" className="flex-1 cursor-pointer text-sm">
+                    Borrower ({client.person.email || 'No email'})
                   </Label>
                 </div>
                 
                 {client.buyer_agent?.email && (
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="borrower_ba" id="borrower_ba" />
-                    <Label htmlFor="borrower_ba" className="flex-1 cursor-pointer">
-                      Borrower + Agent ({client.person.email}, {client.buyer_agent.email})
+                    <Checkbox 
+                      id="buyerAgent" 
+                      checked={sendToBuyerAgent}
+                      onCheckedChange={(checked) => setSendToBuyerAgent(checked === true)}
+                    />
+                    <Label htmlFor="buyerAgent" className="flex-1 cursor-pointer text-sm">
+                      Buyer's Agent ({client.buyer_agent.email})
                     </Label>
                   </div>
                 )}
                 
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="third_party" id="third_party" />
-                  <Label htmlFor="third_party" className="flex-1 cursor-pointer">
+                  <Checkbox 
+                    id="thirdParty" 
+                    checked={sendToThirdParty}
+                    onCheckedChange={(checked) => setSendToThirdParty(checked === true)}
+                  />
+                  <Label htmlFor="thirdParty" className="flex-1 cursor-pointer text-sm">
                     Third Party
                   </Label>
                 </div>
                 
-                {selectedRecipients === 'third_party' && (
+                {sendToThirdParty && (
                   <Input
                     type="email"
                     placeholder="Enter email address"
                     value={thirdPartyEmail}
                     onChange={(e) => setThirdPartyEmail(e.target.value)}
-                    className="mt-2"
+                    className="ml-6"
                   />
                 )}
-              </RadioGroup>
+              </div>
             </div>
 
             <DialogFooter>
