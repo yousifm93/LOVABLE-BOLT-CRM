@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail, AlertTriangle, TestTube2, Send } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail, AlertTriangle, TestTube2, Send, Search, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,6 +31,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { EmailAutomationModal } from "./EmailAutomationModal";
 
 interface EmailAutomation {
@@ -50,6 +63,8 @@ interface EmailAutomation {
 interface EmailTemplate {
   id: string;
   name: string;
+  html: string;
+  subject?: string;
 }
 
 interface EmailAutomationSettings {
@@ -58,6 +73,14 @@ interface EmailAutomationSettings {
   test_borrower_email: string;
   test_buyer_agent_email: string;
   test_listing_agent_email: string;
+}
+
+interface Lead {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  loan_status: string | null;
 }
 
 const PIPELINE_GROUPS = [
@@ -84,6 +107,9 @@ export function EmailAutomationsTable() {
   const [automations, setAutomations] = useState<EmailAutomation[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [settings, setSettings] = useState<EmailAutomationSettings | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedTestLeadId, setSelectedTestLeadId] = useState<string>('');
+  const [leadSearchOpen, setLeadSearchOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     active: true,
@@ -101,6 +127,7 @@ export function EmailAutomationsTable() {
     loadAutomations();
     loadTemplates();
     loadSettings();
+    loadLeads();
   }, []);
 
   const loadAutomations = async () => {
@@ -122,7 +149,7 @@ export function EmailAutomationsTable() {
   const loadTemplates = async () => {
     const { data } = await supabase
       .from('email_templates')
-      .select('id, name')
+      .select('id, name, html')
       .eq('is_archived', false)
       .order('name');
     setTemplates(data || []);
@@ -140,6 +167,14 @@ export function EmailAutomationsTable() {
     } else {
       setSettings(data);
     }
+  };
+
+  const loadLeads = async () => {
+    const { data } = await supabase
+      .from('leads')
+      .select('id, first_name, last_name, email, loan_status')
+      .order('first_name');
+    setLeads(data || []);
   };
 
   const toggleSection = (sectionId: string) => {
@@ -228,16 +263,19 @@ export function EmailAutomationsTable() {
         body: {
           automationId: automation.id,
           testMode: true,
-          // Use a sample lead for testing - will pick a random active lead
-          useRandomLead: true
+          leadId: selectedTestLeadId || undefined,
+          useRandomLead: !selectedTestLeadId
         }
       });
 
       if (error) throw error;
       
+      const selectedLead = leads.find(l => l.id === selectedTestLeadId);
+      const leadName = selectedLead ? `${selectedLead.first_name} ${selectedLead.last_name}` : 'random lead';
+      
       toast({ 
         title: "Test Email Sent",
-        description: `Email sent to ${settings?.test_borrower_email || 'test address'}`
+        description: `Email sent using ${leadName}'s fields to ${settings?.test_borrower_email || 'test address'}`
       });
     } catch (error: any) {
       console.error('Error sending test email:', error);
@@ -275,6 +313,8 @@ export function EmailAutomationsTable() {
     return automations.filter(a => a.pipeline_group === group);
   };
 
+  const selectedLead = leads.find(l => l.id === selectedTestLeadId);
+
   return (
     <div className="space-y-4">
       {/* Test Mode Card */}
@@ -310,30 +350,94 @@ export function EmailAutomationsTable() {
           </div>
           
           {settings?.test_mode_enabled && (
-            <div className="mt-4 pt-4 border-t border-amber-200 grid grid-cols-3 gap-4">
+            <div className="mt-4 pt-4 border-t border-amber-200 space-y-4">
+              {/* Borrower Selector */}
               <div>
-                <Label className="text-xs text-muted-foreground">Borrower Test Email</Label>
-                <Input 
-                  value={settings.test_borrower_email}
-                  onChange={(e) => handleUpdateTestEmail('test_borrower_email', e.target.value)}
-                  className="mt-1 h-8 text-sm"
-                />
+                <Label className="text-xs text-muted-foreground mb-1 block">Test with Borrower's Fields</Label>
+                <Popover open={leadSearchOpen} onOpenChange={setLeadSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={leadSearchOpen}
+                      className="w-full justify-between h-9 text-sm"
+                    >
+                      {selectedLead ? (
+                        <span className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          {selectedLead.first_name} {selectedLead.last_name}
+                          {selectedLead.loan_status && (
+                            <Badge variant="secondary" className="ml-2 text-xs">{selectedLead.loan_status}</Badge>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Select a borrower for merge tags...</span>
+                      )}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search borrowers..." />
+                      <CommandList>
+                        <CommandEmpty>No borrower found.</CommandEmpty>
+                        <CommandGroup>
+                          {leads.map(lead => (
+                            <CommandItem
+                              key={lead.id}
+                              value={`${lead.first_name} ${lead.last_name} ${lead.email}`}
+                              onSelect={() => {
+                                setSelectedTestLeadId(lead.id);
+                                setLeadSearchOpen(false);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span>{lead.first_name} {lead.last_name}</span>
+                                {lead.loan_status && (
+                                  <Badge variant="outline" className="text-xs">{lead.loan_status}</Badge>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedLead && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Merge tags will use this borrower's data (email will still go to test addresses)
+                  </p>
+                )}
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Buyer's Agent Test Email</Label>
-                <Input 
-                  value={settings.test_buyer_agent_email}
-                  onChange={(e) => handleUpdateTestEmail('test_buyer_agent_email', e.target.value)}
-                  className="mt-1 h-8 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Listing Agent Test Email</Label>
-                <Input 
-                  value={settings.test_listing_agent_email}
-                  onChange={(e) => handleUpdateTestEmail('test_listing_agent_email', e.target.value)}
-                  className="mt-1 h-8 text-sm"
-                />
+
+              {/* Test Email Addresses */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Borrower Test Email</Label>
+                  <Input 
+                    value={settings.test_borrower_email}
+                    onChange={(e) => handleUpdateTestEmail('test_borrower_email', e.target.value)}
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Buyer's Agent Test Email</Label>
+                  <Input 
+                    value={settings.test_buyer_agent_email}
+                    onChange={(e) => handleUpdateTestEmail('test_buyer_agent_email', e.target.value)}
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Listing Agent Test Email</Label>
+                  <Input 
+                    value={settings.test_listing_agent_email}
+                    onChange={(e) => handleUpdateTestEmail('test_listing_agent_email', e.target.value)}
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -460,7 +564,10 @@ export function EmailAutomationsTable() {
         onOpenChange={setModalOpen}
         automation={editingAutomation}
         templates={templates}
-        onSuccess={loadAutomations}
+        onSuccess={() => {
+          loadAutomations();
+          loadTemplates();
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -473,7 +580,7 @@ export function EmailAutomationsTable() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

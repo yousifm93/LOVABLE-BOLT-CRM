@@ -657,10 +657,10 @@ export default function Admin() {
       <Tabs defaultValue="fields" className="space-y-4 mx-[10px]">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
+          <TabsTrigger value="email-automations">Email Automations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="task-automations">Task Automations</TabsTrigger>
-          <TabsTrigger value="email-automations">Email Automations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields" className="space-y-4">
@@ -749,6 +749,10 @@ export default function Admin() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="email-automations" className="space-y-4">
+          <EmailAutomationsTable />
+        </TabsContent>
+
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
         </TabsContent>
@@ -757,12 +761,8 @@ export default function Admin() {
           <EmailTemplates />
         </TabsContent>
 
-          <TabsContent value="task-automations" className="space-y-4">
-            <TaskAutomationsTable />
-        </TabsContent>
-
-        <TabsContent value="email-automations" className="space-y-4">
-          <EmailAutomationsTable />
+        <TabsContent value="task-automations" className="space-y-4">
+          <TaskAutomationsTable />
         </TabsContent>
       </Tabs>
 
