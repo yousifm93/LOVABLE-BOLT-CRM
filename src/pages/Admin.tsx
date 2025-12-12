@@ -48,7 +48,8 @@ export default function Admin() {
     totalLeads: 0,
     activeUsers: 0,
     customFields: 0,
-    taskAutomations: 0
+    taskAutomations: 0,
+    emailAutomations: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -102,11 +103,20 @@ export default function Admin() {
           count: 'exact',
           head: true
         });
+
+        // Fetch email automations count
+        const {
+          count: emailAutomationsCount
+        } = await supabase.from('email_automations').select('*', {
+          count: 'exact',
+          head: true
+        });
         setStats({
           totalLeads: leadsCount || 0,
           activeUsers: usersCount || 0,
           customFields: fieldsCount || 0,
-          taskAutomations: automationsCount || 0
+          taskAutomations: automationsCount || 0,
+          emailAutomations: emailAutomationsCount || 0
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -150,6 +160,11 @@ export default function Admin() {
     value: loadingStats ? "..." : stats.taskAutomations.toString(),
     icon: Zap,
     color: "text-blue-500"
+  }, {
+    label: "Email Automations",
+    value: loadingStats ? "..." : stats.emailAutomations.toString(),
+    icon: Mail,
+    color: "text-purple-500"
   }];
   const handleAddField = async (fieldData: {
     field_name: string;
@@ -624,7 +639,7 @@ export default function Admin() {
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {systemStats.map((stat, index) => <Card key={index}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">

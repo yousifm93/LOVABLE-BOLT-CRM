@@ -144,3 +144,6 @@ verify_jwt = false
 
 [functions.parse-email-response-needed]
 verify_jwt = false
+
+[functions.trigger-email-automation]
+verify_jwt = false

@@ -1029,6 +1029,36 @@ export type Database = {
           },
         ]
       }
+      email_automation_settings: {
+        Row: {
+          created_at: string
+          id: string
+          test_borrower_email: string
+          test_buyer_agent_email: string
+          test_listing_agent_email: string
+          test_mode_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          test_borrower_email?: string
+          test_buyer_agent_email?: string
+          test_listing_agent_email?: string
+          test_mode_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          test_borrower_email?: string
+          test_buyer_agent_email?: string
+          test_listing_agent_email?: string
+          test_mode_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_automations: {
         Row: {
           created_at: string
