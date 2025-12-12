@@ -428,14 +428,14 @@ export function EmailAutomationModal({
                   <div className="space-y-2">
                     <Label>CC (Optional)</Label>
                     <Select
-                      value={formData.cc_recipient_type}
-                      onValueChange={v => setFormData(prev => ({ ...prev, cc_recipient_type: v }))}
+                      value={formData.cc_recipient_type || "none"}
+                      onValueChange={v => setFormData(prev => ({ ...prev, cc_recipient_type: v === "none" ? "" : v }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="No CC" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {RECIPIENT_TYPES.filter(r => r.value !== formData.recipient_type).map(r => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
