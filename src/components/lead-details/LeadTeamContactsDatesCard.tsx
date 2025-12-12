@@ -10,10 +10,11 @@ import { PITITab } from "./PITITab";
 interface LeadTeamContactsDatesCardProps {
   leadId: string;
   onLeadUpdated?: () => void;
+  defaultCollapsed?: boolean;
 }
 
-export function LeadTeamContactsDatesCard({ leadId, onLeadUpdated }: LeadTeamContactsDatesCardProps) {
-  const [isOpen, setIsOpen] = useState(true);
+export function LeadTeamContactsDatesCard({ leadId, onLeadUpdated, defaultCollapsed = false }: LeadTeamContactsDatesCardProps) {
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
 
   return (
     <Card className="mb-4">
