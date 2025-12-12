@@ -53,15 +53,8 @@ interface IncomeCalculation {
 
 export default function IncomeCalculator() {
   // Simple session-based state - use sessionId as a pseudo-borrower-id
-  const [sessionId] = useState<string>(() => {
-    // Generate a unique session ID for this calculator session (as UUID format)
-    const saved = localStorage.getItem('incomeCalc_sessionId');
-    if (saved) return saved;
-    // Generate a UUID-like string for compatibility with borrower_id field
-    const newId = crypto.randomUUID();
-    localStorage.setItem('incomeCalc_sessionId', newId);
-    return newId;
-  });
+  const [sessionId, setSessionId] = useState<string>('');
+  const [sessionReady, setSessionReady] = useState(false);
   
   // Optional borrower name for labeling (not required)
   const [borrowerName, setBorrowerName] = useState<string>(() => {
@@ -80,10 +73,57 @@ export default function IncomeCalculator() {
   const checklistFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Save borrower name to localStorage
-  const handleBorrowerNameChange = (name: string) => {
+  // Initialize session and ensure borrower record exists
+  useEffect(() => {
+    const initSession = async () => {
+      let id = localStorage.getItem('incomeCalc_sessionId');
+      let isNewSession = false;
+      
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('incomeCalc_sessionId', id);
+        isNewSession = true;
+      }
+      
+      setSessionId(id);
+      
+      // Check if borrower record exists, if not create it
+      const { data: existingBorrower } = await supabase
+        .from('borrowers')
+        .select('id')
+        .eq('id', id)
+        .single();
+      
+      if (!existingBorrower) {
+        // Create placeholder borrower record to satisfy RLS
+        const savedName = localStorage.getItem('incomeCalc_borrowerName') || '';
+        const [first, ...rest] = savedName.split(' ');
+        
+        await supabase.from('borrowers').insert({
+          id: id,
+          first_name: first || 'Session',
+          last_name: rest.join(' ') || new Date().toISOString().split('T')[0],
+        });
+      }
+      
+      setSessionReady(true);
+    };
+    
+    initSession();
+  }, []);
+
+  // Save borrower name to localStorage and update borrower record
+  const handleBorrowerNameChange = async (name: string) => {
     setBorrowerName(name);
     localStorage.setItem('incomeCalc_borrowerName', name);
+    
+    // Update the borrower record
+    if (sessionId) {
+      const [first, ...rest] = name.split(' ');
+      await supabase.from('borrowers')
+        .update({ first_name: first || 'Session', last_name: rest.join(' ') || '' })
+        .eq('id', sessionId);
+    }
   };
 
   // Save program selection to localStorage
@@ -94,9 +134,11 @@ export default function IncomeCalculator() {
 
   // Load documents on mount
   useEffect(() => {
-    loadDocuments();
-    loadCalculations();
-  }, [sessionId]);
+    if (sessionReady && sessionId) {
+      loadDocuments();
+      loadCalculations();
+    }
+  }, [sessionId, sessionReady]);
 
   // Poll for OCR status updates
   useEffect(() => {
@@ -295,6 +337,18 @@ export default function IncomeCalculator() {
   };
 
   const latestCalculation = calculations[0];
+
+  // Show loading while session is initializing
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Calculator className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
+          <p className="text-muted-foreground">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
