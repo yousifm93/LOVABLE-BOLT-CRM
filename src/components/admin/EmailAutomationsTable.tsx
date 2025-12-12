@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail, AlertTriangle, TestTube2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -49,6 +52,14 @@ interface EmailTemplate {
   name: string;
 }
 
+interface EmailAutomationSettings {
+  id: string;
+  test_mode_enabled: boolean;
+  test_borrower_email: string;
+  test_buyer_agent_email: string;
+  test_listing_agent_email: string;
+}
+
 const PIPELINE_GROUPS = [
   { id: 'active', label: 'Active Loan Automations' },
   { id: 'past_client', label: 'Past Client Automations' },
@@ -72,6 +83,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 export function EmailAutomationsTable() {
   const [automations, setAutomations] = useState<EmailAutomation[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [settings, setSettings] = useState<EmailAutomationSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     active: true,
@@ -82,11 +94,13 @@ export function EmailAutomationsTable() {
   const [editingAutomation, setEditingAutomation] = useState<EmailAutomation | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [automationToDelete, setAutomationToDelete] = useState<EmailAutomation | null>(null);
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadAutomations();
     loadTemplates();
+    loadSettings();
   }, []);
 
   const loadAutomations = async () => {
@@ -114,6 +128,20 @@ export function EmailAutomationsTable() {
     setTemplates(data || []);
   };
 
+  const loadSettings = async () => {
+    const { data, error } = await supabase
+      .from('email_automation_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Error loading settings:', error);
+    } else {
+      setSettings(data);
+    }
+  };
+
   const toggleSection = (sectionId: string) => {
     setOpenSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
@@ -130,6 +158,43 @@ export function EmailAutomationsTable() {
       setAutomations(prev =>
         prev.map(a => a.id === automation.id ? { ...a, is_active: !a.is_active } : a)
       );
+    }
+  };
+
+  const handleToggleTestMode = async () => {
+    if (!settings) return;
+    
+    const newValue = !settings.test_mode_enabled;
+    const { error } = await supabase
+      .from('email_automation_settings')
+      .update({ test_mode_enabled: newValue })
+      .eq('id', settings.id);
+
+    if (error) {
+      toast({ title: "Error updating test mode", variant: "destructive" });
+    } else {
+      setSettings({ ...settings, test_mode_enabled: newValue });
+      toast({ 
+        title: newValue ? "Test Mode Enabled" : "Test Mode Disabled",
+        description: newValue 
+          ? "Emails will be sent to test addresses only" 
+          : "Emails will be sent to actual recipients"
+      });
+    }
+  };
+
+  const handleUpdateTestEmail = async (field: keyof EmailAutomationSettings, value: string) => {
+    if (!settings) return;
+    
+    const { error } = await supabase
+      .from('email_automation_settings')
+      .update({ [field]: value })
+      .eq('id', settings.id);
+
+    if (error) {
+      toast({ title: "Error updating email", variant: "destructive" });
+    } else {
+      setSettings({ ...settings, [field]: value });
     }
   };
 
@@ -154,6 +219,36 @@ export function EmailAutomationsTable() {
     }
     setDeleteDialogOpen(false);
     setAutomationToDelete(null);
+  };
+
+  const handleSendTestEmail = async (automation: EmailAutomation) => {
+    setSendingTest(automation.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-email-automation', {
+        body: {
+          automationId: automation.id,
+          testMode: true,
+          // Use a sample lead for testing - will pick a random active lead
+          useRandomLead: true
+        }
+      });
+
+      if (error) throw error;
+      
+      toast({ 
+        title: "Test Email Sent",
+        description: `Email sent to ${settings?.test_borrower_email || 'test address'}`
+      });
+    } catch (error: any) {
+      console.error('Error sending test email:', error);
+      toast({ 
+        title: "Error sending test email", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setSendingTest(null);
+    }
   };
 
   const formatTrigger = (automation: EmailAutomation): string => {
@@ -182,6 +277,69 @@ export function EmailAutomationsTable() {
 
   return (
     <div className="space-y-4">
+      {/* Test Mode Card */}
+      <Card className={settings?.test_mode_enabled ? "border-amber-500 bg-amber-50/50" : ""}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${settings?.test_mode_enabled ? 'bg-amber-100' : 'bg-muted'}`}>
+                <TestTube2 className={`h-5 w-5 ${settings?.test_mode_enabled ? 'text-amber-600' : 'text-muted-foreground'}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Test Mode</h3>
+                  {settings?.test_mode_enabled && (
+                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      ACTIVE
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {settings?.test_mode_enabled 
+                    ? "All automated emails will be sent to test addresses below instead of actual recipients"
+                    : "Automated emails will be sent to actual borrowers and agents"
+                  }
+                </p>
+              </div>
+            </div>
+            <Switch 
+              checked={settings?.test_mode_enabled || false}
+              onCheckedChange={handleToggleTestMode}
+            />
+          </div>
+          
+          {settings?.test_mode_enabled && (
+            <div className="mt-4 pt-4 border-t border-amber-200 grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Borrower Test Email</Label>
+                <Input 
+                  value={settings.test_borrower_email}
+                  onChange={(e) => handleUpdateTestEmail('test_borrower_email', e.target.value)}
+                  className="mt-1 h-8 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Buyer's Agent Test Email</Label>
+                <Input 
+                  value={settings.test_buyer_agent_email}
+                  onChange={(e) => handleUpdateTestEmail('test_buyer_agent_email', e.target.value)}
+                  className="mt-1 h-8 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Listing Agent Test Email</Label>
+                <Input 
+                  value={settings.test_listing_agent_email}
+                  onChange={(e) => handleUpdateTestEmail('test_listing_agent_email', e.target.value)}
+                  className="mt-1 h-8 text-sm"
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Email Automations</h2>
         <Button onClick={() => { setEditingAutomation(null); setModalOpen(true); }}>
@@ -224,7 +382,7 @@ export function EmailAutomationsTable() {
                           <TableHead>Purpose</TableHead>
                           <TableHead className="w-[150px]">Template</TableHead>
                           <TableHead className="w-[80px] text-center">Active</TableHead>
-                          <TableHead className="w-[100px] text-center">Actions</TableHead>
+                          <TableHead className="w-[140px] text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -254,6 +412,16 @@ export function EmailAutomationsTable() {
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleSendTestEmail(automation)}
+                                  disabled={sendingTest === automation.id}
+                                  title="Send Test Email"
+                                >
+                                  <Send className={`h-4 w-4 ${sendingTest === automation.id ? 'animate-pulse' : ''}`} />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
