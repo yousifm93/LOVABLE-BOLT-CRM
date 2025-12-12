@@ -343,101 +343,40 @@ serve(async (req) => {
 
     let openaiResponse;
 
-    if (isImage) {
-      // Use vision API for images
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [{
-            role: 'system',
-            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
+    // For both images and PDFs, use vision API with base64
+    // PDFs are supported by GPT-4o vision when sent as images
+    const mediaType = isPdf ? 'application/pdf' : document.mime_type;
+    
+    openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{
+          role: 'system',
+          content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
+        }, {
+          role: 'user',
+          content: [{
+            type: 'text',
+            text: extractionPrompt
           }, {
-            role: 'user',
-            content: [{
-              type: 'text',
-              text: extractionPrompt
-            }, {
-              type: 'image_url',
-              image_url: {
-                url: `data:${document.mime_type};base64,${base64}`,
-                detail: 'high'
-              }
-            }]
-          }],
-          max_tokens: 4000,
-          temperature: 0.1
-        }),
-      });
-    } else if (isPdf) {
-      // For PDFs, use the file API with gpt-4o's native PDF support
-      // First, upload the file to OpenAI
-      const formData = new FormData();
-      const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      formData.append('file', pdfBlob, document.file_name || 'document.pdf');
-      formData.append('purpose', 'assistants');
-
-      const uploadResponse = await fetch('https://api.openai.com/v1/files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        },
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const uploadError = await uploadResponse.text();
-        console.error('Failed to upload PDF to OpenAI:', uploadError);
-        // Fallback: Try to extract text and use text-only analysis
-        throw new Error('PDF upload failed - please upload an image (PNG, JPG) of the document instead');
-      }
-
-      const uploadResult = await uploadResponse.json();
-      const fileId = uploadResult.id;
-      console.log(`Uploaded PDF as file: ${fileId}`);
-
-      // Use the file with chat completions
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [{
-            role: 'system',
-            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
-          }, {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                file: { file_id: fileId }
-              },
-              {
-                type: 'text',
-                text: extractionPrompt
-              }
-            ]
-          }],
-          max_tokens: 4000,
-          temperature: 0.1
-        }),
-      });
-
-      // Clean up the uploaded file (async, don't wait)
-      fetch(`https://api.openai.com/v1/files/${fileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        },
-      }).catch(e => console.error('Failed to delete temp file:', e));
-    } else {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mediaType};base64,${base64}`,
+              detail: 'high'
+            }
+          }]
+        }],
+        max_tokens: 4000,
+        temperature: 0.1
+      }),
+    });
+    
+    if (!isImage && !isPdf) {
       throw new Error(`Unsupported file type: ${document.mime_type}. Please upload images (PNG, JPG, WEBP, GIF) or PDF files.`);
     }
 
@@ -482,13 +421,10 @@ serve(async (req) => {
     // Extract period dates if available
     let docPeriodStart = null;
     let docPeriodEnd = null;
-    let taxYear = null;
-
     if (parsedJson.pay_period_start) docPeriodStart = parsedJson.pay_period_start;
     if (parsedJson.pay_period_end) docPeriodEnd = parsedJson.pay_period_end;
-    if (parsedJson.tax_year) taxYear = parsedJson.tax_year;
 
-    // Update document with results
+    // Update document with results (tax_year stored in parsed_json, not as separate column)
     const { error: updateError } = await supabaseClient
       .from('income_documents')
       .update({
@@ -497,8 +433,7 @@ serve(async (req) => {
         parse_confidence: confidence,
         doc_type: detectedDocType !== 'default' ? detectedDocType : document.doc_type,
         doc_period_start: docPeriodStart,
-        doc_period_end: docPeriodEnd,
-        tax_year: taxYear
+        doc_period_end: docPeriodEnd
       })
       .eq('id', document_id);
 
@@ -519,7 +454,7 @@ serve(async (req) => {
           fields_extracted: Object.keys(parsedJson).length,
           model: 'gpt-4o',
           has_period_dates: !!(docPeriodStart || docPeriodEnd),
-          tax_year: taxYear
+          tax_year: parsedJson.tax_year || null
         }
       });
 
