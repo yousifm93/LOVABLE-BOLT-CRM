@@ -1076,6 +1076,7 @@ export type Database = {
           mime_type: string
           notes: string | null
           size_bytes: number
+          source: string | null
           status: string | null
           title: string | null
           updated_at: string | null
@@ -1093,6 +1094,7 @@ export type Database = {
           mime_type: string
           notes?: string | null
           size_bytes: number
+          source?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null
@@ -1110,6 +1112,7 @@ export type Database = {
           mime_type?: string
           notes?: string | null
           size_bytes?: number
+          source?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null

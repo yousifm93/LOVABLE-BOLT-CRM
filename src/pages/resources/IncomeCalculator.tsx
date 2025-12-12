@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calculator, FileText, AlertTriangle, Download } from "lucide-react";
+import { Plus, Calculator, FileText, AlertTriangle, Download, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UploadBox } from "@/components/income-calculator/UploadBox";
-import { BorrowerSelector } from "@/components/income-calculator/BorrowerSelector";
 import { DocumentCard } from "@/components/income-calculator/DocumentCard";
 import { ParsedFieldsForm } from "@/components/income-calculator/ParsedFieldsForm";
 import { IncomeSummaryCard } from "@/components/income-calculator/IncomeSummaryCard";
@@ -51,7 +52,22 @@ interface IncomeCalculation {
 }
 
 export default function IncomeCalculator() {
-  const [selectedBorrower, setSelectedBorrower] = useState<Borrower | null>(null);
+  // Simple session-based state - use sessionId as a pseudo-borrower-id
+  const [sessionId] = useState<string>(() => {
+    // Generate a unique session ID for this calculator session (as UUID format)
+    const saved = localStorage.getItem('incomeCalc_sessionId');
+    if (saved) return saved;
+    // Generate a UUID-like string for compatibility with borrower_id field
+    const newId = crypto.randomUUID();
+    localStorage.setItem('incomeCalc_sessionId', newId);
+    return newId;
+  });
+  
+  // Optional borrower name for labeling (not required)
+  const [borrowerName, setBorrowerName] = useState<string>(() => {
+    return localStorage.getItem('incomeCalc_borrowerName') || '';
+  });
+  
   const [selectedProgram, setSelectedProgram] = useState<string>(() => {
     return localStorage.getItem('incomeCalc_program') || 'conventional';
   });
@@ -64,32 +80,10 @@ export default function IncomeCalculator() {
   const checklistFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Load saved borrower from localStorage on mount
-  useEffect(() => {
-    const savedBorrowerId = localStorage.getItem('incomeCalc_borrowerId');
-    if (savedBorrowerId) {
-      // Fetch the borrower from database
-      supabase
-        .from('borrowers')
-        .select('*')
-        .eq('id', savedBorrowerId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setSelectedBorrower(data);
-          }
-        });
-    }
-  }, []);
-
-  // Save borrower selection to localStorage
-  const handleBorrowerSelect = (borrower: Borrower | null) => {
-    setSelectedBorrower(borrower);
-    if (borrower) {
-      localStorage.setItem('incomeCalc_borrowerId', borrower.id);
-    } else {
-      localStorage.removeItem('incomeCalc_borrowerId');
-    }
+  // Save borrower name to localStorage
+  const handleBorrowerNameChange = (name: string) => {
+    setBorrowerName(name);
+    localStorage.setItem('incomeCalc_borrowerName', name);
   };
 
   // Save program selection to localStorage
@@ -98,17 +92,14 @@ export default function IncomeCalculator() {
     localStorage.setItem('incomeCalc_program', program);
   };
 
+  // Load documents on mount
   useEffect(() => {
-    if (selectedBorrower) {
-      loadDocuments();
-      loadCalculations();
-    }
-  }, [selectedBorrower]);
+    loadDocuments();
+    loadCalculations();
+  }, [sessionId]);
 
   // Poll for OCR status updates
   useEffect(() => {
-    if (!selectedBorrower) return;
-    
     const pendingDocs = documents.filter(d => d.ocr_status === 'pending' || d.ocr_status === 'processing');
     if (pendingDocs.length === 0) return;
 
@@ -117,51 +108,47 @@ export default function IncomeCalculator() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [documents, selectedBorrower]);
+  }, [documents]);
 
   const loadDocuments = async () => {
-    if (!selectedBorrower) return;
-
     try {
       const { data, error } = await supabase
         .from('income_documents')
         .select('*')
-        .eq('borrower_id', selectedBorrower.id)
+        .eq('borrower_id', sessionId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      setDocuments((data as IncomeDocument[]) || []);
     } catch (error) {
       console.error('Error loading documents:', error);
     }
   };
 
   const loadCalculations = async () => {
-    if (!selectedBorrower) return;
-
     try {
       const { data, error } = await supabase
         .from('income_calculations')
         .select('*')
-        .eq('borrower_id', selectedBorrower.id)
+        .eq('borrower_id', sessionId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCalculations(data || []);
+      setCalculations((data as IncomeCalculation[]) || []);
     } catch (error) {
       console.error('Error loading calculations:', error);
     }
   };
 
   const handleFileUpload = async (files: File[], docType?: string) => {
-    if (!selectedBorrower || files.length === 0) return;
+    if (files.length === 0) return;
 
     setIsUploading(true);
 
     try {
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${selectedBorrower.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const fileName = `${sessionId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('income-docs')
@@ -172,19 +159,20 @@ export default function IncomeCalculator() {
           throw uploadError;
         }
 
-        const insertData = {
-          borrower_id: selectedBorrower.id,
-          doc_type: (docType || pendingDocType || 'pay_stub') as 'pay_stub' | 'w2' | 'form_1099' | 'form_1040' | 'schedule_c' | 'schedule_e' | 'schedule_f' | 'k1' | 'voe' | 'form_1065' | 'form_1120s',
+        // Use borrower_id field with our sessionId (which is now UUID format)
+        const insertData: Record<string, unknown> = {
+          borrower_id: sessionId,
+          doc_type: (docType || pendingDocType || 'pay_stub'),
           file_name: file.name,
           storage_path: fileName,
           mime_type: file.type,
           file_size_bytes: file.size,
-          ocr_status: 'pending' as const
+          ocr_status: 'pending'
         };
         
         const { data: docData, error: docError } = await supabase
           .from('income_documents')
-          .insert([insertData])
+          .insert([insertData as any])
           .select()
           .single();
 
@@ -222,14 +210,21 @@ export default function IncomeCalculator() {
   };
 
   const handleCalculateIncome = async () => {
-    if (!selectedBorrower) return;
+    if (documents.length === 0) {
+      toast({
+        title: "No Documents",
+        description: "Upload documents before calculating income",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsCalculating(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('income-calculate', {
         body: {
-          borrower_id: selectedBorrower.id,
+          borrower_id: sessionId,
           agency: 'fannie',
           loan_program: selectedProgram
         }
@@ -257,7 +252,14 @@ export default function IncomeCalculator() {
   };
 
   const handleExportPDF = async () => {
-    if (!selectedBorrower || calculations.length === 0) return;
+    if (calculations.length === 0) {
+      toast({
+        title: "No Calculations",
+        description: "Run a calculation before exporting",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke('income-export-pdf', {
@@ -283,6 +285,13 @@ export default function IncomeCalculator() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleClearSession = () => {
+    localStorage.removeItem('incomeCalc_sessionId');
+    localStorage.removeItem('incomeCalc_borrowerName');
+    localStorage.removeItem('incomeCalc_program');
+    window.location.reload();
   };
 
   const latestCalculation = calculations[0];
@@ -323,169 +332,151 @@ export default function IncomeCalculator() {
       </div>
 
       <div className="container mx-auto px-6 py-6">
+        {/* Simple Borrower Name Input + Clear Session */}
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Select Borrower</CardTitle>
-            <CardDescription>
-              Choose the borrower for income calculation or link from existing lead
-            </CardDescription>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Borrower Info (Optional)</CardTitle>
+                <CardDescription className="text-sm">
+                  Enter a name to label documents, or leave blank
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleClearSession}>
+                New Session
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <BorrowerSelector 
-              selectedBorrower={selectedBorrower}
-              onBorrowerSelect={handleBorrowerSelect}
-            />
+            <div className="flex items-center gap-4">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <Input
+                value={borrowerName}
+                onChange={(e) => handleBorrowerNameChange(e.target.value)}
+                placeholder="Enter borrower name (optional)"
+                className="max-w-sm"
+              />
+            </div>
           </CardContent>
         </Card>
 
-        {selectedBorrower ? (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Document Checklist */}
-            <div className="lg:col-span-1">
-              <DocumentChecklist
-                program={selectedProgram}
-                documents={documents}
-                onUploadClick={(docType) => setPendingDocType(docType)}
-                fileInputRef={checklistFileInputRef}
-              />
-              {/* Hidden file input for checklist uploads */}
-              <input
-                ref={checklistFileInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (files.length > 0) {
-                    handleFileUpload(files, pendingDocType || undefined);
-                  }
-                  e.target.value = '';
-                }}
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Document Checklist */}
+          <div className="lg:col-span-1">
+            <DocumentChecklist
+              program={selectedProgram}
+              documents={documents}
+              onUploadClick={(docType) => setPendingDocType(docType)}
+              fileInputRef={checklistFileInputRef}
+            />
+            {/* Hidden file input for checklist uploads */}
+            <input
+              ref={checklistFileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.png,.jpg,.jpeg"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) {
+                  handleFileUpload(files, pendingDocType || undefined);
+                }
+                e.target.value = '';
+              }}
+            />
+          </div>
 
-            {/* Documents */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Documents ({documents.length})
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <UploadBox 
-                    onFilesSelected={(files) => handleFileUpload(files)}
-                    isUploading={isUploading}
-                    disabled={isUploading}
-                  />
-                  
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {documents.map((doc) => (
-                      <DocumentCard
-                        key={doc.id}
-                        document={doc}
-                        isSelected={selectedDocument?.id === doc.id}
-                        onClick={() => setSelectedDocument(doc)}
-                      />
-                    ))}
-                    
-                    {documents.length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground text-sm">
-                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No documents uploaded</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Parsed Fields */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Parsed Fields</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedDocument ? (
-                    <ParsedFieldsForm 
-                      document={selectedDocument}
-                      onUpdate={(updatedDoc) => {
-                        setDocuments(docs => 
-                          docs.map(d => d.id === updatedDoc.id ? updatedDoc : d)
-                        );
-                        setSelectedDocument(updatedDoc);
-                      }}
+          {/* Documents */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Documents ({documents.length})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <UploadBox 
+                  onFilesSelected={(files) => handleFileUpload(files)}
+                  isUploading={isUploading}
+                  disabled={isUploading}
+                />
+                
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {documents.map((doc) => (
+                    <DocumentCard
+                      key={doc.id}
+                      document={doc}
+                      isSelected={selectedDocument?.id === doc.id}
+                      onClick={() => setSelectedDocument(doc)}
                     />
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Select a document to view</p>
+                  ))}
+                  
+                  {documents.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground text-sm">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No documents uploaded</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Income Summary */}
-            <div className="lg:col-span-1">
-              <div className="space-y-4">
-                <IncomeSummaryCard 
-                  calculation={latestCalculation}
-                  borrower={selectedBorrower}
-                  agency="fannie"
-                  onCalculate={handleCalculateIncome}
-                  onExport={handleExportPDF}
-                  isCalculating={isCalculating}
-                />
-
-                {latestCalculation && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Audit Trail</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <AuditTrail calculationId={latestCalculation.id} />
-                    </CardContent>
-                  </Card>
+          {/* Parsed Fields */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Parsed Fields</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedDocument ? (
+                  <ParsedFieldsForm 
+                    document={selectedDocument}
+                    onUpdate={(updatedDoc) => {
+                      setDocuments(docs => 
+                        docs.map(d => d.id === updatedDoc.id ? updatedDoc : d)
+                      );
+                      setSelectedDocument(updatedDoc);
+                    }}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Select a document to view</p>
+                  </div>
                 )}
-              </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Income Summary */}
+          <div className="lg:col-span-1">
+            <div className="space-y-4">
+              <IncomeSummaryCard 
+                calculation={latestCalculation}
+                borrower={borrowerName ? { first_name: borrowerName.split(' ')[0] || '', last_name: borrowerName.split(' ').slice(1).join(' ') || '', id: sessionId } : null}
+                agency="fannie"
+                onCalculate={handleCalculateIncome}
+                onExport={handleExportPDF}
+                isCalculating={isCalculating}
+              />
+
+              {latestCalculation && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Audit Trail</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AuditTrail calculationId={latestCalculation.id} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-        ) : (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <Calculator className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Welcome to Income Calculator</h3>
-                <p className="text-muted-foreground mb-4">
-                  Select a borrower above to begin income analysis
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto text-sm">
-                  <div className="p-4 bg-muted/50 rounded">
-                    <FileText className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <h4 className="font-medium">1. Upload Documents</h4>
-                    <p className="text-muted-foreground">Pay stubs, W-2s, tax returns</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded">
-                    <Calculator className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <h4 className="font-medium">2. Auto Calculate</h4>
-                    <p className="text-muted-foreground">Fannie Mae compliant</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded">
-                    <Download className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <h4 className="font-medium">3. Export Form 1084</h4>
-                    <p className="text-muted-foreground">PDF worksheet</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        </div>
       </div>
     </div>
   );
