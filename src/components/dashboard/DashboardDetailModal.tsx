@@ -44,6 +44,16 @@ interface Agent {
   meeting_summary?: string | null;
 }
 
+interface Call {
+  id: string;
+  name: string;
+  person_type: 'Lead' | 'Agent';
+  call_date: string;
+  call_type?: string | null;
+  notes: string | null;
+  lead_id?: string | null;
+}
+
 interface Email {
   id: string;
   lead_id: string;
@@ -91,7 +101,7 @@ interface DashboardDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  data: Lead[] | Agent[] | Email[];
+  data: Lead[] | Agent[] | Email[] | Call[];
   type: "leads" | "applications" | "meetings" | "calls" | "emails";
   onLeadClick?: (leadId: string) => void;
 }
@@ -430,7 +440,7 @@ export function DashboardDetailModal({
     });
   };
 
-  const renderDate = (item: Lead | Agent | Email) => {
+  const renderDate = (item: Lead | Agent | Email | Call) => {
     if (type === "leads" && "lead_on_date" in item) {
       return item.lead_on_date ? formatDateShort(item.lead_on_date) : "—";
     }
@@ -440,8 +450,10 @@ export function DashboardDetailModal({
     if (type === "meetings" && "face_to_face_meeting" in item) {
       return item.face_to_face_meeting ? new Date(item.face_to_face_meeting).toLocaleDateString() : "—";
     }
-    if (type === "calls" && "last_agent_call" in item) {
-      return item.last_agent_call ? new Date(item.last_agent_call).toLocaleDateString() : "—";
+    if (type === "calls" && "call_date" in item) {
+      return item.call_date ? new Date(item.call_date).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+      }) : "—";
     }
     if (type === "emails" && "timestamp" in item) {
       return item.timestamp ? new Date(item.timestamp).toLocaleString('en-US', {
@@ -470,12 +482,16 @@ export function DashboardDetailModal({
 
   const getThirdColumnTitle = () => {
     if (type === "emails") return "Dir";
-    return (type === "meetings" || type === "calls") ? "Notes" : "Current Stage";
+    if (type === "calls") return "Type";
+    return type === "meetings" ? "Notes" : "Current Stage";
   };
 
-  const getName = (item: Lead | Agent | Email) => {
+  const getName = (item: Lead | Agent | Email | Call) => {
     if (type === "emails" && "lead" in item && item.lead) {
       return `${item.lead.first_name || ''} ${item.lead.last_name || ''}`.trim() || "Unknown";
+    }
+    if (type === "calls" && "name" in item) {
+      return item.name || "Unknown";
     }
     if ("first_name" in item) {
       return `${item.first_name} ${item.last_name}`;
@@ -779,6 +795,66 @@ export function DashboardDetailModal({
     </div>
   );
 
+  const CALL_TYPE_LABELS: Record<string, string> = {
+    'new_agent': 'New Agent',
+    'current_agent': 'Current Agent',
+    'top_agent': 'Top Agent',
+    'past_la': 'Past LA',
+  };
+
+  const renderCallsContent = () => (
+    <div className="min-w-[900px]">
+      <Table className="text-xs">
+        <TableHeader>
+          <TableRow className="text-[11px]">
+            <TableHead className="w-[120px] py-2">Name</TableHead>
+            <TableHead className="w-[70px] py-2">Type</TableHead>
+            <TableHead className="w-[130px] py-2">Call Date</TableHead>
+            <TableHead className="w-[100px] py-2">Call Type</TableHead>
+            <TableHead className="py-2">Notes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(data as Call[]).map((item) => (
+            <TableRow key={item.id} className="text-xs">
+              <TableCell 
+                className={`py-1.5 font-medium text-xs ${item.person_type === 'Lead' && item.lead_id && onLeadClick ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
+                onClick={() => {
+                  if (item.person_type === 'Lead' && item.lead_id && onLeadClick) {
+                    onLeadClick(item.lead_id);
+                  }
+                }}
+              >
+                <span className="line-clamp-1">{item.name}</span>
+              </TableCell>
+              <TableCell className="py-1.5">
+                <Badge 
+                  variant={item.person_type === 'Lead' ? 'default' : 'secondary'} 
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {item.person_type}
+                </Badge>
+              </TableCell>
+              <TableCell className="py-1.5 text-[11px] text-muted-foreground">
+                {item.call_date ? new Date(item.call_date).toLocaleString('en-US', {
+                  month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+                }) : "—"}
+              </TableCell>
+              <TableCell className="py-1.5 text-[11px] text-muted-foreground">
+                {item.call_type ? CALL_TYPE_LABELS[item.call_type] || item.call_type : "—"}
+              </TableCell>
+              <TableCell className="py-1.5">
+                <span className="text-[11px] text-muted-foreground line-clamp-2">
+                  {item.notes || "—"}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   const renderNonEmailContent = () => (
     <div className="min-w-[1200px]">
       <Table className="text-xs">
@@ -790,7 +866,7 @@ export function DashboardDetailModal({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
+          {(data as (Lead | Agent)[]).map((item) => (
             <TableRow key={item.id} className="text-xs">
               <TableCell 
                 className={`py-1.5 font-medium text-xs ${'pipeline_stage_id' in item && onLeadClick ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
@@ -863,6 +939,11 @@ export function DashboardDetailModal({
               </ScrollArea>
             </TabsContent>
           </Tabs>
+        ) : type === 'calls' ? (
+          <ScrollArea className="h-[70vh] w-full">
+            {renderCallsContent()}
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         ) : (
           <ScrollArea className="h-[70vh] w-full">
             {renderNonEmailContent()}

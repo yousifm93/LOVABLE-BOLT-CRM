@@ -460,7 +460,7 @@ export const databaseService = {
   },
 
   // Agent Call Logs
-  async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string, loggedAt?: string) {
+  async createAgentCallLog(agentId: string, summary: string, loggedBy: string, logType?: 'call' | 'meeting', meetingLocation?: string, loggedAt?: string, callType?: string) {
     const { data, error} = await supabase
       .from('agent_call_logs')
       .insert({
@@ -470,6 +470,7 @@ export const databaseService = {
         logged_at: loggedAt || new Date().toISOString(),
         log_type: logType || 'call',
         meeting_location: meetingLocation || null,
+        call_type: callType || null,
       })
       .select()
       .single();

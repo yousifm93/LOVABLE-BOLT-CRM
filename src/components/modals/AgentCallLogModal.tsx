@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,23 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
+
+const CALL_TYPE_OPTIONS = [
+  { value: "new_agent", label: "New Agent Call" },
+  { value: "current_agent", label: "Current Agent Call" },
+  { value: "top_agent", label: "Top Agent Call" },
+  { value: "past_la", label: "Past LA Call" },
+];
 
 interface AgentCallLogModalProps {
   agentId: string;
@@ -33,6 +47,7 @@ export function AgentCallLogModal({
   const { toast } = useToast();
   const [summary, setSummary] = useState("");
   const [callDateTime, setCallDateTime] = useState(new Date().toISOString().slice(0, 16));
+  const [callType, setCallType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
@@ -59,8 +74,8 @@ export function AgentCallLogModal({
       
       if (!crmUser) throw new Error("CRM user not found");
 
-      // Create call log with custom date/time
-      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDateTime);
+      // Create call log with custom date/time and call type
+      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDateTime, callType || undefined);
 
       // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
@@ -81,13 +96,13 @@ export function AgentCallLogModal({
 
         if (leads && leads.length > 0) {
           for (const lead of leads) {
-            const callType = lead.buyer_agent_id === agentId 
+            const callLogType = lead.buyer_agent_id === agentId 
               ? 'log_call_buyer_agent' 
               : 'log_call_listing_agent';
             
             const result = await databaseService.autoCompleteTasksAfterCall(
               lead.id,
-              callType,
+              callLogType,
               crmUser.id
             );
 
@@ -105,6 +120,7 @@ export function AgentCallLogModal({
       }
 
       setSummary("");
+      setCallType("");
       onCallLogged();
       onClose();
     } catch (error) {
@@ -142,6 +158,21 @@ export function AgentCallLogModal({
               onChange={(e) => setCallDateTime(e.target.value)}
               className="mt-2"
             />
+          </div>
+          <div>
+            <Label htmlFor="call-type">Call Type</Label>
+            <Select value={callType} onValueChange={setCallType}>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Select call type..." />
+              </SelectTrigger>
+              <SelectContent>
+                {CALL_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-sm font-medium mb-2 block">

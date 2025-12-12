@@ -68,6 +68,7 @@ export type Database = {
       agent_call_logs: {
         Row: {
           agent_id: string
+          call_type: string | null
           created_at: string
           id: string
           log_type: string | null
@@ -78,6 +79,7 @@ export type Database = {
         }
         Insert: {
           agent_id: string
+          call_type?: string | null
           created_at?: string
           id?: string
           log_type?: string | null
@@ -88,6 +90,7 @@ export type Database = {
         }
         Update: {
           agent_id?: string
+          call_type?: string | null
           created_at?: string
           id?: string
           log_type?: string | null

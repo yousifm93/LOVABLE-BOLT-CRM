@@ -26,13 +26,12 @@ export interface DashboardFaceToFaceMeeting {
 
 export interface DashboardCall {
   id: string;
-  first_name: string;
-  last_name: string;
-  brokerage: string | null;
-  email: string | null;
-  phone: string | null;
-  last_agent_call: string;
-  notes?: string | null;
+  name: string;
+  person_type: 'Lead' | 'Agent';
+  call_date: string;
+  call_type?: string | null;
+  notes: string | null;
+  lead_id?: string | null;
 }
 
 export interface DashboardEmail {
@@ -333,23 +332,57 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // This Month's Calls
+  // This Month's Calls (combined borrower calls + agent calls)
   const { data: thisMonthCalls, isLoading: isLoadingThisMonthCalls } = useQuery({
     queryKey: ['calls', 'thisMonth', formatDate(startOfMonth)],
     queryFn: async () => {
       const startOfMonthTimestamp = startOfMonth.toISOString();
       const startOfNextMonthTimestamp = startOfNextMonth.toISOString();
       
-      const { data, error } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
-        .not('last_agent_call', 'is', null)
-        .gte('last_agent_call', startOfMonthTimestamp)
-        .lt('last_agent_call', startOfNextMonthTimestamp)
-        .order('last_agent_call', { ascending: false });
+      // Fetch borrower call logs
+      const { data: borrowerCalls, error: borrowerError } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name)')
+        .gte('timestamp', startOfMonthTimestamp)
+        .lt('timestamp', startOfNextMonthTimestamp);
       
-      if (error) throw error;
-      return data as DashboardCall[];
+      if (borrowerError) throw borrowerError;
+      
+      // Fetch agent call logs
+      const { data: agentCalls, error: agentError } = await supabase
+        .from('agent_call_logs')
+        .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+        .eq('log_type', 'call')
+        .gte('logged_at', startOfMonthTimestamp)
+        .lt('logged_at', startOfNextMonthTimestamp);
+      
+      if (agentError) throw agentError;
+      
+      // Transform and combine
+      const transformedBorrower: DashboardCall[] = (borrowerCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: null,
+        notes: c.notes,
+        lead_id: c.lead_id,
+      }));
+      
+      const transformedAgent: DashboardCall[] = (agentCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+        person_type: 'Agent' as const,
+        call_date: c.logged_at,
+        call_type: c.call_type,
+        notes: c.summary,
+        lead_id: null,
+      }));
+      
+      // Combine and sort by date descending
+      return [...transformedBorrower, ...transformedAgent].sort((a, b) => 
+        new Date(b.call_date).getTime() - new Date(a.call_date).getTime()
+      );
     },
     staleTime: 30000,
   });
@@ -358,16 +391,49 @@ export const useDashboardData = () => {
   const { data: yesterdayCalls, isLoading: isLoadingYesterdayCalls } = useQuery({
     queryKey: ['calls', 'yesterday', formatDate(yesterday)],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
-        .not('last_agent_call', 'is', null)
-        .gte('last_agent_call', yesterdayBoundaries.start)
-        .lte('last_agent_call', yesterdayBoundaries.end)
-        .order('last_agent_call', { ascending: false });
+      // Fetch borrower call logs
+      const { data: borrowerCalls, error: borrowerError } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name)')
+        .gte('timestamp', yesterdayBoundaries.start)
+        .lte('timestamp', yesterdayBoundaries.end);
       
-      if (error) throw error;
-      return data as DashboardCall[];
+      if (borrowerError) throw borrowerError;
+      
+      // Fetch agent call logs
+      const { data: agentCalls, error: agentError } = await supabase
+        .from('agent_call_logs')
+        .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+        .eq('log_type', 'call')
+        .gte('logged_at', yesterdayBoundaries.start)
+        .lte('logged_at', yesterdayBoundaries.end);
+      
+      if (agentError) throw agentError;
+      
+      // Transform and combine
+      const transformedBorrower: DashboardCall[] = (borrowerCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: null,
+        notes: c.notes,
+        lead_id: c.lead_id,
+      }));
+      
+      const transformedAgent: DashboardCall[] = (agentCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+        person_type: 'Agent' as const,
+        call_date: c.logged_at,
+        call_type: c.call_type,
+        notes: c.summary,
+        lead_id: null,
+      }));
+      
+      return [...transformedBorrower, ...transformedAgent].sort((a, b) => 
+        new Date(b.call_date).getTime() - new Date(a.call_date).getTime()
+      );
     },
     staleTime: 30000,
   });
@@ -376,16 +442,49 @@ export const useDashboardData = () => {
   const { data: todayCalls, isLoading: isLoadingTodayCalls } = useQuery({
     queryKey: ['calls', 'today', formatDate(today)],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
-        .not('last_agent_call', 'is', null)
-        .gte('last_agent_call', todayBoundaries.start)
-        .lte('last_agent_call', todayBoundaries.end)
-        .order('last_agent_call', { ascending: false });
+      // Fetch borrower call logs
+      const { data: borrowerCalls, error: borrowerError } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name)')
+        .gte('timestamp', todayBoundaries.start)
+        .lte('timestamp', todayBoundaries.end);
       
-      if (error) throw error;
-      return data as DashboardCall[];
+      if (borrowerError) throw borrowerError;
+      
+      // Fetch agent call logs
+      const { data: agentCalls, error: agentError } = await supabase
+        .from('agent_call_logs')
+        .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+        .eq('log_type', 'call')
+        .gte('logged_at', todayBoundaries.start)
+        .lte('logged_at', todayBoundaries.end);
+      
+      if (agentError) throw agentError;
+      
+      // Transform and combine
+      const transformedBorrower: DashboardCall[] = (borrowerCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: null,
+        notes: c.notes,
+        lead_id: c.lead_id,
+      }));
+      
+      const transformedAgent: DashboardCall[] = (agentCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+        person_type: 'Agent' as const,
+        call_date: c.logged_at,
+        call_type: c.call_type,
+        notes: c.summary,
+        lead_id: null,
+      }));
+      
+      return [...transformedBorrower, ...transformedAgent].sort((a, b) => 
+        new Date(b.call_date).getTime() - new Date(a.call_date).getTime()
+      );
     },
     staleTime: 30000,
   });
@@ -394,14 +493,49 @@ export const useDashboardData = () => {
   const { data: allCalls, isLoading: isLoadingAllCalls } = useQuery({
     queryKey: ['calls', 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone, last_agent_call, notes')
-        .not('last_agent_call', 'is', null)
-        .order('last_agent_call', { ascending: false });
+      // Fetch borrower call logs
+      const { data: borrowerCalls, error: borrowerError } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name)')
+        .order('timestamp', { ascending: false })
+        .limit(200);
       
-      if (error) throw error;
-      return data as DashboardCall[];
+      if (borrowerError) throw borrowerError;
+      
+      // Fetch agent call logs
+      const { data: agentCalls, error: agentError } = await supabase
+        .from('agent_call_logs')
+        .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+        .eq('log_type', 'call')
+        .order('logged_at', { ascending: false })
+        .limit(200);
+      
+      if (agentError) throw agentError;
+      
+      // Transform and combine
+      const transformedBorrower: DashboardCall[] = (borrowerCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: null,
+        notes: c.notes,
+        lead_id: c.lead_id,
+      }));
+      
+      const transformedAgent: DashboardCall[] = (agentCalls || []).map(c => ({
+        id: c.id,
+        name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+        person_type: 'Agent' as const,
+        call_date: c.logged_at,
+        call_type: c.call_type,
+        notes: c.summary,
+        lead_id: null,
+      }));
+      
+      return [...transformedBorrower, ...transformedAgent].sort((a, b) => 
+        new Date(b.call_date).getTime() - new Date(a.call_date).getTime()
+      );
     },
     staleTime: 30000,
   });
