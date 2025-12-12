@@ -6,6 +6,7 @@ export interface LoanEstimateData {
   // Borrower Info - now separate fields
   firstName: string;
   lastName: string;
+  borrowerFullName?: string; // Temp field for editing
   lenderLoanNumber: string;
   subjectZip: string;
   subjectState: string;

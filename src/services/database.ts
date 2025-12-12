@@ -2161,11 +2161,12 @@ export const databaseService = {
         lead_id: leadId,
         file_name: file.name,
         file_url: storagePath,
-        mime_type: file.type,
+        mime_type: file.type || 'application/octet-stream',
         size_bytes: file.size,
         uploaded_by: userData.user?.id,
         title: metadata?.title || file.name,
-        notes: metadata?.notes
+        notes: metadata?.notes,
+        source: 'manual'
       })
       .select()
       .single();

@@ -666,14 +666,35 @@ export default function LoanEstimate() {
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">
               <Label className="text-xs text-muted-foreground">BRWR NAME</Label>
               <Input 
-                value={`${formData.firstName || ''} ${formData.lastName || ''}`.trim()} 
+                value={formData.borrowerFullName !== undefined 
+                  ? formData.borrowerFullName 
+                  : `${formData.firstName || ''} ${formData.lastName || ''}`.trim()
+                } 
                 onChange={(e) => {
-                  const [first, ...rest] = e.target.value.split(' ');
                   setFormData(prev => ({
                     ...prev,
-                    firstName: first || '',
-                    lastName: rest.join(' ') || ''
+                    borrowerFullName: e.target.value
                   }));
+                }}
+                onBlur={(e) => {
+                  // Parse into first/last when user leaves field
+                  const fullName = e.target.value.trim();
+                  const lastSpaceIndex = fullName.lastIndexOf(' ');
+                  if (lastSpaceIndex > 0) {
+                    setFormData(prev => ({
+                      ...prev,
+                      firstName: fullName.substring(0, lastSpaceIndex),
+                      lastName: fullName.substring(lastSpaceIndex + 1),
+                      borrowerFullName: undefined // Clear temp field
+                    }));
+                  } else {
+                    setFormData(prev => ({
+                      ...prev,
+                      firstName: fullName,
+                      lastName: '',
+                      borrowerFullName: undefined
+                    }));
+                  }
                 }}
                 className="h-8 text-sm"
                 placeholder="Borrower name"

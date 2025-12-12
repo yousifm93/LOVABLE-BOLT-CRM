@@ -36,7 +36,7 @@ interface IncomeComponent {
 
 interface IncomeSummaryCardProps {
   calculation?: IncomeCalculation;
-  borrower: Borrower;
+  borrower: Borrower | null;
   agency: string;
   onCalculate: () => void;
   onExport: () => void;
@@ -128,9 +128,9 @@ export function IncomeSummaryCard({
             <Calculator className="h-5 w-5" />
             Income Summary
           </CardTitle>
-          <CardDescription>
-            Calculate qualifying monthly income for {borrower.first_name} {borrower.last_name}
-          </CardDescription>
+        <CardDescription>
+          Calculate qualifying monthly income for {borrower?.first_name || 'Borrower'} {borrower?.last_name || ''}
+        </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center py-8">
@@ -161,7 +161,7 @@ export function IncomeSummaryCard({
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Borrower:</span>
-              <span>{borrower.first_name} {borrower.last_name}</span>
+              <span>{borrower?.first_name || 'Borrower'} {borrower?.last_name || ''}</span>
             </div>
           </div>
         </CardContent>
@@ -177,7 +177,7 @@ export function IncomeSummaryCard({
           Income Summary
         </CardTitle>
         <CardDescription>
-          Monthly qualifying income for {borrower.first_name} {borrower.last_name}
+          Monthly qualifying income for {borrower?.first_name || 'Borrower'} {borrower?.last_name || ''}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
