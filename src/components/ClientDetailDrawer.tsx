@@ -122,6 +122,9 @@ export function ClientDetailDrawer({
   const [localCashToClose, setLocalCashToClose] = useState<number | null>(null);
   const [localPiti, setLocalPiti] = useState<number | null>(null);
   const [localOccupancy, setLocalOccupancy] = useState<string | null>(null);
+  
+  // REO rental income for DTI calculation
+  const [reoNetIncome, setReoNetIncome] = useState<number>(0);
 
   // About the Borrower editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -175,6 +178,33 @@ export function ClientDetailDrawer({
   // Reset PITI calculation flag when lead changes
   React.useEffect(() => {
     setHasCalculatedPITI(false);
+  }, [leadId]);
+
+  // Fetch REO rental income for DTI calculation
+  React.useEffect(() => {
+    const fetchReoIncome = async () => {
+      if (!leadId) return;
+      
+      try {
+        const { data: properties } = await supabase
+          .from('real_estate_properties')
+          .select('monthly_rent, monthly_expenses')
+          .eq('lead_id', leadId);
+        
+        if (properties && properties.length > 0) {
+          const netIncome = properties.reduce((sum, prop) => 
+            sum + ((Number(prop.monthly_rent) || 0) - (Number(prop.monthly_expenses) || 0)), 0);
+          setReoNetIncome(netIncome);
+        } else {
+          setReoNetIncome(0);
+        }
+      } catch (error) {
+        console.error('Error fetching REO income:', error);
+        setReoNetIncome(0);
+      }
+    };
+    
+    fetchReoIncome();
   }, [leadId]);
 
   // Auto-calculate PITI components when key fields exist but PITI is empty
@@ -966,8 +996,10 @@ export function ClientDetailDrawer({
         const salesPriceEarly = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
         const ltvEarly = salesPriceEarly > 0 ? ((loanAmountEarly / salesPriceEarly) * 100).toFixed(2) : null;
         
-        // Calculate front-end and back-end DTI for early stages
-        const totalIncomeEarly = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        // Calculate front-end and back-end DTI for early stages (including rental income from REO)
+        const baseIncomeEarly = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        const rentalIncomeEarly = reoNetIncome || 0; // Include REO rental income
+        const totalIncomeEarly = baseIncomeEarly + rentalIncomeEarly;
         const monthlyLiabilitiesEarly = (client as any).monthly_liabilities || 0;
         const pitiEarly = localPiti ?? (client as any).piti ?? 0;
         
@@ -978,6 +1010,9 @@ export function ClientDetailDrawer({
           : (client as any).dti 
             ? `${(client as any).dti}%` 
             : '—';
+        
+        // Get total assets value properly
+        const totalAssetsValueEarly = (client as any).assets ?? (client as any).total_assets ?? (client as any).totalAssets;
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
@@ -1038,7 +1073,7 @@ export function ClientDetailDrawer({
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Total Assets</span>
-                <span className="text-sm font-medium">{(client as any).assets ?? (client as any).total_assets ?? (client as any).totalAssets ? `$${((client as any).assets ?? (client as any).total_assets ?? (client as any).totalAssets).toLocaleString()}` : '—'}</span>
+                <span className="text-sm font-medium">{totalAssetsValueEarly ? `$${totalAssetsValueEarly.toLocaleString()}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>

@@ -412,7 +412,9 @@ Deno.serve(async (req) => {
 
     // Insurance based on property type (from loan pricer logic)
     const rawPropertyType = mortgageInfo.propertyType?.toLowerCase() || '';
-    const isCondo = rawPropertyType.includes('condo');
+    const normalizedPropType = normalizeValue(mortgageInfo.propertyType, propertyTypeMap)?.toLowerCase() || '';
+    const isCondo = rawPropertyType.includes('condo') || normalizedPropType.includes('condo');
+    console.log(`Property type detection - raw: ${rawPropertyType}, normalized: ${normalizedPropType}, isCondo: ${isCondo}`);
     const homeownersInsurance = isCondo ? 75 : Math.round((salesPrice / 100000) * 75);
     
   // HOA dues - $150 per $100k of sales price for condos
@@ -776,6 +778,9 @@ Deno.serve(async (req) => {
       
       // Buyer agent if working with one
       buyer_agent_id: buyer_agent_id,
+      
+      // Default escrow waiver to Yes
+      escrows: 'Yes',
     };
 
     console.log('Prepared lead data:', JSON.stringify(leadData, null, 2));
