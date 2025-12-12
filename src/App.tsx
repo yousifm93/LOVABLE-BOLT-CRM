@@ -105,8 +105,8 @@ function AppRoutes() {
               <Route path="/tasks" element={<TasksModern />} />
               <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
               <Route path="/resources/loan-pricer" element={<LoanPricer />} />
-              <Route path="/resources/chatbot" element={<GuidelineChatbot />} />
-              <Route path="/resources/chatbot2" element={<ChatbaseBoltBot />} />
+              <Route path="/resources/chatbot" element={<ChatbaseBoltBot />} />
+              <Route path="/admin/backup-chat" element={<GuidelineChatbot />} />
               <Route path="/resources/property-value" element={<PropertyValue />} />
               <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
               <Route path="/resources/email-marketing/*" element={<EmailMarketing />} />
