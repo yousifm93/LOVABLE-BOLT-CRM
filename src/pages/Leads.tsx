@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { format } from "date-fns";
 import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3 } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { fixUnclassifiedLeads } from "@/utils/fixUnclassifiedLeads";
@@ -37,8 +38,8 @@ import { transformLeadToClient } from "@/utils/clientTransform";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePipelineView } from "@/hooks/usePipelineView";
 
-// Main view default columns
-const MAIN_VIEW_COLUMNS = ["name", "createdOn", "realEstateAgent", "status", "user", "dueDate", "notes"];
+// Main view default columns - status moved after dueDate
+const MAIN_VIEW_COLUMNS = ["name", "createdOn", "realEstateAgent", "user", "dueDate", "status", "notes"];
 interface Lead {
   id: string;
   name: string;
@@ -104,7 +105,7 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & {
     referralSource: dbLead.referral_source || '',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
-    dueDate: dbLead.task_eta ? new Date(dbLead.task_eta + 'T00:00:00').toLocaleDateString() : '',
+    dueDate: dbLead.task_eta || dbLead.lead_on_date || dbLead.created_at?.split('T')[0] || '',
     loanType: dbLead.loan_type,
     loanAmount: dbLead.loan_amount,
     notes: dbLead.notes || null
@@ -723,7 +724,14 @@ export default function Leads() {
       className: "w-32",
       cell: ({
         row
-      }) => formatDateShort(row.original.createdOn),
+      }) => (
+        <div className="flex flex-col">
+          <span>{formatDateShort(row.original.createdOn)}</span>
+          <span className="text-xs text-muted-foreground">
+            {row.original.createdOn ? format(new Date(row.original.createdOn), 'h:mm a') : ''}
+          </span>
+        </div>
+      ),
       sortable: true
     }, {
       accessorKey: "phone",
@@ -827,7 +835,7 @@ export default function Leads() {
       sortable: true,
       cell: ({
         row
-      }) => <div className="max-w-md text-sm line-clamp-2" title={row.original.notes || ''}>
+      }) => <div className="max-w-[200px] text-sm line-clamp-3" title={row.original.notes || ''}>
           {row.original.notes || '—'}
         </div>
     }];

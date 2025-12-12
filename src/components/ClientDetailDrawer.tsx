@@ -955,23 +955,13 @@ export function ClientDetailDrawer({
                 </div>
               </div>
               
-              {/* Right Column: Financial Goals */}
+              {/* Right Column: Financial Goals - Cash to Close Goal removed */}
               <div className="space-y-3 min-w-[160px]">
           <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
             <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
             <InlineEditCurrency 
               value={(client as any).monthlyPmtGoal ?? null} 
               onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
-              placeholder="$0"
-              className="text-lg font-bold"
-            />
-          </div>
-                
-          <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
-            <div className="text-xs text-muted-foreground mb-1">Cash to Close Goal</div>
-            <InlineEditCurrency 
-              value={(client as any).cashToCloseGoal ?? null} 
-              onValueChange={value => handleLeadUpdate('cashToCloseGoal', value)} 
               placeholder="$0"
               className="text-lg font-bold"
             />
@@ -987,7 +977,89 @@ export function ClientDetailDrawer({
             </div>
           </div>
         );
-      case 'pending-app':
+      case 'pending-app': {
+        // Pending App uses simplified Leads-style layout: 3 gray fields + Last Call/Text/Email + Monthly Payment Goal
+        const loanAmountPendingApp = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
+        const salesPricePendingApp = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
+        const ltvPendingApp = salesPricePendingApp > 0 ? ((loanAmountPendingApp / salesPricePendingApp) * 100).toFixed(2) : null;
+        
+        return (
+          <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="flex items-start gap-6">
+              {/* Left Column: Gray fields - Transaction Type, LTV, Credit Score */}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Transaction Type:</span>
+                  <InlineEditSelect 
+                    value={(client as any).loan_type ?? (client as any).loan?.loanType ?? ''} 
+                    onValueChange={value => handleLeadUpdate('loan_type', value)} 
+                    options={[
+                      { value: 'Purchase', label: 'Purchase' },
+                      { value: 'Refinance', label: 'Refinance' },
+                      { value: 'HELOC', label: 'HELOC' }
+                    ]} 
+                    placeholder="Select type" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">LTV:</span>
+                  <span className="text-sm font-medium">{ltvPendingApp ? `${ltvPendingApp}%` : '—'}</span>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Credit Score:</span>
+                  <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
+                </div>
+              </div>
+              
+              {/* Middle Column: Last Communication */}
+              <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Call</span>
+                  <span className="text-sm font-medium">
+                    {lastCall || '—'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Text</span>
+                  <span className="text-sm font-medium">
+                    {lastText || '—'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Last Email</span>
+                  <span className="text-sm font-medium">
+                    {lastEmail || '—'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Right Column: Monthly Payment Goal only */}
+              <div className="space-y-3 min-w-[160px]">
+                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+                  <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
+                  <InlineEditCurrency 
+                    value={(client as any).monthlyPmtGoal ?? null} 
+                    onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
+                    placeholder="$0"
+                    className="text-lg font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom: Pending App Date */}
+            <div className="mt-3 pt-3 border-t border-border">
+              <span className="text-xs text-muted-foreground italic">
+                Pending App Date: {(client as any).pending_app_at ? format(new Date((client as any).pending_app_at), 'MMM dd, yyyy') : '—'}
+              </span>
+            </div>
+          </div>
+        );
+      }
       case 'screening':
       case 'pre-qualified':
       case 'pre-approved': {
@@ -2281,35 +2353,81 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="bg-gray-50">
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    size="default" 
-                    className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                    onClick={() => setShowPreApprovalModal(true)}
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="font-semibold text-sm">Pre-Approval</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="default" 
-                    className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                    onClick={() => console.log('L-E clicked')}
-                  >
-                    <FileCheck className="h-4 w-4" />
-                    <span className="font-semibold text-sm">Loan Estimate</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* About the Borrower Section - For Leads/Pending App, appears BEFORE Latest File Updates */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+              if (!isLeadsOrPendingApp) return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                      {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                          Edit
+                        </Button>}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    {isEditingNotes || !localNotes ? <>
+                        <Textarea key="notes-textarea-leads" value={localNotes} onChange={e => {
+                      setLocalNotes(e.target.value);
+                      setHasUnsavedNotes(true);
+                    }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                        {hasUnsavedNotes && <div className="flex gap-2">
+                            <Button size="sm" onClick={async () => {
+                        const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                        if (localNotes === currentNotes) {
+                          toast({ title: "No Changes", description: "Notes haven't changed." });
+                          setHasUnsavedNotes(false);
+                          setIsEditingNotes(false);
+                          return;
+                        }
+                        setIsSavingNotes(true);
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          await databaseService.updateLead(leadId!, {
+                            notes: localNotes,
+                            notes_updated_by: user?.id || null,
+                            notes_updated_at: new Date().toISOString()
+                          });
+                          if (onLeadUpdated) await onLeadUpdated();
+                          setHasUnsavedNotes(false);
+                          setIsEditingNotes(false);
+                          toast({ title: "Saved", description: "About the Borrower section has been updated." });
+                        } catch (error) {
+                          console.error('Error saving notes:', error);
+                          toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                        } finally {
+                          setIsSavingNotes(false);
+                        }
+                      }} disabled={isSavingNotes}>
+                              {isSavingNotes ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => {
+                        setLocalNotes((client as any).notes || '');
+                        setHasUnsavedNotes(false);
+                        setIsEditingNotes(false);
+                      }}>
+                              Cancel
+                            </Button>
+                          </div>}
+                      </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                        {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                      </div>}
+                    {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                        {notesUpdatedByUser && <>
+                            <span>•</span>
+                            <User className="h-3 w-3" />
+                            {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                          </>}
+                      </div>}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Stage History */}
             <Card>
@@ -2520,11 +2638,54 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* About the Borrower Section - For early stages, appears after Stage History */}
+            {/* Quick Actions - Collapsed by default for Leads/Pending App, shown after Stage History */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              if (isActiveOrPastClient) return null;
+              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+              return (
+                <Collapsible defaultOpen={!isLeadsOrPendingApp}>
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full">
+                        <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="bg-gray-50">
+                        <div className="flex gap-3">
+                          <Button 
+                            variant="outline" 
+                            size="default" 
+                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => setShowPreApprovalModal(true)}
+                          >
+                            <FileText className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Pre-Approval</span>
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="default" 
+                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => console.log('L-E clicked')}
+                          >
+                            <FileCheck className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Loan Estimate</span>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })()}
+
+            {/* About the Borrower Section - For Screening/Pre-Qualified/Pre-Approved stages */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isScreeningOrPreQual = opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+              if (!isScreeningOrPreQual) return null;
               return (
             <Card>
               <CardHeader className="pb-3 bg-white">

@@ -1079,7 +1079,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   ];
 
   // ============================================
-  // GOALS DATA (Monthly Payment Goal, Cash to Close Goal)
+  // GOALS DATA (Monthly Payment Goal only - Cash to Close Goal removed)
   // ============================================
   const goalsData = [
     { 
