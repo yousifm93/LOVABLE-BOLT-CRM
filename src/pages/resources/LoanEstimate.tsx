@@ -213,7 +213,15 @@ export default function LoanEstimate() {
     }
   }, [formData.loanAmount, formData.purchasePrice, calculateTotalTitleInsurance]);
 
-  // Auto-calculate Escrow fields based on Escrow Yes/No selection
+  // Auto-calculate Prepaid Homeowners Insurance (monthly HOI × 12) - ALWAYS 12 months regardless of escrow
+  useEffect(() => {
+    if (formData.homeownersInsurance && formData.homeownersInsurance > 0) {
+      const prepaidHoi = formData.homeownersInsurance * 12;
+      setFormData(prev => ({ ...prev, prepaidHoi: Math.round(prepaidHoi * 100) / 100 }));
+    }
+  }, [formData.homeownersInsurance]);
+
+  // Auto-calculate Escrow fields based on Escrow Yes/No selection (separate from prepaidHoi)
   useEffect(() => {
     if (formData.escrows === 'yes') {
       // 2 months of HOI and 2 months of property taxes
@@ -234,14 +242,6 @@ export default function LoanEstimate() {
       }));
     }
   }, [formData.escrows, formData.homeownersInsurance, formData.propertyTaxes]);
-
-  // Auto-calculate Prepaid Homeowners Insurance (monthly HOI × 12)
-  useEffect(() => {
-    if (formData.homeownersInsurance && formData.homeownersInsurance > 0) {
-      const prepaidHoi = formData.homeownersInsurance * 12;
-      setFormData(prev => ({ ...prev, prepaidHoi: Math.round(prepaidHoi * 100) / 100 }));
-    }
-  }, [formData.homeownersInsurance]);
 
   // Auto-calculate Prepaid Interest (5 days of daily interest)
   useEffect(() => {
@@ -667,8 +667,16 @@ export default function LoanEstimate() {
               <Label className="text-xs text-muted-foreground">BRWR NAME</Label>
               <Input 
                 value={`${formData.firstName || ''} ${formData.lastName || ''}`.trim()} 
-                disabled
-                className="h-8 text-sm bg-muted/30"
+                onChange={(e) => {
+                  const [first, ...rest] = e.target.value.split(' ');
+                  setFormData(prev => ({
+                    ...prev,
+                    firstName: first || '',
+                    lastName: rest.join(' ') || ''
+                  }));
+                }}
+                className="h-8 text-sm"
+                placeholder="Borrower name"
               />
             </div>
             <div className="grid grid-cols-[100px_1fr] items-center gap-2">

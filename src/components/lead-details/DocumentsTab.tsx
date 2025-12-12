@@ -22,6 +22,7 @@ interface Document {
   created_at: string;
   title?: string;
   notes?: string;
+  source?: string;
 }
 
 interface DocumentsTabProps {
@@ -436,6 +437,21 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
                     <Badge variant="outline" className="text-xs">
                       {getFileTypeBadge(doc.mime_type)}
                     </Badge>
+                    {doc.source && doc.source !== 'manual' && (
+                      <Badge 
+                        variant="secondary" 
+                        className={cn(
+                          "text-xs",
+                          doc.source === 'email_attachment' && "bg-blue-100 text-blue-700",
+                          doc.source === 'borrower_upload' && "bg-orange-100 text-orange-700",
+                          doc.source === 'application' && "bg-green-100 text-green-700"
+                        )}
+                      >
+                        {doc.source === 'email_attachment' ? 'Email' : 
+                         doc.source === 'borrower_upload' ? 'Borrower' :
+                         doc.source === 'application' ? 'App' : doc.source}
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

@@ -43,9 +43,10 @@ export function DocumentPreviewModal({
     setIsLoading(false);
   };
 
-  // Detect PDF by MIME type OR file extension (fallback for incorrectly stored MIME types)
+  // Detect PDF by MIME type OR file extension OR URL (fallback for incorrectly stored MIME types)
   const isPdf = mimeType === 'application/pdf' || 
-                documentName.toLowerCase().endsWith('.pdf');
+                documentName.toLowerCase().endsWith('.pdf') ||
+                (documentUrl && documentUrl.toLowerCase().includes('.pdf'));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
