@@ -52,7 +52,9 @@ interface IncomeCalculation {
 
 export default function IncomeCalculator() {
   const [selectedBorrower, setSelectedBorrower] = useState<Borrower | null>(null);
-  const [selectedProgram, setSelectedProgram] = useState<string>("conventional");
+  const [selectedProgram, setSelectedProgram] = useState<string>(() => {
+    return localStorage.getItem('incomeCalc_program') || 'conventional';
+  });
   const [documents, setDocuments] = useState<IncomeDocument[]>([]);
   const [calculations, setCalculations] = useState<IncomeCalculation[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<IncomeDocument | null>(null);
@@ -61,6 +63,40 @@ export default function IncomeCalculator() {
   const [pendingDocType, setPendingDocType] = useState<string | null>(null);
   const checklistFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load saved borrower from localStorage on mount
+  useEffect(() => {
+    const savedBorrowerId = localStorage.getItem('incomeCalc_borrowerId');
+    if (savedBorrowerId) {
+      // Fetch the borrower from database
+      supabase
+        .from('borrowers')
+        .select('*')
+        .eq('id', savedBorrowerId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setSelectedBorrower(data);
+          }
+        });
+    }
+  }, []);
+
+  // Save borrower selection to localStorage
+  const handleBorrowerSelect = (borrower: Borrower | null) => {
+    setSelectedBorrower(borrower);
+    if (borrower) {
+      localStorage.setItem('incomeCalc_borrowerId', borrower.id);
+    } else {
+      localStorage.removeItem('incomeCalc_borrowerId');
+    }
+  };
+
+  // Save program selection to localStorage
+  const handleProgramChange = (program: string) => {
+    setSelectedProgram(program);
+    localStorage.setItem('incomeCalc_program', program);
+  };
 
   useEffect(() => {
     if (selectedBorrower) {
@@ -270,7 +306,7 @@ export default function IncomeCalculator() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Loan Program:</label>
-                <Select value={selectedProgram} onValueChange={setSelectedProgram}>
+                <Select value={selectedProgram} onValueChange={handleProgramChange}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -297,7 +333,7 @@ export default function IncomeCalculator() {
           <CardContent>
             <BorrowerSelector 
               selectedBorrower={selectedBorrower}
-              onBorrowerSelect={setSelectedBorrower}
+              onBorrowerSelect={handleBorrowerSelect}
             />
           </CardContent>
         </Card>

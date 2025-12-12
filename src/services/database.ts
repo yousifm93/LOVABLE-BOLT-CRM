@@ -2236,16 +2236,24 @@ export const databaseService = {
   async getDocumentSignedUrl(storagePathOrUrl: string, expiresIn = 3600) {
     // Handle legacy data where full signed URLs were stored instead of paths
     let storagePath = storagePathOrUrl;
+    let detectedBucket: string | null = null;
     
     if (storagePathOrUrl.startsWith('https://') && storagePathOrUrl.includes('/storage/v1/')) {
-      // Extract the storage path from the signed URL
+      // Check if it's a public URL - if so, just return it directly
+      if (storagePathOrUrl.includes('/storage/v1/object/public/')) {
+        // Public bucket URL - can be used directly
+        return storagePathOrUrl;
+      }
+      
+      // Extract the storage path from signed URL
       // URL format: https://xxx.supabase.co/storage/v1/object/sign/bucket-name/path?token=xxx
       try {
         const url = new URL(storagePathOrUrl);
         const pathMatch = url.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
         if (pathMatch) {
+          detectedBucket = pathMatch[1];
           storagePath = decodeURIComponent(pathMatch[2]);
-          console.log('[getDocumentSignedUrl] Extracted path from legacy URL:', storagePath);
+          console.log('[getDocumentSignedUrl] Extracted path from legacy URL:', storagePath, 'bucket:', detectedBucket);
         }
       } catch (e) {
         console.error('[getDocumentSignedUrl] Failed to parse legacy URL:', e);
@@ -2253,9 +2261,10 @@ export const databaseService = {
       }
     }
     
-    // Handle different storage paths - try lead-documents bucket first for email attachments
-    // Then fall back to documents bucket
-    const buckets = ['lead-documents', 'documents'];
+    // Handle different storage paths - try detected bucket first, then lead-documents, then documents
+    const buckets = detectedBucket 
+      ? [detectedBucket, 'lead-documents', 'documents']
+      : ['lead-documents', 'documents'];
     
     for (const bucket of buckets) {
       try {
@@ -2271,7 +2280,7 @@ export const databaseService = {
       }
     }
     
-    // Final attempt with original bucket
+    // Final attempt with documents bucket
     const { data, error } = await supabase.storage
       .from('documents')
       .createSignedUrl(storagePath, expiresIn);
