@@ -457,6 +457,110 @@ export type Database = {
           },
         ]
       }
+      borrower_documents: {
+        Row: {
+          document_type: string | null
+          document_url: string
+          file_name: string
+          file_size: number | null
+          id: string
+          lead_id: string | null
+          source: string
+          status: string | null
+          task_id: string | null
+          uploaded_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          document_type?: string | null
+          document_url: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string | null
+          source?: string
+          status?: string | null
+          task_id?: string | null
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          document_type?: string | null
+          document_url?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string | null
+          source?: string
+          status?: string | null
+          task_id?: string | null
+          uploaded_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_documents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "borrower_documents_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "borrower_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      borrower_tasks: {
+        Row: {
+          created_at: string | null
+          due_date: string | null
+          id: string
+          lead_id: string | null
+          priority: number | null
+          status: string
+          task_description: string | null
+          task_name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: number | null
+          status?: string
+          task_description?: string | null
+          task_name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: number | null
+          status?: string
+          task_description?: string | null
+          task_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       borrowers: {
         Row: {
           created_at: string

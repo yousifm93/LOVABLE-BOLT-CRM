@@ -161,6 +161,33 @@ function evaluateConditions(conditions: any, lead: any): { shouldSend: boolean; 
 
   const { field, operator, compare_field, compare_value } = conditions;
   
+  // Handle is_not_null operator for checking if a field has a value
+  if (operator === 'is_not_null') {
+    const fieldValue = lead[field];
+    const hasValue = fieldValue !== null && fieldValue !== undefined && fieldValue !== '';
+    console.log(`Evaluating condition: ${field} is_not_null = ${hasValue}`);
+    return { shouldSend: hasValue };
+  }
+  
+  // Handle string equality for property_type, status fields, etc.
+  if (operator === '=' || operator === '==') {
+    const fieldValue = lead[field];
+    const targetValue = compare_value || '';
+    
+    // String comparison (case-insensitive)
+    if (typeof fieldValue === 'string' || typeof targetValue === 'string') {
+      const matches = String(fieldValue || '').toLowerCase() === String(targetValue).toLowerCase();
+      console.log(`Evaluating condition: ${field}("${fieldValue}") = "${targetValue}" → ${matches}`);
+      return { shouldSend: matches };
+    }
+    
+    // Numeric comparison
+    const numFieldValue = parseFloat(fieldValue) || 0;
+    const numCompareValue = parseFloat(targetValue) || 0;
+    return { shouldSend: numFieldValue === numCompareValue };
+  }
+  
+  // Numeric comparisons
   const fieldValue = parseFloat(lead[field]) || 0;
   const compareValue = compare_field ? (parseFloat(lead[compare_field]) || 0) : (parseFloat(compare_value) || 0);
 
@@ -180,9 +207,6 @@ function evaluateConditions(conditions: any, lead: any): { shouldSend: boolean; 
       return { shouldSend: fieldValue <= compareValue };
     case '<':
       return { shouldSend: fieldValue < compareValue };
-    case '==':
-    case '=':
-      return { shouldSend: fieldValue === compareValue };
     case '!=':
       return { shouldSend: fieldValue !== compareValue };
     default:
@@ -270,9 +294,19 @@ async function sendAutomatedEmail(
     zip: lead.subject_zip || '',
     loan_program: lead.loan_program || '',
     lock_expiration_date: lead.lock_expiration_date ? new Date(lead.lock_expiration_date).toLocaleDateString() : '',
-    // Appraisal fields
+  // Appraisal fields
     appraisal_value: appraisalValue ? `$${appraisalValue.toLocaleString()}` : '',
     equity_amount: (!skipEquity && equityAmount > 0) ? `$${equityAmount.toLocaleString()}` : '',
+    // Appraisal date/time - format nicely if available
+    appr_date_time: lead.appr_date_time ? new Date(lead.appr_date_time).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }) : '',
     // Loan officer fields
     loan_officer_name: `${sender.first_name} ${sender.last_name}`.trim(),
     loan_officer_phone: sender.phone || '',

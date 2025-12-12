@@ -254,12 +254,33 @@ CRITICAL DOMAIN-SPECIFIC RULES:
    - If you see "1073" - this is APPRAISAL, not condo
    - Condo documents are for condo association approval, appraisal is for property valuation
 
-4. **APPRAISAL SCHEDULING EMAILS - ALWAYS EXTRACT DATE/TIME**:
+4. **APPRAISAL SCHEDULING EMAILS - ALWAYS EXTRACT DATE/TIME (CRITICAL)**:
    - When an appraisal is scheduled, ALWAYS extract BOTH fields together:
      - appraisal_status → "Scheduled"
      - appr_date_time → The actual date and time (convert to ISO datetime format: YYYY-MM-DDTHH:MM:SS)
    - Look for phrases like: "scheduled for", "inspection on", "appointment at", "inspection is scheduled"
-   - Examples: "December 16th at 9:30 AM" → "2024-12-16T09:30:00"
+   
+   **CRITICAL DATE PARSING RULES:**
+   - Use the CURRENT YEAR (2025) unless explicitly stated otherwise
+   - Extract the EXACT date mentioned - do NOT shift, calculate, or modify dates
+   - Day of week is just context - extract the actual date (e.g., "Tuesday, December 16" → December 16, ignore that it's Tuesday)
+   - Month names: January=01, February=02, March=03, April=04, May=05, June=06, July=07, August=08, September=09, October=10, November=11, December=12
+   - Convert 12-hour time to 24-hour: 9:30AM → 09:30, 4:30PM → 16:30, 12:00PM → 12:00, 12:00AM → 00:00
+   - If no year is specified, assume 2025
+   - Ignore timezone abbreviations (EST, CST, etc.) - just extract the time as stated
+   
+   **EXAMPLES - FOLLOW EXACTLY:**
+   - "Tuesday, December 16, 2025 9:30AM EST" → "2025-12-16T09:30:00"
+   - "December 16th at 9:30 AM" → "2025-12-16T09:30:00"
+   - "12/16/2025 at 9:30am" → "2025-12-16T09:30:00"
+   - "Monday, January 6th, 2025 at 2:00 PM" → "2025-01-06T14:00:00"
+   - "inspection scheduled for Dec 19 at 4:30pm" → "2025-12-19T16:30:00"
+   
+   **COMMON MISTAKES TO AVOID:**
+   - DO NOT change "December 16" to "December 19" - extract the exact date
+   - DO NOT change "9:30 AM" to "4:30 AM" - extract the exact time
+   - DO NOT shift dates based on day of week - if it says "December 16", use December 16
+   
    - The appr_date_time field MUST be populated alongside appraisal_status when changing to "Scheduled"
 
 5. **WIRE AMOUNTS**: Wire transfer amounts do NOT indicate loan_amount changes. Only suggest loan_amount changes if the email explicitly states "new loan amount", "loan amount changed", or similar phrasing that clearly indicates the loan amount itself is being modified.
