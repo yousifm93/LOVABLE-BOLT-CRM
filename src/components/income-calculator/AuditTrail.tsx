@@ -119,10 +119,69 @@ export function AuditTrail({ calculationId }: AuditTrailProps) {
     setExpandedEvents(newExpanded);
   };
 
-  const formatPayload = (payload: any) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const formatPayloadDetails = (step: string, payload: any) => {
     if (!payload || Object.keys(payload).length === 0) return null;
     
-    return JSON.stringify(payload, null, 2);
+    // Return human-readable formatted details instead of raw JSON
+    const details: string[] = [];
+    
+    switch (step) {
+      case 'upload':
+        if (payload.file_name) details.push(`File: ${payload.file_name}`);
+        if (payload.file_size) details.push(`Size: ${(payload.file_size / 1024).toFixed(1)} KB`);
+        if (payload.doc_type) details.push(`Type: ${payload.doc_type.replace(/_/g, ' ')}`);
+        break;
+      case 'ocr':
+        if (payload.pages_processed) details.push(`Pages: ${payload.pages_processed}`);
+        if (payload.confidence) details.push(`Confidence: ${Math.round(payload.confidence * 100)}%`);
+        if (payload.doc_type) details.push(`Detected: ${payload.doc_type.replace(/_/g, ' ')}`);
+        break;
+      case 'parse':
+        if (payload.fields_extracted) details.push(`Fields extracted: ${payload.fields_extracted}`);
+        if (payload.doc_type) details.push(`Document: ${payload.doc_type.replace(/_/g, ' ')}`);
+        break;
+      case 'validate':
+        if (payload.warnings_count !== undefined) details.push(`Warnings: ${payload.warnings_count}`);
+        if (payload.errors_count !== undefined) details.push(`Errors: ${payload.errors_count}`);
+        break;
+      case 'calculate':
+        if (payload.monthly_income !== undefined) details.push(`Monthly Income: ${formatCurrency(payload.monthly_income)}`);
+        if (payload.components_count) details.push(`Components: ${payload.components_count}`);
+        if (payload.documents_processed) details.push(`Documents: ${payload.documents_processed}`);
+        if (payload.doc_types) details.push(`Types: ${payload.doc_types.join(', ').replace(/_/g, ' ')}`);
+        if (payload.warnings_count) details.push(`Warnings: ${payload.warnings_count}`);
+        break;
+      case 'export':
+      case 'export_form_1084':
+        if (payload.format) details.push(`Format: ${payload.format.toUpperCase()}`);
+        if (payload.monthly_income !== undefined) details.push(`Income: ${formatCurrency(payload.monthly_income)}`);
+        if (payload.components_count) details.push(`Components: ${payload.components_count}`);
+        if (payload.documents_count) details.push(`Documents: ${payload.documents_count}`);
+        break;
+      default:
+        // For unknown steps, show key-value pairs in readable format
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            if (typeof value === 'number') {
+              details.push(`${label}: ${value.toLocaleString()}`);
+            } else if (typeof value === 'string') {
+              details.push(`${label}: ${value}`);
+            }
+          }
+        });
+    }
+    
+    return details.length > 0 ? details : null;
   };
 
   const getSummaryFromPayload = (step: string, payload: any) => {
@@ -136,9 +195,10 @@ export function AuditTrail({ calculationId }: AuditTrailProps) {
       case 'validate':
         return payload.warnings_count ? `${payload.warnings_count} warnings found` : 'Validation completed';
       case 'calculate':
-        return payload.monthly_income ? `Monthly income: $${payload.monthly_income.toLocaleString()}` : 'Calculation completed';
+        return payload.monthly_income !== undefined ? `Monthly income: ${formatCurrency(payload.monthly_income)}` : 'Calculation completed';
       case 'export':
-        return payload.format ? `${payload.format.toUpperCase()} exported` : 'Export completed';
+      case 'export_form_1084':
+        return payload.format ? `${payload.format.toUpperCase()} worksheet exported` : 'Export completed';
       default:
         return 'Step completed';
     }
@@ -213,7 +273,7 @@ export function AuditTrail({ calculationId }: AuditTrailProps) {
                     {hasPayload && (
                       <Collapsible>
                         <CollapsibleTrigger
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                           onClick={() => toggleEventExpansion(event.id)}
                         >
                           {isExpanded ? (
@@ -225,9 +285,16 @@ export function AuditTrail({ calculationId }: AuditTrailProps) {
                         </CollapsibleTrigger>
                         
                         <CollapsibleContent className="mt-2">
-                          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                            {formatPayload(event.payload)}
-                          </pre>
+                          <div className="text-xs bg-muted p-3 rounded space-y-1">
+                            {formatPayloadDetails(event.step, event.payload)?.map((detail, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-muted-foreground">•</span>
+                                <span>{detail}</span>
+                              </div>
+                            )) || (
+                              <span className="text-muted-foreground">No additional details</span>
+                            )}
+                          </div>
                         </CollapsibleContent>
                       </Collapsible>
                     )}

@@ -194,14 +194,18 @@ export function IncomeSummaryCard({
             <span className="text-lg font-semibold text-green-700 dark:text-green-400">MONTHLY QUALIFYING INCOME</span>
           </div>
           <div className="text-5xl font-bold text-green-600 dark:text-green-400">
-            {calculation.result_monthly_income ? 
-              formatCurrency(calculation.result_monthly_income) : 
-              'Calculating...'
-            }
+            {formatCurrency(calculation.result_monthly_income || 0)}
           </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Per Fannie Mae guidelines
-          </p>
+          {calculation.result_monthly_income === 0 && (
+            <p className="text-sm text-amber-600 mt-2">
+              No qualifying income found. Check document types or upload additional documents.
+            </p>
+          )}
+          {(calculation.result_monthly_income ?? 0) > 0 && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Per Fannie Mae guidelines
+            </p>
+          )}
         </div>
 
         {/* Confidence Score */}
