@@ -438,27 +438,63 @@ async function sendAutomatedEmail(
     }),
   });
 
+  let success = true;
+  let errorMessage: string | null = null;
+  let messageId: string | null = null;
+
   if (!sendGridResponse.ok) {
     const errorText = await sendGridResponse.text();
-    throw new Error(`SendGrid API error: ${sendGridResponse.status} - ${errorText}`);
+    success = false;
+    errorMessage = `SendGrid API error: ${sendGridResponse.status} - ${errorText}`;
+    console.error(errorMessage);
+  } else {
+    messageId = sendGridResponse.headers.get('X-Message-Id') || `auto-${Date.now()}`;
   }
 
-  const messageId = sendGridResponse.headers.get('X-Message-Id') || `auto-${Date.now()}`;
+  // Log the email (only if successful)
+  if (success) {
+    await supabase.from("email_logs").insert({
+      lead_id: lead.id,
+      timestamp: new Date().toISOString(),
+      direction: 'Out',
+      to_email: recipientEmail,
+      from_email: sender.email,
+      subject: subject,
+      snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
+      html_body: htmlContent,
+      body: htmlContent.replace(/<[^>]*>/g, ''),
+      provider_message_id: messageId,
+      delivery_status: 'sent',
+    });
+  }
 
-  // Log the email
-  await supabase.from("email_logs").insert({
+  // Log the execution to email_automation_executions
+  await supabase.from("email_automation_executions").insert({
+    automation_id: automation.id,
     lead_id: lead.id,
-    timestamp: new Date().toISOString(),
-    direction: 'Out',
-    to_email: recipientEmail,
-    from_email: sender.email,
-    subject: subject,
-    snippet: htmlContent.substring(0, 200).replace(/<[^>]*>/g, ''),
-    html_body: htmlContent,
-    body: htmlContent.replace(/<[^>]*>/g, ''),
-    provider_message_id: messageId,
-    delivery_status: 'sent',
+    recipient_email: recipientEmail,
+    recipient_type: automation.recipient_type,
+    cc_email: ccEmail,
+    success: success,
+    error_message: errorMessage,
+    template_name: template.name,
+    subject_sent: subject,
+    is_test_mode: isTestMode,
+    message_id: messageId,
   });
+
+  // Update the automation's last_run_at and execution_count
+  await supabase
+    .from('email_automations')
+    .update({ 
+      last_run_at: new Date().toISOString(),
+      execution_count: automation.execution_count ? automation.execution_count + 1 : 1
+    })
+    .eq('id', automation.id);
+
+  if (!success) {
+    throw new Error(errorMessage || 'Email send failed');
+  }
 
   console.log(`Email sent successfully. Message ID: ${messageId}`);
 

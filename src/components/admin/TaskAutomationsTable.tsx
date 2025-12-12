@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Pencil, Trash2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronDown, ChevronRight, History, Play } from 'lucide-react';
 import { databaseService } from '@/services/database';
 import { supabase } from '@/integrations/supabase/client';
 import { TaskAutomationModal } from './TaskAutomationModal';
@@ -12,6 +12,7 @@ import { TaskAutomationExecutionHistoryModal } from './TaskAutomationExecutionHi
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { getCompletionRequirementLabel } from '@/services/statusChangeValidation';
+import { formatDistanceToNow } from 'date-fns';
 
 interface TaskAutomation {
   id: string;
@@ -150,13 +151,6 @@ export function TaskAutomationsTable() {
   };
 
   const handleManualTrigger = async (automation: TaskAutomation) => {
-    if (automation.trigger_type !== 'scheduled') {
-      toast({
-        title: 'Info',
-        description: 'Manual trigger is only available for scheduled automations'
-      });
-      return;
-    }
     setTriggeringId(automation.id);
     try {
       const { data, error } = await supabase.functions.invoke('trigger-task-automation', {
@@ -165,14 +159,14 @@ export function TaskAutomationsTable() {
       if (error) throw error;
       toast({
         title: 'Success',
-        description: 'Task created successfully'
+        description: 'Task automation triggered successfully'
       });
       await loadAutomations();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error triggering automation:', error);
       toast({
         title: 'Error',
-        description: 'Failed to trigger automation',
+        description: error.message || 'Failed to trigger automation',
         variant: 'destructive'
       });
     } finally {
@@ -322,6 +316,7 @@ export function TaskAutomationsTable() {
           <TableHead>Task Name</TableHead>
           <TableHead>Trigger</TableHead>
           <TableHead>Contingency</TableHead>
+          <TableHead className="w-[100px]">Last Run</TableHead>
           <TableHead className="text-center">Active</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -339,6 +334,15 @@ export function TaskAutomationsTable() {
                 {getCompletionRequirementLabel(automation.completion_requirement_type || null)}
               </span>
             </TableCell>
+            <TableCell className="text-sm text-muted-foreground py-2">
+              {automation.last_run_at ? (
+                <span title={new Date(automation.last_run_at).toLocaleString()}>
+                  {formatDistanceToNow(new Date(automation.last_run_at), { addSuffix: true })}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/50">Never</span>
+              )}
+            </TableCell>
             <TableCell className="text-center py-2">
               <Switch 
                 checked={automation.is_active} 
@@ -346,32 +350,47 @@ export function TaskAutomationsTable() {
               />
             </TableCell>
             <TableCell className="text-right py-2">
-              <div className="flex justify-end gap-2">
-                {automation.trigger_type === 'scheduled' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleManualTrigger(automation)} 
-                    disabled={triggeringId === automation.id}
-                    title="Test automation (create task now)"
-                  >
-                    {triggeringId === automation.id ? 'Testing...' : 'Test'}
-                  </Button>
-                )}
+              <div className="flex justify-end gap-1">
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    setSelectedAutomation({ id: automation.id, name: automation.name });
+                    setExecutionHistoryOpen(true);
+                  }}
+                  title="View execution history"
+                >
+                  <History className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleManualTrigger(automation)} 
+                  disabled={triggeringId === automation.id}
+                  title="Test automation"
+                >
+                  <Play className={`h-4 w-4 ${triggeringId === automation.id ? 'animate-pulse' : ''}`} />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => handleEdit(automation)}
+                  title="Edit automation"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => {
                     setAutomationToDelete(automation.id);
                     setDeleteDialogOpen(true);
                   }}
+                  title="Delete automation"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
