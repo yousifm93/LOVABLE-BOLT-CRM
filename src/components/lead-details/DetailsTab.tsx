@@ -159,20 +159,36 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     const discountPointsPercentage = Number(editData.discount_points_percentage) || 0;
     const discountPointsDollar = (discountPointsPercentage / 100) * loanAmount;
     
-    // Sum all fee fields from Loan Estimate
-    const fees = 
+    // Section A: Lender Fees
+    const lenderFees = 
       ((client as any).underwriting_fee || 500) + // Default underwriting fee
+      discountPointsDollar;
+    
+    // Section B: Third Party Fees
+    const thirdPartyFees =
       ((client as any).appraisal_fee || 500) + // Default appraisal fee
       ((client as any).credit_report_fee || 65) + // Default credit report fee
       ((client as any).processing_fee || 995) + // Default processing fee
       ((client as any).lenders_title_insurance || 1000) + // Default lender's title insurance
-      ((client as any).title_closing_fee || 450) + // Default title closing fee
+      ((client as any).title_closing_fee || 450); // Default title closing fee
+    
+    // Section C: Taxes & Government Fees
+    const taxesAndGovFees =
       ((client as any).intangible_tax || 0) +
       ((client as any).transfer_tax || 0) +
-      ((client as any).recording_fees || 300) + // Default recording fees
-      discountPointsDollar;
+      ((client as any).recording_fees || 300); // Default recording fees
     
-    return Math.round(fees);
+    // Section D: Prepaids & Escrow
+    const prepaidsAndEscrow =
+      ((client as any).prepaid_hoi || 0) +
+      ((client as any).prepaid_interest || 0) +
+      ((client as any).escrow_hoi || 0) +
+      ((client as any).escrow_taxes || 0);
+    
+    // Total = All sections combined
+    const totalClosingCosts = lenderFees + thirdPartyFees + taxesAndGovFees + prepaidsAndEscrow;
+    
+    return Math.round(totalClosingCosts * 100) / 100;
   };
 
   // Load agents, lenders, and contacts for the Contacts section
@@ -239,17 +255,30 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     }
   }, [editData.subject_property_rental_income, editData.piti]);
 
-  // Auto-calculate closing costs when loan amount or discount points change
+  // Auto-calculate closing costs when any fee field changes
   useEffect(() => {
     const loanAmount = Number(editData.loan_amount) || 0;
     if (loanAmount > 0) {
       const calculatedClosingCosts = calculateClosingCosts();
-      // Only update if no closing costs are set or they're 0
-      if (!editData.closing_costs || editData.closing_costs === 0) {
-        setEditData(prev => ({ ...prev, closing_costs: calculatedClosingCosts }));
-      }
+      setEditData(prev => ({ ...prev, closing_costs: calculatedClosingCosts }));
     }
-  }, [editData.loan_amount, editData.discount_points_percentage]);
+  }, [
+    editData.loan_amount, 
+    editData.discount_points_percentage,
+    (client as any).underwriting_fee,
+    (client as any).appraisal_fee,
+    (client as any).credit_report_fee,
+    (client as any).processing_fee,
+    (client as any).lenders_title_insurance,
+    (client as any).title_closing_fee,
+    (client as any).intangible_tax,
+    (client as any).transfer_tax,
+    (client as any).recording_fees,
+    (client as any).prepaid_hoi,
+    (client as any).prepaid_interest,
+    (client as any).escrow_hoi,
+    (client as any).escrow_taxes,
+  ]);
 
   const handleEdit = () => {
     setIsEditing(true);
