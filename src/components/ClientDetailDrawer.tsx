@@ -125,8 +125,7 @@ export function ClientDetailDrawer({
   const [localPiti, setLocalPiti] = useState<number | null>(null);
   const [localOccupancy, setLocalOccupancy] = useState<string | null>(null);
   
-  // REO rental income for DTI calculation
-  const [reoNetIncome, setReoNetIncome] = useState<number>(0);
+  // No longer needed - REO expenses are part of monthly_liabilities on debt side
 
   // About the Borrower editing state
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -182,32 +181,7 @@ export function ClientDetailDrawer({
     setHasCalculatedPITI(false);
   }, [leadId]);
 
-  // Fetch REO rental income for DTI calculation
-  React.useEffect(() => {
-    const fetchReoIncome = async () => {
-      if (!leadId) return;
-      
-      try {
-        const { data: properties } = await supabase
-          .from('real_estate_properties')
-          .select('monthly_rent, monthly_expenses')
-          .eq('lead_id', leadId);
-        
-        if (properties && properties.length > 0) {
-          const netIncome = properties.reduce((sum, prop) => 
-            sum + ((Number(prop.monthly_rent) || 0) - (Number(prop.monthly_expenses) || 0)), 0);
-          setReoNetIncome(netIncome);
-        } else {
-          setReoNetIncome(0);
-        }
-      } catch (error) {
-        console.error('Error fetching REO income:', error);
-        setReoNetIncome(0);
-      }
-    };
-    
-    fetchReoIncome();
-  }, [leadId]);
+  // REO fetch removed - REO expenses are already included in monthly_liabilities on debt side
 
   // Auto-calculate PITI components when key fields exist but PITI is empty
   const autoCalculateAndSavePITI = React.useCallback(async () => {
@@ -1072,10 +1046,12 @@ export function ClientDetailDrawer({
         const salesPriceEarly = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
         const ltvEarly = salesPriceEarly > 0 ? ((loanAmountEarly / salesPriceEarly) * 100).toFixed(2) : null;
         
-        // Calculate front-end and back-end DTI for early stages (including rental income from REO)
+        // Calculate front-end and back-end DTI for early stages
+        // Total Income = total_monthly_income + subject_property_rental_income only
+        // (REO expenses are already included in monthly_liabilities on debt side)
         const baseIncomeEarly = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
-        const rentalIncomeEarly = reoNetIncome || 0; // Include REO rental income
-        const totalIncomeEarly = baseIncomeEarly + rentalIncomeEarly;
+        const subjectPropertyRentalEarly = (client as any).subject_property_rental_income || 0;
+        const totalIncomeEarly = baseIncomeEarly + subjectPropertyRentalEarly;
         const monthlyLiabilitiesEarly = (client as any).monthly_liabilities || 0;
         const pitiEarly = localPiti ?? (client as any).piti ?? 0;
         
@@ -1165,7 +1141,11 @@ export function ClientDetailDrawer({
         const ltv = salesPrice > 0 ? ((loanAmount / salesPrice) * 100).toFixed(2) : null;
         
         // Calculate front-end and back-end DTI
-        const totalIncome = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        // Total Income = total_monthly_income + subject_property_rental_income only
+        // (REO expenses are already included in monthly_liabilities on debt side)
+        const baseIncome = (client as any).total_monthly_income || (client as any).totalMonthlyIncome || 0;
+        const subjectPropertyRental = (client as any).subject_property_rental_income || 0;
+        const totalIncome = baseIncome + subjectPropertyRental;
         const monthlyLiabilities = (client as any).monthly_liabilities || 0;
         const piti = localPiti ?? (client as any).piti ?? 0;
         
