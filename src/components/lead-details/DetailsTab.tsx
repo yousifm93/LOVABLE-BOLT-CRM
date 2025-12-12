@@ -393,6 +393,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         escrows: editData.escrows || null,
         cash_to_close: editData.cash_to_close,
         closing_costs: editData.closing_costs,
+        close_date: editData.close_date,
         
         // Loan & Property - Property
         occupancy: editData.occupancy || null,
