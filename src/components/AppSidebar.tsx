@@ -15,8 +15,6 @@ import {
   Bot,
   Search,
   Calculator,
-  Megaphone,
-  BookOpen,
   Mail,
   Zap,
   DollarSign,
@@ -25,7 +23,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarGroup,
   SidebarMenu,
@@ -38,6 +35,7 @@ import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
+import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
 
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
@@ -91,6 +89,8 @@ export function AppSidebar() {
   
   const [pendingSuggestionCount, setPendingSuggestionCount] = useState(0);
   const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
+  const [pendingEmailQueueCount, setPendingEmailQueueCount] = useState(0);
+  const [emailQueueModalOpen, setEmailQueueModalOpen] = useState(false);
 
   // Fetch pending suggestion count
   useEffect(() => {
@@ -110,6 +110,32 @@ export function AppSidebar() {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'email_field_suggestions' },
         () => fetchPendingCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Fetch pending email queue count
+  useEffect(() => {
+    const fetchEmailQueueCount = async () => {
+      const { count } = await supabase
+        .from('email_automation_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingEmailQueueCount(count || 0);
+    };
+
+    fetchEmailQueueCount();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('email_automation_queue_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'email_automation_queue' },
+        () => fetchEmailQueueCount()
       )
       .subscribe();
 
@@ -154,10 +180,34 @@ export function AppSidebar() {
               {dashboardItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
+                    {item.title === "Overview" ? (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.title}
+                            {pendingEmailQueueCount > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setEmailQueueModalOpen(true);
+                                }}
+                              >
+                                {pendingEmailQueueCount}
+                              </Badge>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    ) : (
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -273,6 +323,11 @@ export function AppSidebar() {
       <EmailFieldSuggestionsModal
         open={suggestionsModalOpen}
         onOpenChange={setSuggestionsModalOpen}
+      />
+
+      <EmailAutomationQueueModal
+        open={emailQueueModalOpen}
+        onOpenChange={setEmailQueueModalOpen}
       />
     </>
   );

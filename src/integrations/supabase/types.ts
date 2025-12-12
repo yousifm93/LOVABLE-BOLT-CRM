@@ -1029,6 +1029,63 @@ export type Database = {
           },
         ]
       }
+      email_automation_queue: {
+        Row: {
+          automation_id: string | null
+          created_at: string | null
+          field_name: string
+          id: string
+          lead_id: string | null
+          new_value: string | null
+          old_value: string | null
+          processed_at: string | null
+          status: string
+          triggered_at: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          created_at?: string | null
+          field_name: string
+          id?: string
+          lead_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          processed_at?: string | null
+          status?: string
+          triggered_at?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          created_at?: string | null
+          field_name?: string
+          id?: string
+          lead_id?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          processed_at?: string | null
+          status?: string
+          triggered_at?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_automation_queue_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_automation_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_automation_settings: {
         Row: {
           created_at: string
