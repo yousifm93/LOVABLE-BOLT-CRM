@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
+import { format } from "date-fns";
 import { useFields } from "@/contexts/FieldsContext";
 import { Search, Plus, Filter, Phone, Mail, X } from "lucide-react";
+import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -516,7 +518,7 @@ const allAvailableColumns = useMemo(() => {
     loanType: lead.loan_type || '',
     loanAmount: lead.loan_amount || null,
     creditScore: lead.fico_score || 0,
-    dueDate: lead.task_eta || '',
+    dueDate: lead.task_eta || new Date().toISOString().split('T')[0], // Default to today
     latestFileUpdates: lead.latest_file_updates || '',
 // Add all database fields dynamically
     ...allFields
@@ -685,6 +687,19 @@ const allAvailableColumns = useMemo(() => {
         >
           {row.original.name}
         </span>
+      ),
+    },
+    {
+      accessorKey: "pendingAppOn",
+      header: "Pending App On",
+      sortable: true,
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span>{formatDateShort(row.original.pendingAppOn)}</span>
+          <span className="text-xs text-muted-foreground">
+            {row.original.pendingAppOn ? format(new Date(row.original.pendingAppOn), 'h:mm a') : ''}
+          </span>
+        </div>
       ),
     },
     {
