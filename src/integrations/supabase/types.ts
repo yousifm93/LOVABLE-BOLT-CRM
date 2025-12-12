@@ -1118,6 +1118,8 @@ export type Database = {
       }
       email_automations: {
         Row: {
+          cc_recipient_type: string | null
+          conditions: Json | null
           created_at: string
           id: string
           is_active: boolean
@@ -1131,6 +1133,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cc_recipient_type?: string | null
+          conditions?: Json | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1144,6 +1148,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cc_recipient_type?: string | null
+          conditions?: Json | null
           created_at?: string
           id?: string
           is_active?: boolean

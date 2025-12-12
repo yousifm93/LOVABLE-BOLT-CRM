@@ -20,9 +20,11 @@ interface EmailAutomation {
   trigger_config: any;
   pipeline_group: string;
   recipient_type: string;
+  cc_recipient_type: string | null;
   purpose: string | null;
   template_id: string | null;
   is_active: boolean;
+  conditions: any | null;
 }
 
 interface EmailTemplate {
@@ -103,13 +105,17 @@ const MERGE_TAGS = {
     { tag: '{{sales_price}}', description: 'Sales price' },
     { tag: '{{interest_rate}}', description: 'Interest rate' },
     { tag: '{{loan_program}}', description: 'Loan program type' },
+    { tag: '{{appraisal_value}}', description: 'Appraised value' },
+    { tag: '{{equity_amount}}', description: 'Equity amount (appraisal - sales price)' },
   ],
   'Dates': [
     { tag: '{{close_date}}', description: 'Closing date' },
+    { tag: '{{closing_date}}', description: 'Closing date (alias)' },
     { tag: '{{lock_expiration_date}}', description: 'Lock expiration' },
   ],
   'Property': [
-    { tag: '{{subject_address}}', description: 'Property address' },
+    { tag: '{{subject_address}}', description: 'Property street address' },
+    { tag: '{{property_address}}', description: 'Full property address' },
     { tag: '{{city}}', description: 'City' },
     { tag: '{{state}}', description: 'State' },
     { tag: '{{zip}}', description: 'ZIP code' },
@@ -119,12 +125,17 @@ const MERGE_TAGS = {
     { tag: '{{buyer_agent_name}}', description: "Buyer's agent full name" },
     { tag: '{{buyer_agent_phone}}', description: "Buyer's agent phone" },
     { tag: '{{buyer_agent_email}}', description: "Buyer's agent email" },
+    { tag: '{{listing_agent_first_name}}', description: "Listing agent first name" },
     { tag: '{{listing_agent_name}}', description: "Listing agent full name" },
     { tag: '{{listing_agent_phone}}', description: "Listing agent phone" },
     { tag: '{{listing_agent_email}}', description: "Listing agent email" },
     { tag: '{{title_contact_name}}', description: "Title contact name" },
     { tag: '{{title_contact_phone}}', description: "Title contact phone" },
     { tag: '{{title_contact_email}}', description: "Title contact email" },
+  ],
+  'Loan Officer': [
+    { tag: '{{loan_officer_name}}', description: 'Loan officer full name' },
+    { tag: '{{loan_officer_phone}}', description: 'Loan officer phone' },
   ],
 };
 
@@ -140,8 +151,10 @@ const SAMPLE_DATA: Record<string, string> = {
   '{{interest_rate}}': '6.875%',
   '{{loan_program}}': 'Conventional',
   '{{close_date}}': 'December 20, 2024',
+  '{{closing_date}}': 'December 20, 2024',
   '{{lock_expiration_date}}': 'January 15, 2025',
   '{{subject_address}}': '123 Main Street',
+  '{{property_address}}': '123 Main Street, Miami, FL 33131',
   '{{city}}': 'Miami',
   '{{state}}': 'FL',
   '{{zip}}': '33131',
@@ -149,12 +162,17 @@ const SAMPLE_DATA: Record<string, string> = {
   '{{buyer_agent_name}}': 'Sarah Johnson',
   '{{buyer_agent_phone}}': '(555) 234-5678',
   '{{buyer_agent_email}}': 'sarah@realty.com',
+  '{{listing_agent_first_name}}': 'Michael',
   '{{listing_agent_name}}': 'Michael Brown',
   '{{listing_agent_phone}}': '(555) 345-6789',
   '{{listing_agent_email}}': 'michael@realty.com',
   '{{title_contact_name}}': 'Lisa Williams',
   '{{title_contact_phone}}': '(555) 456-7890',
   '{{title_contact_email}}': 'lisa@titlecompany.com',
+  '{{appraisal_value}}': '$520,000',
+  '{{equity_amount}}': '$20,000',
+  '{{loan_officer_name}}': 'Yousif Mohamed',
+  '{{loan_officer_phone}}': '(305) 555-1234',
 };
 
 export function EmailAutomationModal({
@@ -175,9 +193,11 @@ export function EmailAutomationModal({
     trigger_type: 'status_changed',
     pipeline_group: 'active',
     recipient_type: 'borrower',
+    cc_recipient_type: '' as string,
     purpose: '',
     template_id: '',
     trigger_config: {} as any,
+    conditions: null as any,
   });
 
   const [templateData, setTemplateData] = useState({
@@ -192,9 +212,11 @@ export function EmailAutomationModal({
         trigger_type: automation.trigger_type,
         pipeline_group: automation.pipeline_group,
         recipient_type: automation.recipient_type,
+        cc_recipient_type: automation.cc_recipient_type || '',
         purpose: automation.purpose || '',
         template_id: automation.template_id || '',
         trigger_config: automation.trigger_config || {},
+        conditions: automation.conditions || null,
       });
       
       // Load template data if template is selected
@@ -207,9 +229,11 @@ export function EmailAutomationModal({
         trigger_type: 'status_changed',
         pipeline_group: 'active',
         recipient_type: 'borrower',
+        cc_recipient_type: '',
         purpose: '',
         template_id: '',
         trigger_config: {},
+        conditions: null,
       });
       setTemplateData({ subject: '', html: '' });
     }
@@ -274,9 +298,11 @@ export function EmailAutomationModal({
       trigger_type: formData.trigger_type,
       pipeline_group: formData.pipeline_group,
       recipient_type: formData.recipient_type,
+      cc_recipient_type: formData.cc_recipient_type || null,
       purpose: formData.purpose || null,
       template_id: formData.template_id || null,
       trigger_config: formData.trigger_config,
+      conditions: formData.conditions,
     };
 
     let error;
@@ -393,6 +419,24 @@ export function EmailAutomationModal({
                       </SelectTrigger>
                       <SelectContent>
                         {RECIPIENT_TYPES.map(r => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>CC (Optional)</Label>
+                    <Select
+                      value={formData.cc_recipient_type}
+                      onValueChange={v => setFormData(prev => ({ ...prev, cc_recipient_type: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="No CC" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {RECIPIENT_TYPES.filter(r => r.value !== formData.recipient_type).map(r => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                         ))}
                       </SelectContent>
