@@ -238,21 +238,27 @@ export function ActivityLogModal({
   const [lendersMap, setLendersMap] = useState<Record<string, string>>({});
   const [undoing, setUndoing] = useState<number | null>(null);
 
-  // Fetch users for avatar display
+  // Fetch users for avatar display - map by BOTH id and auth_user_id
   const fetchUsers = async () => {
     const { data } = await supabase
       .from("users")
-      .select("auth_user_id, first_name, last_name, email");
+      .select("id, auth_user_id, first_name, last_name, email");
     
     if (data) {
       const map: Record<string, { first_name: string; last_name: string; email: string }> = {};
       data.forEach(user => {
+        const userInfo = {
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          email: user.email || '',
+        };
+        // Map by user.id (used in teammate_assigned, processor_id, lo_id)
+        if (user.id) {
+          map[user.id] = userInfo;
+        }
+        // Also map by auth_user_id for changed_by field
         if (user.auth_user_id) {
-          map[user.auth_user_id] = {
-            first_name: user.first_name || '',
-            last_name: user.last_name || '',
-            email: user.email || '',
-          };
+          map[user.auth_user_id] = userInfo;
         }
       });
       setUsersMap(map);
