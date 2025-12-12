@@ -930,6 +930,27 @@ Deno.serve(async (req) => {
             if (updateError) {
               console.error('Error updating lead with PDF URL:', updateError);
             }
+            
+            // Also create a document record so it appears in Documents tab
+            const { error: docError } = await supabase
+              .from('documents')
+              .insert({
+                lead_id: result.id,
+                file_name: `${safeName}-application.pdf`,
+                file_url: fileName, // Store the storage path, signed URL can be regenerated
+                mime_type: 'application/pdf',
+                size_bytes: pdfBytes.length,
+                uploaded_by: '47e707c5-62d0-4ee9-99a3-76572c73a8e1', // Default profile
+                title: 'Mortgage Application',
+                status: 'pending',
+                notes: 'Auto-generated from mortgage application submission',
+              });
+            
+            if (docError) {
+              console.error('Error creating document record:', docError);
+            } else {
+              console.log('Document record created successfully');
+            }
           }
         }
       } catch (pdfError) {
