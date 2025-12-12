@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FourColumnDetailLayout } from "./FourColumnDetailLayout";
 import { RealEstateOwnedSection } from "./RealEstateOwnedSection";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +85,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const [agents, setAgents] = useState<any[]>([]);
   const [lenders, setLenders] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [editData, setEditData] = useState({
     // Borrower Info
     first_name: client.person?.firstName || "",
@@ -1649,7 +1652,22 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open((client as any).paper_application_url, '_blank')}
+                  onClick={async () => {
+                    try {
+                      const response = await fetch((client as any).paper_application_url);
+                      if (!response.ok) throw new Error('Failed to fetch PDF');
+                      const data = await response.arrayBuffer();
+                      setPdfData(data);
+                      setPdfPreviewOpen(true);
+                    } catch (error) {
+                      console.error('Error loading PDF:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to load PDF. The file may have expired or been moved.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                 >
                   View PDF
                 </Button>
@@ -1758,6 +1776,16 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
             Mark as Closed
           </Button>
         </div>
+
+        {/* PDF Preview Modal */}
+        <DocumentPreviewModal
+          open={pdfPreviewOpen}
+          onOpenChange={setPdfPreviewOpen}
+          documentName="Mortgage Application"
+          documentUrl={(client as any).paper_application_url}
+          mimeType="application/pdf"
+          pdfData={pdfData || undefined}
+        />
       </div>
     </ScrollArea>
   );
