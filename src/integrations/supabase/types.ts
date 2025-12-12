@@ -1029,6 +1029,69 @@ export type Database = {
           },
         ]
       }
+      email_automation_executions: {
+        Row: {
+          automation_id: string | null
+          cc_email: string | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          is_test_mode: boolean | null
+          lead_id: string | null
+          message_id: string | null
+          recipient_email: string
+          recipient_type: string
+          subject_sent: string | null
+          success: boolean | null
+          template_name: string | null
+        }
+        Insert: {
+          automation_id?: string | null
+          cc_email?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          is_test_mode?: boolean | null
+          lead_id?: string | null
+          message_id?: string | null
+          recipient_email: string
+          recipient_type: string
+          subject_sent?: string | null
+          success?: boolean | null
+          template_name?: string | null
+        }
+        Update: {
+          automation_id?: string | null
+          cc_email?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          is_test_mode?: boolean | null
+          lead_id?: string | null
+          message_id?: string | null
+          recipient_email?: string
+          recipient_type?: string
+          subject_sent?: string | null
+          success?: boolean | null
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_automation_executions_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_automation_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_automation_queue: {
         Row: {
           automation_id: string | null
@@ -1121,8 +1184,10 @@ export type Database = {
           cc_recipient_type: string | null
           conditions: Json | null
           created_at: string
+          execution_count: number | null
           id: string
           is_active: boolean
+          last_run_at: string | null
           name: string
           pipeline_group: string
           purpose: string | null
@@ -1136,8 +1201,10 @@ export type Database = {
           cc_recipient_type?: string | null
           conditions?: Json | null
           created_at?: string
+          execution_count?: number | null
           id?: string
           is_active?: boolean
+          last_run_at?: string | null
           name: string
           pipeline_group: string
           purpose?: string | null
@@ -1151,8 +1218,10 @@ export type Database = {
           cc_recipient_type?: string | null
           conditions?: Json | null
           created_at?: string
+          execution_count?: number | null
           id?: string
           is_active?: boolean
+          last_run_at?: string | null
           name?: string
           pipeline_group?: string
           purpose?: string | null

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail, AlertTriangle, TestTube2, Send, Search, User } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Mail, AlertTriangle, TestTube2, Send, Search, User, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -45,6 +45,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { EmailAutomationModal } from "./EmailAutomationModal";
+import { EmailAutomationExecutionHistoryModal } from "./EmailAutomationExecutionHistoryModal";
+import { formatDistanceToNow } from "date-fns";
 
 interface EmailAutomation {
   id: string;
@@ -60,6 +62,8 @@ interface EmailAutomation {
   conditions: any | null;
   created_at: string;
   updated_at: string;
+  last_run_at: string | null;
+  execution_count: number | null;
 }
 
 interface EmailTemplate {
@@ -123,6 +127,11 @@ export function EmailAutomationsTable() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [automationToDelete, setAutomationToDelete] = useState<EmailAutomation | null>(null);
   const [sendingTest, setSendingTest] = useState<string | null>(null);
+  const [executionHistoryOpen, setExecutionHistoryOpen] = useState(false);
+  const [selectedAutomation, setSelectedAutomation] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -484,12 +493,13 @@ export function EmailAutomationsTable() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[50px] text-center">#</TableHead>
-                          <TableHead className="w-[200px]">When</TableHead>
-                          <TableHead className="w-[120px]">Who</TableHead>
+                          <TableHead className="w-[180px]">When</TableHead>
+                          <TableHead className="w-[100px]">Who</TableHead>
                           <TableHead>Purpose</TableHead>
-                          <TableHead className="w-[150px]">Template</TableHead>
-                          <TableHead className="w-[80px] text-center">Active</TableHead>
-                          <TableHead className="w-[140px] text-center">Actions</TableHead>
+                          <TableHead className="w-[130px]">Template</TableHead>
+                          <TableHead className="w-[90px]">Last Run</TableHead>
+                          <TableHead className="w-[70px] text-center">Active</TableHead>
+                          <TableHead className="w-[160px] text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -514,6 +524,15 @@ export function EmailAutomationsTable() {
                                 {getTemplateNameById(automation.template_id)}
                               </span>
                             </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {automation.last_run_at ? (
+                                <span title={new Date(automation.last_run_at).toLocaleString()}>
+                                  {formatDistanceToNow(new Date(automation.last_run_at), { addSuffix: true })}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/50">Never</span>
+                              )}
+                            </TableCell>
                             <TableCell className="text-center">
                               <Switch
                                 checked={automation.is_active}
@@ -522,6 +541,18 @@ export function EmailAutomationsTable() {
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    setSelectedAutomation({ id: automation.id, name: automation.name });
+                                    setExecutionHistoryOpen(true);
+                                  }}
+                                  title="View execution history"
+                                >
+                                  <History className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -537,6 +568,7 @@ export function EmailAutomationsTable() {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={() => handleEdit(automation)}
+                                  title="Edit automation"
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -548,6 +580,7 @@ export function EmailAutomationsTable() {
                                     setAutomationToDelete(automation);
                                     setDeleteDialogOpen(true);
                                   }}
+                                  title="Delete automation"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -574,6 +607,13 @@ export function EmailAutomationsTable() {
           loadAutomations();
           loadTemplates();
         }}
+      />
+
+      <EmailAutomationExecutionHistoryModal
+        open={executionHistoryOpen}
+        onOpenChange={setExecutionHistoryOpen}
+        automationId={selectedAutomation?.id || ''}
+        automationName={selectedAutomation?.name || ''}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
