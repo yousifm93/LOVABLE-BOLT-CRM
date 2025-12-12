@@ -5,7 +5,7 @@ const ChatbaseBoltBot = () => {
         <iframe
           src="https://www.chatbase.co/chatbot-iframe/vFzcDBWWvspZHs4DsgAxZ"
           className="w-full h-full border-0 rounded-lg"
-          title="Bolt Bot 2 - Lender Guidelines"
+          title="Bolt Bot - Lender Guidelines"
           allow="microphone"
         />
       </div>

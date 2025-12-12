@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (requestBody.leadId) {
         const { data: leadData } = await supabase
           .from('leads')
-          .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
+          .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), listing_agent:buyer_agents!listing_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
           .eq('id', requestBody.leadId)
           .single();
         lead = leadData;
@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Get a random active lead for testing
         const { data: leads } = await supabase
           .from('leads')
-          .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
+          .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), listing_agent:buyer_agents!listing_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
           .not('email', 'is', null)
           .limit(1);
         lead = leads?.[0];
@@ -106,7 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Get the lead
       const { data: leadData } = await supabase
         .from('leads')
-        .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
+        .select('*, buyer_agent:buyer_agents!buyer_agent_id(*), listing_agent:buyer_agents!listing_agent_id(*), approved_lender:lenders!approved_lender_id(*)')
         .eq('id', requestBody.leadId)
         .single();
       
@@ -241,16 +241,18 @@ async function sendAutomatedEmail(
     console.log(`Test mode: Skipping condition evaluation for automation ${automation.id}`);
   }
 
-  // Fetch listing agent if needed
+  // Fetch listing agent from leads.listing_agent_id joining buyer_agents
   let listingAgent = null;
-  if (automation.recipient_type === 'listing_agent' || automation.cc_recipient_type === 'listing_agent') {
-    const { data: listingAgentLink } = await supabase
-      .from('lead_external_contacts')
-      .select('contact:contacts(*)')
-      .eq('lead_id', lead.id)
-      .eq('type', 'listing_agent')
-      .maybeSingle();
-    listingAgent = listingAgentLink?.contact;
+  if (automation.recipient_type === 'listing_agent' || automation.cc_recipient_type === 'listing_agent' || true) {
+    // Always fetch listing agent for merge tags
+    if (lead.listing_agent_id) {
+      const { data: listingAgentData } = await supabase
+        .from('buyer_agents')
+        .select('*')
+        .eq('id', lead.listing_agent_id)
+        .maybeSingle();
+      listingAgent = listingAgentData;
+    }
   }
 
   // Get the sender (default to Yousif)
@@ -293,8 +295,8 @@ async function sendAutomatedEmail(
     loan_amount: lead.loan_amount ? `$${Number(lead.loan_amount).toLocaleString()}` : '',
     sales_price: lead.sales_price ? `$${Number(lead.sales_price).toLocaleString()}` : '',
     interest_rate: lead.interest_rate ? `${lead.interest_rate}%` : '',
-    subject_property_address: [lead.subject_address_1, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
-    property_address: [lead.subject_address_1, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
+    subject_property_address: [lead.subject_address_1, lead.subject_address_2, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
+    property_address: [lead.subject_address_1, lead.subject_address_2, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
     subject_address: lead.subject_address_1 || '',
     city: lead.subject_city || '',
     state: lead.subject_state || '',
@@ -327,12 +329,13 @@ async function sendAutomatedEmail(
     mergeData.buyer_agent_phone = lead.buyer_agent.phone || '';
   }
 
-  // Add listing agent info
-  if (listingAgent) {
-    mergeData.listing_agent_first_name = listingAgent.first_name || '';
-    mergeData.listing_agent_name = `${listingAgent.first_name || ''} ${listingAgent.last_name || ''}`.trim();
-    mergeData.listing_agent_email = listingAgent.email || '';
-    mergeData.listing_agent_phone = listingAgent.phone || '';
+  // Add listing agent info - use lead.listing_agent from join if available, otherwise use fetched listingAgent
+  const listingAgentData = lead.listing_agent || listingAgent;
+  if (listingAgentData) {
+    mergeData.listing_agent_first_name = listingAgentData.first_name || '';
+    mergeData.listing_agent_name = `${listingAgentData.first_name || ''} ${listingAgentData.last_name || ''}`.trim();
+    mergeData.listing_agent_email = listingAgentData.email || '';
+    mergeData.listing_agent_phone = listingAgentData.phone || '';
   }
 
   // Add title contact info
@@ -365,9 +368,9 @@ async function sendAutomatedEmail(
     htmlContent = htmlContent.replace(/.*instant equity.*\n?/gi, '');
   }
 
-  // Append "Best," and email signature
+  // Append "Best," and email signature (1 line break before Best, 2 after)
   if (sender.email_signature) {
-    const signatureHtml = `<br><br>Best,<br><br>${sender.email_signature}`;
+    const signatureHtml = `<br>Best,<br><br>${sender.email_signature}`;
     if (htmlContent.includes('</div>')) {
       // Insert before the last closing div
       const lastDivIndex = htmlContent.lastIndexOf('</div>');

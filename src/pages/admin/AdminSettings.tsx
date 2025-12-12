@@ -1,9 +1,10 @@
-import { Settings, FileQuestion, Shield, Layout, Mail } from "lucide-react";
+import { Settings, FileQuestion, Shield, Layout, Mail, Bot } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PasswordsVault from "@/pages/PasswordsVault";
 import PipelineViews from "@/pages/admin/PipelineViews";
 import FridayNewsletterBuilder from "@/components/admin/FridayNewsletterBuilder";
+import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 export default function AdminSettings() {
   return <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6 px-[10px]">
@@ -15,7 +16,7 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="system" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               System Settings
@@ -35,6 +36,10 @@ export default function AdminSettings() {
             <TabsTrigger value="friday-newsletter" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Friday Newsletter
+            </TabsTrigger>
+            <TabsTrigger value="backup-chat" className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Back Up Chat
             </TabsTrigger>
           </TabsList>
 
@@ -74,6 +79,10 @@ export default function AdminSettings() {
 
           <TabsContent value="friday-newsletter" className="space-y-4">
             <FridayNewsletterBuilder />
+          </TabsContent>
+
+          <TabsContent value="backup-chat" className="space-y-4">
+            <GuidelineChatbot />
           </TabsContent>
         </Tabs>
       </div>
