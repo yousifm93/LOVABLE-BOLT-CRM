@@ -328,14 +328,22 @@ export function DashboardDetailModal({
           .eq('email_log_id', email.id)
           .eq('status', 'pending');
 
-        // Insert new suggestions
+        // Field name mapping for looking up current values (AI uses different names than DB)
+        const fieldNameMap: Record<string, string> = {
+          'loan_program': 'program',
+          'monthly_taxes': 'property_taxes',
+          'escrow': 'escrows',
+        };
+        
+        // Insert new suggestions with proper field name mapping for current_value lookup
         for (const s of parseResult.data.suggestions) {
+          const mappedFieldName = fieldNameMap[s.field_name] || s.field_name;
           await supabase.from('email_field_suggestions').insert({
             email_log_id: email.id,
             lead_id: email.lead_id,
             field_name: s.field_name,
             field_display_name: s.field_display_name,
-            current_value: leadData?.[s.field_name] || null,
+            current_value: leadData?.[mappedFieldName] || null,
             suggested_value: s.suggested_value,
             reason: s.reason,
             confidence: s.confidence,
@@ -483,32 +491,43 @@ export function DashboardDetailModal({
       })
     : [];
 
+  // Field name mapping for looking up current values (AI uses different names than DB)
+  const FIELD_NAME_MAP: Record<string, string> = {
+    'loan_program': 'program',
+    'monthly_taxes': 'property_taxes',
+    'escrow': 'escrows',
+  };
+
+  const getMappedFieldName = (fieldName: string): string => {
+    return FIELD_NAME_MAP[fieldName] || fieldName;
+  };
+
   const renderEmailTable = (emails: Email[], showResponseColumn: boolean = false) => (
-    <div className="min-w-[1200px]">
+    <div className="min-w-[1000px]">
       <Table className="text-xs">
         <TableHeader>
           <TableRow className="text-[11px]">
             <TableHead className="w-[90px] py-2">Name</TableHead>
-            <TableHead className="w-[85px] py-2">{getDateColumnTitle()}</TableHead>
-            <TableHead className="w-[50px] py-2">Dir</TableHead>
-            <TableHead className="w-[45px] py-2 text-center">Conf</TableHead>
-            <TableHead className="w-[45px] py-2 text-center">Rerun</TableHead>
+            <TableHead className="w-[75px] py-2">{getDateColumnTitle()}</TableHead>
+            <TableHead className="w-[40px] py-2">Dir</TableHead>
+            <TableHead className="w-[40px] py-2 text-center">Conf</TableHead>
+            <TableHead className="w-[35px] py-2 text-center">Rerun</TableHead>
             {showResponseColumn ? (
               <>
-                <TableHead className="w-[180px] py-2">AI Summary</TableHead>
-                <TableHead className="w-[200px] py-2">Reason to Reply</TableHead>
-                <TableHead className="w-[80px] py-2">Urgency</TableHead>
-                <TableHead className="w-[100px] py-2">Actions</TableHead>
+                <TableHead className="w-[160px] py-2">AI Summary</TableHead>
+                <TableHead className="w-[180px] py-2">Reason to Reply</TableHead>
+                <TableHead className="w-[70px] py-2">Urgency</TableHead>
+                <TableHead className="w-[80px] py-2">Actions</TableHead>
               </>
             ) : (
               <>
                 <TableHead className="w-[200px] py-2">CRM Update</TableHead>
-                <TableHead className="w-[180px] py-2">AI Summary</TableHead>
+                <TableHead className="w-[150px] py-2">AI Summary</TableHead>
               </>
             )}
-            <TableHead className="w-[140px] py-2">Subject</TableHead>
-            {!showResponseColumn && <TableHead className="w-[160px] py-2">Explanation</TableHead>}
-            <TableHead className="w-[120px] py-2">Notes</TableHead>
+            <TableHead className="w-[100px] py-2">Subject</TableHead>
+            {!showResponseColumn && <TableHead className="w-[140px] py-2">Explanation</TableHead>}
+            <TableHead className="w-[100px] py-2">Notes</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -698,7 +717,7 @@ export function DashboardDetailModal({
                           <span>Reanalyzing...</span>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground line-clamp-3">
+                        <span className="text-[11px] text-muted-foreground line-clamp-2">
                           {item.ai_summary || "—"}
                         </span>
                       )}
@@ -821,21 +840,25 @@ export function DashboardDetailModal({
             </TabsList>
             
             <TabsContent value="lead-updates" className="mt-0">
-              <ScrollArea className="h-[65vh] w-full">
-                {renderEmailTable(localEmails, false)}
+              <ScrollArea className="h-[65vh] w-full overflow-x-auto">
+                <div className="overflow-x-auto">
+                  {renderEmailTable(localEmails, false)}
+                </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </TabsContent>
             
             <TabsContent value="emails-to-respond" className="mt-0">
-              <ScrollArea className="h-[65vh] w-full">
-                {emailsNeedingResponse.length > 0 ? (
-                  renderEmailTable(emailsNeedingResponse, true)
-                ) : (
-                  <div className="flex items-center justify-center h-40 text-muted-foreground">
-                    No emails currently need a response
-                  </div>
-                )}
+              <ScrollArea className="h-[65vh] w-full overflow-x-auto">
+                <div className="overflow-x-auto">
+                  {emailsNeedingResponse.length > 0 ? (
+                    renderEmailTable(emailsNeedingResponse, true)
+                  ) : (
+                    <div className="flex items-center justify-center h-40 text-muted-foreground">
+                      No emails currently need a response
+                    </div>
+                  )}
+                </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </TabsContent>
