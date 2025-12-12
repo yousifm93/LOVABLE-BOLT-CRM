@@ -304,14 +304,31 @@ export default function IncomeCalculator() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('income-export-pdf', {
-        body: { calculation_id: calculations[0].id }
-      });
+      // Call the edge function and get the HTML response directly
+      const response = await fetch(
+        `https://zpsvatonxakysnbqnfcc.supabase.co/functions/v1/income-export-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+          },
+          body: JSON.stringify({ calculation_id: calculations[0].id })
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
 
-      if (data?.export_url) {
-        window.open(data.export_url, '_blank');
+      // Get the HTML content
+      const htmlContent = await response.text();
+      
+      // Open in new window
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
       }
 
       toast({

@@ -456,14 +456,13 @@ serve(async (req) => {
         }
       });
 
-    return new Response(JSON.stringify({
-      success: true,
-      export_url: urlData?.signedUrl,
-      file_name: fileName,
-      format: 'html',
-      monthly_income: calculation.result_monthly_income
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Return the HTML directly for immediate display/download
+    return new Response(htmlContent, {
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `inline; filename="${fileName}"`
+      }
     });
 
   } catch (error) {

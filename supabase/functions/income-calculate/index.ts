@@ -477,6 +477,75 @@ serve(async (req) => {
       }
     }
 
+    // ===== PROCESS FORM 1040s =====
+    const form1040s = docsByType['form_1040'] || [];
+    if (form1040s.length > 0) {
+      // Group by tax year
+      const form1040ByYear: Record<number, any[]> = {};
+      for (const form of form1040s) {
+        const year = form.data.tax_year || 2023;
+        if (!form1040ByYear[year]) form1040ByYear[year] = [];
+        form1040ByYear[year].push(form);
+      }
+
+      const years = Object.keys(form1040ByYear).sort((a, b) => parseInt(b) - parseInt(a));
+      
+      // Check if we already have base income from pay stubs or W-2s
+      const hasBaseIncome = components.some(c => 
+        ['base_hourly', 'base_salary', 'w2_income'].includes(c.component_type)
+      );
+
+      if (!hasBaseIncome && years.length > 0) {
+        if (years.length >= 2) {
+          // Have 2 years - calculate trending from 1040 line 1 (W-2 wages)
+          const year1 = parseInt(years[1]);
+          const year2 = parseInt(years[0]);
+          
+          const year1Wages = form1040ByYear[year1].reduce((sum, f) => 
+            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
+          const year2Wages = form1040ByYear[year2].reduce((sum, f) => 
+            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
+
+          if (year1Wages > 0 || year2Wages > 0) {
+            const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(
+              year1Wages, year2Wages, '1040_wages'
+            );
+
+            components.push({
+              component_type: 'form_1040_wages',
+              monthly_amount: monthlyAmount,
+              calculation_method: `Form 1040 Line 1: ${method}`,
+              source_documents: form1040s.map(f => f.id),
+              months_considered: 24,
+              trend_direction: trend,
+              trend_percentage: trendPct,
+              year1_amount: year1Wages,
+              year2_amount: year2Wages,
+              notes: `${year1}: $${year1Wages.toLocaleString()} | ${year2}: $${year2Wages.toLocaleString()}`
+            });
+            totalMonthlyIncome += monthlyAmount;
+          }
+        } else {
+          // Single year 1040
+          const yearWages = form1040ByYear[parseInt(years[0])].reduce((sum, f) => 
+            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
+          
+          if (yearWages > 0) {
+            components.push({
+              component_type: 'form_1040_wages',
+              monthly_amount: yearWages / 12,
+              calculation_method: 'Form 1040 Line 1 single year ÷ 12 (2-year history recommended)',
+              source_documents: form1040s.map(f => f.id),
+              months_considered: 12,
+              notes: `Tax year ${years[0]}: $${yearWages.toLocaleString()}`
+            });
+            totalMonthlyIncome += yearWages / 12;
+            warnings.push('Only 1 year of Form 1040 - recommend 2 years for trending analysis');
+          }
+        }
+      }
+    }
+
     // ===== PROCESS VOE =====
     const voes = docsByType['voe'] || [];
     if (voes.length > 0) {
