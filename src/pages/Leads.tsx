@@ -835,7 +835,7 @@ export default function Leads() {
       sortable: true,
       cell: ({
         row
-      }) => <div className="max-w-[200px] text-sm line-clamp-3" title={row.original.notes || ''}>
+      }) => <div className="max-w-[350px] text-sm line-clamp-3 whitespace-normal" title={row.original.notes || ''}>
           {row.original.notes || '—'}
         </div>
     }];
