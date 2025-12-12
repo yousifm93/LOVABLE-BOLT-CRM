@@ -258,7 +258,14 @@ serve(async (req) => {
     if (docsError) throw docsError;
 
     if (!documents || documents.length === 0) {
-      throw new Error('No processed documents found for borrower');
+      return new Response(JSON.stringify({
+        error: 'No processed documents found',
+        user_message: 'No documents have been processed yet. Please upload income documents (pay stubs, W-2s, etc.) and wait for OCR processing to complete.',
+        documents_needed: ['Pay stub (most recent)', 'W-2s (optional, for 2-year trending)']
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     console.log(`Processing ${documents.length} documents for borrower ${borrower_id}`);

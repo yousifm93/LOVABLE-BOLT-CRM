@@ -119,8 +119,56 @@ export function ParsedFieldsForm({ document, onUpdate }: ParsedFieldsFormProps) 
     }
   };
 
-  const renderPayStubFields = () => (
+  // Calculate monthly income from pay stub data
+  const calculateMonthlyFromPayStub = () => {
+    const grossCurrent = parseFloat(formData.gross_current) || 0;
+    const frequency = formData.pay_frequency || 'monthly';
+    
+    if (!grossCurrent) return null;
+    
+    let multiplier = 12; // monthly default
+    switch (frequency?.toLowerCase()) {
+      case 'weekly': multiplier = 52; break;
+      case 'biweekly': multiplier = 26; break;
+      case 'semimonthly': multiplier = 24; break;
+      case 'monthly': multiplier = 12; break;
+    }
+    
+    const monthly = (grossCurrent * multiplier) / 12;
+    return { monthly, annual: grossCurrent * multiplier, frequency, grossCurrent, multiplier };
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const renderPayStubFields = () => {
+    const incomeCalc = calculateMonthlyFromPayStub();
+    
+    return (
     <div className="space-y-4">
+      {/* Monthly Income Calculation Box */}
+      {incomeCalc && (
+        <div className="p-4 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-lg">
+          <div className="text-center">
+            <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">
+              MONTHLY QUALIFYING INCOME
+            </div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              {formatCurrency(incomeCalc.monthly)}
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              {formatCurrency(incomeCalc.grossCurrent)} {incomeCalc.frequency} × {incomeCalc.multiplier} periods ÷ 12 months
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Employee Name</Label>
@@ -259,7 +307,8 @@ export function ParsedFieldsForm({ document, onUpdate }: ParsedFieldsFormProps) 
         </div>
       </div>
     </div>
-  );
+  )};
+
 
   const renderW2Fields = () => (
     <div className="space-y-4">

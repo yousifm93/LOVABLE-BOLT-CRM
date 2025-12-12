@@ -326,9 +326,16 @@ serve(async (req) => {
       throw new Error('File not found in storage: ' + (fileError?.message || 'Unknown error'));
     }
 
-    // Convert to base64
+    // Convert to base64 - using chunked approach to avoid stack overflow on large files
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let base64 = '';
+    const chunkSize = 8192; // Process in chunks to avoid stack overflow
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
+      base64 += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    base64 = btoa(base64);
 
     // Determine which prompt to use
     const docType = expected_doc_type || document.doc_type || 'default';

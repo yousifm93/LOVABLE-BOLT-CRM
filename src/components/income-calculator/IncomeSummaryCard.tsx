@@ -81,17 +81,23 @@ export function IncomeSummaryCard({
   };
 
   const getComponentTypeLabel = (type: string) => {
-    const labels = {
+    const labels: Record<string, string> = {
       base_hourly: "Base Hourly",
       base_salary: "Base Salary", 
       overtime: "Overtime",
       bonus: "Bonus",
       commission: "Commission",
       self_employed: "Self-Employed",
+      self_employment: "Self-Employment",
       rental: "Rental Income",
+      rental_income: "Rental Income",
+      w2_income: "W-2 Income",
+      variable_income_ytd: "Variable (YTD)",
+      voe_verified: "VOE Verified",
+      k1_income: "K-1 Income",
       other: "Other Income"
     };
-    return labels[type as keyof typeof labels] || type.replace('_', ' ');
+    return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getComponentColor = (type: string) => {
@@ -181,18 +187,21 @@ export function IncomeSummaryCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Main Result */}
-        <div className="text-center p-4 bg-primary/5 rounded-lg">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Monthly Qualifying Income</span>
+        {/* Main Result - Large and prominent */}
+        <div className="text-center p-6 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-xl">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <DollarSign className="h-6 w-6 text-green-600" />
+            <span className="text-lg font-semibold text-green-700 dark:text-green-400">MONTHLY QUALIFYING INCOME</span>
           </div>
-          <div className="text-3xl font-bold text-primary">
+          <div className="text-5xl font-bold text-green-600 dark:text-green-400">
             {calculation.result_monthly_income ? 
               formatCurrency(calculation.result_monthly_income) : 
               'Calculating...'
             }
           </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Per Fannie Mae guidelines
+          </p>
         </div>
 
         {/* Confidence Score */}

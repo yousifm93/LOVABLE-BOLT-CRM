@@ -2033,6 +2033,7 @@ export type Database = {
           created_by: string | null
           id: string
           inputs_version: string | null
+          loan_program: string | null
           overrides: Json | null
           result_monthly_income: number | null
           updated_at: string
@@ -2047,6 +2048,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           inputs_version?: string | null
+          loan_program?: string | null
           overrides?: Json | null
           result_monthly_income?: number | null
           updated_at?: string
@@ -2061,6 +2063,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           inputs_version?: string | null
+          loan_program?: string | null
           overrides?: Json | null
           result_monthly_income?: number | null
           updated_at?: string
