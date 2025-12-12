@@ -1097,21 +1097,6 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : undefined
     },
-    { 
-      icon: DollarSign, 
-      label: "Cash to Close Goal", 
-      value: (client as any).cash_to_close_goal ? formatCurrency((client as any).cash_to_close_goal) : "—",
-      editComponent: isEditing ? (
-        <Input
-          type="number"
-          value={editData.cash_to_close_goal || ""}
-          onChange={(e) => setEditData({ ...editData, cash_to_close_goal: parseFloat(e.target.value) || null })}
-          className="h-8"
-          placeholder="0"
-          min="0"
-        />
-      ) : undefined
-    },
   ];
 
   // Monthly Payment Breakdown

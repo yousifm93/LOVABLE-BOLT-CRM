@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle, Send, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService } from '@/services/database';
+import { generateApplicationPdf } from '@/lib/applicationPdfGenerator';
 
 interface ReviewSubmitFormProps {
   onBack: () => void;
@@ -124,10 +125,24 @@ export const ReviewSubmitForm: React.FC<ReviewSubmitFormProps> = ({ onBack, isRe
     setIsSubmitting(true);
 
     try {
-      // Submit application via Edge Function (bypasses RLS for public submissions)
+      // Generate PDF from application data
+      console.log('Generating application PDF...');
+      const pdfBytes = await generateApplicationPdf(data);
+      
+      // Convert Uint8Array to base64
+      let binary = '';
+      const bytes = new Uint8Array(pdfBytes);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+      console.log('PDF generated successfully, size:', pdfBytes.byteLength);
+      
+      // Submit application via Edge Function with PDF
       const { data: result, error: submitError } = await supabase.functions.invoke('submit-mortgage-application', {
         body: {
-          applicationData: data
+          applicationData: data,
+          pdfBase64: pdfBase64
         }
       });
 
