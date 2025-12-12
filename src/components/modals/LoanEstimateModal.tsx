@@ -100,13 +100,13 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
   };
 
   const extractLoanEstimateData = (): LoanEstimateData => {
-    const firstName = client.person.firstName || '';
-    const lastName = client.person.lastName || '';
-    const lenderLoanNumber = (client as any).lender_loan_number || (client as any).mb_loan_number || '';
-    const loanProgram = client.loanProgram || client.loan?.loanProgram || 'Conventional';
-    const propertyType = (client as any).property?.propertyType || (client as any).propertyType || 'Single Family';
-    const subjectZip = client.subjectZip || '';
-    const subjectState = client.subjectState || '';
+    const firstName = client?.person?.firstName || '';
+    const lastName = client?.person?.lastName || '';
+    const lenderLoanNumber = (client as any)?.lender_loan_number || (client as any)?.mb_loan_number || '';
+    const loanProgram = (client as any)?.loanProgram || client?.loan?.loanProgram || 'Conventional';
+    const propertyType = (client as any)?.property?.propertyType || (client as any)?.propertyType || 'Single Family';
+    const subjectZip = (client as any)?.subjectZip || '';
+    const subjectState = (client as any)?.subjectState || '';
 
     // Calculate LTV
     const ltv = formData.salesPrice > 0 ? (formData.loanAmount / formData.salesPrice) * 100 : 0;
@@ -232,11 +232,11 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       
       // Build recipient list
       const recipients: string[] = [];
-      if (sendToBorrower && client.person.email) {
+      if (sendToBorrower && client?.person?.email) {
         recipients.push(client.person.email);
       }
-      if (sendToBuyerAgent && client.buyer_agent?.email) {
-        recipients.push(client.buyer_agent.email);
+      if (sendToBuyerAgent && (client as any)?.buyer_agent?.email) {
+        recipients.push((client as any).buyer_agent.email);
       }
       if (sendToThirdParty && thirdPartyEmail) {
         recipients.push(thirdPartyEmail);
@@ -253,8 +253,8 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       }
       
       const fullName = `${estimateData.firstName} ${estimateData.lastName}`.trim();
-      const firstInitial = client.person.firstName?.charAt(0)?.toUpperCase() || '';
-      const lastInitial = client.person.lastName?.charAt(0)?.toUpperCase() || '';
+      const firstInitial = client?.person?.firstName?.charAt(0)?.toUpperCase() || '';
+      const lastInitial = client?.person?.lastName?.charAt(0)?.toUpperCase() || '';
       const today = new Date();
       const formattedDate = `${today.getMonth() + 1}.${today.getDate()}.${today.getFullYear().toString().slice(-2)}`;
       const fileName = `Loan Estimate - ${firstInitial}${lastInitial} ${formattedDate}.pdf`;
@@ -317,7 +317,7 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
         <DialogHeader>
           <DialogTitle>Generate Loan Estimate</DialogTitle>
           <DialogDescription>
-            For: {client.person.firstName} {client.person.lastName}
+            For: {client?.person?.firstName || ''} {client?.person?.lastName || ''}
           </DialogDescription>
         </DialogHeader>
 
