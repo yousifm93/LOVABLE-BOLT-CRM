@@ -160,26 +160,80 @@ export default function LoanEstimate() {
     }
   }, [formData.purchasePrice, formData.loanAmount]);
 
-  // Auto-calculate loan-amount-based fees (Intangible Tax, Transfer Tax, Lender's Title Insurance)
+  // Florida Title Insurance Calculation Functions
+  const calculateOwnersTitleInsurance = useCallback((purchasePrice: number): number => {
+    if (purchasePrice <= 0) return 0;
+    // $5.75 per $1,000 for first $100K, $5.00 per $1,000 thereafter
+    const firstTier = Math.min(purchasePrice, 100000);
+    const secondTier = Math.max(0, purchasePrice - 100000);
+    return (firstTier / 1000) * 5.75 + (secondTier / 1000) * 5.00;
+  }, []);
+
+  const calculateLendersTitleStandalone = useCallback((loanAmount: number): number => {
+    if (loanAmount <= 0) return 0;
+    // $5.75 per $1,000 for first $100K, $5.00 per $1,000 thereafter
+    const firstTier = Math.min(loanAmount, 100000);
+    const secondTier = Math.max(0, loanAmount - 100000);
+    return (firstTier / 1000) * 5.75 + (secondTier / 1000) * 5.00;
+  }, []);
+
+  const calculateTitleEndorsements = useCallback((loanAmount: number): number => {
+    const lenderStandalone = calculateLendersTitleStandalone(loanAmount);
+    const flForm9 = lenderStandalone * 0.10;  // FL Form 9: 10% of lender standalone
+    const alta81 = 25;  // ALTA 8.1: Flat fee
+    return flForm9 + alta81;
+  }, [calculateLendersTitleStandalone]);
+
+  const calculateTotalTitleInsurance = useCallback((purchasePrice: number, loanAmount: number): number => {
+    const ownersTI = calculateOwnersTitleInsurance(purchasePrice);
+    const lendersTI = 25;  // Simultaneous issue rate
+    const endorsements = calculateTitleEndorsements(loanAmount);
+    return ownersTI + lendersTI + endorsements;
+  }, [calculateOwnersTitleInsurance, calculateTitleEndorsements]);
+
+  // Auto-calculate loan-amount-based fees (Intangible Tax, Transfer Tax, Title Insurance)
   useEffect(() => {
-    if (formData.loanAmount && formData.loanAmount > 0) {
+    if (formData.loanAmount && formData.loanAmount > 0 && formData.purchasePrice && formData.purchasePrice > 0) {
       const loanAmount = formData.loanAmount;
+      const purchasePrice = formData.purchasePrice;
       
       // Section C: Taxes & Government Fees
       const intangibleTax = loanAmount * 0.002;      // 0.2% of loan amount
       const transferTax = loanAmount * 0.005;        // 0.5% of loan amount
       
-      // Section B: Lender's Title Insurance
-      const lendersTitleInsurance = loanAmount * 0.005646;  // 0.5646% of loan amount
+      // Section B: Title Insurance (FL tiered: Owner's + Lender's Simultaneous + Endorsements)
+      const titleInsurance = calculateTotalTitleInsurance(purchasePrice, loanAmount);
       
       setFormData(prev => ({
         ...prev,
         intangibleTax: Math.round(intangibleTax * 100) / 100,
         transferTax: Math.round(transferTax * 100) / 100,
-        lendersTitleInsurance: Math.round(lendersTitleInsurance * 100) / 100,
+        lendersTitleInsurance: Math.round(titleInsurance * 100) / 100,
       }));
     }
-  }, [formData.loanAmount]);
+  }, [formData.loanAmount, formData.purchasePrice, calculateTotalTitleInsurance]);
+
+  // Auto-calculate Escrow fields based on Escrow Yes/No selection
+  useEffect(() => {
+    if (formData.escrows === 'yes') {
+      // 2 months of HOI and 2 months of property taxes
+      const escrowHoi = (formData.homeownersInsurance || 0) * 2;
+      const escrowTaxes = (formData.propertyTaxes || 0) * 2;
+      
+      setFormData(prev => ({
+        ...prev,
+        escrowHoi: Math.round(escrowHoi * 100) / 100,
+        escrowTaxes: Math.round(escrowTaxes * 100) / 100,
+      }));
+    } else if (formData.escrows === 'no') {
+      // Escrows waived - set to $0
+      setFormData(prev => ({
+        ...prev,
+        escrowHoi: 0,
+        escrowTaxes: 0,
+      }));
+    }
+  }, [formData.escrows, formData.homeownersInsurance, formData.propertyTaxes]);
 
   // Auto-calculate Prepaid Homeowners Insurance (monthly HOI × 12)
   useEffect(() => {
@@ -1090,8 +1144,8 @@ export default function LoanEstimate() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-sm">Lender's Title Insurance</Label>
-                    <p className="text-[10px] text-muted-foreground">0.5646% of loan amount</p>
+                    <Label className="text-sm">Title Insurance</Label>
+                    <p className="text-[10px] text-muted-foreground">FL tiered: Owner's + Lender's + Endorsements</p>
                   </div>
                   <div className="relative w-32">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
