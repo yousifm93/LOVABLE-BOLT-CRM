@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronDown, ChevronRight, Copy, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Eye, Bold, Italic, Underline, List, ListOrdered } from "lucide-react";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface EmailAutomation {
   id: string;
@@ -372,9 +373,10 @@ export function EmailAutomationModal({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="settings">Automation Settings</TabsTrigger>
-            <TabsTrigger value="template">Email Content</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="editor">Visual Editor</TabsTrigger>
+            <TabsTrigger value="template">HTML Code</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
@@ -564,6 +566,78 @@ export function EmailAutomationModal({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="editor" className="h-full overflow-hidden">
+              <div className="grid grid-cols-[1fr_220px] gap-4 h-full">
+                {/* Visual Editor Section */}
+                <div className="space-y-4 overflow-auto p-1">
+                  <div className="space-y-2">
+                    <Label>Subject Line</Label>
+                    <Input
+                      value={templateData.subject}
+                      onChange={e => setTemplateData(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="e.g., ACTION REQUIRED: Your Loan Documents are Ready"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email Body</Label>
+                    <RichTextEditor
+                      value={templateData.html}
+                      onChange={(html) => setTemplateData(prev => ({ ...prev, html }))}
+                      placeholder="Write your email content here..."
+                      className="min-h-[350px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Merge Tags Panel */}
+                <div className="border-l pl-4 overflow-auto">
+                  <h4 className="font-medium text-sm mb-2">Insert Merge Tags</h4>
+                  <p className="text-xs text-muted-foreground mb-3">Click to insert at cursor</p>
+                  <ScrollArea className="h-[380px] pr-2">
+                    <div className="space-y-2">
+                      {Object.entries(MERGE_TAGS).map(([section, tags]) => (
+                        <Collapsible
+                          key={section}
+                          open={expandedSections[section] !== false}
+                          onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [section]: open }))}
+                        >
+                          <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium hover:text-primary w-full text-left py-1">
+                            {expandedSections[section] !== false ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3" />
+                            )}
+                            {section}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="flex flex-wrap gap-1 ml-3 mt-1">
+                              {tags.map(({ tag }) => (
+                                <Badge
+                                  key={tag}
+                                  variant="outline"
+                                  className="text-[10px] cursor-pointer hover:bg-primary/10 px-1.5 py-0.5"
+                                  onClick={() => {
+                                    // Insert merge tag into HTML content at end
+                                    setTemplateData(prev => ({
+                                      ...prev,
+                                      html: prev.html + tag
+                                    }));
+                                    toast({ title: "Merge tag inserted", description: tag });
+                                  }}
+                                >
+                                  {tag.replace(/[{}]/g, '')}
+                                </Badge>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             </TabsContent>
