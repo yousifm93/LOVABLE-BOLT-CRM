@@ -276,8 +276,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Store parsed body for potential reuse in error handler
+  let parsedBody: { document_id?: string; force_reprocess?: boolean; expected_doc_type?: string } = {};
+
   try {
-    const { document_id, force_reprocess, expected_doc_type } = await req.json();
+    parsedBody = await req.json();
+    const { document_id, force_reprocess, expected_doc_type } = parsedBody;
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -330,37 +334,112 @@ serve(async (req) => {
     const docType = expected_doc_type || document.doc_type || 'default';
     const extractionPrompt = EXTRACTION_PROMPTS[docType] || EXTRACTION_PROMPTS.default;
 
-    console.log(`Processing document ${document_id} as type: ${docType}`);
+    console.log(`Processing document ${document_id} as type: ${docType}, mime: ${document.mime_type}`);
 
-    // OCR with OpenAI GPT-4o
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{
-          role: 'system',
-          content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
-        }, {
-          role: 'user',
-          content: [{
-            type: 'text',
-            text: extractionPrompt
+    // Check if file is an image type supported by OpenAI Vision
+    const supportedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    const isImage = supportedImageTypes.includes(document.mime_type?.toLowerCase() || '');
+    const isPdf = document.mime_type?.toLowerCase() === 'application/pdf';
+
+    let openaiResponse;
+
+    if (isImage) {
+      // Use vision API for images
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'system',
+            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
           }, {
-            type: 'image_url',
-            image_url: {
-              url: `data:${document.mime_type};base64,${base64}`,
-              detail: 'high'
-            }
-          }]
-        }],
-        max_tokens: 4000,
-        temperature: 0.1 // Low temperature for accuracy
-      }),
-    });
+            role: 'user',
+            content: [{
+              type: 'text',
+              text: extractionPrompt
+            }, {
+              type: 'image_url',
+              image_url: {
+                url: `data:${document.mime_type};base64,${base64}`,
+                detail: 'high'
+              }
+            }]
+          }],
+          max_tokens: 4000,
+          temperature: 0.1
+        }),
+      });
+    } else if (isPdf) {
+      // For PDFs, use the file API with gpt-4o's native PDF support
+      // First, upload the file to OpenAI
+      const formData = new FormData();
+      const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
+      formData.append('file', pdfBlob, document.file_name || 'document.pdf');
+      formData.append('purpose', 'assistants');
+
+      const uploadResponse = await fetch('https://api.openai.com/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.text();
+        console.error('Failed to upload PDF to OpenAI:', uploadError);
+        // Fallback: Try to extract text and use text-only analysis
+        throw new Error('PDF upload failed - please upload an image (PNG, JPG) of the document instead');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileId = uploadResult.id;
+      console.log(`Uploaded PDF as file: ${fileId}`);
+
+      // Use the file with chat completions
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'system',
+            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
+          }, {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                file: { file_id: fileId }
+              },
+              {
+                type: 'text',
+                text: extractionPrompt
+              }
+            ]
+          }],
+          max_tokens: 4000,
+          temperature: 0.1
+        }),
+      });
+
+      // Clean up the uploaded file (async, don't wait)
+      fetch(`https://api.openai.com/v1/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        },
+      }).catch(e => console.error('Failed to delete temp file:', e));
+    } else {
+      throw new Error(`Unsupported file type: ${document.mime_type}. Please upload images (PNG, JPG, WEBP, GIF) or PDF files.`);
+    }
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
@@ -459,23 +538,24 @@ serve(async (req) => {
   } catch (error) {
     console.error('OCR Error:', error);
     
-    // Try to update document status to failed
-    try {
-      const { document_id } = await req.json();
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-      
-      await supabaseClient
-        .from('income_documents')
-        .update({ 
-          ocr_status: 'failed',
-          parsed_json: { error: error.message }
-        })
-        .eq('id', document_id);
-    } catch (e) {
-      console.error('Failed to update document status:', e);
+    // Try to update document status to failed using stored body
+    if (parsedBody.document_id) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        await supabaseClient
+          .from('income_documents')
+          .update({ 
+            ocr_status: 'failed',
+            parsed_json: { error: error.message }
+          })
+          .eq('id', parsedBody.document_id);
+      } catch (e) {
+        console.error('Failed to update document status:', e);
+      }
     }
     
     return new Response(JSON.stringify({ 
