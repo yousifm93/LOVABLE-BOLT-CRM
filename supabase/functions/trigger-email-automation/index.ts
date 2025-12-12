@@ -138,7 +138,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Send the email for the specific automation
-    const result = await sendAutomatedEmail(supabase, automation, lead, settings, isTestMode);
+    // Skip conditions in test mode so all automations can be tested regardless of lead data
+    const result = await sendAutomatedEmail(supabase, automation, lead, settings, isTestMode, isTestMode);
 
     return new Response(
       JSON.stringify({ success: true, ...result }),
@@ -219,19 +220,25 @@ async function sendAutomatedEmail(
   automation: any,
   lead: any,
   settings: any,
-  isTestMode: boolean
+  isTestMode: boolean,
+  skipConditions: boolean = false
 ): Promise<any> {
   const template = automation.template;
   if (!template) {
     throw new Error("No template linked to automation");
   }
 
-  // Evaluate conditions before sending
-  const { shouldSend, skipEquity } = evaluateConditions(automation.conditions, lead);
-  
-  if (!shouldSend) {
-    console.log(`Skipping email for automation ${automation.id} - conditions not met`);
-    return { automationId: automation.id, skipped: true, reason: 'Conditions not met' };
+  // Evaluate conditions before sending - skip in test mode
+  let skipEquity = false;
+  if (!skipConditions) {
+    const conditions = evaluateConditions(automation.conditions, lead);
+    if (!conditions.shouldSend) {
+      console.log(`Skipping email for automation ${automation.id} - conditions not met`);
+      return { automationId: automation.id, skipped: true, reason: 'Conditions not met' };
+    }
+    skipEquity = conditions.skipEquity || false;
+  } else {
+    console.log(`Test mode: Skipping condition evaluation for automation ${automation.id}`);
   }
 
   // Fetch listing agent if needed
