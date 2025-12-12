@@ -253,7 +253,7 @@ serve(async (req) => {
       .select('*')
       .eq('borrower_id', borrower_id)
       .eq('ocr_status', 'success')
-      .order('tax_year', { ascending: false });
+      .order('doc_period_end', { ascending: false, nullsFirst: false });
 
     if (docsError) throw docsError;
 
