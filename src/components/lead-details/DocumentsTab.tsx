@@ -178,30 +178,55 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
     }
   };
 
+  // Helper to get actual MIME type from file extension
+  const getActualMimeType = (fileName: string, storedMimeType: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'gif') return 'image/gif';
+    if (ext === 'webp') return 'image/webp';
+    if (ext === 'doc') return 'application/msword';
+    if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (ext === 'xls') return 'application/vnd.ms-excel';
+    if (ext === 'xlsx') return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    // If stored type looks valid (starts with valid prefix), use it
+    if (storedMimeType && (storedMimeType.startsWith('application/') || storedMimeType.startsWith('image/') || storedMimeType.startsWith('text/'))) {
+      return storedMimeType;
+    }
+    return 'application/octet-stream';
+  };
+
   const handlePreview = async (doc: Document) => {
     try {
       const signedUrl = await databaseService.getDocumentSignedUrl(doc.file_url);
       const res = await fetch(signedUrl);
       if (!res.ok) throw new Error('Failed to fetch file');
       
+      // Get actual MIME type from file extension (fallback for incorrect DB values)
+      const actualMimeType = getActualMimeType(doc.file_name, doc.mime_type);
+      const isPdf = actualMimeType === 'application/pdf' || 
+                    doc.file_name.toLowerCase().endsWith('.pdf') ||
+                    doc.file_url.toLowerCase().includes('.pdf');
+      
       // Handle PDFs differently - fetch as ArrayBuffer
-      if (doc.mime_type === 'application/pdf') {
+      if (isPdf) {
         const arrayBuffer = await res.arrayBuffer();
         setPreviewDoc({
           name: doc.title || doc.file_name,
           url: null,
-          mimeType: doc.mime_type,
+          mimeType: 'application/pdf',
           pdfData: arrayBuffer,
           originalDoc: doc,
         });
       } else {
-        // For images and other files, use blob URL
+        // For images and other files, use blob URL with correct MIME type
         const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(new Blob([blob], { type: doc.mime_type }));
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type: actualMimeType }));
         setPreviewDoc({
           name: doc.title || doc.file_name,
           url: blobUrl,
-          mimeType: doc.mime_type,
+          mimeType: actualMimeType,
           originalDoc: doc,
         });
       }
@@ -437,21 +462,20 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
                     <Badge variant="outline" className="text-xs">
                       {getFileTypeBadge(doc.mime_type)}
                     </Badge>
-                    {doc.source && doc.source !== 'manual' && (
-                      <Badge 
-                        variant="secondary" 
-                        className={cn(
-                          "text-xs",
-                          doc.source === 'email_attachment' && "bg-blue-100 text-blue-700",
-                          doc.source === 'borrower_upload' && "bg-orange-100 text-orange-700",
-                          doc.source === 'application' && "bg-green-100 text-green-700"
-                        )}
-                      >
-                        {doc.source === 'email_attachment' ? 'Email' : 
-                         doc.source === 'borrower_upload' ? 'Borrower' :
-                         doc.source === 'application' ? 'App' : doc.source}
-                      </Badge>
-                    )}
+                    <Badge 
+                      variant="secondary" 
+                      className={cn(
+                        "text-xs",
+                        doc.source === 'email_attachment' && "bg-blue-100 text-blue-700",
+                        doc.source === 'borrower_upload' && "bg-orange-100 text-orange-700",
+                        doc.source === 'application' && "bg-green-100 text-green-700",
+                        (!doc.source || doc.source === 'manual') && "bg-gray-100 text-gray-600"
+                      )}
+                    >
+                      {doc.source === 'email_attachment' ? 'Email' :
+                       doc.source === 'borrower_upload' ? 'Borrower' :
+                       doc.source === 'application' ? 'App' : 'Manual'}
+                    </Badge>
                   </div>
                   
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
