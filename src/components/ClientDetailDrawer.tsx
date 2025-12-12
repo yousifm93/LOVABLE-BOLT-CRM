@@ -24,6 +24,7 @@ import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { PreApprovalLetterModal } from "@/components/modals/PreApprovalLetterModal";
+import { LoanEstimateModal } from "@/components/modals/LoanEstimateModal";
 import { VoiceUpdateConfirmationModal } from "@/components/modals/VoiceUpdateConfirmationModal";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTeamContactsDatesCard } from "@/components/lead-details/LeadTeamContactsDatesCard";
@@ -92,6 +93,7 @@ export function ClientDetailDrawer({
   const [showEmailLogModal, setShowEmailLogModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [showPreApprovalModal, setShowPreApprovalModal] = useState(false);
+  const [showLoanEstimateModal, setShowLoanEstimateModal] = useState(false);
   const [selectedNote, setSelectedNote] = useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -2674,7 +2676,7 @@ export function ClientDetailDrawer({
                             variant="outline" 
                             size="default" 
                             className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
-                            onClick={() => console.log('L-E clicked')}
+                            onClick={() => setShowLoanEstimateModal(true)}
                           >
                             <FileCheck className="h-4 w-4" />
                             <span className="font-semibold text-sm">Loan Estimate</span>
@@ -2845,6 +2847,7 @@ export function ClientDetailDrawer({
           )}
 
           <PreApprovalLetterModal isOpen={showPreApprovalModal} onClose={() => setShowPreApprovalModal(false)} client={client} />
+          <LoanEstimateModal isOpen={showLoanEstimateModal} onClose={() => setShowLoanEstimateModal(false)} client={client} />
 
           <VoiceUpdateConfirmationModal 
             isOpen={showFieldUpdateModal} 
