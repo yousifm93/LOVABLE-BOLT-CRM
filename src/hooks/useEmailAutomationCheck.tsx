@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EmailAutomation {
   id: string;
@@ -12,17 +13,13 @@ interface EmailAutomation {
 interface UseEmailAutomationCheckReturn {
   checkForAutomations: (fieldName: string, newValue: string) => Promise<EmailAutomation[]>;
   matchingAutomations: EmailAutomation[];
-  showConfirmation: boolean;
-  setShowConfirmation: (show: boolean) => void;
-  pendingChange: { fieldName: string; newValue: string } | null;
-  setPendingChange: (change: { fieldName: string; newValue: string } | null) => void;
+  queueEmailAutomation: (leadId: string, fieldName: string, oldValue: string | null, newValue: string) => Promise<void>;
   triggerEmailAutomation: (leadId: string, fieldName: string, fieldValue: string) => Promise<void>;
 }
 
 export function useEmailAutomationCheck(): UseEmailAutomationCheckReturn {
   const [matchingAutomations, setMatchingAutomations] = useState<EmailAutomation[]>([]);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [pendingChange, setPendingChange] = useState<{ fieldName: string; newValue: string } | null>(null);
+  const { user } = useAuth();
 
   const checkForAutomations = useCallback(async (fieldName: string, newValue: string): Promise<EmailAutomation[]> => {
     try {
@@ -52,6 +49,42 @@ export function useEmailAutomationCheck(): UseEmailAutomationCheckReturn {
     }
   }, []);
 
+  const queueEmailAutomation = useCallback(async (
+    leadId: string, 
+    fieldName: string, 
+    oldValue: string | null, 
+    newValue: string
+  ) => {
+    try {
+      // Get matching automations
+      const matching = await checkForAutomations(fieldName, newValue);
+      
+      if (matching.length === 0) return;
+
+      // Queue each matching automation
+      for (const automation of matching) {
+        const { error } = await supabase
+          .from('email_automation_queue')
+          .insert({
+            automation_id: automation.id,
+            lead_id: leadId,
+            field_name: fieldName,
+            old_value: oldValue,
+            new_value: newValue,
+            status: 'pending',
+            triggered_by: user?.id || null,
+            triggered_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          console.error('Error queueing email automation:', error);
+        }
+      }
+    } catch (err) {
+      console.error('Error in queueEmailAutomation:', err);
+    }
+  }, [checkForAutomations, user]);
+
   const triggerEmailAutomation = useCallback(async (leadId: string, fieldName: string, fieldValue: string) => {
     try {
       const { error } = await supabase.functions.invoke('trigger-email-automation', {
@@ -74,10 +107,7 @@ export function useEmailAutomationCheck(): UseEmailAutomationCheckReturn {
   return {
     checkForAutomations,
     matchingAutomations,
-    showConfirmation,
-    setShowConfirmation,
-    pendingChange,
-    setPendingChange,
+    queueEmailAutomation,
     triggerEmailAutomation,
   };
 }
