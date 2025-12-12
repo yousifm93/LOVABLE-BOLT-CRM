@@ -28,6 +28,8 @@ export const LOAN_PROGRAM_REQUIREMENTS: Record<string, LoanProgramRequirements> 
       { docType: 'form_1040', label: '1040 Tax Returns', description: 'Personal tax returns (if self-employed)', required: false, quantity: 2, period: 'years' },
       { docType: 'schedule_c', label: 'Schedule C', description: 'Sole proprietor business income', required: false },
       { docType: 'schedule_e', label: 'Schedule E', description: 'Rental property income', required: false },
+      { docType: 'k1', label: 'K-1', description: 'Partnership/S-Corp income', required: false, quantity: 2, period: 'years' },
+      { docType: 'form_1120s', label: '1120-S', description: 'S-Corporation tax returns', required: false, quantity: 2, period: 'years' },
       { docType: 'voe', label: 'VOE', description: 'Verification of Employment (for gaps)', required: false },
     ]
   },
@@ -41,6 +43,8 @@ export const LOAN_PROGRAM_REQUIREMENTS: Record<string, LoanProgramRequirements> 
       { docType: 'form_1040', label: '1040 Tax Returns', description: 'Personal tax returns (if self-employed)', required: false, quantity: 2, period: 'years' },
       { docType: 'voe', label: 'VOE', description: 'Verification of Employment (required for gaps)', required: true },
       { docType: 'schedule_c', label: 'Schedule C', description: 'Sole proprietor business income', required: false },
+      { docType: 'k1', label: 'K-1', description: 'Partnership/S-Corp income', required: false, quantity: 2, period: 'years' },
+      { docType: 'form_1120s', label: '1120-S', description: 'S-Corporation tax returns', required: false, quantity: 2, period: 'years' },
     ]
   },
   va: {
@@ -52,6 +56,8 @@ export const LOAN_PROGRAM_REQUIREMENTS: Record<string, LoanProgramRequirements> 
       { docType: 'pay_stub', label: 'Pay Stubs', description: 'Most recent 30 days', required: true, quantity: 30, period: 'days' },
       { docType: 'voe', label: 'VOE', description: 'Verification of Employment', required: true },
       { docType: 'form_1040', label: '1040 Tax Returns', description: 'Personal tax returns (if self-employed)', required: false, quantity: 2, period: 'years' },
+      { docType: 'k1', label: 'K-1', description: 'Partnership/S-Corp income', required: false, quantity: 2, period: 'years' },
+      { docType: 'form_1120s', label: '1120-S', description: 'S-Corporation tax returns', required: false, quantity: 2, period: 'years' },
     ]
   },
   usda: {
@@ -63,6 +69,8 @@ export const LOAN_PROGRAM_REQUIREMENTS: Record<string, LoanProgramRequirements> 
       { docType: 'pay_stub', label: 'Pay Stubs', description: 'Most recent 30 days', required: true, quantity: 30, period: 'days' },
       { docType: 'form_1040', label: '1040 Tax Returns', description: 'Personal tax returns (all household members)', required: true, quantity: 2, period: 'years' },
       { docType: 'voe', label: 'VOE', description: 'Verification of Employment', required: true },
+      { docType: 'k1', label: 'K-1', description: 'Partnership/S-Corp income', required: false, quantity: 2, period: 'years' },
+      { docType: 'form_1120s', label: '1120-S', description: 'S-Corporation tax returns', required: false, quantity: 2, period: 'years' },
     ]
   },
   dscr: {
