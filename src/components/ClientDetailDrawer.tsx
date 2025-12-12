@@ -43,7 +43,7 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { getDatabaseFieldName } from "@/types/crm";
-import { formatDateModern, formatDateForInput } from "@/utils/dateUtils";
+import { formatDateModern, formatDateForInput, formatDateFull } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { validatePipelineStageChange, PipelineStageRule } from "@/services/statusChangeValidation";
 interface ClientDetailDrawerProps {
@@ -1180,7 +1180,7 @@ export function ClientDetailDrawer({
               {/* Row 2: Closing Date, Cash to Close, PITI, Discount Points */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Date</span>
-                <span className="text-sm font-medium">{localCloseDate ? format(new Date(localCloseDate), 'MMM d, yyyy') : (client as any).close_date ? format(new Date((client as any).close_date), 'MMM d, yyyy') : '—'}</span>
+                <span className="text-sm font-medium">{formatDateFull(localCloseDate) || formatDateFull((client as any).close_date) || '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Cash to Close</span>
@@ -1241,7 +1241,7 @@ export function ClientDetailDrawer({
                   )} />
                   Lock Expiration
                 </span>
-                <span className="text-sm font-medium">{(client as any).lock_expiration_date ? format(new Date((client as any).lock_expiration_date), 'MMM d, yyyy') : '—'}</span>
+                <span className="text-sm font-medium">{formatDateFull((client as any).lock_expiration_date) || '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">DTI</span>
@@ -2836,14 +2836,18 @@ export function ClientDetailDrawer({
             taskSuggestions={detectedTaskSuggestions}
             onApplyFieldUpdates={handleApplyFieldUpdates}
             onCreateTasks={async (tasks) => {
+              // Get the user_id from the lead (teammate_assigned) for task assignment
+              const leadUserId = (client as any).teammate_assigned || (client as any).user_id || null;
+              
               for (const task of tasks) {
                 try {
                   await databaseService.createTask({
                     title: task.title,
                     description: task.description || '',
-                    due_date: task.dueDate || null,
+                    due_date: task.dueDate || new Date().toISOString().split('T')[0], // Default to today
                     priority: task.priority.charAt(0).toUpperCase() + task.priority.slice(1) as any,
                     borrower_id: leadId,
+                    assignee_id: leadUserId, // Assign to lead's user
                     status: 'To Do',
                   });
                 } catch (error) {
