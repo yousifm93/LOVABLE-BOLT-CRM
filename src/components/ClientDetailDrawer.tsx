@@ -874,7 +874,7 @@ export function ClientDetailDrawer({
     const rawStage = client.ops.stage;
     const stage = rawStage?.replace(/_/g, '-') as typeof rawStage;
     switch (stage) {
-      case 'leads':
+      case 'leads': {
         const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
         
         return (
@@ -931,8 +931,8 @@ export function ClientDetailDrawer({
                 </div>
               </div>
               
-        {/* Middle Column: Last Communication */}
-        <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
+              {/* Middle Column: Last Communication */}
+              <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
@@ -957,15 +957,15 @@ export function ClientDetailDrawer({
               
               {/* Right Column: Financial Goals - Cash to Close Goal removed */}
               <div className="space-y-3 min-w-[160px]">
-          <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
-            <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
-            <InlineEditCurrency 
-              value={(client as any).monthlyPmtGoal ?? null} 
-              onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
-              placeholder="$0"
-              className="text-lg font-bold"
-            />
-          </div>
+                <div className="border-2 border-primary rounded-md p-3 bg-primary/5">
+                  <div className="text-xs text-muted-foreground mb-1">Monthly Payment Goal</div>
+                  <InlineEditCurrency 
+                    value={(client as any).monthlyPmtGoal ?? null} 
+                    onValueChange={value => handleLeadUpdate('monthlyPmtGoal', value)} 
+                    placeholder="$0"
+                    className="text-lg font-bold"
+                  />
+                </div>
               </div>
             </div>
             
@@ -977,8 +977,10 @@ export function ClientDetailDrawer({
             </div>
           </div>
         );
+      }
       case 'pending-app': {
         // Pending App uses simplified Leads-style layout: 3 gray fields + Last Call/Text/Email + Monthly Payment Goal
+        const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
         const loanAmountPendingApp = (client as any).loanAmount || (client as any).loan?.loanAmount || 0;
         const salesPricePendingApp = (client as any).salesPrice || (client as any).loan?.salesPrice || 0;
         const ltvPendingApp = salesPricePendingApp > 0 ? ((loanAmountPendingApp / salesPricePendingApp) * 100).toFixed(2) : null;
