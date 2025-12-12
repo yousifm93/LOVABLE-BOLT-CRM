@@ -202,19 +202,19 @@ Be precise with numbers. If a field is not visible, use null.`,
   "extraction_confidence": 0.0-1.0
 }`,
 
-  k1: `Extract K-1 (Partnership/S-Corp) data. Return JSON:
+  k1: `Extract K-1 (Form 1120-S or 1065) data. This is a critical document for S-Corp/partnership income. Return JSON:
 {
   "document_type": "k1",
-  "form_type": "1065|1120S|1041",
+  "form_type": "1120S|1065|1041",
   "tax_year": number,
-  "entity_name": "Partnership/S-Corp name",
+  "entity_name": "S-Corp or Partnership name",
   "entity_ein": "EIN",
-  "partner_shareholder_name": "Name",
-  "ownership_percentage": number (0-100),
-  "box1_ordinary_income": number (CRITICAL for qualifying income),
+  "partner_shareholder_name": "Shareholder/Partner name",
+  "ownership_percentage": number (0-100) - CRITICAL: look for ownership % or stock %,
+  "box1_ordinary_income": number (CRITICAL - this is ordinary business income/loss),
   "box2_net_rental_income": number or 0,
   "box3_other_net_rental": number or 0,
-  "box4_guaranteed_payments": number or 0 (ADD to qualifying income),
+  "box4_guaranteed_payments": number or 0 (for partnerships - ADD to qualifying income),
   "box5_interest": number or 0,
   "box6_dividends": number or 0,
   "box7_royalties": number or 0,
@@ -225,9 +225,53 @@ Be precise with numbers. If a field is not visible, use null.`,
   "box12_section_179": number or 0,
   "box13_other_deductions": number or 0,
   "box14_self_employment": number or 0,
-  "box16_distributions": number or 0,
+  "box16d_distributions": number or 0 (actual cash distributions to shareholder),
   "extraction_confidence": 0.0-1.0
 }`,
+
+  form_1120s: `Extract ALL data from this Form 1120-S (S Corporation Tax Return). This is critical for self-employed income calculation. Return JSON:
+{
+  "document_type": "form_1120s",
+  "tax_year": number,
+  "corporation_name": "S-Corp name",
+  "ein": "EIN",
+  "business_activity_code": "Principal business code",
+  "accounting_method": "cash|accrual",
+  "line1a_gross_receipts": number (Gross receipts or sales),
+  "line2_returns_allowances": number or 0,
+  "line3_balance": number (Gross profit after COGS),
+  "line4_net_gain_loss": number or 0,
+  "line5_other_income": number or 0,
+  "line6_total_income": number (Sum of 3,4,5),
+  "line7_compensation_officers": number (CRITICAL - officer W-2 wages),
+  "line8_salaries_wages": number or 0,
+  "line9_repairs": number or 0,
+  "line10_bad_debts": number or 0,
+  "line11_rents": number or 0,
+  "line12_taxes_licenses": number or 0,
+  "line13_interest": number or 0,
+  "line14_depreciation": number (CRITICAL ADD-BACK for qualifying income),
+  "line15_depletion": number or 0 (ADD-BACK),
+  "line16_advertising": number or 0,
+  "line17_pension_profit_sharing": number or 0,
+  "line18_employee_benefit": number or 0,
+  "line19_other_deductions": number or 0 (includes amortization),
+  "line20_total_deductions": number,
+  "line21_ordinary_business_income": number (CRITICAL - this flows to K-1 Box 1),
+  "schedule_l_line17d_loans_less_1yr": number or 0 (Mortgages/notes payable <1 year - DEDUCTION),
+  "schedule_m1_line3b_travel_entertainment": number or 0 (Non-deductible T&E - DEDUCTION),
+  "schedule_m1_line5_depreciation": number or 0,
+  "schedule_m2_line7_distributions": number or 0 (Distributions to shareholders),
+  "amortization": number or 0 (Look in Other Deductions detail or Form 4562),
+  "extraction_confidence": 0.0-1.0
+}
+
+CRITICAL EXTRACTION NOTES:
+- Line 14 Depreciation: Add this back to income (non-cash expense)
+- Line 7 Officer Compensation: This is W-2 wages paid to shareholder-employees
+- Schedule L Line 17d: Short-term debt that must be DEDUCTED
+- Schedule M-1 Line 3b: Non-deductible meals/entertainment to DEDUCT
+- If you see Form 4562, extract depreciation and amortization from there`,
 
   voe: `Extract Verification of Employment data. Return JSON:
 {
