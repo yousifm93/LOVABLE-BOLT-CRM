@@ -338,46 +338,118 @@ serve(async (req) => {
 
     // Check if file is an image type supported by OpenAI Vision
     const supportedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-    const isImage = supportedImageTypes.includes(document.mime_type?.toLowerCase() || '');
-    const isPdf = document.mime_type?.toLowerCase() === 'application/pdf';
+    const mimeTypeLower = document.mime_type?.toLowerCase() || '';
+    const isImage = supportedImageTypes.includes(mimeTypeLower);
+    const isPdf = mimeTypeLower === 'application/pdf' || 
+                  document.file_name?.toLowerCase().endsWith('.pdf') ||
+                  document.storage_path?.toLowerCase().endsWith('.pdf');
+
+    if (!isImage && !isPdf) {
+      throw new Error(`Unsupported file type: ${document.mime_type}. Please upload images (PNG, JPG, WEBP, GIF) or PDF files.`);
+    }
 
     let openaiResponse;
 
-    // For both images and PDFs, use vision API with base64
-    // PDFs are supported by GPT-4o vision when sent as images
-    const mediaType = isPdf ? 'application/pdf' : document.mime_type;
-    
-    openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{
-          role: 'system',
-          content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
-        }, {
-          role: 'user',
-          content: [{
-            type: 'text',
-            text: extractionPrompt
+    if (isPdf) {
+      // For PDFs, use the OpenAI Files API to upload the file first, then use with Assistants/Vision
+      // Alternative: Use GPT-4o with document understanding (not vision API for PDFs)
+      console.log('Processing PDF using OpenAI document analysis...');
+      
+      // Upload the PDF file to OpenAI
+      const formData = new FormData();
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+      formData.append('file', blob, document.file_name || 'document.pdf');
+      formData.append('purpose', 'assistants');
+      
+      const uploadResponse = await fetch('https://api.openai.com/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        },
+        body: formData,
+      });
+      
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.text();
+        console.error('OpenAI file upload error:', uploadError);
+        throw new Error(`Failed to upload PDF to OpenAI: ${uploadResponse.status}`);
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      const fileId = uploadResult.id;
+      console.log('PDF uploaded to OpenAI with file ID:', fileId);
+      
+      // Use chat completions with file reference for document analysis
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'system',
+            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
           }, {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mediaType};base64,${base64}`,
-              detail: 'high'
-            }
-          }]
-        }],
-        max_tokens: 4000,
-        temperature: 0.1
-      }),
-    });
-    
-    if (!isImage && !isPdf) {
-      throw new Error(`Unsupported file type: ${document.mime_type}. Please upload images (PNG, JPG, WEBP, GIF) or PDF files.`);
+            role: 'user',
+            content: [{
+              type: 'text',
+              text: extractionPrompt
+            }, {
+              type: 'file',
+              file: {
+                file_id: fileId
+              }
+            }]
+          }],
+          max_tokens: 4000,
+          temperature: 0.1
+        }),
+      });
+      
+      // Clean up: delete the uploaded file after processing
+      try {
+        await fetch(`https://api.openai.com/v1/files/${fileId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          },
+        });
+        console.log('Cleaned up uploaded file:', fileId);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup file, will expire automatically:', cleanupError);
+      }
+    } else {
+      // For images, use vision API with base64
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'system',
+            content: 'You are an expert financial document analyzer. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null.'
+          }, {
+            role: 'user',
+            content: [{
+              type: 'text',
+              text: extractionPrompt
+            }, {
+              type: 'image_url',
+              image_url: {
+                url: `data:${document.mime_type};base64,${base64}`,
+                detail: 'high'
+              }
+            }]
+          }],
+          max_tokens: 4000,
+          temperature: 0.1
+        }),
+      });
     }
 
     if (!openaiResponse.ok) {
