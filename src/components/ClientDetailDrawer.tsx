@@ -986,8 +986,8 @@ export function ClientDetailDrawer({
         const ltvPendingApp = salesPricePendingApp > 0 ? ((loanAmountPendingApp / salesPricePendingApp) * 100).toFixed(2) : null;
         
         return (
-          <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
-            <div className="flex items-start gap-6">
+          <div className="flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
               {/* Left Column: Gray fields - Transaction Type, LTV, Credit Score */}
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
@@ -1017,21 +1017,21 @@ export function ClientDetailDrawer({
               
               {/* Middle Column: Last Communication */}
               <div className="self-start inline-flex flex-col gap-1.5 border border-border rounded-md px-3 py-2 bg-background">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-4">
                   <span className="text-xs text-muted-foreground">Last Call</span>
                   <span className="text-sm font-medium">
                     {lastCall || '—'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-4">
                   <span className="text-xs text-muted-foreground">Last Text</span>
                   <span className="text-sm font-medium">
                     {lastText || '—'}
                   </span>
                 </div>
                 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-4">
                   <span className="text-xs text-muted-foreground">Last Email</span>
                   <span className="text-sm font-medium">
                     {lastEmail || '—'}

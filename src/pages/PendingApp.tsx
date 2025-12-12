@@ -52,7 +52,8 @@ const MAIN_VIEW_COLUMNS = [
   "realEstateAgent",
   "user",
   "dueDate",
-  "latestFileUpdates"
+  "latestFileUpdates",
+  "notes"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -885,6 +886,16 @@ const allAvailableColumns = useMemo(() => {
         </div>
       ),
     },
+    {
+      accessorKey: "notes",
+      header: "About the Borrower",
+      sortable: true,
+      cell: ({ row }) => (
+        <div className="max-w-[350px] text-sm line-clamp-3 whitespace-normal" title={row.original.notes || ''}>
+          {row.original.notes || '—'}
+        </div>
+      ),
+    },
   ];
 
     const hardcodedIds = new Set(hardcodedColumns.map(col => col.accessorKey));
@@ -905,11 +916,13 @@ const allAvailableColumns = useMemo(() => {
     .filter((col): col is ColumnDef<DisplayLead> => col !== undefined);
 
   // Separate leads into Pending App and Standby groups
-  const pendingAppData = displayData.filter(lead => 
-    lead.status === 'Pending App' || lead.status === 'App Complete'
-  );
+  // Standby group: only explicit Standby or DNA statuses
   const standbyData = displayData.filter(lead => 
     lead.status === 'Standby' || lead.status === 'DNA'
+  );
+  // Pending App group: everything else (including null/empty status, Pending App, App Complete, etc.)
+  const pendingAppData = displayData.filter(lead => 
+    lead.status !== 'Standby' && lead.status !== 'DNA'
   );
 
   return (
