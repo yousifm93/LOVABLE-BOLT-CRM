@@ -53,9 +53,11 @@ interface EmailAutomation {
   trigger_config: any;
   pipeline_group: string;
   recipient_type: string;
+  cc_recipient_type: string | null;
   purpose: string | null;
   template_id: string | null;
   is_active: boolean;
+  conditions: any | null;
   created_at: string;
   updated_at: string;
 }
@@ -481,6 +483,7 @@ export function EmailAutomationsTable() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-[50px] text-center">#</TableHead>
                           <TableHead className="w-[200px]">When</TableHead>
                           <TableHead className="w-[120px]">Who</TableHead>
                           <TableHead>Purpose</TableHead>
@@ -490,8 +493,11 @@ export function EmailAutomationsTable() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {groupAutomations.map(automation => (
+                        {groupAutomations.map((automation, index) => (
                           <TableRow key={automation.id}>
+                            <TableCell className="text-center text-sm text-muted-foreground font-medium">
+                              {index + 1}
+                            </TableCell>
                             <TableCell className="font-medium text-sm">
                               {formatTrigger(automation)}
                             </TableCell>

@@ -147,3 +147,6 @@ verify_jwt = false
 
 [functions.trigger-email-automation]
 verify_jwt = false
+
+[functions.send-closing-day-emails]
+verify_jwt = false

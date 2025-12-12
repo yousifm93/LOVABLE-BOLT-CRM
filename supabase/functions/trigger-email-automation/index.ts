@@ -120,7 +120,9 @@ const handler = async (req: Request): Promise<Response> => {
       for (const auto of relevantAutomations) {
         try {
           const result = await sendAutomatedEmail(supabase, auto, lead, settings, isTestMode);
-          results.push(result);
+          if (result) {
+            results.push(result);
+          }
         } catch (err: any) {
           console.error(`Error sending email for automation ${auto.id}:`, err);
           results.push({ automationId: auto.id, error: err.message });
@@ -151,21 +153,66 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
+// Evaluate conditions for conditional email sending
+function evaluateConditions(conditions: any, lead: any): { shouldSend: boolean; skipEquity?: boolean } {
+  if (!conditions) {
+    return { shouldSend: true };
+  }
+
+  const { field, operator, compare_field, compare_value } = conditions;
+  
+  const fieldValue = parseFloat(lead[field]) || 0;
+  const compareValue = compare_field ? (parseFloat(lead[compare_field]) || 0) : (parseFloat(compare_value) || 0);
+
+  console.log(`Evaluating condition: ${field}(${fieldValue}) ${operator} ${compare_field || compare_value}(${compareValue})`);
+
+  switch (operator) {
+    case '>=':
+      if (fieldValue < compareValue) {
+        // Appraisal value less than sales price - skip email
+        return { shouldSend: false };
+      }
+      // If equal, send but skip equity line
+      return { shouldSend: true, skipEquity: fieldValue === compareValue };
+    case '>':
+      return { shouldSend: fieldValue > compareValue };
+    case '<=':
+      return { shouldSend: fieldValue <= compareValue };
+    case '<':
+      return { shouldSend: fieldValue < compareValue };
+    case '==':
+    case '=':
+      return { shouldSend: fieldValue === compareValue };
+    case '!=':
+      return { shouldSend: fieldValue !== compareValue };
+    default:
+      return { shouldSend: true };
+  }
+}
+
 async function sendAutomatedEmail(
   supabase: any,
   automation: any,
   lead: any,
   settings: any,
   isTestMode: boolean
-) {
+): Promise<any> {
   const template = automation.template;
   if (!template) {
     throw new Error("No template linked to automation");
   }
 
+  // Evaluate conditions before sending
+  const { shouldSend, skipEquity } = evaluateConditions(automation.conditions, lead);
+  
+  if (!shouldSend) {
+    console.log(`Skipping email for automation ${automation.id} - conditions not met`);
+    return { automationId: automation.id, skipped: true, reason: 'Conditions not met' };
+  }
+
   // Fetch listing agent if needed
   let listingAgent = null;
-  if (automation.recipient_type === 'listing_agent') {
+  if (automation.recipient_type === 'listing_agent' || automation.cc_recipient_type === 'listing_agent') {
     const { data: listingAgentLink } = await supabase
       .from('lead_external_contacts')
       .select('contact:contacts(*)')
@@ -178,7 +225,7 @@ async function sendAutomatedEmail(
   // Get the sender (default to Yousif)
   const { data: sender } = await supabase
     .from('users')
-    .select('first_name, last_name, email, email_signature')
+    .select('first_name, last_name, email, email_signature, phone')
     .eq('email', 'yousif@mortgagebolt.org')
     .single();
 
@@ -196,6 +243,11 @@ async function sendAutomatedEmail(
     .maybeSingle();
   titleContact = titleContactLink?.contact;
 
+  // Calculate equity amount
+  const appraisalValue = parseFloat(lead.appraisal_value) || 0;
+  const salesPrice = parseFloat(lead.sales_price) || 0;
+  const equityAmount = appraisalValue - salesPrice;
+
   // Build merge data
   const mergeData: Record<string, any> = {
     first_name: lead.first_name || '',
@@ -206,16 +258,24 @@ async function sendAutomatedEmail(
     lender_name: lead.approved_lender?.lender_name || '',
     lender_loan_number: lead.lender_loan_number || '',
     close_date: lead.close_date ? new Date(lead.close_date).toLocaleDateString() : '',
+    closing_date: lead.close_date ? new Date(lead.close_date).toLocaleDateString() : '',
     loan_amount: lead.loan_amount ? `$${Number(lead.loan_amount).toLocaleString()}` : '',
     sales_price: lead.sales_price ? `$${Number(lead.sales_price).toLocaleString()}` : '',
     interest_rate: lead.interest_rate ? `${lead.interest_rate}%` : '',
     subject_property_address: [lead.subject_address_1, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
+    property_address: [lead.subject_address_1, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
     subject_address: lead.subject_address_1 || '',
     city: lead.subject_city || '',
     state: lead.subject_state || '',
     zip: lead.subject_zip || '',
     loan_program: lead.loan_program || '',
     lock_expiration_date: lead.lock_expiration_date ? new Date(lead.lock_expiration_date).toLocaleDateString() : '',
+    // Appraisal fields
+    appraisal_value: appraisalValue ? `$${appraisalValue.toLocaleString()}` : '',
+    equity_amount: (!skipEquity && equityAmount > 0) ? `$${equityAmount.toLocaleString()}` : '',
+    // Loan officer fields
+    loan_officer_name: `${sender.first_name} ${sender.last_name}`.trim(),
+    loan_officer_phone: sender.phone || '',
   };
 
   // Add buyer agent info
@@ -228,6 +288,7 @@ async function sendAutomatedEmail(
 
   // Add listing agent info
   if (listingAgent) {
+    mergeData.listing_agent_first_name = listingAgent.first_name || '';
     mergeData.listing_agent_name = `${listingAgent.first_name || ''} ${listingAgent.last_name || ''}`.trim();
     mergeData.listing_agent_email = listingAgent.email || '';
     mergeData.listing_agent_phone = listingAgent.phone || '';
@@ -244,11 +305,24 @@ async function sendAutomatedEmail(
   let htmlContent = template.html || "";
   let subject = template.name || "Automated Email";
 
+  // Get subject from json_blocks if available
+  const jsonBlocks = template.json_blocks as any;
+  if (jsonBlocks?.subject) {
+    subject = jsonBlocks.subject;
+  }
+
   Object.entries(mergeData).forEach(([key, value]) => {
     const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
     htmlContent = htmlContent.replace(regex, String(value ?? ''));
     subject = subject.replace(regex, String(value ?? ''));
   });
+
+  // Handle conditional equity section - remove if skipEquity is true
+  if (skipEquity) {
+    // Remove lines containing equity_amount if value is 0
+    htmlContent = htmlContent.replace(/.*\$\{\{equity_amount\}\}.*\n?/g, '');
+    htmlContent = htmlContent.replace(/.*instant equity.*\n?/gi, '');
+  }
 
   // Append "Best," and email signature
   if (sender.email_signature) {
@@ -264,6 +338,8 @@ async function sendAutomatedEmail(
 
   // Determine recipient email
   let recipientEmail: string;
+  let ccEmail: string | null = null;
+
   if (isTestMode) {
     // Use test email based on recipient type
     switch (automation.recipient_type) {
@@ -278,6 +354,21 @@ async function sendAutomatedEmail(
         break;
       default:
         recipientEmail = settings?.test_borrower_email || 'mbborrower@gmail.com';
+    }
+
+    // CC in test mode also goes to test address
+    if (automation.cc_recipient_type) {
+      switch (automation.cc_recipient_type) {
+        case 'borrower':
+          ccEmail = settings?.test_borrower_email || 'mbborrower@gmail.com';
+          break;
+        case 'buyer_agent':
+          ccEmail = settings?.test_buyer_agent_email || 'mbbuyersagent@gmail.com';
+          break;
+        case 'listing_agent':
+          ccEmail = settings?.test_listing_agent_email || 'mblistingagent@gmail.com';
+          break;
+      }
     }
   } else {
     // Use actual recipient email
@@ -294,18 +385,42 @@ async function sendAutomatedEmail(
       default:
         recipientEmail = lead.email;
     }
+
+    // Get CC email
+    if (automation.cc_recipient_type) {
+      switch (automation.cc_recipient_type) {
+        case 'borrower':
+          ccEmail = lead.email;
+          break;
+        case 'buyer_agent':
+          ccEmail = lead.buyer_agent?.email;
+          break;
+        case 'listing_agent':
+          ccEmail = listingAgent?.email;
+          break;
+      }
+    }
   }
 
   if (!recipientEmail) {
     throw new Error(`No email address for recipient type: ${automation.recipient_type}`);
   }
 
-  console.log(`Sending email to ${recipientEmail} (test mode: ${isTestMode})`);
+  console.log(`Sending email to ${recipientEmail}${ccEmail ? ` (CC: ${ccEmail})` : ''} (test mode: ${isTestMode})`);
 
   // Send via SendGrid
   const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
   if (!SENDGRID_API_KEY) {
     throw new Error("SendGrid API key not configured");
+  }
+
+  // Build personalization with optional CC
+  const personalizations: any[] = [{
+    to: [{ email: recipientEmail }],
+  }];
+
+  if (ccEmail && ccEmail !== recipientEmail) {
+    personalizations[0].cc = [{ email: ccEmail }];
   }
 
   const sendGridResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
@@ -315,7 +430,7 @@ async function sendAutomatedEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: recipientEmail }] }],
+      personalizations,
       from: { email: sender.email, name: `${sender.first_name} ${sender.last_name}` },
       reply_to: { email: sender.email },
       subject: subject,
@@ -350,6 +465,7 @@ async function sendAutomatedEmail(
   return {
     automationId: automation.id,
     recipientEmail,
+    ccEmail,
     messageId,
     isTestMode
   };
