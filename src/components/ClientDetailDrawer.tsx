@@ -1921,8 +1921,12 @@ export function ClientDetailDrawer({
                   <LeadThirdPartyItemsCard leadId={leadId || ""} />
                 )}
 
-                {/* Team / Contacts / Dates */}
-                <LeadTeamContactsDatesCard leadId={leadId || ""} onLeadUpdated={onLeadUpdated} />
+                {/* Team / Contacts / Dates - collapsed by default for leads and pending-app */}
+                <LeadTeamContactsDatesCard 
+                  leadId={leadId || ""} 
+                  onLeadUpdated={onLeadUpdated} 
+                  defaultCollapsed={opsStage === 'leads' || opsStage === 'pending-app'}
+                />
 
                 {/* For early stages: Third Party Items collapsed at bottom */}
                 {!isActiveOrPastClient && (

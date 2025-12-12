@@ -904,6 +904,14 @@ const allAvailableColumns = useMemo(() => {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<DisplayLead> => col !== undefined);
 
+  // Separate leads into Pending App and Standby groups
+  const pendingAppData = displayData.filter(lead => 
+    lead.status === 'Pending App' || lead.status === 'App Complete'
+  );
+  const standbyData = displayData.filter(lead => 
+    lead.status === 'Standby' || lead.status === 'DNA'
+  );
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center mb-3">
@@ -929,110 +937,131 @@ const allAvailableColumns = useMemo(() => {
         </div>
       )}
 
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <div className="flex gap-2 items-center">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search applications..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Button 
-              variant={isFilterOpen ? "default" : "outline"} 
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="relative"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-              {filters.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
-                  {filters.length}
-                </Badge>
-              )}
-            </Button>
-            
-              <ColumnVisibilityButton
-                columns={columnVisibility}
-                onColumnToggle={toggleColumn}
-                onToggleAll={toggleAll}
-                onSaveView={saveView}
-                onReorderColumns={reorderColumns}
-                onViewSaved={handleViewSaved}
-              />
-            
-              <Button
-                variant={activeView === "Main View" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  const orderedMainColumns = MAIN_VIEW_COLUMNS
-                    .map(id => columnVisibility.find(col => col.id === id))
-                    .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-                    .map(col => ({ ...col, visible: true }));
-                  
-                  const existingIds = new Set(MAIN_VIEW_COLUMNS);
-                  const remainingColumns = columnVisibility
-                    .filter(col => !existingIds.has(col.id))
-                    .map(col => ({ ...col, visible: false }));
-                  
-                  const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-                  setColumns(newColumnOrder);
-                  setActiveView("Main View");
-                  
-                  toast({
-                    title: "Main View Loaded",
-                    description: "Default column configuration restored"
-                  });
-                }}
-                className="h-8 text-xs"
-              >
-                Main View
-              </Button>
-            
-            <ViewPills
-              views={views}
-              activeView={activeView}
-              onLoadView={loadView}
-              onDeleteView={deleteView}
-            />
-          </div>
-        </CardHeader>
-        {/* Inline Filter Section */}
-        {isFilterOpen && (
-          <div className="px-6 pb-4">
-            <ButtonFilterBuilder
-              filters={filters}
-              onFiltersChange={setFilters}
-              columns={filterColumns}
-            />
-          </div>
-        )}
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={displayData}
-            searchTerm={searchTerm}
-            storageKey="pending-app-table"
-            onRowClick={(row) => {
-              const lead = leads.find(l => l.id === row.id);
-              if (lead) handleRowClick(lead);
-            }}
-            onViewDetails={handleViewDetails}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onColumnReorder={handleColumnReorder}
-            selectable
-            selectedIds={selectedLeadIds}
-            onSelectionChange={setSelectedLeadIds}
-            getRowId={(row) => row.id}
-            showRowNumbers={true}
+      {/* Search and Filter Controls */}
+      <div className="flex gap-2 items-center mb-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search applications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
-        </CardContent>
-      </Card>
+        </div>
+        
+        <Button 
+          variant={isFilterOpen ? "default" : "outline"} 
+          onClick={() => setIsFilterOpen(!isFilterOpen)}
+          className="relative"
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filter
+          {filters.length > 0 && (
+            <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">
+              {filters.length}
+            </Badge>
+          )}
+        </Button>
+        
+        <ColumnVisibilityButton
+          columns={columnVisibility}
+          onColumnToggle={toggleColumn}
+          onToggleAll={toggleAll}
+          onSaveView={saveView}
+          onReorderColumns={reorderColumns}
+          onViewSaved={handleViewSaved}
+        />
+        
+        <Button
+          variant={activeView === "Main View" ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            const orderedMainColumns = MAIN_VIEW_COLUMNS
+              .map(id => columnVisibility.find(col => col.id === id))
+              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+              .map(col => ({ ...col, visible: true }));
+            
+            const existingIds = new Set(MAIN_VIEW_COLUMNS);
+            const remainingColumns = columnVisibility
+              .filter(col => !existingIds.has(col.id))
+              .map(col => ({ ...col, visible: false }));
+            
+            const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+            setColumns(newColumnOrder);
+            setActiveView("Main View");
+            
+            toast({
+              title: "Main View Loaded",
+              description: "Default column configuration restored"
+            });
+          }}
+          className="h-8 text-xs"
+        >
+          Main View
+        </Button>
+        
+        <ViewPills
+          views={views}
+          activeView={activeView}
+          onLoadView={loadView}
+          onDeleteView={deleteView}
+        />
+      </div>
+
+      {/* Inline Filter Section */}
+      {isFilterOpen && (
+        <div className="pb-4">
+          <ButtonFilterBuilder
+            filters={filters}
+            onFiltersChange={setFilters}
+            columns={filterColumns}
+          />
+        </div>
+      )}
+
+      {/* Pending App Section */}
+      <CollapsiblePipelineSection
+        title={`Pending App (${pendingAppData.length})`}
+        data={pendingAppData}
+        columns={columns}
+        searchTerm={searchTerm}
+        defaultOpen={true}
+        onRowClick={(row) => {
+          const lead = leads.find(l => l.id === row.id);
+          if (lead) handleRowClick(lead);
+        }}
+        onViewDetails={handleViewDetails}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onColumnReorder={handleColumnReorder}
+        selectable
+        selectedIds={selectedLeadIds}
+        onSelectionChange={setSelectedLeadIds}
+        getRowId={(row) => row.id}
+        showRowNumbers={true}
+      />
+
+      {/* Standby Section */}
+      <CollapsiblePipelineSection
+        title={`Standby (${standbyData.length})`}
+        data={standbyData}
+        columns={columns}
+        searchTerm={searchTerm}
+        defaultOpen={false}
+        onRowClick={(row) => {
+          const lead = leads.find(l => l.id === row.id);
+          if (lead) handleRowClick(lead);
+        }}
+        onViewDetails={handleViewDetails}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onColumnReorder={handleColumnReorder}
+        selectable
+        selectedIds={selectedLeadIds}
+        onSelectionChange={setSelectedLeadIds}
+        getRowId={(row) => row.id}
+        showRowNumbers={true}
+      />
 
       {selectedClient && (
         <ClientDetailDrawer
