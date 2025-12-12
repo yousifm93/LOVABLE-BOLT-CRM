@@ -63,6 +63,7 @@ const TRIGGER_TYPES = [
 const STATUS_FIELDS = [
   { value: 'loan_status', label: 'Loan Status' },
   { value: 'disclosure_status', label: 'Disclosure Status' },
+  { value: 'cd_status', label: 'CD Status' },
   { value: 'appraisal_status', label: 'Appraisal Status' },
   { value: 'title_status', label: 'Title Status' },
   { value: 'insurance_status', label: 'Insurance Status' },
@@ -97,6 +98,7 @@ const MERGE_TAGS = {
   ],
   'Loan Details': [
     { tag: '{{lender_name}}', description: 'Lender name' },
+    { tag: '{{lender_loan_number}}', description: 'Lender loan number' },
     { tag: '{{loan_amount}}', description: 'Loan amount' },
     { tag: '{{sales_price}}', description: 'Sales price' },
     { tag: '{{interest_rate}}', description: 'Interest rate' },
@@ -113,10 +115,16 @@ const MERGE_TAGS = {
     { tag: '{{zip}}', description: 'ZIP code' },
   ],
   'Contacts': [
-    { tag: '{{buyer_agent_name}}', description: "Buyer's agent name" },
+    { tag: '{{buyer_agent_first_name}}', description: "Buyer's agent first name" },
+    { tag: '{{buyer_agent_name}}', description: "Buyer's agent full name" },
+    { tag: '{{buyer_agent_phone}}', description: "Buyer's agent phone" },
     { tag: '{{buyer_agent_email}}', description: "Buyer's agent email" },
-    { tag: '{{listing_agent_name}}', description: "Listing agent name" },
+    { tag: '{{listing_agent_name}}', description: "Listing agent full name" },
+    { tag: '{{listing_agent_phone}}', description: "Listing agent phone" },
     { tag: '{{listing_agent_email}}', description: "Listing agent email" },
+    { tag: '{{title_contact_name}}', description: "Title contact name" },
+    { tag: '{{title_contact_phone}}', description: "Title contact phone" },
+    { tag: '{{title_contact_email}}', description: "Title contact email" },
   ],
 };
 
@@ -126,6 +134,7 @@ const SAMPLE_DATA: Record<string, string> = {
   '{{email}}': 'john.smith@email.com',
   '{{phone}}': '(555) 123-4567',
   '{{lender_name}}': 'ABC Mortgage',
+  '{{lender_loan_number}}': '1234567890',
   '{{loan_amount}}': '$450,000',
   '{{sales_price}}': '$500,000',
   '{{interest_rate}}': '6.875%',
@@ -136,10 +145,16 @@ const SAMPLE_DATA: Record<string, string> = {
   '{{city}}': 'Miami',
   '{{state}}': 'FL',
   '{{zip}}': '33131',
+  '{{buyer_agent_first_name}}': 'Sarah',
   '{{buyer_agent_name}}': 'Sarah Johnson',
+  '{{buyer_agent_phone}}': '(555) 234-5678',
   '{{buyer_agent_email}}': 'sarah@realty.com',
   '{{listing_agent_name}}': 'Michael Brown',
+  '{{listing_agent_phone}}': '(555) 345-6789',
   '{{listing_agent_email}}': 'michael@realty.com',
+  '{{title_contact_name}}': 'Lisa Williams',
+  '{{title_contact_phone}}': '(555) 456-7890',
+  '{{title_contact_email}}': 'lisa@titlecompany.com',
 };
 
 export function EmailAutomationModal({

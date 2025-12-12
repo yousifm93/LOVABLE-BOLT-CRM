@@ -186,6 +186,16 @@ async function sendAutomatedEmail(
     throw new Error("Default sender not found");
   }
 
+  // Fetch title contact if available
+  let titleContact = null;
+  const { data: titleContactLink } = await supabase
+    .from('lead_external_contacts')
+    .select('contact:contacts(*)')
+    .eq('lead_id', lead.id)
+    .eq('type', 'title')
+    .maybeSingle();
+  titleContact = titleContactLink?.contact;
+
   // Build merge data
   const mergeData: Record<string, any> = {
     first_name: lead.first_name || '',
@@ -194,15 +204,23 @@ async function sendAutomatedEmail(
     email: lead.email || '',
     phone: lead.phone || '',
     lender_name: lead.approved_lender?.lender_name || '',
+    lender_loan_number: lead.lender_loan_number || '',
     close_date: lead.close_date ? new Date(lead.close_date).toLocaleDateString() : '',
     loan_amount: lead.loan_amount ? `$${Number(lead.loan_amount).toLocaleString()}` : '',
     sales_price: lead.sales_price ? `$${Number(lead.sales_price).toLocaleString()}` : '',
     interest_rate: lead.interest_rate ? `${lead.interest_rate}%` : '',
     subject_property_address: [lead.subject_address_1, lead.subject_city, lead.subject_state, lead.subject_zip].filter(Boolean).join(', '),
+    subject_address: lead.subject_address_1 || '',
+    city: lead.subject_city || '',
+    state: lead.subject_state || '',
+    zip: lead.subject_zip || '',
+    loan_program: lead.loan_program || '',
+    lock_expiration_date: lead.lock_expiration_date ? new Date(lead.lock_expiration_date).toLocaleDateString() : '',
   };
 
   // Add buyer agent info
   if (lead.buyer_agent) {
+    mergeData.buyer_agent_first_name = lead.buyer_agent.first_name || '';
     mergeData.buyer_agent_name = `${lead.buyer_agent.first_name || ''} ${lead.buyer_agent.last_name || ''}`.trim();
     mergeData.buyer_agent_email = lead.buyer_agent.email || '';
     mergeData.buyer_agent_phone = lead.buyer_agent.phone || '';
@@ -212,6 +230,14 @@ async function sendAutomatedEmail(
   if (listingAgent) {
     mergeData.listing_agent_name = `${listingAgent.first_name || ''} ${listingAgent.last_name || ''}`.trim();
     mergeData.listing_agent_email = listingAgent.email || '';
+    mergeData.listing_agent_phone = listingAgent.phone || '';
+  }
+
+  // Add title contact info
+  if (titleContact) {
+    mergeData.title_contact_name = `${titleContact.first_name || ''} ${titleContact.last_name || ''}`.trim();
+    mergeData.title_contact_email = titleContact.email || '';
+    mergeData.title_contact_phone = titleContact.phone || '';
   }
 
   // Replace merge tags in template
@@ -224,9 +250,9 @@ async function sendAutomatedEmail(
     subject = subject.replace(regex, String(value ?? ''));
   });
 
-  // Append email signature
+  // Append "Best," and email signature
   if (sender.email_signature) {
-    const signatureHtml = `<br><br>${sender.email_signature}`;
+    const signatureHtml = `<br><br>Best,<br><br>${sender.email_signature}`;
     if (htmlContent.includes('</div>')) {
       // Insert before the last closing div
       const lastDivIndex = htmlContent.lastIndexOf('</div>');
