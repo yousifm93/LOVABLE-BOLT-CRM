@@ -304,5 +304,8 @@ export function transformLeadToClient(lead: any): any {
     subject_city: lead.subject_city || null,
     subject_state: lead.subject_state || null,
     subject_zip: lead.subject_zip || null,
+    
+    // Paper application URL from mortgage application submission
+    paper_application_url: lead.paper_application_url || null,
   };
 }
