@@ -132,17 +132,19 @@ export default function IncomeCalculator() {
 
         if (uploadError) throw uploadError;
 
+        const insertData = {
+          borrower_id: selectedBorrower.id,
+          doc_type: (docType || pendingDocType || 'pay_stub') as 'pay_stub' | 'w2' | 'form_1099' | 'form_1040' | 'schedule_c' | 'schedule_e' | 'schedule_f' | 'k1' | 'voe' | 'form_1065' | 'form_1120s',
+          file_name: file.name,
+          storage_path: fileName,
+          mime_type: file.type,
+          file_size_bytes: file.size,
+          ocr_status: 'pending' as const
+        };
+        
         const { data: docData, error: docError } = await supabase
           .from('income_documents')
-          .insert({
-            borrower_id: selectedBorrower.id,
-            doc_type: docType || pendingDocType || 'pay_stub',
-            file_name: file.name,
-            storage_path: fileName,
-            mime_type: file.type,
-            file_size_bytes: file.size,
-            ocr_status: 'pending'
-          })
+          .insert([insertData])
           .select()
           .single();
 
