@@ -424,6 +424,14 @@ export function ActivityLogModal({
               beforeVal = lendersMap[beforeData[field]] || beforeVal;
               afterVal = lendersMap[afterData[field]] || afterVal;
             }
+            
+            // Map user IDs to names (teammate_assigned, processor_id, lo_id)
+            if (['teammate_assigned', 'processor_id', 'lo_id'].includes(field)) {
+              const beforeUser = usersMap[beforeData[field]];
+              const afterUser = usersMap[afterData[field]];
+              if (beforeUser) beforeVal = `${beforeUser.first_name} ${beforeUser.last_name}`;
+              if (afterUser) afterVal = `${afterUser.first_name} ${afterUser.last_name}`;
+            }
 
             transformedActivities.push({
               id: entry.id + changedFields.indexOf(field),
@@ -559,14 +567,14 @@ export function ActivityLogModal({
               No activity found for the selected filters
             </div>
           ) : (
-            <div className="space-y-1 pr-4">
+            <div className="space-y-2 pr-4">
               {activities.map((activity, index) => (
                 <div
                   key={`${activity.id}-${index}`}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors group"
+                  className="flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-muted/40 transition-colors group border-b border-border/50 last:border-b-0"
                 >
                   {/* Time - compact */}
-                  <div className="w-12 text-xs text-muted-foreground font-mono shrink-0">
+                  <div className="w-14 text-xs text-muted-foreground font-mono shrink-0">
                     {activity.timeFormatted}
                   </div>
 
@@ -577,35 +585,35 @@ export function ActivityLogModal({
                         firstName={activity.changedByUser.first_name}
                         lastName={activity.changedByUser.last_name}
                         email={activity.changedByUser.email}
-                        size="xs"
+                        size="sm"
                         showTooltip
                       />
                     ) : (
-                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                        <User className="h-3 w-3 text-muted-foreground" />
+                      <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
                   {/* Lead Name */}
-                  <div className="w-36 font-medium text-sm truncate shrink-0">
+                  <div className="w-40 font-medium text-sm truncate shrink-0">
                     {activity.leadName}
                   </div>
 
                   {/* Field with Icon */}
-                  <div className="flex items-center gap-1.5 w-32 shrink-0">
+                  <div className="flex items-center gap-2 w-36 shrink-0">
                     {getFieldIcon(activity.fieldKey)}
-                    <span className="text-xs text-muted-foreground truncate">
+                    <span className="text-sm text-muted-foreground truncate">
                       {activity.fieldChanged}
                     </span>
                   </div>
 
                   {/* Before → After Values */}
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     {activity.action === "update" ? (
                       <>
                         {getStatusBadge(activity.beforeValue, activity.fieldKey)}
-                        <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                         {getStatusBadge(activity.afterValue, activity.fieldKey)}
                       </>
                     ) : activity.action === "insert" ? (
@@ -624,14 +632,14 @@ export function ActivityLogModal({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      className="h-8 px-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       onClick={() => handleUndo(activity)}
                       disabled={undoing === activity.id}
                     >
                       {undoing === activity.id ? (
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        <RefreshCw className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Undo2 className="h-3.5 w-3.5" />
+                        <Undo2 className="h-4 w-4" />
                       )}
                     </Button>
                   )}

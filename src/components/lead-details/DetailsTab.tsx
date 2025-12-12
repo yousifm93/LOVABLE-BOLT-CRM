@@ -1617,8 +1617,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           </div>
         </div>
 
-        {/* Paper Application Section */}
-        <div>
+        {/* Paper Application Section - Moved to bottom */}
+        <div className="mt-6">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5 text-primary" />
             Paper Application
@@ -1691,75 +1691,58 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           </div>
         </div>
 
-        {/* DTI Calculation */}
-        <div className="space-y-4">
-          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-lg">Debt-to-Income Ratio (DTI):</span>
-              <span className="text-2xl font-bold text-primary">
-                {(() => {
-                  const totalIncome = isEditing ? (editData.total_monthly_income || 0) : ((client as any).totalMonthlyIncome || 0);
-                  const piti = isEditing ? calculatePITI() : ((client as any).piti || 0);
-                  const dti = totalIncome > 0 ? (piti / totalIncome * 100) : 0;
-                  return `${dti.toFixed(2)}%`;
-                })()}
-              </span>
-            </div>
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
-            {isEditing ? (
-              <>
-                <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? "Saving..." : "Save All"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={handleEdit}>
-                <Pencil className="h-3 w-3 mr-1" />
-                Edit All
+        {/* Action Buttons - Above Paper Application */}
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          {isEditing ? (
+            <>
+              <Button variant="default" size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save All"}
               </Button>
-            )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  {isDeleting ? "Deleting..." : "Delete Lead"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the lead
-                    and all associated data. If there are tasks associated with this lead,
-                    you will need to delete them first.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteLead} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button 
-              variant="default" 
-              onClick={handleCloseLoan}
-              disabled={isSaving}
-              className="bg-yellow-500 hover:bg-yellow-600"
-            >
-              Mark as Closed
+              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleEdit}>
+              <Pencil className="h-3 w-3 mr-1" />
+              Edit All
             </Button>
-          </div>
+          )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                {isDeleting ? "Deleting..." : "Delete Lead"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the lead
+                  and all associated data. If there are tasks associated with this lead,
+                  you will need to delete them first.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteLead} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button 
+            variant="default" 
+            onClick={handleCloseLoan}
+            disabled={isSaving}
+            className="bg-yellow-500 hover:bg-yellow-600"
+          >
+            Mark as Closed
+          </Button>
         </div>
       </div>
     </ScrollArea>
