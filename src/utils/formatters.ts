@@ -44,7 +44,19 @@ export const formatYesNo = (value: boolean | string | null | undefined): string 
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "—";
   try {
-    const date = new Date(dateString);
+    let date: Date;
+    
+    // If it's a date-only string (YYYY-MM-DD), parse it as local date to avoid timezone shift
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      date = new Date(year, month - 1, day); // month is 0-indexed
+    } else {
+      // For timestamps with time component, parse normally
+      date = new Date(dateString);
+    }
+    
+    if (isNaN(date.getTime())) return "—";
+    
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
