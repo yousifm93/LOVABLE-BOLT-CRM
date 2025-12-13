@@ -18,24 +18,29 @@ import {
   Mail,
   Zap,
   DollarSign,
+  LogOut,
 } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
+  SidebarFooter,
   SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
 import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
+import { useAuth } from "@/hooks/useAuth";
 
 const dashboardItems = [
   { title: "Overview", url: "/", icon: Home },
@@ -86,6 +91,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user, signOut } = useAuth();
   
   const [pendingSuggestionCount, setPendingSuggestionCount] = useState(0);
   const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
@@ -171,6 +177,19 @@ export function AppSidebar() {
               </div>
             )}
           </div>
+          
+          {/* Search Bar */}
+          {!collapsed && (
+            <div className="px-3 pb-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search..."
+                  className="pl-8 h-8 text-sm bg-sidebar-accent/30 border-sidebar-border"
+                />
+              </div>
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent className="gap-0">
@@ -318,6 +337,36 @@ export function AppSidebar() {
             </SidebarMenu>
           </CollapsibleSidebarGroup>
         </SidebarContent>
+
+        {/* User Footer */}
+        <SidebarFooter className="border-t border-sidebar-border p-3">
+          {!collapsed ? (
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs text-muted-foreground">Signed in as</span>
+                <span className="text-sm text-sidebar-foreground truncate">{user?.email}</span>
+              </div>
+              <button
+                onClick={signOut}
+                className="p-1.5 rounded hover:bg-sidebar-accent/50 text-muted-foreground hover:text-sidebar-foreground"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={signOut}
+              className="p-1.5 rounded hover:bg-sidebar-accent/50 text-muted-foreground hover:text-sidebar-foreground mx-auto"
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
+        </SidebarFooter>
+
+        {/* Collapse button positioned at edge */}
+        <SidebarTrigger className="absolute -right-3 top-1/2 transform -translate-y-1/2 z-50 h-6 w-6 rounded-full bg-card border border-border shadow-md hover:bg-accent" />
       </Sidebar>
 
       <EmailFieldSuggestionsModal
