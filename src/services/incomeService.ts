@@ -10,6 +10,7 @@ export interface BorrowerData {
   created_at: string;
 }
 
+// Extended doc types - includes new types from BoltCRM guide (form_1120, schedule_b need DB migration)
 export type DocType = 'pay_stub' | 'w2' | 'form_1099' | 'form_1040' | 'schedule_c' | 'schedule_e' | 'schedule_f' | 'k1' | 'form_1065' | 'form_1120s' | 'voe';
 
 export interface IncomeDocumentData {
