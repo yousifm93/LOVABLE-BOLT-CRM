@@ -166,16 +166,19 @@ export function AppSidebar() {
     <>
       <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
         <SidebarHeader className="border-b border-sidebar-border">
-          <div className="flex items-center gap-3 p-3">
-            <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
-              <Zap className="h-7 w-7 text-primary-foreground" />
-            </div>
-            {!collapsed && (
-              <div className="flex items-baseline">
-                <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
-                <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
+                <Zap className="h-7 w-7 text-primary-foreground" />
               </div>
-            )}
+              {!collapsed && (
+                <div className="flex items-baseline">
+                  <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+                  <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
+                </div>
+              )}
+            </div>
+            <SidebarTrigger className="h-8 w-8" />
           </div>
           
           {/* Search Bar */}
@@ -365,8 +368,6 @@ export function AppSidebar() {
           )}
         </SidebarFooter>
 
-        {/* Collapse button positioned at edge */}
-        <SidebarTrigger className="absolute -right-3 top-1/2 transform -translate-y-1/2 z-50 h-6 w-6 rounded-full bg-card border border-border shadow-md hover:bg-accent" />
       </Sidebar>
 
       <EmailFieldSuggestionsModal

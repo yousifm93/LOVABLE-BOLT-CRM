@@ -67,7 +67,7 @@ interface DraggableTableHeadProps<T> {
   sortColumn: string;
   sortDirection: "asc" | "desc";
   onSort: (key: string) => void;
-  width?: number;
+  width: number;
   onResize: (columnKey: string, newWidth: number) => void;
   onAutoFit: (columnKey: string) => void;
   lockSort?: boolean;
@@ -77,26 +77,46 @@ interface DraggableTableHeadProps<T> {
 
 interface ResizeHandleProps {
   columnKey: string;
+  currentWidth: number;
   onResize: (columnKey: string, newWidth: number) => void;
   onAutoFit: (columnKey: string) => void;
   minWidth?: number;
   maxWidth?: number;
 }
 
-function ResizeHandle({ columnKey, onResize, onAutoFit, minWidth = 50, maxWidth = 500 }: ResizeHandleProps) {
+function ResizeHandle({ columnKey, currentWidth, onResize, onAutoFit, minWidth = 50, maxWidth = 600 }: ResizeHandleProps) {
   const [isResizing, setIsResizing] = React.useState(false);
-  const [startX, setStartX] = React.useState(0);
-  const [startWidth, setStartWidth] = React.useState(0);
+  const startXRef = React.useRef(0);
+  const startWidthRef = React.useRef(0);
+  const resizeLineRef = React.useRef<HTMLDivElement | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Store initial values in refs for stable access
+    startXRef.current = e.clientX;
+    startWidthRef.current = currentWidth;
     setIsResizing(true);
-    setStartX(e.clientX);
-    const th = (e.target as HTMLElement).closest('th');
-    if (th) {
-      setStartWidth(th.offsetWidth);
-    }
+
+    // Create resize line indicator
+    const line = document.createElement('div');
+    line.style.cssText = `
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: hsl(var(--primary));
+      z-index: 9999;
+      pointer-events: none;
+      left: ${e.clientX}px;
+    `;
+    document.body.appendChild(line);
+    resizeLineRef.current = line;
+
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -109,13 +129,29 @@ function ResizeHandle({ columnKey, onResize, onAutoFit, minWidth = 50, maxWidth 
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const diff = e.clientX - startX;
-      const newWidth = Math.min(Math.max(startWidth + diff, minWidth), maxWidth);
+      // Update resize line position
+      if (resizeLineRef.current) {
+        resizeLineRef.current.style.left = `${e.clientX}px`;
+      }
+
+      // Calculate new width based on mouse movement
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.min(Math.max(startWidthRef.current + diff, minWidth), maxWidth);
       onResize(columnKey, newWidth);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      
+      // Remove resize line
+      if (resizeLineRef.current) {
+        resizeLineRef.current.remove();
+        resizeLineRef.current = null;
+      }
+      
+      // Restore cursor and selection
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -124,18 +160,29 @@ function ResizeHandle({ columnKey, onResize, onAutoFit, minWidth = 50, maxWidth 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      
+      // Cleanup on unmount
+      if (resizeLineRef.current) {
+        resizeLineRef.current.remove();
+        resizeLineRef.current = null;
+      }
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
     };
-  }, [isResizing, startX, startWidth, columnKey, onResize, minWidth, maxWidth]);
+  }, [isResizing, columnKey, onResize, minWidth, maxWidth]);
 
   return (
     <div
       className={cn(
-        "absolute right-0 top-0 h-full w-3 cursor-col-resize bg-border/30 hover:bg-primary transition-colors",
+        "absolute right-0 top-0 h-full w-2 cursor-col-resize transition-colors",
+        "hover:bg-primary/60 active:bg-primary",
+        "before:absolute before:right-0 before:top-0 before:h-full before:w-1 before:bg-border",
         isResizing && "bg-primary"
       )}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       style={{ zIndex: 10 }}
+      title="Drag to resize, double-click to auto-fit"
     />
   );
 }
@@ -217,10 +264,11 @@ function DraggableTableHead<T>({
       {!lockResize && (
         <ResizeHandle 
           columnKey={column.accessorKey}
+          currentWidth={width}
           onResize={onResize}
           onAutoFit={onAutoFit}
-          minWidth={column.minWidth}
-          maxWidth={column.maxWidth}
+          minWidth={column.minWidth || 50}
+          maxWidth={column.maxWidth || 600}
         />
       )}
     </TableHead>
@@ -464,8 +512,8 @@ export function DataTable<T extends Record<string, any>>({
 
 
   return (
-    <div className="rounded-md border bg-card shadow-soft">
-      <Table>
+    <div className="rounded-md border bg-card shadow-soft overflow-x-auto">
+      <Table style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -501,7 +549,7 @@ export function DataTable<T extends Record<string, any>>({
                     sortColumn={sortColumn}
                     sortDirection={sortDirection}
                     onSort={handleSort}
-                    width={columnWidths[column.accessorKey]}
+                    width={columnWidths[column.accessorKey] || column.width || 150}
                     onResize={handleResize}
                     onAutoFit={handleAutoFit}
                     lockSort={lockSort}
