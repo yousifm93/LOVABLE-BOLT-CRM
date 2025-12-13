@@ -1619,6 +1619,156 @@ export const databaseService = {
     if (error) throw error;
   },
 
+  // ===== DELETED LEADS =====
+  async getDeletedLeads() {
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        deleted_by_user:users!leads_deleted_by_fkey(id, first_name, last_name, email)
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async softDeleteLead(leadId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id
+      })
+      .eq('id', leadId);
+
+    if (error) throw error;
+  },
+
+  async restoreLead(leadId: string) {
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        deleted_at: null,
+        deleted_by: null
+      })
+      .eq('id', leadId);
+
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteLead(leadId: string) {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', leadId);
+
+    if (error) throw error;
+  },
+
+  // ===== DELETED BUYER AGENTS =====
+  async getDeletedBuyerAgents() {
+    const { data, error } = await supabase
+      .from('buyer_agents')
+      .select(`
+        *,
+        deleted_by_user:users!buyer_agents_deleted_by_fkey(id, first_name, last_name, email)
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async softDeleteBuyerAgent(agentId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('buyer_agents')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id
+      })
+      .eq('id', agentId);
+
+    if (error) throw error;
+  },
+
+  async restoreBuyerAgent(agentId: string) {
+    const { error } = await supabase
+      .from('buyer_agents')
+      .update({
+        deleted_at: null,
+        deleted_by: null
+      })
+      .eq('id', agentId);
+
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteBuyerAgent(agentId: string) {
+    const { error } = await supabase
+      .from('buyer_agents')
+      .delete()
+      .eq('id', agentId);
+
+    if (error) throw error;
+  },
+
+  // ===== DELETED LENDERS =====
+  async getDeletedLenders() {
+    const { data, error } = await supabase
+      .from('lenders')
+      .select(`
+        *,
+        deleted_by_user:users!lenders_deleted_by_fkey(id, first_name, last_name, email)
+      `)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async softDeleteLender(lenderId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase
+      .from('lenders')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user?.id
+      })
+      .eq('id', lenderId);
+
+    if (error) throw error;
+  },
+
+  async restoreLender(lenderId: string) {
+    const { error } = await supabase
+      .from('lenders')
+      .update({
+        deleted_at: null,
+        deleted_by: null
+      })
+      .eq('id', lenderId);
+
+    if (error) throw error;
+  },
+
+  async permanentlyDeleteLender(lenderId: string) {
+    const { error } = await supabase
+      .from('lenders')
+      .delete()
+      .eq('id', lenderId);
+
+    if (error) throw error;
+  },
+
   async getActiveLoans() {
     try {
       const { data, error } = await supabase

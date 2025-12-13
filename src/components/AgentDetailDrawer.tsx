@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText, MessageSquare, Plus } from "lucide-react";
+import { X, Building2, Mail, Phone, Calendar, Star, FileText, MessageSquare, Plus, Send } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -13,12 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
-import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { SendAgentEmailModal } from "@/components/modals/SendAgentEmailModal";
 import { Button } from "@/components/ui/button";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,7 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [callLogs, setCallLogs] = useState<any[]>([]);
   const [isLoadingCallLogs, setIsLoadingCallLogs] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
@@ -130,17 +131,17 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
       <DrawerContent className="max-h-[90vh]">
-        <div className="mx-auto w-full max-w-4xl">
+        <div className="mx-auto w-full max-w-6xl">
           <DrawerHeader className="border-b">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <DrawerTitle className="text-2xl">{fullName}</DrawerTitle>
+                  <DrawerTitle className="text-xl">{fullName}</DrawerTitle>
                   <DrawerDescription className="flex items-center gap-2 mt-1">
                     {agent.brokerage && (
                       <span className="flex items-center gap-1">
@@ -156,216 +157,180 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   </DrawerDescription>
                 </div>
               </div>
-              <DrawerClose asChild>
-                <button className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100">
-                  <X className="h-5 w-5" />
-                </button>
-              </DrawerClose>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEmailModal(true)}
+                  disabled={!agent.email}
+                  className="h-8"
+                >
+                  <Send className="h-4 w-4 mr-1" />
+                  Send Email
+                </Button>
+                <DrawerClose asChild>
+                  <button className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100">
+                    <X className="h-5 w-5" />
+                  </button>
+                </DrawerClose>
+              </div>
             </div>
           </DrawerHeader>
 
-          <div className="overflow-y-auto max-h-[calc(90vh-200px)] p-6 space-y-6">
-            {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="h-5 w-5" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">First Name</label>
-                    <InlineEditText
-                      value={agent.first_name}
-                      onValueChange={(value) => handleFieldUpdate('first_name', value)}
-                      placeholder="Enter first name"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Last Name</label>
-                    <InlineEditText
-                      value={agent.last_name}
-                      onValueChange={(value) => handleFieldUpdate('last_name', value)}
-                      placeholder="Enter last name"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-6 space-y-4">
+            {/* Row 1: First Name, Last Name, Email, Phone */}
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">First Name</label>
+                <InlineEditText
+                  value={agent.first_name}
+                  onValueChange={(value) => handleFieldUpdate('first_name', value)}
+                  placeholder="First name"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Last Name</label>
+                <InlineEditText
+                  value={agent.last_name}
+                  onValueChange={(value) => handleFieldUpdate('last_name', value)}
+                  placeholder="Last name"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  Email
+                </label>
+                <InlineEditText
+                  value={agent.email}
+                  onValueChange={(value) => handleFieldUpdate('email', value)}
+                  placeholder="agent@example.com"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  Phone
+                </label>
+                <InlineEditPhone
+                  value={agent.phone}
+                  onValueChange={(value) => handleFieldUpdate('phone', value)}
+                  placeholder="(555) 555-5555"
+                  className="mt-1"
+                />
+              </div>
+            </div>
 
-            {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Mail className="h-5 w-5" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </label>
-                  <InlineEditText
-                    value={agent.email}
-                    onValueChange={(value) => handleFieldUpdate('email', value)}
-                    placeholder="agent@example.com"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Phone
-                  </label>
-                  <InlineEditPhone
-                    value={agent.phone}
-                    onValueChange={(value) => handleFieldUpdate('phone', value)}
-                    placeholder="(555) 555-5555"
-                    className="mt-1"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Professional Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5" />
-                  Professional Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Brokerage</label>
-                  <InlineEditText
-                    value={agent.brokerage}
-                    onValueChange={(value) => handleFieldUpdate('brokerage', value)}
-                    placeholder="Enter brokerage name"
-                    className="mt-1"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                      <BadgeIcon className="h-4 w-4" />
-                      License Number
-                    </label>
-                    <InlineEditText
-                      value={agent.license_number}
-                      onValueChange={(value) => handleFieldUpdate('license_number', value)}
-                      placeholder="Enter license #"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Years Experience</label>
-                    <InlineEditNumber
-                      value={agent.years_experience}
-                      onValueChange={(value) => handleFieldUpdate('years_experience', value)}
-                      placeholder="0"
-                      min={0}
-                      max={99}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Star className="h-4 w-4" />
-                    Agent Rank
-                  </label>
-                  <InlineEditSelect
-                    value={agent.agent_rank}
-                    onValueChange={(value) => handleFieldUpdate('agent_rank', value)}
-                    options={rankOptions}
-                    placeholder="Select rank"
-                    className="mt-1"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Row 2: Brokerage, Agent Rank */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Brokerage
+                </label>
+                <InlineEditText
+                  value={agent.brokerage}
+                  onValueChange={(value) => handleFieldUpdate('brokerage', value)}
+                  placeholder="Brokerage name"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  Agent Rank
+                </label>
+                <InlineEditSelect
+                  value={agent.agent_rank}
+                  onValueChange={(value) => handleFieldUpdate('agent_rank', value)}
+                  options={rankOptions}
+                  placeholder="Select rank"
+                  className="mt-1"
+                />
+              </div>
+            </div>
 
             {/* Activity Tracking */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calendar className="h-5 w-5" />
+              <CardHeader className="py-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Calendar className="h-4 w-4" />
                   Activity Tracking
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Call</label>
-                  <InlineEditDate
-                    value={agent.last_agent_call}
-                    onValueChange={(value) => handleFieldUpdate('last_agent_call', value?.toISOString().split('T')[0])}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Next Scheduled Call</label>
-                  <InlineEditDate
-                    value={agent.next_agent_call}
-                    onValueChange={(value) => handleFieldUpdate('next_agent_call', value?.toISOString().split('T')[0])}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Face-to-Face Meeting</label>
-                  <InlineEditDateTime
-                    value={agent.face_to_face_meeting}
-                    onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                  <InlineEditNotes
-                    value={agent.notes}
-                    onValueChange={(value) => handleFieldUpdate('notes', value)}
-                    placeholder="General notes about this agent..."
-                    className="mt-1"
-                  />
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Last Call</label>
+                    <InlineEditDate
+                      value={agent.last_agent_call}
+                      onValueChange={(value) => handleFieldUpdate('last_agent_call', value?.toISOString().split('T')[0])}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Next Scheduled Call</label>
+                    <InlineEditDate
+                      value={agent.next_agent_call}
+                      onValueChange={(value) => handleFieldUpdate('next_agent_call', value?.toISOString().split('T')[0])}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Face-to-Face Meeting</label>
+                    <InlineEditDateTime
+                      value={agent.face_to_face_meeting}
+                      onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
+            {/* General Notes */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">General Notes</label>
+              <InlineEditNotes
+                value={agent.notes}
+                onValueChange={(value) => handleFieldUpdate('notes', value)}
+                placeholder="General notes about this agent..."
+                className="mt-1"
+              />
+            </div>
+
             {/* Call History */}
             <Card>
-              <CardHeader>
+              <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <MessageSquare className="h-5 w-5" />
-                    Call History
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <MessageSquare className="h-4 w-4" />
+                    Activity History
                   </CardTitle>
                   <Button
                     size="sm"
                     onClick={() => setShowCallLogModal(true)}
-                    className="h-8"
+                    className="h-7 text-xs"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Log Call
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 {isLoadingCallLogs ? (
-                  <p className="text-sm text-muted-foreground">Loading call history...</p>
+                  <p className="text-sm text-muted-foreground">Loading...</p>
                 ) : callLogs.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {callLogs.map((log) => (
                       <div
                         key={log.id}
-                        className="p-3 border rounded-lg bg-muted/30"
+                        className="p-2 border rounded-lg bg-muted/30 text-sm"
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-1">
                           <p className="text-xs text-muted-foreground">
                             {new Date(log.logged_at).toLocaleDateString('en-US', {
                               month: 'short',
@@ -384,34 +349,34 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No call logs yet. Click "Log Call" to add one.</p>
+                  <p className="text-sm text-muted-foreground">No activity yet.</p>
                 )}
               </CardContent>
             </Card>
 
             {/* Associated Leads */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5" />
+              <CardHeader className="py-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="h-4 w-4" />
                   Associated Leads ({associatedLeads.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 {isLoadingLeads ? (
-                  <p className="text-sm text-muted-foreground">Loading leads...</p>
+                  <p className="text-sm text-muted-foreground">Loading...</p>
                 ) : associatedLeads.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto">
                     {associatedLeads.map((lead) => (
                       <div
                         key={lead.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                        className="flex items-center justify-between p-2 border rounded-lg hover:bg-accent/50 transition-colors text-sm"
                       >
                         <div>
                           <p className="font-medium">
                             {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || 'Unnamed Lead'}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {lead.status || 'No status'}
                           </p>
                         </div>
@@ -419,7 +384,7 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No leads associated with this agent yet.</p>
+                  <p className="text-sm text-muted-foreground">No leads associated.</p>
                 )}
               </CardContent>
             </Card>
@@ -436,6 +401,13 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
           loadCallLogs();
           onAgentUpdated();
         }}
+      />
+
+      <SendAgentEmailModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        agentEmail={agent.email || ''}
+        agentName={fullName}
       />
     </Drawer>
   );

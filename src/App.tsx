@@ -23,7 +23,7 @@ import AgentListWrapper from "@/pages/contacts/AgentListWrapper";
 import BorrowerList from "@/pages/contacts/BorrowerList";
 import ApprovedLenders from "@/pages/contacts/ApprovedLenders";
 import TasksModern from "@/pages/TasksModern";
-import DeletedTasksAdmin from "@/pages/admin/DeletedTasksAdmin";
+import DeletedItemsAdmin from "@/pages/admin/DeletedItemsAdmin";
 import PropertyValue from "./pages/resources/PropertyValue";
 import PropertyValuePublic from "./pages/resources/PropertyValuePublic";
 import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
@@ -103,7 +103,7 @@ function AppRoutes() {
               <Route path="/contacts/borrowers" element={<BorrowerList />} />
               <Route path="/contacts/lenders" element={<ApprovedLenders />} />
               <Route path="/tasks" element={<TasksModern />} />
-              <Route path="/admin/deleted-tasks" element={<DeletedTasksAdmin />} />
+              <Route path="/admin/deleted-tasks" element={<DeletedItemsAdmin />} />
               <Route path="/resources/loan-pricer" element={<LoanPricer />} />
               <Route path="/resources/chatbot" element={<ChatbaseBoltBot />} />
               <Route path="/admin/backup-chat" element={<GuidelineChatbot />} />
