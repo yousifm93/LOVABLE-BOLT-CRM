@@ -616,6 +616,8 @@ export type Database = {
           agent_rank: string | null
           brokerage: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           face_to_face_meeting: string | null
           first_name: string
@@ -633,6 +635,8 @@ export type Database = {
           agent_rank?: string | null
           brokerage: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           face_to_face_meeting?: string | null
           first_name: string
@@ -650,6 +654,8 @@ export type Database = {
           agent_rank?: string | null
           brokerage?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           face_to_face_meeting?: string | null
           first_name?: string
@@ -2415,6 +2421,8 @@ export type Database = {
           decl_ownership_interest: boolean | null
           decl_primary_residence: boolean | null
           decl_seller_affiliation: boolean | null
+          deleted_at: string | null
+          deleted_by: string | null
           demographic_ethnicity: string | null
           demographic_gender: string | null
           demographic_race: string | null
@@ -2597,6 +2605,8 @@ export type Database = {
           decl_ownership_interest?: boolean | null
           decl_primary_residence?: boolean | null
           decl_seller_affiliation?: boolean | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           demographic_ethnicity?: string | null
           demographic_gender?: string | null
           demographic_race?: string | null
@@ -2781,6 +2791,8 @@ export type Database = {
           decl_ownership_interest?: boolean | null
           decl_primary_residence?: boolean | null
           decl_seller_affiliation?: boolean | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           demographic_ethnicity?: string | null
           demographic_gender?: string | null
           demographic_race?: string | null
@@ -3056,6 +3068,8 @@ export type Database = {
           broker_portal_url: string | null
           broker_portal_username: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           lender_name: string
           lender_type: Database["public"]["Enums"]["lender_type"]
@@ -3073,6 +3087,8 @@ export type Database = {
           broker_portal_url?: string | null
           broker_portal_username?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           lender_name: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
@@ -3090,6 +3106,8 @@ export type Database = {
           broker_portal_url?: string | null
           broker_portal_username?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           lender_name?: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
