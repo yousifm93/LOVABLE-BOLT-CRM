@@ -24,7 +24,7 @@ export function Layout({ children }: LayoutProps) {
             </Button>
           </div>
           
-          <main className="flex-1 py-0">
+          <main className="flex-1 pt-3 pb-0">
             {children}
           </main>
         </div>
