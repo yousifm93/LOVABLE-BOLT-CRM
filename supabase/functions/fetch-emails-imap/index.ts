@@ -32,6 +32,46 @@ interface EmailMessage {
   htmlBody?: string;
 }
 
+// Decode quoted-printable content
+function decodeQuotedPrintable(str: string): string {
+  return str
+    .replace(/=\r?\n/g, '') // Remove soft line breaks
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+// Decode base64 content
+function decodeBase64(str: string): string {
+  try {
+    return atob(str.replace(/\s/g, ''));
+  } catch {
+    return str;
+  }
+}
+
+// Extract and decode body from MIME part
+function extractBodyFromPart(part: string, isHtml: boolean = false): string {
+  const transferEncodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
+  const encoding = transferEncodingMatch?.[1]?.toLowerCase() || '7bit';
+  
+  // Find body content after headers (double newline)
+  const bodyStart = part.indexOf("\r\n\r\n");
+  if (bodyStart === -1) return "";
+  
+  let body = part.substring(bodyStart + 4);
+  
+  // Remove trailing boundary markers
+  body = body.replace(/--[^\r\n]+--?\s*$/g, '').trim();
+  
+  // Decode based on transfer encoding
+  if (encoding === 'quoted-printable') {
+    body = decodeQuotedPrintable(body);
+  } else if (encoding === 'base64') {
+    body = decodeBase64(body);
+  }
+  
+  return body;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -102,33 +142,35 @@ serve(async (req) => {
         if (message) {
           const source = message.source?.toString() || "";
           
-          // Extract body from source (basic parsing)
           let textBody = "";
           let htmlBody = "";
           
-          // Simple extraction - look for body content
-          const boundaryMatch = source.match(/boundary="([^"]+)"/);
+          // Check for multipart content
+          const boundaryMatch = source.match(/boundary="([^"]+)"/i) || source.match(/boundary=([^\s;]+)/i);
+          
           if (boundaryMatch) {
             const boundary = boundaryMatch[1];
-            const parts = source.split(`--${boundary}`);
+            const parts = source.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+            
             for (const part of parts) {
-              if (part.includes("Content-Type: text/plain")) {
-                const bodyStart = part.indexOf("\r\n\r\n");
-                if (bodyStart > -1) {
-                  textBody = part.substring(bodyStart + 4).replace(/--$/, "").trim();
-                }
-              } else if (part.includes("Content-Type: text/html")) {
-                const bodyStart = part.indexOf("\r\n\r\n");
-                if (bodyStart > -1) {
-                  htmlBody = part.substring(bodyStart + 4).replace(/--$/, "").trim();
-                }
+              const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
+              const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
+              
+              if (contentType.includes("text/plain")) {
+                textBody = extractBodyFromPart(part, false);
+              } else if (contentType.includes("text/html")) {
+                htmlBody = extractBodyFromPart(part, true);
               }
             }
           } else {
             // Single part message
-            const bodyStart = source.indexOf("\r\n\r\n");
-            if (bodyStart > -1) {
-              textBody = source.substring(bodyStart + 4);
+            const contentTypeMatch = source.match(/Content-Type:\s*([^;\r\n]+)/i);
+            const contentType = contentTypeMatch?.[1]?.toLowerCase() || 'text/plain';
+            
+            if (contentType.includes("text/html")) {
+              htmlBody = extractBodyFromPart(source, true);
+            } else {
+              textBody = extractBodyFromPart(source, false);
             }
           }
 
@@ -139,7 +181,6 @@ serve(async (req) => {
                 uid: messageUid,
                 body: textBody,
                 htmlBody: htmlBody,
-                source: source.substring(0, 50000), // Limit source size
               }
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
