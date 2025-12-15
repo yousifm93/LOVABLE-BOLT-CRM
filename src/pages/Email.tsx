@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 
 interface EmailMessage {
   uid: number;
@@ -23,6 +24,14 @@ interface EmailMessage {
   hasAttachments: boolean;
   body?: string;
   htmlBody?: string;
+}
+
+interface EmailTagData {
+  leadId: string;
+  leadName: string;
+  emailLogId: string;
+  aiSummary: string | null;
+  subject: string;
 }
 
 const folders = [
@@ -45,12 +54,68 @@ export default function Email() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
+  const [emailTagsMap, setEmailTagsMap] = useState<Map<string, EmailTagData>>(new Map());
   
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
     body: "",
   });
+
+  // Fetch email_logs to match with IMAP emails for tagging
+  const fetchEmailTags = useCallback(async (imapEmails: EmailMessage[]) => {
+    try {
+      // Get unique from emails and subjects for matching
+      const fromEmails = imapEmails.map(e => e.fromEmail.toLowerCase());
+      const subjects = imapEmails.map(e => e.subject);
+      
+      // Query email_logs for recent emails that match
+      const { data: emailLogs, error } = await supabase
+        .from('email_logs')
+        .select(`
+          id,
+          from_email,
+          subject,
+          ai_summary,
+          lead_id,
+          lead:leads(first_name, last_name)
+        `)
+        .or(`from_email.in.(${fromEmails.map(e => `"${e}"`).join(',')}),subject.in.(${subjects.map(s => `"${s.replace(/"/g, '\\"')}"`).join(',')})`)
+        .order('timestamp', { ascending: false })
+        .limit(200);
+
+      if (error) {
+        console.error('Error fetching email logs for tags:', error);
+        return;
+      }
+
+      // Create a map for quick lookup by from_email + subject
+      const tagsMap = new Map<string, EmailTagData>();
+      
+      for (const log of emailLogs || []) {
+        if (log.lead_id && log.lead) {
+          const lead = log.lead as { first_name: string; last_name: string };
+          const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+          
+          if (leadName) {
+            // Create lookup key from email + subject
+            const key = `${log.from_email?.toLowerCase() || ''}-${log.subject || ''}`;
+            tagsMap.set(key, {
+              leadId: log.lead_id,
+              leadName,
+              emailLogId: log.id,
+              aiSummary: log.ai_summary,
+              subject: log.subject || '',
+            });
+          }
+        }
+      }
+      
+      setEmailTagsMap(tagsMap);
+    } catch (error) {
+      console.error('Error fetching email tags:', error);
+    }
+  }, []);
 
   const fetchEmails = useCallback(async (folder: string) => {
     setIsLoading(true);
@@ -62,11 +127,15 @@ export default function Email() {
       if (error) throw error;
 
       if (data?.success) {
-        setEmails(data.emails || []);
+        const fetchedEmails = data.emails || [];
+        setEmails(fetchedEmails);
         setFolderCounts(prev => ({
           ...prev,
-          [folder]: data.emails?.filter((e: EmailMessage) => e.unread).length || 0,
+          [folder]: fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0,
         }));
+        
+        // Fetch email tags for matching
+        fetchEmailTags(fetchedEmails);
       } else {
         throw new Error(data?.error || "Failed to fetch emails");
       }
@@ -81,7 +150,7 @@ export default function Email() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, fetchEmailTags]);
 
   const fetchEmailContent = async (uid: number) => {
     setIsLoadingContent(true);
@@ -296,23 +365,34 @@ export default function Email() {
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div
-                      className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
-                      style={{ maxWidth: "calc(400px - 24px)" }}
-                    >
-                      <span
-                        className={cn(
-                          "text-sm truncate flex-1 min-w-0",
-                          email.unread ? "font-semibold" : "font-medium"
-                        )}
-                      >
-                        {email.from}
-                      </span>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>
-                      </div>
-                    </div>
+                    {(() => {
+                      const tagKey = `${email.fromEmail?.toLowerCase() || ''}-${email.subject || ''}`;
+                      const tagData = emailTagsMap.get(tagKey);
+                      return (
+                        <div
+                          className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
+                          style={{ maxWidth: "calc(400px - 24px)" }}
+                        >
+                          <span
+                            className={cn(
+                              "text-sm truncate min-w-0",
+                              tagData ? "flex-shrink" : "flex-1",
+                              email.unread ? "font-semibold" : "font-medium"
+                            )}
+                            style={{ maxWidth: tagData ? '140px' : undefined }}
+                          >
+                            {email.from}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {tagData && (
+                              <EmailTagPopover tagData={tagData} />
+                            )}
+                            {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <p
                       className={cn(
                         "text-sm truncate min-w-0 mb-1 overflow-hidden",
