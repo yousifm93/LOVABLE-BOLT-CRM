@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { EmailTasksModal } from "@/components/modals/EmailTasksModal";
 
 interface ModernTask {
   id: string;
@@ -339,6 +340,7 @@ export default function TasksModern() {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -929,6 +931,15 @@ export default function TasksModern() {
                 </Badge>
               )}
             </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => setIsEmailModalOpen(true)}
+              disabled={openTasks.length === 0}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Email Tasks
+            </Button>
           </div>
         </CardHeader>
         
@@ -1117,6 +1128,12 @@ export default function TasksModern() {
         description="This action cannot be undone. Are you sure you want to delete the selected tasks?"
         onConfirm={confirmBulkDelete}
         isLoading={isDeleting}
+      />
+
+      <EmailTasksModal
+        open={isEmailModalOpen}
+        onOpenChange={setIsEmailModalOpen}
+        tasks={openTasks}
       />
     </div>
   );
