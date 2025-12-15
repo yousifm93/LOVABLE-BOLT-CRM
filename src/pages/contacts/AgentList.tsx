@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building2, Badge as BadgeIcon, Star } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Building2, Badge as BadgeIcon, Star, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 
 const columns: ColumnDef<any>[] = [
@@ -135,7 +136,47 @@ export default function AgentList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [showAgentDrawer, setShowAgentDrawer] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
+
+  const handleImportAgents = async () => {
+    setIsImporting(true);
+    try {
+      // Fetch the CSV file from public folder
+      const response = await fetch('/agent-import.csv');
+      if (!response.ok) throw new Error('Failed to fetch CSV file');
+      const csvData = await response.text();
+      
+      toast({
+        title: "Import Started",
+        description: `Processing ${csvData.split('\n').length - 1} agents...`,
+      });
+
+      // Call the edge function with CSV data
+      const { data, error } = await supabase.functions.invoke('import-agents', {
+        body: { csvData }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Import Complete!",
+        description: `Created: ${data.created}, Updated: ${data.updated}, Preserved: ${data.preserved}, Soft-deleted: ${data.softDeleted}`,
+      });
+
+      // Reload agents to show updated list
+      loadAgents();
+    } catch (error: any) {
+      console.error('Import error:', error);
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import agents",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   useEffect(() => {
     loadAgents();
@@ -248,14 +289,35 @@ export default function AgentList() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Agent Directory</span>
-            <Button 
-              size="default"
-              className="bg-primary hover:bg-primary/90 px-6 py-2"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add New Agent
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                size="default"
+                variant="outline"
+                className="px-6 py-2"
+                onClick={handleImportAgents}
+                disabled={isImporting}
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-5 w-5 mr-2" />
+                    Import Agents
+                  </>
+                )}
+              </Button>
+              <Button 
+                size="default"
+                className="bg-primary hover:bg-primary/90 px-6 py-2"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add New Agent
+              </Button>
+            </div>
           </CardTitle>
           <div className="flex gap-2 items-center">
             <div className="relative flex-1 max-w-sm">
