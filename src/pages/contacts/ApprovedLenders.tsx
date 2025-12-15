@@ -211,8 +211,8 @@ export default function ApprovedLenders() {
       accessorKey: "lender_name",
       header: "Lender Name",
       cell: ({ row }: any) => (
-        <div className="flex items-center">
-          <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+        <div className="flex items-center justify-start text-left">
+          <Building className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
           <span className="font-medium">{row.original.lender_name}</span>
         </div>
       ),
@@ -222,10 +222,12 @@ export default function ApprovedLenders() {
       accessorKey: "lender_type",
       header: "Lender Type",
       cell: ({ row }: any) => (
-        <InlineEditLenderType
-          value={row.original.lender_type}
-          onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" | "HELOC" })}
-        />
+        <div className="flex justify-center">
+          <InlineEditLenderType
+            value={row.original.lender_type}
+            onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" | "HELOC" })}
+          />
+        </div>
       ),
       sortable: true,
     }] : []),
@@ -233,7 +235,9 @@ export default function ApprovedLenders() {
       accessorKey: "account_executive",
       header: "Account Executive",
       cell: ({ row }: any) => (
-        <span className="text-sm">{row.original.account_executive || "—"}</span>
+        <div className="text-center">
+          <span className="text-sm">{row.original.account_executive || "—"}</span>
+        </div>
       ),
       sortable: true,
     }] : []),
