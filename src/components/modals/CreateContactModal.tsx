@@ -13,9 +13,10 @@ interface CreateContactModalProps {
   onOpenChange: (open: boolean) => void;
   onContactCreated: (contact: any) => void;
   defaultType?: 'agent' | 'borrower' | 'lender';
+  defaultStatus?: string;
 }
 
-export function CreateContactModal({ open, onOpenChange, onContactCreated, defaultType = 'borrower' }: CreateContactModalProps) {
+export function CreateContactModal({ open, onOpenChange, onContactCreated, defaultType = 'borrower', defaultStatus = 'Active' }: CreateContactModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<{
@@ -89,6 +90,7 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
           account_executive: `${formData.first_name} ${formData.last_name}`,
           account_executive_email: formData.email || null,
           account_executive_phone: formData.phone || null,
+          status: defaultStatus,
         });
       }
       // Otherwise insert into contacts table

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 interface Lender {
   id: string;
@@ -50,6 +52,7 @@ export default function ApprovedLenders() {
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalDefaultStatus, setCreateModalDefaultStatus] = useState<string>("Active");
   const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -60,6 +63,8 @@ export default function ApprovedLenders() {
   const [lenderToDelete, setLenderToDelete] = useState<Lender | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [approvedExpanded, setApprovedExpanded] = useState(true);
+  const [notApprovedExpanded, setNotApprovedExpanded] = useState(true);
   const { toast } = useToast();
 
   const {
@@ -189,10 +194,20 @@ export default function ApprovedLenders() {
     }
   };
 
-  const lendersWithIndex = lenders.map((lender, index) => ({
-    ...lender,
-    rowNumber: index + 1
-  }));
+  const handleAddLender = (defaultStatus: string) => {
+    setCreateModalDefaultStatus(defaultStatus);
+    setShowCreateModal(true);
+  };
+
+  // Split lenders into approved and not approved
+  const approvedLenders = lenders.filter(l => l.status === 'Active');
+  const notApprovedLenders = lenders.filter(l => l.status !== 'Active');
+
+  const addRowNumbers = (lenderList: Lender[]) => 
+    lenderList.map((lender, index) => ({
+      ...lender,
+      rowNumber: index + 1
+    }));
 
   const isColumnVisible = (columnId: string) => {
     const col = columnVisibility.find(c => c.id === columnId);
@@ -291,7 +306,7 @@ export default function ApprovedLenders() {
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Lenders</h1>
-        <p className="text-xs italic text-muted-foreground/70">Manage your approved lending partners</p>
+        <p className="text-xs italic text-muted-foreground/70">Manage your lending partners</p>
       </div>
 
       <Card className="bg-gradient-card shadow-soft">
@@ -342,21 +357,102 @@ export default function ApprovedLenders() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={lendersWithIndex}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-            selectable={true}
-            selectedIds={Array.from(selectedIds)}
-            onSelectionChange={(ids) => setSelectedIds(new Set(ids))}
-            getRowId={(row) => row.id}
-            onDelete={(lender) => {
-              setLenderToDelete(lender);
-              setIsDeleteDialogOpen(true);
-            }}
-          />
+        <CardContent className="space-y-4">
+          {/* Approved Lenders Section */}
+          <Collapsible open={approvedExpanded} onOpenChange={setApprovedExpanded}>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+                <div className="flex items-center gap-2">
+                  {approvedExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span className="font-semibold">Approved</span>
+                  <Badge variant="default" className="bg-green-500/20 text-green-700 dark:text-green-400">
+                    {approvedLenders.length}
+                  </Badge>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddLender("Active");
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Lender
+                </Button>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2">
+                <DataTable
+                  columns={columns}
+                  data={addRowNumbers(approvedLenders)}
+                  searchTerm={searchTerm}
+                  onRowClick={handleRowClick}
+                  selectable={true}
+                  selectedIds={Array.from(selectedIds)}
+                  onSelectionChange={(ids) => setSelectedIds(new Set(ids))}
+                  getRowId={(row) => row.id}
+                  onDelete={(lender) => {
+                    setLenderToDelete(lender);
+                    setIsDeleteDialogOpen(true);
+                  }}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Not Approved Lenders Section */}
+          <Collapsible open={notApprovedExpanded} onOpenChange={setNotApprovedExpanded}>
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+                <div className="flex items-center gap-2">
+                  {notApprovedExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span className="font-semibold">Not Approved</span>
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                    {notApprovedLenders.length}
+                  </Badge>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddLender("Pending");
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Lender
+                </Button>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2">
+                {notApprovedLenders.length > 0 ? (
+                  <DataTable
+                    columns={columns}
+                    data={addRowNumbers(notApprovedLenders)}
+                    searchTerm={searchTerm}
+                    onRowClick={handleRowClick}
+                    selectable={true}
+                    selectedIds={Array.from(selectedIds)}
+                    onSelectionChange={(ids) => setSelectedIds(new Set(ids))}
+                    getRowId={(row) => row.id}
+                    onDelete={(lender) => {
+                      setLenderToDelete(lender);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Building className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No lenders in this section</p>
+                    <p className="text-sm">Click "Add Lender" to add a new lender to evaluate</p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
       
@@ -365,6 +461,7 @@ export default function ApprovedLenders() {
         onOpenChange={setShowCreateModal}
         onContactCreated={handleContactCreated}
         defaultType="lender"
+        defaultStatus={createModalDefaultStatus}
       />
 
       <LenderDetailDialog
