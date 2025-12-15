@@ -289,17 +289,16 @@ export default function Email() {
                     key={email.uid}
                     onClick={() => handleSelectEmail(email)}
                     className={cn(
-                      "w-full text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden",
+                      "w-full text-left p-3 hover:bg-muted/50 transition-colors",
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1 gap-2">
-                      <span 
+                    <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center">
+                      <span
                         className={cn(
-                          "text-sm truncate",
+                          "text-sm truncate min-w-0",
                           email.unread ? "font-semibold" : "font-medium"
                         )}
-                        style={{ maxWidth: 'calc(100% - 60px)' }}
                       >
                         {email.from}
                       </span>
@@ -310,14 +309,16 @@ export default function Email() {
                         </span>
                       </div>
                     </div>
-                    <p className={cn(
-                      "text-sm truncate mb-1",
-                      email.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                    )}>
+                    <p
+                      className={cn(
+                        "text-sm truncate min-w-0 mb-1",
+                        email.unread ? "font-medium text-foreground" : "text-muted-foreground"
+                      )}
+                    >
                       {email.subject}
                     </p>
                     {email.snippet && (
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-xs text-muted-foreground truncate min-w-0">
                         {email.snippet}
                       </p>
                     )}
