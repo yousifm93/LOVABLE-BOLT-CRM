@@ -68,6 +68,48 @@ function decodeBase64(str: string): string {
   }
 }
 
+// Strip forwarded message headers that appear in body
+function stripForwardedHeaders(content: string): string {
+  // Remove forwarded message headers at the start of body
+  // Pattern: From:, Date:, Subject:, To:, Cc:, Bcc: lines at the start
+  let result = content;
+  
+  // Remove leading email headers that leaked into body
+  result = result.replace(/^(From:\s*[^\r\n]+[\r\n]+)?(Sent:\s*[^\r\n]+[\r\n]+)?(Date:\s*[^\r\n]+[\r\n]+)?(To:\s*[^\r\n]+[\r\n]+)?(Cc:\s*[^\r\n]+[\r\n]+)?(Bcc:\s*[^\r\n]+[\r\n]+)?(Subject:\s*[^\r\n]+[\r\n]+)?/i, '');
+  
+  // Also strip if they appear after the first newline (common in forwarded emails)
+  result = result.replace(/^[\r\n]*(From:\s*[^\r\n]+[\r\n]+)(Sent:\s*[^\r\n]+[\r\n]+)?(Date:\s*[^\r\n]+[\r\n]+)?(To:\s*[^\r\n]+[\r\n]+)?(Subject:\s*[^\r\n]+[\r\n]+)?/i, '');
+  
+  return result.trim();
+}
+
+// Strip <style> blocks from HTML
+function stripStyleBlocks(html: string): string {
+  return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+}
+
+// Extract clean HTML body starting from <html> or <body> tag
+function extractCleanHtmlBody(html: string): string {
+  // Look for <body> tag and extract from there
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  if (bodyMatch) {
+    return bodyMatch[0];
+  }
+  
+  // Look for <html> tag
+  const htmlMatch = html.match(/<html[^>]*>([\s\S]*)<\/html>/i);
+  if (htmlMatch) {
+    return htmlMatch[0];
+  }
+  
+  // If it starts with DOCTYPE or html, return as is
+  if (html.trim().match(/^(<!DOCTYPE|<html)/i)) {
+    return html;
+  }
+  
+  return html;
+}
+
 // Clean MIME artifacts from content
 function cleanMimeArtifacts(content: string): string {
   // Remove any remaining boundary markers
@@ -76,6 +118,11 @@ function cleanMimeArtifacts(content: string): string {
   content = content.replace(/^Content-Type:[^\r\n]*\r?\n/gim, '');
   content = content.replace(/^Content-Transfer-Encoding:[^\r\n]*\r?\n/gim, '');
   content = content.replace(/^Content-Disposition:[^\r\n]*\r?\n/gim, '');
+  content = content.replace(/^MIME-Version:[^\r\n]*\r?\n/gim, '');
+  content = content.replace(/^Content-ID:[^\r\n]*\r?\n/gim, '');
+  content = content.replace(/^X-[^\r\n:]+:[^\r\n]*\r?\n/gim, '');
+  // Remove CSS ID selectors that leaked (like #fae_xxx{...})
+  content = content.replace(/#[a-z0-9_]+\s*\{[^}]*\}/gi, '');
   // Clean up multiple newlines
   content = content.replace(/(\r?\n){3,}/g, '\n\n');
   return content.trim();
@@ -191,10 +238,16 @@ function parseEmailContent(source: string): { textBody: string; htmlBody: string
           const { content, isHtml } = extractPartBody(nestedPart);
           
           if (isHtml && content && !htmlBody) {
-            htmlBody = cleanMimeArtifacts(content);
+            let cleaned = cleanMimeArtifacts(content);
+            cleaned = stripStyleBlocks(cleaned);
+            cleaned = extractCleanHtmlBody(cleaned);
+            cleaned = stripForwardedHeaders(cleaned);
+            htmlBody = cleaned;
             console.log('[parseEmailContent] Found HTML in nested part, length:', htmlBody.length);
           } else if (!isHtml && content && !textBody) {
-            textBody = cleanMimeArtifacts(content);
+            let cleaned = cleanMimeArtifacts(content);
+            cleaned = stripForwardedHeaders(cleaned);
+            textBody = cleaned;
             console.log('[parseEmailContent] Found text in nested part, length:', textBody.length);
           }
         }
@@ -205,10 +258,16 @@ function parseEmailContent(source: string): { textBody: string; htmlBody: string
       const { content, isHtml } = extractPartBody(part);
       
       if (isHtml && content && !htmlBody) {
-        htmlBody = cleanMimeArtifacts(content);
+        let cleaned = cleanMimeArtifacts(content);
+        cleaned = stripStyleBlocks(cleaned);
+        cleaned = extractCleanHtmlBody(cleaned);
+        cleaned = stripForwardedHeaders(cleaned);
+        htmlBody = cleaned;
         console.log('[parseEmailContent] Found HTML part, length:', htmlBody.length);
       } else if (!isHtml && content && !textBody && partHeaders.includes('text/plain')) {
-        textBody = cleanMimeArtifacts(content);
+        let cleaned = cleanMimeArtifacts(content);
+        cleaned = stripForwardedHeaders(cleaned);
+        textBody = cleaned;
         console.log('[parseEmailContent] Found text part, length:', textBody.length);
       }
     }
@@ -269,9 +328,13 @@ function parseEmailContent(source: string): { textBody: string; htmlBody: string
           (body.includes('<td') && body.includes('</td>'));
           
       if (hasHtml && body.length > 0) {
+        body = stripStyleBlocks(body);
+        body = extractCleanHtmlBody(body);
+        body = stripForwardedHeaders(body);
         htmlBody = body;
         console.log('[parseEmailContent] Direct extraction: HTML, length:', htmlBody.length);
       } else if (body.length > 0) {
+        body = stripForwardedHeaders(body);
         textBody = body;
         console.log('[parseEmailContent] Direct extraction: text, length:', textBody.length);
       }
