@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// IONOS SMTP settings
+// IONOS SMTP settings - using port 465 with implicit TLS
 const SMTP_HOST = "smtp.ionos.com";
-const SMTP_PORT = 587;
+const SMTP_PORT = 465;
 const EMAIL_USER = "yousif@mortgagebolt.org";
 
 interface SendEmailRequest {
