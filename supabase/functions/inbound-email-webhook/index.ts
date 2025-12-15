@@ -613,12 +613,21 @@ serve(async (req) => {
       console.log('[Inbound Email Webhook] Skipping field suggestions for internal team email from:', fromEmailToStore);
     } else {
       try {
-        // Fetch current lead data for context
+        // Fetch current lead data for context - include ALL fields that can be suggested
         const { data: leadData } = await supabase
           .from('leads')
-          .select('loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value')
+          .select('loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value, program, property_taxes, insurance_amount, total_monthly_income, escrows, occupancy, transaction_type, cash_to_close, property_type, dscr_ratio, fico_score, term, prepayment_penalty, appr_date_time')
           .eq('id', leadId)
           .single();
+
+        // Field name mapping: AI parser field names -> database column names
+        const fieldNameMap: Record<string, string> = {
+          'loan_program': 'program',
+          'monthly_taxes': 'property_taxes',
+          'monthly_insurance': 'insurance_amount',
+          'escrow': 'escrows',
+          'appraisal_date_time': 'appr_date_time',
+        };
 
         const fieldUpdateResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-field-updates`, {
           method: 'POST',
@@ -642,6 +651,16 @@ serve(async (req) => {
             
             // Insert suggestions into database
             for (const suggestion of fieldUpdateData.suggestions) {
+              // Map AI field name to database column name
+              const mappedFieldName = fieldNameMap[suggestion.field_name] || suggestion.field_name;
+              const currentValue = leadData?.[mappedFieldName as keyof typeof leadData]?.toString() || null;
+              
+              // Skip suggestions where current value equals suggested value
+              if (currentValue && currentValue === suggestion.suggested_value) {
+                console.log(`[Inbound Email Webhook] Skipping suggestion for ${suggestion.field_name}: value already set to ${currentValue}`);
+                continue;
+              }
+              
               await supabase
                 .from('email_field_suggestions')
                 .insert({
@@ -649,7 +668,7 @@ serve(async (req) => {
                   lead_id: leadId,
                   field_name: suggestion.field_name,
                   field_display_name: suggestion.field_display_name,
-                  current_value: leadData?.[suggestion.field_name as keyof typeof leadData]?.toString() || null,
+                  current_value: currentValue,
                   suggested_value: suggestion.suggested_value,
                   reason: suggestion.reason,
                   confidence: suggestion.confidence || 0.8,

@@ -4726,6 +4726,7 @@ export type Database = {
         | "Inspected"
         | "Received"
         | "Waiver"
+        | "Transfer"
       approval_source_type: "PennyMac" | "A&D" | "UWM"
       approval_type_type: "Full" | "Limited" | "Non-QM" | "Hard Money"
       audit_step:
@@ -5018,6 +5019,7 @@ export const Constants = {
         "Inspected",
         "Received",
         "Waiver",
+        "Transfer",
       ],
       approval_source_type: ["PennyMac", "A&D", "UWM"],
       approval_type_type: ["Full", "Limited", "Non-QM", "Hard Money"],
