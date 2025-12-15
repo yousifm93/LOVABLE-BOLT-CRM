@@ -625,17 +625,72 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 <Package className="h-4 w-4" />
                 Products
               </h3>
-              <div className="grid grid-cols-5 gap-x-4 gap-y-2">
-                {productFields.map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between gap-2">
-                    <label className="text-xs text-muted-foreground truncate">{label}</label>
-                    <InlineEditProduct
-                      value={(lender as any)[key]}
-                      onValueChange={(value) => handleFieldUpdate(key, value)}
-                    />
+              
+              {/* Yes Products */}
+              {(() => {
+                const yesProducts = productFields.filter(({ key }) => (lender as any)[key] === 'Y');
+                return yesProducts.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-green-600 mb-2">Yes ({yesProducts.length})</p>
+                    <div className="grid grid-cols-5 gap-x-4 gap-y-2">
+                      {yesProducts.map(({ key, label }) => (
+                        <div key={key} className="flex items-center justify-between gap-2">
+                          <label className="text-xs text-muted-foreground truncate">{label}</label>
+                          <InlineEditProduct
+                            value={(lender as any)[key]}
+                            onValueChange={(value) => handleFieldUpdate(key, value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
+              
+              {/* No Products */}
+              {(() => {
+                const noProducts = productFields.filter(({ key }) => (lender as any)[key] === 'N');
+                return noProducts.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-red-600 mb-2">No ({noProducts.length})</p>
+                    <div className="grid grid-cols-5 gap-x-4 gap-y-2">
+                      {noProducts.map(({ key, label }) => (
+                        <div key={key} className="flex items-center justify-between gap-2">
+                          <label className="text-xs text-muted-foreground truncate">{label}</label>
+                          <InlineEditProduct
+                            value={(lender as any)[key]}
+                            onValueChange={(value) => handleFieldUpdate(key, value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* TBD/Unset Products */}
+              {(() => {
+                const tbdProducts = productFields.filter(({ key }) => {
+                  const val = (lender as any)[key];
+                  return val === 'TBD' || val === null || val === undefined || val === '';
+                });
+                return tbdProducts.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">TBD / Unset ({tbdProducts.length})</p>
+                    <div className="grid grid-cols-5 gap-x-4 gap-y-2">
+                      {tbdProducts.map(({ key, label }) => (
+                        <div key={key} className="flex items-center justify-between gap-2">
+                          <label className="text-xs text-muted-foreground truncate">{label}</label>
+                          <InlineEditProduct
+                            value={(lender as any)[key]}
+                            onValueChange={(value) => handleFieldUpdate(key, value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <Separator />

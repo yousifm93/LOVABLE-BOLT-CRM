@@ -229,21 +229,22 @@ export default function Email() {
             </Button>
 
             {/* Refresh and Compose buttons */}
-            <div className={cn("space-y-2 mb-4", sidebarCollapsed ? "w-8" : "w-full")}>
+            <div className={cn("space-y-2 mb-4 shrink-0", sidebarCollapsed ? "w-8" : "w-full")}>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleRefresh} 
                 disabled={isLoading}
-                className={cn("w-full", sidebarCollapsed ? "justify-center p-2" : "justify-start")}
+                className={cn("shrink-0", sidebarCollapsed ? "w-8 justify-center p-2" : "w-28 justify-start")}
               >
                 <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin", !sidebarCollapsed && "mr-2")} />
                 {!sidebarCollapsed && "Refresh"}
               </Button>
               <Button 
+                variant="ghost"
                 size="sm" 
                 onClick={handleCompose}
-                className={cn("w-full", sidebarCollapsed ? "justify-center p-2" : "justify-start")}
+                className={cn("shrink-0", sidebarCollapsed ? "w-8 justify-center p-2" : "w-28 justify-start")}
               >
                 <Plus className={cn("h-4 w-4", !sidebarCollapsed && "mr-2")} />
                 {!sidebarCollapsed && "Compose"}
@@ -318,8 +319,7 @@ export default function Email() {
                       onClick={() => handleSelectEmail(email)}
                       className={cn(
                         "w-full text-left p-3 hover:bg-muted/50 transition-colors",
-                        selectedEmail?.uid === email.uid && "bg-muted",
-                        email.unread && "bg-primary/5"
+                        selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                       )}
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">

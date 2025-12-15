@@ -55,7 +55,18 @@ function extractBodyFromPart(part: string, isHtml: boolean = false): string {
   
   // Find body content after headers (double newline)
   const bodyStart = part.indexOf("\r\n\r\n");
-  if (bodyStart === -1) return "";
+  if (bodyStart === -1) {
+    const altBodyStart = part.indexOf("\n\n");
+    if (altBodyStart === -1) return "";
+    let body = part.substring(altBodyStart + 2);
+    body = body.replace(/--[^\r\n]+--?\s*$/g, '').trim();
+    if (encoding === 'quoted-printable') {
+      body = decodeQuotedPrintable(body);
+    } else if (encoding === 'base64') {
+      body = decodeBase64(body);
+    }
+    return body;
+  }
   
   let body = part.substring(bodyStart + 4);
   
@@ -70,6 +81,60 @@ function extractBodyFromPart(part: string, isHtml: boolean = false): string {
   }
   
   return body;
+}
+
+// Recursively parse multipart content to find text/plain and text/html parts
+function parseMultipartContent(source: string): { textBody: string; htmlBody: string } {
+  let textBody = "";
+  let htmlBody = "";
+  
+  // Find the boundary
+  const boundaryMatch = source.match(/boundary="([^"]+)"/i) || source.match(/boundary=([^\s;]+)/i);
+  
+  if (!boundaryMatch) {
+    // Not multipart, treat as single part
+    const contentTypeMatch = source.match(/Content-Type:\s*([^;\r\n]+)/i);
+    const contentType = contentTypeMatch?.[1]?.toLowerCase() || 'text/plain';
+    
+    if (contentType.includes("text/html")) {
+      htmlBody = extractBodyFromPart(source, true);
+    } else if (contentType.includes("text/plain")) {
+      textBody = extractBodyFromPart(source, false);
+    }
+    return { textBody, htmlBody };
+  }
+  
+  const boundary = boundaryMatch[1];
+  const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = source.split(new RegExp(`--${escapedBoundary}`));
+  
+  for (const part of parts) {
+    if (part.trim() === '' || part.trim() === '--') continue;
+    
+    const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
+    const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
+    
+    // Check if this part is itself multipart (nested)
+    if (contentType.includes("multipart/")) {
+      const nestedResult = parseMultipartContent(part);
+      if (nestedResult.textBody && !textBody) textBody = nestedResult.textBody;
+      if (nestedResult.htmlBody && !htmlBody) htmlBody = nestedResult.htmlBody;
+    } else if (contentType.includes("text/plain") && !textBody) {
+      // Skip if it looks like an attachment
+      const dispositionMatch = part.match(/Content-Disposition:\s*(\S+)/i);
+      if (!dispositionMatch || !dispositionMatch[1].toLowerCase().includes("attachment")) {
+        textBody = extractBodyFromPart(part, false);
+      }
+    } else if (contentType.includes("text/html") && !htmlBody) {
+      // Skip if it looks like an attachment
+      const dispositionMatch = part.match(/Content-Disposition:\s*(\S+)/i);
+      if (!dispositionMatch || !dispositionMatch[1].toLowerCase().includes("attachment")) {
+        htmlBody = extractBodyFromPart(part, true);
+      }
+    }
+  }
+  
+  return { textBody, htmlBody };
 }
 
 serve(async (req) => {
@@ -142,37 +207,8 @@ serve(async (req) => {
         if (message) {
           const source = message.source?.toString() || "";
           
-          let textBody = "";
-          let htmlBody = "";
-          
-          // Check for multipart content
-          const boundaryMatch = source.match(/boundary="([^"]+)"/i) || source.match(/boundary=([^\s;]+)/i);
-          
-          if (boundaryMatch) {
-            const boundary = boundaryMatch[1];
-            const parts = source.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-            
-            for (const part of parts) {
-              const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
-              const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
-              
-              if (contentType.includes("text/plain")) {
-                textBody = extractBodyFromPart(part, false);
-              } else if (contentType.includes("text/html")) {
-                htmlBody = extractBodyFromPart(part, true);
-              }
-            }
-          } else {
-            // Single part message
-            const contentTypeMatch = source.match(/Content-Type:\s*([^;\r\n]+)/i);
-            const contentType = contentTypeMatch?.[1]?.toLowerCase() || 'text/plain';
-            
-            if (contentType.includes("text/html")) {
-              htmlBody = extractBodyFromPart(source, true);
-            } else {
-              textBody = extractBodyFromPart(source, false);
-            }
-          }
+          // Use recursive multipart parser
+          const { textBody, htmlBody } = parseMultipartContent(source);
 
           return new Response(
             JSON.stringify({
@@ -225,19 +261,34 @@ serve(async (req) => {
             (node: any) => node.disposition === "attachment"
           ) || false;
 
-          // Format date
+          // Format date with America/New_York timezone
           const emailDate = envelope?.date ? new Date(envelope.date) : new Date();
           const now = new Date();
-          const isToday = emailDate.toDateString() === now.toDateString();
-          const isYesterday = emailDate.toDateString() === new Date(now.getTime() - 86400000).toDateString();
+          
+          // Convert to Eastern time for comparison
+          const emailDateET = new Date(emailDate.toLocaleString("en-US", { timeZone: "America/New_York" }));
+          const nowET = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+          
+          const isToday = emailDateET.toDateString() === nowET.toDateString();
+          const yesterdayET = new Date(nowET);
+          yesterdayET.setDate(yesterdayET.getDate() - 1);
+          const isYesterday = emailDateET.toDateString() === yesterdayET.toDateString();
           
           let dateStr: string;
           if (isToday) {
-            dateStr = emailDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+            dateStr = emailDate.toLocaleTimeString("en-US", { 
+              hour: "numeric", 
+              minute: "2-digit",
+              timeZone: "America/New_York"
+            });
           } else if (isYesterday) {
             dateStr = "Yesterday";
           } else {
-            dateStr = emailDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            dateStr = emailDate.toLocaleDateString("en-US", { 
+              month: "short", 
+              day: "numeric",
+              timeZone: "America/New_York"
+            });
           }
 
           emails.push({
