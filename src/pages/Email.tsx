@@ -273,7 +273,7 @@ export default function Email() {
               />
             </div>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 w-full">
             {isLoading ? (
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -283,17 +283,17 @@ export default function Email() {
                 No emails found
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y w-full max-w-full">
                 {filteredEmails.map((email) => (
                   <button
                     key={email.uid}
                     onClick={() => handleSelectEmail(email)}
                     className={cn(
-                      "w-full text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden min-w-0",
+                      "w-full max-w-full min-w-0 text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden",
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center overflow-hidden">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-1 items-center w-full max-w-full min-w-0">
                       <span
                         className={cn(
                           "text-sm truncate min-w-0",
@@ -302,7 +302,7 @@ export default function Email() {
                       >
                         {email.from}
                       </span>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0 justify-self-end">
                         {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
                           {email.date}
