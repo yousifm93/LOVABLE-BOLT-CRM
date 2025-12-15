@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, ChevronDown } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Placeholder email data
 const placeholderEmails = [
@@ -68,9 +73,90 @@ const folders = [
 ];
 
 export default function Email() {
+  const { toast } = useToast();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedEmail, setSelectedEmail] = useState<typeof placeholderEmails[0] | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [composeData, setComposeData] = useState({
+    to: "",
+    subject: "",
+    body: "",
+  });
+
+  const handleCompose = () => {
+    setComposeData({ to: "", subject: "", body: "" });
+    setIsComposeOpen(true);
+  };
+
+  const handleReply = () => {
+    if (!selectedEmail) return;
+    setComposeData({
+      to: selectedEmail.email,
+      subject: `Re: ${selectedEmail.subject}`,
+      body: `\n\n---\nOn ${selectedEmail.date}, ${selectedEmail.from} wrote:\n${selectedEmail.preview}`,
+    });
+    setIsComposeOpen(true);
+  };
+
+  const handleForward = () => {
+    if (!selectedEmail) return;
+    setComposeData({
+      to: "",
+      subject: `Fwd: ${selectedEmail.subject}`,
+      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.from} <${selectedEmail.email}>\nDate: ${selectedEmail.date}\nSubject: ${selectedEmail.subject}\n\n${selectedEmail.preview}`,
+    });
+    setIsComposeOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!composeData.to || !composeData.subject) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in the recipient and subject.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email-ionos", {
+        body: {
+          to: composeData.to,
+          subject: composeData.subject,
+          body: composeData.body,
+          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${composeData.body.replace(/\n/g, '<br>')}</div>`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email sent",
+        description: `Email sent to ${composeData.to}`,
+      });
+      setIsComposeOpen(false);
+      setComposeData({ to: "", subject: "", body: "" });
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Failed to send",
+        description: error.message || "Could not send the email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    toast({
+      title: "Inbox sync",
+      description: "Full inbox synchronization requires IMAP integration. Outgoing emails via SMTP are working.",
+    });
+  };
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
@@ -80,11 +166,11 @@ export default function Email() {
           <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleCompose}>
             <Plus className="h-4 w-4 mr-2" />
             Compose
           </Button>
@@ -199,10 +285,10 @@ export default function Email() {
                 </div>
               </ScrollArea>
               <div className="p-3 border-t flex gap-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={handleReply}>
                   Reply
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={handleForward}>
                   Forward
                 </Button>
                 <Button size="sm" variant="outline">
@@ -223,6 +309,53 @@ export default function Email() {
           )}
         </div>
       </div>
+
+      {/* Compose Email Modal */}
+      <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Compose Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="to">To</Label>
+              <Input
+                id="to"
+                placeholder="recipient@example.com"
+                value={composeData.to}
+                onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input
+                id="subject"
+                placeholder="Email subject"
+                value={composeData.subject}
+                onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="body">Message</Label>
+              <Textarea
+                id="body"
+                placeholder="Write your message..."
+                value={composeData.body}
+                onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
+                className="min-h-[200px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsComposeOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendEmail} disabled={isSending}>
+                {isSending ? "Sending..." : "Send"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -146,7 +146,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl overflow-hidden p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
@@ -173,7 +173,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
           </div>
         </DialogHeader>
 
-        <div className="px-6 py-4 overflow-y-auto max-h-[calc(85vh-140px)]">
+        <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="space-y-4">
             {/* All 6 fields in single row */}
             <div className="grid grid-cols-6 gap-3">
