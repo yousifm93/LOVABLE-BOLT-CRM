@@ -1536,15 +1536,31 @@ export const databaseService = {
 
   // Buyer Agent operations
   async getBuyerAgents() {
-    const { data, error } = await supabase
-      .from('buyer_agents')
-      .select('*')
-      .is('deleted_at', null)
-      .order('first_name')
-      .limit(5000);
-    
-    if (error) throw error;
-    return data;
+    const allAgents: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('*')
+        .is('deleted_at', null)
+        .order('first_name')
+        .range(from, from + batchSize - 1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        allAgents.push(...data);
+        from += batchSize;
+        hasMore = data.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allAgents;
   },
 
   async createBuyerAgent(agent: BuyerAgentInsert) {
