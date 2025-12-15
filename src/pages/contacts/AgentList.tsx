@@ -8,6 +8,7 @@ import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -46,6 +47,32 @@ const columns: ColumnDef<any>[] = [
         <span>{row.original.phone || 'N/A'}</span>
       </div>
     ),
+  },
+  {
+    accessorKey: "last_agent_call",
+    header: "Last Call",
+    cell: ({ row }) => {
+      const date = row.original.last_agent_call;
+      if (!date) return <span className="text-muted-foreground text-sm">Never</span>;
+      return <span className="text-sm">{new Date(date).toLocaleDateString()}</span>;
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "next_agent_call",
+    header: "Next Call",
+    cell: ({ row }) => {
+      const date = row.original.next_agent_call;
+      if (!date) return <span className="text-muted-foreground text-sm">—</span>;
+      
+      const isOverdue = new Date(date) < new Date();
+      return (
+        <span className={cn("text-sm", isOverdue && "text-destructive font-medium")}>
+          {new Date(date).toLocaleDateString()}
+        </span>
+      );
+    },
+    sortable: true,
   },
 ];
 
