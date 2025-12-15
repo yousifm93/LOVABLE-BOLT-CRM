@@ -70,17 +70,57 @@ function decodeBase64(str: string): string {
 
 // Strip forwarded message headers that appear in body
 function stripForwardedHeaders(content: string): string {
-  // Remove forwarded message headers at the start of body
-  // Pattern: From:, Date:, Subject:, To:, Cc:, Bcc: lines at the start
   let result = content;
   
-  // Remove leading email headers that leaked into body
-  result = result.replace(/^(From:\s*[^\r\n]+[\r\n]+)?(Sent:\s*[^\r\n]+[\r\n]+)?(Date:\s*[^\r\n]+[\r\n]+)?(To:\s*[^\r\n]+[\r\n]+)?(Cc:\s*[^\r\n]+[\r\n]+)?(Bcc:\s*[^\r\n]+[\r\n]+)?(Subject:\s*[^\r\n]+[\r\n]+)?/i, '');
+  // Remove common email headers that leak into body (case insensitive, at line start)
+  const headerPatterns = [
+    /^From:\s*[^\r\n]+[\r\n]*/gim,
+    /^Sent:\s*[^\r\n]+[\r\n]*/gim,
+    /^Date:\s*[^\r\n]+[\r\n]*/gim,
+    /^Subject:\s*[^\r\n]+[\r\n]*/gim,
+    /^To:\s*[^\r\n]+[\r\n]*/gim,
+    /^Cc:\s*[^\r\n]+[\r\n]*/gim,
+    /^Bcc:\s*[^\r\n]+[\r\n]*/gim,
+  ];
   
-  // Also strip if they appear after the first newline (common in forwarded emails)
-  result = result.replace(/^[\r\n]*(From:\s*[^\r\n]+[\r\n]+)(Sent:\s*[^\r\n]+[\r\n]+)?(Date:\s*[^\r\n]+[\r\n]+)?(To:\s*[^\r\n]+[\r\n]+)?(Subject:\s*[^\r\n]+[\r\n]+)?/i, '');
+  for (const pattern of headerPatterns) {
+    result = result.replace(pattern, '');
+  }
   
   return result.trim();
+}
+
+// Strip base64 encoded image data (very long alphanumeric strings)
+function stripBase64ImageData(content: string): string {
+  // Match large base64 blocks (100+ characters) - these are embedded images
+  // Replace with empty string to remove them completely
+  return content.replace(/[A-Za-z0-9+\/=]{100,}/g, '');
+}
+
+// Strip MIME boundary strings and markers
+function stripBoundaryStrings(content: string): string {
+  return content
+    .replace(/boundary=["']?[^"'\s\r\n>]+["']?/gi, '')
+    .replace(/--[-_A-Za-z0-9]+--/g, '')
+    .replace(/--[-_A-Za-z0-9]+\r?\n/g, '');
+}
+
+// Strip leaked MIME headers from body content
+function stripLeakedMimeHeaders(content: string): string {
+  const patterns = [
+    /Content-Type:\s*[^\r\n]+[\r\n]*/gi,
+    /Content-Transfer-Encoding:\s*[^\r\n]+[\r\n]*/gi,
+    /MIME-Version:\s*[^\r\n]+[\r\n]*/gi,
+    /Content-ID:\s*[^\r\n]+[\r\n]*/gi,
+    /Content-Disposition:\s*[^\r\n]+[\r\n]*/gi,
+    /X-[A-Za-z-]+:\s*[^\r\n]+[\r\n]*/gi,
+  ];
+  
+  let result = content;
+  for (const pattern of patterns) {
+    result = result.replace(pattern, '');
+  }
+  return result;
 }
 
 // Strip <style> blocks from HTML
@@ -122,22 +162,30 @@ function extractCleanHtmlBody(html: string): string {
   return cleaned;
 }
 
-// Clean MIME artifacts from content
+// Clean MIME artifacts from content - apply all cleanup functions
 function cleanMimeArtifacts(content: string): string {
+  let result = content;
+  
   // Remove any remaining boundary markers
-  content = content.replace(/^--+[^\r\n]*-*\s*$/gm, '');
+  result = result.replace(/^--+[^\r\n]*-*\s*$/gm, '');
   // Remove Content-Type headers that leaked in
-  content = content.replace(/^Content-Type:[^\r\n]*\r?\n/gim, '');
-  content = content.replace(/^Content-Transfer-Encoding:[^\r\n]*\r?\n/gim, '');
-  content = content.replace(/^Content-Disposition:[^\r\n]*\r?\n/gim, '');
-  content = content.replace(/^MIME-Version:[^\r\n]*\r?\n/gim, '');
-  content = content.replace(/^Content-ID:[^\r\n]*\r?\n/gim, '');
-  content = content.replace(/^X-[^\r\n:]+:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^Content-Type:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^Content-Transfer-Encoding:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^Content-Disposition:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^MIME-Version:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^Content-ID:[^\r\n]*\r?\n/gim, '');
+  result = result.replace(/^X-[^\r\n:]+:[^\r\n]*\r?\n/gim, '');
   // Remove CSS ID selectors that leaked (like #fae_xxx{...})
-  content = content.replace(/#[a-z0-9_]+\s*\{[^}]*\}/gi, '');
+  result = result.replace(/#[a-z0-9_]+\s*\{[^}]*\}/gi, '');
   // Clean up multiple newlines
-  content = content.replace(/(\r?\n){3,}/g, '\n\n');
-  return content.trim();
+  result = result.replace(/(\r?\n){3,}/g, '\n\n');
+  
+  // Apply additional cleanup functions
+  result = stripBase64ImageData(result);
+  result = stripBoundaryStrings(result);
+  result = stripLeakedMimeHeaders(result);
+  
+  return result.trim();
 }
 
 // Extract body content from a MIME part, stripping headers
