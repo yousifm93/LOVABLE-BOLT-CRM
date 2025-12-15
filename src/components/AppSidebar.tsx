@@ -31,7 +31,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -88,7 +87,7 @@ const adminItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
@@ -169,15 +168,19 @@ export function AppSidebar() {
         <SidebarHeader className="border-b border-sidebar-border">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-3">
-              <div className={cn(
-                "rounded bg-primary flex items-center justify-center transition-all",
-                collapsed ? "h-8 w-8" : "h-10 w-10"
-              )}>
+              <button
+                onClick={toggleSidebar}
+                className={cn(
+                  "rounded bg-primary flex items-center justify-center transition-all cursor-pointer hover:bg-primary/90",
+                  collapsed ? "h-6 w-6" : "h-10 w-10"
+                )}
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
                 <Zap className={cn(
                   "text-primary-foreground transition-all",
                   collapsed ? "h-4 w-4" : "h-6 w-6"
                 )} />
-              </div>
+              </button>
               {!collapsed && (
                 <div className="flex items-baseline">
                   <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
@@ -185,7 +188,6 @@ export function AppSidebar() {
                 </div>
               )}
             </div>
-            {!collapsed && <SidebarTrigger className="h-8 w-8" />}
           </div>
           
           {/* Search Bar */}

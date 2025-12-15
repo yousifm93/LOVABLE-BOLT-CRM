@@ -21,7 +21,7 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Mail, Phone, BadgeIcon, Calendar, Star, User, FileText, Users } from "lucide-react";
+import { Building2, Mail, Phone, Calendar, Star, FileText } from "lucide-react";
 
 interface AgentDetailDialogProps {
   agent: any | null;
@@ -148,23 +148,23 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-14 w-14">
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <DialogTitle className="text-2xl">{fullName}</DialogTitle>
-              <DialogDescription className="flex items-center gap-2 mt-1">
+            <div className="flex-1 flex flex-col justify-center">
+              <DialogTitle className="text-xl">{fullName}</DialogTitle>
+              <DialogDescription className="flex items-center gap-2 mt-0.5">
                 {agent.brokerage && (
-                  <span className="flex items-center gap-1">
-                    <Building2 className="h-4 w-4" />
+                  <span className="flex items-center gap-1 text-xs">
+                    <Building2 className="h-3 w-3" />
                     {agent.brokerage}
                   </span>
                 )}
                 {agent.agent_rank && (
-                  <Badge className={cn("font-bold", getRankColor(agent.agent_rank))}>
+                  <Badge className={cn("font-bold text-xs", getRankColor(agent.agent_rank))}>
                     Rank: {agent.agent_rank}
                   </Badge>
                 )}
@@ -173,87 +173,58 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
           </div>
         </DialogHeader>
 
-        <div className="px-6 py-6 overflow-y-auto max-h-[calc(85vh-140px)]">
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">First Name</label>
-                  <InlineEditText
-                    value={agent.first_name}
-                    onValueChange={(value) => handleFieldUpdate('first_name', value)}
-                    placeholder="Enter first name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Name</label>
-                  <InlineEditText
-                    value={agent.last_name}
-                    onValueChange={(value) => handleFieldUpdate('last_name', value)}
-                    placeholder="Enter last name"
-                  />
-                </div>
+        <div className="px-6 py-4 overflow-y-auto max-h-[calc(85vh-140px)]">
+          <div className="space-y-4">
+            {/* All 6 fields in single row */}
+            <div className="grid grid-cols-6 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">First Name</label>
+                <InlineEditText
+                  value={agent.first_name}
+                  onValueChange={(value) => handleFieldUpdate('first_name', value)}
+                  placeholder="First"
+                />
               </div>
-            </div>
-
-            {/* Contact Information */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Email</label>
-                  <InlineEditText
-                    value={agent.email}
-                    onValueChange={(value) => handleFieldUpdate('email', value)}
-                    placeholder="agent@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Phone</label>
-                  <InlineEditPhone
-                    value={agent.phone}
-                    onValueChange={(value) => handleFieldUpdate('phone', value)}
-                    placeholder="(555) 555-5555"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Last Name</label>
+                <InlineEditText
+                  value={agent.last_name}
+                  onValueChange={(value) => handleFieldUpdate('last_name', value)}
+                  placeholder="Last"
+                />
               </div>
-            </div>
-
-            {/* Professional Details */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Professional Details
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Brokerage</label>
-                  <InlineEditText
-                    value={agent.brokerage}
-                    onValueChange={(value) => handleFieldUpdate('brokerage', value)}
-                    placeholder="Enter brokerage"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5" />
-                    Agent Rank
-                  </label>
-                  <InlineEditSelect
-                    value={agent.agent_rank}
-                    onValueChange={(value) => handleFieldUpdate('agent_rank', value)}
-                    options={rankOptions}
-                    placeholder="Select rank"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+                <InlineEditText
+                  value={agent.email}
+                  onValueChange={(value) => handleFieldUpdate('email', value)}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
+                <InlineEditPhone
+                  value={agent.phone}
+                  onValueChange={(value) => handleFieldUpdate('phone', value)}
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Brokerage</label>
+                <InlineEditText
+                  value={agent.brokerage}
+                  onValueChange={(value) => handleFieldUpdate('brokerage', value)}
+                  placeholder="Brokerage"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Agent Rank</label>
+                <InlineEditSelect
+                  value={agent.agent_rank}
+                  onValueChange={(value) => handleFieldUpdate('agent_rank', value)}
+                  options={rankOptions}
+                  placeholder="Rank"
+                />
               </div>
             </div>
 
