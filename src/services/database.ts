@@ -1372,7 +1372,10 @@ export const databaseService = {
       
       supabase
         .from('status_change_logs')
-        .select('*')
+        .select(`
+          *,
+          changed_by_user:users!status_change_logs_changed_by_fkey(id, first_name, last_name)
+        `)
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false }),
     ]);

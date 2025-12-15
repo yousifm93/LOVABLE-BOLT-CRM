@@ -243,7 +243,7 @@ export interface Document {
 
 export interface Activity {
   id: number;
-  type: 'call' | 'email' | 'sms' | 'note' | 'task' | 'document' | 'stage_change';
+  type: 'call' | 'email' | 'sms' | 'note' | 'task' | 'document' | 'stage_change' | 'status_change';
   title: string;
   description?: string;
   timestamp: string;
@@ -257,6 +257,9 @@ export interface Activity {
   lead_id?: string;
   to_email?: string;
   ai_summary?: string;
+  old_value?: string;
+  new_value?: string;
+  field_name?: string;
 }
 
 export interface Task {
