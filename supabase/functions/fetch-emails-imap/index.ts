@@ -32,13 +32,29 @@ interface EmailMessage {
   htmlBody?: string;
 }
 
-// Decode quoted-printable content
+// Decode quoted-printable content more aggressively
 function decodeQuotedPrintable(str: string): string {
   try {
-    return str
-      .replace(/=\r?\n/g, '') // Remove soft line breaks
-      .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
-  } catch {
+    // First remove soft line breaks (= at end of line)
+    let result = str.replace(/=\r?\n/g, '');
+    
+    // Then decode =XX hex codes
+    result = result.replace(/=([0-9A-Fa-f]{2})/gi, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return String.fromCharCode(code);
+    });
+    
+    // Handle common HTML entities that might have been double-encoded
+    result = result
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    
+    return result;
+  } catch (e) {
+    console.log('[decodeQuotedPrintable] Error:', e);
     return str;
   }
 }
@@ -202,7 +218,7 @@ function parseEmailContent(source: string): { textBody: string; htmlBody: string
   if (!textBody && !htmlBody) {
     console.log('[parseEmailContent] No multipart content, trying direct extraction');
     
-    // Find where headers end
+    // Find where headers end - look through entire first portion
     let headerEnd = source.indexOf('\r\n\r\n');
     let sepLen = 4;
     if (headerEnd === -1) {
@@ -211,23 +227,48 @@ function parseEmailContent(source: string): { textBody: string; htmlBody: string
     }
     
     if (headerEnd > 0) {
-      const headers = source.substring(0, headerEnd).toLowerCase();
-      let body = source.substring(headerEnd + sepLen).trim();
+      const headers = source.substring(0, headerEnd);
+      const headersLower = headers.toLowerCase();
+      let body = source.substring(headerEnd + sepLen);
       
-      // Decode if needed
-      if (headers.includes('quoted-printable')) {
+      // Check for Content-Transfer-Encoding in the full headers
+      const isQuotedPrintable = headersLower.includes('content-transfer-encoding: quoted-printable') ||
+                                headersLower.includes('content-transfer-encoding:quoted-printable');
+      const isBase64 = headersLower.includes('content-transfer-encoding: base64') ||
+                       headersLower.includes('content-transfer-encoding:base64');
+      
+      console.log('[parseEmailContent] Headers length:', headers.length, 
+                  'QP:', isQuotedPrintable, 'Base64:', isBase64);
+      
+      // Also check for quoted-printable content patterns in the body itself
+      // This catches cases where the header check missed it
+      const hasQPPatterns = body.includes('=3D') || body.includes('=0A') || body.includes('=0D') ||
+                           (body.match(/=[0-9A-F]{2}/gi)?.length || 0) > 10;
+      
+      // Decode based on detected encoding
+      if (isQuotedPrintable || hasQPPatterns) {
+        console.log('[parseEmailContent] Decoding as quoted-printable');
         body = decodeQuotedPrintable(body);
-      } else if (headers.includes('base64')) {
+      } else if (isBase64) {
+        console.log('[parseEmailContent] Decoding as base64');
         body = decodeBase64(body);
       }
       
       // Clean any MIME artifacts
       body = cleanMimeArtifacts(body);
       
-      // Detect HTML
-      if (body.includes('<html') || body.includes('<body') || body.includes('<!DOCTYPE') || 
+      // Remove any remaining boundary markers that leaked through
+      body = body.replace(/^--[\w\-=]+--?\s*$/gm, '').trim();
+      
+      // Detect HTML - be more aggressive about detection
+      const hasHtml = body.includes('<html') || body.includes('<body') || body.includes('<!DOCTYPE') || 
+          body.includes('<!doctype') ||
           (body.includes('<div') && body.includes('</div>')) ||
-          (body.includes('<table') && body.includes('</table>'))) {
+          (body.includes('<table') && body.includes('</table>')) ||
+          (body.includes('<p') && body.includes('</p>')) ||
+          (body.includes('<td') && body.includes('</td>'));
+          
+      if (hasHtml && body.length > 0) {
         htmlBody = body;
         console.log('[parseEmailContent] Direct extraction: HTML, length:', htmlBody.length);
       } else if (body.length > 0) {
