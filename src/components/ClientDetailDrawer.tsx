@@ -385,6 +385,45 @@ export function ClientDetailDrawer({
       const fetchedActivities = await databaseService.getLeadActivities(leadId);
       // Transform to match Activity interface
       const transformedActivities = fetchedActivities.map((activity: any) => {
+        // Handle status changes
+        if (activity.type === 'status_change') {
+          const displayUser = activity.changed_by_user 
+            ? `${activity.changed_by_user.first_name} ${activity.changed_by_user.last_name}` 
+            : 'System';
+          
+          // Format field name for display
+          const formatFieldName = (fieldName: string): string => {
+            const fieldLabels: Record<string, string> = {
+              loan_status: 'Loan Status',
+              appraisal_status: 'Appraisal Status',
+              title_status: 'Title Status',
+              hoi_status: 'HOI Status',
+              condo_status: 'Condo Status',
+              disclosure_status: 'Disclosure Status',
+              cd_status: 'CD Status',
+              package_status: 'Package Status',
+              epo_status: 'EPO Status',
+              close_date: 'Closing Date',
+              lock_expiration_date: 'Lock Expiration',
+              appr_date_time: 'Appraisal Date/Time',
+            };
+            return fieldLabels[fieldName] || fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          };
+          
+          return {
+            id: activity.id,
+            type: 'status_change' as const,
+            title: 'Status changed',
+            description: `${formatFieldName(activity.field_name)}: ${activity.old_value || '∅'} → ${activity.new_value}`,
+            timestamp: activity.created_at,
+            user: displayUser,
+            old_value: activity.old_value,
+            new_value: activity.new_value,
+            field_name: activity.field_name,
+            lead_id: activity.lead_id || leadId
+          };
+        }
+
         // Handle tasks from database
         if (activity.type === 'task') {
           // For completed tasks, use completed_by_user if available

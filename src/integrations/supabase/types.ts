@@ -4078,6 +4078,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "status_change_logs_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "status_change_logs_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
