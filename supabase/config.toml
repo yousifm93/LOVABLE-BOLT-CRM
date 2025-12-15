@@ -33,7 +33,6 @@ verify_jwt = true
 [functions.migrate-lenders]
 verify_jwt = false
 
-
 [functions.income-ocr]
 verify_jwt = true
 
@@ -152,4 +151,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-loanestimate-email]
+verify_jwt = false
+
+[functions.import-agents]
 verify_jwt = false
