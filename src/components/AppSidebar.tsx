@@ -166,28 +166,29 @@ export function AppSidebar() {
     <>
       <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
         <SidebarHeader className="border-b border-sidebar-border">
-          <div className="flex items-center justify-between p-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleSidebar}
-                className={cn(
-                  "rounded bg-primary flex items-center justify-center transition-all cursor-pointer hover:bg-primary/90",
-                  collapsed ? "h-6 w-6" : "h-10 w-10"
-                )}
-                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                <Zap className={cn(
-                  "text-primary-foreground transition-all",
-                  collapsed ? "h-4 w-4" : "h-6 w-6"
-                )} />
-              </button>
-              {!collapsed && (
-                <div className="flex items-baseline">
-                  <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
-                  <span className="text-xl font-bold text-sidebar-foreground">CRM</span>
-                </div>
+          <div className={cn(
+            "flex items-center",
+            collapsed ? "justify-center py-3" : "justify-start gap-3 p-3"
+          )}>
+            <button
+              onClick={toggleSidebar}
+              className={cn(
+                "rounded bg-primary flex items-center justify-center transition-all cursor-pointer hover:bg-primary/90",
+                collapsed ? "h-6 w-6" : "h-10 w-10"
               )}
-            </div>
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <Zap className={cn(
+                "text-primary-foreground transition-all",
+                collapsed ? "h-4 w-4" : "h-6 w-6"
+              )} />
+            </button>
+            {!collapsed && (
+              <div className="flex items-baseline">
+                <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+                <span className="text-xl font-bold text-sidebar-foreground">CRM</span>
+              </div>
+            )}
           </div>
           
           {/* Search Bar */}
