@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History } from "lucide-react";
+import { Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History, Calendar, Package, Percent, FileText, ClipboardCopy, Hash, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,19 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
+import { InlineEditProduct } from "@/components/ui/inline-edit-product";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Lender {
   id: string;
@@ -37,6 +47,76 @@ interface Lender {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // New fields
+  initial_approval_date?: string;
+  renewed_on?: string;
+  // Products
+  product_bs_loan?: string;
+  product_manufactured_homes?: string;
+  product_fha?: string;
+  product_va?: string;
+  product_coop?: string;
+  product_conv?: string;
+  product_wvoe?: string;
+  product_high_dti?: string;
+  product_condo_hotel?: string;
+  product_dr_loan?: string;
+  product_fn?: string;
+  product_nwc?: string;
+  product_heloc?: string;
+  product_5_8_unit?: string;
+  product_9_plus_unit?: string;
+  product_commercial?: string;
+  product_construction?: string;
+  product_land_loan?: string;
+  product_fthb_dscr?: string;
+  product_jumbo?: string;
+  product_dpa?: string;
+  product_no_income_primary?: string;
+  product_low_fico?: string;
+  product_inv_heloc?: string;
+  product_no_seasoning_cor?: string;
+  product_tbd_uw?: string;
+  product_condo_review_desk?: string;
+  product_condo_mip_issues?: string;
+  product_nonqm_heloc?: string;
+  product_fn_heloc?: string;
+  product_no_credit?: string;
+  product_558?: string;
+  product_itin?: string;
+  product_pl_program?: string;
+  product_1099_program?: string;
+  product_wvoe_family?: string;
+  product_1099_less_1yr?: string;
+  product_1099_no_biz?: string;
+  product_omit_student_loans?: string;
+  product_no_ratio_dscr?: string;
+  // Clauses
+  title_clause?: string;
+  insurance_clause?: string;
+  // Numbers
+  condotel_min_sqft?: number;
+  asset_dep_months?: number;
+  min_fico?: number;
+  min_sqft?: number;
+  heloc_min_fico?: number;
+  heloc_min?: number;
+  max_cash_out_70_ltv?: number;
+  // LTVs
+  heloc_max_ltv?: number;
+  fn_max_ltv?: number;
+  bs_loan_max_ltv?: number;
+  ltv_1099?: number;
+  pl_max_ltv?: number;
+  condo_inv_max_ltv?: number;
+  jumbo_max_ltv?: number;
+  wvoe_max_ltv?: number;
+  dscr_max_ltv?: number;
+  fha_max_ltv?: number;
+  conv_max_ltv?: number;
+  max_ltv?: number;
+  // Other
+  epo_period?: string;
 }
 
 interface AssociatedClient {
@@ -57,6 +137,12 @@ interface EmailLog {
   opened_at: string | null;
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  html: string;
+}
+
 interface LenderDetailDialogProps {
   lender: Lender | null;
   isOpen: boolean;
@@ -71,11 +157,14 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   const [loadingClients, setLoadingClients] = useState(false);
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     if (lender?.id && isOpen) {
       loadAssociatedClients();
       loadEmailLogs();
+      loadEmailTemplates();
     }
   }, [lender?.id, isOpen]);
 
@@ -121,6 +210,21 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     }
   };
 
+  const loadEmailTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('id, name, html')
+        .eq('is_archived', false)
+        .order('name');
+      
+      if (error) throw error;
+      setEmailTemplates(data || []);
+    } catch (error) {
+      console.error('Error loading email templates:', error);
+    }
+  };
+
   const handleFieldUpdate = async (field: string, value: any) => {
     if (!lender?.id) return;
 
@@ -149,6 +253,56 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     });
   };
 
+  const handleSendTemplateEmail = async (template: EmailTemplate) => {
+    if (!lender?.account_executive_email) {
+      toast({
+        title: "Error",
+        description: "No email address for this lender.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Replace merge tags
+      let html = template.html;
+      html = html.replace(/\{\{LenderName\}\}/g, lender.lender_name || '');
+      html = html.replace(/\{\{AccountExecutiveName\}\}/g, lender.account_executive || '');
+      const aeFirstName = lender.account_executive?.split(' ')[0] || '';
+      html = html.replace(/\{\{AccountExecutiveFirstName\}\}/g, aeFirstName);
+
+      const { error } = await supabase.functions.invoke('send-direct-email', {
+        body: {
+          to: lender.account_executive_email,
+          subject: template.name,
+          html,
+          from: 'scenarios@mortgagebolt.org',
+          replyTo: 'yousif@mortgagebolt.com'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email Sent",
+        description: `Email sent to ${lender.account_executive_email}`,
+      });
+
+      // Reload email logs
+      loadEmailLogs();
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send email.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   if (!lender) return null;
 
   const initials = lender.lender_name
@@ -158,25 +312,10 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     .join('')
     .toUpperCase() || '??';
 
-  const getLenderTypeColor = (type: string) => {
-    switch (type) {
-      case 'Conventional': return 'bg-blue-500/20 text-blue-700 border-blue-500/30';
-      case 'Non-QM': return 'bg-purple-500/20 text-purple-700 border-purple-500/30';
-      case 'Private': return 'bg-amber-500/20 text-amber-700 border-amber-500/30';
-      case 'HELOC': return 'bg-green-500/20 text-green-700 border-green-500/30';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
   // Parse first/last name from account_executive
   const aeParts = lender.account_executive?.split(' ') || [];
   const aeFirstName = aeParts[0] || '';
   const aeLastName = aeParts.slice(1).join(' ') || '';
-
-  const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return '—';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -197,6 +336,65 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
       default: return 'bg-muted text-muted-foreground';
     }
   };
+
+  // Product fields grouped for display
+  const productFields = [
+    { key: 'product_fha', label: 'FHA' },
+    { key: 'product_va', label: 'VA' },
+    { key: 'product_conv', label: 'Conventional' },
+    { key: 'product_jumbo', label: 'Jumbo' },
+    { key: 'product_bs_loan', label: 'Bank Statement' },
+    { key: 'product_wvoe', label: 'WVOE' },
+    { key: 'product_1099_program', label: '1099 Program' },
+    { key: 'product_pl_program', label: 'P&L Program' },
+    { key: 'product_itin', label: 'ITIN' },
+    { key: 'product_dpa', label: 'DPA' },
+    { key: 'product_heloc', label: 'HELOC' },
+    { key: 'product_inv_heloc', label: 'Inv HELOC' },
+    { key: 'product_fn_heloc', label: 'FN HELOC' },
+    { key: 'product_nonqm_heloc', label: 'Non-QM HELOC' },
+    { key: 'product_manufactured_homes', label: 'Manufactured' },
+    { key: 'product_coop', label: 'Co-Op' },
+    { key: 'product_condo_hotel', label: 'Condo Hotel' },
+    { key: 'product_high_dti', label: 'High DTI' },
+    { key: 'product_low_fico', label: 'Low FICO' },
+    { key: 'product_no_credit', label: 'No Credit' },
+    { key: 'product_dr_loan', label: 'DR Loan' },
+    { key: 'product_fn', label: 'Foreign National' },
+    { key: 'product_nwc', label: 'NWC' },
+    { key: 'product_5_8_unit', label: '5-8 Unit' },
+    { key: 'product_9_plus_unit', label: '9+ Units' },
+    { key: 'product_commercial', label: 'Commercial' },
+    { key: 'product_construction', label: 'Construction' },
+    { key: 'product_land_loan', label: 'Land Loan' },
+    { key: 'product_fthb_dscr', label: 'FTHB DSCR' },
+    { key: 'product_no_income_primary', label: 'No Inc Primary' },
+    { key: 'product_no_seasoning_cor', label: 'No Season C/O' },
+    { key: 'product_tbd_uw', label: 'TBD UW' },
+    { key: 'product_condo_review_desk', label: 'Condo Review' },
+    { key: 'product_condo_mip_issues', label: 'Condo MIP' },
+    { key: 'product_558', label: '558' },
+    { key: 'product_wvoe_family', label: 'WVOE Family' },
+    { key: 'product_1099_less_1yr', label: '1099 <1yr' },
+    { key: 'product_1099_no_biz', label: '1099 No Biz' },
+    { key: 'product_omit_student_loans', label: 'Omit Student' },
+    { key: 'product_no_ratio_dscr', label: 'No Ratio DSCR' },
+  ];
+
+  const ltvFields = [
+    { key: 'max_ltv', label: 'Max LTV' },
+    { key: 'conv_max_ltv', label: 'Conv Max' },
+    { key: 'fha_max_ltv', label: 'FHA Max' },
+    { key: 'jumbo_max_ltv', label: 'Jumbo Max' },
+    { key: 'bs_loan_max_ltv', label: 'BS Loan Max' },
+    { key: 'wvoe_max_ltv', label: 'WVOE Max' },
+    { key: 'dscr_max_ltv', label: 'DSCR Max' },
+    { key: 'ltv_1099', label: '1099 Max' },
+    { key: 'pl_max_ltv', label: 'P&L Max' },
+    { key: 'fn_max_ltv', label: 'FN Max' },
+    { key: 'heloc_max_ltv', label: 'HELOC Max' },
+    { key: 'condo_inv_max_ltv', label: 'Condo Inv Max' },
+  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -223,12 +421,38 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 Approved
               </Badge>
             </div>
+            {/* Send Email Button with Template Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  disabled={!lender.account_executive_email || sendingEmail}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {sendingEmail ? 'Sending...' : 'Send Email'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
+                {emailTemplates.length === 0 ? (
+                  <DropdownMenuItem disabled>No templates available</DropdownMenuItem>
+                ) : (
+                  emailTemplates.map((template) => (
+                    <DropdownMenuItem
+                      key={template.id}
+                      onClick={() => handleSendTemplateEmail(template)}
+                    >
+                      {template.name}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
           <div className="p-6 space-y-5">
-            {/* Account Executive - grid layout */}
+            {/* Account Executive */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -261,17 +485,19 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Phone</label>
-                  <InlineEditPhone
-                    value={lender.account_executive_phone}
-                    onValueChange={(value) => handleFieldUpdate('account_executive_phone', value)}
-                  />
+                  <div>
+                    <InlineEditPhone
+                      value={lender.account_executive_phone}
+                      onValueChange={(value) => handleFieldUpdate('account_executive_phone', value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Portal Access - grid layout */}
+            {/* Portal Access */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <Globe className="h-4 w-4" />
@@ -379,6 +605,142 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
+            {/* Dates */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Dates
+              </h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 max-w-md">
+                <div>
+                  <label className="text-xs text-muted-foreground">Initial Approval</label>
+                  <InlineEditDate
+                    value={lender.initial_approval_date}
+                    onValueChange={(value) => handleFieldUpdate('initial_approval_date', value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Renewed On</label>
+                  <InlineEditDate
+                    value={lender.renewed_on}
+                    onValueChange={(value) => handleFieldUpdate('renewed_on', value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Products */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Products
+              </h3>
+              <div className="grid grid-cols-5 gap-x-4 gap-y-2">
+                {productFields.map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <label className="text-xs text-muted-foreground truncate">{label}</label>
+                    <InlineEditProduct
+                      value={(lender as any)[key]}
+                      onValueChange={(value) => handleFieldUpdate(key, value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Numbers */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                Numbers
+              </h3>
+              <div className="grid grid-cols-4 gap-x-6 gap-y-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Min FICO</label>
+                  <InlineEditNumber
+                    value={lender.min_fico ?? null}
+                    onValueChange={(value) => handleFieldUpdate('min_fico', value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Min Sqft</label>
+                  <InlineEditNumber
+                    value={lender.min_sqft ?? null}
+                    onValueChange={(value) => handleFieldUpdate('min_sqft', value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Condotel Min Sqft</label>
+                  <InlineEditNumber
+                    value={lender.condotel_min_sqft ?? null}
+                    onValueChange={(value) => handleFieldUpdate('condotel_min_sqft', value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Asset Dep (Mo)</label>
+                  <InlineEditNumber
+                    value={lender.asset_dep_months ?? null}
+                    onValueChange={(value) => handleFieldUpdate('asset_dep_months', value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">HELOC Min FICO</label>
+                  <InlineEditText
+                    value={lender.heloc_min_fico?.toString() || ''}
+                    onValueChange={(value) => handleFieldUpdate('heloc_min_fico', value ? parseInt(value) : null)}
+                    placeholder="e.g., 680 / 75% LTV"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">HELOC Min</label>
+                  <InlineEditCurrency
+                    value={lender.heloc_min ?? null}
+                    onValueChange={(value) => handleFieldUpdate('heloc_min', value)}
+                    placeholder="$0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Max C/O &gt;70% LTV</label>
+                  <InlineEditCurrency
+                    value={lender.max_cash_out_70_ltv ?? null}
+                    onValueChange={(value) => handleFieldUpdate('max_cash_out_70_ltv', value)}
+                    placeholder="$0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* LTVs */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                Maximum LTVs
+              </h3>
+              <div className="grid grid-cols-4 gap-x-6 gap-y-2">
+                {ltvFields.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-xs text-muted-foreground">{label}</label>
+                    <InlineEditPercentage
+                      value={(lender as any)[key] ?? null}
+                      onValueChange={(value) => handleFieldUpdate(key, value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Notes */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">Notes</h3>
@@ -386,6 +748,72 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 value={lender.notes}
                 onValueChange={(value) => handleFieldUpdate('notes', value)}
                 placeholder="Add notes about this lender..."
+              />
+            </div>
+
+            <Separator />
+
+            {/* Clauses */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Clauses
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-muted-foreground">Title Clause</label>
+                    {lender.title_clause && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs"
+                        onClick={() => copyToClipboard(lender.title_clause!, 'Title clause')}
+                      >
+                        <ClipboardCopy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
+                    )}
+                  </div>
+                  <InlineEditNotes
+                    value={lender.title_clause}
+                    onValueChange={(value) => handleFieldUpdate('title_clause', value)}
+                    placeholder="Enter title clause..."
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-muted-foreground">Insurance Clause</label>
+                    {lender.insurance_clause && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs"
+                        onClick={() => copyToClipboard(lender.insurance_clause!, 'Insurance clause')}
+                      >
+                        <ClipboardCopy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
+                    )}
+                  </div>
+                  <InlineEditNotes
+                    value={lender.insurance_clause}
+                    onValueChange={(value) => handleFieldUpdate('insurance_clause', value)}
+                    placeholder="Enter insurance clause..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* EPO */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">EPO Period</h3>
+              <InlineEditText
+                value={lender.epo_period}
+                onValueChange={(value) => handleFieldUpdate('epo_period', value)}
+                placeholder="Enter EPO details..."
               />
             </div>
 
@@ -455,23 +883,24 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                       className="flex items-center justify-between p-2 bg-muted/30 rounded-md text-sm"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-medium">{client.first_name} {client.last_name}</span>
+                        <span className="font-medium">
+                          {client.first_name} {client.last_name}
+                        </span>
                         {client.loan_status && (
                           <Badge variant="outline" className="text-xs">
                             {client.loan_status}
                           </Badge>
                         )}
-                        {client.is_closed && (
-                          <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-700">
-                            Closed
-                          </Badge>
-                        )}
                       </div>
-                      <div className="flex items-center gap-4 text-muted-foreground">
-                        <span>{formatCurrency(client.loan_amount)}</span>
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        {client.loan_amount && (
+                          <span className="text-xs">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(client.loan_amount)}
+                          </span>
+                        )}
                         {client.close_date && (
                           <span className="text-xs">
-                            {new Date(client.close_date).toLocaleDateString()}
+                            Close: {new Date(client.close_date).toLocaleDateString()}
                           </span>
                         )}
                       </div>

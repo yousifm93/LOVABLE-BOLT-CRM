@@ -3064,58 +3064,250 @@ export type Database = {
           account_executive: string | null
           account_executive_email: string | null
           account_executive_phone: string | null
+          asset_dep_months: number | null
           broker_portal_password: string | null
           broker_portal_url: string | null
           broker_portal_username: string | null
+          bs_loan_max_ltv: number | null
+          condo_inv_max_ltv: number | null
+          condotel_min_sqft: number | null
+          conv_max_ltv: number | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
+          dscr_max_ltv: number | null
+          epo_period: string | null
+          fha_max_ltv: number | null
+          fn_max_ltv: number | null
+          heloc_max_ltv: number | null
+          heloc_min: number | null
+          heloc_min_fico: number | null
           id: string
+          initial_approval_date: string | null
+          insurance_clause: string | null
+          jumbo_max_ltv: number | null
           lender_name: string
           lender_type: Database["public"]["Enums"]["lender_type"]
+          ltv_1099: number | null
+          max_cash_out_70_ltv: number | null
           max_loan_amount: number | null
+          max_ltv: number | null
+          min_fico: number | null
           min_loan_amount: number | null
+          min_sqft: number | null
           notes: string | null
+          pl_max_ltv: number | null
+          product_1099_less_1yr: string | null
+          product_1099_no_biz: string | null
+          product_1099_program: string | null
+          product_5_8_unit: string | null
+          product_558: string | null
+          product_9_plus_unit: string | null
+          product_bs_loan: string | null
+          product_commercial: string | null
+          product_condo_hotel: string | null
+          product_condo_mip_issues: string | null
+          product_condo_review_desk: string | null
+          product_construction: string | null
+          product_conv: string | null
+          product_coop: string | null
+          product_dpa: string | null
+          product_dr_loan: string | null
+          product_fha: string | null
+          product_fn: string | null
+          product_fn_heloc: string | null
+          product_fthb_dscr: string | null
+          product_heloc: string | null
+          product_high_dti: string | null
+          product_inv_heloc: string | null
+          product_itin: string | null
+          product_jumbo: string | null
+          product_land_loan: string | null
+          product_low_fico: string | null
+          product_manufactured_homes: string | null
+          product_no_credit: string | null
+          product_no_income_primary: string | null
+          product_no_ratio_dscr: string | null
+          product_no_seasoning_cor: string | null
+          product_nonqm_heloc: string | null
+          product_nwc: string | null
+          product_omit_student_loans: string | null
+          product_pl_program: string | null
+          product_tbd_uw: string | null
+          product_va: string | null
+          product_wvoe: string | null
+          product_wvoe_family: string | null
+          renewed_on: string | null
           status: string | null
+          title_clause: string | null
           updated_at: string
+          wvoe_max_ltv: number | null
         }
         Insert: {
           account_executive?: string | null
           account_executive_email?: string | null
           account_executive_phone?: string | null
+          asset_dep_months?: number | null
           broker_portal_password?: string | null
           broker_portal_url?: string | null
           broker_portal_username?: string | null
+          bs_loan_max_ltv?: number | null
+          condo_inv_max_ltv?: number | null
+          condotel_min_sqft?: number | null
+          conv_max_ltv?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          dscr_max_ltv?: number | null
+          epo_period?: string | null
+          fha_max_ltv?: number | null
+          fn_max_ltv?: number | null
+          heloc_max_ltv?: number | null
+          heloc_min?: number | null
+          heloc_min_fico?: number | null
           id?: string
+          initial_approval_date?: string | null
+          insurance_clause?: string | null
+          jumbo_max_ltv?: number | null
           lender_name: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
+          ltv_1099?: number | null
+          max_cash_out_70_ltv?: number | null
           max_loan_amount?: number | null
+          max_ltv?: number | null
+          min_fico?: number | null
           min_loan_amount?: number | null
+          min_sqft?: number | null
           notes?: string | null
+          pl_max_ltv?: number | null
+          product_1099_less_1yr?: string | null
+          product_1099_no_biz?: string | null
+          product_1099_program?: string | null
+          product_5_8_unit?: string | null
+          product_558?: string | null
+          product_9_plus_unit?: string | null
+          product_bs_loan?: string | null
+          product_commercial?: string | null
+          product_condo_hotel?: string | null
+          product_condo_mip_issues?: string | null
+          product_condo_review_desk?: string | null
+          product_construction?: string | null
+          product_conv?: string | null
+          product_coop?: string | null
+          product_dpa?: string | null
+          product_dr_loan?: string | null
+          product_fha?: string | null
+          product_fn?: string | null
+          product_fn_heloc?: string | null
+          product_fthb_dscr?: string | null
+          product_heloc?: string | null
+          product_high_dti?: string | null
+          product_inv_heloc?: string | null
+          product_itin?: string | null
+          product_jumbo?: string | null
+          product_land_loan?: string | null
+          product_low_fico?: string | null
+          product_manufactured_homes?: string | null
+          product_no_credit?: string | null
+          product_no_income_primary?: string | null
+          product_no_ratio_dscr?: string | null
+          product_no_seasoning_cor?: string | null
+          product_nonqm_heloc?: string | null
+          product_nwc?: string | null
+          product_omit_student_loans?: string | null
+          product_pl_program?: string | null
+          product_tbd_uw?: string | null
+          product_va?: string | null
+          product_wvoe?: string | null
+          product_wvoe_family?: string | null
+          renewed_on?: string | null
           status?: string | null
+          title_clause?: string | null
           updated_at?: string
+          wvoe_max_ltv?: number | null
         }
         Update: {
           account_executive?: string | null
           account_executive_email?: string | null
           account_executive_phone?: string | null
+          asset_dep_months?: number | null
           broker_portal_password?: string | null
           broker_portal_url?: string | null
           broker_portal_username?: string | null
+          bs_loan_max_ltv?: number | null
+          condo_inv_max_ltv?: number | null
+          condotel_min_sqft?: number | null
+          conv_max_ltv?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          dscr_max_ltv?: number | null
+          epo_period?: string | null
+          fha_max_ltv?: number | null
+          fn_max_ltv?: number | null
+          heloc_max_ltv?: number | null
+          heloc_min?: number | null
+          heloc_min_fico?: number | null
           id?: string
+          initial_approval_date?: string | null
+          insurance_clause?: string | null
+          jumbo_max_ltv?: number | null
           lender_name?: string
           lender_type?: Database["public"]["Enums"]["lender_type"]
+          ltv_1099?: number | null
+          max_cash_out_70_ltv?: number | null
           max_loan_amount?: number | null
+          max_ltv?: number | null
+          min_fico?: number | null
           min_loan_amount?: number | null
+          min_sqft?: number | null
           notes?: string | null
+          pl_max_ltv?: number | null
+          product_1099_less_1yr?: string | null
+          product_1099_no_biz?: string | null
+          product_1099_program?: string | null
+          product_5_8_unit?: string | null
+          product_558?: string | null
+          product_9_plus_unit?: string | null
+          product_bs_loan?: string | null
+          product_commercial?: string | null
+          product_condo_hotel?: string | null
+          product_condo_mip_issues?: string | null
+          product_condo_review_desk?: string | null
+          product_construction?: string | null
+          product_conv?: string | null
+          product_coop?: string | null
+          product_dpa?: string | null
+          product_dr_loan?: string | null
+          product_fha?: string | null
+          product_fn?: string | null
+          product_fn_heloc?: string | null
+          product_fthb_dscr?: string | null
+          product_heloc?: string | null
+          product_high_dti?: string | null
+          product_inv_heloc?: string | null
+          product_itin?: string | null
+          product_jumbo?: string | null
+          product_land_loan?: string | null
+          product_low_fico?: string | null
+          product_manufactured_homes?: string | null
+          product_no_credit?: string | null
+          product_no_income_primary?: string | null
+          product_no_ratio_dscr?: string | null
+          product_no_seasoning_cor?: string | null
+          product_nonqm_heloc?: string | null
+          product_nwc?: string | null
+          product_omit_student_loans?: string | null
+          product_pl_program?: string | null
+          product_tbd_uw?: string | null
+          product_va?: string | null
+          product_wvoe?: string | null
+          product_wvoe_family?: string | null
+          renewed_on?: string | null
           status?: string | null
+          title_clause?: string | null
           updated_at?: string
+          wvoe_max_ltv?: number | null
         }
         Relationships: []
       }

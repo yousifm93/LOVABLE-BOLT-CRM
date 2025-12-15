@@ -161,3 +161,6 @@ verify_jwt = true
 
 [functions.send-email-ionos]
 verify_jwt = true
+
+[functions.import-lenders]
+verify_jwt = false
