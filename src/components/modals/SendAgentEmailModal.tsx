@@ -22,6 +22,8 @@ interface SendAgentEmailModalProps {
   onClose: () => void;
   agentEmail: string;
   agentName: string;
+  agentId?: string;
+  onEmailSent?: () => void;
 }
 
 interface EmailTemplate {
@@ -34,7 +36,9 @@ export function SendAgentEmailModal({
   isOpen, 
   onClose, 
   agentEmail, 
-  agentName 
+  agentName,
+  agentId,
+  onEmailSent,
 }: SendAgentEmailModalProps) {
   const { toast } = useToast();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -105,11 +109,26 @@ export function SendAgentEmailModal({
 
       if (error) throw error;
 
+      // Log email to activity history
+      if (agentId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('agent_call_logs').insert({
+            agent_id: agentId,
+            log_type: 'email',
+            summary: `Sent email template: "${selectedTemplate.name}"`,
+            logged_by: user.id,
+            logged_at: new Date().toISOString(),
+          });
+        }
+      }
+
       toast({
         title: "Email Sent",
         description: `Email sent to ${agentName}`,
       });
       
+      onEmailSent?.();
       onClose();
       setSelectedTemplateId("");
       setSelectedTemplate(null);

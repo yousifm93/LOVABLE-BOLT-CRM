@@ -34,6 +34,15 @@ interface DateFilter {
 
 const columns: ColumnDef<any>[] = [
   {
+    accessorKey: "row_number",
+    header: "#",
+    cell: ({ row }) => {
+      // Row number will be set by DataTable via showRowNumbers prop
+      return null;
+    },
+    className: "text-center w-[40px]",
+  },
+  {
     accessorKey: "name",
     header: "Agent",
     cell: ({ row }) => {
@@ -386,11 +395,13 @@ export default function AgentList() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={columns}
+            columns={columns.filter(c => c.accessorKey !== 'row_number')}
             data={filteredAgents}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
-            pageSize={10}
+            pageSize={15}
+            showRowNumbers
+            compact
           />
         </CardContent>
       </Card>
