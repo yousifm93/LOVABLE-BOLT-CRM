@@ -9,11 +9,6 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 
 interface EmailMessage {
   uid: number;
@@ -229,16 +224,10 @@ export default function Email() {
         </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="h-[calc(100%-60px)] rounded-lg">
-        {/* Sidebar */}
-        <ResizablePanel 
-          defaultSize={15} 
-          minSize={10} 
-          maxSize={25}
-          className="pr-2"
-        >
+      <div className="flex h-[calc(100%-60px)] gap-2">
+        {/* Folder Sidebar - Fixed width */}
+        <div className="w-[150px] flex-shrink-0 pr-2">
           <div className="h-full flex flex-col">
-            {/* Folders */}
             <div className="space-y-1 flex-1">
               {folders.map((folder) => (
                 <button
@@ -269,145 +258,132 @@ export default function Email() {
               ))}
             </div>
           </div>
-        </ResizablePanel>
+        </div>
 
-        <ResizableHandle withHandle />
-
-        {/* Email List */}
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
-          <div className="h-full border rounded-lg bg-card overflow-hidden flex flex-col">
-            <div className="p-2 border-b">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search emails..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 h-8 text-sm"
-                />
-              </div>
+        {/* Email List - Fixed width */}
+        <div className="w-[320px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search emails..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
             </div>
-            <ScrollArea className="flex-1">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredEmails.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-                  No emails found
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {filteredEmails.map((email) => (
-                    <button
-                      key={email.uid}
-                      onClick={() => handleSelectEmail(email)}
-                      className={cn(
-                        "relative w-full text-left p-3 hover:bg-muted/50 transition-colors",
-                        selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
-                      )}
-                    >
-                      {/* Timestamp - absolutely positioned, always visible */}
-                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-card pl-2">
+          </div>
+          <ScrollArea className="flex-1">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredEmails.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                No emails found
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredEmails.map((email) => (
+                  <button
+                    key={email.uid}
+                    onClick={() => handleSelectEmail(email)}
+                    className={cn(
+                      "w-full text-left p-3 hover:bg-muted/50 transition-colors",
+                      selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={cn(
+                        "text-sm truncate flex-1 mr-2",
+                        email.unread ? "font-semibold" : "font-medium"
+                      )}>
+                        {email.from}
+                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
                           {email.date}
                         </span>
                       </div>
-                      
-                      {/* Content area with right padding to prevent overlap */}
-                      <div className="pr-20">
-                        <div className="mb-1">
-                          <span className={cn(
-                            "text-sm truncate block",
-                            email.unread ? "font-semibold" : "font-medium"
-                          )}>
-                            {email.from}
-                          </span>
-                        </div>
-                        <p className={cn(
-                          "text-sm truncate mb-1",
-                          email.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                        )}>
-                          {email.subject}
-                        </p>
-                        {email.snippet && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {email.snippet}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        {/* Email Content */}
-        <ResizablePanel defaultSize={55} minSize={30}>
-          <div className="h-full border rounded-lg bg-card overflow-hidden flex flex-col mr-4">
-            {selectedEmail ? (
-              <>
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold mb-2">{selectedEmail.subject}</h2>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{selectedEmail.from}</p>
-                      <p className="text-xs text-muted-foreground">{selectedEmail.fromEmail}</p>
                     </div>
-                    <span className="text-sm text-muted-foreground">{selectedEmail.date}</span>
-                  </div>
-                </div>
-                <ScrollArea className="flex-1 p-4">
-                  {isLoadingContent ? (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : emailContent?.htmlBody ? (
-                    <div 
-                      className="prose prose-sm max-w-none text-foreground"
-                      dangerouslySetInnerHTML={{ __html: emailContent.htmlBody }}
-                    />
-                  ) : emailContent?.body ? (
-                    <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-                      {emailContent.body}
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground italic text-sm">
-                      No content available
-                    </div>
-                  )}
-                </ScrollArea>
-                <div className="p-3 border-t flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleReply}>
-                    Reply
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleForward}>
-                    Forward
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Select an email to read</p>
-                </div>
+                    <p className={cn(
+                      "text-sm truncate mb-1",
+                      email.unread ? "font-medium text-foreground" : "text-muted-foreground"
+                    )}>
+                      {email.subject}
+                    </p>
+                    {email.snippet && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {email.snippet}
+                      </p>
+                    )}
+                  </button>
+                ))}
               </div>
             )}
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          </ScrollArea>
+        </div>
+
+        {/* Email Content - Takes remaining space */}
+        <div className="flex-1 h-full border rounded-lg bg-card overflow-hidden flex flex-col mr-4">
+          {selectedEmail ? (
+            <>
+              <div className="p-4 border-b">
+                <h2 className="text-lg font-semibold mb-2">{selectedEmail.subject}</h2>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{selectedEmail.from}</p>
+                    <p className="text-xs text-muted-foreground">{selectedEmail.fromEmail}</p>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{selectedEmail.date}</span>
+                </div>
+              </div>
+              <ScrollArea className="flex-1 p-4">
+                {isLoadingContent ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : emailContent?.htmlBody ? (
+                  <div 
+                    className="prose prose-sm max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: emailContent.htmlBody }}
+                  />
+                ) : emailContent?.body ? (
+                  <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                    {emailContent.body}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground italic text-sm">
+                    No content available
+                  </div>
+                )}
+              </ScrollArea>
+              <div className="p-3 pb-6 border-t flex gap-2">
+                <Button size="sm" variant="outline" onClick={handleReply}>
+                  Reply
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleForward}>
+                  Forward
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Archive className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>Select an email to read</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Compose Email Modal */}
       <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
