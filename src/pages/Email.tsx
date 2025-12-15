@@ -303,35 +303,40 @@ export default function Email() {
                       key={email.uid}
                       onClick={() => handleSelectEmail(email)}
                       className={cn(
-                        "w-full text-left p-3 hover:bg-muted/50 transition-colors",
+                        "relative w-full text-left p-3 hover:bg-muted/50 transition-colors",
                         selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                       )}
                     >
-                      <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center">
-                        <span className={cn(
-                          "text-sm truncate",
-                          email.unread ? "font-semibold" : "font-medium"
-                        )}>
-                          {email.from}
+                      {/* Timestamp - absolutely positioned, always visible */}
+                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-card pl-2">
+                        {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {email.date}
                         </span>
-                        <div className="flex items-center gap-1">
-                          {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {email.date}
+                      </div>
+                      
+                      {/* Content area with right padding to prevent overlap */}
+                      <div className="pr-20">
+                        <div className="mb-1">
+                          <span className={cn(
+                            "text-sm truncate block",
+                            email.unread ? "font-semibold" : "font-medium"
+                          )}>
+                            {email.from}
                           </span>
                         </div>
-                      </div>
-                      <p className={cn(
-                        "text-sm truncate mb-1",
-                        email.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                      )}>
-                        {email.subject}
-                      </p>
-                      {email.snippet && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          {email.snippet}
+                        <p className={cn(
+                          "text-sm truncate mb-1",
+                          email.unread ? "font-medium text-foreground" : "text-muted-foreground"
+                        )}>
+                          {email.subject}
                         </p>
-                      )}
+                        {email.snippet && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {email.snippet}
+                          </p>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
