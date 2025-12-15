@@ -61,6 +61,7 @@ interface DataTableProps<T> {
   storageKey?: string;
   showRowNumbers?: boolean;
   pageSize?: number;
+  compact?: boolean;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -297,6 +298,7 @@ export function DataTable<T extends Record<string, any>>({
   storageKey,
   showRowNumbers = false,
   pageSize,
+  compact = false,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
@@ -595,7 +597,7 @@ export function DataTable<T extends Record<string, any>>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {selectable && (
-                      <TableCell className="py-2 px-2 w-[50px]" onClick={(e) => e.stopPropagation()}> {/* Match header width */}
+                      <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px]")} onClick={(e) => e.stopPropagation()}> {/* Match header width */}
                         <div className="flex justify-center">
                           <Checkbox
                             checked={isSelected}
@@ -606,14 +608,14 @@ export function DataTable<T extends Record<string, any>>({
                       </TableCell>
                     )}
                     {showRowNumbers && (
-                      <TableCell className="py-2 px-2 w-[50px] text-center" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px] text-center")} onClick={(e) => e.stopPropagation()}>
                         <span className="text-xs text-muted-foreground">{actualIndex}</span>
                       </TableCell>
                     )}
                     {columns.map((column) => (
                       <TableCell 
                         key={column.accessorKey} 
-                        className={cn("py-2 px-2", column.className || "text-center")}
+                        className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center")}
                         style={{
                           width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
                           minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
@@ -632,7 +634,7 @@ export function DataTable<T extends Record<string, any>>({
                         )}
                       </TableCell>
                     ))}
-                    <TableCell className="py-2 px-2">
+                    <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2")}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button 

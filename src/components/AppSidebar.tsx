@@ -20,6 +20,7 @@ import {
   DollarSign,
   LogOut,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import {
   Sidebar,
@@ -168,17 +169,23 @@ export function AppSidebar() {
         <SidebarHeader className="border-b border-sidebar-border">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded bg-primary flex items-center justify-center">
-                <Zap className="h-7 w-7 text-primary-foreground" />
+              <div className={cn(
+                "rounded bg-primary flex items-center justify-center transition-all",
+                collapsed ? "h-8 w-8" : "h-10 w-10"
+              )}>
+                <Zap className={cn(
+                  "text-primary-foreground transition-all",
+                  collapsed ? "h-4 w-4" : "h-6 w-6"
+                )} />
               </div>
               {!collapsed && (
                 <div className="flex items-baseline">
-                  <span className="text-2xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
-                  <span className="text-2xl font-bold text-sidebar-foreground">CRM</span>
+                  <span className="text-xl font-light tracking-tight text-sidebar-foreground">BOLT</span>
+                  <span className="text-xl font-bold text-sidebar-foreground">CRM</span>
                 </div>
               )}
             </div>
-            <SidebarTrigger className="h-8 w-8" />
+            {!collapsed && <SidebarTrigger className="h-8 w-8" />}
           </div>
           
           {/* Search Bar */}

@@ -170,16 +170,6 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 )}
               </DialogDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowEmailModal(true)}
-              disabled={!agent.email}
-              className="flex items-center gap-2"
-            >
-              <Mail className="h-4 w-4" />
-              Send Email
-            </Button>
           </div>
         </DialogHeader>
 
@@ -318,6 +308,16 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     <Button 
                       size="sm" 
                       variant="outline"
+                      onClick={() => setShowEmailModal(true)}
+                      disabled={!agent.email}
+                      className="h-7"
+                    >
+                      <Mail className="h-3 w-3 mr-1" />
+                      Send Email
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
                       onClick={() => setIsMeetingLogModalOpen(true)}
                       className="h-7"
                     >
@@ -444,6 +444,8 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         onClose={() => setShowEmailModal(false)}
         agentEmail={agent?.email}
         agentName={fullName}
+        agentId={agent?.id}
+        onEmailSent={loadCallLogs}
       />
     </Dialog>
   );
