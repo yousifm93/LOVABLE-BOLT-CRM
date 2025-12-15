@@ -11,6 +11,7 @@ import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,6 +45,9 @@ export default function ApprovedLenders() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [lenderToDelete, setLenderToDelete] = useState<Lender | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -142,6 +146,30 @@ export default function ApprovedLenders() {
   const handleRowClick = (lender: Lender) => {
     setSelectedLender(lender);
     setIsDrawerOpen(true);
+  };
+
+  const handleDeleteLender = async () => {
+    if (!lenderToDelete) return;
+    setIsDeleting(true);
+    try {
+      await databaseService.softDeleteLender(lenderToDelete.id);
+      toast({
+        title: "Success",
+        description: "Lender deleted successfully.",
+      });
+      loadLenders();
+    } catch (error) {
+      console.error('Error deleting lender:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete lender.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setLenderToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   // Add row numbers to data
@@ -292,6 +320,10 @@ export default function ApprovedLenders() {
             selectedIds={Array.from(selectedIds)}
             onSelectionChange={(ids) => setSelectedIds(new Set(ids))}
             getRowId={(row) => row.id}
+            onDelete={(lender) => {
+              setLenderToDelete(lender);
+              setIsDeleteDialogOpen(true);
+            }}
           />
         </CardContent>
       </Card>
@@ -329,6 +361,15 @@ export default function ApprovedLenders() {
           setSelectedIds(new Set());
         }}
         lenders={lenders.filter(l => selectedIds.has(l.id))}
+      />
+
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Lender?"
+        description={`Are you sure you want to delete "${lenderToDelete?.lender_name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteLender}
+        isLoading={isDeleting}
       />
     </div>
   );
