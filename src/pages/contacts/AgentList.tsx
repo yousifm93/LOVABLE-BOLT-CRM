@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, Building2, Badge as BadgeIcon, Star, Upload, Loader2 } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, Building2, Upload, Loader2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,27 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
 
+interface DateFilter {
+  field: string;
+  operator: 'before' | 'after' | 'on' | null;
+  date: Date | null;
+}
 
 const columns: ColumnDef<any>[] = [
   {
@@ -84,6 +104,12 @@ export default function AgentList() {
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [showAgentDrawer, setShowAgentDrawer] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dateFilters, setDateFilters] = useState<DateFilter[]>([
+    { field: 'last_agent_call', operator: null, date: null },
+    { field: 'next_agent_call', operator: null, date: null },
+    { field: 'face_to_face_meeting', operator: null, date: null },
+  ]);
   const { toast } = useToast();
 
   const handleImportAgents = async () => {
@@ -155,25 +181,70 @@ export default function AgentList() {
     setShowAgentDrawer(true);
   };
 
+  const updateDateFilter = (index: number, updates: Partial<DateFilter>) => {
+    setDateFilters(prev => prev.map((f, i) => i === index ? { ...f, ...updates } : f));
+  };
+
+  const clearFilters = () => {
+    setDateFilters([
+      { field: 'last_agent_call', operator: null, date: null },
+      { field: 'next_agent_call', operator: null, date: null },
+      { field: 'face_to_face_meeting', operator: null, date: null },
+    ]);
+  };
+
+  const getFilteredAgents = () => {
+    return agents.filter(agent => {
+      for (const filter of dateFilters) {
+        if (filter.operator && filter.date) {
+          const agentDate = agent[filter.field] ? new Date(agent[filter.field]) : null;
+          const filterDate = new Date(filter.date);
+          filterDate.setHours(0, 0, 0, 0);
+          
+          if (filter.operator === 'before') {
+            if (!agentDate || agentDate >= filterDate) return false;
+          } else if (filter.operator === 'after') {
+            if (!agentDate || agentDate <= filterDate) return false;
+          } else if (filter.operator === 'on') {
+            if (!agentDate) return false;
+            const agentDateOnly = new Date(agentDate);
+            agentDateOnly.setHours(0, 0, 0, 0);
+            if (agentDateOnly.getTime() !== filterDate.getTime()) return false;
+          }
+        }
+      }
+      return true;
+    });
+  };
+
+  const activeFilterCount = dateFilters.filter(f => f.operator && f.date).length;
+  const filteredAgents = getFilteredAgents();
+
   if (isLoading) {
     return <div className="p-4">Loading Real Estate Agents...</div>;
   }
+
+  const filterFieldLabels: Record<string, string> = {
+    last_agent_call: 'Last Call',
+    next_agent_call: 'Next Call',
+    face_to_face_meeting: 'F2F Meeting',
+  };
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Real Estate Agents</h1>
         <p className="text-xs italic text-muted-foreground/70">
-          {agents.length} agents in directory
+          {agents.length.toLocaleString()} agents in directory
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{agents.length}</p>
+                <p className="text-2xl font-bold">{agents.length.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">Total Agents</p>
               </div>
               <Building2 className="h-8 w-8 text-primary" />
@@ -185,7 +256,7 @@ export default function AgentList() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.email).length}</p>
+                <p className="text-2xl font-bold">{agents.filter(a => a.email).length.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">With Email</p>
               </div>
               <Mail className="h-8 w-8 text-success" />
@@ -197,36 +268,10 @@ export default function AgentList() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.phone).length}</p>
+                <p className="text-2xl font-bold">{agents.filter(a => a.phone).length.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">With Phone</p>
               </div>
               <Phone className="h-8 w-8 text-warning" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.license_number).length}</p>
-                <p className="text-sm text-muted-foreground">Licensed</p>
-              </div>
-              <BadgeIcon className="h-8 w-8 text-info" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">
-                  {agents.filter(a => a.agent_rank === 'A' || a.agent_rank === 'B').length}
-                </p>
-                <p className="text-sm text-muted-foreground">A/B Ranked</p>
-              </div>
-              <Star className="h-8 w-8 text-warning" />
             </div>
           </CardContent>
         </Card>
@@ -276,18 +321,76 @@ export default function AgentList() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="relative">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Date Filters</h4>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  {dateFilters.map((filter, index) => (
+                    <div key={filter.field} className="space-y-2">
+                      <Label className="text-xs font-medium">{filterFieldLabels[filter.field]}</Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={filter.operator || ''}
+                          onValueChange={(value) => updateDateFilter(index, { operator: value as 'before' | 'after' | 'on' | null })}
+                        >
+                          <SelectTrigger className="w-24 h-8 text-xs">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="before">Before</SelectItem>
+                            <SelectItem value="after">After</SelectItem>
+                            <SelectItem value="on">On</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 flex-1 justify-start text-xs">
+                              <Calendar className="h-3 w-3 mr-2" />
+                              {filter.date ? format(filter.date, 'MMM d, yyyy') : 'Pick date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={filter.date || undefined}
+                              onSelect={(date) => updateDateFilter(index, { date: date || null })}
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={columns}
-            data={agents}
+            data={filteredAgents}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            pageSize={10}
           />
         </CardContent>
       </Card>

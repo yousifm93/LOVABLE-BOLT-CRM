@@ -1,5 +1,5 @@
 import * as React from "react";
-import { MoreHorizontal, GripVertical } from "lucide-react";
+import { MoreHorizontal, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -60,6 +60,7 @@ interface DataTableProps<T> {
   lockResize?: boolean;
   storageKey?: string;
   showRowNumbers?: boolean;
+  pageSize?: number;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -295,9 +296,11 @@ export function DataTable<T extends Record<string, any>>({
   lockResize = false,
   storageKey,
   showRowNumbers = false,
+  pageSize,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
+  const [currentPage, setCurrentPage] = React.useState(1);
   
   const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>(() => {
     // Try to load from localStorage first if storageKey is provided
@@ -488,6 +491,17 @@ export function DataTable<T extends Record<string, any>>({
     return filtered;
   }, [data, searchTerm, sortColumn, sortDirection, getRowId]);
 
+  // Reset to page 1 when data or searchTerm changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [data.length, searchTerm]);
+
+  // Pagination calculations
+  const totalPages = pageSize ? Math.ceil(filteredData.length / pageSize) : 1;
+  const paginatedData = pageSize 
+    ? filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : filteredData;
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = filteredData.map(row => getRowId(row));
@@ -563,9 +577,10 @@ export function DataTable<T extends Record<string, any>>({
           </TableHeader>
         </DndContext>
         <TableBody>
-          {filteredData.map((row, index) => {
+          {paginatedData.map((row, index) => {
             const rowId = getRowId(row);
             const isSelected = selectedIds.includes(rowId);
+            const actualIndex = pageSize ? (currentPage - 1) * pageSize + index + 1 : index + 1;
             
             return (
               <ContextMenu key={rowId}>
@@ -592,7 +607,7 @@ export function DataTable<T extends Record<string, any>>({
                     )}
                     {showRowNumbers && (
                       <TableCell className="py-2 px-2 w-[50px] text-center" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-xs text-muted-foreground">{index + 1}</span>
+                        <span className="text-xs text-muted-foreground">{actualIndex}</span>
                       </TableCell>
                     )}
                     {columns.map((column) => (
@@ -686,6 +701,36 @@ export function DataTable<T extends Record<string, any>>({
       {filteredData.length === 0 && (
         <div className="p-8 text-center text-muted-foreground">
           No data found.
+        </div>
+      )}
+      {pageSize && totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t">
+          <div className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length.toLocaleString()} results
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
