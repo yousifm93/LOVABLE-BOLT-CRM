@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,80 +10,109 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Placeholder email data
-const placeholderEmails = [
-  {
-    id: "1",
-    from: "John Smith",
-    email: "john.smith@realestate.com",
-    subject: "Re: Pre-approval for 123 Main St",
-    preview: "Hi Yousif, I wanted to follow up on the pre-approval letter for my client...",
-    date: "2:34 PM",
-    unread: true,
-    starred: false,
-  },
-  {
-    id: "2",
-    from: "Sarah Johnson",
-    email: "sarah.j@mortgage.com",
-    subject: "Rate Lock Confirmation - Martinez File",
-    preview: "Please find attached the rate lock confirmation for the Martinez file...",
-    date: "11:22 AM",
-    unread: true,
-    starred: true,
-  },
-  {
-    id: "3",
-    from: "Title Company",
-    email: "closing@titleco.com",
-    subject: "Clear to Close - Wilson Property",
-    preview: "We have received all necessary documents and the file is now clear to close...",
-    date: "Yesterday",
-    unread: false,
-    starred: false,
-  },
-  {
-    id: "4",
-    from: "Appraiser",
-    email: "appraisals@valuepro.com",
-    subject: "Appraisal Report - 456 Oak Ave",
-    preview: "The appraisal report for the property at 456 Oak Avenue has been completed...",
-    date: "Yesterday",
-    unread: false,
-    starred: false,
-  },
-  {
-    id: "5",
-    from: "Insurance Agent",
-    email: "quotes@insureco.com",
-    subject: "HOI Quote - Thompson Purchase",
-    preview: "Attached is the homeowner's insurance quote for the Thompson purchase...",
-    date: "Dec 13",
-    unread: false,
-    starred: true,
-  },
-];
+interface EmailMessage {
+  uid: number;
+  from: string;
+  fromEmail: string;
+  to: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  unread: boolean;
+  starred: boolean;
+  hasAttachments: boolean;
+  body?: string;
+  htmlBody?: string;
+}
 
 const folders = [
-  { name: "Inbox", icon: Inbox, count: 12 },
-  { name: "Starred", icon: Star, count: 3 },
-  { name: "Sent", icon: Send, count: 0 },
-  { name: "Archive", icon: Archive, count: 0 },
-  { name: "Trash", icon: Trash2, count: 0 },
+  { name: "Inbox", icon: Inbox },
+  { name: "Starred", icon: Star },
+  { name: "Sent", icon: Send },
+  { name: "Archive", icon: Archive },
+  { name: "Trash", icon: Trash2 },
 ];
 
 export default function Email() {
   const { toast } = useToast();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
-  const [selectedEmail, setSelectedEmail] = useState<typeof placeholderEmails[0] | null>(null);
+  const [emails, setEmails] = useState<EmailMessage[]>([]);
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [emailContent, setEmailContent] = useState<{ body?: string; htmlBody?: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
     body: "",
   });
+
+  const fetchEmails = useCallback(async (folder: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
+        body: { folder, limit: 50 },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setEmails(data.emails || []);
+        setFolderCounts(prev => ({
+          ...prev,
+          [folder]: data.emails?.filter((e: EmailMessage) => e.unread).length || 0,
+        }));
+      } else {
+        throw new Error(data?.error || "Failed to fetch emails");
+      }
+    } catch (error: any) {
+      console.error("Error fetching emails:", error);
+      toast({
+        title: "Failed to fetch emails",
+        description: error.message || "Could not connect to email server.",
+        variant: "destructive",
+      });
+      setEmails([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  const fetchEmailContent = async (uid: number) => {
+    setIsLoadingContent(true);
+    setEmailContent(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
+        body: { folder: selectedFolder, fetchContent: true, messageUid: uid },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.email) {
+        setEmailContent({
+          body: data.email.body,
+          htmlBody: data.email.htmlBody,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching email content:", error);
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmails(selectedFolder);
+  }, [selectedFolder, fetchEmails]);
+
+  const handleSelectEmail = (email: EmailMessage) => {
+    setSelectedEmail(email);
+    fetchEmailContent(email.uid);
+  };
 
   const handleCompose = () => {
     setComposeData({ to: "", subject: "", body: "" });
@@ -93,9 +122,9 @@ export default function Email() {
   const handleReply = () => {
     if (!selectedEmail) return;
     setComposeData({
-      to: selectedEmail.email,
+      to: selectedEmail.fromEmail,
       subject: `Re: ${selectedEmail.subject}`,
-      body: `\n\n---\nOn ${selectedEmail.date}, ${selectedEmail.from} wrote:\n${selectedEmail.preview}`,
+      body: `\n\n---\nOn ${selectedEmail.date}, ${selectedEmail.from} wrote:\n${emailContent?.body || selectedEmail.snippet}`,
     });
     setIsComposeOpen(true);
   };
@@ -105,7 +134,7 @@ export default function Email() {
     setComposeData({
       to: "",
       subject: `Fwd: ${selectedEmail.subject}`,
-      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.from} <${selectedEmail.email}>\nDate: ${selectedEmail.date}\nSubject: ${selectedEmail.subject}\n\n${selectedEmail.preview}`,
+      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.from} <${selectedEmail.fromEmail}>\nDate: ${selectedEmail.date}\nSubject: ${selectedEmail.subject}\n\n${emailContent?.body || selectedEmail.snippet}`,
     });
     setIsComposeOpen(true);
   };
@@ -152,11 +181,14 @@ export default function Email() {
   };
 
   const handleRefresh = () => {
-    toast({
-      title: "Inbox sync",
-      description: "Full inbox synchronization requires IMAP integration. Outgoing emails via SMTP are working.",
-    });
+    fetchEmails(selectedFolder);
   };
+
+  const filteredEmails = emails.filter(email => 
+    email.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
@@ -166,8 +198,8 @@ export default function Email() {
           <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Refresh
           </Button>
           <Button size="sm" onClick={handleCompose}>
@@ -196,14 +228,14 @@ export default function Email() {
                   <folder.icon className="h-4 w-4" />
                   {folder.name}
                 </div>
-                {folder.count > 0 && (
+                {(folderCounts[folder.name] || 0) > 0 && (
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
                     selectedFolder === folder.name
                       ? "bg-primary-foreground/20 text-primary-foreground"
                       : "bg-muted-foreground/20 text-muted-foreground"
                   )}>
-                    {folder.count}
+                    {folderCounts[folder.name]}
                   </span>
                 )}
               </button>
@@ -225,40 +257,55 @@ export default function Email() {
             </div>
           </div>
           <ScrollArea className="flex-1">
-            <div className="divide-y">
-              {placeholderEmails.map((email) => (
-                <button
-                  key={email.id}
-                  onClick={() => setSelectedEmail(email)}
-                  className={cn(
-                    "w-full text-left p-3 hover:bg-muted/50 transition-colors",
-                    selectedEmail?.id === email.id && "bg-muted",
-                    email.unread && "bg-primary/5"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className={cn(
-                      "text-sm truncate",
-                      email.unread ? "font-semibold" : "font-medium"
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredEmails.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                No emails found
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredEmails.map((email) => (
+                  <button
+                    key={email.uid}
+                    onClick={() => handleSelectEmail(email)}
+                    className={cn(
+                      "w-full text-left p-3 hover:bg-muted/50 transition-colors",
+                      selectedEmail?.uid === email.uid && "bg-muted",
+                      email.unread && "bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <span className={cn(
+                        "text-sm truncate",
+                        email.unread ? "font-semibold" : "font-medium"
+                      )}>
+                        {email.from}
+                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                        <span className="text-xs text-muted-foreground">
+                          {email.date}
+                        </span>
+                      </div>
+                    </div>
+                    <p className={cn(
+                      "text-sm truncate mb-1",
+                      email.unread ? "font-medium text-foreground" : "text-muted-foreground"
                     )}>
-                      {email.from}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">
-                      {email.date}
-                    </span>
-                  </div>
-                  <p className={cn(
-                    "text-sm truncate mb-1",
-                    email.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                  )}>
-                    {email.subject}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {email.preview}
-                  </p>
-                </button>
-              ))}
-            </div>
+                      {email.subject}
+                    </p>
+                    {email.snippet && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {email.snippet}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </div>
 
@@ -271,18 +318,30 @@ export default function Email() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{selectedEmail.from}</p>
-                    <p className="text-xs text-muted-foreground">{selectedEmail.email}</p>
+                    <p className="text-xs text-muted-foreground">{selectedEmail.fromEmail}</p>
                   </div>
                   <span className="text-sm text-muted-foreground">{selectedEmail.date}</span>
                 </div>
               </div>
               <ScrollArea className="flex-1 p-4">
-                <div className="prose prose-sm max-w-none text-foreground">
-                  <p>{selectedEmail.preview}</p>
-                  <p className="mt-4 text-muted-foreground italic">
-                    [Full email content would be displayed here when connected to email server]
-                  </p>
-                </div>
+                {isLoadingContent ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : emailContent?.htmlBody ? (
+                  <div 
+                    className="prose prose-sm max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: emailContent.htmlBody }}
+                  />
+                ) : emailContent?.body ? (
+                  <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                    {emailContent.body}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground italic text-sm">
+                    No content available
+                  </div>
+                )}
               </ScrollArea>
               <div className="p-3 border-t flex gap-2">
                 <Button size="sm" variant="outline" onClick={handleReply}>

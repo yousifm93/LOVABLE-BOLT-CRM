@@ -88,6 +88,16 @@ interface LenderRow {
   renewed_on: string | null;
 }
 
+function cleanLenderType(val: string | null | undefined): string | null {
+  if (!val) return null;
+  const v = val.toString().trim().toUpperCase();
+  if (v === 'CONVENTIONAL' || v === 'CONV') return 'Conventional';
+  if (v === 'NON-QM' || v === 'NONQM' || v === 'NON QM') return 'Non-QM';
+  if (v === 'PRIVATE') return 'Private';
+  if (v === 'HELOC') return 'HELOC';
+  return 'Conventional'; // Default fallback
+}
+
 function cleanYNTBD(val: string | null | undefined): string | null {
   if (!val) return null;
   const v = val.toString().trim().toUpperCase();
@@ -214,7 +224,7 @@ function mapRowToLender(row: Record<string, string>): Partial<LenderRow> {
   
   return {
     lender_name: cleanText(row['Name']) || '',
-    lender_type: cleanText(row['LENDER TYPE']) || 'Conventional',
+    lender_type: cleanLenderType(row['LENDER TYPE']),
     initial_approval_date: cleanDate(row['INITIAL APPROVAL ON']),
     account_executive: accountExec || null,
     account_executive_email: cleanText(row['AE EMAIL']),
