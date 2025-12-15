@@ -88,26 +88,38 @@ function stripStyleBlocks(html: string): string {
   return html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
 }
 
-// Extract clean HTML body starting from <html> or <body> tag
+// Find where HTML document actually starts and strip everything before it
+function extractHtmlDocument(source: string): string {
+  const htmlStartPatterns = [
+    /<!DOCTYPE\s+html/i,
+    /<html[^>]*>/i,
+    /<head[^>]*>/i,
+    /<body[^>]*>/i,
+  ];
+  
+  let earliestStart = -1;
+  for (const pattern of htmlStartPatterns) {
+    const match = source.match(pattern);
+    if (match && match.index !== undefined) {
+      if (earliestStart === -1 || match.index < earliestStart) {
+        earliestStart = match.index;
+      }
+    }
+  }
+  
+  if (earliestStart > 0) {
+    // Strip EVERYTHING before the HTML document starts
+    return source.substring(earliestStart);
+  }
+  
+  return source;
+}
+
+// Extract clean HTML body
 function extractCleanHtmlBody(html: string): string {
-  // Look for <body> tag and extract from there
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  if (bodyMatch) {
-    return bodyMatch[0];
-  }
-  
-  // Look for <html> tag
-  const htmlMatch = html.match(/<html[^>]*>([\s\S]*)<\/html>/i);
-  if (htmlMatch) {
-    return htmlMatch[0];
-  }
-  
-  // If it starts with DOCTYPE or html, return as is
-  if (html.trim().match(/^(<!DOCTYPE|<html)/i)) {
-    return html;
-  }
-  
-  return html;
+  // First strip everything before the HTML document
+  const cleaned = extractHtmlDocument(html);
+  return cleaned;
 }
 
 // Clean MIME artifacts from content
