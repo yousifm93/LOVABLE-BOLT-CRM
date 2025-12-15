@@ -1924,6 +1924,7 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('lenders')
       .select('*')
+      .is('deleted_at', null)
       .order('lender_name');
 
     if (error) throw error;

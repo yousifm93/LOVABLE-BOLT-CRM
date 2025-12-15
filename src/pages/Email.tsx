@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,7 +50,7 @@ export default function Email() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
@@ -199,58 +199,44 @@ export default function Email() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Email</h1>
-          <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Email</h1>
+            <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
+          </div>
+          <div className="flex items-center gap-1 ml-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleCompose}
+              className="h-8 w-8"
+              title="Compose"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleRefresh} 
+              disabled={isLoading}
+              className="h-8 w-8"
+              title="Refresh"
+            >
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+            </Button>
+          </div>
         </div>
       </div>
 
       <ResizablePanelGroup direction="horizontal" className="h-[calc(100%-60px)] rounded-lg">
         {/* Sidebar */}
         <ResizablePanel 
-          defaultSize={sidebarCollapsed ? 5 : 15} 
-          minSize={5} 
+          defaultSize={15} 
+          minSize={10} 
           maxSize={25}
           className="pr-2"
         >
-          <div className={cn(
-            "h-full flex flex-col transition-all duration-200",
-            sidebarCollapsed ? "items-center" : ""
-          )}>
-            {/* Collapse/Expand button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={cn("mb-2", sidebarCollapsed ? "w-8 h-8 p-0" : "w-full justify-start")}
-            >
-              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4 mr-2" />}
-              {!sidebarCollapsed && "Collapse"}
-            </Button>
-
-            {/* Refresh and Compose buttons */}
-            <div className={cn("space-y-2 mb-4 shrink-0", sidebarCollapsed ? "w-8" : "w-full")}>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleRefresh} 
-                disabled={isLoading}
-                className={cn("shrink-0", sidebarCollapsed ? "w-8 justify-center p-2" : "w-28 justify-start")}
-              >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin", !sidebarCollapsed && "mr-2")} />
-                {!sidebarCollapsed && "Refresh"}
-              </Button>
-              <Button 
-                variant="ghost"
-                size="sm" 
-                onClick={handleCompose}
-                className={cn("shrink-0", sidebarCollapsed ? "w-8 justify-center p-2" : "w-28 justify-start")}
-              >
-                <Plus className={cn("h-4 w-4", !sidebarCollapsed && "mr-2")} />
-                {!sidebarCollapsed && "Compose"}
-              </Button>
-            </div>
-
+          <div className="h-full flex flex-col">
             {/* Folders */}
             <div className="space-y-1 flex-1">
               {folders.map((folder) => (
@@ -261,16 +247,14 @@ export default function Email() {
                     "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
                     selectedFolder === folder.name
                       ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-foreground",
-                    sidebarCollapsed && "justify-center px-2"
+                      : "hover:bg-muted text-foreground"
                   )}
-                  title={sidebarCollapsed ? folder.name : undefined}
                 >
-                  <div className={cn("flex items-center", sidebarCollapsed ? "gap-0" : "gap-2")}>
+                  <div className="flex items-center gap-2">
                     <folder.icon className="h-4 w-4" />
-                    {!sidebarCollapsed && folder.name}
+                    {folder.name}
                   </div>
-                  {!sidebarCollapsed && (folderCounts[folder.name] || 0) > 0 && (
+                  {(folderCounts[folder.name] || 0) > 0 && (
                     <span className={cn(
                       "text-xs px-1.5 py-0.5 rounded-full",
                       selectedFolder === folder.name
@@ -324,12 +308,12 @@ export default function Email() {
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <span className={cn(
-                          "text-sm truncate",
+                          "text-sm truncate flex-1 min-w-0",
                           email.unread ? "font-semibold" : "font-medium"
                         )}>
                           {email.from}
                         </span>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2 whitespace-nowrap">
                           {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                           <span className="text-xs text-muted-foreground">
                             {email.date}

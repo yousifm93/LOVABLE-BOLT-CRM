@@ -65,9 +65,10 @@ export function CreateLenderModal({ open, onOpenChange, onLenderCreated, default
       resetForm();
       onOpenChange(false);
       onLenderCreated();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating lender:", error);
-      toast.error("Failed to create lender");
+      const errorMsg = error?.message || error?.details || "Unknown error occurred";
+      toast.error(`Failed to create lender: ${errorMsg}`);
     } finally {
       setIsLoading(false);
     }
