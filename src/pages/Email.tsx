@@ -289,11 +289,11 @@ export default function Email() {
                     key={email.uid}
                     onClick={() => handleSelectEmail(email)}
                     className={cn(
-                      "w-full text-left p-3 hover:bg-muted/50 transition-colors",
+                      "w-full text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden min-w-0",
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center">
+                    <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center overflow-hidden">
                       <span
                         className={cn(
                           "text-sm truncate min-w-0",
@@ -311,14 +311,14 @@ export default function Email() {
                     </div>
                     <p
                       className={cn(
-                        "text-sm truncate min-w-0 mb-1",
+                        "text-sm truncate min-w-0 mb-1 overflow-hidden",
                         email.unread ? "font-medium text-foreground" : "text-muted-foreground"
                       )}
                     >
                       {email.subject}
                     </p>
                     {email.snippet && (
-                      <p className="text-xs text-muted-foreground truncate min-w-0">
+                      <p className="text-xs text-muted-foreground truncate min-w-0 overflow-hidden">
                         {email.snippet}
                       </p>
                     )}
