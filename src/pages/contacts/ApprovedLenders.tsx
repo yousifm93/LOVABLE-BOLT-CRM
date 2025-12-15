@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { CreateLenderModal } from "@/components/modals/CreateLenderModal";
 import { LenderDetailDialog } from "@/components/LenderDetailDialog";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
@@ -456,12 +456,11 @@ export default function ApprovedLenders() {
         </CardContent>
       </Card>
       
-      <CreateContactModal
+      <CreateLenderModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
-        onContactCreated={handleContactCreated}
-        defaultType="lender"
-        defaultStatus={createModalDefaultStatus}
+        onLenderCreated={loadLenders}
+        defaultStatus={createModalDefaultStatus as "Active" | "Pending"}
       />
 
       <LenderDetailDialog

@@ -34,9 +34,13 @@ interface EmailMessage {
 
 // Decode quoted-printable content
 function decodeQuotedPrintable(str: string): string {
-  return str
-    .replace(/=\r?\n/g, '') // Remove soft line breaks
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  try {
+    return str
+      .replace(/=\r?\n/g, '')
+      .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  } catch {
+    return str;
+  }
 }
 
 // Decode base64 content
@@ -49,119 +53,157 @@ function decodeBase64(str: string): string {
 }
 
 // Extract and decode body from MIME part
-function extractBodyFromPart(part: string, isHtml: boolean = false): string {
-  const transferEncodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
-  const encoding = transferEncodingMatch?.[1]?.toLowerCase() || '7bit';
+function extractBodyFromPart(part: string): string {
+  // Find the blank line that separates headers from body
+  let bodyStart = part.indexOf('\r\n\r\n');
+  if (bodyStart === -1) bodyStart = part.indexOf('\n\n');
+  if (bodyStart === -1) return '';
   
-  // Find body content after headers (double newline)
-  const bodyStart = part.indexOf("\r\n\r\n");
-  if (bodyStart === -1) {
-    const altBodyStart = part.indexOf("\n\n");
-    if (altBodyStart === -1) return "";
-    let body = part.substring(altBodyStart + 2);
-    body = body.replace(/--[^\r\n]+--?\s*$/g, '').trim();
-    if (encoding === 'quoted-printable') {
-      body = decodeQuotedPrintable(body);
-    } else if (encoding === 'base64') {
-      body = decodeBase64(body);
-    }
-    return body;
-  }
+  const headerEnd = bodyStart;
+  bodyStart = part.indexOf('\r\n\r\n') !== -1 ? bodyStart + 4 : bodyStart + 2;
   
-  let body = part.substring(bodyStart + 4);
+  const headers = part.substring(0, headerEnd).toLowerCase();
+  let body = part.substring(bodyStart).trim();
   
   // Remove trailing boundary markers
   body = body.replace(/--[^\r\n]+--?\s*$/g, '').trim();
   
   // Decode based on transfer encoding
-  if (encoding === 'quoted-printable') {
+  if (headers.includes('content-transfer-encoding: quoted-printable')) {
     body = decodeQuotedPrintable(body);
-  } else if (encoding === 'base64') {
+  } else if (headers.includes('content-transfer-encoding: base64')) {
     body = decodeBase64(body);
   }
   
   return body;
 }
 
-// Iteratively parse email content to find text/plain and text/html parts (avoids stack overflow)
+// Parse email content with multiple fallback strategies
 function parseEmailContent(source: string): { textBody: string; htmlBody: string } {
-  let textBody = "";
-  let htmlBody = "";
+  console.log('[parseEmailContent] Starting parse, source length:', source.length);
   
-  // Queue of content sections to process
-  const queue: string[] = [source];
-  const processedHashes = new Set<string>();
-  let iterations = 0;
-  const maxIterations = 50;
+  let textBody = '';
+  let htmlBody = '';
   
-  while (queue.length > 0 && iterations < maxIterations) {
-    iterations++;
-    const content = queue.shift()!;
-    
-    // Create simple hash to avoid reprocessing same content
-    const contentHash = content.substring(0, 200) + content.length;
-    if (processedHashes.has(contentHash)) continue;
-    processedHashes.add(contentHash);
-    
-    // Look for boundary only in header section (first 1000 chars)
-    const headerSection = content.substring(0, 1000);
-    const boundaryMatch = headerSection.match(/boundary="([^"]+)"/i) || 
-                          headerSection.match(/boundary=([^\s;\r\n"]+)/i);
-    
-    if (!boundaryMatch) {
-      // Not multipart - try to extract content directly
-      const contentTypeMatch = content.match(/Content-Type:\s*([^;\r\n]+)/i);
-      const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
-      
-      if (contentType.includes("text/html") && !htmlBody) {
-        const extracted = extractBodyFromPart(content, true);
-        if (extracted && extracted.length > 10) htmlBody = extracted;
-      } else if (contentType.includes("text/plain") && !textBody) {
-        const extracted = extractBodyFromPart(content, false);
-        if (extracted && extracted.length > 10) textBody = extracted;
-      }
-      continue;
-    }
-    
-    // Has boundary - split into parts
+  // Strategy 1: Look for boundary in headers (first 2000 chars for long headers)
+  const headerArea = source.substring(0, 2000);
+  const boundaryMatch = headerArea.match(/boundary=["']?([^"'\s;\r\n]+)["']?/i);
+  
+  if (boundaryMatch) {
     const boundary = boundaryMatch[1];
-    const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    console.log('[parseEmailContent] Found boundary:', boundary);
     
     // Split by boundary
-    let parts: string[];
-    try {
-      parts = content.split(new RegExp(`--${escapedBoundary}`));
-    } catch {
-      continue;
-    }
+    const parts = source.split('--' + boundary);
+    console.log('[parseEmailContent] Split into', parts.length, 'parts');
     
-    for (const part of parts) {
-      if (!part || part.trim() === '' || part.trim() === '--' || part.length < 20) continue;
+    for (let i = 1; i < parts.length && i < 20; i++) {
+      const part = parts[i];
+      if (part.startsWith('--')) continue; // End boundary
       
-      const partContentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
-      const partContentType = partContentTypeMatch?.[1]?.toLowerCase() || '';
+      // Find header/body separator
+      let partHeaderEnd = part.indexOf('\r\n\r\n');
+      if (partHeaderEnd === -1) partHeaderEnd = part.indexOf('\n\n');
+      if (partHeaderEnd === -1) continue;
       
-      // Skip attachments and embedded messages that cause loops
-      const dispositionMatch = part.match(/Content-Disposition:\s*(\S+)/i);
-      if (dispositionMatch && dispositionMatch[1].toLowerCase().includes("attachment")) continue;
-      if (partContentType.includes("message/rfc822")) continue;
+      const partHeaders = part.substring(0, partHeaderEnd).toLowerCase();
       
-      // If nested multipart, add to queue
-      if (partContentType.includes("multipart/")) {
-        queue.push(part);
-      } else if (partContentType.includes("text/html") && !htmlBody) {
-        const extracted = extractBodyFromPart(part, true);
-        if (extracted && extracted.length > 10) htmlBody = extracted;
-      } else if (partContentType.includes("text/plain") && !textBody) {
-        const extracted = extractBodyFromPart(part, false);
-        if (extracted && extracted.length > 10) textBody = extracted;
+      // Skip attachments and embedded messages
+      if (partHeaders.includes('attachment') || 
+          partHeaders.includes('message/rfc822') ||
+          partHeaders.includes('application/')) {
+        continue;
+      }
+      
+      // Check for nested multipart - process one level deep
+      const nestedBoundaryMatch = partHeaders.match(/boundary=["']?([^"'\s;\r\n]+)["']?/i);
+      if (nestedBoundaryMatch) {
+        const nestedBoundary = nestedBoundaryMatch[1];
+        const nestedParts = part.split('--' + nestedBoundary);
+        
+        for (let j = 1; j < nestedParts.length && j < 10; j++) {
+          const nestedPart = nestedParts[j];
+          if (nestedPart.startsWith('--')) continue;
+          
+          let nestedHeaderEnd = nestedPart.indexOf('\r\n\r\n');
+          if (nestedHeaderEnd === -1) nestedHeaderEnd = nestedPart.indexOf('\n\n');
+          if (nestedHeaderEnd === -1) continue;
+          
+          const nestedHeaders = nestedPart.substring(0, nestedHeaderEnd).toLowerCase();
+          
+          if (nestedHeaders.includes('text/html') && !htmlBody) {
+            htmlBody = extractBodyFromPart(nestedPart);
+            console.log('[parseEmailContent] Found HTML in nested part, length:', htmlBody.length);
+          } else if (nestedHeaders.includes('text/plain') && !textBody) {
+            textBody = extractBodyFromPart(nestedPart);
+            console.log('[parseEmailContent] Found text in nested part, length:', textBody.length);
+          }
+        }
+        continue;
+      }
+      
+      // Direct content type check
+      if (partHeaders.includes('text/html') && !htmlBody) {
+        htmlBody = extractBodyFromPart(part);
+        console.log('[parseEmailContent] Found HTML part, length:', htmlBody.length);
+      } else if (partHeaders.includes('text/plain') && !textBody) {
+        textBody = extractBodyFromPart(part);
+        console.log('[parseEmailContent] Found text part, length:', textBody.length);
       }
     }
-    
-    // If we found both, we're done
-    if (textBody && htmlBody) break;
   }
   
+  // Strategy 2: No boundary found or no content extracted - try direct extraction
+  if (!textBody && !htmlBody) {
+    console.log('[parseEmailContent] No multipart content found, trying direct extraction');
+    
+    // Find body after headers
+    let headerEnd = source.indexOf('\r\n\r\n');
+    if (headerEnd === -1) headerEnd = source.indexOf('\n\n');
+    
+    if (headerEnd > 0) {
+      const headers = source.substring(0, headerEnd).toLowerCase();
+      let body = source.substring(headerEnd + (source.indexOf('\r\n\r\n') !== -1 ? 4 : 2)).trim();
+      
+      // Decode if needed
+      if (headers.includes('content-transfer-encoding: quoted-printable')) {
+        body = decodeQuotedPrintable(body);
+      } else if (headers.includes('content-transfer-encoding: base64')) {
+        body = decodeBase64(body);
+      }
+      
+      // Detect if HTML by looking for tags
+      if (body.includes('<html') || body.includes('<body') || body.includes('<!DOCTYPE') || body.includes('<div') || body.includes('<table')) {
+        htmlBody = body;
+        console.log('[parseEmailContent] Direct extraction: detected HTML, length:', htmlBody.length);
+      } else if (body.length > 0) {
+        textBody = body;
+        console.log('[parseEmailContent] Direct extraction: plain text, length:', textBody.length);
+      }
+    }
+  }
+  
+  // Strategy 3: Last resort - grab anything after double newline
+  if (!textBody && !htmlBody) {
+    console.log('[parseEmailContent] Last resort extraction');
+    let doubleNewline = source.indexOf('\r\n\r\n');
+    if (doubleNewline === -1) doubleNewline = source.indexOf('\n\n');
+    
+    if (doubleNewline !== -1) {
+      const content = source.substring(doubleNewline + 4).trim();
+      if (content.length > 0) {
+        // Check if looks like HTML
+        if (content.includes('<') && content.includes('>') && (content.includes('<html') || content.includes('<body') || content.includes('<div') || content.includes('<p'))) {
+          htmlBody = content;
+        } else {
+          textBody = content;
+        }
+        console.log('[parseEmailContent] Last resort got content, type:', htmlBody ? 'HTML' : 'text', 'length:', (htmlBody || textBody).length);
+      }
+    }
+  }
+  
+  console.log('[parseEmailContent] Final result - text:', textBody.length, 'html:', htmlBody.length);
   return { textBody, htmlBody };
 }
 
