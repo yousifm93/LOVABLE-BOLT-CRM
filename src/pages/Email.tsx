@@ -307,14 +307,14 @@ export default function Email() {
                         selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                       )}
                     >
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="grid grid-cols-[1fr_auto] gap-2 mb-1 items-center">
                         <span className={cn(
-                          "text-sm truncate flex-1 min-w-0",
+                          "text-sm truncate",
                           email.unread ? "font-semibold" : "font-medium"
                         )}>
                           {email.from}
                         </span>
-                        <div className="flex items-center gap-1 w-[65px] justify-end flex-shrink-0">
+                        <div className="flex items-center gap-1">
                           {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                           <span className="text-xs text-muted-foreground whitespace-nowrap">
                             {email.date}
