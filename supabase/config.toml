@@ -155,3 +155,9 @@ verify_jwt = false
 
 [functions.import-agents]
 verify_jwt = false
+
+[functions.fetch-emails]
+verify_jwt = true
+
+[functions.send-email-ionos]
+verify_jwt = true

@@ -61,21 +61,34 @@ const columns: ColumnDef<any>[] = [
     accessorKey: "email",
     header: "Email",
     cell: ({ row }) => (
-      <div className="flex items-center text-sm">
+      <div className="flex items-center justify-center text-sm">
         <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
         <span className="truncate">{row.original.email || 'N/A'}</span>
       </div>
     ),
+    className: "text-center",
   },
   {
     accessorKey: "phone",
     header: "Phone",
-    cell: ({ row }) => (
-      <div className="flex items-center text-sm">
-        <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
-        <span>{row.original.phone || 'N/A'}</span>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const phone = row.original.phone;
+      const formatPhone = (p: string | null) => {
+        if (!p) return 'N/A';
+        const digits = p.replace(/\D/g, '');
+        if (digits.length === 10) {
+          return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+        }
+        return p;
+      };
+      return (
+        <div className="flex items-center justify-center text-sm">
+          <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+          <span>{formatPhone(phone)}</span>
+        </div>
+      );
+    },
+    className: "text-center",
   },
   {
     accessorKey: "last_agent_call",
