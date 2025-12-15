@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Phone, Mail, Building, Users, Upload } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Upload, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
 import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
+import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +35,16 @@ interface Lender {
   updated_at: string;
 }
 
+const initialColumns = [
+  { id: "rowNumber", label: "#", visible: true },
+  { id: "lender_name", label: "Lender Name", visible: true },
+  { id: "lender_type", label: "Lender Type", visible: true },
+  { id: "account_executive", label: "Account Executive", visible: true },
+  { id: "contact", label: "AE Contact", visible: true },
+  { id: "broker_portal_url", label: "Broker Portal", visible: true },
+  { id: "send_email", label: "Send Email", visible: true },
+];
+
 export default function ApprovedLenders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lenders, setLenders] = useState<Lender[]>([]);
@@ -49,6 +61,14 @@ export default function ApprovedLenders() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+
+  const {
+    columns: columnVisibility,
+    toggleColumn,
+    toggleAll,
+    saveView,
+    reorderColumns,
+  } = useColumnVisibility(initialColumns, "lenders-column-visibility");
 
   useEffect(() => {
     loadLenders();
@@ -78,14 +98,12 @@ export default function ApprovedLenders() {
     });
 
     try {
-      // Fetch the CSV file
       const response = await fetch('/lenders-import.csv');
       if (!response.ok) {
         throw new Error('Failed to fetch CSV file');
       }
       const csvData = await response.text();
 
-      // Call the edge function
       const { data, error } = await supabase.functions.invoke('import-lenders', {
         body: { csvData }
       });
@@ -99,7 +117,6 @@ export default function ApprovedLenders() {
         description: `Created: ${data.created}, Updated: ${data.updated}, Skipped: ${data.skipped}, Errors: ${data.errors}`,
       });
 
-      // Reload the lenders list
       await loadLenders();
     } catch (error) {
       console.error('Error importing lenders:', error);
@@ -172,55 +189,59 @@ export default function ApprovedLenders() {
     }
   };
 
-  // Add row numbers to data
   const lendersWithIndex = lenders.map((lender, index) => ({
     ...lender,
     rowNumber: index + 1
   }));
 
+  const isColumnVisible = (columnId: string) => {
+    const col = columnVisibility.find(c => c.id === columnId);
+    return col ? col.visible : true;
+  };
+
   const columns: ColumnDef<Lender & { rowNumber?: number }>[] = [
-    {
+    ...(isColumnVisible("rowNumber") ? [{
       accessorKey: "rowNumber",
       header: "#",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <span className="text-muted-foreground text-sm">{row.original.rowNumber}</span>
       ),
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("lender_name") ? [{
       accessorKey: "lender_name",
       header: "Lender Name",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <div className="flex items-center">
           <Building className="h-4 w-4 mr-2 text-muted-foreground" />
           <span className="font-medium">{row.original.lender_name}</span>
         </div>
       ),
       sortable: true,
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("lender_type") ? [{
       accessorKey: "lender_type",
       header: "Lender Type",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <InlineEditLenderType
           value={row.original.lender_type}
           onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" | "HELOC" })}
         />
       ),
       sortable: true,
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("account_executive") ? [{
       accessorKey: "account_executive",
       header: "Account Executive",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <span className="text-sm">{row.original.account_executive || "—"}</span>
       ),
       sortable: true,
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("contact") ? [{
       accessorKey: "contact",
       header: "AE Contact",
-      cell: ({ row }) => (
-        <div className="space-y-1">
+      cell: ({ row }: any) => (
+        <div className="space-y-1 text-left">
           <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
             <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
             <span className="truncate">{row.original.account_executive_email || "—"}</span>
@@ -231,11 +252,11 @@ export default function ApprovedLenders() {
           </div>
         </div>
       ),
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("broker_portal_url") ? [{
       accessorKey: "broker_portal_url",
       header: "Broker Portal",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <div className="flex items-center gap-1">
           <InlineEditLink
             value={row.original.broker_portal_url}
@@ -244,11 +265,11 @@ export default function ApprovedLenders() {
           />
         </div>
       ),
-    },
-    {
+    }] : []),
+    ...(isColumnVisible("send_email") ? [{
       accessorKey: "send_email",
       header: "Send Email",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <Button
           size="sm"
           variant="outline"
@@ -259,7 +280,7 @@ export default function ApprovedLenders() {
           Email
         </Button>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -286,6 +307,13 @@ export default function ApprovedLenders() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
+            <ColumnVisibilityButton
+              columns={columnVisibility}
+              onColumnToggle={toggleColumn}
+              onToggleAll={toggleAll}
+              onSaveView={saveView}
+              onReorderColumns={reorderColumns}
+            />
             <Button 
               variant="outline" 
               onClick={handleImportLenders}

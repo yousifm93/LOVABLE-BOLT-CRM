@@ -577,15 +577,15 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             <Separator />
 
-            {/* Loan Limits */}
+            {/* Loan Limits & Dates */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
                 <DollarSign className="h-4 w-4" />
-                Loan Limits
+                Loan Limits & Dates
               </h3>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 max-w-md">
+              <div className="grid grid-cols-4 gap-x-6 gap-y-2">
                 <div>
-                  <label className="text-xs text-muted-foreground">Minimum</label>
+                  <label className="text-xs text-muted-foreground">Min Loan</label>
                   <InlineEditCurrency
                     value={lender.min_loan_amount ?? null}
                     onValueChange={(value) => handleFieldUpdate('min_loan_amount', value)}
@@ -593,25 +593,13 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Maximum</label>
+                  <label className="text-xs text-muted-foreground">Max Loan</label>
                   <InlineEditCurrency
                     value={lender.max_loan_amount ?? null}
                     onValueChange={(value) => handleFieldUpdate('max_loan_amount', value)}
                     placeholder="$0"
                   />
                 </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Dates */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Dates
-              </h3>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 max-w-md">
                 <div>
                   <label className="text-xs text-muted-foreground">Initial Approval</label>
                   <InlineEditDate
