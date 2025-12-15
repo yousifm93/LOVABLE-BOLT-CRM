@@ -289,15 +289,18 @@ export default function Email() {
                     key={email.uid}
                     onClick={() => handleSelectEmail(email)}
                     className={cn(
-                      "w-full text-left p-3 hover:bg-muted/50 transition-colors",
+                      "w-full text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden",
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={cn(
-                        "text-sm truncate flex-1 mr-2",
-                        email.unread ? "font-semibold" : "font-medium"
-                      )}>
+                    <div className="flex items-center justify-between mb-1 gap-2">
+                      <span 
+                        className={cn(
+                          "text-sm truncate",
+                          email.unread ? "font-semibold" : "font-medium"
+                        )}
+                        style={{ maxWidth: 'calc(100% - 60px)' }}
+                      >
                         {email.from}
                       </span>
                       <div className="flex items-center gap-1 flex-shrink-0">
