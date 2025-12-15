@@ -16,6 +16,7 @@ import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
 import { ActivityLogDetailModal } from "@/components/modals/ActivityLogDetailModal";
+import { SendAgentEmailModal } from "@/components/modals/SendAgentEmailModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [isMeetingLogModalOpen, setIsMeetingLogModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [isLogDetailModalOpen, setIsLogDetailModalOpen] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
@@ -168,6 +170,16 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 )}
               </DialogDescription>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEmailModal(true)}
+              disabled={!agent.email}
+              className="flex items-center gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Send Email
+            </Button>
           </div>
         </DialogHeader>
 
@@ -425,6 +437,13 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         log={selectedLog}
         isOpen={isLogDetailModalOpen}
         onClose={() => setIsLogDetailModalOpen(false)}
+      />
+
+      <SendAgentEmailModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        agentEmail={agent?.email}
+        agentName={fullName}
       />
     </Dialog>
   );
