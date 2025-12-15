@@ -83,61 +83,83 @@ function extractBodyFromPart(part: string, isHtml: boolean = false): string {
   return body;
 }
 
-// Recursively parse multipart content to find text/plain and text/html parts
-function parseMultipartContent(source: string, depth: number = 0): { textBody: string; htmlBody: string } {
+// Iteratively parse email content to find text/plain and text/html parts (avoids stack overflow)
+function parseEmailContent(source: string): { textBody: string; htmlBody: string } {
   let textBody = "";
   let htmlBody = "";
   
-  // Prevent infinite recursion
-  if (depth > 5) {
-    return { textBody, htmlBody };
-  }
+  // Queue of content sections to process
+  const queue: string[] = [source];
+  const processedHashes = new Set<string>();
+  let iterations = 0;
+  const maxIterations = 50;
   
-  // Find the boundary - only look in first 2000 chars to avoid matching in body
-  const headerSection = source.substring(0, 2000);
-  const boundaryMatch = headerSection.match(/boundary="([^"]+)"/i) || headerSection.match(/boundary=([^\s;\r\n]+)/i);
-  
-  if (!boundaryMatch) {
-    // Not multipart, treat as single part
-    const contentTypeMatch = source.match(/Content-Type:\s*([^;\r\n]+)/i);
-    const contentType = contentTypeMatch?.[1]?.toLowerCase() || 'text/plain';
+  while (queue.length > 0 && iterations < maxIterations) {
+    iterations++;
+    const content = queue.shift()!;
     
-    if (contentType.includes("text/html")) {
-      htmlBody = extractBodyFromPart(source, true);
-    } else if (contentType.includes("text/plain")) {
-      textBody = extractBodyFromPart(source, false);
-    }
-    return { textBody, htmlBody };
-  }
-  
-  const boundary = boundaryMatch[1];
-  const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const parts = source.split(new RegExp(`--${escapedBoundary}`));
-  
-  for (const part of parts) {
-    if (part.trim() === '' || part.trim() === '--' || part.length < 10) continue;
+    // Create simple hash to avoid reprocessing same content
+    const contentHash = content.substring(0, 200) + content.length;
+    if (processedHashes.has(contentHash)) continue;
+    processedHashes.add(contentHash);
     
-    const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
-    const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
+    // Look for boundary only in header section (first 1000 chars)
+    const headerSection = content.substring(0, 1000);
+    const boundaryMatch = headerSection.match(/boundary="([^"]+)"/i) || 
+                          headerSection.match(/boundary=([^\s;\r\n"]+)/i);
     
-    // Check if this part is itself multipart (nested)
-    if (contentType.includes("multipart/") && depth < 5) {
-      const nestedResult = parseMultipartContent(part, depth + 1);
-      if (nestedResult.textBody && !textBody) textBody = nestedResult.textBody;
-      if (nestedResult.htmlBody && !htmlBody) htmlBody = nestedResult.htmlBody;
-    } else if (contentType.includes("text/plain") && !textBody) {
-      // Skip if it looks like an attachment
-      const dispositionMatch = part.match(/Content-Disposition:\s*(\S+)/i);
-      if (!dispositionMatch || !dispositionMatch[1].toLowerCase().includes("attachment")) {
-        textBody = extractBodyFromPart(part, false);
+    if (!boundaryMatch) {
+      // Not multipart - try to extract content directly
+      const contentTypeMatch = content.match(/Content-Type:\s*([^;\r\n]+)/i);
+      const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
+      
+      if (contentType.includes("text/html") && !htmlBody) {
+        const extracted = extractBodyFromPart(content, true);
+        if (extracted && extracted.length > 10) htmlBody = extracted;
+      } else if (contentType.includes("text/plain") && !textBody) {
+        const extracted = extractBodyFromPart(content, false);
+        if (extracted && extracted.length > 10) textBody = extracted;
       }
-    } else if (contentType.includes("text/html") && !htmlBody) {
-      // Skip if it looks like an attachment
+      continue;
+    }
+    
+    // Has boundary - split into parts
+    const boundary = boundaryMatch[1];
+    const escapedBoundary = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Split by boundary
+    let parts: string[];
+    try {
+      parts = content.split(new RegExp(`--${escapedBoundary}`));
+    } catch {
+      continue;
+    }
+    
+    for (const part of parts) {
+      if (!part || part.trim() === '' || part.trim() === '--' || part.length < 20) continue;
+      
+      const partContentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
+      const partContentType = partContentTypeMatch?.[1]?.toLowerCase() || '';
+      
+      // Skip attachments and embedded messages that cause loops
       const dispositionMatch = part.match(/Content-Disposition:\s*(\S+)/i);
-      if (!dispositionMatch || !dispositionMatch[1].toLowerCase().includes("attachment")) {
-        htmlBody = extractBodyFromPart(part, true);
+      if (dispositionMatch && dispositionMatch[1].toLowerCase().includes("attachment")) continue;
+      if (partContentType.includes("message/rfc822")) continue;
+      
+      // If nested multipart, add to queue
+      if (partContentType.includes("multipart/")) {
+        queue.push(part);
+      } else if (partContentType.includes("text/html") && !htmlBody) {
+        const extracted = extractBodyFromPart(part, true);
+        if (extracted && extracted.length > 10) htmlBody = extracted;
+      } else if (partContentType.includes("text/plain") && !textBody) {
+        const extracted = extractBodyFromPart(part, false);
+        if (extracted && extracted.length > 10) textBody = extracted;
       }
     }
+    
+    // If we found both, we're done
+    if (textBody && htmlBody) break;
   }
   
   return { textBody, htmlBody };
@@ -213,8 +235,8 @@ serve(async (req) => {
         if (message) {
           const source = message.source?.toString() || "";
           
-          // Use recursive multipart parser
-          const { textBody, htmlBody } = parseMultipartContent(source);
+          // Use iterative parser (avoids stack overflow)
+          const { textBody, htmlBody } = parseEmailContent(source);
 
           return new Response(
             JSON.stringify({
