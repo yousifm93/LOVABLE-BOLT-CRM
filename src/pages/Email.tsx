@@ -226,7 +226,7 @@ export default function Email() {
 
       <div className="flex h-[calc(100%-60px)] gap-2">
         {/* Folder Sidebar - Fixed width */}
-        <div className="w-[150px] flex-shrink-0 pr-2">
+        <div className="w-[220px] flex-shrink-0 pr-2">
           <div className="h-full flex flex-col">
             <div className="space-y-1 flex-1">
               {folders.map((folder) => (
@@ -261,7 +261,7 @@ export default function Email() {
         </div>
 
         {/* Email List - Fixed width */}
-        <div className="w-[320px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
+        <div className="w-[400px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
           <div className="p-2 border-b">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
