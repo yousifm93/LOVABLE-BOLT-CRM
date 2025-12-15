@@ -283,7 +283,10 @@ export default function Email() {
                 No emails found
               </div>
             ) : (
-              <div className="divide-y w-full max-w-full">
+              <div
+                className="divide-y w-full max-w-full"
+                style={{ width: "100%", maxWidth: "100%" }}
+              >
                 {filteredEmails.map((email) => (
                   <button
                     key={email.uid}
@@ -293,20 +296,21 @@ export default function Email() {
                       selectedEmail?.uid === email.uid && "bg-primary/10 border-l-2 border-primary"
                     )}
                   >
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 mb-1 items-center w-full max-w-full min-w-0">
+                    <div
+                      className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
+                      style={{ maxWidth: "calc(400px - 24px)" }}
+                    >
                       <span
                         className={cn(
-                          "text-sm truncate min-w-0",
+                          "text-sm truncate flex-1 min-w-0",
                           email.unread ? "font-semibold" : "font-medium"
                         )}
                       >
                         {email.from}
                       </span>
-                      <div className="flex items-center gap-1 flex-shrink-0 justify-self-end">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {email.date}
-                        </span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>
                       </div>
                     </div>
                     <p
