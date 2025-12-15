@@ -84,12 +84,18 @@ function extractBodyFromPart(part: string, isHtml: boolean = false): string {
 }
 
 // Recursively parse multipart content to find text/plain and text/html parts
-function parseMultipartContent(source: string): { textBody: string; htmlBody: string } {
+function parseMultipartContent(source: string, depth: number = 0): { textBody: string; htmlBody: string } {
   let textBody = "";
   let htmlBody = "";
   
-  // Find the boundary
-  const boundaryMatch = source.match(/boundary="([^"]+)"/i) || source.match(/boundary=([^\s;]+)/i);
+  // Prevent infinite recursion
+  if (depth > 5) {
+    return { textBody, htmlBody };
+  }
+  
+  // Find the boundary - only look in first 2000 chars to avoid matching in body
+  const headerSection = source.substring(0, 2000);
+  const boundaryMatch = headerSection.match(/boundary="([^"]+)"/i) || headerSection.match(/boundary=([^\s;\r\n]+)/i);
   
   if (!boundaryMatch) {
     // Not multipart, treat as single part
@@ -109,14 +115,14 @@ function parseMultipartContent(source: string): { textBody: string; htmlBody: st
   const parts = source.split(new RegExp(`--${escapedBoundary}`));
   
   for (const part of parts) {
-    if (part.trim() === '' || part.trim() === '--') continue;
+    if (part.trim() === '' || part.trim() === '--' || part.length < 10) continue;
     
     const contentTypeMatch = part.match(/Content-Type:\s*([^;\r\n]+)/i);
     const contentType = contentTypeMatch?.[1]?.toLowerCase() || '';
     
     // Check if this part is itself multipart (nested)
-    if (contentType.includes("multipart/")) {
-      const nestedResult = parseMultipartContent(part);
+    if (contentType.includes("multipart/") && depth < 5) {
+      const nestedResult = parseMultipartContent(part, depth + 1);
       if (nestedResult.textBody && !textBody) textBody = nestedResult.textBody;
       if (nestedResult.htmlBody && !htmlBody) htmlBody = nestedResult.htmlBody;
     } else if (contentType.includes("text/plain") && !textBody) {
