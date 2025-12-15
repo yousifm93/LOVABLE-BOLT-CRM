@@ -14,7 +14,7 @@ interface CreateLenderModalProps {
   defaultStatus?: "Active" | "Pending";
 }
 
-const LENDER_TYPES = ["Correspondent", "Retail", "Warehouse", "Wholesale"];
+const LENDER_TYPES = ["Conventional", "Non-QM", "Private", "HELOC"];
 
 export function CreateLenderModal({ open, onOpenChange, onLenderCreated, defaultStatus = "Pending" }: CreateLenderModalProps) {
   const [isLoading, setIsLoading] = useState(false);
