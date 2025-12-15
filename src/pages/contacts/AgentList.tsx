@@ -4,13 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -21,7 +18,6 @@ const columns: ColumnDef<any>[] = [
     cell: ({ row }) => {
       const agent = row.original;
       const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || 'Unknown';
-      const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('') || '??';
       
       return (
         <div className="text-left">
@@ -29,11 +25,6 @@ const columns: ColumnDef<any>[] = [
         </div>
       );
     },
-    sortable: true,
-  },
-  {
-    accessorKey: "brokerage",
-    header: "Brokerage",
     sortable: true,
   },
   {
@@ -55,77 +46,6 @@ const columns: ColumnDef<any>[] = [
         <span>{row.original.phone || 'N/A'}</span>
       </div>
     ),
-  },
-  {
-    accessorKey: "agent_rank",
-    header: "Rank",
-    cell: ({ row }) => {
-      const rank = row.original.agent_rank;
-      if (!rank) return <span className="text-muted-foreground">—</span>;
-      
-      const rankColors = {
-        'A': 'bg-success text-success-foreground',
-        'B': 'bg-info text-info-foreground',
-        'C': 'bg-warning text-warning-foreground',
-        'D': 'bg-destructive/70 text-destructive-foreground',
-        'F': 'bg-destructive text-destructive-foreground'
-      };
-      
-      return (
-        <Badge className={cn("font-bold", rankColors[rank as keyof typeof rankColors])}>
-          {rank}
-        </Badge>
-      );
-    },
-    sortable: true,
-  },
-  {
-    accessorKey: "last_agent_call",
-    header: "Last Call",
-    cell: ({ row }) => {
-      const date = row.original.last_agent_call;
-      if (!date) return <span className="text-muted-foreground text-sm">Never</span>;
-      return <span className="text-sm">{new Date(date).toLocaleDateString()}</span>;
-    },
-    sortable: true,
-  },
-  {
-    accessorKey: "next_agent_call",
-    header: "Next Call",
-    cell: ({ row }) => {
-      const date = row.original.next_agent_call;
-      if (!date) return <span className="text-muted-foreground text-sm">—</span>;
-      
-      const isOverdue = new Date(date) < new Date();
-      return (
-        <span className={cn("text-sm", isOverdue && "text-destructive font-medium")}>
-          {new Date(date).toLocaleDateString()}
-        </span>
-      );
-    },
-    sortable: true,
-  },
-  {
-    accessorKey: "face_to_face_meeting",
-    header: "F2F Meeting",
-    cell: ({ row }) => {
-      const date = row.original.face_to_face_meeting;
-      if (!date) return <span className="text-muted-foreground text-sm">—</span>;
-      
-      const meetingDate = new Date(date);
-      const isUpcoming = meetingDate > new Date();
-      
-      return (
-        <span className={cn(
-          "text-sm",
-          isUpcoming && "text-success font-medium",
-          !isUpcoming && "text-muted-foreground"
-        )}>
-          {meetingDate.toLocaleDateString()}
-        </span>
-      );
-    },
-    sortable: true,
   },
 ];
 

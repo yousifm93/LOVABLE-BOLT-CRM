@@ -1539,7 +1539,9 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('buyer_agents')
       .select('*')
-      .order('first_name');
+      .is('deleted_at', null)
+      .order('first_name')
+      .limit(5000);
     
     if (error) throw error;
     return data;
