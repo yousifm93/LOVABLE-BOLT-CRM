@@ -134,44 +134,77 @@ function cleanText(val: string | null | undefined): string | null {
   return text || null;
 }
 
+// RFC 4180 compliant CSV parser that handles multi-line quoted fields
 function parseCSV(csvText: string): Record<string, string>[] {
-  const lines = csvText.split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
   
-  // Parse header - handle escaped commas in quoted fields
-  const parseRow = (row: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
     
-    for (let i = 0; i < row.length; i++) {
-      const char = row[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote ("") - add single quote and skip next
+        currentField += '"';
+        i++;
       } else {
-        current += char;
+        // Toggle quote state
+        inQuotes = !inQuotes;
       }
+    } else if (char === ',' && !inQuotes) {
+      // End of field (only when not in quotes)
+      currentRow.push(currentField.trim());
+      currentField = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      // End of row (only when not in quotes)
+      if (char === '\r' && nextChar === '\n') i++; // Handle CRLF
+      if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField.trim());
+        if (currentRow.some(f => f)) rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+      }
+    } else {
+      currentField += char;
     }
-    result.push(current.trim());
-    return result;
-  };
-  
-  const headers = parseRow(lines[0]);
-  const rows: Record<string, string>[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseRow(lines[i]);
-    const row: Record<string, string> = {};
-    headers.forEach((header, idx) => {
-      row[header] = values[idx] || '';
-    });
-    rows.push(row);
   }
   
-  return rows;
+  // Handle last row if no trailing newline
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.some(f => f)) rows.push(currentRow);
+  }
+  
+  if (rows.length < 2) return [];
+  
+  // Convert to objects using first row as headers
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj: Record<string, string> = {};
+    headers.forEach((header, idx) => {
+      obj[header] = row[idx] || '';
+    });
+    return obj;
+  });
+}
+
+// Validate if a row looks like a valid lender (not an address fragment)
+function isValidLenderRow(row: Record<string, string>): boolean {
+  const name = row['Name']?.trim() || '';
+  if (!name) return false;
+  
+  // Skip rows where name looks like an address
+  if (/^\d+\s/.test(name)) return false; // Starts with numbers (address)
+  if (/^P\.?O\.?\s*BOX/i.test(name)) return false; // PO Box
+  if (/^SUITE\s/i.test(name)) return false; // Suite number
+  if (/^#\d+/.test(name)) return false; // Unit number
+  if (/^\w+,\s*[A-Z]{2}\s+\d{5}/.test(name)) return false; // City, ST ZIP
+  if (name.length < 2) return false; // Too short
+  
+  return true;
 }
 
 function mapRowToLender(row: Record<string, string>): Partial<LenderRow> {
@@ -308,6 +341,13 @@ serve(async (req) => {
     const errors: string[] = [];
 
     for (const row of rows) {
+      // Skip invalid rows (address fragments from multi-line fields)
+      if (!isValidLenderRow(row)) {
+        console.log(`Skipping invalid row: ${row['Name'] || '(empty)'}`);
+        skipped++;
+        continue;
+      }
+      
       const lenderData = mapRowToLender(row);
       
       if (!lenderData.lender_name) {
