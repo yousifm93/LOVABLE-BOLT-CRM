@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Phone, Mail, Building, Users } from "lucide-react";
+import { Search, Filter, Phone, Mail, Building, Users, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +43,7 @@ export default function ApprovedLenders() {
   const [emailModalLender, setEmailModalLender] = useState<Lender | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isBulkEmailModalOpen, setIsBulkEmailModalOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -61,6 +63,49 @@ export default function ApprovedLenders() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImportLenders = async () => {
+    setIsImporting(true);
+    toast({
+      title: "Importing...",
+      description: "Fetching lender data from CSV file.",
+    });
+
+    try {
+      // Fetch the CSV file
+      const response = await fetch('/lenders-import.csv');
+      if (!response.ok) {
+        throw new Error('Failed to fetch CSV file');
+      }
+      const csvData = await response.text();
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('import-lenders', {
+        body: { csvData }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Import Complete",
+        description: `Created: ${data.created}, Updated: ${data.updated}, Skipped: ${data.skipped}, Errors: ${data.errors}`,
+      });
+
+      // Reload the lenders list
+      await loadLenders();
+    } catch (error) {
+      console.error('Error importing lenders:', error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import lenders.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -212,6 +257,14 @@ export default function ApprovedLenders() {
             <Button variant="outline">
               <Filter className="h-4 w-4 mr-2" />
               Filter
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleImportLenders}
+              disabled={isImporting}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Importing..." : "Import from CSV"}
             </Button>
             {selectedIds.size > 0 && (
               <>
