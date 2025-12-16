@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { 
   Mail, 
   CheckSquare, 
-  LayoutDashboard, 
+  Building2, 
   Calendar, 
-  Users, 
+  FileText, 
   Phone, 
   DollarSign, 
   Bot,
@@ -29,6 +29,7 @@ interface QuickAccessCard {
   icon: React.ElementType;
   url: string;
   count?: number;
+  description?: string;
   color: string;
 }
 
@@ -100,12 +101,12 @@ export default function Home() {
   const quickAccessCards: QuickAccessCard[] = [
     { title: "Inbox", icon: Mail, url: "/email", count: unreadEmailCount, color: "bg-blue-500/10 text-blue-600" },
     { title: "Tasks", icon: CheckSquare, url: "/tasks", count: taskCount, color: "bg-green-500/10 text-green-600" },
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard", color: "bg-purple-500/10 text-purple-600" },
+    { title: "Approved Lenders", icon: Building2, url: "/contacts/lenders", count: 34, color: "bg-purple-500/10 text-purple-600" },
     { title: "Active Files", icon: Calendar, url: "/active", count: activeCount, color: "bg-orange-500/10 text-orange-600" },
-    { title: "Leads", icon: Users, url: "/leads", count: leadsCount, color: "bg-pink-500/10 text-pink-600" },
+    { title: "Loan Estimate", icon: FileText, url: "/resources/loan-estimate", description: "Generate a loan estimate in seconds", color: "bg-pink-500/10 text-pink-600" },
     { title: "Real Estate Agents", icon: Phone, url: "/contacts/agents", count: agentCount, color: "bg-teal-500/10 text-teal-600" },
-    { title: "Loan Pricer", icon: DollarSign, url: "/resources/loan-pricer", color: "bg-amber-500/10 text-amber-600" },
-    { title: "Bolt Bot", icon: Bot, url: "/resources/chatbot", color: "bg-indigo-500/10 text-indigo-600" },
+    { title: "Loan Pricer", icon: DollarSign, url: "/resources/loan-pricer", description: "Price out any loan quickly", color: "bg-amber-500/10 text-amber-600" },
+    { title: "Bolt Bot", icon: Bot, url: "/resources/chatbot", description: "Search all guides and scenarios", color: "bg-indigo-500/10 text-indigo-600" },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -161,6 +162,9 @@ export default function Home() {
                   <h3 className="font-medium text-foreground">{card.title}</h3>
                   {card.count !== undefined && (
                     <p className="text-2xl font-semibold text-foreground mt-1">{card.count}</p>
+                  )}
+                  {card.description && (
+                    <p className="text-sm text-muted-foreground mt-1">{card.description}</p>
                   )}
                 </div>
               </CardContent>
