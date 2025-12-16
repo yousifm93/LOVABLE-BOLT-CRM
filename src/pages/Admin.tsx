@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle } from "lucide-react";
+import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle, Shield, Layout, Bot, FileQuestion } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
 import EmailTemplates from "@/pages/admin/EmailTemplates";
+import PasswordsVault from "@/pages/PasswordsVault";
+import PipelineViews from "@/pages/admin/PipelineViews";
+import GuidelineChatbot from "@/pages/resources/GuidelineChatbot";
 import { TaskAutomationsTable } from "@/components/admin/TaskAutomationsTable";
 import { EmailAutomationsTable } from "@/components/admin/EmailAutomationsTable";
 import { AddFieldModal } from "@/components/admin/AddFieldModal";
@@ -655,12 +658,16 @@ export default function Admin() {
 
       {/* Main Content */}
       <Tabs defaultValue="fields" className="space-y-4 mx-[10px]">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="fields">Field Management</TabsTrigger>
           <TabsTrigger value="email-automations">Email Automations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
           <TabsTrigger value="task-automations">Task Automations</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="passwords">Passwords</TabsTrigger>
+          <TabsTrigger value="pipeline-views">Pipeline Views</TabsTrigger>
+          <TabsTrigger value="backup-chat">Backup Chat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields" className="space-y-4">
@@ -763,6 +770,31 @@ export default function Admin() {
 
         <TabsContent value="task-automations" className="space-y-4">
           <TaskAutomationsTable />
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                System reports and analytics will be available here.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="passwords" className="space-y-4">
+          <PasswordsVault />
+        </TabsContent>
+
+        <TabsContent value="pipeline-views" className="space-y-4">
+          <PipelineViews />
+        </TabsContent>
+
+        <TabsContent value="backup-chat" className="space-y-4">
+          <GuidelineChatbot />
         </TabsContent>
       </Tabs>
 
