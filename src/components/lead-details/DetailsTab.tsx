@@ -39,7 +39,8 @@ import {
   Landmark,
   ClipboardCheck,
   Hash,
-  Target
+  Target,
+  Star
 } from "lucide-react";
 import {
   AlertDialog,
@@ -143,6 +144,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     discount_points_percentage: (client as any).discount_points_percentage || null,
     adjustments_credits: (client as any).adjustments_credits || null,
     apr: (client as any).apr || null,
+    // Review field
+    review_left_on: (client as any).review_left_on || null,
   });
 
   // Helper function for PITI calculation
@@ -338,6 +341,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
       adjustments_credits: (client as any).adjustments_credits || null,
       apr: (client as any).apr || null,
       close_date: (client as any).close_date || null,
+      review_left_on: (client as any).review_left_on || null,
     });
   };
 
@@ -424,6 +428,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           : null,
         adjustments_credits: editData.adjustments_credits,
         apr: editData.apr,
+        // Review field
+        review_left_on: editData.review_left_on || null,
       };
       
       // Recalculate P&I if loan amount is present
@@ -1098,6 +1104,19 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
           className="h-8"
           placeholder="0"
           min="0"
+        />
+      ) : undefined
+    },
+    { 
+      icon: Star, 
+      label: "Review Left On", 
+      value: (client as any).review_left_on ? formatDate((client as any).review_left_on) : "—",
+      editComponent: isEditing ? (
+        <Input
+          type="date"
+          value={editData.review_left_on || ""}
+          onChange={(e) => setEditData({ ...editData, review_left_on: e.target.value || null })}
+          className="h-8"
         />
       ) : undefined
     },

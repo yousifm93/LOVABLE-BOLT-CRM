@@ -855,6 +855,76 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // This Month's Reviews (leads with review_left_on date)
+  const { data: thisMonthReviews, isLoading: isLoadingThisMonthReviews } = useQuery({
+    queryKey: ['reviews', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .not('review_left_on', 'is', null)
+        .gte('review_left_on', formatDate(startOfMonth))
+        .lt('review_left_on', formatDate(startOfNextMonth))
+        .order('review_left_on', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Last Week's Reviews
+  const { data: lastWeekReviews, isLoading: isLoadingLastWeekReviews } = useQuery({
+    queryKey: ['reviews', 'lastWeek'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .not('review_left_on', 'is', null)
+        .gte('review_left_on', lastWeekRange.start.split('T')[0])
+        .lte('review_left_on', lastWeekRange.end.split('T')[0])
+        .order('review_left_on', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // This Week's Reviews
+  const { data: thisWeekReviews, isLoading: isLoadingThisWeekReviews } = useQuery({
+    queryKey: ['reviews', 'thisWeek'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .not('review_left_on', 'is', null)
+        .gte('review_left_on', thisWeekRange.start.split('T')[0])
+        .lte('review_left_on', thisWeekRange.end.split('T')[0])
+        .order('review_left_on', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // All Reviews
+  const { data: allReviews, isLoading: isLoadingAllReviews } = useQuery({
+    queryKey: ['reviews', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .not('review_left_on', 'is', null)
+        .order('review_left_on', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
   const { data: recentStageChanges, isLoading: isLoadingStageChanges } = useQuery({
     queryKey: ['recentStageChanges'],
     queryFn: async () => {
@@ -1315,6 +1385,10 @@ export const useDashboardData = () => {
     isLoadingYesterdayEmails ||
     isLoadingTodayEmails ||
     isLoadingAllEmails ||
+    isLoadingThisMonthReviews ||
+    isLoadingLastWeekReviews ||
+    isLoadingThisWeekReviews ||
+    isLoadingAllReviews ||
     isLoadingStageChanges ||
     isLoadingStageCounts ||
     isLoadingCurrentMonth ||
@@ -1390,6 +1464,11 @@ export const useDashboardData = () => {
     yesterdayEmails: yesterdayEmails || [],
     todayEmails: todayEmails || [],
     allEmails: allEmails || [],
+    // Reviews
+    thisMonthReviews: thisMonthReviews || [],
+    lastWeekReviews: lastWeekReviews || [],
+    thisWeekReviews: thisWeekReviews || [],
+    allReviews: allReviews || [],
     recentStageChanges: recentStageChanges || [],
     pipelineStageCounts: pipelineStageCounts || [],
     activeMetrics: activeMetrics || { total_units: 0, total_volume: 0, avg_interest_rate: 0, avg_loan_amount: 0, avg_ctc_days: null },
