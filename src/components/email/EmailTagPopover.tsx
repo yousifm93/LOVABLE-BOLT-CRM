@@ -77,7 +77,7 @@ export function EmailTagPopover({ tagData, className }: EmailTagPopoverProps) {
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[400px] p-0" 
+        className="w-[520px] p-0" 
         align="end"
         onClick={(e) => e.stopPropagation()}
       >
@@ -88,7 +88,7 @@ export function EmailTagPopover({ tagData, className }: EmailTagPopoverProps) {
           <p className="text-xs text-muted-foreground truncate mt-1">{tagData.subject}</p>
         </div>
 
-        <ScrollArea className="max-h-[350px]">
+        <ScrollArea className="max-h-[500px]">
           <div className="p-3 space-y-3">
             {/* AI Summary Section */}
             {tagData.aiSummary && (
