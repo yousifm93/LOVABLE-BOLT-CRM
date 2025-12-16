@@ -450,11 +450,33 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  const viewDocument = async (documentId: string) => {
+    try {
+      const { data: doc, error } = await supabase
+        .from('documents')
+        .select('file_url')
+        .eq('id', documentId)
+        .single();
+      
+      if (error) throw error;
+      if (doc?.file_url) {
+        window.open(doc.file_url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open document",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderConditionsTable = (conditionsList: Condition[]) => (
     <Table>
       <TableHeader>
         <TableRow className="h-8">
-          <TableHead className="w-[240px]">Condition</TableHead>
+          <TableHead className="w-[350px] max-w-[350px]">Condition</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
             className="cursor-pointer hover:bg-muted w-[160px] text-center"
@@ -467,13 +489,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          
+          <TableHead className="w-[150px]">Notes</TableHead>
+          <TableHead className="w-[60px] text-center">Doc</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={3} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={5} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
@@ -485,8 +508,8 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell className="py-0.5 px-2">
-                  <div className="font-medium">{condition.description}</div>
+                <TableCell className="py-0.5 px-2 max-w-[350px]">
+                  <div className="font-medium line-clamp-2">{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
                   <Select
@@ -534,6 +557,32 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       className="w-[90px] h-6 text-xs text-center border-0 bg-transparent hover:bg-muted mx-auto"
                       onClick={(e) => e.stopPropagation()}
                     />
+                  )}
+                </TableCell>
+                <TableCell className="py-0.5 px-2" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-sm text-muted-foreground line-clamp-1">
+                    {condition.notes || '—'}
+                  </span>
+                </TableCell>
+                <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                  {condition.document_id ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                      onClick={() => viewDocument(condition.document_id!)}
+                    >
+                      <FileText className="h-4 w-4 text-green-600" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                      onClick={() => handleUploadDocument(condition.id)}
+                    >
+                      <Plus className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   )}
                 </TableCell>
               </TableRow>
