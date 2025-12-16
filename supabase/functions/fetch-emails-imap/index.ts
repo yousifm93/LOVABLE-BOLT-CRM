@@ -53,6 +53,47 @@ async function parseEmailWithPostalMime(rawEmail: string): Promise<{ textBody: s
   }
 }
 
+// Strip forward prefixes from subject lines
+function cleanSubject(subject: string): string {
+  return subject.replace(/^(Fwd:|FWD:|Fw:|FW:)\s*/i, '').trim();
+}
+
+// Extract original sender from forwarded email body
+function extractOriginalSender(body: string, envelopeFrom: { name?: string; address?: string }): { from: string; fromEmail: string } {
+  // Default fallback to envelope data
+  const fallback = {
+    from: envelopeFrom?.name || envelopeFrom?.address?.split("@")[0] || "Unknown",
+    fromEmail: envelopeFrom?.address || ""
+  };
+
+  if (!body) return fallback;
+
+  // Look for forwarded message patterns
+  const forwardedPatterns = [
+    // Gmail style: "---------- Forwarded message ----------\nFrom: Name <email@domain.com>"
+    /[-]+\s*Forwarded message\s*[-]+[\s\S]*?From:\s*([^\n<]+)?<?([^>\n]+@[^>\n]+)>?/i,
+    // Outlook style: "-------- Original Message --------\nFrom: Name <email@domain.com>"
+    /[-]+\s*Original Message\s*[-]+[\s\S]*?From:\s*([^\n<]+)?<?([^>\n]+@[^>\n]+)>?/i,
+    // Simple "From:" after forwarded header
+    /From:\s*([^\n<]+)?<?([^>\n]+@[^>\n]+)>?/i,
+  ];
+
+  for (const pattern of forwardedPatterns) {
+    const match = body.match(pattern);
+    if (match && match[2]) {
+      const email = match[2].trim();
+      // Don't extract if it's our own forwarding address
+      if (email.toLowerCase().includes('mortgagebolt.org') || email.toLowerCase().includes('mortgagebolt.com')) {
+        continue;
+      }
+      const name = match[1]?.trim() || email.split('@')[0] || 'Unknown';
+      return { from: name, fromEmail: email };
+    }
+  }
+
+  return fallback;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -159,14 +200,18 @@ serve(async (req) => {
           envelope: true,
           flags: true,
           bodyStructure: true,
+          source: { start: 0, maxLength: 4000 }, // Fetch partial source for sender extraction
         })) {
           const envelope = message.envelope;
           const flags = message.flags || new Set();
           
-          // Extract from address
+          // Extract from address from envelope
           const fromAddr = envelope?.from?.[0];
-          const fromName = fromAddr?.name || fromAddr?.address?.split("@")[0] || "Unknown";
-          const fromEmail = fromAddr?.address || "";
+          const envelopeFrom = { name: fromAddr?.name, address: fromAddr?.address };
+
+          // Try to extract original sender from forwarded email body
+          const sourcePreview = message.source?.toString() || "";
+          const { from: fromName, fromEmail } = extractOriginalSender(sourcePreview, envelopeFrom);
 
           // Extract to address
           const toAddr = envelope?.to?.[0];
@@ -207,12 +252,15 @@ serve(async (req) => {
             });
           }
 
+          // Clean subject - strip Fwd: prefix
+          const cleanedSubject = cleanSubject(envelope?.subject || "(No Subject)");
+
           emails.push({
             uid: message.uid,
             from: fromName,
             fromEmail: fromEmail,
             to: toEmail,
-            subject: envelope?.subject || "(No Subject)",
+            subject: cleanedSubject,
             date: dateStr,
             snippet: "", // Would need to fetch body for snippet
             unread: !flags.has("\\Seen"),

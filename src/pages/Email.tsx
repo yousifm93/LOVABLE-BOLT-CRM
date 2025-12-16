@@ -42,6 +42,9 @@ const folders = [
   { name: "Trash", icon: Trash2 },
 ];
 
+// Strip forward prefixes from subject lines (belt-and-suspenders with backend)
+const cleanSubject = (subject: string) => subject.replace(/^(Fwd:|FWD:|Fw:|FW:)\s*/i, '').trim();
+
 export default function Email() {
   const { toast } = useToast();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
@@ -399,7 +402,7 @@ export default function Email() {
                         email.unread ? "font-medium text-foreground" : "text-muted-foreground"
                       )}
                     >
-                      {email.subject}
+                      {cleanSubject(email.subject)}
                     </p>
                     {email.snippet && (
                       <p className="text-xs text-muted-foreground truncate min-w-0 overflow-hidden">
@@ -418,7 +421,9 @@ export default function Email() {
           {selectedEmail ? (
             <>
               <div className="p-4 border-b">
-                <h2 className="text-lg font-semibold mb-2">{selectedEmail.subject}</h2>
+                <h2 className="text-lg font-semibold mb-2 truncate" title={selectedEmail.subject}>
+                  {cleanSubject(selectedEmail.subject)}
+                </h2>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{selectedEmail.from}</p>
