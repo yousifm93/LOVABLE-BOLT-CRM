@@ -434,14 +434,24 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       }
     }
     
+    // Optimistically update local state first to prevent refresh flicker
+    setConditions(prev => prev.map(c => 
+      c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString() } : c
+    ));
+    
     try {
       await databaseService.updateLeadCondition(conditionId, {
         [field]: value,
         updated_at: new Date().toISOString(),
       });
-      await loadConditions();
+      // Only reload if status changed to completion statuses (for status history)
+      if (field === 'status' && ['4_collected', '5_sent_to_lender', '6_cleared'].includes(value)) {
+        await loadConditions();
+      }
     } catch (error: any) {
       console.error("Error updating condition:", error);
+      // Revert on error by reloading
+      await loadConditions();
       toast({
         title: "Error",
         description: "Failed to update condition",
@@ -502,12 +512,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         <TableRow className="h-8 text-xs">
           <TableHead className="w-[30px] text-center text-xs">#</TableHead>
           <TableHead 
-            onClick={() => handleSortClick('needed_from')}
-            className="cursor-pointer hover:bg-muted w-[90px] text-center text-xs"
-          >
-            Needed From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
-          </TableHead>
-          <TableHead 
             onClick={() => handleSortClick('condition')}
             className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px] text-xs"
           >
@@ -524,6 +528,12 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
             className="cursor-pointer hover:bg-muted w-[90px] text-center text-xs"
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
+          <TableHead 
+            onClick={() => handleSortClick('needed_from')}
+            className="cursor-pointer hover:bg-muted w-[70px] text-center text-xs"
+          >
+            From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
           <TableHead className="w-[200px] text-xs">Description</TableHead>
           <TableHead className="w-[50px] text-center text-xs">Doc</TableHead>
@@ -548,27 +558,8 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 <TableCell className="py-0.5 px-1 text-center text-muted-foreground text-xs">
                   {index + 1}
                 </TableCell>
-                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={condition.needed_from || ""}
-                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
-                  >
-                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
-                      <SelectValue placeholder="—">
-                        <span className="text-xs">{condition.needed_from || "—"}</span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NEEDED_FROM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="text-xs">
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
                 <TableCell className="py-0.5 px-2 max-w-[280px]">
-                  <div className="font-medium text-xs line-clamp-2">{condition.description}</div>
+                  <div className="font-medium text-xs truncate" title={condition.description}>{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
                   <Select
@@ -623,8 +614,27 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </PopoverContent>
                   </Popover>
                 </TableCell>
+                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={condition.needed_from || ""}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
+                  >
+                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
+                      <SelectValue placeholder="—">
+                        <span className="text-xs">{condition.needed_from || "—"}</span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEEDED_FROM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
                 <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-xs text-muted-foreground line-clamp-1">
+                  <span className="text-xs text-muted-foreground truncate block" title={condition.notes || ''}>
                     {condition.notes || '—'}
                   </span>
                 </TableCell>
