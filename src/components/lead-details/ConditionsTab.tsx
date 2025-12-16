@@ -1,10 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
 import { format, formatDistance } from "date-fns";
 import { formatDateModern } from "@/utils/dateUtils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -51,10 +57,17 @@ interface Condition {
   completed_by: string | null;
   notes: string | null;
   document_id: string | null;
+  needed_from: string | null;
   created_at: string;
   created_by: string | null;
   updated_at: string | null;
 }
+
+const NEEDED_FROM_OPTIONS = [
+  { value: "Borrower", label: "Borrower" },
+  { value: "Lender", label: "Lender" },
+  { value: "Third Party", label: "Third Party" },
+];
 
 interface ConditionsTabProps {
   leadId: string;
@@ -476,10 +489,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     <Table>
       <TableHeader>
         <TableRow className="h-8">
-          <TableHead className="w-[350px] max-w-[350px]">Condition</TableHead>
+          <TableHead className="w-[40px] text-center">#</TableHead>
+          <TableHead className="w-[200px] max-w-[200px]">Condition</TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[160px] text-center"
+            className="cursor-pointer hover:bg-muted w-[140px] text-center"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -489,26 +503,30 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[150px]">Notes</TableHead>
+          <TableHead className="w-[200px]">Description</TableHead>
+          <TableHead className="w-[100px] text-center">Needed From</TableHead>
           <TableHead className="w-[60px] text-center">Doc</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={5} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
         ) : (
-          conditionsList.map((condition) => {
+          conditionsList.map((condition, index) => {
             return (
               <TableRow 
                 key={condition.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell className="py-0.5 px-2 max-w-[350px]">
+                <TableCell className="py-0.5 px-2 text-center text-muted-foreground text-sm">
+                  {index + 1}
+                </TableCell>
+                <TableCell className="py-0.5 px-2 max-w-[200px]">
                   <div className="font-medium line-clamp-2">{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
@@ -536,33 +554,57 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                   </Select>
                 </TableCell>
                 <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                  {condition.due_date ? (
-                    <div className="relative group w-[90px] mx-auto">
-                      <span className="text-sm cursor-pointer">
-                        {formatDateModern(condition.due_date)}
-                      </span>
-                      <Input
-                        type="date"
-                        value={condition.due_date}
-                        onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onClick={(e) => e.stopPropagation()}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-6 px-2 text-xs justify-center",
+                          !condition.due_date && "text-muted-foreground"
+                        )}
+                      >
+                        {condition.due_date ? formatDateModern(condition.due_date) : "—"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={condition.due_date ? new Date(condition.due_date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            handleInlineUpdate(condition.id, 'due_date', format(date, 'yyyy-MM-dd'));
+                          }
+                        }}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
                       />
-                    </div>
-                  ) : (
-                    <Input
-                      type="date"
-                      value=""
-                      onChange={(e) => handleInlineUpdate(condition.id, 'due_date', e.target.value)}
-                      className="w-[90px] h-6 text-xs text-center border-0 bg-transparent hover:bg-muted mx-auto"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  )}
+                    </PopoverContent>
+                  </Popover>
                 </TableCell>
-                <TableCell className="py-0.5 px-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                   <span className="text-sm text-muted-foreground line-clamp-1">
                     {condition.notes || '—'}
                   </span>
+                </TableCell>
+                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={condition.needed_from || ""}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
+                  >
+                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
+                      <SelectValue placeholder="—">
+                        {condition.needed_from || "—"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEEDED_FROM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (

@@ -2301,6 +2301,7 @@ export type Database = {
           due_date: string | null
           id: string
           lead_id: string
+          needed_from: string | null
           notes: string | null
           priority: string | null
           status: string
@@ -2318,6 +2319,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           lead_id: string
+          needed_from?: string | null
           notes?: string | null
           priority?: string | null
           status?: string
@@ -2335,6 +2337,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           lead_id?: string
+          needed_from?: string | null
           notes?: string | null
           priority?: string | null
           status?: string
