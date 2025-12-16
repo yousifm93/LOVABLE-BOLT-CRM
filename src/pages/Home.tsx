@@ -49,6 +49,9 @@ interface SearchResult {
 export default function Home() {
   const navigate = useNavigate();
   const { crmUser } = useAuth();
+  const [leadsThisMonth, setLeadsThisMonth] = useState(0);
+  const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
+  const [closedThisMonth, setClosedThisMonth] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [agentCount, setAgentCount] = useState(0);
   const [unreadEmailCount, setUnreadEmailCount] = useState(0);
@@ -66,21 +69,49 @@ export default function Home() {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      // Fetch active files count
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const startOfMonthISO = startOfMonth.toISOString();
+
+      // Fetch leads created this month
+      const { count: leads } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonthISO);
+      setLeadsThisMonth(leads || 0);
+
+      // Fetch applications this month (Pending App stage)
+      const { count: apps } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('pipeline_stage_id', '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945')
+        .gte('pending_app_at', startOfMonthISO);
+      setApplicationsThisMonth(apps || 0);
+
+      // Fetch closed this month (Past Clients with close_date this month)
+      const { count: closed } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('pipeline_stage_id', 'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0')
+        .gte('close_date', startOfMonthISO.split('T')[0]);
+      setClosedThisMonth(closed || 0);
+
+      // Fetch active files count for quick access card
       const { count: active } = await supabase
         .from('leads')
         .select('*', { count: 'exact', head: true })
         .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db');
       setActiveCount(active || 0);
 
-      // Fetch total agents count
+      // Fetch total agents count for quick access card
       const { count: agents } = await supabase
         .from('buyer_agents')
         .select('*', { count: 'exact', head: true })
         .is('deleted_at', null);
       setAgentCount(agents || 0);
 
-      // Fetch unread emails count (inbound emails not opened)
+      // Fetch unread emails count for quick access card
       const { count: unread } = await supabase
         .from('email_logs')
         .select('*', { count: 'exact', head: true })
@@ -390,20 +421,20 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-4">
           <Card className="bg-muted/30">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Active Files</p>
-              <p className="text-2xl font-semibold text-foreground">{activeCount}</p>
+              <p className="text-sm text-muted-foreground">Leads This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{leadsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Real Estate Agents</p>
-              <p className="text-2xl font-semibold text-foreground">{agentCount}</p>
+              <p className="text-sm text-muted-foreground">Applications This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{applicationsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Unread Emails</p>
-              <p className="text-2xl font-semibold text-foreground">{unreadEmailCount}</p>
+              <p className="text-sm text-muted-foreground">Closed This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{closedThisMonth}</p>
             </CardContent>
           </Card>
         </div>

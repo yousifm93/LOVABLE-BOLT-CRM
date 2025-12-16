@@ -1856,7 +1856,7 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
                           {hasUnsavedNotes && <div className="flex gap-2">
                               <Button size="sm" onClick={async () => {
                           const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
@@ -2069,7 +2069,7 @@ export function ClientDetailDrawer({
                           <Textarea key="notes-textarea-screening-left" value={localNotes} onChange={e => {
                         setLocalNotes(e.target.value);
                         setHasUnsavedNotes(true);
-                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
                           {hasUnsavedNotes && <div className="flex gap-2">
                               <Button size="sm" onClick={async () => {
                           const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
@@ -2420,7 +2420,7 @@ export function ClientDetailDrawer({
                     <Textarea key="notes-textarea" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
                   setHasUnsavedNotes(true);
-                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[160px] resize-none bg-white mb-2" />
+                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
                     {hasUnsavedNotes && <div className="flex gap-2">
                         <Button size="sm" onClick={async () => {
                     const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
@@ -3021,7 +3021,7 @@ export function ClientDetailDrawer({
                     <Textarea key="notes-textarea-prequal" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
                   setHasUnsavedNotes(true);
-                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[130px] resize-none bg-white mb-2" />
                     {hasUnsavedNotes && <div className="flex gap-2">
                         <Button size="sm" onClick={async () => {
                     const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';

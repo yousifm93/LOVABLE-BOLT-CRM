@@ -79,7 +79,7 @@ const columns = (
     header: "Task",
     cell: ({ row }) => (
     <div className="w-96 min-w-96 flex-shrink-0">
-      <div className="font-medium text-sm">{row.original.title}</div>
+      <div className="font-medium text-sm max-w-[380px] truncate" title={row.original.title}>{row.original.title}</div>
       
       {/* Show description ONLY if no completion requirement */}
       {!(row.original as any).completion_requirement_type && row.original.description && (
