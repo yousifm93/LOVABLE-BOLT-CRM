@@ -2008,6 +2008,15 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
+                {/* DTI / Address / PITI - For Screening/Pre-Qualified/Pre-Approved in left column */}
+                {(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
+                  <LeadTeamContactsDatesCard 
+                    leadId={leadId || ""} 
+                    onLeadUpdated={onLeadUpdated} 
+                    defaultCollapsed={false}
+                  />
+                )}
+
                 {/* For Active/Past Clients: Third Party Items at top */}
                 {isActiveOrPastClient && (
                   <LeadThirdPartyItemsCard leadId={leadId || ""} />
@@ -2079,7 +2088,7 @@ export function ClientDetailDrawer({
           {/* Center Column - Status Tracker & Lead Information */}
           <div className="space-y-4 overflow-y-auto flex flex-col">
             {/* Status Tracker Pills - Condensed gray box */}
-            <Card className="h-auto max-h-[240px] flex flex-col">
+            <Card className="h-[320px] flex flex-col">
               <CardHeader className="pb-3 flex-shrink-0">
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto">
@@ -2751,17 +2760,17 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* DTI / Address / PITI - For early stages in right column */}
+            {/* DTI / Address / PITI - Only for Leads/Pending App in right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              const isScreeningOrPreQualOrPreApproved = opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-              if (isActiveOrPastClient) return null;
+              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+              if (isActiveOrPastClient || !isLeadsOrPendingApp) return null;
               return (
                 <LeadTeamContactsDatesCard 
                   leadId={leadId || ""} 
                   onLeadUpdated={onLeadUpdated} 
-                  defaultCollapsed={!isScreeningOrPreQualOrPreApproved}
+                  defaultCollapsed={true}
                 />
               );
             })()}

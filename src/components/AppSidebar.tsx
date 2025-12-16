@@ -19,6 +19,7 @@ import {
   Zap,
   DollarSign,
   LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,8 @@ import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQu
 import { useAuth } from "@/hooks/useAuth";
 
 const dashboardItems = [
-  { title: "Overview", url: "/", icon: Home },
+  { title: "Home", url: "/", icon: Home },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Email", url: "/email", icon: Mail },
 ];
@@ -211,7 +213,7 @@ export function AppSidebar() {
               {dashboardItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    {item.title === "Overview" ? (
+                    {item.title === "Dashboard" ? (
                       <NavLink to={item.url} className={getNavClassName}>
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && (

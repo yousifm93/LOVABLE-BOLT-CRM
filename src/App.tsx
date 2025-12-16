@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Auth from "@/pages/Auth";
 import Index from "@/pages/Index";
+import Home from "@/pages/Home";
 import DashboardTabs from "@/pages/DashboardTabs";
 import Leads from "@/pages/Leads";
 import PendingApp from "@/pages/PendingApp";
@@ -84,7 +85,8 @@ function AppRoutes() {
         <Route path="/*" element={
           <Layout>
             <Routes>
-              <Route path="/" element={<DashboardTabs />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/dashboard" element={<DashboardTabs />} />
               <Route path="/email" element={<Email />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/pending-app" element={<PendingApp />} />
