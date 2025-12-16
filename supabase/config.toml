@@ -170,3 +170,6 @@ verify_jwt = true
 
 [functions.parse-email-lender-marketing]
 verify_jwt = false
+
+[functions.parse-lender-marketing-data]
+verify_jwt = false
