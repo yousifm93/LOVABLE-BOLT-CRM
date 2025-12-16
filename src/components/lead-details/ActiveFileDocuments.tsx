@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
 import { DocumentExtractionConfirmationModal } from "@/components/modals/DocumentExtractionConfirmationModal";
+import { InitialApprovalConditionsModal } from "@/components/modals/InitialApprovalConditionsModal";
 
 interface ActiveFileDocumentsProps {
   leadId: string;
@@ -47,12 +48,44 @@ interface PendingExtraction {
   };
 }
 
+interface ExtractedCondition {
+  category: string;
+  description: string;
+  underwriter?: string;
+  phase?: string;
+}
+
+interface PendingConditionsExtraction {
+  conditions: ExtractedCondition[];
+  loanInfo?: {
+    lender?: string;
+    note_rate?: number;
+    loan_amount?: number;
+    term?: number;
+    approved_date?: string;
+  };
+}
+
+// Map AI categories to database condition types
+const CATEGORY_TO_CONDITION_TYPE: Record<string, string> = {
+  credit: 'credit_report',
+  title: 'title_work',
+  income: 'income_verification',
+  property: 'appraisal',
+  insurance: 'insurance',
+  borrower: 'asset_verification',
+  submission: 'other',
+  other: 'other',
+};
+
 export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDocumentsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [parsing, setParsing] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingExtraction, setPendingExtraction] = useState<PendingExtraction | null>(null);
+  const [showConditionsModal, setShowConditionsModal] = useState(false);
+  const [pendingConditions, setPendingConditions] = useState<PendingConditionsExtraction | null>(null);
   const { toast } = useToast();
 
   const parseContract = async (filePath: string) => {
@@ -243,6 +276,103 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
     }
   };
 
+  const parseInitialApproval = async (filePath: string) => {
+    try {
+      setParsing('initial_approval_file');
+      
+      // Get signed URL for the file
+      const { data: signedUrlData } = await supabase.storage
+        .from('lead-documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (!signedUrlData?.signedUrl) {
+        throw new Error('Could not get file URL');
+      }
+
+      toast({
+        title: "Parsing Initial Approval",
+        description: "Extracting conditions from approval letter..."
+      });
+
+      // Call the parse-initial-approval edge function
+      const { data, error } = await supabase.functions.invoke('parse-initial-approval', {
+        body: { 
+          file_url: signedUrlData.signedUrl
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.conditions?.length > 0) {
+        // Show conditions confirmation modal
+        setPendingConditions({
+          conditions: data.conditions,
+          loanInfo: data.loan_info
+        });
+        setShowConditionsModal(true);
+      } else if (data?.conditions?.length === 0) {
+        toast({
+          title: "No Conditions Found",
+          description: "Could not extract any conditions from the document"
+        });
+        onLeadUpdate();
+      } else {
+        throw new Error(data?.error || 'Failed to parse initial approval');
+      }
+    } catch (error: any) {
+      console.error('Initial approval parsing error:', error);
+      toast({
+        title: "Parsing Failed",
+        description: error.message || "Could not extract conditions",
+        variant: "destructive"
+      });
+      onLeadUpdate();
+    } finally {
+      setParsing(null);
+    }
+  };
+
+  const handleConfirmConditions = async (selectedConditions: ExtractedCondition[]) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      // Create conditions in database
+      for (const condition of selectedConditions) {
+        await databaseService.createLeadCondition({
+          lead_id: leadId,
+          condition_type: CATEGORY_TO_CONDITION_TYPE[condition.category] || 'other',
+          description: condition.description,
+          status: '1_added',
+          priority: 'medium',
+          notes: condition.phase ? `Phase: ${condition.phase}${condition.underwriter ? ` | Underwriter: ${condition.underwriter}` : ''}` : undefined,
+          created_by: userData?.user?.id || null,
+        });
+      }
+
+      toast({
+        title: "Conditions Imported",
+        description: `Successfully imported ${selectedConditions.length} conditions`
+      });
+    } catch (error: any) {
+      console.error('Failed to import conditions:', error);
+      toast({
+        title: "Import Failed",
+        description: error.message || "Could not import conditions",
+        variant: "destructive"
+      });
+    } finally {
+      setShowConditionsModal(false);
+      setPendingConditions(null);
+      onLeadUpdate();
+    }
+  };
+
+  const handleCancelConditions = () => {
+    setShowConditionsModal(false);
+    setPendingConditions(null);
+    onLeadUpdate();
+  };
+
   const handleConfirmExtraction = async (selectedFields: Record<string, any>) => {
     try {
       // Update the lead with selected fields
@@ -343,13 +473,16 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
         description: `${fieldLabel} uploaded successfully`
       });
       
-      // If this is a contract or rate lock upload, automatically parse it
+      // If this is a contract, rate lock, or initial approval upload, automatically parse it
       // and defer onLeadUpdate until after parsing/confirmation to prevent state reset
       if (fieldKey === 'contract_file') {
         await parseContract(uploadData.path);
         // onLeadUpdate will be called after confirmation modal closes
       } else if (fieldKey === 'rate_lock_file') {
         await parseRateLock(uploadData.path);
+        // onLeadUpdate will be called after confirmation modal closes
+      } else if (fieldKey === 'initial_approval_file') {
+        await parseInitialApproval(uploadData.path);
         // onLeadUpdate will be called after confirmation modal closes
       } else {
         // For non-parsed files, refresh immediately
@@ -546,6 +679,17 @@ export function ActiveFileDocuments({ leadId, lead, onLeadUpdate }: ActiveFileDo
           documentType={pendingExtraction.type}
           extractedFields={pendingExtraction.fieldsToUpdate}
           agentInfo={pendingExtraction.agentInfo}
+        />
+      )}
+
+      {pendingConditions && (
+        <InitialApprovalConditionsModal
+          open={showConditionsModal}
+          onOpenChange={setShowConditionsModal}
+          conditions={pendingConditions.conditions}
+          loanInfo={pendingConditions.loanInfo}
+          onConfirm={handleConfirmConditions}
+          onCancel={handleCancelConditions}
         />
       )}
     </>

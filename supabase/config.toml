@@ -173,3 +173,6 @@ verify_jwt = false
 
 [functions.parse-lender-marketing-data]
 verify_jwt = false
+
+[functions.parse-initial-approval]
+verify_jwt = false
