@@ -4120,6 +4120,56 @@ export type Database = {
           },
         ]
       }
+      service_credentials: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          last_accessed_at: string | null
+          last_accessed_by: string | null
+          password: string
+          service_name: string
+          tags: string[] | null
+          updated_at: string
+          url: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          last_accessed_by?: string | null
+          password: string
+          service_name: string
+          tags?: string[] | null
+          updated_at?: string
+          url?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          last_accessed_by?: string | null
+          password?: string
+          service_name?: string
+          tags?: string[] | null
+          updated_at?: string
+          url?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_credentials_last_accessed_by_fkey"
+            columns: ["last_accessed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       short_links: {
         Row: {
           campaign_id: string | null
