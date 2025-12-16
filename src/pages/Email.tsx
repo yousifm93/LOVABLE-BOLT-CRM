@@ -282,11 +282,26 @@ export default function Email() {
     fetchEmails(selectedFolder);
   };
 
-  const filteredEmails = emails.filter(email => 
-    email.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [emailView, setEmailView] = useState<'main' | 'file'>('main');
+
+  const filteredEmails = emails.filter(email => {
+    const matchesSearch = email.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (emailView === 'file') {
+      const emailDate = new Date(email.date);
+      const compositeKey = getMatchKey(emailDate, email.subject || '');
+      let hasTag = emailTagsMap.has(compositeKey);
+      if (!hasTag) {
+        const subjectKey = cleanSubjectForMatching(email.subject || '');
+        hasTag = emailTagsMap.has(subjectKey);
+      }
+      return matchesSearch && hasTag;
+    }
+    
+    return matchesSearch;
+  });
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
@@ -358,7 +373,7 @@ export default function Email() {
 
         {/* Email List - Fixed width */}
         <div className="w-[450px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
-          <div className="p-2 border-b">
+          <div className="p-2 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -367,6 +382,24 @@ export default function Email() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8 h-8 text-sm"
               />
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant={emailView === 'main' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmailView('main')}
+                className="h-7 text-xs px-3"
+              >
+                Main View
+              </Button>
+              <Button
+                variant={emailView === 'file' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmailView('file')}
+                className="h-7 text-xs px-3"
+              >
+                File View
+              </Button>
             </div>
           </div>
           <ScrollArea className="flex-1 w-full">
