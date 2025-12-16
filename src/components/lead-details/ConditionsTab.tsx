@@ -66,6 +66,7 @@ interface Condition {
 const NEEDED_FROM_OPTIONS = [
   { value: "Borrower", label: "Borrower" },
   { value: "Lender", label: "Lender" },
+  { value: "Broker", label: "Broker" },
   { value: "Third Party", label: "Third Party" },
 ];
 
@@ -498,35 +499,35 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const renderConditionsTable = (conditionsList: Condition[]) => (
     <Table>
       <TableHeader>
-        <TableRow className="h-8">
-          <TableHead className="w-[40px] text-center">#</TableHead>
+        <TableRow className="h-8 text-xs">
+          <TableHead className="w-[30px] text-center text-xs">#</TableHead>
+          <TableHead 
+            onClick={() => handleSortClick('needed_from')}
+            className="cursor-pointer hover:bg-muted w-[90px] text-center text-xs"
+          >
+            Needed From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
           <TableHead 
             onClick={() => handleSortClick('condition')}
-            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px]"
+            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px] text-xs"
           >
             Condition {sortBy === 'condition' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[110px] text-center"
+            className="cursor-pointer hover:bg-muted w-[110px] text-center text-xs"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
           <TableHead 
             onClick={() => handleSortClick('due_date')}
-            className="cursor-pointer hover:bg-muted w-[100px] text-center"
+            className="cursor-pointer hover:bg-muted w-[90px] text-center text-xs"
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead 
-            onClick={() => handleSortClick('needed_from')}
-            className="cursor-pointer hover:bg-muted w-[100px] text-center"
-          >
-            Needed From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
-          </TableHead>
-          <TableHead className="w-[200px]">Description</TableHead>
-          <TableHead className="w-[60px] text-center">Doc</TableHead>
-          <TableHead className="w-[40px]"></TableHead>
+          <TableHead className="w-[200px] text-xs">Description</TableHead>
+          <TableHead className="w-[50px] text-center text-xs">Doc</TableHead>
+          <TableHead className="w-[30px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -544,11 +545,30 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleOpenConditionDetail(condition)}
               >
-                <TableCell className="py-0.5 px-2 text-center text-muted-foreground text-sm">
+                <TableCell className="py-0.5 px-1 text-center text-muted-foreground text-xs">
                   {index + 1}
                 </TableCell>
+                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    value={condition.needed_from || ""}
+                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
+                  >
+                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
+                      <SelectValue placeholder="—">
+                        <span className="text-xs">{condition.needed_from || "—"}</span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEEDED_FROM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
                 <TableCell className="py-0.5 px-2 max-w-[280px]">
-                  <div className="font-medium line-clamp-2">{condition.description}</div>
+                  <div className="font-medium text-xs line-clamp-2">{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
                   <Select
@@ -556,17 +576,17 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     onValueChange={(value) => handleInlineUpdate(condition.id, 'status', value)}
                   >
                     <SelectTrigger className={cn(
-                      "w-full border-0 h-full rounded-none font-medium text-center justify-center",
+                      "w-full border-0 h-full rounded-none font-medium text-xs text-center justify-center",
                       getStatusColor(condition.status)
                     )}>
                       <SelectValue>
-                        <span className="font-semibold">{getStatusLabel(condition.status)}</span>
+                        <span className="font-semibold text-xs">{getStatusLabel(condition.status)}</span>
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="min-w-[200px]">
+                    <SelectContent className="min-w-[180px]">
                       {STATUSES.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
-                          <div className={cn("px-3 py-1 rounded font-medium min-w-[180px] text-center", status.color)}>
+                          <div className={cn("px-2 py-0.5 rounded font-medium text-xs min-w-[150px] text-center", status.color)}>
                             {status.label}
                           </div>
                         </SelectItem>
@@ -574,14 +594,14 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          "h-6 px-2 text-xs justify-center",
+                          "h-5 px-1 text-xs justify-center",
                           !condition.due_date && "text-muted-foreground"
                         )}
                       >
@@ -603,59 +623,40 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-                <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
-                  <Select
-                    value={condition.needed_from || ""}
-                    onValueChange={(value) => handleInlineUpdate(condition.id, 'needed_from', value)}
-                  >
-                    <SelectTrigger className="w-full border-0 h-full rounded-none text-xs text-center justify-center">
-                      <SelectValue placeholder="—">
-                        {condition.needed_from || "—"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NEEDED_FROM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
                 <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-sm text-muted-foreground line-clamp-1">
+                  <span className="text-xs text-muted-foreground line-clamp-1">
                     {condition.notes || '—'}
                   </span>
                 </TableCell>
-                <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 w-6 p-0"
+                      className="h-5 w-5 p-0"
                       onClick={() => viewDocument(condition.document_id!)}
                     >
-                      <FileText className="h-4 w-4 text-green-600" />
+                      <FileText className="h-3.5 w-3.5 text-green-600" />
                     </Button>
                   ) : (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 w-6 p-0"
+                      className="h-5 w-5 p-0"
                       onClick={() => handleUploadDocument(condition.id)}
                     >
-                      <Plus className="h-4 w-4 text-muted-foreground" />
+                      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   )}
                 </TableCell>
-                <TableCell className="py-0.5 px-1" onClick={(e) => e.stopPropagation()}>
+                <TableCell className="py-0.5 px-0.5" onClick={(e) => e.stopPropagation()}>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => handleDeleteCondition(condition.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </TableCell>
               </TableRow>
