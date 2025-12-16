@@ -82,7 +82,6 @@ const adminItems = [
   { title: "Assistant", url: "/admin/assistant", icon: Bot },
   { title: "Mortgage App", url: "/admin/mortgage-app", icon: FileText },
   { title: "Settings", url: "/admin", icon: Settings },
-  { title: "Settings 2", url: "/admin/settings2", icon: Settings },
   { title: "Deleted Items", url: "/admin/deleted-tasks", icon: CheckSquare },
 ];
 
