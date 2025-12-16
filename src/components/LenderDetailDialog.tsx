@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History, Calendar, Package, Percent, FileText, ClipboardCopy, Hash, Send } from "lucide-react";
+import { Building2, Mail, Phone, User, Globe, Lock, Eye, EyeOff, DollarSign, Copy, ExternalLink, Users, History, Calendar, Package, Percent, FileText, ClipboardCopy, Hash, Send, Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
@@ -117,6 +120,15 @@ interface Lender {
   max_ltv?: number;
   // Other
   epo_period?: string;
+  // Custom fields
+  custom_fields?: Record<string, { value: any; type: string; label: string }>;
+}
+
+interface CustomField {
+  key: string;
+  value: any;
+  type: string;
+  label: string;
 }
 
 interface AssociatedClient {
@@ -162,6 +174,12 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // Custom fields state
+  const [showAddFieldModal, setShowAddFieldModal] = useState(false);
+  const [addFieldType, setAddFieldType] = useState<'product' | 'currency' | 'date' | 'number' | 'ltv'>('product');
+  const [newFieldLabel, setNewFieldLabel] = useState('');
+  const [newFieldValue, setNewFieldValue] = useState('');
 
   useEffect(() => {
     if (lender?.id && isOpen) {
@@ -251,6 +269,85 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
         variant: "destructive",
       });
     }
+  };
+
+  const handleAddCustomField = async () => {
+    if (!lender?.id || !newFieldLabel.trim()) return;
+    
+    const fieldKey = newFieldLabel.toLowerCase().replace(/\s+/g, '_');
+    const currentCustomFields = lender.custom_fields || {};
+    
+    let parsedValue: any = newFieldValue;
+    if (addFieldType === 'number' || addFieldType === 'ltv' || addFieldType === 'currency') {
+      parsedValue = newFieldValue ? parseFloat(newFieldValue) : null;
+    } else if (addFieldType === 'product') {
+      parsedValue = newFieldValue || 'TBD';
+    }
+    
+    const updatedCustomFields = {
+      ...currentCustomFields,
+      [fieldKey]: {
+        value: parsedValue,
+        type: addFieldType,
+        label: newFieldLabel.trim()
+      }
+    };
+    
+    try {
+      await databaseService.updateLender(lender.id, { custom_fields: updatedCustomFields });
+      onLenderUpdated();
+      setShowAddFieldModal(false);
+      setNewFieldLabel('');
+      setNewFieldValue('');
+      toast({
+        title: "Field Added",
+        description: `Custom field "${newFieldLabel}" added successfully.`,
+      });
+    } catch (error) {
+      console.error('Error adding custom field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add custom field.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCustomField = async (fieldKey: string) => {
+    if (!lender?.id) return;
+    
+    const currentCustomFields = { ...(lender.custom_fields || {}) };
+    delete currentCustomFields[fieldKey];
+    
+    try {
+      await databaseService.updateLender(lender.id, { custom_fields: currentCustomFields });
+      onLenderUpdated();
+      toast({
+        title: "Field Removed",
+        description: "Custom field removed successfully.",
+      });
+    } catch (error) {
+      console.error('Error removing custom field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove custom field.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getCustomFieldsByType = (type: string): CustomField[] => {
+    if (!lender?.custom_fields) return [];
+    return Object.entries(lender.custom_fields)
+      .filter(([_, field]) => field.type === type)
+      .map(([key, field]) => ({ key, ...field }));
+  };
+
+  const openAddFieldModal = (type: 'product' | 'currency' | 'date' | 'number' | 'ltv') => {
+    setAddFieldType(type);
+    setNewFieldLabel('');
+    setNewFieldValue('');
+    setShowAddFieldModal(true);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -405,6 +502,7 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
   ];
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0">
         <DialogHeader className="p-6 pb-4 border-b">
@@ -587,10 +685,15 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             {/* Loan Limits & Dates */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Loan Limits & Dates
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Loan Limits & Dates
+                </h3>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openAddFieldModal('currency')}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="grid grid-cols-4 gap-x-6 gap-y-2">
                 <div>
                   <label className="text-xs text-muted-foreground">Min Loan</label>
@@ -622,6 +725,38 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                     onValueChange={(value) => handleFieldUpdate('renewed_on', value)}
                   />
                 </div>
+                {/* Custom currency/date fields */}
+                {getCustomFieldsByType('currency').concat(getCustomFieldsByType('date')).map((field) => (
+                  <div key={field.key} className="relative group">
+                    <label className="text-xs text-muted-foreground">{field.label}</label>
+                    {field.type === 'currency' ? (
+                      <InlineEditCurrency
+                        value={field.value ?? null}
+                        onValueChange={(value) => {
+                          const updated = { ...lender.custom_fields, [field.key]: { ...field, value } };
+                          handleFieldUpdate('custom_fields', updated);
+                        }}
+                        placeholder="$0"
+                      />
+                    ) : (
+                      <InlineEditDate
+                        value={field.value}
+                        onValueChange={(value) => {
+                          const updated = { ...lender.custom_fields, [field.key]: { ...field, value } };
+                          handleFieldUpdate('custom_fields', updated);
+                        }}
+                      />
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute -top-1 -right-1 h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteCustomField(field.key)}
+                    >
+                      <X className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -629,10 +764,15 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             {/* Products */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Products
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Products
+                </h3>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openAddFieldModal('product')}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               
               {/* Yes Products */}
               {(() => {
@@ -705,10 +845,15 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             {/* Numbers */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Hash className="h-4 w-4" />
-                Numbers
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  Numbers
+                </h3>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openAddFieldModal('number')}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="grid grid-cols-4 gap-x-6 gap-y-2">
                 <div>
                   <label className="text-xs text-muted-foreground">Min FICO</label>
@@ -773,10 +918,15 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
 
             {/* LTVs */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                <Percent className="h-4 w-4" />
-                Maximum LTVs
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Maximum LTVs
+                </h3>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openAddFieldModal('ltv')}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="grid grid-cols-4 gap-x-6 gap-y-2">
                 {ltvFields.map(({ key, label }) => (
                   <div key={key}>
@@ -964,5 +1114,69 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
         </ScrollArea>
       </DialogContent>
     </Dialog>
+
+      {/* Add Custom Field Modal */}
+      <Dialog open={showAddFieldModal} onOpenChange={setShowAddFieldModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Custom Field</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="fieldLabel">Field Name</Label>
+              <Input
+                id="fieldLabel"
+                placeholder="Enter field name..."
+                value={newFieldLabel}
+                onChange={(e) => setNewFieldLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fieldValue">
+                {addFieldType === 'product' ? 'Value (Y/N/TBD)' : 
+                 addFieldType === 'ltv' ? 'Max LTV (%)' :
+                 addFieldType === 'currency' ? 'Amount ($)' :
+                 addFieldType === 'date' ? 'Date' : 'Value'}
+              </Label>
+              {addFieldType === 'product' ? (
+                <Select value={newFieldValue} onValueChange={setNewFieldValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Y">Yes</SelectItem>
+                    <SelectItem value="N">No</SelectItem>
+                    <SelectItem value="TBD">TBD</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : addFieldType === 'date' ? (
+                <Input
+                  id="fieldValue"
+                  type="date"
+                  value={newFieldValue}
+                  onChange={(e) => setNewFieldValue(e.target.value)}
+                />
+              ) : (
+                <Input
+                  id="fieldValue"
+                  type="number"
+                  placeholder={addFieldType === 'ltv' ? 'e.g., 80' : addFieldType === 'currency' ? 'e.g., 500000' : 'Enter value...'}
+                  value={newFieldValue}
+                  onChange={(e) => setNewFieldValue(e.target.value)}
+                />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowAddFieldModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddCustomField} disabled={!newFieldLabel.trim()}>
+                Add Field
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
