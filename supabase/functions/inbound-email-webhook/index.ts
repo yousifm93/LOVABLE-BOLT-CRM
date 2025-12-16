@@ -432,7 +432,83 @@ serve(async (req) => {
       }
     }
 
-    // Only proceed if we have a lead to associate with
+    // Check for lender marketing BEFORE potentially returning (so marketing emails get logged even without leads)
+    let isLenderMarketing = false;
+    let marketingCategory: string | null = null;
+
+    try {
+      console.log('[Inbound Email Webhook] Checking for lender marketing...');
+      const lenderMarketingResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-lender-marketing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          subject: subject,
+          body: textBody,
+          htmlBody: htmlBody,
+          fromEmail: actualSenderEmail,
+        }),
+      });
+
+      if (lenderMarketingResponse.ok) {
+        const marketingData = await lenderMarketingResponse.json();
+        isLenderMarketing = marketingData.isLenderMarketing;
+        marketingCategory = marketingData.category;
+        console.log('[Inbound Email Webhook] Lender marketing check result:', { isLenderMarketing, marketingCategory });
+      }
+    } catch (err) {
+      console.error('[Inbound Email Webhook] Error checking lender marketing:', err);
+    }
+
+    // If no lead found but IS lender marketing, log it anyway with null lead_id
+    if (!leadId && isLenderMarketing) {
+      console.log('[Inbound Email Webhook] No lead match, but IS lender marketing - logging email');
+      
+      const snippet = textBody.substring(0, 200) + (textBody.length > 200 ? '...' : '');
+      const fromEmailToStore = actualSenderEmail || headerSenderEmail || 'unknown';
+      
+      const { data: emailLog, error: insertError } = await supabase
+        .from('email_logs')
+        .insert({
+          lead_id: null, // No lead association for marketing emails
+          agent_id: matchedAgent?.id || null,
+          direction: 'In',
+          from_email: fromEmailToStore,
+          to_email: recipientEmail,
+          subject: subject,
+          snippet: snippet,
+          body: textBody,
+          html_body: htmlBody,
+          attachments_json: [],
+          delivery_status: 'delivered',
+          timestamp: new Date().toISOString(),
+          is_lender_marketing: true,
+          lender_marketing_category: marketingCategory,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('[Inbound Email Webhook] Error inserting marketing email log:', insertError);
+      } else {
+        console.log('[Inbound Email Webhook] Successfully logged lender marketing email:', emailLog?.id);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Lender marketing email logged',
+        emailLogId: emailLog?.id,
+        category: marketingCategory,
+        isLenderMarketing: true,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only proceed if we have a lead to associate with (and not lender marketing)
     if (!leadId) {
       console.log('[Inbound Email Webhook] No matching lead found for email');
       console.log('[Inbound Email Webhook] Subject:', subject);
