@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { Loader2, Building2, DollarSign, Percent, CreditCard, Package, Star, AlertCircle } from "lucide-react";
+import { Loader2, Building2, DollarSign, Percent, CreditCard, Package, Star, AlertCircle, Check, X, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { databaseService } from "@/services/database";
 
 interface LenderMarketingData {
   lender_name?: string | null;
@@ -24,6 +27,20 @@ interface LenderMarketingData {
   ai_summary?: string | null;
 }
 
+interface LenderFieldSuggestion {
+  id: string;
+  email_log_id: string;
+  lender_id: string | null;
+  is_new_lender: boolean;
+  suggested_lender_name: string | null;
+  field_name: string;
+  current_value: string | null;
+  suggested_value: string;
+  confidence: number;
+  reason: string;
+  status: string;
+}
+
 interface LenderMarketingPopoverProps {
   emailLogId: string;
   category: string | null;
@@ -36,6 +53,9 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<LenderMarketingData | null>(null);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<LenderFieldSuggestion[]>([]);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
@@ -56,6 +76,19 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           setData(marketingData);
           setAiSummary(emailLog?.ai_summary || marketingData?.ai_summary || null);
         }
+
+        // Fetch suggestions for this email
+        const { data: suggestionsData, error: suggestionsError } = await supabase
+          .from('lender_field_suggestions')
+          .select('*')
+          .eq('email_log_id', emailLogId)
+          .order('created_at', { ascending: false });
+
+        if (suggestionsError) {
+          console.error('Error fetching suggestions:', suggestionsError);
+        } else {
+          setSuggestions(suggestionsData || []);
+        }
       } catch (error) {
         console.error('Error loading lender marketing data:', error);
       } finally {
@@ -63,6 +96,104 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
       }
     }
   };
+
+  const handleApproveSuggestion = async (suggestion: LenderFieldSuggestion) => {
+    setProcessingIds(prev => new Set(prev).add(suggestion.id));
+    try {
+      if (suggestion.is_new_lender) {
+        // Create new lender in Not Approved section
+        await databaseService.createLender({
+          lender_name: suggestion.suggested_lender_name || 'Unknown Lender',
+          status: 'Pending',
+          lender_type: 'Non-QM',
+        });
+        toast({
+          title: "Lender Added",
+          description: `${suggestion.suggested_lender_name} added to Not Approved section`,
+        });
+      } else if (suggestion.lender_id) {
+        // Update the lender field
+        await databaseService.updateLender(suggestion.lender_id, {
+          [suggestion.field_name]: suggestion.suggested_value,
+        });
+        toast({
+          title: "Lender Updated",
+          description: `Updated ${formatFieldName(suggestion.field_name)} to ${suggestion.suggested_value}`,
+        });
+      }
+
+      // Mark suggestion as approved
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('lender_field_suggestions')
+        .update({
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          processed_by: user?.id,
+        })
+        .eq('id', suggestion.id);
+
+      // Update local state
+      setSuggestions(prev => prev.map(s => 
+        s.id === suggestion.id ? { ...s, status: 'approved' } : s
+      ));
+    } catch (error) {
+      console.error('Error approving suggestion:', error);
+      toast({
+        title: "Error",
+        description: "Failed to apply suggestion",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(suggestion.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDenySuggestion = async (suggestion: LenderFieldSuggestion) => {
+    setProcessingIds(prev => new Set(prev).add(suggestion.id));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('lender_field_suggestions')
+        .update({
+          status: 'denied',
+          processed_at: new Date().toISOString(),
+          processed_by: user?.id,
+        })
+        .eq('id', suggestion.id);
+
+      setSuggestions(prev => prev.map(s => 
+        s.id === suggestion.id ? { ...s, status: 'denied' } : s
+      ));
+    } catch (error) {
+      console.error('Error denying suggestion:', error);
+      toast({
+        title: "Error",
+        description: "Failed to deny suggestion",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(suggestion.id);
+        return next;
+      });
+    }
+  };
+
+  const formatFieldName = (fieldName: string) => {
+    return fieldName
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace('Product ', '');
+  };
+
+  const pendingSuggestions = suggestions.filter(s => s.status === 'pending');
+  const processedSuggestions = suggestions.filter(s => s.status !== 'pending');
 
   const hasData = data && (
     data.lender_name ||
@@ -79,15 +210,20 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
         <button
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "bg-blue-500/20 text-blue-600 border border-blue-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-blue-500/30 transition-colors font-medium inline-flex items-center",
+            "bg-blue-500/20 text-blue-600 border border-blue-500/30 text-[10px] px-1.5 py-0 h-5 rounded-full hover:bg-blue-500/30 transition-colors font-medium inline-flex items-center gap-1",
             className
           )}
         >
           Lender Marketing
+          {pendingSuggestions.length > 0 && (
+            <span className="bg-blue-600 text-white text-[9px] px-1 rounded-full">
+              {pendingSuggestions.length}
+            </span>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[480px] p-0" 
+        className="w-[520px] p-0" 
         align="end"
         onClick={(e) => e.stopPropagation()}
       >
@@ -108,7 +244,7 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           <p className="text-xs text-muted-foreground truncate mt-1">{subject}</p>
         </div>
 
-        <ScrollArea className="max-h-[450px]">
+        <ScrollArea className="max-h-[500px]">
           <div className="p-3 space-y-3">
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
@@ -122,6 +258,110 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
                     <h5 className="text-xs font-medium text-muted-foreground mb-1.5">AI Summary</h5>
                     <div className="bg-muted/50 rounded-md p-2.5 text-sm">
                       {aiSummary}
+                    </div>
+                  </div>
+                )}
+
+                {/* CRM Update Suggestions Section */}
+                {suggestions.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-muted-foreground mb-1.5">
+                      CRM Updates {pendingSuggestions.length > 0 && `(${pendingSuggestions.length} pending)`}
+                    </h5>
+                    <div className="space-y-2">
+                      {pendingSuggestions.map((suggestion) => (
+                        <div key={suggestion.id} className="border rounded-md p-2.5 bg-card">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              {suggestion.is_new_lender ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Plus className="h-3.5 w-3.5 text-green-600" />
+                                  <span className="text-xs font-medium">Add New Lender</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-medium">
+                                  {formatFieldName(suggestion.field_name)}
+                                </span>
+                              )}
+                              <div className="text-xs mt-1">
+                                {suggestion.is_new_lender ? (
+                                  <span className="text-green-600 font-medium">{suggestion.suggested_lender_name}</span>
+                                ) : (
+                                  <>
+                                    <span className="text-muted-foreground">{suggestion.current_value || '∅'}</span>
+                                    <span className="mx-1.5">→</span>
+                                    <span className="text-green-600 font-medium">{suggestion.suggested_value}</span>
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                                {suggestion.reason}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => handleApproveSuggestion(suggestion)}
+                                disabled={processingIds.has(suggestion.id)}
+                              >
+                                {processingIds.has(suggestion.id) ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDenySuggestion(suggestion)}
+                                disabled={processingIds.has(suggestion.id)}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Processed suggestions */}
+                      {processedSuggestions.map((suggestion) => (
+                        <div key={suggestion.id} className="border rounded-md p-2.5 bg-muted/30 opacity-60">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium">
+                                  {suggestion.is_new_lender ? 'Add New Lender' : formatFieldName(suggestion.field_name)}
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn(
+                                    "text-[9px] px-1 py-0",
+                                    suggestion.status === 'approved' 
+                                      ? "bg-green-100 text-green-700 border-green-200" 
+                                      : "bg-gray-100 text-gray-500 border-gray-200"
+                                  )}
+                                >
+                                  {suggestion.status}
+                                </Badge>
+                              </div>
+                              <div className="text-xs mt-1">
+                                {suggestion.is_new_lender ? (
+                                  <span>{suggestion.suggested_lender_name}</span>
+                                ) : (
+                                  <>
+                                    <span className="text-muted-foreground">{suggestion.current_value || '∅'}</span>
+                                    <span className="mx-1.5">→</span>
+                                    <span>{suggestion.suggested_value}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

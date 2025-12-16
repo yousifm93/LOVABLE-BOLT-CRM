@@ -3017,6 +3017,72 @@ export type Database = {
           },
         ]
       }
+      lender_field_suggestions: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          current_value: string | null
+          email_log_id: string | null
+          field_name: string
+          id: string
+          is_new_lender: boolean | null
+          lender_id: string | null
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          status: string
+          suggested_lender_name: string | null
+          suggested_value: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          current_value?: string | null
+          email_log_id?: string | null
+          field_name: string
+          id?: string
+          is_new_lender?: boolean | null
+          lender_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          status?: string
+          suggested_lender_name?: string | null
+          suggested_value: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          current_value?: string | null
+          email_log_id?: string | null
+          field_name?: string
+          id?: string
+          is_new_lender?: boolean | null
+          lender_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          status?: string
+          suggested_lender_name?: string | null
+          suggested_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lender_field_suggestions_email_log_id_fkey"
+            columns: ["email_log_id"]
+            isOneToOne: false
+            referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lender_field_suggestions_lender_id_fkey"
+            columns: ["lender_id"]
+            isOneToOne: false
+            referencedRelation: "lenders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lender_partnerships: {
         Row: {
           competitive_advantages: string[] | null
