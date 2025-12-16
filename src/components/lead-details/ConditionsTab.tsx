@@ -518,13 +518,13 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[200px]">Description</TableHead>
           <TableHead 
             onClick={() => handleSortClick('needed_from')}
             className="cursor-pointer hover:bg-muted w-[100px] text-center"
           >
             Needed From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
+          <TableHead className="w-[200px]">Description</TableHead>
           <TableHead className="w-[60px] text-center">Doc</TableHead>
           <TableHead className="w-[40px]"></TableHead>
         </TableRow>
@@ -603,11 +603,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-                <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-sm text-muted-foreground line-clamp-1">
-                    {condition.notes || '—'}
-                  </span>
-                </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
                   <Select
                     value={condition.needed_from || ""}
@@ -626,6 +621,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       ))}
                     </SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-sm text-muted-foreground line-clamp-1">
+                    {condition.notes || '—'}
+                  </span>
                 </TableCell>
                 <TableCell className="py-0.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (
@@ -811,50 +811,17 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 </div>
               </div>
 
+              {/* Description - shows full notes content */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Description</label>
+                <div className="p-3 bg-muted/30 rounded-lg text-sm whitespace-pre-wrap min-h-[60px]">
+                  {selectedCondition.notes || <span className="text-muted-foreground italic">No description provided</span>}
+                </div>
+              </div>
+
               {/* Team Notes */}
               <div>
                 <label className="text-sm font-medium mb-2 block">Team Notes</label>
-                
-                {/* Display existing notes in modern activity-style format */}
-                {selectedCondition.notes && (() => {
-                  const notes = selectedCondition.notes
-                    .split('\n\n')
-                    .filter(note => note.trim())
-                    .map(note => {
-                      const match = note.match(/^\[(.*?) - (.*?)\]\n([\s\S]*)$/);
-                      if (match) {
-                        const [, timestamp, email, text] = match;
-                        return { timestamp, email, text };
-                      }
-                      return null;
-                    })
-                    .filter(Boolean);
-
-                  return notes.length > 0 ? (
-                    <div className="space-y-2 mb-3 max-h-[300px] overflow-y-auto">
-                      {notes.map((note, idx) => {
-                        if (!note) return null;
-                        const firstName = note.email.split('@')[0];
-                        const initials = firstName.slice(0, 2).toUpperCase();
-                        const timeAgo = formatDistance(new Date(note.timestamp), new Date(), { addSuffix: true });
-
-                        return (
-                          <div key={idx} className="flex gap-2 p-2 bg-muted/30 rounded-md">
-                            <Avatar className="h-7 w-7">
-                              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs text-muted-foreground mb-1">
-                                by {firstName} • {timeAgo}
-                              </div>
-                              <div className="text-sm whitespace-pre-wrap">{note.text}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null;
-                })()}
                 
                 {/* New note input */}
                 <Textarea
