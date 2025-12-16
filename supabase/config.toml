@@ -167,3 +167,6 @@ verify_jwt = false
 
 [functions.fetch-emails-imap]
 verify_jwt = true
+
+[functions.parse-email-lender-marketing]
+verify_jwt = false

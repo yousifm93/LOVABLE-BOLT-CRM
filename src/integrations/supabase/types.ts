@@ -1728,7 +1728,9 @@ export type Database = {
           from_email: string
           html_body: string | null
           id: string
+          is_lender_marketing: boolean | null
           lead_id: string
+          lender_marketing_category: string | null
           opened_at: string | null
           provider_message_id: string | null
           snippet: string | null
@@ -1752,7 +1754,9 @@ export type Database = {
           from_email: string
           html_body?: string | null
           id?: string
+          is_lender_marketing?: boolean | null
           lead_id: string
+          lender_marketing_category?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
           snippet?: string | null
@@ -1776,7 +1780,9 @@ export type Database = {
           from_email?: string
           html_body?: string | null
           id?: string
+          is_lender_marketing?: boolean | null
           lead_id?: string
+          lender_marketing_category?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
           snippet?: string | null
