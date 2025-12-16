@@ -3160,6 +3160,7 @@ export type Database = {
           condotel_min_sqft: number | null
           conv_max_ltv: number | null
           created_at: string
+          custom_fields: Json | null
           deleted_at: string | null
           deleted_by: string | null
           dscr_max_ltv: number | null
@@ -3243,6 +3244,7 @@ export type Database = {
           condotel_min_sqft?: number | null
           conv_max_ltv?: number | null
           created_at?: string
+          custom_fields?: Json | null
           deleted_at?: string | null
           deleted_by?: string | null
           dscr_max_ltv?: number | null
@@ -3326,6 +3328,7 @@ export type Database = {
           condotel_min_sqft?: number | null
           conv_max_ltv?: number | null
           created_at?: string
+          custom_fields?: Json | null
           deleted_at?: string | null
           deleted_by?: string | null
           dscr_max_ltv?: number | null
