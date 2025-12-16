@@ -111,7 +111,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const [users, setUsers] = useState<any[]>([]);
   
   // Sorting state
-  const [sortBy, setSortBy] = useState<'status' | 'due_date'>('status');
+  const [sortBy, setSortBy] = useState<'status' | 'due_date' | 'condition' | 'needed_from'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
   // Group collapsible state
@@ -182,6 +182,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         const aNum = parseInt(a.status.split('_')[0]);
         const bNum = parseInt(b.status.split('_')[0]);
         return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+      } else if (sortBy === 'condition') {
+        return sortOrder === 'asc' 
+          ? a.description.localeCompare(b.description)
+          : b.description.localeCompare(a.description);
+      } else if (sortBy === 'needed_from') {
+        const aFrom = a.needed_from || '';
+        const bFrom = b.needed_from || '';
+        return sortOrder === 'asc' 
+          ? aFrom.localeCompare(bFrom)
+          : bFrom.localeCompare(aFrom);
       } else {
         const aDate = a.due_date ? new Date(a.due_date) : new Date(0);
         const bDate = b.due_date ? new Date(b.due_date) : new Date(0);
@@ -454,7 +464,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     return users.find(u => u.id === userId);
   };
 
-  const handleSortClick = (column: 'status' | 'due_date') => {
+  const handleSortClick = (column: 'status' | 'due_date' | 'condition' | 'needed_from') => {
     if (sortBy === column) {
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -490,10 +500,15 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       <TableHeader>
         <TableRow className="h-8">
           <TableHead className="w-[40px] text-center">#</TableHead>
-          <TableHead className="w-[200px] max-w-[200px]">Condition</TableHead>
+          <TableHead 
+            onClick={() => handleSortClick('condition')}
+            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px]"
+          >
+            Condition {sortBy === 'condition' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[140px] text-center"
+            className="cursor-pointer hover:bg-muted w-[110px] text-center"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -504,14 +519,20 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
           <TableHead className="w-[200px]">Description</TableHead>
-          <TableHead className="w-[100px] text-center">Needed From</TableHead>
+          <TableHead 
+            onClick={() => handleSortClick('needed_from')}
+            className="cursor-pointer hover:bg-muted w-[100px] text-center"
+          >
+            Needed From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </TableHead>
           <TableHead className="w-[60px] text-center">Doc</TableHead>
+          <TableHead className="w-[40px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={8} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
@@ -526,7 +547,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 <TableCell className="py-0.5 px-2 text-center text-muted-foreground text-sm">
                   {index + 1}
                 </TableCell>
-                <TableCell className="py-0.5 px-2 max-w-[200px]">
+                <TableCell className="py-0.5 px-2 max-w-[280px]">
                   <div className="font-medium line-clamp-2">{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
@@ -626,6 +647,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       <Plus className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   )}
+                </TableCell>
+                <TableCell className="py-0.5 px-1" onClick={(e) => e.stopPropagation()}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteCondition(condition.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </TableCell>
               </TableRow>
             );
@@ -941,20 +972,34 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
-              Close
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button 
+              variant="destructive" 
+              onClick={async () => {
+                if (selectedCondition) {
+                  await handleDeleteCondition(selectedCondition.id);
+                  setIsDetailModalOpen(false);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
-            <Button onClick={async () => {
-              toast({
-                title: "Saved",
-                description: "All changes have been saved",
-              });
-              await loadConditions();
-              setIsDetailModalOpen(false);
-            }}>
-              Save
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+                Close
+              </Button>
+              <Button onClick={async () => {
+                toast({
+                  title: "Saved",
+                  description: "All changes have been saved",
+                });
+                await loadConditions();
+                setIsDetailModalOpen(false);
+              }}>
+                Save
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
