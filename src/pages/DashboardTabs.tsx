@@ -1115,106 +1115,224 @@ export default function DashboardTabs() {
           ) : (
             <>
               {/* Top Row - Separated Volume and Units */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4 max-w-4xl">
                 {/* Volume Card */}
                 <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-blue-600" />
                       Volume Metrics
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ModernStatsCard
-                      title="Total Active Volume"
-                      value={new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(activeMetrics.total_volume)}
-                      icon={<DollarSign />}
-                      size="large"
-                      centered={true}
-                      clickable={true}
-                      onClick={() => handleOpenVolumeModal("Total Active Volume", totalActiveLeads)}
-                    />
-                    <ModernStatsCard
-                      title="Current Month Pending Volume"
-                      value={new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(currentMonthPending.current_month_volume)}
-                      icon={<CalendarDays />}
-                      centered={true}
-                      clickable={true}
-                      onClick={() => handleOpenVolumeModal("Current Month Pending Volume", currentMonthLeads)}
-                    />
-                    <ModernStatsCard
-                      title="Next Month Pending Volume"
-                      value={new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(nextMonthPending.next_month_volume)}
-                      icon={<CalendarDays />}
-                      centered={true}
-                      clickable={true}
-                      onClick={() => handleOpenVolumeModal("Next Month Pending Volume", nextMonthLeads)}
-                    />
-                    <ModernStatsCard
-                      title="Closing This Week (Volume)"
-                      value={new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(thisWeekClosing.this_week_volume)}
-                      icon={<TrendingUp />}
-                      centered={true}
-                      clickable={true}
-                      onClick={() => handleOpenVolumeModal("Closing This Week", thisWeekLeads)}
-                    />
+                  <CardContent className="space-y-3">
+                    <div>
+                      <ModernStatsCard
+                        title="Total Active Volume"
+                        value={new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(activeMetrics.total_volume)}
+                        icon={<DollarSign />}
+                        size="large"
+                        centered={true}
+                        clickable={true}
+                        onClick={() => handleOpenVolumeModal("Total Active Volume", totalActiveLeads)}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2 max-h-20 overflow-y-auto">
+                        {totalActiveLeads.slice(0, 15).map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                        {totalActiveLeads.length > 15 && (
+                          <span className="text-xs text-muted-foreground self-center">+{totalActiveLeads.length - 15} more</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Current Month Pending Volume"
+                        value={new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(currentMonthPending.current_month_volume)}
+                        icon={<CalendarDays />}
+                        centered={true}
+                        clickable={true}
+                        onClick={() => handleOpenVolumeModal("Current Month Pending Volume", currentMonthLeads)}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {currentMonthLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Next Month Pending Volume"
+                        value={new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(nextMonthPending.next_month_volume)}
+                        icon={<CalendarDays />}
+                        centered={true}
+                        clickable={true}
+                        onClick={() => handleOpenVolumeModal("Next Month Pending Volume", nextMonthLeads)}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {nextMonthLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Closing This Week (Volume)"
+                        value={new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(thisWeekClosing.this_week_volume)}
+                        icon={<TrendingUp />}
+                        centered={true}
+                        clickable={true}
+                        onClick={() => handleOpenVolumeModal("Closing This Week", thisWeekLeads)}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {thisWeekLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
                 {/* Units Card */}
                 <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20">
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
                       <Users className="h-5 w-5 text-green-600" />
                       Unit Metrics
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ModernStatsCard
-                      title="Total Active Units"
-                      value={activeMetrics.total_units.toString()}
-                      icon={<Users />}
-                      size="large"
-                      centered={true}
-                    />
-                    <ModernStatsCard
-                      title="Current Month Pending Units"
-                      value={currentMonthPending.current_month_units.toString()}
-                      icon={<Users />}
-                      centered={true}
-                    />
-                    <ModernStatsCard
-                      title="Next Month Pending Units"
-                      value={nextMonthPending.next_month_units.toString()}
-                      icon={<Users />}
-                      centered={true}
-                    />
-                    <ModernStatsCard
-                      title="Closing This Week (Units)"
-                      value={thisWeekClosing.this_week_units.toString()}
-                      icon={<TrendingUp />}
-                      centered={true}
-                    />
+                  <CardContent className="space-y-3">
+                    <div>
+                      <ModernStatsCard
+                        title="Total Active Units"
+                        value={activeMetrics.total_units.toString()}
+                        icon={<Users />}
+                        size="large"
+                        centered={true}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2 max-h-20 overflow-y-auto">
+                        {totalActiveLeads.slice(0, 15).map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                        {totalActiveLeads.length > 15 && (
+                          <span className="text-xs text-muted-foreground self-center">+{totalActiveLeads.length - 15} more</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Current Month Pending Units"
+                        value={currentMonthPending.current_month_units.toString()}
+                        icon={<Users />}
+                        centered={true}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {currentMonthLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Next Month Pending Units"
+                        value={nextMonthPending.next_month_units.toString()}
+                        icon={<Users />}
+                        centered={true}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {nextMonthLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <ModernStatsCard
+                        title="Closing This Week (Units)"
+                        value={thisWeekClosing.this_week_units.toString()}
+                        icon={<TrendingUp />}
+                        centered={true}
+                      />
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {thisWeekLeads.map((lead: any) => (
+                          <Badge 
+                            key={lead.id}
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-primary/10 text-xs px-2 py-0.5"
+                            onClick={() => handleLeadClick(lead.id)}
+                          >
+                            {lead.first_name} {lead.last_name?.charAt(0)}.
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

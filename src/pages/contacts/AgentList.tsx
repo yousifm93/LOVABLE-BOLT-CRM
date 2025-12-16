@@ -261,7 +261,7 @@ export default function AgentList() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -294,6 +294,44 @@ export default function AgentList() {
                 <p className="text-sm text-muted-foreground">With Phone</p>
               </div>
               <Phone className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {agents.filter(a => {
+                    if (!a.last_agent_call) return false;
+                    const callDate = new Date(a.last_agent_call);
+                    const now = new Date();
+                    return callDate.getMonth() === now.getMonth() && callDate.getFullYear() === now.getFullYear();
+                  }).length.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Called This Month</p>
+              </div>
+              <Phone className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">
+                  {agents.filter(a => {
+                    if (!a.face_to_face_meeting) return false;
+                    const meetingDate = new Date(a.face_to_face_meeting);
+                    const now = new Date();
+                    return meetingDate.getMonth() === now.getMonth() && meetingDate.getFullYear() === now.getFullYear();
+                  }).length.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Met This Month</p>
+              </div>
+              <Calendar className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
