@@ -210,8 +210,17 @@ serve(async (req) => {
           const envelopeFrom = { name: fromAddr?.name, address: fromAddr?.address };
 
           // Try to extract original sender from forwarded email body
+          // Use PostalMime to decode the body first (handles MIME encoding)
           const sourcePreview = message.source?.toString() || "";
-          const { from: fromName, fromEmail } = extractOriginalSender(sourcePreview, envelopeFrom);
+          let decodedBody = "";
+          try {
+            const parsed = await parseEmailWithPostalMime(sourcePreview);
+            decodedBody = parsed.text || parsed.html || "";
+          } catch (e) {
+            console.log("PostalMime parse failed for sender extraction, using raw source");
+            decodedBody = sourcePreview;
+          }
+          const { from: fromName, fromEmail } = extractOriginalSender(decodedBody, envelopeFrom);
 
           // Extract to address
           const toAddr = envelope?.to?.[0];

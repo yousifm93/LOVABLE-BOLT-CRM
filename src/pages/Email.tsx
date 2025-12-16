@@ -333,7 +333,7 @@ export default function Email() {
         </div>
 
         {/* Email List - Fixed width */}
-        <div className="w-[400px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
+        <div className="w-[450px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
           <div className="p-2 border-b">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -374,7 +374,7 @@ export default function Email() {
                       return (
                         <div
                           className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
-                          style={{ maxWidth: "calc(400px - 24px)" }}
+                          style={{ maxWidth: "calc(450px - 24px)" }}
                         >
                           <span
                             className={cn(
