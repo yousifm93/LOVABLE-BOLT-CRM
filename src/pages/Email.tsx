@@ -45,6 +45,14 @@ const folders = [
 // Strip forward prefixes from subject lines (belt-and-suspenders with backend)
 const cleanSubject = (subject: string) => subject.replace(/^(Fwd:|FWD:|Fw:|FW:)\s*/i, '').trim();
 
+// Normalize subject for matching - removes all forward/reply prefixes and lowercases
+const cleanSubjectForMatching = (subject: string) => {
+  return subject
+    .replace(/^(Fwd:|FWD:|Fw:|FW:|Re:|RE:)\s*/gi, '')
+    .toLowerCase()
+    .trim();
+};
+
 export default function Email() {
   const { toast } = useToast();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
@@ -92,7 +100,7 @@ export default function Email() {
         return;
       }
 
-      // Create a map for quick lookup by from_email + subject
+      // Create a map for quick lookup by cleaned subject (primary key)
       const tagsMap = new Map<string, EmailTagData>();
       
       for (const log of emailLogs || []) {
@@ -101,15 +109,17 @@ export default function Email() {
           const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
           
           if (leadName) {
-            // Create lookup key from email + subject
-            const key = `${log.from_email?.toLowerCase() || ''}-${log.subject || ''}`;
-            tagsMap.set(key, {
-              leadId: log.lead_id,
-              leadName,
-              emailLogId: log.id,
-              aiSummary: log.ai_summary,
-              subject: log.subject || '',
-            });
+            // Use cleaned subject as primary lookup key (most reliable for forwarded emails)
+            const cleanedSubject = cleanSubjectForMatching(log.subject || '');
+            if (cleanedSubject) {
+              tagsMap.set(cleanedSubject, {
+                leadId: log.lead_id,
+                leadName,
+                emailLogId: log.id,
+                aiSummary: log.ai_summary,
+                subject: log.subject || '',
+              });
+            }
           }
         }
       }
@@ -369,7 +379,8 @@ export default function Email() {
                     )}
                   >
                     {(() => {
-                      const tagKey = `${email.fromEmail?.toLowerCase() || ''}-${email.subject || ''}`;
+                      // Use cleaned subject for matching (ignores forward prefixes and case)
+                      const tagKey = cleanSubjectForMatching(email.subject || '');
                       const tagData = emailTagsMap.get(tagKey);
                       return (
                         <div
