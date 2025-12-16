@@ -9,7 +9,6 @@ import { CreateLenderModal } from "@/components/modals/CreateLenderModal";
 import { LenderDetailDialog } from "@/components/LenderDetailDialog";
 import { SendLenderEmailModal } from "@/components/modals/SendLenderEmailModal";
 import { BulkLenderEmailModal } from "@/components/modals/BulkLenderEmailModal";
-import { InlineEditLenderType } from "@/components/ui/inline-edit-lender-type";
 import { InlineEditLink } from "@/components/ui/inline-edit-link";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
@@ -239,10 +238,7 @@ export default function ApprovedLenders() {
       header: "Lender Type",
       cell: ({ row }: any) => (
         <div className="flex justify-center">
-          <InlineEditLenderType
-            value={row.original.lender_type}
-            onValueChange={(value) => handleUpdateLender(row.original.id, { lender_type: value as "Conventional" | "Non-QM" | "Private" | "HELOC" })}
-          />
+          <span className="text-xs text-muted-foreground">{row.original.lender_type || "—"}</span>
         </div>
       ),
       sortable: true,

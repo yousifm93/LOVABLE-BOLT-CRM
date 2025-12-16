@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Search, Plus, X, GripVertical, Eye, EyeOff, Save, ChevronRight } from "lucide-react";
+import { Search, Plus, X, GripVertical, Eye, EyeOff, Save, ChevronRight, Settings } from "lucide-react";
 import { generateTestRows } from "@/utils/testDataGenerator";
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
@@ -230,6 +230,7 @@ export function PipelineViewEditor({
   const [columns, setColumns] = useState<ColumnConfig[]>([]);
   const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showWidthCalibration, setShowWidthCalibration] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -386,6 +387,16 @@ export function PipelineViewEditor({
     setHasUnsavedChanges(true);
   };
 
+  const setColumnWidth = (fieldName: string, newWidth: number) => {
+    setColumns(columns.map(col => {
+      if (col.field_name === fieldName) {
+        return { ...col, width: Math.max(80, Math.min(600, newWidth)) };
+      }
+      return col;
+    }));
+    setHasUnsavedChanges(true);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -521,6 +532,15 @@ export function PipelineViewEditor({
 
           {/* Action Buttons */}
           <div className="flex gap-2 ml-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowWidthCalibration(!showWidthCalibration)}
+              className={showWidthCalibration ? "bg-muted" : ""}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Calibrate Widths
+            </Button>
             <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
               Cancel
             </Button>
@@ -543,6 +563,42 @@ export function PipelineViewEditor({
           </div>
         </div>
       </Card>
+
+      {/* Column Width Calibration Panel */}
+      <Collapsible open={showWidthCalibration} onOpenChange={setShowWidthCalibration}>
+        <CollapsibleContent>
+          <Card className="border-blue-500/50 bg-blue-500/5">
+            <div className="p-3 border-b">
+              <h3 className="font-semibold text-sm">Column Width Calibration</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Set exact pixel widths for each column (80-600px)
+              </p>
+            </div>
+            <div className="p-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                {columns.filter(c => c.visible).map(column => (
+                  <div key={column.field_name} className="flex flex-col gap-1">
+                    <Label className="text-xs truncate" title={column.display_name}>
+                      {column.display_name}
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={column.width}
+                        onChange={(e) => setColumnWidth(column.field_name, parseInt(e.target.value) || 150)}
+                        className="h-8 text-xs px-2"
+                        min={80}
+                        max={600}
+                      />
+                      <span className="text-[10px] text-muted-foreground">px</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Horizontal Collapsible Available Fields Section */}
       <Collapsible open={isFieldsPanelOpen} onOpenChange={setIsFieldsPanelOpen}>
