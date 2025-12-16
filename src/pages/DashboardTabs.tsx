@@ -437,8 +437,9 @@ export default function DashboardTabs() {
       </div>
 
       <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 h-9">
+        <TabsList className="grid w-full grid-cols-6 h-9">
           <TabsTrigger value="sales" className="text-sm">Sales</TabsTrigger>
+          <TabsTrigger value="calls" className="text-sm">Calls</TabsTrigger>
           <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
           <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
           <TabsTrigger value="miscellaneous" className="text-sm">Miscellaneous</TabsTrigger>
@@ -799,7 +800,61 @@ export default function DashboardTabs() {
               </Card>
               </div>
 
-            {/* CALL BREAKDOWN ROW */}
+            {/* Recent Activity & Pipeline Summary */}
+            <div className="mt-8 grid grid-cols-2 gap-6">
+                <CollapsibleSection
+                  title="Recent Activity"
+                  count={recentStageChanges.length}
+                  data={recentStageChanges}
+                  defaultOpen={false}
+                  renderItem={(change: any, index) => {
+                    const isLeadCreation = !change.from_stage;
+                    const isGoingToLeads = change.to_stage?.name === 'Leads';
+                    
+                    return (
+                      <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
+                        <div className="flex-1 space-y-1">
+                          <p className="font-medium text-foreground">
+                            {change.lead?.first_name} {change.lead?.last_name}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            {isLeadCreation && isGoingToLeads ? (
+                              <span className="text-primary font-medium">Created</span>
+                            ) : isLeadCreation ? (
+                              <>
+                                <span>New</span>
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="text-primary font-medium">{change.to_stage?.name}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>{change.from_stage?.name}</span>
+                                <ArrowRight className="h-3 w-3" />
+                                <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                          {formatDateTime(change.changed_at)}
+                        </Badge>
+                      </div>
+                    );
+                  }}
+                />
+
+                <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="calls" className="space-y-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
             <div className="grid grid-cols-5 gap-4">
               {/* New Agent Calls */}
               <Card className="border-cyan-500/30 bg-cyan-500/5">
@@ -981,53 +1036,6 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Recent Activity & Pipeline Summary */}
-            <div className="mt-8 grid grid-cols-2 gap-6">
-                <CollapsibleSection
-                  title="Recent Activity"
-                  count={recentStageChanges.length}
-                  data={recentStageChanges}
-                  defaultOpen={false}
-                  renderItem={(change: any, index) => {
-                    const isLeadCreation = !change.from_stage;
-                    const isGoingToLeads = change.to_stage?.name === 'Leads';
-                    
-                    return (
-                      <div key={change.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 hover:bg-background/80 transition-colors">
-                        <div className="flex-1 space-y-1">
-                          <p className="font-medium text-foreground">
-                            {change.lead?.first_name} {change.lead?.last_name}
-                          </p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {isLeadCreation && isGoingToLeads ? (
-                              <span className="text-primary font-medium">Created</span>
-                            ) : isLeadCreation ? (
-                              <>
-                                <span>New</span>
-                                <ArrowRight className="h-3 w-3" />
-                                <span className="text-primary font-medium">{change.to_stage?.name}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>{change.from_stage?.name}</span>
-                                <ArrowRight className="h-3 w-3" />
-                                <span className="text-primary font-medium">{change.to_stage?.name || 'Unknown'}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                          {formatDateTime(change.changed_at)}
-                        </Badge>
-                      </div>
-                    );
-                  }}
-                />
-
-                <PipelineSummarySection pipelineStageCounts={pipelineStageCounts} />
-              </div>
-            </>
           )}
         </TabsContent>
 
