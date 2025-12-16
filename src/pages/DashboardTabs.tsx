@@ -147,13 +147,36 @@ export default function DashboardTabs() {
     todayApps,
     allApplications,
     thisMonthMeetings,
-    yesterdayMeetings,
-    todayMeetings,
+    lastWeekMeetings,
+    thisWeekMeetings,
     allMeetings,
+    // Broker Opens
+    thisMonthBrokerOpens,
+    lastWeekBrokerOpens,
+    thisWeekBrokerOpens,
+    allBrokerOpens,
+    // Combined Calls
     thisMonthCalls,
     yesterdayCalls,
     todayCalls,
     allCalls,
+    // Call Type Breakdowns
+    thisMonthNewAgentCalls,
+    yesterdayNewAgentCalls,
+    todayNewAgentCalls,
+    thisMonthCurrentAgentCalls,
+    yesterdayCurrentAgentCalls,
+    todayCurrentAgentCalls,
+    thisMonthTopAgentCalls,
+    yesterdayTopAgentCalls,
+    todayTopAgentCalls,
+    thisMonthPastLACalls,
+    yesterdayPastLACalls,
+    todayPastLACalls,
+    thisMonthPastClientCalls,
+    yesterdayPastClientCalls,
+    todayPastClientCalls,
+    // Emails
     thisMonthEmails,
     yesterdayEmails,
     todayEmails,
@@ -592,20 +615,20 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
-                    title="Yesterday"
-                    value={yesterdayMeetings.length}
+                    title="Last Week"
+                    value={lastWeekMeetings.length}
                     icon={<Users />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("Yesterday's Face-to-Face Meetings", yesterdayMeetings, "meetings")}
+                    onClick={() => handleOpenModal("Last Week's Face-to-Face Meetings", lastWeekMeetings, "meetings")}
                   />
                   <ModernStatsCard
-                    title="Today"
-                    value={todayMeetings.length}
+                    title="This Week"
+                    value={thisWeekMeetings.length}
                     icon={<Users />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("Today's Face-to-Face Meetings", todayMeetings, "meetings")}
+                    onClick={() => handleOpenModal("This Week's Face-to-Face Meetings", thisWeekMeetings, "meetings")}
                   />
                   
                   <CollapsibleSection
@@ -637,52 +660,52 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* COLUMN 4 - CALLS */}
+              {/* COLUMN 4 - BROKER OPENS */}
               <Card className="border-orange-500/30 bg-orange-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-orange-600" />
-                    Calls
+                    <Calendar className="h-4 w-4 text-orange-600" />
+                    Broker Opens
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ModernStatsCard
                     title="This Month"
-                    value={thisMonthCalls.length}
-                    icon={<Phone />}
+                    value={thisMonthBrokerOpens.length}
+                    icon={<Calendar />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Calls", thisMonthCalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings")}
                     showProgress={true}
-                    progressValue={thisMonthCalls.length}
-                    progressMax={MONTHLY_GOALS.calls}
+                    progressValue={thisMonthBrokerOpens.length}
+                    progressMax={10}
                     showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.calls)}
+                    expectedProgressValue={calculateExpectedProgress(10)}
                     progressColor="[&_.bg-primary]:bg-orange-500"
                   />
                   <ModernStatsCard
-                    title="Yesterday"
-                    value={yesterdayCalls.length}
-                    icon={<Phone />}
+                    title="Last Week"
+                    value={lastWeekBrokerOpens.length}
+                    icon={<Calendar />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("Yesterday's Calls", yesterdayCalls, "calls")}
+                    onClick={() => handleOpenModal("Last Week's Broker Opens", lastWeekBrokerOpens, "meetings")}
                   />
                   <ModernStatsCard
-                    title="Today"
-                    value={todayCalls.length}
-                    icon={<Phone />}
+                    title="This Week"
+                    value={thisWeekBrokerOpens.length}
+                    icon={<Calendar />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("Today's Calls", todayCalls, "calls")}
+                    onClick={() => handleOpenModal("This Week's Broker Opens", thisWeekBrokerOpens, "meetings")}
                   />
                   
                   <CollapsibleSection
-                    title="All Calls" 
-                    count={allCalls.length}
-                    data={allCalls}
-                    renderItem={(call, index) => {
-                      const highlightClass = getHighlightClasses(call.last_agent_call);
+                    title="All Broker Opens" 
+                    count={allBrokerOpens.length}
+                    data={allBrokerOpens}
+                    renderItem={(agent: any, index) => {
+                      const highlightClass = getHighlightClasses(agent.broker_open);
                       return (
                         <div 
                           key={index} 
@@ -690,21 +713,21 @@ export default function DashboardTabs() {
                         >
                           <div className="flex flex-col gap-1 flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">
-                              {call.first_name} {call.last_name}
+                              {agent.first_name} {agent.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(call.last_agent_call).toLocaleDateString()}
+                              {new Date(agent.broker_open).toLocaleDateString()}
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
-                            {call.notes || "No notes"}
+                            {agent.brokerage || "No brokerage"}
                           </p>
                         </div>
                       );
                     }}
                   />
                 </CardContent>
-                </Card>
+              </Card>
 
               {/* COLUMN 5 - EMAILS */}
               <Card className="border-blue-500/30 bg-blue-500/5">
@@ -775,6 +798,189 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
               </div>
+
+            {/* CALL BREAKDOWN ROW */}
+            <div className="grid grid-cols-5 gap-4">
+              {/* New Agent Calls */}
+              <Card className="border-cyan-500/30 bg-cyan-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-cyan-600" />
+                    New Agent Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthNewAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayNewAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's New Agent Calls", yesterdayNewAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayNewAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's New Agent Calls", todayNewAgentCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Current Agent Calls */}
+              <Card className="border-emerald-500/30 bg-emerald-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-emerald-600" />
+                    Current Agent Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthCurrentAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayCurrentAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Current Agent Calls", yesterdayCurrentAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayCurrentAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Current Agent Calls", todayCurrentAgentCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Past Client Calls */}
+              <Card className="border-violet-500/30 bg-violet-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-violet-600" />
+                    Past Client Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Past Client Calls", yesterdayPastClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Past Client Calls", todayPastClientCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Top Agent Calls */}
+              <Card className="border-amber-500/30 bg-amber-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-amber-600" />
+                    Top Agent Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthTopAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayTopAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Top Agent Calls", yesterdayTopAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayTopAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Top Agent Calls", todayTopAgentCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Past LA Calls */}
+              <Card className="border-rose-500/30 bg-rose-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-rose-600" />
+                    Past LA Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthPastLACalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayPastLACalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Past LA Calls", yesterdayPastLACalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayPastLACalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Past LA Calls", todayPastLACalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Recent Activity & Pipeline Summary */}
             <div className="mt-8 grid grid-cols-2 gap-6">

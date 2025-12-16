@@ -75,6 +75,28 @@ export const useDashboardData = () => {
     };
   };
 
+  // Get week range (Monday-Sunday)
+  const getWeekRange = (weekOffset: number = 0) => {
+    const now = new Date();
+    const day = now.getDay();
+    // Monday of current week (day 0 = Sunday, so adjust)
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + (weekOffset * 7));
+    monday.setHours(0, 0, 0, 0);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    
+    return {
+      start: monday.toISOString(),
+      end: sunday.toISOString()
+    };
+  };
+
+  const thisWeekRange = getWeekRange(0);
+  const lastWeekRange = getWeekRange(-1);
+
   const todayBoundaries = getUTCDayBoundaries(today);
   const yesterdayBoundaries = getUTCDayBoundaries(yesterday);
 
@@ -250,9 +272,9 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // Yesterday's Face-to-Face Meetings
-  const { data: yesterdayMeetings, isLoading: isLoadingYesterdayMeetings } = useQuery({
-    queryKey: ['faceToFaceMeetings', 'yesterday', formatDate(yesterday)],
+  // Last Week's Face-to-Face Meetings
+  const { data: lastWeekMeetings, isLoading: isLoadingLastWeekMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'lastWeek', lastWeekRange.start],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
@@ -261,8 +283,8 @@ export const useDashboardData = () => {
           agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
-        .gte('face_to_face_meeting', yesterdayBoundaries.start)
-        .lte('face_to_face_meeting', yesterdayBoundaries.end)
+        .gte('face_to_face_meeting', lastWeekRange.start)
+        .lte('face_to_face_meeting', lastWeekRange.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
@@ -278,9 +300,9 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
-  // Today's Face-to-Face Meetings
-  const { data: todayMeetings, isLoading: isLoadingTodayMeetings } = useQuery({
-    queryKey: ['faceToFaceMeetings', 'today', formatDate(today)],
+  // This Week's Face-to-Face Meetings
+  const { data: thisWeekMeetings, isLoading: isLoadingThisWeekMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'thisWeek', thisWeekRange.start],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('buyer_agents')
@@ -289,8 +311,8 @@ export const useDashboardData = () => {
           agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
-        .gte('face_to_face_meeting', todayBoundaries.start)
-        .lte('face_to_face_meeting', todayBoundaries.end)
+        .gte('face_to_face_meeting', thisWeekRange.start)
+        .lte('face_to_face_meeting', thisWeekRange.end)
         .order('face_to_face_meeting', { ascending: false });
       
       if (error) throw error;
@@ -329,6 +351,217 @@ export const useDashboardData = () => {
           : null
       })) as DashboardFaceToFaceMeeting[];
     },
+    staleTime: 30000,
+  });
+
+  // ============== BROKER OPENS ==============
+  
+  // This Month's Broker Opens
+  const { data: thisMonthBrokerOpens, isLoading: isLoadingThisMonthBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: async () => {
+      const startOfMonthTimestamp = startOfMonth.toISOString();
+      const startOfNextMonthTimestamp = startOfNextMonth.toISOString();
+      
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .gte('broker_open', startOfMonthTimestamp)
+        .lt('broker_open', startOfNextMonthTimestamp)
+        .order('broker_open', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Last Week's Broker Opens
+  const { data: lastWeekBrokerOpens, isLoading: isLoadingLastWeekBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'lastWeek', lastWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .gte('broker_open', lastWeekRange.start)
+        .lte('broker_open', lastWeekRange.end)
+        .order('broker_open', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // This Week's Broker Opens
+  const { data: thisWeekBrokerOpens, isLoading: isLoadingThisWeekBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'thisWeek', thisWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .gte('broker_open', thisWeekRange.start)
+        .lte('broker_open', thisWeekRange.end)
+        .order('broker_open', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // All Broker Opens
+  const { data: allBrokerOpens, isLoading: isLoadingAllBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .order('broker_open', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // ============== CALL TYPE BREAKDOWN ==============
+  const PAST_CLIENTS_STAGE_ID = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
+
+  // Helper function to fetch agent calls by call_type
+  const fetchAgentCallsByType = async (callType: string, startTime?: string, endTime?: string) => {
+    let query = supabase
+      .from('agent_call_logs')
+      .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+      .eq('log_type', 'call')
+      .eq('call_type', callType);
+    
+    if (startTime) query = query.gte('logged_at', startTime);
+    if (endTime) query = query.lte('logged_at', endTime);
+    
+    const { data, error } = await query.order('logged_at', { ascending: false });
+    if (error) throw error;
+    
+    return (data || []).map(c => ({
+      id: c.id,
+      name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+      person_type: 'Agent' as const,
+      call_date: c.logged_at,
+      call_type: c.call_type,
+      notes: c.summary,
+      lead_id: null,
+    }));
+  };
+
+  // New Agent Calls
+  const { data: thisMonthNewAgentCalls, isLoading: isLoadingThisMonthNewAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'new_agent', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchAgentCallsByType('new_agent', startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayNewAgentCalls, isLoading: isLoadingYesterdayNewAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'new_agent', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchAgentCallsByType('new_agent', yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayNewAgentCalls, isLoading: isLoadingTodayNewAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'new_agent', 'today', formatDate(today)],
+    queryFn: () => fetchAgentCallsByType('new_agent', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+
+  // Current Agent Calls
+  const { data: thisMonthCurrentAgentCalls, isLoading: isLoadingThisMonthCurrentAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'current_agent', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchAgentCallsByType('current_agent', startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayCurrentAgentCalls, isLoading: isLoadingYesterdayCurrentAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'current_agent', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchAgentCallsByType('current_agent', yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayCurrentAgentCalls, isLoading: isLoadingTodayCurrentAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'current_agent', 'today', formatDate(today)],
+    queryFn: () => fetchAgentCallsByType('current_agent', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+
+  // Top Agent Calls
+  const { data: thisMonthTopAgentCalls, isLoading: isLoadingThisMonthTopAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'top_agent', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchAgentCallsByType('top_agent', startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayTopAgentCalls, isLoading: isLoadingYesterdayTopAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'top_agent', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchAgentCallsByType('top_agent', yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayTopAgentCalls, isLoading: isLoadingTodayTopAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'top_agent', 'today', formatDate(today)],
+    queryFn: () => fetchAgentCallsByType('top_agent', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+
+  // Past LA Calls
+  const { data: thisMonthPastLACalls, isLoading: isLoadingThisMonthPastLACalls } = useQuery({
+    queryKey: ['agentCalls', 'past_la', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchAgentCallsByType('past_la', startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayPastLACalls, isLoading: isLoadingYesterdayPastLACalls } = useQuery({
+    queryKey: ['agentCalls', 'past_la', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchAgentCallsByType('past_la', yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayPastLACalls, isLoading: isLoadingTodayPastLACalls } = useQuery({
+    queryKey: ['agentCalls', 'past_la', 'today', formatDate(today)],
+    queryFn: () => fetchAgentCallsByType('past_la', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+
+  // Past Client Calls (from call_logs where lead is in Past Clients stage)
+  const fetchPastClientCalls = async (startTime?: string, endTime?: string) => {
+    let query = supabase
+      .from('call_logs')
+      .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+      .eq('leads.pipeline_stage_id', PAST_CLIENTS_STAGE_ID);
+    
+    if (startTime) query = query.gte('timestamp', startTime);
+    if (endTime) query = query.lte('timestamp', endTime);
+    
+    const { data, error } = await query.order('timestamp', { ascending: false });
+    if (error) throw error;
+    
+    return (data || []).map(c => ({
+      id: c.id,
+      name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+      person_type: 'Lead' as const,
+      call_date: c.timestamp,
+      call_type: 'past_client',
+      notes: c.notes,
+      lead_id: c.lead_id,
+    }));
+  };
+
+  const { data: thisMonthPastClientCalls, isLoading: isLoadingThisMonthPastClientCalls } = useQuery({
+    queryKey: ['pastClientCalls', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchPastClientCalls(startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayPastClientCalls, isLoading: isLoadingYesterdayPastClientCalls } = useQuery({
+    queryKey: ['pastClientCalls', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchPastClientCalls(yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayPastClientCalls, isLoading: isLoadingTodayPastClientCalls } = useQuery({
+    queryKey: ['pastClientCalls', 'today', formatDate(today)],
+    queryFn: () => fetchPastClientCalls(todayBoundaries.start, todayBoundaries.end),
     staleTime: 30000,
   });
 
@@ -1067,9 +1300,13 @@ export const useDashboardData = () => {
     isLoadingTodayApps ||
     isLoadingAllApps ||
     isLoadingThisMonthMeetings ||
-    isLoadingYesterdayMeetings ||
-    isLoadingTodayMeetings ||
+    isLoadingLastWeekMeetings ||
+    isLoadingThisWeekMeetings ||
     isLoadingAllMeetings ||
+    isLoadingThisMonthBrokerOpens ||
+    isLoadingLastWeekBrokerOpens ||
+    isLoadingThisWeekBrokerOpens ||
+    isLoadingAllBrokerOpens ||
     isLoadingThisMonthCalls ||
     isLoadingYesterdayCalls ||
     isLoadingTodayCalls ||
@@ -1092,7 +1329,22 @@ export const useDashboardData = () => {
     isLoadingClosedYtd ||
     isLoadingClosedVolume ||
     isLoadingClosedUnits ||
-    isLoadingAllPipelineLeads;
+    isLoadingAllPipelineLeads ||
+    isLoadingThisMonthNewAgentCalls ||
+    isLoadingYesterdayNewAgentCalls ||
+    isLoadingTodayNewAgentCalls ||
+    isLoadingThisMonthCurrentAgentCalls ||
+    isLoadingYesterdayCurrentAgentCalls ||
+    isLoadingTodayCurrentAgentCalls ||
+    isLoadingThisMonthTopAgentCalls ||
+    isLoadingYesterdayTopAgentCalls ||
+    isLoadingTodayTopAgentCalls ||
+    isLoadingThisMonthPastLACalls ||
+    isLoadingYesterdayPastLACalls ||
+    isLoadingTodayPastLACalls ||
+    isLoadingThisMonthPastClientCalls ||
+    isLoadingYesterdayPastClientCalls ||
+    isLoadingTodayPastClientCalls;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -1104,13 +1356,36 @@ export const useDashboardData = () => {
     todayApps: todayApps || [],
     allApplications: allApplications || [],
     thisMonthMeetings: thisMonthMeetings || [],
-    yesterdayMeetings: yesterdayMeetings || [],
-    todayMeetings: todayMeetings || [],
+    lastWeekMeetings: lastWeekMeetings || [],
+    thisWeekMeetings: thisWeekMeetings || [],
     allMeetings: allMeetings || [],
+    // Broker Opens
+    thisMonthBrokerOpens: thisMonthBrokerOpens || [],
+    lastWeekBrokerOpens: lastWeekBrokerOpens || [],
+    thisWeekBrokerOpens: thisWeekBrokerOpens || [],
+    allBrokerOpens: allBrokerOpens || [],
+    // Combined Calls (existing)
     thisMonthCalls: thisMonthCalls || [],
     yesterdayCalls: yesterdayCalls || [],
     todayCalls: todayCalls || [],
     allCalls: allCalls || [],
+    // Call Type Breakdowns
+    thisMonthNewAgentCalls: thisMonthNewAgentCalls || [],
+    yesterdayNewAgentCalls: yesterdayNewAgentCalls || [],
+    todayNewAgentCalls: todayNewAgentCalls || [],
+    thisMonthCurrentAgentCalls: thisMonthCurrentAgentCalls || [],
+    yesterdayCurrentAgentCalls: yesterdayCurrentAgentCalls || [],
+    todayCurrentAgentCalls: todayCurrentAgentCalls || [],
+    thisMonthTopAgentCalls: thisMonthTopAgentCalls || [],
+    yesterdayTopAgentCalls: yesterdayTopAgentCalls || [],
+    todayTopAgentCalls: todayTopAgentCalls || [],
+    thisMonthPastLACalls: thisMonthPastLACalls || [],
+    yesterdayPastLACalls: yesterdayPastLACalls || [],
+    todayPastLACalls: todayPastLACalls || [],
+    thisMonthPastClientCalls: thisMonthPastClientCalls || [],
+    yesterdayPastClientCalls: yesterdayPastClientCalls || [],
+    todayPastClientCalls: todayPastClientCalls || [],
+    // Emails
     thisMonthEmails: thisMonthEmails || [],
     yesterdayEmails: yesterdayEmails || [],
     todayEmails: todayEmails || [],
