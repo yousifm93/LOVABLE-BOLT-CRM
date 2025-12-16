@@ -53,6 +53,12 @@ const cleanSubjectForMatching = (subject: string) => {
     .trim();
 };
 
+// Create composite key from timestamp (to minute) + cleaned subject for reliable matching
+const getMatchKey = (date: Date, subject: string) => {
+  const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}`;
+  return `${dateKey}|${cleanSubjectForMatching(subject)}`;
+};
+
 export default function Email() {
   const { toast } = useToast();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
@@ -76,11 +82,10 @@ export default function Email() {
   // Fetch email_logs to match with IMAP emails for tagging
   const fetchEmailTags = useCallback(async (imapEmails: EmailMessage[]) => {
     try {
-      // Get unique from emails and subjects for matching
-      const fromEmails = imapEmails.map(e => e.fromEmail.toLowerCase());
-      const subjects = imapEmails.map(e => e.subject);
+      // Get all recent email_logs with lead associations (no exact filtering)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      // Query email_logs for recent emails that match
       const { data: emailLogs, error } = await supabase
         .from('email_logs')
         .select(`
@@ -89,18 +94,20 @@ export default function Email() {
           subject,
           ai_summary,
           lead_id,
+          timestamp,
           lead:leads(first_name, last_name)
         `)
-        .or(`from_email.in.(${fromEmails.map(e => `"${e}"`).join(',')}),subject.in.(${subjects.map(s => `"${s.replace(/"/g, '\\"')}"`).join(',')})`)
+        .not('lead_id', 'is', null)
+        .gte('timestamp', thirtyDaysAgo.toISOString())
         .order('timestamp', { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (error) {
         console.error('Error fetching email logs for tags:', error);
         return;
       }
 
-      // Create a map for quick lookup by cleaned subject (primary key)
+      // Create a map for quick lookup using composite keys (timestamp + subject)
       const tagsMap = new Map<string, EmailTagData>();
       
       for (const log of emailLogs || []) {
@@ -109,16 +116,23 @@ export default function Email() {
           const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
           
           if (leadName) {
-            // Use cleaned subject as primary lookup key (most reliable for forwarded emails)
-            const cleanedSubject = cleanSubjectForMatching(log.subject || '');
-            if (cleanedSubject) {
-              tagsMap.set(cleanedSubject, {
-                leadId: log.lead_id,
-                leadName,
-                emailLogId: log.id,
-                aiSummary: log.ai_summary,
-                subject: log.subject || '',
-              });
+            const tagData: EmailTagData = {
+              leadId: log.lead_id,
+              leadName,
+              emailLogId: log.id,
+              aiSummary: log.ai_summary,
+              subject: log.subject || '',
+            };
+            
+            // Primary key: timestamp (to minute) + cleaned subject
+            const timestamp = new Date(log.timestamp);
+            const compositeKey = getMatchKey(timestamp, log.subject || '');
+            tagsMap.set(compositeKey, tagData);
+            
+            // Fallback key: cleaned subject only (for when timestamps don't align)
+            const subjectKey = cleanSubjectForMatching(log.subject || '');
+            if (subjectKey && !tagsMap.has(subjectKey)) {
+              tagsMap.set(subjectKey, tagData);
             }
           }
         }
@@ -379,9 +393,16 @@ export default function Email() {
                     )}
                   >
                     {(() => {
-                      // Use cleaned subject for matching (ignores forward prefixes and case)
-                      const tagKey = cleanSubjectForMatching(email.subject || '');
-                      const tagData = emailTagsMap.get(tagKey);
+                      // Try composite key first (timestamp + subject), then fallback to subject-only
+                      const emailDate = new Date(email.date);
+                      const compositeKey = getMatchKey(emailDate, email.subject || '');
+                      let tagData = emailTagsMap.get(compositeKey);
+                      
+                      // Fallback to subject-only matching
+                      if (!tagData) {
+                        const subjectKey = cleanSubjectForMatching(email.subject || '');
+                        tagData = emailTagsMap.get(subjectKey);
+                      }
                       return (
                         <div
                           className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
