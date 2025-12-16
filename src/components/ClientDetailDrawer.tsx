@@ -1911,8 +1911,8 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
-                {/* Latest File Updates - for Leads/Pending App/Screening/Pre-Qualified/Pre-Approved */}
-                {!isActiveOrPastClient && (
+                {/* Latest File Updates - for Leads/Pending App/Pre-Qualified/Pre-Approved (NOT Screening - moved to right column) */}
+                {!isActiveOrPastClient && opsStage !== 'screening' && (
                   <Card>
                     <CardHeader className="pb-3 bg-white">
                       <div className="flex items-center justify-between">
@@ -2707,6 +2707,107 @@ export function ClientDetailDrawer({
                     </CollapsibleContent>
                   </Card>
                 </Collapsible>
+              );
+            })()}
+
+            {/* Latest File Updates - For Screening stage in right column */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              if (opsStage !== 'screening') return null;
+              return (
+                <Card>
+                  <CardHeader className="pb-3 bg-white">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            if (isRecordingFileUpdates) {
+                              handleVoiceRecordingStop();
+                            } else {
+                              handleVoiceRecordingStart();
+                            }
+                          }}
+                          disabled={isSummarizingTranscript}
+                          className={cn(
+                            "w-8 h-8 rounded-full transition-all",
+                            isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                          )}
+                          title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                        >
+                          {isSummarizingTranscript ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                          )}
+                        </Button>
+                      </div>
+                      {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
+                          Edit
+                        </Button>}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="bg-gray-50">
+                    {isEditingFileUpdates || !localFileUpdates ? <>
+                        <Textarea key="file-updates-textarea-right-screening" value={localFileUpdates} onChange={e => {
+                      setLocalFileUpdates(e.target.value);
+                      setHasUnsavedFileUpdates(true);
+                    }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[200px] resize-none bg-white mb-2" />
+                        {hasUnsavedFileUpdates && <div className="flex gap-2">
+                            <Button size="sm" onClick={async () => {
+                        const currentFileUpdates = (client as any).latest_file_updates ?? '';
+                        if (localFileUpdates === currentFileUpdates) {
+                          toast({ title: "No Changes", description: "File updates haven't changed." });
+                          setHasUnsavedFileUpdates(false);
+                          setIsEditingFileUpdates(false);
+                          return;
+                        }
+                        setIsSavingFileUpdates(true);
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          await databaseService.updateLead(leadId!, {
+                            latest_file_updates: localFileUpdates,
+                            latest_file_updates_updated_by: user?.id || null,
+                            latest_file_updates_updated_at: new Date().toISOString()
+                          });
+                          if (onLeadUpdated) await onLeadUpdated();
+                          setHasUnsavedFileUpdates(false);
+                          setIsEditingFileUpdates(false);
+                          toast({ title: "Saved", description: "Latest File Updates section has been updated." });
+                        } catch (error) {
+                          console.error('Error saving file updates:', error);
+                          toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                        } finally {
+                          setIsSavingFileUpdates(false);
+                        }
+                      }} disabled={isSavingFileUpdates}>
+                              {isSavingFileUpdates ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => {
+                        setLocalFileUpdates((client as any).latest_file_updates || '');
+                        setHasUnsavedFileUpdates(false);
+                        setIsEditingFileUpdates(false);
+                      }}>
+                              Cancel
+                            </Button>
+                          </div>}
+                      </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors min-h-[200px]" onClick={() => setIsEditingFileUpdates(true)}>
+                        {localFileUpdates.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                      </div>}
+                    {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                        {fileUpdatesUpdatedByUser && <>
+                            <span>•</span>
+                            <User className="h-3 w-3" />
+                            {fileUpdatesUpdatedByUser.first_name} {fileUpdatesUpdatedByUser.last_name}
+                          </>}
+                      </div>}
+                  </CardContent>
+                </Card>
               );
             })()}
 
