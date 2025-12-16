@@ -271,6 +271,8 @@ export default function DashboardTabs() {
   const [modalData, setModalData] = useState<any[]>([]);
   const [modalTitle, setModalTitle] = useState("");
   const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls" | "emails" | "reviews">("leads");
+  const [modalGoal, setModalGoal] = useState<number | undefined>(undefined);
+  const [modalExpectedProgress, setModalExpectedProgress] = useState<number | undefined>(undefined);
 
   // Volume modal state
   const [volumeModalOpen, setVolumeModalOpen] = useState(false);
@@ -287,10 +289,17 @@ export default function DashboardTabs() {
   const [allLeadsSearchTerm, setAllLeadsSearchTerm] = useState("");
 
   // Modal handlers
-  const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews") => {
+  const handleOpenModal = (
+    title: string, 
+    data: any[], 
+    type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews",
+    goal?: number
+  ) => {
     setModalTitle(title);
     setModalData(data);
     setModalType(type);
+    setModalGoal(goal);
+    setModalExpectedProgress(goal ? calculateExpectedProgress(goal) : undefined);
     setModalOpen(true);
   };
 
@@ -479,7 +488,7 @@ export default function DashboardTabs() {
                     icon={<Target />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads")}
+                    onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads", MONTHLY_GOALS.leads)}
                     showProgress={true}
                     progressValue={thisMonthLeads.length}
                     progressMax={MONTHLY_GOALS.leads}
@@ -548,7 +557,7 @@ export default function DashboardTabs() {
                     icon={<FileText />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Applications", thisMonthApps, "applications")}
+                    onClick={() => handleOpenModal("This Month's Applications", thisMonthApps, "applications", MONTHLY_GOALS.applications)}
                     showProgress={true}
                     progressValue={thisMonthApps.length}
                     progressMax={MONTHLY_GOALS.applications}
@@ -617,7 +626,7 @@ export default function DashboardTabs() {
                     icon={<Users />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings")}
+                    onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings", MONTHLY_GOALS.meetings)}
                     showProgress={true}
                     progressValue={thisMonthMeetings.length}
                     progressMax={MONTHLY_GOALS.meetings}
@@ -686,7 +695,7 @@ export default function DashboardTabs() {
                     icon={<Calendar />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings")}
+                    onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings", MONTHLY_GOALS.brokerOpens)}
                     showProgress={true}
                     progressValue={thisMonthBrokerOpens.length}
                     progressMax={MONTHLY_GOALS.brokerOpens}
@@ -755,7 +764,7 @@ export default function DashboardTabs() {
                     icon={<Star />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Reviews", thisMonthReviews, "reviews")}
+                    onClick={() => handleOpenModal("This Month's Reviews", thisMonthReviews, "reviews", MONTHLY_GOALS.reviews)}
                     showProgress={true}
                     progressValue={thisMonthReviews.length}
                     progressMax={MONTHLY_GOALS.reviews}
@@ -944,7 +953,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls", MONTHLY_GOALS.newAgentCalls)}
                     showProgress={true}
                     progressValue={thisMonthNewAgentCalls.length}
                     progressMax={MONTHLY_GOALS.newAgentCalls}
@@ -986,7 +995,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls", MONTHLY_GOALS.currentAgentCalls)}
                     showProgress={true}
                     progressValue={thisMonthCurrentAgentCalls.length}
                     progressMax={MONTHLY_GOALS.currentAgentCalls}
@@ -1028,7 +1037,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls", MONTHLY_GOALS.pastClientCalls)}
                     showProgress={true}
                     progressValue={thisMonthPastClientCalls.length}
                     progressMax={MONTHLY_GOALS.pastClientCalls}
@@ -1070,7 +1079,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls", MONTHLY_GOALS.topAgentCalls)}
                     showProgress={true}
                     progressValue={thisMonthTopAgentCalls.length}
                     progressMax={MONTHLY_GOALS.topAgentCalls}
@@ -1112,7 +1121,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls")}
+                    onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls", MONTHLY_GOALS.pastLACalls)}
                     showProgress={true}
                     progressValue={thisMonthPastLACalls.length}
                     progressMax={MONTHLY_GOALS.pastLACalls}
@@ -1576,6 +1585,8 @@ export default function DashboardTabs() {
         data={modalData}
         type={modalType}
         onLeadClick={handleLeadClick}
+        goal={modalGoal}
+        expectedProgress={modalExpectedProgress}
       />
 
       <VolumeDetailModal
