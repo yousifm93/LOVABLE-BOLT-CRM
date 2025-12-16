@@ -135,6 +135,9 @@ interface EmailLog {
   timestamp: string;
   delivery_status: string | null;
   opened_at: string | null;
+  from_email?: string;
+  to_email?: string;
+  direction?: string;
 }
 
 interface EmailTemplate {
@@ -194,12 +197,17 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
     }
     setLoadingEmails(true);
     try {
+      const aeEmail = lender.account_executive_email;
+      // Extract domain from AE email (e.g., "admortgage.com" from "david@admortgage.com")
+      const domain = aeEmail.split('@')[1];
+      
+      // Query emails TO the AE, FROM the AE, or FROM the same domain
       const { data, error } = await supabase
         .from('email_logs')
-        .select('id, subject, timestamp, delivery_status, opened_at')
-        .eq('to_email', lender.account_executive_email)
+        .select('id, subject, timestamp, delivery_status, opened_at, from_email, to_email, direction')
+        .or(`to_email.eq.${aeEmail},from_email.eq.${aeEmail},from_email.ilike.%@${domain}`)
         .order('timestamp', { ascending: false })
-        .limit(10);
+        .limit(20);
       
       if (error) throw error;
       setEmailLogs(data || []);

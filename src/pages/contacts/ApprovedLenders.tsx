@@ -42,7 +42,8 @@ const initialColumns = [
   { id: "lender_name", label: "Lender Name", visible: true },
   { id: "lender_type", label: "Lender Type", visible: true },
   { id: "account_executive", label: "Account Executive", visible: true },
-  { id: "contact", label: "AE Contact", visible: true },
+  { id: "ae_email", label: "AE Email", visible: true },
+  { id: "ae_phone", label: "AE Phone", visible: true },
   { id: "broker_portal_url", label: "Broker Portal", visible: true },
   { id: "send_email", label: "Send Email", visible: true },
 ];
@@ -256,19 +257,23 @@ export default function ApprovedLenders() {
       ),
       sortable: true,
     }] : []),
-    ...(isColumnVisible("contact") ? [{
-      accessorKey: "contact",
-      header: "AE Contact",
+    ...(isColumnVisible("ae_email") ? [{
+      accessorKey: "account_executive_email",
+      header: "AE Email",
       cell: ({ row }: any) => (
-        <div className="space-y-1 text-left">
-          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-            <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
-            <span className="truncate">{row.original.account_executive_email || "—"}</span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-            <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-            <span className="truncate">{row.original.account_executive_phone || "—"}</span>
-          </div>
+        <div className="flex items-center text-sm">
+          <Mail className="h-3 w-3 mr-1 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{row.original.account_executive_email || "—"}</span>
+        </div>
+      ),
+    }] : []),
+    ...(isColumnVisible("ae_phone") ? [{
+      accessorKey: "account_executive_phone",
+      header: "AE Phone",
+      cell: ({ row }: any) => (
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">{row.original.account_executive_phone || "—"}</span>
         </div>
       ),
     }] : []),
