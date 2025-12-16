@@ -30,8 +30,13 @@ const MONTHLY_GOALS = {
   leads: 70,
   applications: 30,
   meetings: 20,
-  calls: 110,
-  emails: 50
+  brokerOpens: 12,
+  reviews: 12,
+  newAgentCalls: 25,
+  currentAgentCalls: 70,
+  pastClientCalls: 10,
+  topAgentCalls: 5,
+  pastLACalls: 10
 };
 
 // Format date and time for activity display
@@ -684,9 +689,9 @@ export default function DashboardTabs() {
                     onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings")}
                     showProgress={true}
                     progressValue={thisMonthBrokerOpens.length}
-                    progressMax={10}
+                    progressMax={MONTHLY_GOALS.brokerOpens}
                     showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(10)}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.brokerOpens)}
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
@@ -751,6 +756,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Reviews", thisMonthReviews, "reviews")}
+                    showProgress={true}
+                    progressValue={thisMonthReviews.length}
+                    progressMax={MONTHLY_GOALS.reviews}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.reviews)}
+                    progressColor="[&_.bg-primary]:bg-gray-500"
                   />
                   <ModernStatsCard
                     title="Last Week"
@@ -814,12 +825,6 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Emails", thisMonthEmails, "emails")}
-                    showProgress={true}
-                    progressValue={thisMonthEmails.length}
-                    progressMax={MONTHLY_GOALS.emails}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.emails)}
-                    progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -940,6 +945,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthNewAgentCalls.length}
+                    progressMax={MONTHLY_GOALS.newAgentCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.newAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-cyan-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -976,6 +987,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthCurrentAgentCalls.length}
+                    progressMax={MONTHLY_GOALS.currentAgentCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-emerald-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1012,6 +1029,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthPastClientCalls.length}
+                    progressMax={MONTHLY_GOALS.pastClientCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-violet-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1048,6 +1071,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthTopAgentCalls.length}
+                    progressMax={MONTHLY_GOALS.topAgentCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.topAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-amber-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1084,6 +1113,12 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisMonthPastLACalls.length}
+                    progressMax={MONTHLY_GOALS.pastLACalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastLACalls)}
+                    progressColor="[&_.bg-primary]:bg-rose-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
