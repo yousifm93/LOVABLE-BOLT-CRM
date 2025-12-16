@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,11 @@ interface EmailTagData {
   emailLogId: string;
   aiSummary: string | null;
   subject: string;
+}
+
+interface LenderMarketingData {
+  emailLogId: string;
+  category: string | null;
 }
 
 const folders = [
@@ -72,6 +78,7 @@ export default function Email() {
   const [isSending, setIsSending] = useState(false);
   const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [emailTagsMap, setEmailTagsMap] = useState<Map<string, EmailTagData>>(new Map());
+  const [lenderMarketingMap, setLenderMarketingMap] = useState<Map<string, LenderMarketingData>>(new Map());
   
   const [composeData, setComposeData] = useState({
     to: "",
@@ -95,9 +102,10 @@ export default function Email() {
           ai_summary,
           lead_id,
           timestamp,
+          is_lender_marketing,
+          lender_marketing_category,
           lead:leads(first_name, last_name)
         `)
-        .not('lead_id', 'is', null)
         .gte('timestamp', thirtyDaysAgo.toISOString())
         .order('timestamp', { ascending: false })
         .limit(500);
@@ -107,10 +115,17 @@ export default function Email() {
         return;
       }
 
-      // Create a map for quick lookup using composite keys (timestamp + subject)
+      // Create maps for quick lookup using composite keys (timestamp + subject)
       const tagsMap = new Map<string, EmailTagData>();
+      const marketingMap = new Map<string, LenderMarketingData>();
       
       for (const log of emailLogs || []) {
+        // Primary key: timestamp (to minute) + cleaned subject
+        const timestamp = new Date(log.timestamp);
+        const compositeKey = getMatchKey(timestamp, log.subject || '');
+        const subjectKey = cleanSubjectForMatching(log.subject || '');
+        
+        // Handle lead tags
         if (log.lead_id && log.lead) {
           const lead = log.lead as { first_name: string; last_name: string };
           const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
@@ -124,21 +139,28 @@ export default function Email() {
               subject: log.subject || '',
             };
             
-            // Primary key: timestamp (to minute) + cleaned subject
-            const timestamp = new Date(log.timestamp);
-            const compositeKey = getMatchKey(timestamp, log.subject || '');
             tagsMap.set(compositeKey, tagData);
-            
-            // Fallback key: cleaned subject only (for when timestamps don't align)
-            const subjectKey = cleanSubjectForMatching(log.subject || '');
             if (subjectKey && !tagsMap.has(subjectKey)) {
               tagsMap.set(subjectKey, tagData);
             }
           }
         }
+        
+        // Handle lender marketing tags
+        if (log.is_lender_marketing) {
+          const marketingData: LenderMarketingData = {
+            emailLogId: log.id,
+            category: log.lender_marketing_category,
+          };
+          marketingMap.set(compositeKey, marketingData);
+          if (subjectKey && !marketingMap.has(subjectKey)) {
+            marketingMap.set(subjectKey, marketingData);
+          }
+        }
       }
       
       setEmailTagsMap(tagsMap);
+      setLenderMarketingMap(marketingMap);
     } catch (error) {
       console.error('Error fetching email tags:', error);
     }
@@ -282,7 +304,19 @@ export default function Email() {
     fetchEmails(selectedFolder);
   };
 
-  const [emailView, setEmailView] = useState<'main' | 'file'>('main');
+  const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
+
+  // Helper to get lender marketing data for an email
+  const getLenderMarketingData = (email: EmailMessage) => {
+    const emailDate = new Date(email.date);
+    const compositeKey = getMatchKey(emailDate, email.subject || '');
+    let data = lenderMarketingMap.get(compositeKey);
+    if (!data) {
+      const subjectKey = cleanSubjectForMatching(email.subject || '');
+      data = lenderMarketingMap.get(subjectKey);
+    }
+    return data;
+  };
 
   const filteredEmails = emails.filter(email => {
     const matchesSearch = email.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -298,6 +332,10 @@ export default function Email() {
         hasTag = emailTagsMap.has(subjectKey);
       }
       return matchesSearch && hasTag;
+    }
+    
+    if (emailView === 'lender-marketing') {
+      return matchesSearch && !!getLenderMarketingData(email);
     }
     
     return matchesSearch;
@@ -383,7 +421,7 @@ export default function Email() {
                 className="pl-8 h-8 text-sm"
               />
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap">
               <Button
                 variant={emailView === 'main' ? 'default' : 'outline'}
                 size="sm"
@@ -399,6 +437,14 @@ export default function Email() {
                 className="h-7 text-xs px-3"
               >
                 File View
+              </Button>
+              <Button
+                variant={emailView === 'lender-marketing' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setEmailView('lender-marketing')}
+                className="h-7 text-xs px-3"
+              >
+                Lender Marketing
               </Button>
             </div>
           </div>
@@ -436,6 +482,11 @@ export default function Email() {
                         const subjectKey = cleanSubjectForMatching(email.subject || '');
                         tagData = emailTagsMap.get(subjectKey);
                       }
+                      
+                      // Check for lender marketing
+                      const marketingData = getLenderMarketingData(email);
+                      const hasAnyTag = tagData || marketingData;
+                      
                       return (
                         <div
                           className="flex items-center justify-between gap-2 mb-1 w-full min-w-0"
@@ -444,16 +495,24 @@ export default function Email() {
                           <span
                             className={cn(
                               "text-sm truncate min-w-0",
-                              tagData ? "flex-shrink" : "flex-1",
+                              hasAnyTag ? "flex-shrink" : "flex-1",
                               email.unread ? "font-semibold" : "font-medium"
                             )}
-                            style={{ maxWidth: tagData ? '140px' : undefined }}
+                            style={{ maxWidth: hasAnyTag ? '120px' : undefined }}
                           >
                             {email.from}
                           </span>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {tagData && (
                               <EmailTagPopover tagData={tagData} />
+                            )}
+                            {marketingData && (
+                              <Badge 
+                                variant="outline" 
+                                className="bg-blue-500/20 text-blue-600 border-blue-500/30 text-[10px] px-1.5 py-0 h-5"
+                              >
+                                Lender Marketing
+                              </Badge>
                             )}
                             {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                             <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>

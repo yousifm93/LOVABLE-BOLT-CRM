@@ -682,8 +682,38 @@ serve(async (req) => {
         }
       } catch (fieldUpdateError) {
         console.error('[Inbound Email Webhook] Error parsing field updates:', fieldUpdateError);
-        // Don't fail the webhook if field update parsing fails
+      // Don't fail the webhook if field update parsing fails
+    }
+
+    // Parse email for lender marketing content (applies to ALL emails, including those without leads)
+    try {
+      const lenderMarketingResponse = await fetch(`${supabaseUrl}/functions/v1/parse-email-lender-marketing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          subject: subject,
+          body: textBody,
+          htmlBody: htmlBody,
+          fromEmail: fromEmailToStore,
+          emailLogId: emailLog.id,
+        }),
+      });
+
+      if (lenderMarketingResponse.ok) {
+        const lenderMarketingData = await lenderMarketingResponse.json();
+        if (lenderMarketingData.isLenderMarketing) {
+          console.log('[Inbound Email Webhook] Email tagged as lender marketing:', lenderMarketingData.category);
+        }
+      } else {
+        console.log('[Inbound Email Webhook] Failed to parse lender marketing:', await lenderMarketingResponse.text());
       }
+    } catch (lenderMarketingError) {
+      console.error('[Inbound Email Webhook] Error parsing lender marketing:', lenderMarketingError);
+      // Don't fail the webhook if lender marketing parsing fails
+    }
     }
 
     return new Response(JSON.stringify({
