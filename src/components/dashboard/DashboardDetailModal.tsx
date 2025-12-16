@@ -114,7 +114,134 @@ interface DashboardDetailModalProps {
   data: Lead[] | Agent[] | Email[] | Call[] | Review[];
   type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews";
   onLeadClick?: (leadId: string) => void;
+  goal?: number;
+  expectedProgress?: number;
 }
+
+// Goal Slot Grid Component for visualizing progress toward monthly goals
+interface GoalSlotGridProps {
+  goal: number;
+  expectedProgress: number;
+  data: any[];
+  type: string;
+  onLeadClick?: (leadId: string) => void;
+  formatDate: (item: any) => string;
+  getName: (item: any) => string;
+}
+
+const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatDate, getName }: GoalSlotGridProps) => {
+  // Generate all slots from 1 to goal
+  const slots = Array.from({ length: goal }, (_, i) => i + 1);
+  
+  // Map actual data to slot numbers
+  const filledSlots = data.slice(0, goal);
+  
+  // Determine grid columns based on goal size
+  const getGridCols = () => {
+    if (goal <= 12) return 'grid-cols-4 sm:grid-cols-6 md:grid-cols-6';
+    if (goal <= 30) return 'grid-cols-5 sm:grid-cols-6 md:grid-cols-10';
+    return 'grid-cols-5 sm:grid-cols-7 md:grid-cols-10';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Progress summary */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          Progress: <span className="font-semibold text-foreground">{data.length}</span> / {goal}
+        </span>
+        <span className="text-muted-foreground">
+          Expected by today: <span className="font-semibold text-primary">{expectedProgress}</span>
+        </span>
+      </div>
+      
+      {/* Slot grid */}
+      <div className={`grid ${getGridCols()} gap-2`}>
+        {slots.map((slotNum) => {
+          const item = filledSlots[slotNum - 1];
+          const isFilled = !!item;
+          const isExpectedSlot = slotNum === expectedProgress;
+          const isPastExpected = slotNum <= expectedProgress;
+          
+          return (
+            <div
+              key={slotNum}
+              className={`
+                relative p-2 rounded-lg border-2 min-h-[80px] transition-all
+                ${isFilled 
+                  ? 'bg-green-50 dark:bg-green-950/30 border-green-400 dark:border-green-600' 
+                  : isPastExpected && !isFilled
+                    ? 'bg-red-50/50 dark:bg-red-950/20 border-dashed border-red-300 dark:border-red-700'
+                    : 'bg-muted/20 border-dashed border-muted-foreground/30'
+                }
+                ${isExpectedSlot ? 'ring-2 ring-primary ring-offset-2' : ''}
+                ${isFilled && onLeadClick && (type === 'leads' || type === 'applications' || type === 'reviews') ? 'cursor-pointer hover:shadow-md' : ''}
+              `}
+              onClick={() => {
+                if (isFilled && onLeadClick && item?.id && (type === 'leads' || type === 'applications' || type === 'reviews')) {
+                  onLeadClick(item.id);
+                }
+              }}
+            >
+              {/* Slot number */}
+              <div className={`
+                absolute top-1 left-2 text-xs font-bold
+                ${isExpectedSlot ? 'text-primary' : isFilled ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}
+              `}>
+                {slotNum}
+              </div>
+              
+              {/* Expected marker */}
+              {isExpectedSlot && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-primary bg-background px-1 rounded whitespace-nowrap">
+                  ← Target
+                </div>
+              )}
+              
+              {/* Content */}
+              {isFilled ? (
+                <div className="pt-4 space-y-0.5">
+                  <p className="text-xs font-medium truncate">
+                    {getName(item)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {formatDate(item)}
+                  </p>
+                </div>
+              ) : (
+                <div className="pt-4 flex items-center justify-center h-[40px]">
+                  <span className="text-[10px] text-muted-foreground">
+                    {isPastExpected ? 'Behind' : 'Empty'}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-green-50 dark:bg-green-950/30 border-2 border-green-400" />
+          <span>Completed</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-red-50/50 dark:bg-red-950/20 border-2 border-dashed border-red-300" />
+          <span>Behind pace</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-muted/20 border-2 border-dashed border-muted-foreground/30" />
+          <span>Upcoming</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded border-2 border-primary ring-2 ring-primary ring-offset-1" />
+          <span>Target slot</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function DashboardDetailModal({
   open,
@@ -123,6 +250,8 @@ export function DashboardDetailModal({
   data,
   type,
   onLeadClick,
+  goal,
+  expectedProgress,
 }: DashboardDetailModalProps) {
   const [emailSuggestions, setEmailSuggestions] = useState<Record<string, EmailSuggestion[]>>({});
   const [responseSuggestions, setResponseSuggestions] = useState<Record<string, EmailResponseSuggestion>>({});
@@ -913,11 +1042,36 @@ export function DashboardDetailModal({
     </div>
   );
 
+  // Helper function to format date for goal grid
+  const formatDateForGrid = (item: any) => {
+    if (type === "leads" && item.lead_on_date) {
+      return formatDateShort(item.lead_on_date);
+    }
+    if (type === "applications" && item.app_complete_at) {
+      return new Date(item.app_complete_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (type === "meetings" && item.face_to_face_meeting) {
+      return new Date(item.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (type === "calls" && item.call_date) {
+      return new Date(item.call_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    if (type === "reviews" && item.review_left_on) {
+      return formatDateShort(item.review_left_on);
+    }
+    return "—";
+  };
+
+  // Show goal grid for non-email types when goal is provided
+  const showGoalGrid = goal && expectedProgress && type !== 'emails';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[98vw] max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle className="text-sm">{title} ({data.length})</DialogTitle>
+          <DialogTitle className="text-sm">
+            {title} ({data.length}{goal ? ` / ${goal}` : ''})
+          </DialogTitle>
         </DialogHeader>
         
         {type === 'emails' ? (
@@ -955,6 +1109,18 @@ export function DashboardDetailModal({
               </ScrollArea>
             </TabsContent>
           </Tabs>
+        ) : showGoalGrid ? (
+          <ScrollArea className="h-[70vh] w-full pr-4">
+            <GoalSlotGrid
+              goal={goal}
+              expectedProgress={expectedProgress}
+              data={data}
+              type={type}
+              onLeadClick={onLeadClick}
+              formatDate={formatDateForGrid}
+              getName={getName}
+            />
+          </ScrollArea>
         ) : type === 'calls' ? (
           <ScrollArea className="h-[70vh] w-full">
             {renderCallsContent()}
