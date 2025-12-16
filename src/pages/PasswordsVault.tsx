@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, EyeOff, Copy, Search, Shield, Lock, Globe, User, Key } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Copy, Search, Shield, Lock, Globe, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,93 +9,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
-interface PasswordEntry {
-  id: number;
-  serviceName: string;
-  url?: string;
+interface ServiceCredential {
+  id: string;
+  service_name: string;
+  url: string | null;
   username: string;
   password: string;
-  description?: string;
+  description: string | null;
   tags: string[];
-  createdOn: string;
-  lastAccessed?: string;
-  accessedBy?: string;
+  created_at: string;
+  updated_at: string;
+  last_accessed_at: string | null;
+  last_accessed_by: string | null;
 }
-
-interface AuditLog {
-  id: number;
-  action: "viewed" | "copied" | "added" | "updated" | "deleted";
-  entryId: number;
-  serviceName: string;
-  user: string;
-  timestamp: string;
-}
-
-const initialPasswords: PasswordEntry[] = [
-  {
-    id: 1,
-    serviceName: "Encompass LOS",
-    url: "https://mortgagebolt.encompass360.com",
-    username: "admin@mortgagebolt.com",
-    password: "SecurePass123!",
-    description: "Main loan origination system",
-    tags: ["production", "los", "critical"],
-    createdOn: "2024-01-01T00:00:00Z",
-    lastAccessed: "2024-01-18T10:30:00Z",
-    accessedBy: "Yousif Mohamed"
-  },
-  {
-    id: 2,
-    serviceName: "Freddie Mac",
-    url: "https://lpapirmal.freddiemac.com",
-    username: "mortgagebolt_user",
-    password: "FreddieMac2024!",
-    description: "Automated underwriting system access",
-    tags: ["production", "underwriting", "gse"],
-    createdOn: "2024-01-01T00:00:00Z"
-  },
-  {
-    id: 3,
-    serviceName: "AWS Console",
-    url: "https://console.aws.amazon.com",
-    username: "admin@mortgagebolt.com",
-    password: "AWSAdmin2024!",
-    description: "Cloud infrastructure management",
-    tags: ["infrastructure", "aws", "critical"],
-    createdOn: "2024-01-01T00:00:00Z"
-  }
-];
-
-const mockAuditLog: AuditLog[] = [
-  {
-    id: 1,
-    action: "copied",
-    entryId: 1,
-    serviceName: "Encompass LOS",
-    user: "Yousif Mohamed",
-    timestamp: "2024-01-18T10:30:00Z"
-  },
-  {
-    id: 2,
-    action: "viewed",
-    entryId: 2,
-    serviceName: "Freddie Mac",
-    user: "Yousif Mohamed",
-    timestamp: "2024-01-18T09:15:00Z"
-  }
-];
 
 export default function PasswordsVault() {
-  const [passwords, setPasswords] = useState<PasswordEntry[]>(initialPasswords);
-  const [auditLog] = useState<AuditLog[]>(mockAuditLog);
+  const { user } = useAuth();
+  const [credentials, setCredentials] = useState<ServiceCredential[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("all");
   const [isAddPasswordOpen, setIsAddPasswordOpen] = useState(false);
-  const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [newPassword, setNewPassword] = useState({
-    serviceName: "",
+    service_name: "",
     url: "",
     username: "",
     password: "",
@@ -103,65 +46,156 @@ export default function PasswordsVault() {
     tags: ""
   });
 
-  // Get all unique tags
-  const allTags = Array.from(new Set(passwords.flatMap(p => p.tags)));
+  useEffect(() => {
+    fetchCredentials();
+  }, []);
 
-  // Filter passwords based on search and tag
-  const filteredPasswords = passwords.filter(password => {
-    const matchesSearch = password.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         password.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         password.description?.toLowerCase().includes(searchTerm.toLowerCase());
+  const fetchCredentials = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('service_credentials')
+      .select('*')
+      .order('service_name');
+
+    if (error) {
+      console.error('Error fetching credentials:', error);
+      toast.error('Failed to load credentials');
+    } else {
+      setCredentials(data || []);
+    }
+    setLoading(false);
+  };
+
+  // Get all unique tags
+  const allTags = Array.from(new Set(credentials.flatMap(p => p.tags || [])));
+
+  // Filter credentials based on search and tag
+  const filteredCredentials = credentials.filter(cred => {
+    const matchesSearch = cred.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         cred.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         cred.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesTag = selectedTag === "all" || password.tags.includes(selectedTag);
+    const matchesTag = selectedTag === "all" || (cred.tags || []).includes(selectedTag);
     
     return matchesSearch && matchesTag;
   });
 
-  const togglePasswordVisibility = (id: number) => {
+  const togglePasswordVisibility = async (id: string) => {
     const newVisible = new Set(visiblePasswords);
     if (newVisible.has(id)) {
       newVisible.delete(id);
     } else {
       newVisible.add(id);
       // Log access
-      logAction("viewed", id, passwords.find(p => p.id === id)?.serviceName || "");
+      await supabase.from('service_credentials')
+        .update({ 
+          last_accessed_at: new Date().toISOString(),
+          last_accessed_by: user?.id 
+        })
+        .eq('id', id);
     }
     setVisiblePasswords(newVisible);
   };
 
-  const copyPassword = async (password: string, id: number, serviceName: string) => {
+  const copyPassword = async (password: string, id: string, serviceName: string) => {
     try {
       await navigator.clipboard.writeText(password);
-      logAction("copied", id, serviceName);
-      // Could add toast notification here
+      toast.success(`Password copied for ${serviceName}`);
+      
+      // Log access
+      await supabase.from('service_credentials')
+        .update({ 
+          last_accessed_at: new Date().toISOString(),
+          last_accessed_by: user?.id 
+        })
+        .eq('id', id);
     } catch (err) {
       console.error("Failed to copy password:", err);
+      toast.error("Failed to copy password");
     }
   };
 
-  const logAction = (action: AuditLog["action"], entryId: number, serviceName: string) => {
-    // In real app, this would call an API
-    console.log(`Audit: ${action} ${serviceName} by Yousif Mohamed`);
-  };
+  const handleAddPassword = async () => {
+    if (!newPassword.service_name || !newPassword.username || !newPassword.password) {
+      toast.error("Please fill in required fields");
+      return;
+    }
 
-  const handleAddPassword = () => {
-    const password: PasswordEntry = {
-      id: passwords.length + 1,
-      ...newPassword,
-      tags: newPassword.tags.split(",").map(tag => tag.trim()).filter(Boolean),
-      createdOn: new Date().toISOString()
+    const credentialData = {
+      service_name: newPassword.service_name,
+      url: newPassword.url || null,
+      username: newPassword.username,
+      password: newPassword.password,
+      description: newPassword.description || null,
+      tags: newPassword.tags.split(",").map(tag => tag.trim()).filter(Boolean)
     };
-    setPasswords([...passwords, password]);
+
+    if (editingId) {
+      const { error } = await supabase
+        .from('service_credentials')
+        .update(credentialData)
+        .eq('id', editingId);
+
+      if (error) {
+        toast.error("Failed to update credential");
+        return;
+      }
+      toast.success("Credential updated");
+    } else {
+      const { error } = await supabase
+        .from('service_credentials')
+        .insert([credentialData]);
+
+      if (error) {
+        toast.error("Failed to add credential");
+        return;
+      }
+      toast.success("Credential added");
+    }
+
     setNewPassword({
-      serviceName: "",
+      service_name: "",
       url: "",
       username: "",
       password: "",
       description: "",
       tags: ""
     });
+    setEditingId(null);
     setIsAddPasswordOpen(false);
-    logAction("added", password.id, password.serviceName);
+    fetchCredentials();
+  };
+
+  const handleEdit = (cred: ServiceCredential) => {
+    setNewPassword({
+      service_name: cred.service_name,
+      url: cred.url || "",
+      username: cred.username,
+      password: cred.password,
+      description: cred.description || "",
+      tags: (cred.tags || []).join(", ")
+    });
+    setEditingId(cred.id);
+    setIsAddPasswordOpen(true);
+  };
+
+  const handleDelete = async (id: string, serviceName: string) => {
+    if (!confirm(`Are you sure you want to delete credentials for "${serviceName}"?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('service_credentials')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error("Failed to delete credential");
+      return;
+    }
+
+    toast.success("Credential deleted");
+    fetchCredentials();
   };
 
   const getTagColor = (tag: string) => {
@@ -173,6 +207,14 @@ export default function PasswordsVault() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div className="flex justify-between items-center">
@@ -183,7 +225,20 @@ export default function PasswordsVault() {
           </h1>
           <p className="text-xs italic text-muted-foreground/70">Secure credential management - Admin access only</p>
         </div>
-        <Dialog open={isAddPasswordOpen} onOpenChange={setIsAddPasswordOpen}>
+        <Dialog open={isAddPasswordOpen} onOpenChange={(open) => {
+          setIsAddPasswordOpen(open);
+          if (!open) {
+            setEditingId(null);
+            setNewPassword({
+              service_name: "",
+              url: "",
+              username: "",
+              password: "",
+              description: "",
+              tags: ""
+            });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-primary hover:opacity-90 transition-opacity">
               <Plus className="h-4 w-4 mr-2" />
@@ -192,15 +247,15 @@ export default function PasswordsVault() {
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Credential</DialogTitle>
+              <DialogTitle>{editingId ? "Edit Credential" : "Add New Credential"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="serviceName">Service Name *</Label>
                 <Input
                   id="serviceName"
-                  value={newPassword.serviceName}
-                  onChange={(e) => setNewPassword(prev => ({ ...prev, serviceName: e.target.value }))}
+                  value={newPassword.service_name}
+                  onChange={(e) => setNewPassword(prev => ({ ...prev, service_name: e.target.value }))}
                   placeholder="e.g., Encompass LOS"
                 />
               </div>
@@ -259,7 +314,7 @@ export default function PasswordsVault() {
 
               <div className="flex gap-2 pt-4">
                 <Button onClick={handleAddPassword} className="flex-1">
-                  Add Credential
+                  {editingId ? "Update" : "Add"} Credential
                 </Button>
                 <Button variant="outline" onClick={() => setIsAddPasswordOpen(false)}>
                   Cancel
@@ -294,13 +349,13 @@ export default function PasswordsVault() {
         </Select>
       </div>
 
-      {/* Passwords Table */}
+      {/* Credentials Table */}
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center">
               <Lock className="h-5 w-5 mr-2 text-primary" />
-              Stored Credentials ({filteredPasswords.length})
+              Stored Credentials ({filteredCredentials.length})
             </CardTitle>
           </div>
         </CardHeader>
@@ -318,11 +373,11 @@ export default function PasswordsVault() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPasswords.map((entry) => (
+              {filteredCredentials.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-medium">
                     <div>
-                      <div className="font-semibold">{entry.serviceName}</div>
+                      <div className="font-semibold">{entry.service_name}</div>
                       {entry.description && (
                         <div className="text-xs text-muted-foreground">{entry.description}</div>
                       )}
@@ -337,7 +392,13 @@ export default function PasswordsVault() {
                         className="text-primary hover:underline flex items-center text-sm"
                       >
                         <Globe className="h-3 w-3 mr-1" />
-                        {new URL(entry.url).hostname}
+                        {(() => {
+                          try {
+                            return new URL(entry.url).hostname;
+                          } catch {
+                            return entry.url;
+                          }
+                        })()}
                       </a>
                     )}
                   </TableCell>
@@ -361,7 +422,7 @@ export default function PasswordsVault() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyPassword(entry.password, entry.id, entry.serviceName)}
+                        onClick={() => copyPassword(entry.password, entry.id, entry.service_name)}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>
@@ -369,7 +430,7 @@ export default function PasswordsVault() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {entry.tags.map((tag) => (
+                      {(entry.tags || []).map((tag) => (
                         <Badge key={tag} className={getTagColor(tag)}>
                           {tag}
                         </Badge>
@@ -377,10 +438,9 @@ export default function PasswordsVault() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {entry.lastAccessed ? (
+                    {entry.last_accessed_at ? (
                       <div>
-                        <div>{new Date(entry.lastAccessed).toLocaleDateString()}</div>
-                        <div className="text-xs text-muted-foreground">by {entry.accessedBy}</div>
+                        <div>{new Date(entry.last_accessed_at).toLocaleDateString()}</div>
                       </div>
                     ) : (
                       <span className="text-muted-foreground">Never</span>
@@ -388,50 +448,25 @@ export default function PasswordsVault() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(entry)}>
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(entry.id, entry.service_name)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredCredentials.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    No credentials found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Audit Log */}
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <User className="h-5 w-5 mr-2 text-primary" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {auditLog.slice(0, 5).map((log) => (
-              <div key={log.id} className="flex items-center justify-between py-2 border-b border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    log.action === "copied" ? "bg-blue-500" : 
-                    log.action === "viewed" ? "bg-green-500" :
-                    log.action === "added" ? "bg-purple-500" : "bg-gray-500"
-                  }`} />
-                  <span className="text-sm">
-                    <span className="font-medium">{log.user}</span> {log.action} 
-                    <span className="font-medium"> {log.serviceName}</span>
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(log.timestamp).toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
     </div>
