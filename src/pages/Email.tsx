@@ -6,11 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmailTagPopover } from "@/components/email/EmailTagPopover";
+import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
 
 interface EmailMessage {
   uid: number;
@@ -507,12 +507,11 @@ export default function Email() {
                               <EmailTagPopover tagData={tagData} />
                             )}
                             {marketingData && (
-                              <Badge 
-                                variant="outline" 
-                                className="bg-blue-500/20 text-blue-600 border-blue-500/30 text-[10px] px-1.5 py-0 h-5"
-                              >
-                                Lender Marketing
-                              </Badge>
+                              <LenderMarketingPopover 
+                                emailLogId={marketingData.emailLogId}
+                                category={marketingData.category}
+                                subject={email.subject}
+                              />
                             )}
                             {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                             <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>

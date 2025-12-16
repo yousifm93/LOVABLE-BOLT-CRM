@@ -494,6 +494,29 @@ serve(async (req) => {
         console.error('[Inbound Email Webhook] Error inserting marketing email log:', insertError);
       } else {
         console.log('[Inbound Email Webhook] Successfully logged lender marketing email:', emailLog?.id);
+        
+        // Asynchronously extract lender marketing data
+        if (emailLog?.id) {
+          console.log('[Inbound Email Webhook] Triggering lender data extraction...');
+          fetch(`${supabaseUrl}/functions/v1/parse-lender-marketing-data`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              subject: subject,
+              body: textBody,
+              htmlBody: htmlBody,
+              fromEmail: fromEmailToStore,
+              emailLogId: emailLog.id,
+            }),
+          }).then(response => {
+            console.log('[Inbound Email Webhook] Lender data extraction response:', response.status);
+          }).catch(err => {
+            console.error('[Inbound Email Webhook] Error triggering lender data extraction:', err);
+          });
+        }
       }
 
       return new Response(JSON.stringify({
