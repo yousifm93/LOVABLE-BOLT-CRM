@@ -105,7 +105,7 @@ export function InitialApprovalConditionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -164,7 +164,7 @@ export function InitialApprovalConditionsModal({
         </div>
 
         {/* Conditions List */}
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 max-h-[50vh] -mx-6 px-6">
           <div className="space-y-4 py-2">
             {Object.entries(groupedConditions).map(([category, items]) => (
               <div key={category} className="space-y-2">
