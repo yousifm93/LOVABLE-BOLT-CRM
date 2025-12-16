@@ -513,7 +513,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <TableHead className="w-[30px] text-center text-xs">#</TableHead>
           <TableHead 
             onClick={() => handleSortClick('condition')}
-            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px] text-xs"
+            className="cursor-pointer hover:bg-muted w-[340px] max-w-[340px] text-xs"
           >
             Condition {sortBy === 'condition' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -535,7 +535,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[200px] text-xs">Description</TableHead>
           <TableHead className="w-[50px] text-center text-xs">Doc</TableHead>
           <TableHead className="w-[30px]"></TableHead>
         </TableRow>
@@ -543,7 +542,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={8} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
@@ -558,7 +557,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                 <TableCell className="py-0.5 px-1 text-center text-muted-foreground text-xs">
                   {index + 1}
                 </TableCell>
-                <TableCell className="py-0.5 px-2 max-w-[280px]">
+                <TableCell className="py-0.5 px-2 max-w-[340px]">
                   <div className="font-medium text-xs truncate" title={condition.description}>{condition.description}</div>
                 </TableCell>
                 <TableCell className="p-0" onClick={(e) => e.stopPropagation()}>
@@ -632,11 +631,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       ))}
                     </SelectContent>
                   </Select>
-                </TableCell>
-                <TableCell className="py-0.5 px-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-xs text-muted-foreground truncate block" title={condition.notes || ''}>
-                    {condition.notes || '—'}
-                  </span>
                 </TableCell>
                 <TableCell className="py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (
@@ -713,7 +707,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         </Collapsible>
 
         {/* Group 2: Collected and Cleared */}
-        <Collapsible open={isGroup2Open} onOpenChange={setIsGroup2Open}>
+        <Collapsible open={isGroup2Open} onOpenChange={setIsGroup2Open} className="mt-6">
           <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-70 transition-opacity">
             {isGroup2Open ? (
               <ChevronDown className="h-4 w-4" />
