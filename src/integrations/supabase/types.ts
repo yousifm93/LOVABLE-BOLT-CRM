@@ -1729,7 +1729,7 @@ export type Database = {
           html_body: string | null
           id: string
           is_lender_marketing: boolean | null
-          lead_id: string
+          lead_id: string | null
           lender_marketing_category: string | null
           opened_at: string | null
           provider_message_id: string | null
@@ -1755,7 +1755,7 @@ export type Database = {
           html_body?: string | null
           id?: string
           is_lender_marketing?: boolean | null
-          lead_id: string
+          lead_id?: string | null
           lender_marketing_category?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
@@ -1781,7 +1781,7 @@ export type Database = {
           html_body?: string | null
           id?: string
           is_lender_marketing?: boolean | null
-          lead_id?: string
+          lead_id?: string | null
           lender_marketing_category?: string | null
           opened_at?: string | null
           provider_message_id?: string | null
