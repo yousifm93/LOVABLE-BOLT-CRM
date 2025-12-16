@@ -2008,6 +2008,122 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
+                {/* Chat with Borrower - For Leads/Pending App in LEFT column (moved from right) */}
+                {isLeadsOrPendingApp && (
+                  <Collapsible defaultOpen={false}>
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <CardTitle className="text-sm font-bold flex items-center justify-between">
+                            Chat with Borrower
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          </CardTitle>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2 min-h-[200px] max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/30">
+                            <div className="flex justify-end">
+                              <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
+                                <p className="text-sm">Hi! Just wanted to check in on your loan application.</p>
+                                <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
+                              </div>
+                            </div>
+                            <div className="flex justify-start">
+                              <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
+                                <p className="text-sm">Everything is going well. I submitted the documents.</p>
+                                <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage();
+                            }
+                          }} />
+                            <Button size="sm" onClick={handleSendMessage}>
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                )}
+
+                {/* About the Borrower - For Screening stage ONLY in left column (above DTI) */}
+                {opsStage === 'screening' && (
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                        {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                            Edit
+                          </Button>}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="bg-gray-50">
+                      {isEditingNotes || !localNotes ? <>
+                          <Textarea key="notes-textarea-screening-left" value={localNotes} onChange={e => {
+                        setLocalNotes(e.target.value);
+                        setHasUnsavedNotes(true);
+                      }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
+                          {hasUnsavedNotes && <div className="flex gap-2">
+                              <Button size="sm" onClick={async () => {
+                          const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                          if (localNotes === currentNotes) {
+                            toast({ title: "No Changes", description: "Notes haven't changed." });
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                            return;
+                          }
+                          setIsSavingNotes(true);
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            await databaseService.updateLead(leadId!, {
+                              notes: localNotes,
+                              notes_updated_by: user?.id || null,
+                              notes_updated_at: new Date().toISOString()
+                            });
+                            if (onLeadUpdated) await onLeadUpdated();
+                            setHasUnsavedNotes(false);
+                            setIsEditingNotes(false);
+                            toast({ title: "Saved", description: "About the Borrower section has been updated." });
+                          } catch (error) {
+                            console.error('Error saving notes:', error);
+                            toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                          } finally {
+                            setIsSavingNotes(false);
+                          }
+                        }} disabled={isSavingNotes}>
+                                {isSavingNotes ? 'Saving...' : 'Save'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                          setLocalNotes((client as any).notes || '');
+                          setHasUnsavedNotes(false);
+                          setIsEditingNotes(false);
+                        }}>
+                                Cancel
+                              </Button>
+                            </div>}
+                        </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                          {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                        </div>}
+                      {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
+                          Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                          {notesUpdatedByUser && <>
+                              <span>•</span>
+                              <User className="h-3 w-3" />
+                              {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                            </>}
+                        </div>}
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* DTI / Address / PITI - For Screening/Pre-Qualified/Pre-Approved in left column */}
                 {(opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved') && (
                   <LeadTeamContactsDatesCard 
@@ -2197,6 +2313,50 @@ export function ClientDetailDrawer({
           <div className="space-y-4 overflow-y-auto">
             {/* Send Email Templates */}
             <SendEmailTemplatesCard leadId={leadId || ""} />
+
+            {/* Quick Actions - For Pre-Qualified/Pre-Approved ONLY, positioned after Send Email Templates */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+              if (!isPreQualOrPreApproved) return null;
+              return (
+                <Collapsible defaultOpen={true}>
+                  <Card>
+                    <CardHeader className="pb-3 bg-white">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full">
+                        <CardTitle className="text-sm font-bold">Quick Actions</CardTitle>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="bg-gray-50">
+                        <div className="flex gap-3">
+                          <Button 
+                            variant="outline" 
+                            size="default" 
+                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => setShowPreApprovalModal(true)}
+                          >
+                            <FileText className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Pre-Approval</span>
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="default" 
+                            className="flex-1 px-3 py-3 h-auto flex flex-col gap-1"
+                            onClick={() => setShowLoanEstimateModal(true)}
+                          >
+                            <FileCheck className="h-4 w-4" />
+                            <span className="font-semibold text-sm">Loan Estimate</span>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })()}
 
             {/* Tasks - moved before About the Borrower */}
             <Card>
@@ -2667,10 +2827,13 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* Quick Actions - Collapsed by default for Leads/Pending App, shown after Stage History */}
+            {/* Quick Actions - Collapsed by default for Leads/Pending App, shown after Stage History (NOT Pre-Qualified/Pre-Approved - they have it earlier) */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
+              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+              // Skip for Pre-Qual/Pre-Approved - they have Quick Actions after Send Email Templates
+              if (isPreQualOrPreApproved) return null;
               return (
                 <Collapsible defaultOpen={!isLeadsOrPendingApp}>
                   <Card>
@@ -2811,55 +2974,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Chat with Borrower - For Leads/Pending App in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isLeadsOrPendingApp = opsStage === 'leads' || opsStage === 'pending-app';
-              if (!isLeadsOrPendingApp) return null;
-              return (
-                <Collapsible defaultOpen={false}>
-                  <Card>
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardTitle className="text-sm font-bold flex items-center justify-between">
-                          Chat with Borrower
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        </CardTitle>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2 min-h-[200px] max-h-[200px] overflow-y-auto border rounded p-2 bg-muted/30">
-                          <div className="flex justify-end">
-                            <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[80%]">
-                              <p className="text-sm">Hi! Just wanted to check in on your loan application.</p>
-                              <p className="text-xs opacity-75 mt-1">Today 2:30 PM</p>
-                            </div>
-                          </div>
-                          <div className="flex justify-start">
-                            <div className="bg-white rounded-lg px-3 py-2 max-w-[80%] shadow-sm">
-                              <p className="text-sm">Everything is going well. I submitted the documents.</p>
-                              <p className="text-xs text-muted-foreground mt-1">Today 2:45 PM</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a message..." className="flex-1" onKeyDown={e => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }} />
-                          <Button size="sm" onClick={handleSendMessage}>
-                            <Send className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              );
-            })()}
+            {/* Chat with Borrower - REMOVED from right column for Leads/Pending App (now in left column) */}
 
             {/* DTI / Address / PITI - Only for Leads/Pending App in right column */}
             {(() => {
@@ -2886,10 +3001,11 @@ export function ClientDetailDrawer({
               );
             })()}
 
+            {/* About the Borrower - For Pre-Qualified/Pre-Approved ONLY in right column (Screening now has it in left column) */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isScreeningOrPreQual = opsStage === 'screening' || opsStage === 'pre-qualified' || opsStage === 'pre-approved';
-              if (!isScreeningOrPreQual) return null;
+              const isPreQualOrPreApproved = opsStage === 'pre-qualified' || opsStage === 'pre-approved';
+              if (!isPreQualOrPreApproved) return null;
               return (
             <Card>
               <CardHeader className="pb-3 bg-white">
@@ -2902,7 +3018,7 @@ export function ClientDetailDrawer({
               </CardHeader>
               <CardContent className="bg-gray-50">
                 {isEditingNotes || !localNotes ? <>
-                    <Textarea key="notes-textarea-early" value={localNotes} onChange={e => {
+                    <Textarea key="notes-textarea-prequal" value={localNotes} onChange={e => {
                   setLocalNotes(e.target.value);
                   setHasUnsavedNotes(true);
                 }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[100px] resize-none bg-white mb-2" />
