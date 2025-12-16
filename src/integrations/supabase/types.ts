@@ -614,6 +614,7 @@ export type Database = {
       buyer_agents: {
         Row: {
           agent_rank: string | null
+          broker_open: string | null
           brokerage: string
           created_at: string
           deleted_at: string | null
@@ -633,6 +634,7 @@ export type Database = {
         }
         Insert: {
           agent_rank?: string | null
+          broker_open?: string | null
           brokerage: string
           created_at?: string
           deleted_at?: string | null
@@ -652,6 +654,7 @@ export type Database = {
         }
         Update: {
           agent_rank?: string | null
+          broker_open?: string | null
           brokerage?: string
           created_at?: string
           deleted_at?: string | null
