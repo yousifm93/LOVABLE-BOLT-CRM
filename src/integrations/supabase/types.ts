@@ -2526,6 +2526,7 @@ export type Database = {
           referred_via: Database["public"]["Enums"]["referred_via"] | null
           reo: boolean | null
           residency_type: string | null
+          review_left_on: string | null
           sales_price: number | null
           search_stage: string | null
           source: Database["public"]["Enums"]["lead_source"] | null
@@ -2712,6 +2713,7 @@ export type Database = {
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
           residency_type?: string | null
+          review_left_on?: string | null
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null
@@ -2898,6 +2900,7 @@ export type Database = {
           referred_via?: Database["public"]["Enums"]["referred_via"] | null
           reo?: boolean | null
           residency_type?: string | null
+          review_left_on?: string | null
           sales_price?: number | null
           search_stage?: string | null
           source?: Database["public"]["Enums"]["lead_source"] | null

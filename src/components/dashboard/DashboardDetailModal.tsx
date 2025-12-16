@@ -97,12 +97,22 @@ interface EmailResponseSuggestion {
   status: string;
 }
 
+interface Review {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone?: string | null;
+  email?: string | null;
+  review_left_on: string;
+  pipeline_stage_id?: string;
+}
+
 interface DashboardDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  data: Lead[] | Agent[] | Email[] | Call[];
-  type: "leads" | "applications" | "meetings" | "calls" | "emails";
+  data: Lead[] | Agent[] | Email[] | Call[] | Review[];
+  type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews";
   onLeadClick?: (leadId: string) => void;
 }
 
@@ -440,7 +450,7 @@ export function DashboardDetailModal({
     });
   };
 
-  const renderDate = (item: Lead | Agent | Email | Call) => {
+  const renderDate = (item: Lead | Agent | Email | Call | Review) => {
     if (type === "leads" && "lead_on_date" in item) {
       return item.lead_on_date ? formatDateShort(item.lead_on_date) : "—";
     }
@@ -460,6 +470,9 @@ export function DashboardDetailModal({
         month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
       }) : "—";
     }
+    if (type === "reviews" && "review_left_on" in item) {
+      return item.review_left_on ? formatDateShort(item.review_left_on) : "—";
+    }
     return "—";
   };
 
@@ -475,6 +488,8 @@ export function DashboardDetailModal({
         return "Call Date";
       case "emails":
         return "Date";
+      case "reviews":
+        return "Review Date";
       default:
         return "Date";
     }
@@ -483,10 +498,11 @@ export function DashboardDetailModal({
   const getThirdColumnTitle = () => {
     if (type === "emails") return "Dir";
     if (type === "calls") return "Type";
+    if (type === "reviews") return "Stage";
     return type === "meetings" ? "Notes" : "Current Stage";
   };
 
-  const getName = (item: Lead | Agent | Email | Call) => {
+  const getName = (item: Lead | Agent | Email | Call | Review) => {
     if (type === "emails" && "lead" in item && item.lead) {
       return `${item.lead.first_name || ''} ${item.lead.last_name || ''}`.trim() || "Unknown";
     }

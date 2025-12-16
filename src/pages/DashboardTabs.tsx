@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search, Star } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
@@ -181,6 +181,11 @@ export default function DashboardTabs() {
     yesterdayEmails,
     todayEmails,
     allEmails,
+    // Reviews
+    thisMonthReviews,
+    lastWeekReviews,
+    thisWeekReviews,
+    allReviews,
     recentStageChanges,
     pipelineStageCounts,
     activeMetrics,
@@ -260,7 +265,7 @@ export default function DashboardTabs() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState<any[]>([]);
   const [modalTitle, setModalTitle] = useState("");
-  const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls" | "emails">("leads");
+  const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls" | "emails" | "reviews">("leads");
 
   // Volume modal state
   const [volumeModalOpen, setVolumeModalOpen] = useState(false);
@@ -277,7 +282,7 @@ export default function DashboardTabs() {
   const [allLeadsSearchTerm, setAllLeadsSearchTerm] = useState("");
 
   // Modal handlers
-  const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls" | "emails") => {
+  const handleOpenModal = (title: string, data: any[], type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews") => {
     setModalTitle(title);
     setModalData(data);
     setModalType(type);
@@ -453,12 +458,12 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-5 gap-4">
+              <div className="grid grid-cols-6 gap-4">
               {/* COLUMN 1 - LEADS */}
-              <Card className="border-primary/30 bg-primary/5">
+              <Card className="border-green-500/30 bg-green-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Target className="h-4 w-4 text-primary" />
+                    <Target className="h-4 w-4 text-green-600" />
                     Leads
                   </CardTitle>
                 </CardHeader>
@@ -475,7 +480,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.leads}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.leads)}
-                    progressColor="[&_.bg-primary]:bg-yellow-500"
+                    progressColor="[&_.bg-primary]:bg-green-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -662,10 +667,10 @@ export default function DashboardTabs() {
               </Card>
 
               {/* COLUMN 4 - BROKER OPENS */}
-              <Card className="border-orange-500/30 bg-orange-500/5">
+              <Card className="border-purple-500/30 bg-purple-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-600" />
+                    <Calendar className="h-4 w-4 text-purple-600" />
                     Broker Opens
                   </CardTitle>
                 </CardHeader>
@@ -682,7 +687,7 @@ export default function DashboardTabs() {
                     progressMax={10}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(10)}
-                    progressColor="[&_.bg-primary]:bg-orange-500"
+                    progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
                     title="Last Week"
@@ -730,7 +735,70 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* COLUMN 5 - EMAILS */}
+              {/* COLUMN 5 - REVIEWS */}
+              <Card className="border-gray-500/30 bg-gray-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Star className="h-4 w-4 text-gray-600" />
+                    Reviews
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthReviews.length}
+                    icon={<Star />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Reviews", thisMonthReviews, "reviews")}
+                  />
+                  <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekReviews.length}
+                    icon={<Star />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Reviews", lastWeekReviews, "reviews")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekReviews.length}
+                    icon={<Star />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Reviews", thisWeekReviews, "reviews")}
+                  />
+                  
+                  <CollapsibleSection
+                    title="All Reviews" 
+                    count={allReviews.length}
+                    data={allReviews}
+                    renderItem={(review: any, index) => {
+                      const highlightClass = getHighlightClasses(review.review_left_on);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                        >
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {review.first_name} {review.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatLocalDate(review.review_left_on)}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {STAGE_ID_TO_NAME[review.pipeline_stage_id] || "Unknown"}
+                          </Badge>
+                        </div>
+                      );
+                    }}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* COLUMN 6 - EMAILS */}
               <Card className="border-blue-500/30 bg-blue-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
