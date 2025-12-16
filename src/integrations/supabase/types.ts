@@ -2400,6 +2400,7 @@ export type Database = {
           apr: number | null
           arrive_loan_number: string | null
           assets: number | null
+          aus_approval_file: string | null
           ba_status: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address: string | null
           buyer_agent_id: string | null
@@ -2585,6 +2586,7 @@ export type Database = {
           apr?: number | null
           arrive_loan_number?: string | null
           assets?: number | null
+          aus_approval_file?: string | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null
@@ -2772,6 +2774,7 @@ export type Database = {
           apr?: number | null
           arrive_loan_number?: string | null
           assets?: number | null
+          aus_approval_file?: string | null
           ba_status?: Database["public"]["Enums"]["ba_status"] | null
           borrower_current_address?: string | null
           buyer_agent_id?: string | null

@@ -27,7 +27,7 @@ const FILE_FIELDS = [
   { key: 'fcp_file', label: 'Final Closing Package' },
   { key: 'inspection_file', label: 'Inspection Report' },
   { key: 'title_file', label: 'Title Work' },
-  { key: 'condo_file', label: 'Condo Documents' },
+  { key: 'aus_approval_file', label: 'AUS Approval' },
   { key: 'rate_lock_file', label: 'Rate Lock Confirmation' },
 ];
 
