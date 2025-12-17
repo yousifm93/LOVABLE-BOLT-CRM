@@ -34,10 +34,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify the run_id exists
+    // Verify the run_id exists and get scenario_type
     const { data: existingRun, error: fetchError } = await supabase
       .from('pricing_runs')
-      .select('id, status')
+      .select('id, status, scenario_type')
       .eq('id', run_id)
       .single();
 
@@ -49,7 +49,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found existing run with status: ${existingRun.status}`);
+    console.log(`Found existing run with status: ${existingRun.status}, scenario_type: ${existingRun.scenario_type}`);
 
     // Determine final status
     const finalStatus = status === 'failed' ? 'failed' : 'completed';
@@ -100,6 +100,11 @@ serve(async (req) => {
 
     console.log(`Pricing run ${run_id} updated to status: ${finalStatus}`);
 
+    // If this is a daily rate run (has scenario_type), update daily_market_updates
+    if (existingRun.scenario_type && finalStatus === 'completed' && resultsJson.rate) {
+      await updateDailyMarketRates(supabase, existingRun.scenario_type, resultsJson.rate, resultsJson.discount_points);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -118,3 +123,73 @@ serve(async (req) => {
     );
   }
 });
+
+async function updateDailyMarketRates(supabase: any, scenarioType: string, rate: string, points: string) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  console.log(`Updating daily_market_updates for ${scenarioType} with rate: ${rate}, points: ${points}`);
+
+  // Parse rate and points as numbers
+  const rateNum = parseFloat(rate);
+  const pointsNum = points ? parseFloat(points) : null;
+
+  // Check if today's record exists
+  const { data: existing, error: fetchError } = await supabase
+    .from('daily_market_updates')
+    .select('id')
+    .eq('date', today)
+    .single();
+
+  // Build update object based on scenario type
+  const updateFields: Record<string, any> = {
+    updated_at: new Date().toISOString()
+  };
+
+  switch (scenarioType) {
+    case '30yr_fixed':
+      updateFields.rate_30yr_fixed = rateNum;
+      updateFields.points_30yr_fixed = pointsNum;
+      // Also copy to 15yr and FHA as per user request
+      updateFields.rate_15yr_fixed = rateNum;
+      updateFields.points_15yr_fixed = pointsNum;
+      updateFields.rate_30yr_fha = rateNum;
+      updateFields.points_30yr_fha = pointsNum;
+      break;
+    case 'bank_statement':
+      updateFields.rate_bank_statement = rateNum;
+      updateFields.points_bank_statement = pointsNum;
+      break;
+    case 'dscr':
+      updateFields.rate_dscr = rateNum;
+      updateFields.points_dscr = pointsNum;
+      break;
+  }
+
+  if (existing) {
+    // Update existing record
+    const { error: updateError } = await supabase
+      .from('daily_market_updates')
+      .update(updateFields)
+      .eq('date', today);
+
+    if (updateError) {
+      console.error('Error updating daily_market_updates:', updateError);
+    } else {
+      console.log(`Updated daily_market_updates for ${scenarioType}`);
+    }
+  } else {
+    // Create new record
+    const { error: insertError } = await supabase
+      .from('daily_market_updates')
+      .insert({
+        date: today,
+        ...updateFields
+      });
+
+    if (insertError) {
+      console.error('Error inserting daily_market_updates:', insertError);
+    } else {
+      console.log(`Created daily_market_updates record for ${scenarioType}`);
+    }
+  }
+}
