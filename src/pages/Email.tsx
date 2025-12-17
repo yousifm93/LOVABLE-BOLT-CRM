@@ -1030,14 +1030,11 @@ export default function Email() {
                   // Check if reviewed (for visual indicator in tag views)
                   const isReviewed = reviewedUids.has(email.uid);
                   const emailCategory = getEmailCategory(email);
-                  return <div className={cn("flex items-center gap-2 mb-1 w-full min-w-0", showMultiSelect ? "pl-6" : "pl-4")} style={{
-                    maxWidth: "calc(450px - 24px)"
-                  }}>
-                            <span className={cn("text-sm truncate min-w-0 flex-shrink-0 whitespace-nowrap", email.unread ? "font-semibold" : "font-medium")} style={{
-                      maxWidth: '180px'
-                    }}>
+                  return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
+                            <span className={cn("text-sm truncate flex-shrink-0", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
+                            <div className="flex-1" />
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {/* Reviewed indicator in File View / Lender Marketing View */}
                               {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
@@ -1048,8 +1045,7 @@ export default function Email() {
                               {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                               {email.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
                             </div>
-                            <div className="flex-1" />
-                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">{email.date}</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0 ml-2">{email.date}</span>
                           </div>;
                 })()}
                       <p className={cn("text-sm truncate min-w-0 mb-1 overflow-hidden", showMultiSelect ? "pl-6" : "pl-4", email.unread ? "font-medium text-foreground" : "text-muted-foreground")}>

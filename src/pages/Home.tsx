@@ -336,9 +336,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Market Rates Section */}
-        <MarketRatesCard />
-
         {/* Search Bar with Dropdown */}
         <div ref={searchRef} className="relative max-w-2xl">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -391,6 +388,9 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Market Rates Section */}
+        <MarketRatesCard />
 
         {/* Quick Access Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
