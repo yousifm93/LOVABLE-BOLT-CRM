@@ -224,10 +224,19 @@ export function transformLeadToClient(lead: any): any {
   lenderLoanNumber: lead.lender_loan_number || null,
   closingCosts: lead.closing_costs || null,
   
-  // Third party statuses
-  condoStatus: lead.condo_status || null,
-  appraisalStatus: lead.appraisal_status || null,
-  hoiStatus: lead.hoi_status || null,
+    // Third party statuses - both camelCase and snake_case for compatibility
+    condoStatus: lead.condo_status || null,
+    appraisalStatus: lead.appraisal_status || null,
+    hoiStatus: lead.hoi_status || null,
+    // Snake_case versions for gray box display
+    appraisal_status: lead.appraisal_status || null,
+    title_status: lead.title_status || null,
+    hoi_status: lead.hoi_status || null,
+    condo_status: lead.condo_status || null,
+    // Lender relationship
+    approved_lender: lead.approved_lender || null,
+    lender_name: lead.approved_lender?.lender_name || null,
+    lender_id: lead.lender_id || null,
   propertyTaxes: lead.property_taxes || null,
   homeownersInsurance: lead.homeowners_insurance || null,
   mortgageInsurance: lead.mortgage_insurance || null,
