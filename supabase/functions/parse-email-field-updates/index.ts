@@ -123,7 +123,7 @@ const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; val
     type: 'select',
     validValues: ['Primary', 'Second Home', 'Investment'],
   },
-  transaction_type: {
+  loan_type: {
     displayName: 'Transaction Type',
     type: 'select',
     validValues: ['Purchase', 'Refinance', 'HELOC'],
@@ -132,11 +132,11 @@ const FIELD_DEFINITIONS: Record<string, { displayName: string; type: string; val
     displayName: 'Total Monthly Income',
     type: 'currency',
   },
-  insurance_amount: {
+  homeowners_insurance: {
     displayName: 'Monthly Insurance',
     type: 'currency',
   },
-  monthly_taxes: {
+  property_taxes: {
     displayName: 'Monthly Taxes',
     type: 'currency',
   },
@@ -166,7 +166,11 @@ const STATUS_PROGRESSIONS: Record<string, string[]> = {
 const FIELD_NAME_MAP: Record<string, string> = {
   'loan_program': 'program',
   'monthly_taxes': 'property_taxes',
+  'monthly_insurance': 'homeowners_insurance',
+  'insurance_amount': 'homeowners_insurance',
+  'transaction_type': 'loan_type',
   'escrow': 'escrows',
+  'appraisal_date_time': 'appr_date_time',
 };
 
 // Fields that are calculated and should NEVER be suggested for update

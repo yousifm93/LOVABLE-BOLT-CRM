@@ -481,7 +481,11 @@ export function DashboardDetailModal({
         const fieldNameMap: Record<string, string> = {
           'loan_program': 'program',
           'monthly_taxes': 'property_taxes',
+          'monthly_insurance': 'homeowners_insurance',
+          'insurance_amount': 'homeowners_insurance',
+          'transaction_type': 'loan_type',
           'escrow': 'escrows',
+          'appraisal_date_time': 'appr_date_time',
         };
         
         // Insert new suggestions with proper field name mapping for current_value lookup
