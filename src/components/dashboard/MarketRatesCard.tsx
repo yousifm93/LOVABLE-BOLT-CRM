@@ -33,7 +33,7 @@ function RateCard({ label, rate, points }: RateCardProps) {
         {rate ? `${rate.toFixed(3)}%` : '—'}
       </span>
       <span className="text-xs text-amber-700 dark:text-amber-300">
-        {points !== null && points !== undefined ? `${points.toFixed(2)} pts` : '— pts'}
+        {points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts'}
       </span>
     </div>
   );
