@@ -176,3 +176,9 @@ verify_jwt = false
 
 [functions.parse-initial-approval]
 verify_jwt = false
+
+[functions.fetch-daily-rates]
+verify_jwt = true
+
+[functions.generate-market-summary]
+verify_jwt = false
