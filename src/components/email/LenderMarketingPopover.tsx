@@ -25,6 +25,20 @@ interface LenderMarketingData {
   restrictions?: string[];
   notes?: string | null;
   ai_summary?: string | null;
+  // Product flags from email extraction
+  product_dscr?: string | null;
+  product_bank_statement?: string | null;
+  product_p_l?: string | null;
+  product_1099?: string | null;
+  product_asset_depletion?: string | null;
+  product_foreign_national?: string | null;
+  product_itin?: string | null;
+  product_non_warrantable_condo?: string | null;
+  product_jumbo?: string | null;
+  product_bridge?: string | null;
+  product_fix_flip?: string | null;
+  product_construction?: string | null;
+  product_commercial?: string | null;
 }
 
 interface LenderFieldSuggestion {
@@ -101,15 +115,72 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
     setProcessingIds(prev => new Set(prev).add(suggestion.id));
     try {
       if (suggestion.is_new_lender) {
-        // Create new lender in Not Approved section
-        await databaseService.createLender({
+        // Helper functions to parse extracted data
+        const parsePercent = (val: string | null | undefined): number | null => {
+          if (!val) return null;
+          const num = parseFloat(val.replace('%', '').replace(/,/g, ''));
+          return isNaN(num) ? null : num;
+        };
+        const parseNumber = (val: string | null | undefined): number | null => {
+          if (!val) return null;
+          const num = parseInt(val.replace(/[^0-9]/g, ''));
+          return isNaN(num) ? null : num;
+        };
+        const parseCurrency = (val: string | null | undefined): number | null => {
+          if (!val) return null;
+          const num = parseInt(val.replace(/[$,\s]/g, ''));
+          return isNaN(num) ? null : num;
+        };
+
+        // Create new lender with ALL extracted data from the email
+        const lenderData: Record<string, any> = {
           lender_name: suggestion.suggested_lender_name || 'Unknown Lender',
           status: 'Pending',
           lender_type: 'Non-QM',
-        });
+        };
+
+        // Populate fields from extracted data if available
+        if (data) {
+          // Loan limits
+          if (data.max_loan_amount) lenderData.max_loan_amount = parseCurrency(data.max_loan_amount);
+          if (data.min_loan_amount) lenderData.min_loan_amount = parseCurrency(data.min_loan_amount);
+          
+          // LTVs  
+          if (data.max_ltv) lenderData.max_ltv = parsePercent(data.max_ltv);
+          if (data.dscr_ltv) lenderData.dscr_max_ltv = parsePercent(data.dscr_ltv);
+          if (data.bank_statement_ltv) lenderData.bs_loan_max_ltv = parsePercent(data.bank_statement_ltv);
+          
+          // FICO
+          if (data.min_fico) lenderData.min_fico = parseNumber(data.min_fico);
+          
+          // Product flags - check products array and individual fields
+          const products = data.products || [];
+          if (products.includes('DSCR') || data.product_dscr === 'Y') lenderData.product_dscr = 'Y';
+          if (products.includes('Bank Statement') || data.product_bank_statement === 'Y') lenderData.product_bank_statement = 'Y';
+          if (products.includes('P&L') || data.product_p_l === 'Y') lenderData.product_p_l = 'Y';
+          if (products.includes('1099') || data.product_1099 === 'Y') lenderData.product_1099 = 'Y';
+          if (products.includes('Asset Depletion') || data.product_asset_depletion === 'Y') lenderData.product_asset_depletion = 'Y';
+          if (products.includes('Foreign National') || data.product_foreign_national === 'Y') lenderData.product_foreign_national = 'Y';
+          if (products.includes('ITIN') || data.product_itin === 'Y') lenderData.product_itin = 'Y';
+          if (products.includes('Non-Warrantable Condo') || data.product_non_warrantable_condo === 'Y') lenderData.product_non_warrantable_condo = 'Y';
+          if (products.includes('Jumbo') || data.product_jumbo === 'Y') lenderData.product_jumbo = 'Y';
+          if (products.includes('Bridge') || data.product_bridge === 'Y') lenderData.product_bridge = 'Y';
+          if (products.includes('Fix & Flip') || data.product_fix_flip === 'Y') lenderData.product_fix_flip = 'Y';
+          if (products.includes('Construction') || data.product_construction === 'Y') lenderData.product_construction = 'Y';
+          if (products.includes('Commercial') || data.product_commercial === 'Y') lenderData.product_commercial = 'Y';
+          
+          // Special features as notes
+          if (data.special_features && data.special_features.length > 0) {
+            lenderData.notes = '• ' + data.special_features.join('\n• ');
+          } else if (data.notes) {
+            lenderData.notes = data.notes;
+          }
+        }
+
+        await databaseService.createLender(lenderData);
         toast({
           title: "Lender Added",
-          description: `${suggestion.suggested_lender_name} added to Not Approved section`,
+          description: `${suggestion.suggested_lender_name} added to Not Approved section with extracted data`,
         });
       } else if (suggestion.lender_id) {
         // Update the lender field

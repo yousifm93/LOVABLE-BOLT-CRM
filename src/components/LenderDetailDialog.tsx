@@ -523,8 +523,13 @@ export function LenderDetailDialog({ lender, isOpen, onClose, onLenderUpdated }:
                 value={lender.lender_type}
                 onValueChange={(value) => handleFieldUpdate('lender_type', value)}
               />
-              <Badge variant="default" className="bg-green-500/20 text-green-700 border-green-500/30">
-                Approved
+              <Badge 
+                variant="default" 
+                className={lender.status === 'Active' 
+                  ? "bg-green-500/20 text-green-700 border-green-500/30"
+                  : "bg-red-500/20 text-red-700 border-red-500/30"}
+              >
+                {lender.status === 'Active' ? 'Approved' : 'Not Approved'}
               </Badge>
             </div>
             {/* Send Email Button with Template Dropdown */}

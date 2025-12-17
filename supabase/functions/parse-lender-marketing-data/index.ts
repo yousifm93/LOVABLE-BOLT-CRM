@@ -286,7 +286,7 @@ IMPORTANT:
         }
       } else {
         console.log('[parse-lender-marketing-data] No matching lender found, suggesting new lender');
-        // Suggest adding a new lender
+        // Suggest adding a new lender - main suggestion
         suggestions.push({
           field_name: 'new_lender',
           suggested_value: extractedData.lender_name,
@@ -294,6 +294,89 @@ IMPORTANT:
           reason: `New lender "${extractedData.lender_name}" detected in marketing email. Suggest adding to Not Approved section.`,
           confidence: 0.80,
         });
+
+        // Create individual field suggestions for each extracted data point (for new lenders)
+        // These will be auto-populated when user approves the "new_lender" suggestion
+        if (extractedData.max_ltv) {
+          suggestions.push({
+            field_name: 'max_ltv',
+            suggested_value: extractedData.max_ltv,
+            current_value: null,
+            reason: `Max LTV: ${extractedData.max_ltv} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        if (extractedData.min_fico) {
+          suggestions.push({
+            field_name: 'min_fico',
+            suggested_value: extractedData.min_fico,
+            current_value: null,
+            reason: `Min FICO: ${extractedData.min_fico} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        if (extractedData.max_loan_amount) {
+          suggestions.push({
+            field_name: 'max_loan_amount',
+            suggested_value: extractedData.max_loan_amount,
+            current_value: null,
+            reason: `Max Loan Amount: ${extractedData.max_loan_amount} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        if (extractedData.min_loan_amount) {
+          suggestions.push({
+            field_name: 'min_loan_amount',
+            suggested_value: extractedData.min_loan_amount,
+            current_value: null,
+            reason: `Min Loan Amount: ${extractedData.min_loan_amount} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        if (extractedData.dscr_ltv) {
+          suggestions.push({
+            field_name: 'dscr_max_ltv',
+            suggested_value: extractedData.dscr_ltv,
+            current_value: null,
+            reason: `DSCR Max LTV: ${extractedData.dscr_ltv} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        if (extractedData.bank_statement_ltv) {
+          suggestions.push({
+            field_name: 'bs_loan_max_ltv',
+            suggested_value: extractedData.bank_statement_ltv,
+            current_value: null,
+            reason: `Bank Statement Max LTV: ${extractedData.bank_statement_ltv} extracted from email`,
+            confidence: 0.85,
+          });
+        }
+        // Product flags as suggestions
+        const productMappings = [
+          { extracted: 'product_dscr', display: 'DSCR Product' },
+          { extracted: 'product_bank_statement', display: 'Bank Statement Product' },
+          { extracted: 'product_p_l', display: 'P&L Product' },
+          { extracted: 'product_1099', display: '1099 Product' },
+          { extracted: 'product_asset_depletion', display: 'Asset Depletion Product' },
+          { extracted: 'product_foreign_national', display: 'Foreign National Product' },
+          { extracted: 'product_itin', display: 'ITIN Product' },
+          { extracted: 'product_non_warrantable_condo', display: 'Non-Warrantable Condo Product' },
+          { extracted: 'product_jumbo', display: 'Jumbo Product' },
+          { extracted: 'product_bridge', display: 'Bridge Product' },
+          { extracted: 'product_fix_flip', display: 'Fix & Flip Product' },
+        ];
+        for (const pm of productMappings) {
+          const val = extractedData[pm.extracted as keyof LenderMarketingData];
+          if (val === 'Y') {
+            suggestions.push({
+              field_name: pm.extracted,
+              suggested_value: 'Y',
+              current_value: null,
+              reason: `${pm.display}: Yes - extracted from email`,
+              confidence: 0.85,
+            });
+          }
+        }
       }
 
       // Insert suggestions into database
