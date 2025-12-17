@@ -107,8 +107,49 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { mode, data } = await req.json();
-    console.log(`Import past clients - Mode: ${mode}, Records: ${data?.length || 0}`);
+    const body = await req.json().catch(() => ({}));
+    const mode = body?.mode ?? 'PREVIEW';
+
+    const parseTableText = (tableText: string): Record<string, string | null>[] => {
+      const lines = tableText
+        .split(/\r?\n/)
+        .map((l: string) => l.trim())
+        .filter((l: string) => l.startsWith('|'));
+
+      if (lines.length < 2) return [];
+
+      const parseRow = (line: string): string[] =>
+        line
+          .split('|')
+          .slice(1, -1)
+          .map((v) => v.trim());
+
+      const headers = parseRow(lines[0]);
+      const out: Record<string, string | null>[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseRow(lines[i]);
+        // Skip summary/test rows that don't have a Name
+        const nameIdx = headers.indexOf('Name');
+        if (nameIdx >= 0 && (!values[nameIdx] || values[nameIdx].toLowerCase() === 'name')) continue;
+
+        const row: Record<string, string | null> = {};
+        headers.forEach((h, idx) => {
+          row[h] = values[idx] === undefined || values[idx] === '' ? null : values[idx];
+        });
+        out.push(row);
+      }
+
+      return out;
+    };
+
+    const data: Record<string, string | null>[] = Array.isArray(body?.data)
+      ? body.data
+      : typeof body?.table_text === 'string'
+        ? parseTableText(body.table_text)
+        : [];
+
+    console.log(`Import past clients - Mode: ${mode}, Records: ${data.length}`);
 
     // Fetch existing lenders for matching
     const { data: existingLenders } = await supabase
@@ -206,47 +247,89 @@ Deno.serve(async (req) => {
     // APPLY mode - do the import
     const results = { imported: 0, errors: [] as string[] };
 
+    // Resolve Past Clients pipeline stage id (fallback to known id if lookup fails)
+    const fallbackPastClientsStageId = '6f8d8f8c-0b0a-4f1a-8a1a-8e8d8f8c0b0a';
+    let pastClientsStageId = fallbackPastClientsStageId;
+    try {
+      const { data: stageRow, error: stageErr } = await supabase
+        .from('pipeline_stages')
+        .select('id, name')
+        .ilike('name', '%past%client%')
+        .limit(1)
+        .maybeSingle();
+      if (!stageErr && stageRow?.id) pastClientsStageId = stageRow.id;
+    } catch (_e) {
+      // ignore
+    }
+
+    // Soft-delete existing Past Clients so the imported list becomes the only Past Clients
+    const deletedAt = new Date().toISOString();
+    const { error: deleteErr } = await supabase
+      .from('leads')
+      .update({ deleted_at: deletedAt, deleted_by: null })
+      .eq('pipeline_stage_id', pastClientsStageId)
+      .is('deleted_at', null);
+
+    if (deleteErr) {
+      console.error('Failed to clear existing Past Clients:', deleteErr);
+      // continue anyway; better to import than to block
+    }
+
     for (const row of data) {
       try {
         // Get or create buyer agent
         const buyerAgentId = await getOrCreateAgent(
-          row['BUYERS AGENT FN'] || row['BA FN'],
-          row['BUYERS AGENT LN'] || row['BA LN'],
-          row["Buyer's Agent Email"] || row['BA EMAIL'],
-          row["Buyer's Agent Phone #"] || row['BA PHONE']
+          row['BUYERS AGENT FN'] || row['BA FN'] || row['BUYERS AGENT'] || null,
+          row['BUYERS AGENT LN'] || row['BA LN'] || null,
+          row["Buyer's Agent Email"] || row['BA EMAIL'] || null,
+          row["Buyer's Agent Phone #"] || row['BA PHONE'] || null
         );
 
         // Get or create listing agent
         const listingAgentId = await getOrCreateAgent(
-          row['LISTING AGENT FN'] || row['LA FN'],
-          row['LISTING AGENT LN'] || row['LA LN'],
-          row['Listing Agent Email'] || row['LA EMAIL'],
-          row["Seller's Agent Phone"] || row['LA PHONE']
+          row['LISTING AGENT FN'] || row['LA FN'] || row['LISTING AGENT'] || null,
+          row['LISTING AGENT LN'] || row['LA LN'] || null,
+          row['Listing Agent Email'] || row['LA EMAIL'] || null,
+          row["Seller's Agent Phone"] || row['LA PHONE'] || null
         );
 
         // Get lender ID
         const lenderId = getLenderId(row['LENDER']);
 
-        // Build lead record
+        const borrowerFirst = row['Borrower FN'] || row['Name']?.split(' ')[0] || 'Unknown';
+        const borrowerLast = row['Borrower LN'] || row['Name']?.split(' ').slice(1).join(' ') || '';
+
+        const coFull = row['Co-Borrower Full Name'] || null;
+        const coParts = coFull ? coFull.split(' ').filter(Boolean) : [];
+        const coFirst = coParts.length ? coParts[0] : null;
+        const coLast = coParts.length > 1 ? coParts.slice(1).join(' ') : null;
+
+        const closeDate = parseDate(row['CLOSE DATE']);
+
+        const titleBits = [
+          row['TITLE NAME'] ? `Title: ${row['TITLE NAME']}` : null,
+          row['TITLE EMAIL'] ? `Title Email: ${cleanEmail(row['TITLE EMAIL'])}` : null,
+          row['TITLE PHONE'] ? `Title Phone: ${cleanPhone(row['TITLE PHONE'])}` : null,
+        ].filter(Boolean);
+
+        // Build lead record (ONLY columns that exist in leads table)
         const lead = {
-          first_name: row['Borrower FN'] || row['Name']?.split(' ')[0] || 'Unknown',
-          last_name: row['Borrower LN'] || row['Name']?.split(' ').slice(1).join(' ') || '',
+          first_name: borrowerFirst,
+          last_name: borrowerLast,
           email: cleanEmail(row['Borrower Email']),
           phone: cleanPhone(row['Borrower Phone']),
           dob: parseDate(row['BORROWER DOB']),
-          
-          // Loan info
+
           arrive_loan_number: row['ARIVE LOAN #'] || null,
-          mb_loan_number: row['LENDER LOAN #'] || null,
+          lender_loan_number: row['LENDER LOAN #'] || null,
           approved_lender_id: lenderId,
+
           loan_amount: parseDecimal(row['LOAN AMT']),
           sales_price: parseDecimal(row['SALES PRICE']),
           appraisal_value: row['APPRAISED VALUE'] ? String(parseDecimal(row['APPRAISED VALUE'])) : null,
           interest_rate: parseDecimal(row['RATE']),
           term: normalizeTerm(row['TERM']),
-          ltv: parseDecimal(row['LTV']),
-          
-          // Property
+
           subject_address_1: row['SUBJECT PROP ADDRESS'] || null,
           subject_address_2: row['ADDRESS 2'] || null,
           subject_city: row['CITY'] || null,
@@ -258,23 +341,24 @@ Deno.serve(async (req) => {
           pr_type: mapPrType(row['P/R']),
           condo_status: mapCondoStatus(row['CONDO APPROVAL STATUS']),
           escrows: mapEscrows(row['ESCROW WAIVED?']),
-          
-          // Dates
-          close_date: parseDate(row['CLOSE DATE']),
-          
-          // Title
-          title_company: row['TITLE NAME'] || null,
-          title_email: cleanEmail(row['TITLE EMAIL']),
-          title_phone: cleanPhone(row['TITLE PHONE']),
-          
-          // Agents
+
+          close_date: closeDate,
+          lead_on_date: parseDate(row['LEAD ON']),
+
           buyer_agent_id: buyerAgentId,
           listing_agent_id: listingAgentId,
-          
-          // Pipeline
-          pipeline_stage: 'Past Clients',
+
+          co_borrower_first_name: coFirst,
+          co_borrower_last_name: coLast,
+          co_borrower_email: cleanEmail(row['Co-Borrower Email']),
+
+          pipeline_stage_id: pastClientsStageId,
           pipeline_section: 'Closed',
           loan_status: 'CLOSED',
+          is_closed: true,
+          closed_at: closeDate ? new Date(`${closeDate}T00:00:00.000Z`).toISOString() : null,
+
+          notes: titleBits.length ? titleBits.join('\n') : null,
         };
 
         const { error } = await supabase.from('leads').insert(lead);
@@ -290,7 +374,6 @@ Deno.serve(async (req) => {
         results.errors.push(`Row error: ${e.message}`);
       }
     }
-
     console.log(`Import complete: ${results.imported} imported, ${results.errors.length} errors`);
 
     return new Response(JSON.stringify({
