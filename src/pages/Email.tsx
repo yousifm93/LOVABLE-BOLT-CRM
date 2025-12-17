@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,7 @@ import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
 import { format } from "date-fns";
+
 interface TeamMember {
   id: string;
   first_name: string;
@@ -74,8 +75,17 @@ interface EmailCategory {
   id: string;
   email_uid: number;
   email_folder: string;
-  category: 'needs_attention' | 'reviewed_file' | 'reviewed_lender_marketing' | 'reviewed_na';
+  category: string;
 }
+interface CustomCategory {
+  id: string;
+  name: string;
+  key: string;
+  icon_name: string;
+  color: string;
+  sort_order: number;
+}
+
 const folders = [{
   name: "Inbox",
   icon: Inbox
@@ -92,27 +102,15 @@ const folders = [{
   name: "Trash",
   icon: Trash2
 }];
-const customCategories = [{
-  name: "Needs Attention",
-  icon: AlertCircle,
-  key: 'needs_attention' as const,
-  color: 'text-amber-500'
-}, {
-  name: "Reviewed - File",
-  icon: CheckCircle,
-  key: 'reviewed_file' as const,
-  color: 'text-green-500'
-}, {
-  name: "Reviewed - Lender Mktg",
-  icon: CheckCircle,
-  key: 'reviewed_lender_marketing' as const,
-  color: 'text-blue-500'
-}, {
-  name: "Reviewed - N/A",
-  icon: CheckCircle,
-  key: 'reviewed_na' as const,
-  color: 'text-gray-500'
-}];
+
+// Icon mapping for dynamic icons
+const iconMap: Record<string, any> = {
+  AlertCircle,
+  CheckCircle,
+  Tag,
+  Star,
+  FileText
+};
 
 // Strip forward prefixes from subject lines (belt-and-suspenders with backend)
 const cleanSubject = (subject: string) => subject.replace(/^(Fwd:|FWD:|Fw:|FW:)\s*/i, '').trim();
@@ -220,13 +218,15 @@ export default function Email() {
   const [emailTagsMap, setEmailTagsMap] = useState<Map<string, EmailTagData>>(new Map());
   const [lenderMarketingMap, setLenderMarketingMap] = useState<Map<string, LenderMarketingData>>(new Map());
   const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
-    needs_attention: 0,
-    reviewed_file: 0,
-    reviewed_lender_marketing: 0,
-    reviewed_na: 0
-  });
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [draggedEmail, setDraggedEmail] = useState<EmailMessage | null>(null);
+
+  // Category editing state
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
 
   // Multi-select state
   const [selectedEmails, setSelectedEmails] = useState<Set<number>>(new Set());
@@ -249,6 +249,80 @@ export default function Email() {
     subject: "",
     body: ""
   });
+
+  // Fetch custom categories from database
+  const fetchCustomCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('custom_email_categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+      
+      if (error) throw error;
+      setCustomCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching custom categories:', error);
+    }
+  }, []);
+
+  // Add new category
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    
+    try {
+      const key = newCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      const maxSortOrder = Math.max(...customCategories.map(c => c.sort_order), 0);
+      
+      const { error } = await supabase
+        .from('custom_email_categories')
+        .insert({
+          name: newCategoryName.trim(),
+          key,
+          icon_name: 'CheckCircle',
+          color: 'text-purple-500',
+          sort_order: maxSortOrder + 1
+        });
+      
+      if (error) throw error;
+      
+      toast({ title: "Category created", description: `"${newCategoryName}" added` });
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+      fetchCustomCategories();
+    } catch (error: any) {
+      console.error('Error adding category:', error);
+      toast({ title: "Failed to create category", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Update category name
+  const handleUpdateCategoryName = async (categoryId: string, newName: string) => {
+    if (!newName.trim()) {
+      setEditingCategoryId(null);
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('custom_email_categories')
+        .update({ name: newName.trim() })
+        .eq('id', categoryId);
+      
+      if (error) throw error;
+      
+      toast({ title: "Category updated" });
+      setEditingCategoryId(null);
+      fetchCustomCategories();
+    } catch (error: any) {
+      console.error('Error updating category:', error);
+      toast({ title: "Failed to update category", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Initial fetch of custom categories
+  useEffect(() => {
+    fetchCustomCategories();
+  }, [fetchCustomCategories]);
 
   // Keyboard shortcut: 'e' to smart archive selected email
   // - If email has file tag → assign to "Reviewed - File"
@@ -339,17 +413,10 @@ export default function Email() {
       if (error) throw error;
       setEmailCategories((data || []) as EmailCategory[]);
 
-      // Calculate counts for all 4 categories
-      const counts = {
-        needs_attention: 0,
-        reviewed_file: 0,
-        reviewed_lender_marketing: 0,
-        reviewed_na: 0
-      };
+      // Calculate counts for all categories dynamically
+      const counts: Record<string, number> = {};
       for (const cat of data || []) {
-        if (counts.hasOwnProperty(cat.category)) {
-          counts[cat.category as keyof typeof counts]++;
-        }
+        counts[cat.category] = (counts[cat.category] || 0) + 1;
       }
       setCategoryCounts(counts);
     } catch (error) {
@@ -805,9 +872,10 @@ export default function Email() {
       }
     }
 
-    // Check if dropping on a custom category
-    if (['needs_attention', 'reviewed_file', 'reviewed_lender_marketing', 'reviewed_na'].includes(dropTarget)) {
-      await assignEmailToCategory(email, dropTarget as EmailCategory['category']);
+    // Check if dropping on a custom category (use dynamic list)
+    const validCategoryKeys = customCategories.map(c => c.key);
+    if (validCategoryKeys.includes(dropTarget)) {
+      await assignEmailToCategory(email, dropTarget);
     } else if (['Archive', 'Trash', 'Starred'].includes(dropTarget)) {
       toast({
         title: "IMAP folder move",
@@ -817,7 +885,7 @@ export default function Email() {
   };
 
   // Assign email to category
-  const assignEmailToCategory = async (email: EmailMessage, category: EmailCategory['category']) => {
+  const assignEmailToCategory = async (email: EmailMessage, category: string) => {
     try {
       const existing = emailCategories.find(c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox'));
       if (existing) {
@@ -1004,19 +1072,81 @@ export default function Email() {
 
                 {/* Separator and Categories */}
                 <Separator className="mt-8 mb-3" />
-                <p className="text-xs font-medium text-muted-foreground pl-2 pr-3 mb-2 pt-4">CATEGORIES</p>
+                <div className="flex items-center justify-between pl-2 pr-3 mb-2 pt-4">
+                  <p className="text-xs font-medium text-muted-foreground">CATEGORIES</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => setIsAddingCategory(true)}
+                    title="Add category"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
                 
-                {customCategories.map(category => <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
-                    <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <category.icon className={cn("h-4 w-4 flex-shrink-0", selectedCategory !== category.key && category.color)} />
-                        <span className="truncate">{category.name}</span>
-                      </div>
-                      {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
-                          {categoryCounts[category.key]}
-                        </span>}
-                    </button>
-                  </DroppableFolder>)}
+                {/* Add category input */}
+                {isAddingCategory && (
+                  <div className="px-2 mb-2 flex gap-1">
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Category name..."
+                      className="h-7 text-xs"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddCategory();
+                        if (e.key === 'Escape') { setIsAddingCategory(false); setNewCategoryName(""); }
+                      }}
+                    />
+                    <Button size="sm" className="h-7 px-2" onClick={handleAddCategory}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                
+                {customCategories.map(category => {
+                  const IconComponent = iconMap[category.icon_name] || CheckCircle;
+                  return (
+                    <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
+                      <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors group", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <IconComponent className={cn("h-4 w-4 flex-shrink-0", selectedCategory !== category.key && category.color)} />
+                          {editingCategoryId === category.id ? (
+                            <Input
+                              value={editingCategoryName}
+                              onChange={(e) => setEditingCategoryName(e.target.value)}
+                              className="h-6 text-xs px-1"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => {
+                                e.stopPropagation();
+                                if (e.key === 'Enter') handleUpdateCategoryName(category.id, editingCategoryName);
+                                if (e.key === 'Escape') setEditingCategoryId(null);
+                              }}
+                              onBlur={() => handleUpdateCategoryName(category.id, editingCategoryName)}
+                            />
+                          ) : (
+                            <span className="truncate">{category.name}</span>
+                          )}
+                          {!editingCategoryId && (
+                            <Pencil 
+                              className="h-3 w-3 opacity-0 group-hover:opacity-50 hover:!opacity-100 cursor-pointer flex-shrink-0" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCategoryId(category.id);
+                                setEditingCategoryName(category.name);
+                              }}
+                            />
+                          )}
+                        </div>
+                        {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
+                            {categoryCounts[category.key]}
+                          </span>}
+                      </button>
+                    </DroppableFolder>
+                  );
+                })}
               </div>
             </div>
           </div>

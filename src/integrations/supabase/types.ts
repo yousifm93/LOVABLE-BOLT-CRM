@@ -1076,6 +1076,39 @@ export type Database = {
           },
         ]
       }
+      custom_email_categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon_name: string
+          id: string
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon_name?: string
+          id?: string
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon_name?: string
+          id?: string
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_market_updates: {
         Row: {
           ai_market_summary: string | null
