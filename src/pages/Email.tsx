@@ -942,34 +942,26 @@ export default function Email() {
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Email</h1>
-              <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
-              <div className="flex items-center gap-1 mt-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={handleCompose}
-                  className="h-8 w-8"
-                  title="Compose"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={handleRefresh} 
-                  disabled={isLoading}
-                  className="h-8 w-8"
-                  title="Refresh"
-                >
-                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                </Button>
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center gap-1 mb-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleCompose}
+            className="h-8 w-8"
+            title="Compose"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleRefresh} 
+            disabled={isLoading}
+            className="h-8 w-8"
+            title="Refresh"
+          >
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          </Button>
         </div>
 
         <div className="flex h-[calc(100%-60px)] gap-2">
