@@ -20,14 +20,12 @@ import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
 import { format } from "date-fns";
-
 interface TeamMember {
   id: string;
   first_name: string;
   last_name: string;
   email: string;
 }
-
 interface EmailComment {
   id: string;
   email_uid: number;
@@ -35,16 +33,17 @@ interface EmailComment {
   user_id: string;
   content: string;
   created_at: string;
-  user?: { email: string; initials: string };
+  user?: {
+    email: string;
+    initials: string;
+  };
 }
-
 interface EmailAttachment {
   name: string;
   type: string;
   size: number;
   url?: string;
 }
-
 interface EmailMessage {
   uid: number;
   from: string;
@@ -60,7 +59,6 @@ interface EmailMessage {
   htmlBody?: string;
   attachments?: EmailAttachment[];
 }
-
 interface EmailTagData {
   leadId: string;
   leadName: string;
@@ -68,43 +66,60 @@ interface EmailTagData {
   aiSummary: string | null;
   subject: string;
 }
-
 interface LenderMarketingData {
   emailLogId: string;
   category: string | null;
 }
-
 interface EmailCategory {
   id: string;
   email_uid: number;
   email_folder: string;
   category: 'needs_attention' | 'reviewed_file' | 'reviewed_lender_marketing' | 'reviewed_na';
 }
-
-const folders = [
-  { name: "Inbox", icon: Inbox },
-  { name: "Starred", icon: Star },
-  { name: "Sent", icon: Send },
-  { name: "Archive", icon: Archive },
-  { name: "Trash", icon: Trash2 },
-];
-
-const customCategories = [
-  { name: "Needs Attention", icon: AlertCircle, key: 'needs_attention' as const, color: 'text-amber-500' },
-  { name: "Reviewed - File", icon: CheckCircle, key: 'reviewed_file' as const, color: 'text-green-500' },
-  { name: "Reviewed - Lender Mktg", icon: CheckCircle, key: 'reviewed_lender_marketing' as const, color: 'text-blue-500' },
-  { name: "Reviewed - N/A", icon: CheckCircle, key: 'reviewed_na' as const, color: 'text-gray-500' },
-];
+const folders = [{
+  name: "Inbox",
+  icon: Inbox
+}, {
+  name: "Starred",
+  icon: Star
+}, {
+  name: "Sent",
+  icon: Send
+}, {
+  name: "Archive",
+  icon: Archive
+}, {
+  name: "Trash",
+  icon: Trash2
+}];
+const customCategories = [{
+  name: "Needs Attention",
+  icon: AlertCircle,
+  key: 'needs_attention' as const,
+  color: 'text-amber-500'
+}, {
+  name: "Reviewed - File",
+  icon: CheckCircle,
+  key: 'reviewed_file' as const,
+  color: 'text-green-500'
+}, {
+  name: "Reviewed - Lender Mktg",
+  icon: CheckCircle,
+  key: 'reviewed_lender_marketing' as const,
+  color: 'text-blue-500'
+}, {
+  name: "Reviewed - N/A",
+  icon: CheckCircle,
+  key: 'reviewed_na' as const,
+  color: 'text-gray-500'
+}];
 
 // Strip forward prefixes from subject lines (belt-and-suspenders with backend)
 const cleanSubject = (subject: string) => subject.replace(/^(Fwd:|FWD:|Fw:|FW:)\s*/i, '').trim();
 
 // Normalize subject for matching - removes all forward/reply prefixes and lowercases
 const cleanSubjectForMatching = (subject: string) => {
-  return subject
-    .replace(/^(Fwd:|FWD:|Fw:|FW:|Re:|RE:)\s*/gi, '')
-    .toLowerCase()
-    .trim();
+  return subject.replace(/^(Fwd:|FWD:|Fw:|FW:|Re:|RE:)\s*/gi, '').toLowerCase().trim();
 };
 
 // Create composite key from timestamp (to minute) + cleaned subject for reliable matching
@@ -114,7 +129,15 @@ const getMatchKey = (date: Date, subject: string) => {
 };
 
 // Draggable email item component
-function DraggableEmailItem({ email, isSelected, onClick, children, showCheckbox, isChecked, onCheckChange }: {
+function DraggableEmailItem({
+  email,
+  isSelected,
+  onClick,
+  children,
+  showCheckbox,
+  isChecked,
+  onCheckChange
+}: {
   email: EmailMessage;
   isSelected: boolean;
   onClick: () => void;
@@ -123,85 +146,71 @@ function DraggableEmailItem({ email, isSelected, onClick, children, showCheckbox
   isChecked?: boolean;
   onCheckChange?: (checked: boolean, shiftKey: boolean) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging
+  } = useDraggable({
     id: `email-${email.uid}`,
-    data: { email },
+    data: {
+      email
+    }
   });
-
   const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
   } : undefined;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "w-full max-w-full min-w-0 text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden cursor-pointer relative group",
-        isSelected && "bg-primary/10 border-l-2 border-primary",
-        isDragging && "opacity-50 z-50"
-      )}
-      onClick={onClick}
-    >
-      {showCheckbox && (
-        <div 
-          className="absolute left-1 top-3 z-10"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Checkbox
-            checked={isChecked}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckChange?.(!isChecked, e.shiftKey);
-            }}
-            className="h-4 w-4"
-          />
-        </div>
-      )}
-      <div 
-        {...listeners} 
-        {...attributes}
-        className={cn(
-          "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing",
-          showCheckbox ? "left-6" : "left-1"
-        )}
-      >
+  return <div ref={setNodeRef} style={style} className={cn("w-full max-w-full min-w-0 text-left p-3 hover:bg-muted/50 transition-colors overflow-hidden cursor-pointer relative group", isSelected && "bg-primary/10 border-l-2 border-primary", isDragging && "opacity-50 z-50")} onClick={onClick}>
+      {showCheckbox && <div className="absolute left-1 top-3 z-10" onClick={e => e.stopPropagation()}>
+          <Checkbox checked={isChecked} onClick={e => {
+        e.stopPropagation();
+        onCheckChange?.(!isChecked, e.shiftKey);
+      }} className="h-4 w-4" />
+        </div>}
+      <div {...listeners} {...attributes} className={cn("absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing", showCheckbox ? "left-6" : "left-1")}>
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
       {children}
-    </div>
-  );
+    </div>;
 }
 
 // Droppable folder/category component
-function DroppableFolder({ id, isActive, children }: {
+function DroppableFolder({
+  id,
+  isActive,
+  children
+}: {
   id: string;
   isActive: boolean;
   children: React.ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  return (
-    <div 
-      ref={setNodeRef}
-      className={cn(
-        "transition-colors rounded-md",
-        isOver && "ring-2 ring-primary bg-primary/10"
-      )}
-    >
+  const {
+    setNodeRef,
+    isOver
+  } = useDroppable({
+    id
+  });
+  return <div ref={setNodeRef} className={cn("transition-colors rounded-md", isOver && "ring-2 ring-primary bg-primary/10")}>
       {children}
-    </div>
-  );
+    </div>;
 }
-
 export default function Email() {
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    user
+  } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
-  const [emailContent, setEmailContent] = useState<{ body?: string; htmlBody?: string; attachments?: EmailAttachment[] } | null>(null);
+  const [emailContent, setEmailContent] = useState<{
+    body?: string;
+    htmlBody?: string;
+    attachments?: EmailAttachment[];
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
@@ -211,22 +220,22 @@ export default function Email() {
   const [emailTagsMap, setEmailTagsMap] = useState<Map<string, EmailTagData>>(new Map());
   const [lenderMarketingMap, setLenderMarketingMap] = useState<Map<string, LenderMarketingData>>(new Map());
   const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({ 
-    needs_attention: 0, 
-    reviewed_file: 0, 
-    reviewed_lender_marketing: 0, 
-    reviewed_na: 0 
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
+    needs_attention: 0,
+    reviewed_file: 0,
+    reviewed_lender_marketing: 0,
+    reviewed_na: 0
   });
   const [draggedEmail, setDraggedEmail] = useState<EmailMessage | null>(null);
-  
+
   // Multi-select state
   const [selectedEmails, setSelectedEmails] = useState<Set<number>>(new Set());
   const lastSelectedIndex = useRef<number | null>(null);
-  
+
   // Comments state
   const [emailComments, setEmailComments] = useState<EmailComment[]>([]);
   const [commentText, setCommentText] = useState("");
-  
+
   // @ mention state
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [showMentionPopover, setShowMentionPopover] = useState(false);
@@ -234,34 +243,31 @@ export default function Email() {
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isAddingComment, setIsAddingComment] = useState(false);
-  
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
-    body: "",
+    body: ""
   });
-
   const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
 
   // Fetch email categories from database
   const fetchEmailCategories = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('email_categories')
-        .select('*');
-      
+      const {
+        data,
+        error
+      } = await supabase.from('email_categories').select('*');
       if (error) throw error;
-      
       setEmailCategories((data || []) as EmailCategory[]);
-      
+
       // Calculate counts for all 4 categories
-      const counts = { 
-        needs_attention: 0, 
-        reviewed_file: 0, 
-        reviewed_lender_marketing: 0, 
-        reviewed_na: 0 
+      const counts = {
+        needs_attention: 0,
+        reviewed_file: 0,
+        reviewed_lender_marketing: 0,
+        reviewed_na: 0
       };
-      for (const cat of (data || [])) {
+      for (const cat of data || []) {
         if (counts.hasOwnProperty(cat.category)) {
           counts[cat.category as keyof typeof counts]++;
         }
@@ -278,10 +284,10 @@ export default function Email() {
       // Get all recent email_logs with lead associations (no exact filtering)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { data: emailLogs, error } = await supabase
-        .from('email_logs')
-        .select(`
+      const {
+        data: emailLogs,
+        error
+      } = await supabase.from('email_logs').select(`
           id,
           from_email,
           subject,
@@ -291,11 +297,9 @@ export default function Email() {
           is_lender_marketing,
           lender_marketing_category,
           lead:leads(first_name, last_name)
-        `)
-        .gte('timestamp', thirtyDaysAgo.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(500);
-
+        `).gte('timestamp', thirtyDaysAgo.toISOString()).order('timestamp', {
+        ascending: false
+      }).limit(500);
       if (error) {
         console.error('Error fetching email logs for tags:', error);
         return;
@@ -304,39 +308,39 @@ export default function Email() {
       // Create maps for quick lookup using composite keys (timestamp + subject)
       const tagsMap = new Map<string, EmailTagData>();
       const marketingMap = new Map<string, LenderMarketingData>();
-      
       for (const log of emailLogs || []) {
         // Primary key: timestamp (to minute) + cleaned subject
         const timestamp = new Date(log.timestamp);
         const compositeKey = getMatchKey(timestamp, log.subject || '');
         const subjectKey = cleanSubjectForMatching(log.subject || '');
-        
+
         // Handle lead tags
         if (log.lead_id && log.lead) {
-          const lead = log.lead as { first_name: string; last_name: string };
+          const lead = log.lead as {
+            first_name: string;
+            last_name: string;
+          };
           const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
-          
           if (leadName) {
             const tagData: EmailTagData = {
               leadId: log.lead_id,
               leadName,
               emailLogId: log.id,
               aiSummary: log.ai_summary,
-              subject: log.subject || '',
+              subject: log.subject || ''
             };
-            
             tagsMap.set(compositeKey, tagData);
             if (subjectKey && !tagsMap.has(subjectKey)) {
               tagsMap.set(subjectKey, tagData);
             }
           }
         }
-        
+
         // Handle lender marketing tags
         if (log.is_lender_marketing) {
           const marketingData: LenderMarketingData = {
             emailLogId: log.id,
-            category: log.lender_marketing_category,
+            category: log.lender_marketing_category
           };
           marketingMap.set(compositeKey, marketingData);
           if (subjectKey && !marketingMap.has(subjectKey)) {
@@ -344,31 +348,33 @@ export default function Email() {
           }
         }
       }
-      
       setEmailTagsMap(tagsMap);
       setLenderMarketingMap(marketingMap);
     } catch (error) {
       console.error('Error fetching email tags:', error);
     }
   }, []);
-
   const fetchEmails = useCallback(async (folder: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
-        body: { folder, limit: 50 },
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("fetch-emails-imap", {
+        body: {
+          folder,
+          limit: 50
+        }
       });
-
       if (error) throw error;
-
       if (data?.success) {
         const fetchedEmails = data.emails || [];
         setEmails(fetchedEmails);
         setFolderCounts(prev => ({
           ...prev,
-          [folder]: fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0,
+          [folder]: fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0
         }));
-        
+
         // Fetch email tags for matching
         fetchEmailTags(fetchedEmails);
       } else {
@@ -379,7 +385,7 @@ export default function Email() {
       toast({
         title: "Failed to fetch emails",
         description: error.message || "Could not connect to email server.",
-        variant: "destructive",
+        variant: "destructive"
       });
       setEmails([]);
     } finally {
@@ -392,74 +398,66 @@ export default function Email() {
   const fetchAttachments = useCallback(async (email: EmailMessage) => {
     try {
       const cleanedSubject = cleanSubjectForMatching(email.subject);
-      
       if (!cleanedSubject) {
         return [];
       }
-      
+
       // Search within last 30 days by subject match
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      // First get email_log to find lead_id
-      const { data: emailLog, error: logError } = await supabase
-        .from('email_logs')
-        .select('id, lead_id, attachments_json')
-        .ilike('subject', `%${cleanedSubject}%`)
-        .gte('timestamp', thirtyDaysAgo.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .single();
 
+      // First get email_log to find lead_id
+      const {
+        data: emailLog,
+        error: logError
+      } = await supabase.from('email_logs').select('id, lead_id, attachments_json').ilike('subject', `%${cleanedSubject}%`).gte('timestamp', thirtyDaysAgo.toISOString()).order('timestamp', {
+        ascending: false
+      }).limit(1).single();
       if (logError && logError.code !== 'PGRST116') {
         console.error('Error fetching email log:', logError);
       }
 
       // If we have a lead_id, fetch documents with actual URLs
       if (emailLog?.lead_id) {
-        const { data: documents, error: docsError } = await supabase
-          .from('documents')
-          .select('file_name, file_url, mime_type, size_bytes')
-          .eq('lead_id', emailLog.lead_id)
-          .eq('source', 'Email');
-        
+        const {
+          data: documents,
+          error: docsError
+        } = await supabase.from('documents').select('file_name, file_url, mime_type, size_bytes').eq('lead_id', emailLog.lead_id).eq('source', 'Email');
         if (!docsError && documents && documents.length > 0) {
           return documents.map(doc => ({
             name: doc.file_name,
             type: doc.mime_type || 'application/octet-stream',
             size: doc.size_bytes || 0,
-            url: doc.file_url,
+            url: doc.file_url
           }));
         }
       }
-      
+
       // Fallback to attachments_json - try to generate signed URLs from storage paths
       if (emailLog?.attachments_json) {
         const attachments = emailLog.attachments_json as any[];
         return await Promise.all(attachments.map(async (att: any) => {
           let url = att.url || null;
-          
+
           // If we have a storage path but no URL, try to generate signed URL
           if (!url && att.path) {
             try {
-              const { data: signedUrlData } = await supabase.storage
-                .from('lead-documents')
-                .createSignedUrl(att.path, 60 * 60 * 24 * 365); // 1 year
+              const {
+                data: signedUrlData
+              } = await supabase.storage.from('lead-documents').createSignedUrl(att.path, 60 * 60 * 24 * 365); // 1 year
               url = signedUrlData?.signedUrl || null;
             } catch (e) {
               console.error('Failed to generate signed URL:', e);
             }
           }
-          
           return {
             name: att.filename || att.name || 'Unknown',
             type: att.contentType || att.type || 'application/octet-stream',
             size: att.size || 0,
-            url,
+            url
           };
         }));
       }
-      
       return [];
     } catch (error) {
       console.error('Error fetching attachments:', error);
@@ -474,20 +472,24 @@ export default function Email() {
     try {
       // Default to 'Inbox' if selectedFolder is empty (e.g., when in category view)
       const folder = selectedFolder || 'Inbox';
-      const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
-        body: { folder, fetchContent: true, messageUid: email.uid },
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("fetch-emails-imap", {
+        body: {
+          folder,
+          fetchContent: true,
+          messageUid: email.uid
+        }
       });
-
       if (error) throw error;
-
       if (data?.success && data.email) {
         // Pass the email directly - no timing issue!
         const attachments = await fetchAttachments(email);
-        
         setEmailContent({
           body: data.email.body,
           htmlBody: data.email.htmlBody,
-          attachments,
+          attachments
         });
       }
     } catch (error: any) {
@@ -501,11 +503,10 @@ export default function Email() {
   useEffect(() => {
     const fetchTeamMembers = async () => {
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, first_name, last_name, email')
-          .eq('is_active', true);
-        
+        const {
+          data,
+          error
+        } = await supabase.from('users').select('id, first_name, last_name, email').eq('is_active', true);
         if (error) throw error;
         setTeamMembers((data || []) as TeamMember[]);
       } catch (error) {
@@ -514,11 +515,9 @@ export default function Email() {
     };
     fetchTeamMembers();
   }, []);
-
   useEffect(() => {
     fetchEmailCategories();
   }, [fetchEmailCategories]);
-
   useEffect(() => {
     if (!selectedCategory) {
       fetchEmails(selectedFolder);
@@ -530,24 +529,22 @@ export default function Email() {
   const fetchComments = useCallback(async (email: EmailMessage) => {
     try {
       const folder = selectedFolder || 'Inbox';
-      const { data, error } = await supabase
-        .from('email_comments')
-        .select('*')
-        .eq('email_uid', email.uid)
-        .eq('email_folder', folder)
-        .order('created_at', { ascending: true });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('email_comments').select('*').eq('email_uid', email.uid).eq('email_folder', folder).order('created_at', {
+        ascending: true
+      });
       if (error) throw error;
-      
+
       // Map user IDs to user info (just using initials for now)
       const comments: EmailComment[] = (data || []).map(c => ({
         ...c,
         user: {
           email: 'User',
-          initials: 'U',
+          initials: 'U'
         }
       }));
-      
       setEmailComments(comments);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -558,41 +555,36 @@ export default function Email() {
   // Add a new comment
   const handleAddComment = async () => {
     if (!selectedEmail || !commentText.trim() || !user) return;
-    
     setIsAddingComment(true);
     try {
       const folder = selectedFolder || 'Inbox';
-      const { error } = await supabase
-        .from('email_comments')
-        .insert({
-          email_uid: selectedEmail.uid,
-          email_folder: folder,
-          user_id: user.id,
-          content: commentText.trim(),
-        });
-      
+      const {
+        error
+      } = await supabase.from('email_comments').insert({
+        email_uid: selectedEmail.uid,
+        email_folder: folder,
+        user_id: user.id,
+        content: commentText.trim()
+      });
       if (error) throw error;
-      
       setCommentText("");
       // Refresh comments
       fetchComments(selectedEmail);
-      
       toast({
         title: "Comment added",
-        description: "Your internal comment has been saved.",
+        description: "Your internal comment has been saved."
       });
     } catch (error: any) {
       console.error('Error adding comment:', error);
       toast({
         title: "Failed to add comment",
         description: error.message || "Could not save your comment.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsAddingComment(false);
     }
   };
-
   const handleSelectEmail = (email: EmailMessage) => {
     setSelectedEmail(email);
     setEmailComments([]); // Clear previous comments
@@ -600,73 +592,76 @@ export default function Email() {
     fetchEmailContent(email);
     fetchComments(email);
   };
-
   const handleCompose = () => {
-    setComposeData({ to: "", subject: "", body: "" });
+    setComposeData({
+      to: "",
+      subject: "",
+      body: ""
+    });
     setIsComposeOpen(true);
   };
-
   const handleReply = () => {
     if (!selectedEmail) return;
     setComposeData({
       to: selectedEmail.fromEmail,
       subject: `Re: ${selectedEmail.subject}`,
-      body: `\n\n---\nOn ${selectedEmail.date}, ${selectedEmail.from} wrote:\n${emailContent?.body || selectedEmail.snippet}`,
+      body: `\n\n---\nOn ${selectedEmail.date}, ${selectedEmail.from} wrote:\n${emailContent?.body || selectedEmail.snippet}`
     });
     setIsComposeOpen(true);
   };
-
   const handleForward = () => {
     if (!selectedEmail) return;
     setComposeData({
       to: "",
       subject: `Fwd: ${selectedEmail.subject}`,
-      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.from} <${selectedEmail.fromEmail}>\nDate: ${selectedEmail.date}\nSubject: ${selectedEmail.subject}\n\n${emailContent?.body || selectedEmail.snippet}`,
+      body: `\n\n---\nForwarded message:\nFrom: ${selectedEmail.from} <${selectedEmail.fromEmail}>\nDate: ${selectedEmail.date}\nSubject: ${selectedEmail.subject}\n\n${emailContent?.body || selectedEmail.snippet}`
     });
     setIsComposeOpen(true);
   };
-
   const handleSendEmail = async () => {
     if (!composeData.to || !composeData.subject) {
       toast({
         title: "Missing fields",
         description: "Please fill in the recipient and subject.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     setIsSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-email-ionos", {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("send-email-ionos", {
         body: {
           to: composeData.to,
           subject: composeData.subject,
           body: composeData.body,
-          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${composeData.body.replace(/\n/g, '<br>')}</div>`,
-        },
+          html: `<div style="font-family: Arial, sans-serif; white-space: pre-wrap;">${composeData.body.replace(/\n/g, '<br>')}</div>`
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Email sent",
-        description: `Email sent to ${composeData.to}`,
+        description: `Email sent to ${composeData.to}`
       });
       setIsComposeOpen(false);
-      setComposeData({ to: "", subject: "", body: "" });
+      setComposeData({
+        to: "",
+        subject: "",
+        body: ""
+      });
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast({
         title: "Failed to send",
         description: error.message || "Could not send the email. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSending(false);
     }
   };
-
   const handleRefresh = () => {
     if (selectedCategory) {
       fetchEmailCategories();
@@ -710,15 +705,15 @@ export default function Email() {
   // Handle drag end - add email to category with smart detection
   const handleDragEnd = async (event: DragEndEvent) => {
     setDraggedEmail(null);
-    
-    const { active, over } = event;
+    const {
+      active,
+      over
+    } = event;
     if (!over) return;
-
     const email = (active.data.current as any)?.email as EmailMessage;
     if (!email) return;
-
     let dropTarget = over.id as string;
-    
+
     // Smart auto-detection for generic "reviewed" drops
     if (dropTarget.startsWith('reviewed') && !dropTarget.includes('_')) {
       // Auto-detect based on tags
@@ -730,14 +725,14 @@ export default function Email() {
         dropTarget = 'reviewed_na';
       }
     }
-    
+
     // Check if dropping on a custom category
     if (['needs_attention', 'reviewed_file', 'reviewed_lender_marketing', 'reviewed_na'].includes(dropTarget)) {
       await assignEmailToCategory(email, dropTarget as EmailCategory['category']);
     } else if (['Archive', 'Trash', 'Starred'].includes(dropTarget)) {
       toast({
         title: "IMAP folder move",
-        description: "Moving emails between IMAP folders is not yet supported.",
+        description: "Moving emails between IMAP folders is not yet supported."
       });
     }
   };
@@ -745,40 +740,37 @@ export default function Email() {
   // Assign email to category
   const assignEmailToCategory = async (email: EmailMessage, category: EmailCategory['category']) => {
     try {
-      const existing = emailCategories.find(
-        c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox')
-      );
-
+      const existing = emailCategories.find(c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox'));
       if (existing) {
-        const { error } = await supabase
-          .from('email_categories')
-          .update({ category, updated_at: new Date().toISOString() })
-          .eq('id', existing.id);
+        const {
+          error
+        } = await supabase.from('email_categories').update({
+          category,
+          updated_at: new Date().toISOString()
+        }).eq('id', existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('email_categories')
-          .insert({
-            email_uid: email.uid,
-            email_folder: selectedFolder || 'Inbox',
-            category,
-          });
+        const {
+          error
+        } = await supabase.from('email_categories').insert({
+          email_uid: email.uid,
+          email_folder: selectedFolder || 'Inbox',
+          category
+        });
         if (error) throw error;
       }
-
       const categoryName = customCategories.find(c => c.key === category)?.name || category;
       toast({
         title: "Email categorized",
-        description: `Moved to ${categoryName}`,
+        description: `Moved to ${categoryName}`
       });
-
       fetchEmailCategories();
     } catch (error: any) {
       console.error('Error categorizing email:', error);
       toast({
         title: "Failed to categorize",
         description: error.message || "Could not move the email.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -787,7 +779,6 @@ export default function Email() {
   const toggleEmailSelection = (uid: number, shiftKey: boolean, emailIndex: number) => {
     setSelectedEmails(prev => {
       const newSet = new Set(prev);
-      
       if (shiftKey && lastSelectedIndex.current !== null) {
         // Range selection
         const start = Math.min(lastSelectedIndex.current, emailIndex);
@@ -805,7 +796,6 @@ export default function Email() {
           newSet.add(uid);
         }
       }
-      
       lastSelectedIndex.current = emailIndex;
       return newSet;
     });
@@ -814,37 +804,28 @@ export default function Email() {
   // Bulk move handler
   const handleBulkMove = async (targetCategory: EmailCategory['category']) => {
     if (selectedEmails.size === 0) return;
-    
     try {
       const emailsToMove = emails.filter(e => selectedEmails.has(e.uid));
-      
       for (const email of emailsToMove) {
-        const existing = emailCategories.find(
-          c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox')
-        );
-
+        const existing = emailCategories.find(c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox'));
         if (existing) {
-          await supabase
-            .from('email_categories')
-            .update({ category: targetCategory, updated_at: new Date().toISOString() })
-            .eq('id', existing.id);
+          await supabase.from('email_categories').update({
+            category: targetCategory,
+            updated_at: new Date().toISOString()
+          }).eq('id', existing.id);
         } else {
-          await supabase
-            .from('email_categories')
-            .insert({
-              email_uid: email.uid,
-              email_folder: selectedFolder || 'Inbox',
-              category: targetCategory,
-            });
+          await supabase.from('email_categories').insert({
+            email_uid: email.uid,
+            email_folder: selectedFolder || 'Inbox',
+            category: targetCategory
+          });
         }
       }
-      
       const categoryName = customCategories.find(c => c.key === targetCategory)?.name || targetCategory;
       toast({
         title: `Moved ${selectedEmails.size} emails`,
-        description: `Moved to ${categoryName}`,
+        description: `Moved to ${categoryName}`
       });
-      
       setSelectedEmails(new Set());
       fetchEmailCategories();
     } catch (error: any) {
@@ -852,7 +833,7 @@ export default function Email() {
       toast({
         title: "Failed to move emails",
         description: error.message || "Could not move the emails.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -861,7 +842,7 @@ export default function Email() {
   const handleBulkImapMove = (target: string) => {
     toast({
       title: "IMAP folder move",
-      description: "Moving emails between IMAP folders is not yet supported.",
+      description: "Moving emails between IMAP folders is not yet supported."
     });
   };
 
@@ -880,55 +861,40 @@ export default function Email() {
   // Get emails for selected category
   const getCategoryEmails = () => {
     if (!selectedCategory) return [];
-    
-    const categoryEmailUids = emailCategories
-      .filter(c => c.category === selectedCategory)
-      .map(c => c.email_uid);
-    
+    const categoryEmailUids = emailCategories.filter(c => c.category === selectedCategory).map(c => c.email_uid);
     return emails.filter(e => categoryEmailUids.includes(e.uid));
   };
 
   // Create sets for quick lookup
   const categorizedUids = new Set(emailCategories.map(c => c.email_uid));
-  const reviewedUids = new Set(
-    emailCategories
-      .filter(c => c.category.startsWith('reviewed'))
-      .map(c => c.email_uid)
-  );
+  const reviewedUids = new Set(emailCategories.filter(c => c.category.startsWith('reviewed')).map(c => c.email_uid));
 
   // Helper to get review status category for an email
   const getEmailCategory = (email: EmailMessage) => {
     return emailCategories.find(c => c.email_uid === email.uid)?.category;
   };
+  const filteredEmails = selectedCategory ? getCategoryEmails() : emails.filter(email => {
+    const matchesSearch = email.from.toLowerCase().includes(searchTerm.toLowerCase()) || email.subject.toLowerCase().includes(searchTerm.toLowerCase()) || email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase());
+    if (emailView === 'file') {
+      // FILE VIEW: Show tagged emails regardless of category status
+      const emailDate = new Date(email.date);
+      const compositeKey = getMatchKey(emailDate, email.subject || '');
+      let hasTag = emailTagsMap.has(compositeKey);
+      if (!hasTag) {
+        const subjectKey = cleanSubjectForMatching(email.subject || '');
+        hasTag = emailTagsMap.has(subjectKey);
+      }
+      return matchesSearch && hasTag; // Remove isNotCategorized check
+    }
+    if (emailView === 'lender-marketing') {
+      // LENDER MARKETING VIEW: Show tagged emails regardless of category status
+      return matchesSearch && !!getLenderMarketingData(email); // Remove isNotCategorized check
+    }
 
-  const filteredEmails = selectedCategory 
-    ? getCategoryEmails()
-    : emails.filter(email => {
-        const matchesSearch = email.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (emailView === 'file') {
-          // FILE VIEW: Show tagged emails regardless of category status
-          const emailDate = new Date(email.date);
-          const compositeKey = getMatchKey(emailDate, email.subject || '');
-          let hasTag = emailTagsMap.has(compositeKey);
-          if (!hasTag) {
-            const subjectKey = cleanSubjectForMatching(email.subject || '');
-            hasTag = emailTagsMap.has(subjectKey);
-          }
-          return matchesSearch && hasTag; // Remove isNotCategorized check
-        }
-        
-        if (emailView === 'lender-marketing') {
-          // LENDER MARKETING VIEW: Show tagged emails regardless of category status
-          return matchesSearch && !!getLenderMarketingData(email); // Remove isNotCategorized check
-        }
-        
-        // MAIN VIEW: Exclude categorized emails
-        const isNotCategorized = !categorizedUids.has(email.uid);
-        return matchesSearch && isNotCategorized;
-      });
+    // MAIN VIEW: Exclude categorized emails
+    const isNotCategorized = !categorizedUids.has(email.uid);
+    return matchesSearch && isNotCategorized;
+  });
 
   // Format file size
   const formatFileSize = (bytes: number) => {
@@ -936,30 +902,15 @@ export default function Email() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
-
   const showMultiSelect = !selectedCategory; // Show checkboxes when not in a category view
 
-  return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+  return <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
-        <div className="flex items-center gap-1 mb-6">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleCompose}
-            className="h-8 w-8"
-            title="Compose"
-          >
+        <div className="gap-1 mb-6 flex-row flex items-center justify-start">
+          <Button variant="ghost" size="icon" onClick={handleCompose} className="h-8 w-8" title="Compose">
             <Plus className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleRefresh} 
-            disabled={isLoading}
-            className="h-8 w-8"
-            title="Refresh"
-          >
+          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoading} className="h-8 w-8" title="Refresh">
             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </Button>
         </div>
@@ -968,71 +919,34 @@ export default function Email() {
           {/* Folder Sidebar - Fixed width */}
           <div className="w-[220px] flex-shrink-0 pr-2">
             <div className="h-full flex flex-col">
-              <div className="space-y-1 flex-1">
-                {folders.map((folder) => (
-                  <DroppableFolder key={folder.name} id={folder.name} isActive={selectedFolder === folder.name}>
-                    <button
-                      onClick={() => handleFolderClick(folder.name)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                        selectedFolder === folder.name && !selectedCategory
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted text-foreground"
-                      )}
-                    >
+              <div className="space-y-1 flex-1 py-0">
+                {folders.map(folder => <DroppableFolder key={folder.name} id={folder.name} isActive={selectedFolder === folder.name}>
+                    <button onClick={() => handleFolderClick(folder.name)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors", selectedFolder === folder.name && !selectedCategory ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
                       <div className="flex items-center gap-2">
                         <folder.icon className="h-4 w-4" />
                         {folder.name}
                       </div>
-                      {(folderCounts[folder.name] || 0) > 0 && (
-                        <span className={cn(
-                          "text-xs px-1.5 py-0.5 rounded-full",
-                          selectedFolder === folder.name && !selectedCategory
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-muted-foreground/20 text-muted-foreground"
-                        )}>
+                      {(folderCounts[folder.name] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedFolder === folder.name && !selectedCategory ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
                           {folderCounts[folder.name]}
-                        </span>
-                      )}
+                        </span>}
                     </button>
-                  </DroppableFolder>
-                ))}
+                  </DroppableFolder>)}
 
                 {/* Separator and Categories */}
                 <Separator className="mt-8 mb-3" />
-                <p className="text-xs font-medium text-muted-foreground px-3 mb-2">CATEGORIES</p>
+                <p className="text-xs font-medium text-muted-foreground px-3 mb-2 my-[15px]">CATEGORIES</p>
                 
-                {customCategories.map((category) => (
-                  <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
-                    <button
-                      onClick={() => handleCategoryClick(category.key)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                        selectedCategory === category.key
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted text-foreground"
-                      )}
-                    >
+                {customCategories.map(category => <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
+                    <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
                       <div className="flex items-center gap-2">
-                        <category.icon className={cn(
-                          "h-4 w-4",
-                          selectedCategory !== category.key && category.color
-                        )} />
+                        <category.icon className={cn("h-4 w-4", selectedCategory !== category.key && category.color)} />
                         <span className="truncate">{category.name}</span>
                       </div>
-                      {(categoryCounts[category.key] || 0) > 0 && (
-                        <span className={cn(
-                          "text-xs px-1.5 py-0.5 rounded-full",
-                          selectedCategory === category.key
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-muted-foreground/20 text-muted-foreground"
-                        )}>
+                      {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
                           {categoryCounts[category.key]}
-                        </span>
-                      )}
+                        </span>}
                     </button>
-                  </DroppableFolder>
-                ))}
+                  </DroppableFolder>)}
               </div>
             </div>
           </div>
@@ -1042,46 +956,23 @@ export default function Email() {
             <div className="p-2 border-b space-y-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search emails..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 h-8 text-sm"
-                />
+                <Input placeholder="Search emails..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 h-8 text-sm" />
               </div>
-              {!selectedCategory && (
-                <div className="flex gap-1 flex-wrap">
-                  <Button
-                    variant={emailView === 'main' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setEmailView('main')}
-                    className="h-7 text-xs px-3"
-                  >
+              {!selectedCategory && <div className="flex gap-1 flex-wrap">
+                  <Button variant={emailView === 'main' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('main')} className="h-7 text-xs px-3">
                     Main View
                   </Button>
-                  <Button
-                    variant={emailView === 'file' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setEmailView('file')}
-                    className="h-7 text-xs px-3"
-                  >
+                  <Button variant={emailView === 'file' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('file')} className="h-7 text-xs px-3">
                     File View
                   </Button>
-                  <Button
-                    variant={emailView === 'lender-marketing' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setEmailView('lender-marketing')}
-                    className="h-7 text-xs px-3"
-                  >
+                  <Button variant={emailView === 'lender-marketing' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('lender-marketing')} className="h-7 text-xs px-3">
                     Lender Marketing
                   </Button>
-                </div>
-              )}
+                </div>}
             </div>
 
             {/* Bulk Action Toolbar */}
-            {selectedEmails.size > 0 && (
-              <div className="p-2 bg-muted/50 border-b flex items-center gap-2 flex-wrap">
+            {selectedEmails.size > 0 && <div className="p-2 bg-muted/50 border-b flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium">{selectedEmails.size} selected</span>
                 <Separator orientation="vertical" className="h-5" />
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkImapMove('starred')}>
@@ -1109,139 +1000,78 @@ export default function Email() {
                 <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={() => setSelectedEmails(new Set())}>
                   <X className="h-3 w-3" />
                 </Button>
-              </div>
-            )}
+              </div>}
 
             <ScrollArea className="flex-1 w-full">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-32">
+              {isLoading ? <div className="flex items-center justify-center h-32">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : filteredEmails.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-                  {selectedCategory 
-                    ? `No emails in ${customCategories.find(c => c.key === selectedCategory)?.name || selectedCategory}` 
-                    : 'No emails found'}
-                </div>
-              ) : (
-                <div
-                  className="divide-y w-full max-w-full"
-                  style={{ width: "100%", maxWidth: "100%" }}
-                >
-                  {filteredEmails.map((email, index) => (
-                    <DraggableEmailItem
-                      key={email.uid}
-                      email={email}
-                      isSelected={selectedEmail?.uid === email.uid}
-                      onClick={() => handleSelectEmail(email)}
-                      showCheckbox={showMultiSelect}
-                      isChecked={selectedEmails.has(email.uid)}
-                      onCheckChange={(checked, shiftKey) => toggleEmailSelection(email.uid, shiftKey, index)}
-                    >
+                </div> : filteredEmails.length === 0 ? <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                  {selectedCategory ? `No emails in ${customCategories.find(c => c.key === selectedCategory)?.name || selectedCategory}` : 'No emails found'}
+                </div> : <div className="divide-y w-full max-w-full" style={{
+              width: "100%",
+              maxWidth: "100%"
+            }}>
+                  {filteredEmails.map((email, index) => <DraggableEmailItem key={email.uid} email={email} isSelected={selectedEmail?.uid === email.uid} onClick={() => handleSelectEmail(email)} showCheckbox={showMultiSelect} isChecked={selectedEmails.has(email.uid)} onCheckChange={(checked, shiftKey) => toggleEmailSelection(email.uid, shiftKey, index)}>
                       {(() => {
-                        // Try composite key first (timestamp + subject), then fallback to subject-only
-                        const emailDate = new Date(email.date);
-                        const compositeKey = getMatchKey(emailDate, email.subject || '');
-                        let tagData = emailTagsMap.get(compositeKey);
-                        
-                        // Fallback to subject-only matching
-                        if (!tagData) {
-                          const subjectKey = cleanSubjectForMatching(email.subject || '');
-                          tagData = emailTagsMap.get(subjectKey);
-                        }
-                        
-                        // Check for lender marketing
-                        const marketingData = getLenderMarketingData(email);
-                        const hasAnyTag = tagData || marketingData;
-                        
-                        // Check if reviewed (for visual indicator in tag views)
-                        const isReviewed = reviewedUids.has(email.uid);
-                        const emailCategory = getEmailCategory(email);
-                        
-                        return (
-                          <div
-                            className={cn(
-                              "flex items-center justify-between gap-2 mb-1 w-full min-w-0",
-                              showMultiSelect ? "pl-6" : "pl-4"
-                            )}
-                            style={{ maxWidth: "calc(450px - 24px)" }}
-                          >
-                            <span
-                              className={cn(
-                                "text-sm truncate min-w-0",
-                                hasAnyTag ? "flex-shrink" : "flex-1",
-                                email.unread ? "font-semibold" : "font-medium"
-                              )}
-                              style={{ maxWidth: hasAnyTag ? '120px' : undefined }}
-                            >
+                  // Try composite key first (timestamp + subject), then fallback to subject-only
+                  const emailDate = new Date(email.date);
+                  const compositeKey = getMatchKey(emailDate, email.subject || '');
+                  let tagData = emailTagsMap.get(compositeKey);
+
+                  // Fallback to subject-only matching
+                  if (!tagData) {
+                    const subjectKey = cleanSubjectForMatching(email.subject || '');
+                    tagData = emailTagsMap.get(subjectKey);
+                  }
+
+                  // Check for lender marketing
+                  const marketingData = getLenderMarketingData(email);
+                  const hasAnyTag = tagData || marketingData;
+
+                  // Check if reviewed (for visual indicator in tag views)
+                  const isReviewed = reviewedUids.has(email.uid);
+                  const emailCategory = getEmailCategory(email);
+                  return <div className={cn("flex items-center justify-between gap-2 mb-1 w-full min-w-0", showMultiSelect ? "pl-6" : "pl-4")} style={{
+                    maxWidth: "calc(450px - 24px)"
+                  }}>
+                            <span className={cn("text-sm truncate min-w-0", hasAnyTag ? "flex-shrink" : "flex-1", email.unread ? "font-semibold" : "font-medium")} style={{
+                      maxWidth: hasAnyTag ? '120px' : undefined
+                    }}>
                               {email.from}
                             </span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {/* Reviewed indicator in File View / Lender Marketing View */}
-                              {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && (
-                                <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
-                                  <CheckCircle className={cn(
-                                    "h-3 w-3",
-                                    emailCategory === 'reviewed_file' && "text-green-500",
-                                    emailCategory === 'reviewed_lender_marketing' && "text-blue-500",
-                                    emailCategory === 'reviewed_na' && "text-gray-500"
-                                  )} />
-                                </span>
-                              )}
-                              {tagData && (
-                                <EmailTagPopover tagData={tagData} />
-                              )}
-                              {marketingData && (
-                                <LenderMarketingPopover 
-                                  emailLogId={marketingData.emailLogId}
-                                  category={marketingData.category}
-                                  subject={email.subject}
-                                />
-                              )}
+                              {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
+                                  <CheckCircle className={cn("h-3 w-3", emailCategory === 'reviewed_file' && "text-green-500", emailCategory === 'reviewed_lender_marketing' && "text-blue-500", emailCategory === 'reviewed_na' && "text-gray-500")} />
+                                </span>}
+                              {tagData && <EmailTagPopover tagData={tagData} />}
+                              {marketingData && <LenderMarketingPopover emailLogId={marketingData.emailLogId} category={marketingData.category} subject={email.subject} />}
                               {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                               {email.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
                               <span className="text-xs text-muted-foreground whitespace-nowrap">{email.date}</span>
                             </div>
-                          </div>
-                        );
-                      })()}
-                      <p
-                        className={cn(
-                          "text-sm truncate min-w-0 mb-1 overflow-hidden",
-                          showMultiSelect ? "pl-6" : "pl-4",
-                          email.unread ? "font-medium text-foreground" : "text-muted-foreground"
-                        )}
-                      >
+                          </div>;
+                })()}
+                      <p className={cn("text-sm truncate min-w-0 mb-1 overflow-hidden", showMultiSelect ? "pl-6" : "pl-4", email.unread ? "font-medium text-foreground" : "text-muted-foreground")}>
                         {cleanSubject(email.subject)}
                       </p>
-                      {email.snippet && (
-                        <p className={cn(
-                          "text-xs text-muted-foreground truncate min-w-0 overflow-hidden",
-                          showMultiSelect ? "pl-6" : "pl-4"
-                        )}>
+                      {email.snippet && <p className={cn("text-xs text-muted-foreground truncate min-w-0 overflow-hidden", showMultiSelect ? "pl-6" : "pl-4")}>
                           {email.snippet}
-                        </p>
-                      )}
-                    </DraggableEmailItem>
-                  ))}
-                </div>
-              )}
+                        </p>}
+                    </DraggableEmailItem>)}
+                </div>}
             </ScrollArea>
           </div>
 
           {/* Email Content - Takes remaining space */}
           <div className="flex-1 h-full border rounded-lg bg-card overflow-hidden flex flex-col mr-4">
             {/* Show bulk selection UI when emails are selected */}
-            {selectedEmails.size > 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            {selectedEmails.size > 0 ? <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <Mail className="h-16 w-16 text-muted-foreground/30 mb-4" />
                 <p className="text-lg font-medium mb-2">
                   {selectedEmails.size} conversation{selectedEmails.size > 1 ? 's' : ''} selected
                 </p>
-                <button 
-                  className="text-primary text-sm hover:underline mb-8"
-                  onClick={() => setSelectedEmails(new Set())}
-                >
+                <button className="text-primary text-sm hover:underline mb-8" onClick={() => setSelectedEmails(new Set())}>
                   Clear selection
                 </button>
                 
@@ -1269,9 +1099,7 @@ export default function Email() {
                     <CheckCircle className="h-4 w-4 mr-2 text-gray-500" /> N/A
                   </Button>
                 </div>
-              </div>
-            ) : selectedEmail ? (
-              <>
+              </div> : selectedEmail ? <>
                 <div className="p-4 border-b">
                   <h2 className="text-lg font-semibold mb-2 truncate" title={selectedEmail.subject}>
                     {cleanSubject(selectedEmail.subject)}
@@ -1285,64 +1113,37 @@ export default function Email() {
                   </div>
                 </div>
                 <ScrollArea className="flex-1 p-4">
-                  {isLoadingContent ? (
-                    <div className="flex items-center justify-center h-32">
+                  {isLoadingContent ? <div className="flex items-center justify-center h-32">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <>
-                      {emailContent?.htmlBody ? (
-                        <div 
-                          className="prose prose-sm max-w-none text-foreground"
-                          dangerouslySetInnerHTML={{ __html: emailContent.htmlBody }}
-                        />
-                      ) : emailContent?.body ? (
-                        <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                    </div> : <>
+                      {emailContent?.htmlBody ? <div className="prose prose-sm max-w-none text-foreground" dangerouslySetInnerHTML={{
+                  __html: emailContent.htmlBody
+                }} /> : emailContent?.body ? <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
                           {emailContent.body}
-                        </div>
-                      ) : (
-                        <div className="text-muted-foreground italic text-sm">
+                        </div> : <div className="text-muted-foreground italic text-sm">
                           No content available
-                        </div>
-                      )}
+                        </div>}
                       
                       {/* Attachments Section */}
-                      {emailContent?.attachments && emailContent.attachments.length > 0 && (
-                        <div className="border-t mt-6 pt-4">
+                      {emailContent?.attachments && emailContent.attachments.length > 0 && <div className="border-t mt-6 pt-4">
                           <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                             <Paperclip className="h-4 w-4" /> 
                             Attachments ({emailContent.attachments.length})
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {emailContent.attachments.map((att, idx) => (
-                              <div 
-                                key={idx}
-                                className="border rounded-md p-3 flex items-center gap-3 bg-muted/30 hover:bg-muted/50 transition-colors"
-                              >
+                            {emailContent.attachments.map((att, idx) => <div key={idx} className="border rounded-md p-3 flex items-center gap-3 bg-muted/30 hover:bg-muted/50 transition-colors">
                                 <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate">{att.name}</p>
                                   <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
                                 </div>
-                                {att.url ? (
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    className="flex-shrink-0"
-                                    onClick={() => window.open(att.url, '_blank')}
-                                  >
+                                {att.url ? <Button size="sm" variant="ghost" className="flex-shrink-0" onClick={() => window.open(att.url, '_blank')}>
                                     <Download className="h-4 w-4" />
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">No link</span>
-                                )}
-                              </div>
-                            ))}
+                                  </Button> : <span className="text-xs text-muted-foreground">No link</span>}
+                              </div>)}
                           </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        </div>}
+                    </>}
                 </ScrollArea>
                 
                 {/* Actions and Comments Section */}
@@ -1365,10 +1166,8 @@ export default function Email() {
                   {/* Internal Comments Section */}
                   <div className="px-3 pb-3 border-t pt-3">
                     {/* Existing comments */}
-                    {emailComments.length > 0 && (
-                      <div className="mb-3 space-y-2 max-h-[150px] overflow-y-auto">
-                        {emailComments.map(comment => (
-                          <div key={comment.id} className="flex gap-2 items-start">
+                    {emailComments.length > 0 && <div className="mb-3 space-y-2 max-h-[150px] overflow-y-auto">
+                        {emailComments.map(comment => <div key={comment.id} className="flex gap-2 items-start">
                             <Avatar className="h-6 w-6 flex-shrink-0">
                               <AvatarFallback className="text-xs">{comment.user?.initials || 'U'}</AvatarFallback>
                             </Avatar>
@@ -1378,53 +1177,43 @@ export default function Email() {
                             <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                               {format(new Date(comment.created_at), 'MMM d, h:mm a')}
                             </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          </div>)}
+                      </div>}
                     
                     {/* Comment input with @ mention support */}
                     <div className="relative">
                       <Popover open={showMentionPopover} onOpenChange={setShowMentionPopover}>
                         <PopoverTrigger asChild>
                           <div className="relative">
-                            <Input
-                              ref={commentInputRef}
-                              value={commentText}
-                              onChange={e => {
-                                const value = e.target.value;
-                                const cursorPos = e.target.selectionStart || 0;
-                                setCommentText(value);
-                                setMentionCursorPosition(cursorPos);
-                                
-                                // Check if user just typed @
-                                const lastAtIndex = value.lastIndexOf('@', cursorPos);
-                                if (lastAtIndex !== -1) {
-                                  const textAfterAt = value.substring(lastAtIndex + 1, cursorPos);
-                                  // Show popover if there's no space after @
-                                  if (!textAfterAt.includes(' ') && textAfterAt.length < 20) {
-                                    setMentionSearch(textAfterAt.toLowerCase());
-                                    setShowMentionPopover(true);
-                                  } else {
-                                    setShowMentionPopover(false);
-                                  }
-                                } else {
-                                  setShowMentionPopover(false);
-                                }
-                              }}
-                              placeholder="Add internal comment... (type @ to mention)"
-                              className="pr-24"
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey && !showMentionPopover) {
-                                  e.preventDefault();
-                                  handleAddComment();
-                                }
-                                if (e.key === 'Escape') {
-                                  setShowMentionPopover(false);
-                                }
-                              }}
-                              disabled={isAddingComment}
-                            />
+                            <Input ref={commentInputRef} value={commentText} onChange={e => {
+                          const value = e.target.value;
+                          const cursorPos = e.target.selectionStart || 0;
+                          setCommentText(value);
+                          setMentionCursorPosition(cursorPos);
+
+                          // Check if user just typed @
+                          const lastAtIndex = value.lastIndexOf('@', cursorPos);
+                          if (lastAtIndex !== -1) {
+                            const textAfterAt = value.substring(lastAtIndex + 1, cursorPos);
+                            // Show popover if there's no space after @
+                            if (!textAfterAt.includes(' ') && textAfterAt.length < 20) {
+                              setMentionSearch(textAfterAt.toLowerCase());
+                              setShowMentionPopover(true);
+                            } else {
+                              setShowMentionPopover(false);
+                            }
+                          } else {
+                            setShowMentionPopover(false);
+                          }
+                        }} placeholder="Add internal comment... (type @ to mention)" className="pr-24" onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey && !showMentionPopover) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                          if (e.key === 'Escape') {
+                            setShowMentionPopover(false);
+                          }
+                        }} disabled={isAddingComment} />
                           </div>
                         </PopoverTrigger>
                         <PopoverContent className="w-[250px] p-0" align="start" side="top">
@@ -1433,29 +1222,18 @@ export default function Email() {
                             <CommandList>
                               <CommandEmpty>No teammates found.</CommandEmpty>
                               <CommandGroup heading="Team Members">
-                                {teamMembers
-                                  .filter(m => 
-                                    `${m.first_name} ${m.last_name}`.toLowerCase().includes(mentionSearch) ||
-                                    m.email?.toLowerCase().includes(mentionSearch)
-                                  )
-                                  .slice(0, 6)
-                                  .map(member => (
-                                    <CommandItem
-                                      key={member.id}
-                                      value={`${member.first_name} ${member.last_name}`}
-                                      onSelect={() => {
-                                        // Insert mention into comment text
-                                        const lastAtIndex = commentText.lastIndexOf('@', mentionCursorPosition);
-                                        const beforeAt = commentText.substring(0, lastAtIndex);
-                                        const afterCursor = commentText.substring(mentionCursorPosition);
-                                        const mentionText = `@${member.first_name}`;
-                                        setCommentText(`${beforeAt}${mentionText} ${afterCursor}`);
-                                        setShowMentionPopover(false);
-                                        setMentionSearch("");
-                                        // Focus back on input
-                                        setTimeout(() => commentInputRef.current?.focus(), 0);
-                                      }}
-                                    >
+                                {teamMembers.filter(m => `${m.first_name} ${m.last_name}`.toLowerCase().includes(mentionSearch) || m.email?.toLowerCase().includes(mentionSearch)).slice(0, 6).map(member => <CommandItem key={member.id} value={`${member.first_name} ${member.last_name}`} onSelect={() => {
+                              // Insert mention into comment text
+                              const lastAtIndex = commentText.lastIndexOf('@', mentionCursorPosition);
+                              const beforeAt = commentText.substring(0, lastAtIndex);
+                              const afterCursor = commentText.substring(mentionCursorPosition);
+                              const mentionText = `@${member.first_name}`;
+                              setCommentText(`${beforeAt}${mentionText} ${afterCursor}`);
+                              setShowMentionPopover(false);
+                              setMentionSearch("");
+                              // Focus back on input
+                              setTimeout(() => commentInputRef.current?.focus(), 0);
+                            }}>
                                       <Avatar className="h-6 w-6 mr-2">
                                         <AvatarFallback className="text-xs">
                                           {member.first_name?.[0]}{member.last_name?.[0]}
@@ -1467,8 +1245,7 @@ export default function Email() {
                                         </p>
                                         <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                                       </div>
-                                    </CommandItem>
-                                  ))}
+                                    </CommandItem>)}
                               </CommandGroup>
                             </CommandList>
                           </Command>
@@ -1478,20 +1255,14 @@ export default function Email() {
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Attach file">
                           <Paperclip className="h-3.5 w-3.5" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6" 
-                          title="Mention teammate"
-                          onClick={() => {
-                            const newText = commentText + '@';
-                            setCommentText(newText);
-                            setMentionCursorPosition(newText.length);
-                            setShowMentionPopover(true);
-                            setMentionSearch("");
-                            commentInputRef.current?.focus();
-                          }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Mention teammate" onClick={() => {
+                      const newText = commentText + '@';
+                      setCommentText(newText);
+                      setMentionCursorPosition(newText.length);
+                      setShowMentionPopover(true);
+                      setMentionSearch("");
+                      commentInputRef.current?.focus();
+                    }}>
                           <AtSign className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Emoji">
@@ -1504,26 +1275,21 @@ export default function Email() {
                     </p>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              </> : <div className="flex-1 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
                   <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>Select an email to read</p>
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
         </div>
 
         {/* Drag Overlay */}
         <DragOverlay>
-          {draggedEmail && (
-            <div className="bg-card border rounded-lg shadow-lg p-3 w-[300px] opacity-90">
+          {draggedEmail && <div className="bg-card border rounded-lg shadow-lg p-3 w-[300px] opacity-90">
               <p className="text-sm font-medium truncate">{draggedEmail.from}</p>
               <p className="text-xs text-muted-foreground truncate">{cleanSubject(draggedEmail.subject)}</p>
-            </div>
-          )}
+            </div>}
         </DragOverlay>
 
         {/* Compose Email Modal */}
@@ -1535,31 +1301,24 @@ export default function Email() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="to">To</Label>
-                <Input
-                  id="to"
-                  placeholder="recipient@example.com"
-                  value={composeData.to}
-                  onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
-                />
+                <Input id="to" placeholder="recipient@example.com" value={composeData.to} onChange={e => setComposeData({
+                ...composeData,
+                to: e.target.value
+              })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  placeholder="Email subject"
-                  value={composeData.subject}
-                  onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-                />
+                <Input id="subject" placeholder="Email subject" value={composeData.subject} onChange={e => setComposeData({
+                ...composeData,
+                subject: e.target.value
+              })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="body">Message</Label>
-                <Textarea
-                  id="body"
-                  placeholder="Write your message..."
-                  value={composeData.body}
-                  onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
-                  className="min-h-[200px]"
-                />
+                <Textarea id="body" placeholder="Write your message..." value={composeData.body} onChange={e => setComposeData({
+                ...composeData,
+                body: e.target.value
+              })} className="min-h-[200px]" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsComposeOpen(false)}>
@@ -1573,6 +1332,5 @@ export default function Email() {
           </DialogContent>
         </Dialog>
       </div>
-    </DndContext>
-  );
+    </DndContext>;
 }
