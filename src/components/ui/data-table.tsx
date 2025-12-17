@@ -62,6 +62,7 @@ interface DataTableProps<T> {
   showRowNumbers?: boolean;
   pageSize?: number;
   compact?: boolean;
+  initialColumnWidths?: Record<string, number>;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -299,12 +300,18 @@ export function DataTable<T extends Record<string, any>>({
   showRowNumbers = false,
   pageSize,
   compact = false,
+  initialColumnWidths,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
   const [currentPage, setCurrentPage] = React.useState(1);
   
   const [columnWidths, setColumnWidths] = React.useState<Record<string, number>>(() => {
+    // When lockResize is true and initialColumnWidths provided, use those directly (admin-set widths)
+    if (lockResize && initialColumnWidths && Object.keys(initialColumnWidths).length > 0) {
+      return initialColumnWidths;
+    }
+    
     // Try to load from localStorage first if storageKey is provided
     if (storageKey) {
       const saved = localStorage.getItem(`${storageKey}_widths`);
@@ -318,19 +325,26 @@ export function DataTable<T extends Record<string, any>>({
     }
     
     // Otherwise use default widths from columns config
-    const initialWidths: Record<string, number> = {};
+    const initialWidthsFromCols: Record<string, number> = {};
     columns.forEach(col => {
-      initialWidths[col.accessorKey] = col.width || 150;
+      initialWidthsFromCols[col.accessorKey] = col.width || 150;
     });
-    return initialWidths;
+    return initialWidthsFromCols;
   });
 
-  // Save column widths to localStorage whenever they change
+  // Update column widths when initialColumnWidths changes (from admin settings)
   React.useEffect(() => {
-    if (storageKey) {
+    if (lockResize && initialColumnWidths && Object.keys(initialColumnWidths).length > 0) {
+      setColumnWidths(initialColumnWidths);
+    }
+  }, [lockResize, initialColumnWidths]);
+
+  // Save column widths to localStorage whenever they change (only when not locked)
+  React.useEffect(() => {
+    if (storageKey && !lockResize) {
       localStorage.setItem(`${storageKey}_widths`, JSON.stringify(columnWidths));
     }
-  }, [columnWidths, storageKey]);
+  }, [columnWidths, storageKey, lockResize]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

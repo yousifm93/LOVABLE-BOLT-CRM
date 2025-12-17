@@ -1537,6 +1537,8 @@ export default function Active() {
           onSelectionChange={setSelectedLeadIds}
           getRowId={(row) => row.id}
           showRowNumbers={true}
+          initialColumnWidths={savedColumnWidths}
+          lockResize={true}
         />
         
         <CollapsiblePipelineSection
@@ -1555,6 +1557,8 @@ export default function Active() {
           onSelectionChange={setSelectedLeadIds}
           getRowId={(row) => row.id}
           showRowNumbers={true}
+          initialColumnWidths={savedColumnWidths}
+          lockResize={true}
         />
         
         <CollapsiblePipelineSection
@@ -1573,6 +1577,8 @@ export default function Active() {
           onSelectionChange={setSelectedLeadIds}
           getRowId={(row) => row.id}
           showRowNumbers={true}
+          initialColumnWidths={savedColumnWidths}
+          lockResize={true}
         />
       </div>
 
