@@ -44,7 +44,7 @@ serve(async (req) => {
       },
       {
         ...baseScenario,
-        income_type: '24 Month Bank Statement',
+        income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
         scenario_type: 'bank_statement'
       },
@@ -52,6 +52,7 @@ serve(async (req) => {
         ...baseScenario,
         income_type: 'DSCR',
         dscr_ratio: '1.3',
+        occupancy: 'Investment',
         scenario_type: 'dscr'
       }
     ];
