@@ -324,20 +324,20 @@ export default function Home() {
   }, {} as Record<string, SearchResult[]>);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-light text-foreground">
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-5xl mx-auto space-y-4">
+        {/* Header Section - Centered */}
+        <div className="space-y-1 text-center">
+          <h1 className="text-2xl font-light text-foreground">
             {getGreeting()}, <span className="font-semibold">{firstName}</span>
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Quickly access your recent boards, inbox, and workspaces.
           </p>
         </div>
 
-        {/* Search Bar with Dropdown */}
-        <div ref={searchRef} className="relative max-w-2xl">
+        {/* Search Bar with Dropdown - Centered */}
+        <div ref={searchRef} className="relative max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
           <Input
             placeholder="Search leads, contacts, agents, or lenders..."
@@ -393,27 +393,27 @@ export default function Home() {
         <MarketRatesCard />
 
         {/* Quick Access Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickAccessCards.map((card) => (
             <Card 
               key={card.title}
               className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
               onClick={() => navigate(card.url)}
             >
-              <CardContent className="p-5">
+              <CardContent className="p-3">
                 <div className="flex items-start justify-between">
-                  <div className={`p-2.5 rounded-lg ${card.color}`}>
-                    <card.icon className="h-5 w-5" />
+                  <div className={`p-2 rounded-lg ${card.color}`}>
+                    <card.icon className="h-4 w-4" />
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="mt-4">
-                  <h3 className="font-medium text-foreground">{card.title}</h3>
+                <div className="mt-2">
+                  <h3 className="text-sm font-medium text-foreground">{card.title}</h3>
                   {card.count !== undefined && (
-                    <p className="text-2xl font-semibold text-foreground mt-1">{card.count}</p>
+                    <p className="text-xl font-semibold text-foreground">{card.count}</p>
                   )}
                   {card.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{card.description}</p>
+                    <p className="text-xs text-muted-foreground">{card.description}</p>
                   )}
                 </div>
               </CardContent>
@@ -422,23 +422,23 @@ export default function Home() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <Card className="bg-muted/30">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Leads This Month</p>
-              <p className="text-2xl font-semibold text-foreground">{leadsThisMonth}</p>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Leads This Month</p>
+              <p className="text-xl font-semibold text-foreground">{leadsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Applications This Month</p>
-              <p className="text-2xl font-semibold text-foreground">{applicationsThisMonth}</p>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Applications This Month</p>
+              <p className="text-xl font-semibold text-foreground">{applicationsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Closed This Month</p>
-              <p className="text-2xl font-semibold text-foreground">{closedThisMonth}</p>
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground">Closed This Month</p>
+              <p className="text-xl font-semibold text-foreground">{closedThisMonth}</p>
             </CardContent>
           </Card>
         </div>

@@ -431,7 +431,7 @@ export function AppSidebar() {
           </SidebarGroup>
 
           {/* Pipeline */}
-          <CollapsibleSidebarGroup title="Pipeline" className="mb-4">
+          <CollapsibleSidebarGroup title="Pipeline" className="mb-4" defaultOpen={false}>
             <SidebarMenu>
               {pipelineItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -471,7 +471,7 @@ export function AppSidebar() {
           </CollapsibleSidebarGroup>
 
           {/* Contacts */}
-          <CollapsibleSidebarGroup title="Contacts" className="mb-4">
+          <CollapsibleSidebarGroup title="Contacts" className="mb-4" defaultOpen={false}>
             <SidebarMenu>
               {contactItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -487,7 +487,7 @@ export function AppSidebar() {
           </CollapsibleSidebarGroup>
 
           {/* Resources */}
-          <CollapsibleSidebarGroup title="Resources" className="mb-4">
+          <CollapsibleSidebarGroup title="Resources" className="mb-4" defaultOpen={false}>
             <SidebarMenu>
               {resourceItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -503,7 +503,7 @@ export function AppSidebar() {
           </CollapsibleSidebarGroup>
 
           {/* Calculators */}
-          <CollapsibleSidebarGroup title="Calculators" className="mb-4">
+          <CollapsibleSidebarGroup title="Calculators" className="mb-4" defaultOpen={false}>
             <SidebarMenu>
               {calculatorItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -519,7 +519,7 @@ export function AppSidebar() {
           </CollapsibleSidebarGroup>
 
           {/* Admin */}
-          <CollapsibleSidebarGroup title="Admin">
+          <CollapsibleSidebarGroup title="Admin" defaultOpen={false}>
             <SidebarMenu>
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
