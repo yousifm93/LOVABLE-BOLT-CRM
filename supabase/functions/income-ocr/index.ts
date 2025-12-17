@@ -97,7 +97,7 @@ CRITICAL: Extract Box 12 codes D/E/G/S as separate fields - these 401k/403b defe
   "extraction_confidence": 0.0-1.0
 }`,
 
-  form_1040: `Extract key income data from this 1040 tax return. Return JSON:
+  form_1040: `Extract key income data from this 1040 tax return. CRITICAL: Look for Schedule E Part III income (S-Corp/Partnership pass-through income from K-1s). Return JSON:
 {
   "document_type": "form_1040",
   "tax_year": number,
@@ -111,6 +111,7 @@ CRITICAL: Extract Box 12 codes D/E/G/S as separate fields - these 401k/403b defe
   "line3b_ordinary_dividends": number or 0,
   "line4a_ira_distributions": number or 0,
   "line4b_taxable_ira": number or 0,
+  "line5_schedule_e": number or 0 (Line 5 - Schedule E total - includes rental AND S-Corp/Partnership income),
   "line5a_pensions": number or 0,
   "line5b_taxable_pensions": number or 0,
   "line6a_social_security": number or 0,
@@ -122,8 +123,20 @@ CRITICAL: Extract Box 12 codes D/E/G/S as separate fields - these 401k/403b defe
   "schedule_c_attached": boolean,
   "schedule_e_attached": boolean,
   "schedule_f_attached": boolean,
+  "schedule_e_part_iii": [
+    {
+      "entity_name": "Business/S-Corp/Partnership name from Schedule E Part III",
+      "entity_type": "S_Corp|Partnership|Estate_Trust",
+      "ordinary_income": number (Column j - Passive income or Column k - Nonpassive income from K-1 Box 1),
+      "depreciation": number (Estimated depreciation add-back from K-1 - look for separate depreciation figures),
+      "ownership_percentage": number or 100
+    }
+  ],
+  "k1_ordinary_income": number or 0 (Total K-1 Box 1 ordinary business income if visible),
+  "k1_depreciation_addback": number or 0 (Depreciation add-back amount from K-1 or 1120-S if visible),
   "extraction_confidence": 0.0-1.0
-}`,
+}
+CRITICAL FOR SELF-EMPLOYED INCOME: Schedule E Part III shows S-Corp and Partnership income from K-1s. Extract each entity separately with name, income amount, and any visible depreciation figures. This is essential for Form 1084 income calculations.`,
 
   schedule_c: `Extract Schedule C (Sole Proprietor) data. CRITICAL: Also look for Part IV (Vehicle Info) and Part V (Other Expenses). Return JSON:
 {
