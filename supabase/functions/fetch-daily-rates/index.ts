@@ -119,8 +119,8 @@ serve(async (req) => {
         .update({ status: 'running', updated_at: new Date().toISOString() })
         .eq('id', pricingRun.id);
 
-      // Small delay between API calls to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Longer delay between API calls - Axiom needs time to process each scenario
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
     return new Response(
