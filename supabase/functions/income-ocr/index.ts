@@ -7,6 +7,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ===== IRS FORM ANCHORS FOR CLASSIFICATION =====
+// These are definitive markers that identify tax documents - CANNOT be paystubs
+const IRS_FORM_ANCHORS = [
+  'Form 1040', 'Schedule C', 'Schedule E', 'Schedule F', 'Schedule B',
+  'Form 1120-S', 'Form 1120S', 'Form 1120', 'Form 1065',
+  'Schedule K-1', 'Form W-2', 'Form 1099', 'Form 4562',
+  'Department of the Treasury', 'Internal Revenue Service',
+  'U.S. Income Tax Return', 'U.S. Corporation Income Tax Return',
+  'Profit or Loss From Business', 'Supplemental Income and Loss',
+  'Shareholder\'s Share of Income', 'Partner\'s Share of Income'
+];
+
+// Anchors that indicate a paystub specifically
+const PAYSTUB_ANCHORS = [
+  'PAY STUB', 'PAYSTUB', 'EARNINGS STATEMENT', 'PAY STATEMENT',
+  'PAY PERIOD', 'GROSS PAY', 'NET PAY', 'YTD EARNINGS',
+  'EMPLOYER:', 'EMPLOYEE:', 'CHECK DATE', 'PAY DATE'
+];
+
 // Document-specific extraction prompts - Enhanced per BoltCRM Income Calculation Guide
 const EXTRACTION_PROMPTS: Record<string, string> = {
   pay_stub: `Extract ALL financial data from this pay stub. Return a JSON object with these exact fields:
@@ -136,7 +155,9 @@ CRITICAL: Extract Box 12 codes D/E/G/S as separate fields - these 401k/403b defe
   "k1_depreciation_addback": number or 0 (Depreciation add-back amount from K-1 or 1120-S if visible),
   "extraction_confidence": 0.0-1.0
 }
-CRITICAL FOR SELF-EMPLOYED INCOME: Schedule E Part III shows S-Corp and Partnership income from K-1s. Extract each entity separately with name, income amount, and any visible depreciation figures. This is essential for Form 1084 income calculations.`,
+CRITICAL FOR SELF-EMPLOYED INCOME: Schedule E Part III shows S-Corp and Partnership income from K-1s. Extract each entity separately with name, income amount, and any visible depreciation figures. This is essential for Form 1084 income calculations.
+
+CLASSIFICATION RULE: If you see "Form 1040", "Schedule C", "Schedule E", "Department of the Treasury", or "Internal Revenue Service" - this is ALWAYS a tax return, NEVER a paystub.`,
 
   schedule_c: `Extract Schedule C (Sole Proprietor) data. CRITICAL: Also look for Part IV (Vehicle Info) and Part V (Other Expenses). Return JSON:
 {
@@ -512,15 +533,107 @@ SCHEDULE F ADD-BACKS:
   "extraction_confidence": 0.0-1.0
 }`,
 
-  default: `Extract all financial and identifying data from this document. Identify the document type first (pay stub, W-2, 1099, tax return, Schedule C, Schedule E, Schedule F, K-1, Form 1065, Form 1120, Form 1120-S, VOE, bank statement, etc.). Return a JSON object with:
+  default: `Extract all financial and identifying data from this document. First, identify the document type precisely.
+
+CRITICAL CLASSIFICATION RULES:
+1. If you see ANY of these phrases, this is a TAX RETURN (NOT a paystub):
+   - "Form 1040", "Schedule C", "Schedule E", "Schedule F"
+   - "Form 1120-S", "Form 1120", "Form 1065"
+   - "Schedule K-1", "Form W-2", "Form 1099"
+   - "Department of the Treasury", "Internal Revenue Service"
+   - "U.S. Income Tax Return", "Profit or Loss From Business"
+
+2. Only classify as "pay_stub" if you see ALL of these:
+   - Employer name and employee name clearly labeled
+   - Pay period dates (start/end)
+   - Current period earnings AND YTD earnings
+   - Deductions (taxes, benefits)
+   - Net pay amount
+
+Return a JSON object with:
 {
-  "document_type": "identified type",
+  "document_type": "form_1040|schedule_c|schedule_e|form_1120s|form_1065|k1|pay_stub|w2|form_1099|voe|unknown",
+  "tax_year": number or null,
   "detected_fields": { all extracted field:value pairs },
   "key_income_amounts": [list of income-related amounts found],
   "date_information": { any dates found },
+  "irs_form_detected": "specific IRS form number if found",
   "extraction_confidence": 0.0-1.0
 }`
 };
+
+// ===== HELPER FUNCTIONS =====
+
+// Check if response contains IRS form anchors
+function findIRSAnchors(text: string): string[] {
+  const foundAnchors: string[] = [];
+  const textUpper = text.toUpperCase();
+  
+  for (const anchor of IRS_FORM_ANCHORS) {
+    if (textUpper.includes(anchor.toUpperCase())) {
+      foundAnchors.push(anchor);
+    }
+  }
+  
+  return foundAnchors;
+}
+
+// Check if response contains paystub anchors
+function findPaystubAnchors(text: string): string[] {
+  const foundAnchors: string[] = [];
+  const textUpper = text.toUpperCase();
+  
+  for (const anchor of PAYSTUB_ANCHORS) {
+    if (textUpper.includes(anchor.toUpperCase())) {
+      foundAnchors.push(anchor);
+    }
+  }
+  
+  return foundAnchors;
+}
+
+// Determine correct document type from anchors found
+function determineDocTypeFromAnchors(foundIRSAnchors: string[], parsedJson: any): string {
+  const anchorsStr = foundIRSAnchors.join(' ').toUpperCase();
+  
+  if (anchorsStr.includes('1120-S') || anchorsStr.includes('1120S')) {
+    return 'form_1120s';
+  }
+  if (anchorsStr.includes('1120') && !anchorsStr.includes('1120-S') && !anchorsStr.includes('1120S')) {
+    return 'form_1120';
+  }
+  if (anchorsStr.includes('1065')) {
+    return 'form_1065';
+  }
+  if (anchorsStr.includes('K-1') || anchorsStr.includes('SCHEDULE K-1')) {
+    return 'k1';
+  }
+  if (anchorsStr.includes('SCHEDULE C') || anchorsStr.includes('PROFIT OR LOSS FROM BUSINESS')) {
+    return 'schedule_c';
+  }
+  if (anchorsStr.includes('SCHEDULE E') || anchorsStr.includes('SUPPLEMENTAL INCOME')) {
+    return 'schedule_e';
+  }
+  if (anchorsStr.includes('SCHEDULE F')) {
+    return 'schedule_f';
+  }
+  if (anchorsStr.includes('W-2') || anchorsStr.includes('FORM W-2')) {
+    return 'w2';
+  }
+  if (anchorsStr.includes('1099')) {
+    return 'form_1099';
+  }
+  if (anchorsStr.includes('1040') || anchorsStr.includes('U.S. INCOME TAX RETURN')) {
+    return 'form_1040';
+  }
+  
+  // If we found IRS anchors but couldn't determine specific type, use what AI detected
+  if (parsedJson.document_type && parsedJson.document_type !== 'pay_stub') {
+    return parsedJson.document_type;
+  }
+  
+  return 'form_1040'; // Default to 1040 if we found IRS anchors
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -606,11 +719,33 @@ serve(async (req) => {
       throw new Error(`Unsupported file type: ${document.mime_type}. Please upload images (PNG, JPG, WEBP, GIF) or PDF files.`);
     }
 
+    // Parser diagnostics to track processing details
+    const parserDiagnostics: {
+      ocr_used: boolean;
+      processing_method: string;
+      anchors_found: string[];
+      paystub_anchors_found: string[];
+      classification_override: boolean;
+      original_classification?: string;
+      final_classification?: string;
+      file_size_bytes: number;
+      mime_type: string;
+    } = {
+      ocr_used: false,
+      processing_method: isPdf ? 'openai_pdf_upload' : 'openai_vision_base64',
+      anchors_found: [],
+      paystub_anchors_found: [],
+      classification_override: false,
+      file_size_bytes: arrayBuffer.byteLength,
+      mime_type: document.mime_type || 'unknown'
+    };
+
     let openaiResponse;
 
     if (isPdf) {
       // For PDFs, use the OpenAI Files API to upload the file first, then use with Assistants/Vision
       console.log('Processing PDF using OpenAI document analysis...');
+      parserDiagnostics.processing_method = 'openai_pdf_file_upload';
       
       // Upload the PDF file to OpenAI
       const formData = new FormData();
@@ -637,6 +772,7 @@ serve(async (req) => {
       console.log('PDF uploaded to OpenAI with file ID:', fileId);
       
       // Use chat completions with file reference for document analysis
+      // Increased timeout for large documents
       openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -647,7 +783,12 @@ serve(async (req) => {
           model: 'gpt-4o',
           messages: [{
             role: 'system',
-            content: 'You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null. Follow Fannie Mae/Freddie Mac income calculation guidelines.'
+            content: `You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null. Follow Fannie Mae/Freddie Mac income calculation guidelines.
+
+CRITICAL CLASSIFICATION RULES:
+1. If you see ANY IRS form markers (Form 1040, Schedule C, Schedule E, Form 1120-S, etc.), this is a TAX DOCUMENT - NEVER classify as pay_stub.
+2. Only classify as pay_stub if you see employer/employee payroll data with pay periods and deductions.
+3. Always include the tax_year if visible on the document.`
           }, {
             role: 'user',
             content: [{
@@ -660,7 +801,7 @@ serve(async (req) => {
               }
             }]
           }],
-          max_tokens: 4000,
+          max_tokens: 8000, // Increased for large documents
           temperature: 0.1
         }),
       });
@@ -689,7 +830,11 @@ serve(async (req) => {
           model: 'gpt-4o',
           messages: [{
             role: 'system',
-            content: 'You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null. Follow Fannie Mae/Freddie Mac income calculation guidelines.'
+            content: `You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only. Be accurate with numbers - do not round or estimate. If you cannot read a value clearly, use null. Follow Fannie Mae/Freddie Mac income calculation guidelines.
+
+CRITICAL CLASSIFICATION RULES:
+1. If you see ANY IRS form markers (Form 1040, Schedule C, Schedule E, Form 1120-S, etc.), this is a TAX DOCUMENT - NEVER classify as pay_stub.
+2. Only classify as pay_stub if you see employer/employee payroll data with pay periods and deductions.`
           }, {
             role: 'user',
             content: [{
@@ -703,7 +848,7 @@ serve(async (req) => {
               }
             }]
           }],
-          max_tokens: 4000,
+          max_tokens: 8000,
           temperature: 0.1
         }),
       });
@@ -771,7 +916,7 @@ serve(async (req) => {
                 role: 'user',
                 content: [{ type: 'text', text: extractionPrompt }, { type: 'file', file: { file_id: retryFileId } }]
               }],
-              max_tokens: 4000,
+              max_tokens: 8000,
               temperature: 0.1
             }),
           });
@@ -800,7 +945,7 @@ serve(async (req) => {
                 role: 'user',
                 content: [{ type: 'text', text: extractionPrompt }, { type: 'image_url', image_url: { url: `data:${document.mime_type};base64,${base64}`, detail: 'high' } }]
               }],
-              max_tokens: 4000,
+              max_tokens: 8000,
               temperature: 0.1
             }),
           });
@@ -834,10 +979,32 @@ serve(async (req) => {
         // Get confidence from parsed result or calculate
         confidence = parsedJson.extraction_confidence || 0.8;
         
-        // Update detected doc type if returned
-        if (parsedJson.document_type) {
+        // ===== PHASE 2: HARD CLASSIFICATION RULES =====
+        // Check for IRS form anchors in the full response text
+        const fullResponseText = JSON.stringify(parsedJson) + ' ' + extractedText;
+        const foundIRSAnchors = findIRSAnchors(fullResponseText);
+        const foundPaystubAnchors = findPaystubAnchors(fullResponseText);
+        
+        parserDiagnostics.anchors_found = foundIRSAnchors;
+        parserDiagnostics.paystub_anchors_found = foundPaystubAnchors;
+        
+        // Store original classification
+        parserDiagnostics.original_classification = parsedJson.document_type;
+        
+        // CRITICAL: If IRS anchors found, this CANNOT be a paystub
+        if (foundIRSAnchors.length > 0 && parsedJson.document_type === 'pay_stub') {
+          console.log(`Classification override: Found IRS anchors ${foundIRSAnchors.join(', ')}, overriding pay_stub classification`);
+          parserDiagnostics.classification_override = true;
+          detectedDocType = determineDocTypeFromAnchors(foundIRSAnchors, parsedJson);
+          parsedJson.document_type = detectedDocType;
+          parsedJson._classification_overridden = true;
+          parsedJson._original_classification = 'pay_stub';
+          parsedJson._override_reason = `Found IRS form anchors: ${foundIRSAnchors.join(', ')}`;
+        } else if (parsedJson.document_type) {
           detectedDocType = parsedJson.document_type;
         }
+        
+        parserDiagnostics.final_classification = detectedDocType;
       }
     } catch (parseError) {
       console.error('Failed to parse OCR result as JSON:', parseError);
@@ -847,6 +1014,9 @@ serve(async (req) => {
       };
       confidence = 0.3;
     }
+
+    // Add parser diagnostics to parsed_json for debugging
+    parsedJson._parser_diagnostics = parserDiagnostics;
 
     // Extract period dates if available
     let docPeriodStart = null;
@@ -871,7 +1041,7 @@ serve(async (req) => {
       console.error('Error updating document:', updateError);
     }
 
-    // Log audit event
+    // Log audit event with enhanced diagnostics
     await supabaseClient
       .from('income_audit_events')
       .insert({
@@ -884,18 +1054,20 @@ serve(async (req) => {
           fields_extracted: Object.keys(parsedJson).length,
           model: 'gpt-4o',
           has_period_dates: !!(docPeriodStart || docPeriodEnd),
-          tax_year: parsedJson.tax_year || null
+          tax_year: parsedJson.tax_year || null,
+          parser_diagnostics: parserDiagnostics
         }
       });
 
-    console.log(`Successfully processed document ${document_id} with confidence ${confidence}`);
+    console.log(`Successfully processed document ${document_id} with confidence ${confidence}, type: ${detectedDocType}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
       document_id,
       confidence,
       detected_doc_type: detectedDocType,
-      fields_extracted: Object.keys(parsedJson).length
+      fields_extracted: Object.keys(parsedJson).length,
+      parser_diagnostics: parserDiagnostics
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

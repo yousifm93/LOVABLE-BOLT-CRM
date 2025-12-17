@@ -38,6 +38,18 @@ interface IncomeComponent {
   notes?: string;
 }
 
+// Calculation trace item for detailed breakdown
+interface CalculationTraceItem {
+  year: number;
+  form: string;
+  line_or_box: string;
+  description: string;
+  amount: number;
+  sign: '+' | '-';
+  allocated_to: string;
+  allocation_pct?: number;
+}
+
 // Calculate monthly income from pay frequency
 function annualizeFromFrequency(amount: number, frequency: string): number {
   switch (frequency?.toLowerCase()) {
@@ -48,6 +60,27 @@ function annualizeFromFrequency(amount: number, frequency: string): number {
     case 'annual': return amount;
     default: return amount * 12; // Assume monthly if unknown
   }
+}
+
+// ===== DYNAMIC YEAR DETECTION =====
+// Get the two most recent years from document data
+function getTwoMostRecentYears(documents: any[]): { year1: number; year2: number } {
+  const years = documents
+    .map(d => d.data?.tax_year || d.tax_year)
+    .filter((y): y is number => typeof y === 'number' && y > 2000)
+    .sort((a, b) => b - a); // Sort descending (most recent first)
+  
+  const uniqueYears = [...new Set(years)];
+  
+  if (uniqueYears.length >= 2) {
+    return { year1: uniqueYears[1], year2: uniqueYears[0] }; // year1 is older, year2 is newer
+  } else if (uniqueYears.length === 1) {
+    return { year1: uniqueYears[0], year2: uniqueYears[0] };
+  }
+  
+  // Default to current and prior year if no years found
+  const currentYear = new Date().getFullYear();
+  return { year1: currentYear - 1, year2: currentYear };
 }
 
 // Calculate variable income with 2-year trending
@@ -110,7 +143,8 @@ function calculateVariableIncome(
 // Calculate self-employment income with full add-backs per BoltCRM Guide
 function calculateSelfEmploymentIncome(
   year1Data: any,
-  year2Data: any
+  year2Data: any,
+  calculationTrace: CalculationTraceItem[]
 ): { monthlyAmount: number; addBacks: any; method: string; warning?: string } {
   
   const years = [year1Data, year2Data].filter(Boolean);
@@ -126,7 +160,7 @@ function calculateSelfEmploymentIncome(
 
   // Calculate adjusted income for each year with FULL add-backs
   const adjustedYears = years.map((yearData, idx) => {
-    const taxYear = yearData.tax_year || (2024 - idx);
+    const taxYear = yearData.tax_year || (new Date().getFullYear() - idx);
     const mileageRate = MILEAGE_DEPRECIATION_RATES[taxYear] || 0.30;
     
     const netProfit = yearData.line31_net_profit_loss || yearData.net_profit || 0;
@@ -135,20 +169,77 @@ function calculateSelfEmploymentIncome(
     const homeOffice = yearData.line30_home_office || yearData.home_office_deduction || 0;
     const meals = (yearData.line24b_meals || yearData.meals || 0) * FANNIE_MAE_RULES.mealDeductionRate;
     
-    // NEW: Mileage depreciation add-back (Line 44a business miles × rate)
+    // Mileage depreciation add-back (Line 44a business miles × rate)
     const businessMiles = yearData.line44a_business_miles || 0;
     const mileageDepreciation = businessMiles * mileageRate;
     
-    // NEW: Part V amortization and casualty loss add-backs
+    // Part V amortization and casualty loss add-backs
     const amortization = yearData.part_v_amortization || 0;
     const casualtyLoss = yearData.part_v_casualty_loss || 0;
     
-    // NEW: Deduct non-recurring Line 6 other income
+    // Deduct non-recurring Line 6 other income
     const line6NonRecurring = yearData.line6_is_non_recurring ? (yearData.line6_other_income || 0) : 0;
     
     const adjustedIncome = netProfit + depreciation + depletion + homeOffice + meals 
                           + mileageDepreciation + amortization + casualtyLoss 
                           - line6NonRecurring;
+    
+    // Add to calculation trace
+    if (netProfit !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule C',
+        line_or_box: 'Line 31',
+        description: 'Net profit/loss',
+        amount: netProfit,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (depreciation !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule C',
+        line_or_box: 'Line 13',
+        description: 'Depreciation add-back',
+        amount: depreciation,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (homeOffice !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule C',
+        line_or_box: 'Line 30',
+        description: 'Home office add-back',
+        amount: homeOffice,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (meals !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule C',
+        line_or_box: 'Line 24b',
+        description: 'Meals add-back (50%)',
+        amount: meals,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (line6NonRecurring !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule C',
+        line_or_box: 'Line 6',
+        description: 'Non-recurring income deduction',
+        amount: line6NonRecurring,
+        sign: '-',
+        allocated_to: 'Borrower'
+      });
+    }
     
     return {
       year: taxYear,
@@ -273,6 +364,7 @@ function calculateRentalIncome(scheduleEData: any[]): {
 function calculateK1With1120SIncome(
   k1Data: any[], 
   form1120sData: any[],
+  calculationTrace: CalculationTraceItem[],
   w2OfficerComp: number = 0
 ): { 
   monthlyAmount: number; 
@@ -284,6 +376,10 @@ function calculateK1With1120SIncome(
   if ((!k1Data || k1Data.length === 0) && (!form1120sData || form1120sData.length === 0)) {
     return { monthlyAmount: 0, method: 'No K-1 or 1120-S data', breakdown: {} };
   }
+
+  // Get dynamic years from documents
+  const allDocs = [...(k1Data || []), ...(form1120sData || [])];
+  const { year1, year2 } = getTwoMostRecentYears(allDocs);
 
   // Group data by year
   const byYear: Record<number, { 
@@ -303,7 +399,7 @@ function calculateK1With1120SIncome(
 
   // Process K-1s first
   for (const k1 of (k1Data || [])) {
-    const year = k1.tax_year || 2023;
+    const year = k1.tax_year || year2;
     if (!byYear[year]) {
       byYear[year] = { 
         k1Income: 0, depreciation: 0, depletion: 0, amortization: 0, nolCarryover: 0,
@@ -323,11 +419,25 @@ function calculateK1With1120SIncome(
     byYear[year].k1Income += ordinaryIncome + netRentalIncome + otherNetRental + guaranteedPayments;
     byYear[year].distributions += distributions;
     byYear[year].ownershipPct = ownership;
+
+    // Add to calculation trace
+    if (ordinaryIncome !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Schedule K-1 (1120-S)',
+        line_or_box: 'Box 1',
+        description: 'Ordinary business income',
+        amount: ordinaryIncome,
+        sign: '+',
+        allocated_to: 'Borrower',
+        allocation_pct: ownership
+      });
+    }
   }
 
   // Process 1120-S forms for add-backs and liquidity data
   for (const form of (form1120sData || [])) {
-    const year = form.tax_year || 2023;
+    const year = form.tax_year || year2;
     if (!byYear[year]) {
       byYear[year] = { 
         k1Income: 0, depreciation: 0, depletion: 0, amortization: 0, nolCarryover: 0,
@@ -337,14 +447,22 @@ function calculateK1With1120SIncome(
     }
     
     // Add-backs (these get ADDED to income)
-    byYear[year].depreciation += parseFloat(form.line14_depreciation) || 0;
-    byYear[year].depletion += parseFloat(form.line15_depletion) || 0;
-    byYear[year].amortization += parseFloat(form.amortization) || 0;
-    byYear[year].nolCarryover += parseFloat(form.net_operating_loss_carryover) || 0;
+    const depreciation = parseFloat(form.line14_depreciation) || 0;
+    const depletion = parseFloat(form.line15_depletion) || 0;
+    const amortization = parseFloat(form.amortization) || 0;
+    const nolCarryover = parseFloat(form.net_operating_loss_carryover) || 0;
+    
+    byYear[year].depreciation += depreciation;
+    byYear[year].depletion += depletion;
+    byYear[year].amortization += amortization;
+    byYear[year].nolCarryover += nolCarryover;
     
     // Deductions (these get SUBTRACTED from income)
-    byYear[year].shortTermDebt += parseFloat(form.schedule_l_line17d_loans_less_1yr) || 0;
-    byYear[year].nonDeductibleTE += parseFloat(form.schedule_m1_line3b_travel_entertainment) || 0;
+    const shortTermDebt = parseFloat(form.schedule_l_line17d_loans_less_1yr) || 0;
+    const nonDeductibleTE = parseFloat(form.schedule_m1_line3b_travel_entertainment) || 0;
+    
+    byYear[year].shortTermDebt += shortTermDebt;
+    byYear[year].nonDeductibleTE += nonDeductibleTE;
     
     // Liquidity data from Schedule L
     byYear[year].currentAssets = parseFloat(form.schedule_l_line6_current_assets) || 0;
@@ -359,6 +477,30 @@ function calculateK1With1120SIncome(
     // If we don't have K-1 income yet, use line 21
     if (byYear[year].k1Income === 0 && form.line21_ordinary_business_income) {
       byYear[year].k1Income = parseFloat(form.line21_ordinary_business_income) || 0;
+    }
+
+    // Add to calculation trace
+    if (depreciation !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1120-S',
+        line_or_box: 'Line 14',
+        description: 'Depreciation add-back',
+        amount: depreciation,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (shortTermDebt !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1120-S',
+        line_or_box: 'Schedule L Line 17d',
+        description: 'Short-term debt deduction',
+        amount: shortTermDebt,
+        sign: '-',
+        allocated_to: 'Borrower'
+      });
     }
   }
 
@@ -391,10 +533,10 @@ function calculateK1With1120SIncome(
   let liquidityRatios: { currentRatio: number; quickRatio: number } | undefined;
 
   if (years.length >= 2) {
-    const year1 = adjustedByYear[years[0]] || 0;
-    const year2 = adjustedByYear[years[1]] || 0;
+    const year1Val = adjustedByYear[years[0]] || 0;
+    const year2Val = adjustedByYear[years[1]] || 0;
     
-    const trending = calculateVariableIncome(year1, year2, 's_corp');
+    const trending = calculateVariableIncome(year1Val, year2Val, 's_corp');
     monthlyAmount = trending.monthlyAmount;
     method = `S-Corp SAM Cash Flow: ${trending.method}`;
     
@@ -451,7 +593,8 @@ function calculateK1With1120SIncome(
 // Calculate Partnership K-1 income with Form 1065 adjustments
 function calculatePartnershipK1Income(
   k1Data: any[],
-  form1065Data: any[]
+  form1065Data: any[],
+  calculationTrace: CalculationTraceItem[]
 ): { 
   monthlyAmount: number; 
   method: string;
@@ -462,6 +605,10 @@ function calculatePartnershipK1Income(
   if (!k1Data || k1Data.length === 0) {
     return { monthlyAmount: 0, method: 'No K-1 data', breakdown: {} };
   }
+
+  // Get dynamic years
+  const allDocs = [...k1Data, ...(form1065Data || [])];
+  const { year1, year2 } = getTwoMostRecentYears(allDocs);
 
   // Group by year
   const byYear: Record<number, {
@@ -480,7 +627,7 @@ function calculatePartnershipK1Income(
   
   // Process K-1s
   for (const k1 of k1Data) {
-    const year = k1.tax_year || 2023;
+    const year = k1.tax_year || year2;
     if (!byYear[year]) {
       byYear[year] = { 
         k1Income: 0, depreciation: 0, depletion: 0, amortization: 0,
@@ -499,15 +646,41 @@ function calculatePartnershipK1Income(
     byYear[year].k1Income += ordinaryIncome + netRental + otherRental + guaranteedPayments;
     byYear[year].ownershipPct = ownership;
     byYear[year].distributions += parseFloat(k1.box16d_distributions) || 0;
+
+    // Add to calculation trace
+    if (ordinaryIncome !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Schedule K-1 (1065)',
+        line_or_box: 'Box 1',
+        description: 'Ordinary business income',
+        amount: ordinaryIncome,
+        sign: '+',
+        allocated_to: 'Borrower',
+        allocation_pct: ownership
+      });
+    }
+    if (guaranteedPayments !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Schedule K-1 (1065)',
+        line_or_box: 'Box 4c',
+        description: 'Guaranteed payments',
+        amount: guaranteedPayments,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
   }
 
   // Process Form 1065 for adjustments
   for (const form of (form1065Data || [])) {
-    const year = form.tax_year || 2023;
+    const year = form.tax_year || year2;
     if (!byYear[year]) continue;
     
     // Add-backs from Form 1065
-    byYear[year].depreciation += parseFloat(form.line16c_depreciation) || 0;
+    const depreciation = parseFloat(form.line16c_depreciation) || 0;
+    byYear[year].depreciation += depreciation;
     
     // Deductions
     byYear[year].shortTermDebt += parseFloat(form.schedule_l_line16d_loans_less_1yr) || 0;
@@ -517,6 +690,18 @@ function calculatePartnershipK1Income(
     byYear[year].currentAssets = parseFloat(form.schedule_l_line6_current_assets) || 0;
     byYear[year].currentLiabilities = parseFloat(form.schedule_l_line18_current_liabilities) || 0;
     byYear[year].inventory = parseFloat(form.schedule_l_line14_inventory) || 0;
+
+    if (depreciation !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1065',
+        line_or_box: 'Line 16c',
+        description: 'Depreciation add-back',
+        amount: depreciation,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
   }
 
   // Calculate adjusted income
@@ -581,7 +766,8 @@ function calculatePartnershipK1Income(
 
 // Calculate C-Corporation income (Form 1120) - 100% ownership only
 function calculateCCorpIncome(
-  form1120Data: any[]
+  form1120Data: any[],
+  calculationTrace: CalculationTraceItem[]
 ): {
   monthlyAmount: number;
   method: string;
@@ -592,12 +778,15 @@ function calculateCCorpIncome(
     return { monthlyAmount: 0, method: 'No Form 1120 data', breakdown: {} };
   }
 
+  // Get dynamic years
+  const { year1, year2 } = getTwoMostRecentYears(form1120Data);
+
   // Group by year
   const byYear: Record<number, number> = {};
   const breakdownByYear: Record<number, any> = {};
   
   for (const form of form1120Data) {
-    const year = form.tax_year || 2023;
+    const year = form.tax_year || year2;
     
     // Start with Line 30 Taxable Income
     const taxableIncome = parseFloat(form.line30_taxable_income) || 0;
@@ -627,6 +816,41 @@ function calculateCCorpIncome(
       shortTermDebt,
       adjustedIncome
     };
+
+    // Add to calculation trace
+    if (taxableIncome !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1120',
+        line_or_box: 'Line 30',
+        description: 'Taxable income',
+        amount: taxableIncome,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (totalTax !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1120',
+        line_or_box: 'Line 31',
+        description: 'Total tax deduction',
+        amount: totalTax,
+        sign: '-',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (depreciation !== 0) {
+      calculationTrace.push({
+        year,
+        form: 'Form 1120',
+        line_or_box: 'Line 20',
+        description: 'Depreciation add-back',
+        amount: depreciation,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
   }
 
   const years = Object.keys(byYear).map(y => parseInt(y)).sort();
@@ -653,7 +877,8 @@ function calculateCCorpIncome(
 
 // Calculate Farm Income (Schedule F)
 function calculateFarmIncome(
-  scheduleFData: any[]
+  scheduleFData: any[],
+  calculationTrace: CalculationTraceItem[]
 ): {
   monthlyAmount: number;
   method: string;
@@ -664,9 +889,12 @@ function calculateFarmIncome(
     return { monthlyAmount: 0, method: 'No Schedule F data', addBacks: {} };
   }
 
+  // Get dynamic years
+  const { year1, year2 } = getTwoMostRecentYears(scheduleFData);
+
   // Calculate adjusted income for each year
   const adjustedYears = scheduleFData.map((data, idx) => {
-    const taxYear = data.tax_year || (2024 - idx);
+    const taxYear = data.tax_year || year2 - idx;
     
     // Start with Line 34 Net Farm Profit
     const netFarmProfit = parseFloat(data.line34_net_farm_profit) || 0;
@@ -680,6 +908,30 @@ function calculateFarmIncome(
     const depletion = parseFloat(data.line32_depletion) || 0;
     
     const adjustedIncome = netFarmProfit + coopDistributions + cccLoans + programPayments + depreciation + amortization + depletion;
+
+    // Add to calculation trace
+    if (netFarmProfit !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule F',
+        line_or_box: 'Line 34',
+        description: 'Net farm profit',
+        amount: netFarmProfit,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
+    if (depreciation !== 0) {
+      calculationTrace.push({
+        year: taxYear,
+        form: 'Schedule F',
+        line_or_box: 'Line 14',
+        description: 'Depreciation add-back',
+        amount: depreciation,
+        sign: '+',
+        allocated_to: 'Borrower'
+      });
+    }
     
     return {
       year: taxYear,
@@ -737,11 +989,14 @@ function calculateK1Income(k1Data: any[]): { monthlyAmount: number; method: stri
     return { monthlyAmount: 0, method: 'No K-1 data' };
   }
 
+  // Get dynamic years
+  const { year1, year2 } = getTwoMostRecentYears(k1Data);
+
   // Group by year
   const byYear: Record<number, number> = {};
   
   for (const k1 of k1Data) {
-    const year = k1.tax_year || 2023;
+    const year = k1.tax_year || year2;
     const ordinaryIncome = parseFloat(k1.box1_ordinary_income) || 0;
     const guaranteedPayments = parseFloat(k1.box4_guaranteed_payments) || parseFloat(k1.box4c_guaranteed_payments_total) || 0;
     
@@ -753,9 +1008,9 @@ function calculateK1Income(k1Data: any[]): { monthlyAmount: number; method: stri
 
   const years = Object.keys(byYear).sort();
   if (years.length >= 2) {
-    const year1 = byYear[parseInt(years[0])] || 0;
-    const year2 = byYear[parseInt(years[1])] || 0;
-    const { monthlyAmount, method } = calculateVariableIncome(year1, year2, 'k1');
+    const y1 = byYear[parseInt(years[0])] || 0;
+    const y2 = byYear[parseInt(years[1])] || 0;
+    const { monthlyAmount, method } = calculateVariableIncome(y1, y2, 'k1');
     return { monthlyAmount, method: `K-1 income: ${method}` };
   } else if (years.length === 1) {
     const amount = byYear[parseInt(years[0])] || 0;
@@ -795,7 +1050,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: 'No processed documents found',
         user_message: 'No documents have been processed yet. Please upload income documents (pay stubs, W-2s, etc.) and wait for OCR processing to complete.',
-        documents_needed: ['Pay stub (most recent)', 'W-2s (optional, for 2-year trending)']
+        documents_needed: ['Pay stub (most recent)', 'W-2s (optional, for 2-year trending)'],
+        missing_inputs: ['income_documents']
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -817,7 +1073,14 @@ serve(async (req) => {
 
     const components: IncomeComponent[] = [];
     const warnings: string[] = [];
+    const missingInputs: string[] = [];
+    const calculationTrace: CalculationTraceItem[] = [];
     let totalMonthlyIncome = 0;
+
+    // ===== GET DYNAMIC YEARS FROM ALL DOCUMENTS =====
+    const allDocData = documents.map(d => d.parsed_json || {});
+    const { year1: detectedYear1, year2: detectedYear2 } = getTwoMostRecentYears(allDocData);
+    console.log(`Detected tax years: ${detectedYear1} (prior), ${detectedYear2} (most recent)`);
 
     // ===== PROCESS PAY STUBS =====
     const payStubs = docsByType['pay_stub'] || [];
@@ -841,6 +1104,16 @@ serve(async (req) => {
           notes: `Employer: ${data.employer_name || 'Unknown'}`
         });
         totalMonthlyIncome += monthlyBase;
+
+        calculationTrace.push({
+          year: new Date().getFullYear(),
+          form: 'Pay Stub',
+          line_or_box: 'Hourly Rate',
+          description: 'Base hourly income',
+          amount: annualBase,
+          sign: '+',
+          allocated_to: 'Borrower'
+        });
       }
       // OR base from gross pay
       else if (data.gross_current && data.pay_frequency) {
@@ -856,6 +1129,16 @@ serve(async (req) => {
           notes: `Employer: ${data.employer_name || 'Unknown'}`
         });
         totalMonthlyIncome += monthly;
+
+        calculationTrace.push({
+          year: new Date().getFullYear(),
+          form: 'Pay Stub',
+          line_or_box: 'Gross Pay',
+          description: `Base ${data.pay_frequency} salary`,
+          amount: annual,
+          sign: '+',
+          allocated_to: 'Borrower'
+        });
       }
 
       // Variable income from pay stubs (OT, bonus, commission) - need YTD data
@@ -891,7 +1174,7 @@ serve(async (req) => {
       // Group W-2s by tax year
       const w2ByYear: Record<number, any[]> = {};
       for (const w2 of w2s) {
-        const year = w2.data.tax_year || 2023;
+        const year = w2.data.tax_year || detectedYear2;
         if (!w2ByYear[year]) w2ByYear[year] = [];
         w2ByYear[year].push(w2);
       }
@@ -923,6 +1206,26 @@ serve(async (req) => {
         // Add back 401k deferrals
         year1Total += year1_401k;
         year2Total += year2_401k;
+
+        // Add to calculation trace
+        calculationTrace.push({
+          year: year1,
+          form: 'Form W-2',
+          line_or_box: 'Box 1',
+          description: 'Wages + 401k add-back',
+          amount: year1Total,
+          sign: '+',
+          allocated_to: 'Borrower'
+        });
+        calculationTrace.push({
+          year: year2,
+          form: 'Form W-2',
+          line_or_box: 'Box 1',
+          description: 'Wages + 401k add-back',
+          amount: year2Total,
+          sign: '+',
+          allocated_to: 'Borrower'
+        });
 
         const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(year1Total, year2Total, 'w2_wages');
 
@@ -975,6 +1278,7 @@ serve(async (req) => {
           });
           totalMonthlyIncome += yearTotal / 12;
           warnings.push('Only 1 year of W-2 income - recommend 2 years for trending analysis');
+          missingInputs.push('w2_prior_year');
         }
       }
     }
@@ -982,10 +1286,12 @@ serve(async (req) => {
     // ===== PROCESS SCHEDULE C (Self-Employment) with full add-backs =====
     const scheduleCs = docsByType['schedule_c'] || [];
     if (scheduleCs.length > 0) {
-      const year1Data = scheduleCs.find(s => s.data.tax_year === 2022)?.data;
-      const year2Data = scheduleCs.find(s => s.data.tax_year === 2023)?.data || scheduleCs[0]?.data;
+      // Use dynamic year detection instead of hardcoded years
+      const scheduleCYears = getTwoMostRecentYears(scheduleCs.map(s => s.data));
+      const year1Data = scheduleCs.find(s => s.data.tax_year === scheduleCYears.year1)?.data;
+      const year2Data = scheduleCs.find(s => s.data.tax_year === scheduleCYears.year2)?.data || scheduleCs[0]?.data;
 
-      const { monthlyAmount, addBacks, method, warning } = calculateSelfEmploymentIncome(year1Data, year2Data);
+      const { monthlyAmount, addBacks, method, warning } = calculateSelfEmploymentIncome(year1Data, year2Data, calculationTrace);
 
       if (monthlyAmount > 0) {
         const addBackNotes = [
@@ -1007,6 +1313,11 @@ serve(async (req) => {
       }
 
       if (warning) warnings.push(warning);
+      
+      // Check for missing year
+      if (scheduleCs.length === 1) {
+        missingInputs.push('schedule_c_prior_year');
+      }
     }
 
     // ===== PROCESS SCHEDULE E (Rental Income) with line-by-line add-backs =====
@@ -1033,7 +1344,7 @@ serve(async (req) => {
     // ===== PROCESS SCHEDULE F (Farm Income) =====
     const scheduleFs = docsByType['schedule_f'] || [];
     if (scheduleFs.length > 0) {
-      const { monthlyAmount, method, addBacks, warning } = calculateFarmIncome(scheduleFs.map(s => s.data));
+      const { monthlyAmount, method, addBacks, warning } = calculateFarmIncome(scheduleFs.map(s => s.data), calculationTrace);
 
       if (monthlyAmount !== 0) {
         components.push({
@@ -1061,7 +1372,8 @@ serve(async (req) => {
     if (sCorpK1s.length > 0 || form1120s.length > 0) {
       const { monthlyAmount, method, breakdown, warning, liquidityRatios } = calculateK1With1120SIncome(
         sCorpK1s.map(k => k.data),
-        form1120s.map(f => f.data)
+        form1120s.map(f => f.data),
+        calculationTrace
       );
 
       if (monthlyAmount !== 0) {
@@ -1087,6 +1399,12 @@ serve(async (req) => {
           warnings.push(warning);
         }
       }
+
+      // Check for missing year
+      const sCorpYears = getTwoMostRecentYears([...sCorpK1s.map(k => k.data), ...form1120s.map(f => f.data)]);
+      if ((sCorpK1s.length + form1120s.length) === 1) {
+        missingInputs.push('1120s_prior_year');
+      }
     }
     
     // Process partnership K-1s with Form 1065 adjustments
@@ -1096,7 +1414,8 @@ serve(async (req) => {
         // Use enhanced partnership calculation with 1065 adjustments
         const { monthlyAmount, method, breakdown, warning, liquidityRatios } = calculatePartnershipK1Income(
           partnershipK1s.map(k => k.data),
-          form1065s.map(f => f.data)
+          form1065s.map(f => f.data),
+          calculationTrace
         );
 
         if (monthlyAmount > 0) {
@@ -1123,6 +1442,7 @@ serve(async (req) => {
             source_documents: partnershipK1s.map(k => k.id)
           });
           totalMonthlyIncome += monthlyAmount;
+          missingInputs.push('form_1065_for_partnership_adjustments');
         }
       }
     }
@@ -1130,7 +1450,7 @@ serve(async (req) => {
     // ===== PROCESS FORM 1120 (C-Corporation) =====
     const form1120s_ccorp = docsByType['form_1120'] || [];
     if (form1120s_ccorp.length > 0) {
-      const { monthlyAmount, method, breakdown, warning } = calculateCCorpIncome(form1120s_ccorp.map(f => f.data));
+      const { monthlyAmount, method, breakdown, warning } = calculateCCorpIncome(form1120s_ccorp.map(f => f.data), calculationTrace);
 
       if (monthlyAmount !== 0) {
         components.push({
@@ -1151,7 +1471,7 @@ serve(async (req) => {
       // Group by tax year
       const form1040ByYear: Record<number, any[]> = {};
       for (const form of form1040s) {
-        const year = form.data.tax_year || 2023;
+        const year = form.data.tax_year || detectedYear2;
         if (!form1040ByYear[year]) form1040ByYear[year] = [];
         form1040ByYear[year].push(form);
       }
@@ -1242,6 +1562,26 @@ serve(async (req) => {
           // Adjusted income = K-1 Income + Depreciation Add-back (per Form 1084 methodology)
           const year1Adjusted = sCorpIncomeByYear[year1].totalK1Income + sCorpIncomeByYear[year1].depreciation;
           const year2Adjusted = sCorpIncomeByYear[year2].totalK1Income + sCorpIncomeByYear[year2].depreciation;
+
+          // Add to calculation trace
+          calculationTrace.push({
+            year: year1,
+            form: 'Form 1040 (Schedule E Part III)',
+            line_or_box: 'K-1 Income',
+            description: 'S-Corp/Partnership income from 1040',
+            amount: year1Adjusted,
+            sign: '+',
+            allocated_to: 'Borrower'
+          });
+          calculationTrace.push({
+            year: year2,
+            form: 'Form 1040 (Schedule E Part III)',
+            line_or_box: 'K-1 Income',
+            description: 'S-Corp/Partnership income from 1040',
+            amount: year2Adjusted,
+            sign: '+',
+            allocated_to: 'Borrower'
+          });
           
           const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(year1Adjusted, year2Adjusted, 's_corp_1040');
           
@@ -1286,6 +1626,7 @@ serve(async (req) => {
             });
             totalMonthlyIncome += monthly;
             warnings.push('Only 1 year of S-Corp/Partnership returns - recommend 2 years for proper Form 1084 trending analysis');
+            missingInputs.push('1040_prior_year_for_scorp');
           }
         }
       }
@@ -1454,7 +1795,7 @@ serve(async (req) => {
         result_monthly_income: totalMonthlyIncome,
         confidence,
         warnings: warnings.length > 0 ? warnings : null,
-        inputs_version: 'v3.0_boltcrm_guide'
+        inputs_version: 'v4.0_hardened_dynamic_years'
       })
       .select()
       .single();
@@ -1480,7 +1821,7 @@ serve(async (req) => {
         });
     }
 
-    // Log audit event
+    // Log audit event with calculation trace
     await supabaseClient
       .from('income_audit_events')
       .insert({
@@ -1494,7 +1835,10 @@ serve(async (req) => {
           documents_processed: documents.length,
           doc_types: Object.keys(docsByType),
           warnings_count: warnings.length,
-          calculation_version: 'v3.0_boltcrm_guide'
+          missing_inputs: missingInputs,
+          calculation_version: 'v4.0_hardened_dynamic_years',
+          detected_years: { year1: detectedYear1, year2: detectedYear2 },
+          calculation_trace: calculationTrace
         }
       });
 
@@ -1504,9 +1848,13 @@ serve(async (req) => {
       success: true,
       calculation_id: calculation.id,
       monthly_income: totalMonthlyIncome,
+      annual_income: totalMonthlyIncome * 12,
       components: components.length,
       warnings: warnings.length,
-      confidence
+      missing_inputs: missingInputs,
+      confidence,
+      calculation_trace: calculationTrace,
+      detected_years: { year1: detectedYear1, year2: detectedYear2 }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -1515,7 +1863,8 @@ serve(async (req) => {
     console.error('Calculation Error:', error);
     
     return new Response(JSON.stringify({
-      error: error.message
+      error: error.message,
+      missing_inputs: ['unknown_error']
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
