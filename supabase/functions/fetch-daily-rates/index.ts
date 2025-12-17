@@ -120,7 +120,7 @@ serve(async (req) => {
         .eq('id', pricingRun.id);
 
       // Longer delay between API calls - Axiom needs time to process each scenario
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 8000));
     }
 
     return new Response(
