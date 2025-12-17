@@ -906,16 +906,7 @@ export default function Email() {
 
   return <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
-        <div className="gap-1 mb-6 flex-row flex items-center justify-start">
-          <Button variant="ghost" size="icon" onClick={handleCompose} className="h-8 w-8" title="Compose">
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoading} className="h-8 w-8" title="Refresh">
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-          </Button>
-        </div>
-
-        <div className="flex h-[calc(100%-60px)] gap-2">
+        <div className="flex h-full gap-2">
           {/* Folder Sidebar - Fixed width */}
           <div className="w-[220px] flex-shrink-0 pr-2">
             <div className="h-full flex flex-col">
@@ -954,9 +945,17 @@ export default function Email() {
           {/* Email List - Fixed width */}
           <div className="w-[500px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
             <div className="p-2 border-b space-y-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search emails..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 h-8 text-sm" />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search emails..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 h-8 text-sm" />
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleCompose} className="h-8 w-8 flex-shrink-0" title="Compose">
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoading} className="h-8 w-8 flex-shrink-0" title="Refresh">
+                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                </Button>
               </div>
               {!selectedCategory && <div className="flex gap-1 flex-wrap">
                   <Button variant={emailView === 'main' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('main')} className="h-7 text-xs px-3">
