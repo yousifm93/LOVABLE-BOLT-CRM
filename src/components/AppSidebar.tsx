@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLocation, NavLink } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   Users,
@@ -20,6 +20,8 @@ import {
   DollarSign,
   LogOut,
   LayoutDashboard,
+  User,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,10 +40,18 @@ import {
 import { CollapsibleSidebarGroup } from "@/components/CollapsibleSidebarGroup";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
 import { useAuth } from "@/hooks/useAuth";
+
+interface SearchResult {
+  id: string;
+  type: 'lead' | 'agent' | 'lender';
+  name: string;
+  subtext?: string;
+}
 
 const dashboardItems = [
   { title: "Home", url: "/", icon: Home },
@@ -91,6 +101,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, signOut } = useAuth();
   
@@ -98,6 +109,133 @@ export function AppSidebar() {
   const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
   const [pendingEmailQueueCount, setPendingEmailQueueCount] = useState(0);
   const [emailQueueModalOpen, setEmailQueueModalOpen] = useState(false);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle search with debounce
+  const handleSearch = useCallback(async (term: string) => {
+    if (term.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+    
+    setIsSearching(true);
+    setShowSearchResults(true);
+    
+    try {
+      const results: SearchResult[] = [];
+      
+      // Search leads (borrowers)
+      const { data: leads } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, email')
+        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+        .limit(5);
+      
+      if (leads) {
+        results.push(...leads.map(l => ({
+          id: l.id,
+          type: 'lead' as const,
+          name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Unknown',
+          subtext: l.email || undefined,
+        })));
+      }
+      
+      // Search agents
+      const { data: agents } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage')
+        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,brokerage.ilike.%${term}%`)
+        .is('deleted_at', null)
+        .limit(5);
+      
+      if (agents) {
+        results.push(...agents.map(a => ({
+          id: a.id,
+          type: 'agent' as const,
+          name: `${a.first_name || ''} ${a.last_name || ''}`.trim() || 'Unknown',
+          subtext: a.brokerage || undefined,
+        })));
+      }
+      
+      // Search lenders
+      const { data: lenders } = await supabase
+        .from('lenders')
+        .select('id, lender_name, account_executive')
+        .or(`lender_name.ilike.%${term}%,account_executive.ilike.%${term}%`)
+        .limit(5);
+      
+      if (lenders) {
+        results.push(...lenders.map(l => ({
+          id: l.id,
+          type: 'lender' as const,
+          name: l.lender_name || 'Unknown',
+          subtext: l.account_executive || undefined,
+        })));
+      }
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch(searchTerm);
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm, handleSearch]);
+
+  // Close search on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle search result click
+  const handleResultClick = (result: SearchResult) => {
+    setShowSearchResults(false);
+    setSearchTerm("");
+    
+    switch (result.type) {
+      case 'lead':
+        // Navigate to pipeline and open lead - for now just go to dashboard with a query param
+        navigate(`/dashboard?openLead=${result.id}`);
+        break;
+      case 'agent':
+        navigate(`/contacts/agents?openAgent=${result.id}`);
+        break;
+      case 'lender':
+        navigate(`/contacts/lenders?openLender=${result.id}`);
+        break;
+    }
+  };
 
   // Fetch pending suggestion count
   useEffect(() => {
@@ -192,15 +330,60 @@ export function AppSidebar() {
             )}
           </div>
           
-          {/* Search Bar */}
+          {/* Search Bar with Results Dropdown */}
           {!collapsed && (
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3" ref={searchContainerRef}>
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10" />
                 <Input
-                  placeholder="Search..."
+                  placeholder="Search leads, agents, lenders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => searchTerm.length >= 2 && setShowSearchResults(true)}
                   className="pl-8 h-8 text-sm bg-sidebar-accent/30 border-sidebar-border"
                 />
+                
+                {/* Search Results Dropdown */}
+                {showSearchResults && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-[300px] overflow-hidden">
+                    {isSearching ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="py-3 px-3 text-sm text-muted-foreground text-center">
+                        No results found
+                      </div>
+                    ) : (
+                      <ScrollArea className="max-h-[280px]">
+                        <div className="py-1">
+                          {searchResults.map((result) => (
+                            <button
+                              key={`${result.type}-${result.id}`}
+                              onClick={() => handleResultClick(result)}
+                              className="w-full px-3 py-2 text-left hover:bg-accent flex items-center gap-2 transition-colors"
+                            >
+                              <div className="flex-shrink-0">
+                                {result.type === 'lead' && <User className="h-4 w-4 text-blue-500" />}
+                                {result.type === 'agent' && <Phone className="h-4 w-4 text-green-500" />}
+                                {result.type === 'lender' && <Building className="h-4 w-4 text-purple-500" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{result.name}</p>
+                                {result.subtext && (
+                                  <p className="text-xs text-muted-foreground truncate">{result.subtext}</p>
+                                )}
+                              </div>
+                              <Badge variant="outline" className="text-xs flex-shrink-0">
+                                {result.type}
+                              </Badge>
+                            </button>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

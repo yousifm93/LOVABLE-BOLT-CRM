@@ -1518,6 +1518,36 @@ export type Database = {
         }
         Relationships: []
       }
+      email_comments: {
+        Row: {
+          attachments: Json | null
+          content: string
+          created_at: string | null
+          email_folder: string
+          email_uid: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          content: string
+          created_at?: string | null
+          email_folder: string
+          email_uid: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          content?: string
+          created_at?: string | null
+          email_folder?: string
+          email_uid?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_contacts: {
         Row: {
           city: string | null

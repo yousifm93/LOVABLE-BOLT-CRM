@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,12 +8,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
+import { format } from "date-fns";
+
+interface EmailComment {
+  id: string;
+  email_uid: number;
+  email_folder: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user?: { email: string; initials: string };
+}
 
 interface EmailAttachment {
   name: string;
@@ -173,6 +187,7 @@ function DroppableFolder({ id, isActive, children }: {
 
 export default function Email() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedFolder, setSelectedFolder] = useState("Inbox");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
@@ -198,6 +213,11 @@ export default function Email() {
   // Multi-select state
   const [selectedEmails, setSelectedEmails] = useState<Set<number>>(new Set());
   const lastSelectedIndex = useRef<number | null>(null);
+  
+  // Comments state
+  const [emailComments, setEmailComments] = useState<EmailComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [isAddingComment, setIsAddingComment] = useState(false);
   
   const [composeData, setComposeData] = useState({
     to: "",
@@ -397,14 +417,30 @@ export default function Email() {
         }
       }
       
-      // Fallback to attachments_json (without URLs for download)
+      // Fallback to attachments_json - try to generate signed URLs from storage paths
       if (emailLog?.attachments_json) {
         const attachments = emailLog.attachments_json as any[];
-        return attachments.map((att: any) => ({
-          name: att.filename || att.name || 'Unknown',
-          type: att.contentType || att.type || 'application/octet-stream',
-          size: att.size || 0,
-          url: att.url || null,
+        return await Promise.all(attachments.map(async (att: any) => {
+          let url = att.url || null;
+          
+          // If we have a storage path but no URL, try to generate signed URL
+          if (!url && att.path) {
+            try {
+              const { data: signedUrlData } = await supabase.storage
+                .from('lead-documents')
+                .createSignedUrl(att.path, 60 * 60 * 24 * 365); // 1 year
+              url = signedUrlData?.signedUrl || null;
+            } catch (e) {
+              console.error('Failed to generate signed URL:', e);
+            }
+          }
+          
+          return {
+            name: att.filename || att.name || 'Unknown',
+            type: att.contentType || att.type || 'application/octet-stream',
+            size: att.size || 0,
+            url,
+          };
         }));
       }
       
@@ -456,9 +492,79 @@ export default function Email() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolder, selectedCategory]);
 
+  // Fetch comments for selected email
+  const fetchComments = useCallback(async (email: EmailMessage) => {
+    try {
+      const folder = selectedFolder || 'Inbox';
+      const { data, error } = await supabase
+        .from('email_comments')
+        .select('*')
+        .eq('email_uid', email.uid)
+        .eq('email_folder', folder)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Map user IDs to user info (just using initials for now)
+      const comments: EmailComment[] = (data || []).map(c => ({
+        ...c,
+        user: {
+          email: 'User',
+          initials: 'U',
+        }
+      }));
+      
+      setEmailComments(comments);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      setEmailComments([]);
+    }
+  }, [selectedFolder]);
+
+  // Add a new comment
+  const handleAddComment = async () => {
+    if (!selectedEmail || !commentText.trim() || !user) return;
+    
+    setIsAddingComment(true);
+    try {
+      const folder = selectedFolder || 'Inbox';
+      const { error } = await supabase
+        .from('email_comments')
+        .insert({
+          email_uid: selectedEmail.uid,
+          email_folder: folder,
+          user_id: user.id,
+          content: commentText.trim(),
+        });
+      
+      if (error) throw error;
+      
+      setCommentText("");
+      // Refresh comments
+      fetchComments(selectedEmail);
+      
+      toast({
+        title: "Comment added",
+        description: "Your internal comment has been saved.",
+      });
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Failed to add comment",
+        description: error.message || "Could not save your comment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
   const handleSelectEmail = (email: EmailMessage) => {
     setSelectedEmail(email);
-    fetchEmailContent(email); // Pass email directly
+    setEmailComments([]); // Clear previous comments
+    setCommentText("");
+    fetchEmailContent(email);
+    fetchComments(email);
   };
 
   const handleCompose = () => {
@@ -1099,7 +1205,55 @@ export default function Email() {
 
           {/* Email Content - Takes remaining space */}
           <div className="flex-1 h-full border rounded-lg bg-card overflow-hidden flex flex-col mr-4">
-            {selectedEmail ? (
+            {/* Show bulk selection UI when emails are selected */}
+            {selectedEmails.size > 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <Mail className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                <p className="text-lg font-medium mb-2">
+                  {selectedEmails.size} conversation{selectedEmails.size > 1 ? 's' : ''} selected
+                </p>
+                <button 
+                  className="text-primary text-sm hover:underline mb-8"
+                  onClick={() => setSelectedEmails(new Set())}
+                >
+                  Clear selection
+                </button>
+                
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <Button variant="outline" size="sm" onClick={() => handleBulkImapMove('archive')}>
+                    <Archive className="h-4 w-4 mr-2" /> Archive
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkImapMove('trash')}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Trash
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkImapMove('starred')}>
+                    <Star className="h-4 w-4 mr-2" /> Star
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <ArrowRight className="h-4 w-4 mr-2" /> Move
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleBulkMove('needs_attention')}>
+                        <AlertCircle className="h-4 w-4 mr-2 text-amber-500" /> Needs Attention
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_file')}>
+                        <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> Reviewed - File
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_lender_marketing')}>
+                        <CheckCircle className="h-4 w-4 mr-2 text-blue-500" /> Reviewed - Lender Mktg
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_na')}>
+                        <CheckCircle className="h-4 w-4 mr-2 text-gray-500" /> Reviewed - N/A
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ) : selectedEmail ? (
               <>
                 <div className="p-4 border-b">
                   <h2 className="text-lg font-semibold mb-2 truncate" title={selectedEmail.subject}>
@@ -1173,19 +1327,76 @@ export default function Email() {
                     </>
                   )}
                 </ScrollArea>
-                <div className="p-3 pb-6 border-t flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleReply}>
-                    Reply
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleForward}>
-                    Forward
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                
+                {/* Actions and Comments Section */}
+                <div className="border-t">
+                  <div className="p-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={handleReply}>
+                      Reply
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleForward}>
+                      Forward
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Internal Comments Section */}
+                  <div className="px-3 pb-3 border-t pt-3">
+                    {/* Existing comments */}
+                    {emailComments.length > 0 && (
+                      <div className="mb-3 space-y-2 max-h-[150px] overflow-y-auto">
+                        {emailComments.map(comment => (
+                          <div key={comment.id} className="flex gap-2 items-start">
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarFallback className="text-xs">{comment.user?.initials || 'U'}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm bg-muted px-2 py-1 rounded inline-block">{comment.content}</p>
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                              {format(new Date(comment.created_at), 'MMM d, h:mm a')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Comment input */}
+                    <div className="relative">
+                      <Input
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value)}
+                        placeholder="Add internal comment..."
+                        className="pr-24"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                        }}
+                        disabled={isAddingComment}
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Attach file">
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Mention">
+                          <AtSign className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Emoji">
+                          <Smile className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Internal comments visible to team only
+                    </p>
+                  </div>
                 </div>
               </>
             ) : (
