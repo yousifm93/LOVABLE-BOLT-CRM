@@ -22,6 +22,8 @@ interface CollapsiblePipelineSectionProps {
   onSelectionChange?: (ids: string[]) => void;
   getRowId?: (row: any) => string;
   showRowNumbers?: boolean;
+  initialColumnWidths?: Record<string, number>;
+  lockResize?: boolean;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -40,7 +42,9 @@ export function CollapsiblePipelineSection({
   selectedIds,
   onSelectionChange,
   getRowId,
-  showRowNumbers = false
+  showRowNumbers = false,
+  initialColumnWidths,
+  lockResize = false
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -85,6 +89,8 @@ export function CollapsiblePipelineSection({
             onSelectionChange={onSelectionChange}
             getRowId={getRowId}
             showRowNumbers={showRowNumbers}
+            initialColumnWidths={initialColumnWidths}
+            lockResize={lockResize}
           />
         </CardContent>
       )}
