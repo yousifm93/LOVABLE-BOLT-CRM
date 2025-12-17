@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Check, X, ListTodo, Edit3 } from "lucide-react";
+import { ArrowRight, Check, X, ListTodo, Edit3, Mic, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface FieldUpdate {
   field: string;
@@ -35,6 +38,7 @@ interface VoiceUpdateConfirmationModalProps {
   taskSuggestions: TaskSuggestion[];
   onApplyFieldUpdates: (selectedUpdates: FieldUpdate[]) => void;
   onCreateTasks: (selectedTasks: TaskSuggestion[]) => void;
+  currentLeadData?: Record<string, any>;
 }
 
 export function VoiceUpdateConfirmationModal({
@@ -44,10 +48,19 @@ export function VoiceUpdateConfirmationModal({
   taskSuggestions,
   onApplyFieldUpdates,
   onCreateTasks,
+  currentLeadData,
 }: VoiceUpdateConfirmationModalProps) {
   const [selectedFields, setSelectedFields] = useState<Record<string, boolean>>({});
   const [selectedTasks, setSelectedTasks] = useState<Record<number, boolean>>({});
   const [editableTasks, setEditableTasks] = useState<TaskSuggestion[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   // Initialize selections when modal opens
   useEffect(() => {
@@ -59,11 +72,17 @@ export function VoiceUpdateConfirmationModal({
       setSelectedFields(initialFields);
 
       const initialTasks: Record<number, boolean> = {};
-      taskSuggestions.forEach((_, index) => {
+      const today = getTodayDate();
+      // Set due date to today if not specified
+      const tasksWithDefaults = taskSuggestions.map(task => ({
+        ...task,
+        dueDate: task.dueDate || today
+      }));
+      tasksWithDefaults.forEach((_, index) => {
         initialTasks[index] = true;
       });
       setSelectedTasks(initialTasks);
-      setEditableTasks([...taskSuggestions]);
+      setEditableTasks(tasksWithDefaults);
     }
   }, [isOpen, detectedUpdates, taskSuggestions]);
 
@@ -118,6 +137,126 @@ export function VoiceUpdateConfirmationModal({
     return String(value);
   };
 
+  // Voice correction handlers
+  const handleVoiceStart = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await processVoiceCorrection(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access to make voice corrections.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleVoiceStop = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const processVoiceCorrection = async (audioBlob: Blob) => {
+    setIsProcessingVoice(true);
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+
+      // Transcribe audio
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('voice-transcribe', {
+        body: { audio: base64Audio }
+      });
+
+      if (transcribeError) throw transcribeError;
+
+      if (!transcribeData?.text) {
+        throw new Error('No transcription returned');
+      }
+
+      // Parse corrections from transcription
+      const { data: fieldUpdateData, error: fieldUpdateError } = await supabase.functions.invoke('parse-field-updates', {
+        body: { transcription: transcribeData.text, currentLeadData: currentLeadData || {} }
+      });
+
+      if (!fieldUpdateError && (fieldUpdateData?.detectedUpdates?.length > 0 || fieldUpdateData?.taskSuggestions?.length > 0)) {
+        // Merge new field updates with existing ones
+        if (fieldUpdateData.detectedUpdates?.length > 0) {
+          const newFields: Record<string, boolean> = { ...selectedFields };
+          fieldUpdateData.detectedUpdates.forEach((update: FieldUpdate) => {
+            newFields[update.field] = true;
+          });
+          setSelectedFields(newFields);
+        }
+
+        // Merge new task suggestions
+        if (fieldUpdateData.taskSuggestions?.length > 0) {
+          const today = getTodayDate();
+          const newTasks = fieldUpdateData.taskSuggestions.map((task: TaskSuggestion) => ({
+            ...task,
+            dueDate: task.dueDate || today
+          }));
+          const mergedTasks = [...editableTasks, ...newTasks];
+          setEditableTasks(mergedTasks);
+          
+          const newSelectedTasks: Record<number, boolean> = { ...selectedTasks };
+          newTasks.forEach((_: TaskSuggestion, idx: number) => {
+            newSelectedTasks[editableTasks.length + idx] = true;
+          });
+          setSelectedTasks(newSelectedTasks);
+        }
+
+        toast({
+          title: 'Corrections Applied',
+          description: 'Your voice corrections have been added to the suggestions.',
+        });
+      } else {
+        toast({
+          title: 'No Changes Detected',
+          description: 'Could not detect any field updates or tasks from your correction.',
+        });
+      }
+    } catch (error) {
+      console.error('Error processing voice correction:', error);
+      toast({
+        title: 'Processing Failed',
+        description: 'Could not process your voice correction. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessingVoice(false);
+    }
+  };
+
   const selectedFieldCount = Object.values(selectedFields).filter(Boolean).length;
   const selectedTaskCount = Object.values(selectedTasks).filter(Boolean).length;
   const totalSelected = selectedFieldCount + selectedTaskCount;
@@ -130,9 +269,35 @@ export function VoiceUpdateConfirmationModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-primary" />
-            Voice Updates Detected
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-primary" />
+              Voice Updates Detected
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (isRecording) {
+                  handleVoiceStop();
+                } else {
+                  handleVoiceStart();
+                }
+              }}
+              disabled={isProcessingVoice}
+              className={cn(
+                "w-8 h-8 rounded-full transition-all mr-4",
+                isRecording && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+              )}
+              title={isRecording ? "Stop recording" : "Record voice correction"}
+            >
+              {isProcessingVoice ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mic className={cn("h-4 w-4", isRecording && "text-red-500")} />
+              )}
+            </Button>
           </DialogTitle>
         </DialogHeader>
 

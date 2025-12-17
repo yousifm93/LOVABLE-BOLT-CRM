@@ -116,7 +116,7 @@ IMPORTANT: If the user says ANYTHING about creating a task, following up, callin
 For task suggestions, extract:
 - title: A clear, concise task title (e.g., "Call buyer's agent", "Follow up with underwriter")
 - description: Additional context if provided (optional, can be empty string)
-- dueDate: If a specific date/time is mentioned, parse it (format: YYYY-MM-DD). If "tomorrow" is mentioned, calculate the date. Default to null if no date mentioned.
+- dueDate: If a specific date/time is mentioned, parse it (format: YYYY-MM-DD). If "tomorrow" is mentioned, calculate the date. If NO date is mentioned, DEFAULT TO TODAY'S DATE (${currentDate}).
 - priority: "low", "medium", or "high" based on urgency words like "urgent", "ASAP", "immediately" = high; "when you get a chance" = low; default to "medium"
 
 Current lead data for context:
@@ -155,7 +155,7 @@ Output:
 {
   "detectedUpdates": [],
   "taskSuggestions": [
-    {"title": "Follow up with underwriter", "description": "", "dueDate": null, "priority": "medium"}
+    {"title": "Follow up with underwriter", "description": "", "dueDate": "${currentDate}", "priority": "medium"}
   ]
 }
 
@@ -187,7 +187,7 @@ Output:
     {"field": "appraisal_status", "fieldLabel": "Appraisal Status", "currentValue": null, "newValue": "Received"}
   ],
   "taskSuggestions": [
-    {"title": "Call buyer's agent to discuss appraisal", "description": "Appraisal came back at $425,000", "dueDate": null, "priority": "high"}
+    {"title": "Call buyer's agent to discuss appraisal", "description": "Appraisal came back at $425,000", "dueDate": "${currentDate}", "priority": "high"}
   ]
 }
 

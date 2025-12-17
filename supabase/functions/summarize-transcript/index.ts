@@ -31,13 +31,13 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are summarizing a voice discussion about a mortgage loan file. 
-Extract and format the key updates, action items, and important notes mentioned.
-Format as bullet points. Be concise but capture all important details.
-Do not include any greeting or sign-off. Just provide the summary bullet points.
-Use this format:
-• Point 1
-• Point 2
-• Point 3`;
+Extract and format the key updates in a very condensed format.
+IMPORTANT: Keep the summary to 2 short bullet points MAXIMUM. Be extremely concise.
+Each bullet point should be one sentence only.
+Do not include any greeting or sign-off.
+Format:
+• Point 1 (one sentence)
+• Point 2 (one sentence, if needed)`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -78,17 +78,19 @@ Use this format:
     const data = await response.json();
     const summary = data.choices?.[0]?.message?.content || '';
 
-    // Add timestamp to summary
+    // Add timestamp to summary - use Eastern time
     const now = new Date();
     const formattedDate = now.toLocaleDateString('en-US', { 
       month: '2-digit', 
       day: '2-digit', 
-      year: '2-digit' 
+      year: '2-digit',
+      timeZone: 'America/New_York'
     });
     const formattedTime = now.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit', 
-      hour12: true 
+      hour12: true,
+      timeZone: 'America/New_York'
     });
     
     const timestampedSummary = `[${formattedDate} ${formattedTime}]\n${summary}`;

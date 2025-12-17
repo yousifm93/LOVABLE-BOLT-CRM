@@ -34,6 +34,7 @@ import { ContactInfoCard } from "@/components/lead-details/ContactInfoCard";
 import { SendEmailTemplatesCard } from "@/components/lead-details/SendEmailTemplatesCard";
 import { RealEstateOwnedSection } from "@/components/lead-details/RealEstateOwnedSection";
 import { PipelineStageBar } from "@/components/PipelineStageBar";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -141,6 +142,7 @@ export function ClientDetailDrawer({
   const [isSummarizingTranscript, setIsSummarizingTranscript] = useState(false);
   const hasAutoStartedRecording = React.useRef(false);
   const needsReviewUpdate = React.useRef(false);
+  const justProcessedVoice = React.useRef(false);
 
   // Field update confirmation modal state
   const [showFieldUpdateModal, setShowFieldUpdateModal] = useState(false);
@@ -366,6 +368,11 @@ export function ClientDetailDrawer({
 
   // Auto-start recording when opening from Review mode
   React.useEffect(() => {
+    // Don't auto-start if we just processed voice (to prevent restart after confirmation modal)
+    if (justProcessedVoice.current) {
+      justProcessedVoice.current = false;
+      return;
+    }
     if (isOpen && autoStartRecording && leadId && !hasAutoStartedRecording.current && !isRecordingFileUpdates && !isSummarizingTranscript) {
       hasAutoStartedRecording.current = true;
       // Small delay to let the drawer fully open
@@ -803,6 +810,9 @@ export function ClientDetailDrawer({
     currentValue: string | number | null;
     newValue: string | number;
   }>) => {
+    // Mark that we just processed voice to prevent microphone restart
+    justProcessedVoice.current = true;
+    
     for (const update of selectedUpdates) {
       try {
         let fieldName = update.field;
@@ -1198,6 +1208,24 @@ export function ClientDetailDrawer({
 
         return <div className="overflow-y-auto flex flex-col p-4 pb-6 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-4 gap-4">
+              {/* Row 0: Status Fields - Appraisal, Title, HOI, Condo */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Appraisal</span>
+                <StatusBadge status={(client as any).appraisal_status || '—'} className="text-xs h-6 min-w-0 px-2" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Title</span>
+                <StatusBadge status={(client as any).title_status || '—'} className="text-xs h-6 min-w-0 px-2" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">HOI</span>
+                <StatusBadge status={(client as any).hoi_status || '—'} className="text-xs h-6 min-w-0 px-2" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Condo</span>
+                <StatusBadge status={(client as any).condo_status || '—'} className="text-xs h-6 min-w-0 px-2" />
+              </div>
+
               {/* Row 1: Lender Loan #, LTV, Credit Score, Interest Rate */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Lender Loan #</span>
@@ -1244,10 +1272,10 @@ export function ClientDetailDrawer({
                 </span>
               </div>
 
-              {/* Row 3: Occupancy, Closing Costs, Lock Expiration, DTI */}
+              {/* Row 3: Lender, Closing Costs, Lock Expiration, DTI */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Occupancy</span>
-                <span className="text-sm font-medium">{localOccupancy ?? (client as any).occupancy ?? '—'}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Lender</span>
+                <span className="text-sm font-medium">{(client as any).lender_name || (client as any).lenderName || '—'}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Closing Costs</span>
@@ -2466,7 +2494,7 @@ export function ClientDetailDrawer({
                   </div>}
                 {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
-                    Last updated: {format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}
+                    Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
                     {fileUpdatesUpdatedByUser && <>
                         <span>•</span>
                         <User className="h-3 w-3" />
