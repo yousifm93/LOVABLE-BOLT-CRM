@@ -127,7 +127,6 @@ function DraggableEmailItem({ email, isSelected, onClick, children, showCheckbox
         >
           <Checkbox
             checked={isChecked}
-            onCheckedChange={(checked) => onCheckChange?.(!!checked, false)}
             onClick={(e) => {
               e.stopPropagation();
               onCheckChange?.(!isChecked, e.shiftKey);
@@ -353,24 +352,26 @@ export default function Email() {
   }, [toast, fetchEmailTags]);
 
   // Fetch attachments from documents table (primary) or email_logs (fallback)
+  // Uses subject-only matching since email.date is a display string (e.g., "10:47 AM")
   const fetchAttachments = useCallback(async (email: EmailMessage) => {
     try {
-      const emailDate = new Date(email.date);
-      if (isNaN(emailDate.getTime())) {
-        console.error('Invalid email date:', email.date);
+      const cleanedSubject = cleanSubjectForMatching(email.subject);
+      
+      if (!cleanedSubject) {
         return [];
       }
       
-      const startDate = new Date(emailDate.getTime() - 5 * 60 * 1000); // 5 minutes before
-      const endDate = new Date(emailDate.getTime() + 5 * 60 * 1000); // 5 minutes after
+      // Search within last 30 days by subject match
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       // First get email_log to find lead_id
       const { data: emailLog, error: logError } = await supabase
         .from('email_logs')
         .select('id, lead_id, attachments_json')
-        .gte('timestamp', startDate.toISOString())
-        .lte('timestamp', endDate.toISOString())
-        .ilike('subject', `%${cleanSubjectForMatching(email.subject)}%`)
+        .ilike('subject', `%${cleanedSubject}%`)
+        .gte('timestamp', thirtyDaysAgo.toISOString())
+        .order('timestamp', { ascending: false })
         .limit(1)
         .single();
 
@@ -384,9 +385,7 @@ export default function Email() {
           .from('documents')
           .select('file_name, file_url, mime_type, size_bytes')
           .eq('lead_id', emailLog.lead_id)
-          .eq('source', 'Email')
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .eq('source', 'Email');
         
         if (!docsError && documents && documents.length > 0) {
           return documents.map(doc => ({

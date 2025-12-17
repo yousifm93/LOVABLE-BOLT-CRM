@@ -2245,9 +2245,7 @@ export function ClientDetailDrawer({
           <div className="space-y-4 overflow-y-auto flex flex-col">
             {/* Status Tracker Pills - Condensed gray box */}
             <Card className="h-[320px] flex flex-col">
-              <CardHeader className="pb-3 flex-shrink-0">
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto">
+              <CardContent className="flex-1 overflow-y-auto pt-4">
               {(pipelineType === 'leads' || pipelineType === 'active' || pipelineType === 'past-clients') && (() => {
                 // Check if lead is in Active pipeline stage by checking pipeline_stage.name or pipeline_stage_id
                 const pipelineStageName = (client as any).pipeline_stage?.name || '';
