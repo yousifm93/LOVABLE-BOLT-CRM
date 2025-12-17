@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +20,13 @@ import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
 import { format } from "date-fns";
+
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 interface EmailComment {
   id: string;
@@ -217,6 +226,13 @@ export default function Email() {
   // Comments state
   const [emailComments, setEmailComments] = useState<EmailComment[]>([]);
   const [commentText, setCommentText] = useState("");
+  
+  // @ mention state
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [showMentionPopover, setShowMentionPopover] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  const commentInputRef = useRef<HTMLInputElement>(null);
   const [isAddingComment, setIsAddingComment] = useState(false);
   
   const [composeData, setComposeData] = useState({
@@ -480,6 +496,24 @@ export default function Email() {
       setIsLoadingContent(false);
     }
   };
+
+  // Fetch team members for @ mentions
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email')
+          .eq('is_active', true);
+        
+        if (error) throw error;
+        setTeamMembers((data || []) as TeamMember[]);
+      } catch (error) {
+        console.error('Error fetching team members:', error);
+      }
+    };
+    fetchTeamMembers();
+  }, []);
 
   useEffect(() => {
     fetchEmailCategories();
@@ -1219,7 +1253,7 @@ export default function Email() {
                   Clear selection
                 </button>
                 
-                {/* Action buttons row */}
+                {/* Action buttons - 8 buttons in row */}
                 <div className="flex items-center gap-2 flex-wrap justify-center">
                   <Button variant="outline" size="sm" onClick={() => handleBulkImapMove('archive')}>
                     <Archive className="h-4 w-4 mr-2" /> Archive
@@ -1230,27 +1264,18 @@ export default function Email() {
                   <Button variant="outline" size="sm" onClick={() => handleBulkImapMove('starred')}>
                     <Star className="h-4 w-4 mr-2" /> Star
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <ArrowRight className="h-4 w-4 mr-2" /> Move
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleBulkMove('needs_attention')}>
-                        <AlertCircle className="h-4 w-4 mr-2 text-amber-500" /> Needs Attention
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_file')}>
-                        <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> Reviewed - File
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_lender_marketing')}>
-                        <CheckCircle className="h-4 w-4 mr-2 text-blue-500" /> Reviewed - Lender Mktg
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleBulkMove('reviewed_na')}>
-                        <CheckCircle className="h-4 w-4 mr-2 text-gray-500" /> Reviewed - N/A
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkMove('needs_attention')}>
+                    <AlertCircle className="h-4 w-4 mr-2 text-amber-500" /> Needs Attention
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkMove('reviewed_file')}>
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> Reviewed - File
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkMove('reviewed_lender_marketing')}>
+                    <CheckCircle className="h-4 w-4 mr-2 text-blue-500" /> Lender Mktg
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkMove('reviewed_na')}>
+                    <CheckCircle className="h-4 w-4 mr-2 text-gray-500" /> N/A
+                  </Button>
                 </div>
               </div>
             ) : selectedEmail ? (
@@ -1366,26 +1391,115 @@ export default function Email() {
                       </div>
                     )}
                     
-                    {/* Comment input */}
+                    {/* Comment input with @ mention support */}
                     <div className="relative">
-                      <Input
-                        value={commentText}
-                        onChange={e => setCommentText(e.target.value)}
-                        placeholder="Add internal comment..."
-                        className="pr-24"
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleAddComment();
-                          }
-                        }}
-                        disabled={isAddingComment}
-                      />
+                      <Popover open={showMentionPopover} onOpenChange={setShowMentionPopover}>
+                        <PopoverTrigger asChild>
+                          <div className="relative">
+                            <Input
+                              ref={commentInputRef}
+                              value={commentText}
+                              onChange={e => {
+                                const value = e.target.value;
+                                const cursorPos = e.target.selectionStart || 0;
+                                setCommentText(value);
+                                setMentionCursorPosition(cursorPos);
+                                
+                                // Check if user just typed @
+                                const lastAtIndex = value.lastIndexOf('@', cursorPos);
+                                if (lastAtIndex !== -1) {
+                                  const textAfterAt = value.substring(lastAtIndex + 1, cursorPos);
+                                  // Show popover if there's no space after @
+                                  if (!textAfterAt.includes(' ') && textAfterAt.length < 20) {
+                                    setMentionSearch(textAfterAt.toLowerCase());
+                                    setShowMentionPopover(true);
+                                  } else {
+                                    setShowMentionPopover(false);
+                                  }
+                                } else {
+                                  setShowMentionPopover(false);
+                                }
+                              }}
+                              placeholder="Add internal comment... (type @ to mention)"
+                              className="pr-24"
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.shiftKey && !showMentionPopover) {
+                                  e.preventDefault();
+                                  handleAddComment();
+                                }
+                                if (e.key === 'Escape') {
+                                  setShowMentionPopover(false);
+                                }
+                              }}
+                              disabled={isAddingComment}
+                            />
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0" align="start" side="top">
+                          <Command>
+                            <CommandInput placeholder="Search teammates..." value={mentionSearch} onValueChange={setMentionSearch} />
+                            <CommandList>
+                              <CommandEmpty>No teammates found.</CommandEmpty>
+                              <CommandGroup heading="Team Members">
+                                {teamMembers
+                                  .filter(m => 
+                                    `${m.first_name} ${m.last_name}`.toLowerCase().includes(mentionSearch) ||
+                                    m.email?.toLowerCase().includes(mentionSearch)
+                                  )
+                                  .slice(0, 6)
+                                  .map(member => (
+                                    <CommandItem
+                                      key={member.id}
+                                      value={`${member.first_name} ${member.last_name}`}
+                                      onSelect={() => {
+                                        // Insert mention into comment text
+                                        const lastAtIndex = commentText.lastIndexOf('@', mentionCursorPosition);
+                                        const beforeAt = commentText.substring(0, lastAtIndex);
+                                        const afterCursor = commentText.substring(mentionCursorPosition);
+                                        const mentionText = `@${member.first_name}`;
+                                        setCommentText(`${beforeAt}${mentionText} ${afterCursor}`);
+                                        setShowMentionPopover(false);
+                                        setMentionSearch("");
+                                        // Focus back on input
+                                        setTimeout(() => commentInputRef.current?.focus(), 0);
+                                      }}
+                                    >
+                                      <Avatar className="h-6 w-6 mr-2">
+                                        <AvatarFallback className="text-xs">
+                                          {member.first_name?.[0]}{member.last_name?.[0]}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {member.first_name} {member.last_name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Attach file">
                           <Paperclip className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Mention">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6" 
+                          title="Mention teammate"
+                          onClick={() => {
+                            const newText = commentText + '@';
+                            setCommentText(newText);
+                            setMentionCursorPosition(newText.length);
+                            setShowMentionPopover(true);
+                            setMentionSearch("");
+                            commentInputRef.current?.focus();
+                          }}
+                        >
                           <AtSign className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Emoji">
@@ -1394,7 +1508,7 @@ export default function Email() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Internal comments visible to team only
+                      Internal comments visible to team only • Type @ to mention
                     </p>
                   </div>
                 </div>

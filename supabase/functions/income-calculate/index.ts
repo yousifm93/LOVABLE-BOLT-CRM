@@ -1145,7 +1145,7 @@ serve(async (req) => {
       }
     }
 
-    // ===== PROCESS FORM 1040s =====
+    // ===== PROCESS FORM 1040s (ENHANCED - captures all income sources) =====
     const form1040s = docsByType['form_1040'] || [];
     if (form1040s.length > 0) {
       // Group by tax year
@@ -1158,58 +1158,143 @@ serve(async (req) => {
 
       const years = Object.keys(form1040ByYear).sort((a, b) => parseInt(b) - parseInt(a));
       
-      // Check if we already have base income from pay stubs or W-2s
+      // Check if we already have income from other sources
       const hasBaseIncome = components.some(c => 
         ['base_hourly', 'base_salary', 'w2_income'].includes(c.component_type)
       );
+      const hasSelfEmploymentIncome = components.some(c => 
+        ['self_employment', 's_corp_income', 'partnership_k1_income'].includes(c.component_type)
+      );
+      const hasRentalIncome = components.some(c => c.component_type === 'rental_income');
 
-      if (!hasBaseIncome && years.length > 0) {
-        if (years.length >= 2) {
-          // Have 2 years - calculate trending from 1040 line 1 (W-2 wages)
-          const year1 = parseInt(years[1]);
-          const year2 = parseInt(years[0]);
+      // ALWAYS process 1040 to capture Line 8 Schedule 1 income (business income not from separate docs)
+      if (years.length > 0) {
+        for (const yearStr of years) {
+          const yearForms = form1040ByYear[parseInt(yearStr)];
           
-          const year1Wages = form1040ByYear[year1].reduce((sum, f) => 
-            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
-          const year2Wages = form1040ByYear[year2].reduce((sum, f) => 
-            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
-
-          if (year1Wages > 0 || year2Wages > 0) {
-            const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(
-              year1Wages, year2Wages, '1040_wages'
-            );
-
-            components.push({
-              component_type: 'form_1040_wages',
-              monthly_amount: monthlyAmount,
-              calculation_method: `Form 1040 Line 1: ${method}`,
-              source_documents: form1040s.map(f => f.id),
-              months_considered: 24,
-              trend_direction: trend,
-              trend_percentage: trendPct,
-              year1_amount: year1Wages,
-              year2_amount: year2Wages,
-              notes: `${year1}: $${year1Wages.toLocaleString()} | ${year2}: $${year2Wages.toLocaleString()}`
-            });
-            totalMonthlyIncome += monthlyAmount;
+          for (const form of yearForms) {
+            const data = form.data;
+            
+            // Line 1 - Wages (only if not already captured)
+            if (!hasBaseIncome) {
+              const wages = parseFloat(data.line1_wages) || parseFloat(data.line_1_wages) || 0;
+              if (wages > 0 && years.length >= 2) {
+                // Use trending for wages across years
+                const year1 = parseInt(years[1]);
+                const year2 = parseInt(years[0]);
+                const year1Wages = form1040ByYear[year1]?.reduce((sum, f) => 
+                  sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0) || 0;
+                const year2Wages = form1040ByYear[year2]?.reduce((sum, f) => 
+                  sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0) || 0;
+                
+                const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(year1Wages, year2Wages, '1040_wages');
+                
+                components.push({
+                  component_type: 'form_1040_wages',
+                  monthly_amount: monthlyAmount,
+                  calculation_method: `Form 1040 Line 1: ${method}`,
+                  source_documents: form1040s.map(f => f.id),
+                  months_considered: 24,
+                  trend_direction: trend,
+                  trend_percentage: trendPct,
+                  year1_amount: year1Wages,
+                  year2_amount: year2Wages,
+                  notes: `${year1}: $${year1Wages.toLocaleString()} | ${year2}: $${year2Wages.toLocaleString()}`
+                });
+                totalMonthlyIncome += monthlyAmount;
+                // Mark as processed so we don't add again
+                break;
+              } else if (wages > 0) {
+                components.push({
+                  component_type: 'form_1040_wages',
+                  monthly_amount: wages / 12,
+                  calculation_method: 'Form 1040 Line 1 single year ÷ 12',
+                  source_documents: [form.id],
+                  months_considered: 12,
+                  notes: `Tax year ${yearStr}: $${wages.toLocaleString()}`
+                });
+                totalMonthlyIncome += wages / 12;
+              }
+            }
+            
+            // Line 8 - Schedule 1 Additional Income (includes business income from attached schedules)
+            // This captures Schedule C/E/F net income that flows to 1040
+            if (!hasSelfEmploymentIncome && !hasRentalIncome) {
+              const schedule1Income = parseFloat(data.line8_schedule1_income) || parseFloat(data.line_8_schedule1_income) || 0;
+              if (schedule1Income > 0) {
+                // Calculate with 2-year trending if available
+                if (years.length >= 2) {
+                  const year1 = parseInt(years[1]);
+                  const year2 = parseInt(years[0]);
+                  const year1Schedule1 = form1040ByYear[year1]?.reduce((sum, f) => 
+                    sum + (parseFloat(f.data.line8_schedule1_income) || parseFloat(f.data.line_8_schedule1_income) || 0), 0) || 0;
+                  const year2Schedule1 = form1040ByYear[year2]?.reduce((sum, f) => 
+                    sum + (parseFloat(f.data.line8_schedule1_income) || parseFloat(f.data.line_8_schedule1_income) || 0), 0) || 0;
+                  
+                  if (year1Schedule1 > 0 || year2Schedule1 > 0) {
+                    const { monthlyAmount, trend, trendPct, method } = calculateVariableIncome(year1Schedule1, year2Schedule1, 'schedule1_income');
+                    
+                    components.push({
+                      component_type: 'schedule_1_business_income',
+                      monthly_amount: monthlyAmount,
+                      calculation_method: `Form 1040 Line 8 (Schedule 1 business income): ${method}`,
+                      source_documents: form1040s.map(f => f.id),
+                      months_considered: 24,
+                      trend_direction: trend,
+                      trend_percentage: trendPct,
+                      year1_amount: year1Schedule1,
+                      year2_amount: year2Schedule1,
+                      notes: `Includes Schedule C/E/F net - ${year1}: $${year1Schedule1.toLocaleString()} | ${year2}: $${year2Schedule1.toLocaleString()}`
+                    });
+                    totalMonthlyIncome += monthlyAmount;
+                    warnings.push('Schedule 1 income captured from 1040 - upload individual Schedules C/E/F for add-back calculations');
+                  }
+                } else if (schedule1Income > 0) {
+                  components.push({
+                    component_type: 'schedule_1_business_income',
+                    monthly_amount: schedule1Income / 12,
+                    calculation_method: 'Form 1040 Line 8 (Schedule 1 business income) single year ÷ 12',
+                    source_documents: [form.id],
+                    months_considered: 12,
+                    notes: `Tax year ${yearStr}: $${schedule1Income.toLocaleString()} - Upload Schedule C/E/F for depreciation add-backs`
+                  });
+                  totalMonthlyIncome += schedule1Income / 12;
+                  warnings.push('Schedule 1 income from 1040 only - upload individual Schedules C/E/F for depreciation add-backs to maximize income');
+                }
+                break; // Only process once for trending
+              }
+            }
+            
+            // Capture other income from 1040 that might not be in separate docs
+            // Interest income (Line 2b)
+            const taxableInterest = parseFloat(data.line2b_taxable_interest) || 0;
+            if (taxableInterest > 1200) { // Only include if significant ($100+/month)
+              components.push({
+                component_type: 'interest_income',
+                monthly_amount: taxableInterest / 12,
+                calculation_method: 'Form 1040 Line 2b taxable interest ÷ 12',
+                source_documents: [form.id],
+                notes: `Tax year ${yearStr}: $${taxableInterest.toLocaleString()}`
+              });
+              totalMonthlyIncome += taxableInterest / 12;
+            }
+            
+            // Dividend income (Line 3b)
+            const dividends = parseFloat(data.line3b_ordinary_dividends) || 0;
+            if (dividends > 1200) { // Only include if significant
+              components.push({
+                component_type: 'dividend_income',
+                monthly_amount: dividends / 12,
+                calculation_method: 'Form 1040 Line 3b ordinary dividends ÷ 12',
+                source_documents: [form.id],
+                notes: `Tax year ${yearStr}: $${dividends.toLocaleString()}`
+              });
+              totalMonthlyIncome += dividends / 12;
+            }
           }
-        } else {
-          // Single year 1040
-          const yearWages = form1040ByYear[parseInt(years[0])].reduce((sum, f) => 
-            sum + (parseFloat(f.data.line1_wages) || parseFloat(f.data.line_1_wages) || 0), 0);
           
-          if (yearWages > 0) {
-            components.push({
-              component_type: 'form_1040_wages',
-              monthly_amount: yearWages / 12,
-              calculation_method: 'Form 1040 Line 1 single year ÷ 12 (2-year history recommended)',
-              source_documents: form1040s.map(f => f.id),
-              months_considered: 12,
-              notes: `Tax year ${years[0]}: $${yearWages.toLocaleString()}`
-            });
-            totalMonthlyIncome += yearWages / 12;
-            warnings.push('Only 1 year of Form 1040 - recommend 2 years for trending analysis');
-          }
+          // Only process first year's non-business income (interest/dividends don't need trending)
+          break;
         }
       }
     }
