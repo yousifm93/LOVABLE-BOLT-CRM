@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calculator, FileText, AlertTriangle, Download, User } from "lucide-react";
+import { Plus, Calculator, FileText, AlertTriangle, Download, User, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -466,6 +466,32 @@ export default function IncomeCalculator() {
                     <FileText className="h-4 w-4" />
                     Documents ({documents.length})
                   </span>
+                  {documents.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        setIsUploading(true);
+                        try {
+                          for (const doc of documents) {
+                            await supabase.functions.invoke('income-ocr', {
+                              body: { documentId: doc.id }
+                            });
+                          }
+                          // Reload documents after reprocessing
+                          setTimeout(loadDocuments, 2000);
+                        } catch (err) {
+                          console.error('Reprocess error:', err);
+                        } finally {
+                          setIsUploading(false);
+                        }
+                      }}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                      Reprocess All
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
