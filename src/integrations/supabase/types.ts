@@ -1076,6 +1076,65 @@ export type Database = {
           },
         ]
       }
+      daily_market_updates: {
+        Row: {
+          ai_market_summary: string | null
+          change_15yr_fixed: number | null
+          change_30yr_fha: number | null
+          change_30yr_fixed: number | null
+          created_at: string | null
+          date: string
+          id: string
+          pricing_run_id: string | null
+          rate_15yr_fixed: number | null
+          rate_30yr_fha: number | null
+          rate_30yr_fixed: number | null
+          rate_bank_statement: number | null
+          rate_dscr: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_market_summary?: string | null
+          change_15yr_fixed?: number | null
+          change_30yr_fha?: number | null
+          change_30yr_fixed?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          pricing_run_id?: string | null
+          rate_15yr_fixed?: number | null
+          rate_30yr_fha?: number | null
+          rate_30yr_fixed?: number | null
+          rate_bank_statement?: number | null
+          rate_dscr?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_market_summary?: string | null
+          change_15yr_fixed?: number | null
+          change_30yr_fha?: number | null
+          change_30yr_fixed?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          pricing_run_id?: string | null
+          rate_15yr_fixed?: number | null
+          rate_30yr_fha?: number | null
+          rate_30yr_fixed?: number | null
+          rate_bank_statement?: number | null
+          rate_dscr?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_market_updates_pricing_run_id_fkey"
+            columns: ["pricing_run_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string

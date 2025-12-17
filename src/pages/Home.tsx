@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
 import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
+import { MarketRatesCard } from "@/components/dashboard/MarketRatesCard";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -334,6 +335,9 @@ export default function Home() {
             Quickly access your recent boards, inbox, and workspaces.
           </p>
         </div>
+
+        {/* Market Rates Section */}
+        <MarketRatesCard />
 
         {/* Search Bar with Dropdown */}
         <div ref={searchRef} className="relative max-w-2xl">

@@ -69,7 +69,7 @@ export function EmailTagPopover({ tagData, className }: EmailTagPopoverProps) {
         <button
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full truncate max-w-[100px] hover:bg-primary/20 transition-colors font-medium",
+            "bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full truncate max-w-[140px] hover:bg-primary/20 transition-colors font-medium",
             className
           )}
         >
