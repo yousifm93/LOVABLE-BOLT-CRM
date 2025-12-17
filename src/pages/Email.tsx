@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +55,7 @@ interface EmailCategory {
   id: string;
   email_uid: number;
   email_folder: string;
-  category: 'needs_attention' | 'reviewed';
+  category: 'needs_attention' | 'reviewed_file' | 'reviewed_lender_marketing' | 'reviewed_na';
 }
 
 const folders = [
@@ -66,8 +67,10 @@ const folders = [
 ];
 
 const customCategories = [
-  { name: "Needs Attention", icon: AlertCircle, key: 'needs_attention' as const },
-  { name: "Reviewed", icon: CheckCircle, key: 'reviewed' as const },
+  { name: "Needs Attention", icon: AlertCircle, key: 'needs_attention' as const, color: 'text-amber-500' },
+  { name: "Reviewed - File", icon: CheckCircle, key: 'reviewed_file' as const, color: 'text-green-500' },
+  { name: "Reviewed - Lender Mktg", icon: CheckCircle, key: 'reviewed_lender_marketing' as const, color: 'text-blue-500' },
+  { name: "Reviewed - N/A", icon: CheckCircle, key: 'reviewed_na' as const, color: 'text-gray-500' },
 ];
 
 // Strip forward prefixes from subject lines (belt-and-suspenders with backend)
@@ -88,11 +91,14 @@ const getMatchKey = (date: Date, subject: string) => {
 };
 
 // Draggable email item component
-function DraggableEmailItem({ email, isSelected, onClick, children }: {
+function DraggableEmailItem({ email, isSelected, onClick, children, showCheckbox, isChecked, onCheckChange }: {
   email: EmailMessage;
   isSelected: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  showCheckbox?: boolean;
+  isChecked?: boolean;
+  onCheckChange?: (checked: boolean, shiftKey: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `email-${email.uid}`,
@@ -114,10 +120,29 @@ function DraggableEmailItem({ email, isSelected, onClick, children }: {
       )}
       onClick={onClick}
     >
+      {showCheckbox && (
+        <div 
+          className="absolute left-1 top-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={(checked) => onCheckChange?.(!!checked, false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCheckChange?.(!isChecked, e.shiftKey);
+            }}
+            className="h-4 w-4"
+          />
+        </div>
+      )}
       <div 
         {...listeners} 
         {...attributes}
-        className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing"
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing",
+          showCheckbox ? "left-6" : "left-1"
+        )}
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -163,14 +188,25 @@ export default function Email() {
   const [emailTagsMap, setEmailTagsMap] = useState<Map<string, EmailTagData>>(new Map());
   const [lenderMarketingMap, setLenderMarketingMap] = useState<Map<string, LenderMarketingData>>(new Map());
   const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({ needs_attention: 0, reviewed: 0 });
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({ 
+    needs_attention: 0, 
+    reviewed_file: 0, 
+    reviewed_lender_marketing: 0, 
+    reviewed_na: 0 
+  });
   const [draggedEmail, setDraggedEmail] = useState<EmailMessage | null>(null);
+  
+  // Multi-select state
+  const [selectedEmails, setSelectedEmails] = useState<Set<number>>(new Set());
+  const lastSelectedIndex = useRef<number | null>(null);
   
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
     body: "",
   });
+
+  const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
 
   // Fetch email categories from database
   const fetchEmailCategories = useCallback(async () => {
@@ -183,11 +219,17 @@ export default function Email() {
       
       setEmailCategories((data || []) as EmailCategory[]);
       
-      // Calculate counts
-      const counts = { needs_attention: 0, reviewed: 0 };
+      // Calculate counts for all 4 categories
+      const counts = { 
+        needs_attention: 0, 
+        reviewed_file: 0, 
+        reviewed_lender_marketing: 0, 
+        reviewed_na: 0 
+      };
       for (const cat of (data || [])) {
-        if (cat.category === 'needs_attention') counts.needs_attention++;
-        else if (cat.category === 'reviewed') counts.reviewed++;
+        if (counts.hasOwnProperty(cat.category)) {
+          counts[cat.category as keyof typeof counts]++;
+        }
       }
       setCategoryCounts(counts);
     } catch (error) {
@@ -310,27 +352,53 @@ export default function Email() {
     }
   }, [toast, fetchEmailTags]);
 
-  // Fetch attachments from email_logs for the selected email
+  // Fetch attachments from documents table (primary) or email_logs (fallback)
   const fetchAttachments = useCallback(async (email: EmailMessage) => {
     try {
       const emailDate = new Date(email.date);
+      if (isNaN(emailDate.getTime())) {
+        console.error('Invalid email date:', email.date);
+        return [];
+      }
+      
       const startDate = new Date(emailDate.getTime() - 5 * 60 * 1000); // 5 minutes before
       const endDate = new Date(emailDate.getTime() + 5 * 60 * 1000); // 5 minutes after
       
-      const { data: emailLog, error } = await supabase
+      // First get email_log to find lead_id
+      const { data: emailLog, error: logError } = await supabase
         .from('email_logs')
-        .select('attachments_json')
+        .select('id, lead_id, attachments_json')
         .gte('timestamp', startDate.toISOString())
         .lte('timestamp', endDate.toISOString())
         .ilike('subject', `%${cleanSubjectForMatching(email.subject)}%`)
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching attachments:', error);
-        return [];
+      if (logError && logError.code !== 'PGRST116') {
+        console.error('Error fetching email log:', logError);
       }
 
+      // If we have a lead_id, fetch documents with actual URLs
+      if (emailLog?.lead_id) {
+        const { data: documents, error: docsError } = await supabase
+          .from('documents')
+          .select('file_name, file_url, mime_type, size_bytes')
+          .eq('lead_id', emailLog.lead_id)
+          .eq('source', 'Email')
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+        
+        if (!docsError && documents && documents.length > 0) {
+          return documents.map(doc => ({
+            name: doc.file_name,
+            type: doc.mime_type || 'application/octet-stream',
+            size: doc.size_bytes || 0,
+            url: doc.file_url,
+          }));
+        }
+      }
+      
+      // Fallback to attachments_json (without URLs for download)
       if (emailLog?.attachments_json) {
         const attachments = emailLog.attachments_json as any[];
         return attachments.map((att: any) => ({
@@ -348,19 +416,20 @@ export default function Email() {
     }
   }, []);
 
-  const fetchEmailContent = async (uid: number) => {
+  // Fixed: Pass email object directly to avoid timing bug
+  const fetchEmailContent = async (email: EmailMessage) => {
     setIsLoadingContent(true);
     setEmailContent(null);
     try {
       const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
-        body: { folder: selectedFolder, fetchContent: true, messageUid: uid },
+        body: { folder: selectedFolder, fetchContent: true, messageUid: email.uid },
       });
 
       if (error) throw error;
 
       if (data?.success && data.email) {
-        // Fetch attachments from email_logs
-        const attachments = selectedEmail ? await fetchAttachments(selectedEmail) : [];
+        // Pass the email directly - no timing issue!
+        const attachments = await fetchAttachments(email);
         
         setEmailContent({
           body: data.email.body,
@@ -388,7 +457,7 @@ export default function Email() {
 
   const handleSelectEmail = (email: EmailMessage) => {
     setSelectedEmail(email);
-    fetchEmailContent(email.uid);
+    fetchEmailContent(email); // Pass email directly
   };
 
   const handleCompose = () => {
@@ -483,7 +552,21 @@ export default function Email() {
     setDraggedEmail(email || null);
   };
 
-  // Handle drag end - add email to category
+  // Helper to check if email has file tag
+  const hasFileTag = (email: EmailMessage) => {
+    const emailDate = new Date(email.date);
+    const compositeKey = getMatchKey(emailDate, email.subject || '');
+    if (emailTagsMap.has(compositeKey)) return true;
+    const subjectKey = cleanSubjectForMatching(email.subject || '');
+    return emailTagsMap.has(subjectKey);
+  };
+
+  // Helper to check if email has lender marketing tag
+  const hasMarketingTag = (email: EmailMessage) => {
+    return !!getLenderMarketingData(email);
+  };
+
+  // Handle drag end - add email to category with smart detection
   const handleDragEnd = async (event: DragEndEvent) => {
     setDraggedEmail(null);
     
@@ -493,51 +576,23 @@ export default function Email() {
     const email = (active.data.current as any)?.email as EmailMessage;
     if (!email) return;
 
-    const dropTarget = over.id as string;
+    let dropTarget = over.id as string;
+    
+    // Smart auto-detection for generic "reviewed" drops
+    if (dropTarget.startsWith('reviewed') && !dropTarget.includes('_')) {
+      // Auto-detect based on tags
+      if (hasFileTag(email)) {
+        dropTarget = 'reviewed_file';
+      } else if (hasMarketingTag(email)) {
+        dropTarget = 'reviewed_lender_marketing';
+      } else {
+        dropTarget = 'reviewed_na';
+      }
+    }
     
     // Check if dropping on a custom category
-    if (dropTarget === 'needs_attention' || dropTarget === 'reviewed') {
-      try {
-        // Check if already in this category
-        const existing = emailCategories.find(
-          c => c.email_uid === email.uid && c.email_folder === selectedFolder
-        );
-
-        if (existing) {
-          // Update existing
-          const { error } = await supabase
-            .from('email_categories')
-            .update({ category: dropTarget, updated_at: new Date().toISOString() })
-            .eq('id', existing.id);
-
-          if (error) throw error;
-        } else {
-          // Insert new
-          const { error } = await supabase
-            .from('email_categories')
-            .insert({
-              email_uid: email.uid,
-              email_folder: selectedFolder || 'Inbox',
-              category: dropTarget,
-            });
-
-          if (error) throw error;
-        }
-
-        toast({
-          title: "Email categorized",
-          description: `Moved to ${dropTarget === 'needs_attention' ? 'Needs Attention' : 'Reviewed'}`,
-        });
-
-        fetchEmailCategories();
-      } catch (error: any) {
-        console.error('Error categorizing email:', error);
-        toast({
-          title: "Failed to categorize",
-          description: error.message || "Could not move the email.",
-          variant: "destructive",
-        });
-      }
+    if (['needs_attention', 'reviewed_file', 'reviewed_lender_marketing', 'reviewed_na'].includes(dropTarget)) {
+      await assignEmailToCategory(email, dropTarget as EmailCategory['category']);
     } else if (['Archive', 'Trash', 'Starred'].includes(dropTarget)) {
       toast({
         title: "IMAP folder move",
@@ -546,7 +601,128 @@ export default function Email() {
     }
   };
 
-  const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
+  // Assign email to category
+  const assignEmailToCategory = async (email: EmailMessage, category: EmailCategory['category']) => {
+    try {
+      const existing = emailCategories.find(
+        c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox')
+      );
+
+      if (existing) {
+        const { error } = await supabase
+          .from('email_categories')
+          .update({ category, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('email_categories')
+          .insert({
+            email_uid: email.uid,
+            email_folder: selectedFolder || 'Inbox',
+            category,
+          });
+        if (error) throw error;
+      }
+
+      const categoryName = customCategories.find(c => c.key === category)?.name || category;
+      toast({
+        title: "Email categorized",
+        description: `Moved to ${categoryName}`,
+      });
+
+      fetchEmailCategories();
+    } catch (error: any) {
+      console.error('Error categorizing email:', error);
+      toast({
+        title: "Failed to categorize",
+        description: error.message || "Could not move the email.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Multi-select: Toggle email selection with shift support
+  const toggleEmailSelection = (uid: number, shiftKey: boolean, emailIndex: number) => {
+    setSelectedEmails(prev => {
+      const newSet = new Set(prev);
+      
+      if (shiftKey && lastSelectedIndex.current !== null) {
+        // Range selection
+        const start = Math.min(lastSelectedIndex.current, emailIndex);
+        const end = Math.max(lastSelectedIndex.current, emailIndex);
+        for (let i = start; i <= end; i++) {
+          if (filteredEmails[i]) {
+            newSet.add(filteredEmails[i].uid);
+          }
+        }
+      } else {
+        // Single toggle
+        if (newSet.has(uid)) {
+          newSet.delete(uid);
+        } else {
+          newSet.add(uid);
+        }
+      }
+      
+      lastSelectedIndex.current = emailIndex;
+      return newSet;
+    });
+  };
+
+  // Bulk move handler
+  const handleBulkMove = async (targetCategory: EmailCategory['category']) => {
+    if (selectedEmails.size === 0) return;
+    
+    try {
+      const emailsToMove = emails.filter(e => selectedEmails.has(e.uid));
+      
+      for (const email of emailsToMove) {
+        const existing = emailCategories.find(
+          c => c.email_uid === email.uid && c.email_folder === (selectedFolder || 'Inbox')
+        );
+
+        if (existing) {
+          await supabase
+            .from('email_categories')
+            .update({ category: targetCategory, updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('email_categories')
+            .insert({
+              email_uid: email.uid,
+              email_folder: selectedFolder || 'Inbox',
+              category: targetCategory,
+            });
+        }
+      }
+      
+      const categoryName = customCategories.find(c => c.key === targetCategory)?.name || targetCategory;
+      toast({
+        title: `Moved ${selectedEmails.size} emails`,
+        description: `Moved to ${categoryName}`,
+      });
+      
+      setSelectedEmails(new Set());
+      fetchEmailCategories();
+    } catch (error: any) {
+      console.error('Error bulk moving emails:', error);
+      toast({
+        title: "Failed to move emails",
+        description: error.message || "Could not move the emails.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle bulk IMAP folder actions (not yet supported)
+  const handleBulkImapMove = (target: string) => {
+    toast({
+      title: "IMAP folder move",
+      description: "Moving emails between IMAP folders is not yet supported.",
+    });
+  };
 
   // Helper to get lender marketing data for an email
   const getLenderMarketingData = (email: EmailMessage) => {
@@ -571,8 +747,18 @@ export default function Email() {
     return emails.filter(e => categoryEmailUids.includes(e.uid));
   };
 
-  // Filter out categorized emails from main view
+  // Create sets for quick lookup
   const categorizedUids = new Set(emailCategories.map(c => c.email_uid));
+  const reviewedUids = new Set(
+    emailCategories
+      .filter(c => c.category.startsWith('reviewed'))
+      .map(c => c.email_uid)
+  );
+
+  // Helper to get review status category for an email
+  const getEmailCategory = (email: EmailMessage) => {
+    return emailCategories.find(c => c.email_uid === email.uid)?.category;
+  };
 
   const filteredEmails = selectedCategory 
     ? getCategoryEmails()
@@ -581,10 +767,8 @@ export default function Email() {
           email.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
           email.fromEmail.toLowerCase().includes(searchTerm.toLowerCase());
         
-        // In main view, exclude categorized emails
-        const isNotCategorized = !categorizedUids.has(email.uid);
-        
         if (emailView === 'file') {
+          // FILE VIEW: Show tagged emails regardless of category status
           const emailDate = new Date(email.date);
           const compositeKey = getMatchKey(emailDate, email.subject || '');
           let hasTag = emailTagsMap.has(compositeKey);
@@ -592,13 +776,16 @@ export default function Email() {
             const subjectKey = cleanSubjectForMatching(email.subject || '');
             hasTag = emailTagsMap.has(subjectKey);
           }
-          return matchesSearch && hasTag && isNotCategorized;
+          return matchesSearch && hasTag; // Remove isNotCategorized check
         }
         
         if (emailView === 'lender-marketing') {
-          return matchesSearch && !!getLenderMarketingData(email) && isNotCategorized;
+          // LENDER MARKETING VIEW: Show tagged emails regardless of category status
+          return matchesSearch && !!getLenderMarketingData(email); // Remove isNotCategorized check
         }
         
+        // MAIN VIEW: Exclude categorized emails
+        const isNotCategorized = !categorizedUids.has(email.uid);
         return matchesSearch && isNotCategorized;
       });
 
@@ -608,6 +795,8 @@ export default function Email() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  const showMultiSelect = !selectedCategory; // Show checkboxes when not in a category view
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -694,11 +883,9 @@ export default function Email() {
                       <div className="flex items-center gap-2">
                         <category.icon className={cn(
                           "h-4 w-4",
-                          category.key === 'needs_attention' && "text-amber-500",
-                          category.key === 'reviewed' && "text-green-500",
-                          selectedCategory === category.key && "text-primary-foreground"
+                          selectedCategory !== category.key && category.color
                         )} />
-                        {category.name}
+                        <span className="truncate">{category.name}</span>
                       </div>
                       {(categoryCounts[category.key] || 0) > 0 && (
                         <span className={cn(
@@ -758,6 +945,40 @@ export default function Email() {
                 </div>
               )}
             </div>
+
+            {/* Bulk Action Toolbar */}
+            {selectedEmails.size > 0 && (
+              <div className="p-2 bg-muted/50 border-b flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium">{selectedEmails.size} selected</span>
+                <Separator orientation="vertical" className="h-5" />
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkImapMove('starred')}>
+                  <Star className="h-3 w-3 mr-1" /> Star
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkImapMove('archive')}>
+                  <Archive className="h-3 w-3 mr-1" /> Archive
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkImapMove('trash')}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Trash
+                </Button>
+                <Separator orientation="vertical" className="h-5" />
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkMove('needs_attention')}>
+                  <AlertCircle className="h-3 w-3 mr-1 text-amber-500" /> Needs Attention
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkMove('reviewed_file')}>
+                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" /> File
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkMove('reviewed_lender_marketing')}>
+                  <CheckCircle className="h-3 w-3 mr-1 text-blue-500" /> Lender Mktg
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleBulkMove('reviewed_na')}>
+                  <CheckCircle className="h-3 w-3 mr-1 text-gray-500" /> N/A
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={() => setSelectedEmails(new Set())}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+
             <ScrollArea className="flex-1 w-full">
               {isLoading ? (
                 <div className="flex items-center justify-center h-32">
@@ -765,19 +986,24 @@ export default function Email() {
                 </div>
               ) : filteredEmails.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-                  {selectedCategory ? `No emails in ${selectedCategory === 'needs_attention' ? 'Needs Attention' : 'Reviewed'}` : 'No emails found'}
+                  {selectedCategory 
+                    ? `No emails in ${customCategories.find(c => c.key === selectedCategory)?.name || selectedCategory}` 
+                    : 'No emails found'}
                 </div>
               ) : (
                 <div
                   className="divide-y w-full max-w-full"
                   style={{ width: "100%", maxWidth: "100%" }}
                 >
-                  {filteredEmails.map((email) => (
+                  {filteredEmails.map((email, index) => (
                     <DraggableEmailItem
                       key={email.uid}
                       email={email}
                       isSelected={selectedEmail?.uid === email.uid}
                       onClick={() => handleSelectEmail(email)}
+                      showCheckbox={showMultiSelect}
+                      isChecked={selectedEmails.has(email.uid)}
+                      onCheckChange={(checked, shiftKey) => toggleEmailSelection(email.uid, shiftKey, index)}
                     >
                       {(() => {
                         // Try composite key first (timestamp + subject), then fallback to subject-only
@@ -795,9 +1021,16 @@ export default function Email() {
                         const marketingData = getLenderMarketingData(email);
                         const hasAnyTag = tagData || marketingData;
                         
+                        // Check if reviewed (for visual indicator in tag views)
+                        const isReviewed = reviewedUids.has(email.uid);
+                        const emailCategory = getEmailCategory(email);
+                        
                         return (
                           <div
-                            className="flex items-center justify-between gap-2 mb-1 w-full min-w-0 pl-4"
+                            className={cn(
+                              "flex items-center justify-between gap-2 mb-1 w-full min-w-0",
+                              showMultiSelect ? "pl-6" : "pl-4"
+                            )}
                             style={{ maxWidth: "calc(450px - 24px)" }}
                           >
                             <span
@@ -811,6 +1044,17 @@ export default function Email() {
                               {email.from}
                             </span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {/* Reviewed indicator in File View / Lender Marketing View */}
+                              {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && (
+                                <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
+                                  <CheckCircle className={cn(
+                                    "h-3 w-3",
+                                    emailCategory === 'reviewed_file' && "text-green-500",
+                                    emailCategory === 'reviewed_lender_marketing' && "text-blue-500",
+                                    emailCategory === 'reviewed_na' && "text-gray-500"
+                                  )} />
+                                </span>
+                              )}
                               {tagData && (
                                 <EmailTagPopover tagData={tagData} />
                               )}
@@ -830,14 +1074,18 @@ export default function Email() {
                       })()}
                       <p
                         className={cn(
-                          "text-sm truncate min-w-0 mb-1 overflow-hidden pl-4",
+                          "text-sm truncate min-w-0 mb-1 overflow-hidden",
+                          showMultiSelect ? "pl-6" : "pl-4",
                           email.unread ? "font-medium text-foreground" : "text-muted-foreground"
                         )}
                       >
                         {cleanSubject(email.subject)}
                       </p>
                       {email.snippet && (
-                        <p className="text-xs text-muted-foreground truncate min-w-0 overflow-hidden pl-4">
+                        <p className={cn(
+                          "text-xs text-muted-foreground truncate min-w-0 overflow-hidden",
+                          showMultiSelect ? "pl-6" : "pl-4"
+                        )}>
                           {email.snippet}
                         </p>
                       )}
@@ -904,7 +1152,7 @@ export default function Email() {
                                   <p className="text-sm font-medium truncate">{att.name}</p>
                                   <p className="text-xs text-muted-foreground">{formatFileSize(att.size)}</p>
                                 </div>
-                                {att.url && (
+                                {att.url ? (
                                   <Button 
                                     size="sm" 
                                     variant="ghost"
@@ -913,6 +1161,8 @@ export default function Email() {
                                   >
                                     <Download className="h-4 w-4" />
                                   </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No link</span>
                                 )}
                               </div>
                             ))}
