@@ -261,10 +261,6 @@ Deno.serve(async (req) => {
           
           // Dates
           close_date: parseDate(row['CLOSE DATE']),
-          lead_created_at: parseDate(row['LEAD ON']),
-          sub_date: parseDate(row['SUB']),
-          awc_date: parseDate(row['AWC']),
-          ctc_date: parseDate(row['CTC']),
           
           // Title
           title_company: row['TITLE NAME'] || null,
@@ -279,10 +275,6 @@ Deno.serve(async (req) => {
           pipeline_stage: 'Past Clients',
           pipeline_section: 'Closed',
           loan_status: 'CLOSED',
-          
-          // Co-borrower stored in notes or custom field
-          co_borrower_name: row['Co-Borrower Full Name'] || null,
-          co_borrower_email: cleanEmail(row['Co-Borrower Email']),
         };
 
         const { error } = await supabase.from('leads').insert(lead);
