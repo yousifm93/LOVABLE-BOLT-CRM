@@ -1085,6 +1085,11 @@ export type Database = {
           created_at: string | null
           date: string
           id: string
+          points_15yr_fixed: number | null
+          points_30yr_fha: number | null
+          points_30yr_fixed: number | null
+          points_bank_statement: number | null
+          points_dscr: number | null
           pricing_run_id: string | null
           rate_15yr_fixed: number | null
           rate_30yr_fha: number | null
@@ -1101,6 +1106,11 @@ export type Database = {
           created_at?: string | null
           date?: string
           id?: string
+          points_15yr_fixed?: number | null
+          points_30yr_fha?: number | null
+          points_30yr_fixed?: number | null
+          points_bank_statement?: number | null
+          points_dscr?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
           rate_30yr_fha?: number | null
@@ -1117,6 +1127,11 @@ export type Database = {
           created_at?: string | null
           date?: string
           id?: string
+          points_15yr_fixed?: number | null
+          points_30yr_fha?: number | null
+          points_30yr_fixed?: number | null
+          points_bank_statement?: number | null
+          points_dscr?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
           rate_30yr_fha?: number | null
@@ -3970,6 +3985,7 @@ export type Database = {
           results_json: Json | null
           retry_count: number | null
           scenario_json: Json
+          scenario_type: string | null
           started_at: string
           status: string
           updated_at: string
@@ -3989,6 +4005,7 @@ export type Database = {
           results_json?: Json | null
           retry_count?: number | null
           scenario_json?: Json
+          scenario_type?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -4008,6 +4025,7 @@ export type Database = {
           results_json?: Json | null
           retry_count?: number | null
           scenario_json?: Json
+          scenario_type?: string | null
           started_at?: string
           status?: string
           updated_at?: string

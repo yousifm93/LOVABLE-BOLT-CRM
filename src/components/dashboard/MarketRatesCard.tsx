@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface MarketData {
@@ -9,47 +9,32 @@ interface MarketData {
   rate_30yr_fha: number | null;
   rate_bank_statement: number | null;
   rate_dscr: number | null;
-  change_30yr_fixed: number | null;
-  change_15yr_fixed: number | null;
-  change_30yr_fha: number | null;
-  ai_market_summary: string | null;
+  points_30yr_fixed: number | null;
+  points_15yr_fixed: number | null;
+  points_30yr_fha: number | null;
+  points_bank_statement: number | null;
+  points_dscr: number | null;
   updated_at: string | null;
 }
 
-interface RateItemProps {
+interface RateCardProps {
   label: string;
   rate: number | null;
-  change?: number | null;
-  showChange?: boolean;
+  points: number | null;
 }
 
-function RateItem({ label, rate, change, showChange = true }: RateItemProps) {
-  const getChangeIcon = () => {
-    if (!change || change === 0) return <Minus className="h-3 w-3 text-muted-foreground" />;
-    if (change < 0) return <TrendingDown className="h-3 w-3 text-green-500" />;
-    return <TrendingUp className="h-3 w-3 text-red-500" />;
-  };
-
-  const getChangeColor = () => {
-    if (!change || change === 0) return "text-muted-foreground";
-    if (change < 0) return "text-green-500";
-    return "text-red-500";
-  };
-
+function RateCard({ label, rate, points }: RateCardProps) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md">
-      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+    <div className="flex flex-col items-center justify-center px-4 py-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg min-w-[140px]">
+      <span className="text-xs font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-1">
         {label}
       </span>
-      <span className="text-sm font-semibold text-foreground">
+      <span className="text-xl font-bold text-amber-900 dark:text-amber-100">
         {rate ? `${rate.toFixed(3)}%` : '—'}
       </span>
-      {showChange && (
-        <span className={`flex items-center gap-0.5 text-[10px] ${getChangeColor()}`}>
-          {getChangeIcon()}
-          {change ? Math.abs(change).toFixed(3) : '0.000'}
-        </span>
-      )}
+      <span className="text-xs text-amber-700 dark:text-amber-300">
+        {points !== null && points !== undefined ? `${points.toFixed(2)} pts` : '— pts'}
+      </span>
     </div>
   );
 }
@@ -89,11 +74,27 @@ export function MarketRatesCard() {
         console.error('Error refreshing rates:', error);
       } else {
         console.log('Rate fetch triggered:', data);
-        setTimeout(fetchMarketData, 5000);
+        // Poll for results every 5 seconds for up to 2 minutes
+        let attempts = 0;
+        const maxAttempts = 24;
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          await fetchMarketData();
+          
+          // Check if we have all rates populated
+          if (marketData?.rate_30yr_fixed && marketData?.rate_bank_statement && marketData?.rate_dscr) {
+            clearInterval(pollInterval);
+            setIsRefreshing(false);
+          }
+          
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setIsRefreshing(false);
+          }
+        }, 5000);
       }
     } catch (err) {
       console.error('Error:', err);
-    } finally {
       setIsRefreshing(false);
     }
   };
@@ -110,69 +111,65 @@ export function MarketRatesCard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-3">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-4 py-2 px-1 border-b border-border/50">
-      {/* Rates - all in single row */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <RateItem 
-          label="30Y" 
+    <div className="flex flex-col gap-4 py-4 px-2 border-b border-border/50">
+      {/* Rate Cards */}
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        <RateCard 
+          label="30-Year Fixed" 
           rate={marketData?.rate_30yr_fixed ?? null} 
-          change={marketData?.change_30yr_fixed ?? null}
+          points={marketData?.points_30yr_fixed ?? null}
         />
-        <RateItem 
-          label="15Y" 
+        <RateCard 
+          label="15-Year Fixed" 
           rate={marketData?.rate_15yr_fixed ?? null} 
-          change={marketData?.change_15yr_fixed ?? null}
+          points={marketData?.points_15yr_fixed ?? null}
         />
-        <RateItem 
-          label="FHA" 
+        <RateCard 
+          label="FHA 30-Year" 
           rate={marketData?.rate_30yr_fha ?? null} 
-          change={marketData?.change_30yr_fha ?? null}
+          points={marketData?.points_30yr_fha ?? null}
         />
-        <RateItem 
-          label="Bank Stmt" 
+        <RateCard 
+          label="Bank Statement" 
           rate={marketData?.rate_bank_statement ?? null} 
-          showChange={false}
+          points={marketData?.points_bank_statement ?? null}
         />
-        <RateItem 
+        <RateCard 
           label="DSCR" 
           rate={marketData?.rate_dscr ?? null} 
-          showChange={false}
+          points={marketData?.points_dscr ?? null}
         />
-      </div>
-
-      {/* Divider */}
-      <div className="h-6 w-px bg-border/50" />
-
-      {/* AI Summary - single line */}
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground truncate">
-          {marketData?.ai_market_summary || 'Click refresh to fetch today\'s rates and market update.'}
-        </p>
       </div>
 
       {/* Refresh + timestamp */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-[10px] text-muted-foreground">
-          {formatUpdateTime(marketData?.updated_at ?? null)}
+      <div className="flex items-center justify-center gap-3">
+        <span className="text-xs text-muted-foreground">
+          Last updated: {formatUpdateTime(marketData?.updated_at ?? null)}
         </span>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="h-6 w-6 p-0"
+          className="h-7 px-3"
         >
           {isRefreshing ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <>
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              Fetching rates...
+            </>
           ) : (
-            <RefreshCw className="h-3 w-3" />
+            <>
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh Rates
+            </>
           )}
         </Button>
       </div>
