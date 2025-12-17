@@ -336,7 +336,7 @@ export function AppSidebar() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10" />
                 <Input
-                  placeholder="Search leads, agents, lenders..."
+                  placeholder="Search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onFocus={() => searchTerm.length >= 2 && setShowSearchResults(true)}

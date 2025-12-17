@@ -66,6 +66,7 @@ interface PricingRun {
   results_json: any;
   error_message: string | null;
   retry_count: number;
+  scenario_type?: string;
   leads?: {
     first_name: string;
     last_name: string;
@@ -346,6 +347,7 @@ export function LoanPricer() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Time</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Program</TableHead>
                   <TableHead>FICO</TableHead>
@@ -364,6 +366,17 @@ export function LoanPricer() {
                   <TableRow key={run.id}>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(run.started_at), "MMM d, h:mm a")}
+                    </TableCell>
+                    <TableCell>
+                      {run.scenario_type ? (
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                          Homepage
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Manual
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

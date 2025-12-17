@@ -51,11 +51,18 @@ serve(async (req) => {
       {
         ...baseScenario,
         income_type: 'DSCR',
-        dscr_ratio: '1.3',
+        dscr_ratio: '1.3',  // CRITICAL: Must always be 1.3 for DSCR scenarios
         occupancy: 'Investment',
         scenario_type: 'dscr'
       }
     ];
+
+    console.log('Scenarios configured:', scenarios.map(s => ({
+      type: s.scenario_type,
+      income_type: s.income_type,
+      dscr_ratio: s.dscr_ratio,
+      occupancy: s.occupancy
+    })));
 
     const pricingRunIds: string[] = [];
 
@@ -81,7 +88,9 @@ serve(async (req) => {
       console.log(`Created pricing run for ${scenario_type}:`, pricingRun.id);
       pricingRunIds.push(pricingRun.id);
 
-      // Trigger Axiom
+      // Trigger Axiom - CRITICAL: For DSCR, always ensure dscr_ratio is '1.3'
+      const dscrRatioValue = scenario_type === 'dscr' ? '1.3' : (scenarioData.dscr_ratio || '');
+      
       const axiomData = [[
         pricingRun.id,
         scenarioData.fico_score?.toString() || '',
@@ -92,10 +101,16 @@ serve(async (req) => {
         scenarioData.occupancy || '',
         scenarioData.property_type || '',
         scenarioData.income_type || 'Full Doc - 24M',
-        scenarioData.dscr_ratio || ''
+        dscrRatioValue  // Explicitly use dscrRatioValue to ensure DSCR always has 1.3
       ]];
 
-      console.log(`Triggering Axiom for ${scenario_type} with data:`, axiomData);
+      console.log(`Triggering Axiom for ${scenario_type}:`, {
+        run_id: pricingRun.id,
+        income_type: scenarioData.income_type,
+        dscr_ratio: dscrRatioValue,
+        occupancy: scenarioData.occupancy,
+        axiom_data_row: axiomData[0]
+      });
 
       const axiomResponse = await fetch('https://lar.axiom.ai/api/v3/trigger', {
         method: 'POST',

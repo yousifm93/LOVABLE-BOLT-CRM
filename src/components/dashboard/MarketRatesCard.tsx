@@ -21,19 +21,20 @@ interface RateCardProps {
   label: string;
   rate: number | null;
   points: number | null;
+  showTBD?: boolean;
 }
 
-function RateCard({ label, rate, points }: RateCardProps) {
+function RateCard({ label, rate, points, showTBD }: RateCardProps) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg min-w-[140px]">
       <span className="text-xs font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-1">
         {label}
       </span>
       <span className="text-xl font-bold text-amber-900 dark:text-amber-100">
-        {rate ? `${rate.toFixed(3)}%` : '—'}
+        {showTBD ? 'TBD' : (rate ? `${rate.toFixed(3)}%` : '—')}
       </span>
       <span className="text-xs text-amber-700 dark:text-amber-300">
-        {points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts'}
+        {showTBD ? '— pts' : (points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts')}
       </span>
     </div>
   );
@@ -128,13 +129,15 @@ export function MarketRatesCard() {
         />
         <RateCard 
           label="15-Year Fixed" 
-          rate={marketData?.rate_15yr_fixed ?? null} 
-          points={marketData?.points_15yr_fixed ?? null}
+          rate={null} 
+          points={null}
+          showTBD
         />
         <RateCard 
           label="FHA 30-Year" 
-          rate={marketData?.rate_30yr_fha ?? null} 
-          points={marketData?.points_30yr_fha ?? null}
+          rate={null} 
+          points={null}
+          showTBD
         />
         <RateCard 
           label="Bank Statement" 
