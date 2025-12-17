@@ -250,7 +250,10 @@ export default function Email() {
     body: ""
   });
 
-  // Keyboard shortcut: 'e' to archive selected email
+  // Keyboard shortcut: 'e' to smart archive selected email
+  // - If email has file tag → assign to "Reviewed - File"
+  // - If email has lender marketing tag → assign to "Reviewed - Lender Mktg"
+  // - Otherwise → move to Archive folder (IMAP)
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       // Don't trigger if typing in an input/textarea or if no email selected
@@ -261,38 +264,59 @@ export default function Email() {
       
       setIsArchiving(true);
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-emails-imap', {
-          body: {
-            action: 'move',
-            folder: selectedFolder,
-            messageUid: selectedEmail.uid,
-            targetFolder: 'Archive'
-          }
-        });
+        // Check for tags to determine destination
+        const isFileTagged = hasFileTag(selectedEmail);
+        const isMarketingTagged = hasMarketingTag(selectedEmail);
         
-        if (error) throw error;
-        
-        toast({
-          title: "Email archived",
-          description: `"${selectedEmail.subject.substring(0, 30)}..." moved to Archive`,
-        });
-        
-        // Remove email from current list
-        setEmails(prev => prev.filter(e => e.uid !== selectedEmail.uid));
-        setSelectedEmail(null);
-        setEmailContent(null);
-        
-        // Update folder counts
-        setFolderCounts(prev => ({
-          ...prev,
-          [selectedFolder]: Math.max(0, (prev[selectedFolder] || 0) - 1),
-          Archive: (prev.Archive || 0) + 1
-        }));
+        if (isFileTagged) {
+          // Move to "Reviewed - File" category
+          await assignEmailToCategory(selectedEmail, 'reviewed_file');
+          // Remove from current list
+          setEmails(prev => prev.filter(em => em.uid !== selectedEmail.uid));
+          setSelectedEmail(null);
+          setEmailContent(null);
+        } else if (isMarketingTagged) {
+          // Move to "Reviewed - Lender Mktg" category
+          await assignEmailToCategory(selectedEmail, 'reviewed_lender_marketing');
+          // Remove from current list
+          setEmails(prev => prev.filter(em => em.uid !== selectedEmail.uid));
+          setSelectedEmail(null);
+          setEmailContent(null);
+        } else {
+          // No tags - move to Archive via IMAP
+          const { data, error } = await supabase.functions.invoke('fetch-emails-imap', {
+            body: {
+              action: 'move',
+              folder: selectedFolder,
+              messageUid: selectedEmail.uid,
+              targetFolder: 'Archive'
+            }
+          });
+          
+          if (error) throw error;
+          
+          toast({
+            title: "Email archived",
+            description: `"${selectedEmail.subject.substring(0, 30)}..." moved to Archive`,
+          });
+          
+          // Remove email from current list
+          setEmails(prev => prev.filter(em => em.uid !== selectedEmail.uid));
+          setSelectedEmail(null);
+          setEmailContent(null);
+          
+          // Update folder counts
+          setFolderCounts(prev => ({
+            ...prev,
+            [selectedFolder]: Math.max(0, (prev[selectedFolder] || 0) - 1),
+            Archive: (prev.Archive || 0) + 1
+          }));
+        }
       } catch (error: any) {
         console.error('Error archiving email:', error);
         toast({
           title: "Archive failed",
-          description: error.message || "Could not move email to archive",
+          description: error.message || "Could not move email",
           variant: "destructive"
         });
       } finally {
@@ -302,7 +326,7 @@ export default function Email() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedEmail, selectedFolder, isArchiving, toast]);
+  }, [selectedEmail, selectedFolder, isArchiving, toast, emailTagsMap, lenderMarketingMap]);
   const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
 
   // Fetch email categories from database
