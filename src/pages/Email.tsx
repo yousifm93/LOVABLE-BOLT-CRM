@@ -942,7 +942,7 @@ export default function Email() {
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="pl-4 pr-0 pt-2 pb-0 h-[calc(100vh-60px)]">
-        <div className="flex items-center gap-1 mb-2">
+        <div className="flex items-center gap-1 mb-6">
           <Button 
             variant="ghost" 
             size="icon"
