@@ -421,8 +421,10 @@ export default function Email() {
     setIsLoadingContent(true);
     setEmailContent(null);
     try {
+      // Default to 'Inbox' if selectedFolder is empty (e.g., when in category view)
+      const folder = selectedFolder || 'Inbox';
       const { data, error } = await supabase.functions.invoke("fetch-emails-imap", {
-        body: { folder: selectedFolder, fetchContent: true, messageUid: email.uid },
+        body: { folder, fetchContent: true, messageUid: email.uid },
       });
 
       if (error) throw error;
