@@ -1491,6 +1491,33 @@ export type Database = {
           },
         ]
       }
+      email_categories: {
+        Row: {
+          category: string
+          created_at: string | null
+          email_folder: string
+          email_uid: number
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          email_folder: string
+          email_uid: number
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          email_folder?: string
+          email_uid?: number
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       email_contacts: {
         Row: {
           city: string | null
