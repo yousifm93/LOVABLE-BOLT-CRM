@@ -959,6 +959,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
         />
       ) : undefined
     },
+    { 
+      icon: Building2, 
+      label: "Lender", 
+      value: (client as any).approved_lender?.lender_name || '—',
+      editComponent: undefined // Read-only display, editable via lender dropdown elsewhere
+    },
   ];
 
   // Property section removed - merged into Transaction Details
