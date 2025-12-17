@@ -696,10 +696,111 @@ serve(async (req) => {
       });
     }
 
+    // Handle rate limit errors with retry
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      
+      // Check for rate limit (429) error
+      if (openaiResponse.status === 429) {
+        // Parse retry-after header or use exponential backoff
+        const retryAfter = openaiResponse.headers.get('retry-after');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 10000; // Default 10 seconds
+        
+        console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+        
+        // Update status to show we're retrying
+        await supabaseClient
+          .from('income_documents')
+          .update({ 
+            ocr_status: 'processing',
+            parsed_json: { status: 'Rate limited - retrying in a few seconds...' }
+          })
+          .eq('id', document_id);
+        
+        // Wait and retry once
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        
+        // Retry the request
+        let retryResponse;
+        if (isPdf) {
+          // For PDF retry, we need to re-upload the file
+          const formData = new FormData();
+          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+          formData.append('file', blob, document.file_name || 'document.pdf');
+          formData.append('purpose', 'assistants');
+          
+          const uploadRetryResponse = await fetch('https://api.openai.com/v1/files', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}` },
+            body: formData,
+          });
+          
+          if (!uploadRetryResponse.ok) {
+            throw new Error(`OpenAI API error after retry: Rate limit persists`);
+          }
+          
+          const uploadRetryResult = await uploadRetryResponse.json();
+          const retryFileId = uploadRetryResult.id;
+          
+          retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [{
+                role: 'system',
+                content: 'You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only.'
+              }, {
+                role: 'user',
+                content: [{ type: 'text', text: extractionPrompt }, { type: 'file', file: { file_id: retryFileId } }]
+              }],
+              max_tokens: 4000,
+              temperature: 0.1
+            }),
+          });
+          
+          // Cleanup retry file
+          try {
+            await fetch(`https://api.openai.com/v1/files/${retryFileId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}` },
+            });
+          } catch (e) { /* ignore */ }
+        } else {
+          // Image retry
+          retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [{
+                role: 'system',
+                content: 'You are an expert financial document analyzer specializing in income verification for mortgage lending. Extract data precisely and return valid JSON only.'
+              }, {
+                role: 'user',
+                content: [{ type: 'text', text: extractionPrompt }, { type: 'image_url', image_url: { url: `data:${document.mime_type};base64,${base64}`, detail: 'high' } }]
+              }],
+              max_tokens: 4000,
+              temperature: 0.1
+            }),
+          });
+        }
+        
+        if (!retryResponse || !retryResponse.ok) {
+          throw new Error(`OpenAI API error after retry: ${retryResponse?.status || 'unknown'}`);
+        }
+        
+        openaiResponse = retryResponse;
+      } else {
+        throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      }
     }
 
     const ocrResult = await openaiResponse.json();
