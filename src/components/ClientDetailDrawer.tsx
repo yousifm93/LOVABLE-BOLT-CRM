@@ -2400,103 +2400,6 @@ export function ClientDetailDrawer({
               </CardContent>
             </Card>
 
-            {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
-            {(() => {
-              const opsStage = client.ops?.stage?.toLowerCase() || '';
-              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
-              if (!isActiveOrPastClient) return null;
-              return (
-            <Card>
-              <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
-                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
-                      Edit
-                    </Button>}
-                </div>
-              </CardHeader>
-              <CardContent className="bg-gray-50">
-                {isEditingNotes || !localNotes ? <>
-                    <Textarea key="notes-textarea" value={localNotes} onChange={e => {
-                  setLocalNotes(e.target.value);
-                  setHasUnsavedNotes(true);
-                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
-                    {hasUnsavedNotes && <div className="flex gap-2">
-                        <Button size="sm" onClick={async () => {
-                    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
-                    if (localNotes === currentNotes) {
-                      toast({
-                        title: "No Changes",
-                        description: "Notes haven't changed."
-                      });
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      return;
-                    }
-                    setIsSavingNotes(true);
-                    console.log('[ClientDetailDrawer] Saving notes. leadId:', leadId, 'notes:', localNotes);
-                    try {
-                      const {
-                        data: {
-                          user
-                        }
-                      } = await supabase.auth.getUser();
-
-                      // Batch update to prevent multiple toasts
-                      await databaseService.updateLead(leadId!, {
-                        notes: localNotes,
-                        notes_updated_by: user?.id || null,
-                        notes_updated_at: new Date().toISOString()
-                      });
-                      console.log('[ClientDetailDrawer] Notes saved successfully to database');
-                      if (onLeadUpdated) {
-                        await onLeadUpdated();
-                        console.log('[ClientDetailDrawer] Parent refreshed with new data');
-                      }
-                      setHasUnsavedNotes(false);
-                      setIsEditingNotes(false);
-                      toast({
-                        title: "Saved",
-                        description: "About the Borrower section has been updated."
-                      });
-                    } catch (error) {
-                      console.error('[ClientDetailDrawer] Error saving notes:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to save. Please try again.",
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setIsSavingNotes(false);
-                    }
-                  }} disabled={isSavingNotes}>
-                          {isSavingNotes ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                    setLocalNotes((client as any).notes || '');
-                    setHasUnsavedNotes(false);
-                    setIsEditingNotes(false);
-                  }}>
-                          Cancel
-                        </Button>
-                      </div>}
-                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
-                    {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
-                  </div>}
-                {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
-                    {notesUpdatedByUser && <>
-                        <span>•</span>
-                        <User className="h-3 w-3" />
-                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
-                      </>}
-                  </div>}
-              </CardContent>
-            </Card>
-              );
-            })()}
-
             {/* Latest File Updates Section - Only show for Active/Past Clients in right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
@@ -2617,6 +2520,102 @@ export function ClientDetailDrawer({
               );
             })()}
 
+            {/* About the Borrower Section - Only show for Active/Past Clients in right column */}
+            {(() => {
+              const opsStage = client.ops?.stage?.toLowerCase() || '';
+              const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
+              if (!isActiveOrPastClient) return null;
+              return (
+            <Card>
+              <CardHeader className="pb-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">About the Borrower</CardTitle>
+                  {!isEditingNotes && localNotes && <Button variant="ghost" size="sm" onClick={() => setIsEditingNotes(true)} className="h-7 text-xs">
+                      Edit
+                    </Button>}
+                </div>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                {isEditingNotes || !localNotes ? <>
+                    <Textarea key="notes-textarea" value={localNotes} onChange={e => {
+                  setLocalNotes(e.target.value);
+                  setHasUnsavedNotes(true);
+                }} placeholder="Describe the borrower, how they were referred, what they're looking for..." className="min-h-[210px] resize-none bg-white mb-2" />
+                    {hasUnsavedNotes && <div className="flex gap-2">
+                        <Button size="sm" onClick={async () => {
+                    const currentNotes = (client as any).meta?.notes ?? (client as any).notes ?? '';
+                    if (localNotes === currentNotes) {
+                      toast({
+                        title: "No Changes",
+                        description: "Notes haven't changed."
+                      });
+                      setHasUnsavedNotes(false);
+                      setIsEditingNotes(false);
+                      return;
+                    }
+                    setIsSavingNotes(true);
+                    console.log('[ClientDetailDrawer] Saving notes. leadId:', leadId, 'notes:', localNotes);
+                    try {
+                      const {
+                        data: {
+                          user
+                        }
+                      } = await supabase.auth.getUser();
+
+                      // Batch update to prevent multiple toasts
+                      await databaseService.updateLead(leadId!, {
+                        notes: localNotes,
+                        notes_updated_by: user?.id || null,
+                        notes_updated_at: new Date().toISOString()
+                      });
+                      console.log('[ClientDetailDrawer] Notes saved successfully to database');
+                      if (onLeadUpdated) {
+                        await onLeadUpdated();
+                        console.log('[ClientDetailDrawer] Parent refreshed with new data');
+                      }
+                      setHasUnsavedNotes(false);
+                      setIsEditingNotes(false);
+                      toast({
+                        title: "Saved",
+                        description: "About the Borrower section has been updated."
+                      });
+                    } catch (error) {
+                      console.error('[ClientDetailDrawer] Error saving notes:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to save. Please try again.",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setIsSavingNotes(false);
+                    }
+                  }} disabled={isSavingNotes}>
+                          {isSavingNotes ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                    setLocalNotes((client as any).notes || '');
+                    setHasUnsavedNotes(false);
+                    setIsEditingNotes(false);
+                  }}>
+                          Cancel
+                        </Button>
+                      </div>}
+                  </> : <div className="bg-white rounded-md p-3 text-sm border cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setIsEditingNotes(true)}>
+                    {localNotes.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line || <br />}</p>)}
+                  </div>}
+                {(client as any).notes_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    Last updated: {format(new Date((client as any).notes_updated_at), 'MMM dd, yyyy h:mm a')}
+                    {notesUpdatedByUser && <>
+                        <span>•</span>
+                        <User className="h-3 w-3" />
+                        {notesUpdatedByUser.first_name} {notesUpdatedByUser.last_name}
+                      </>}
+                  </div>}
+              </CardContent>
+            </Card>
+              );
+            })()}
 
             {/* Stage History */}
             <Card>
