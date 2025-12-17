@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { Calculator, Download, Save, AlertTriangle, CheckCircle, DollarSign, TrendingUp } from "lucide-react";
+import { Calculator, Download, Save, AlertTriangle, CheckCircle, DollarSign, TrendingUp, ChevronDown, ChevronUp, FileWarning, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Borrower {
   id: string;
   first_name: string;
   last_name: string;
+}
+
+interface CalculationTraceItem {
+  year: number;
+  form: string;
+  line_or_box: string;
+  description: string;
+  amount: number;
+  sign: string;
+  allocated_to: string;
+  allocation_pct?: number;
 }
 
 interface IncomeCalculation {
@@ -23,6 +35,9 @@ interface IncomeCalculation {
   warnings?: any[];
   overrides?: any;
   created_at: string;
+  calculation_trace?: CalculationTraceItem[];
+  missing_inputs?: string[];
+  calculation_version?: string;
 }
 
 interface IncomeComponent {
@@ -53,6 +68,8 @@ export function IncomeSummaryCard({
 }: IncomeSummaryCardProps) {
   const [components, setComponents] = useState<IncomeComponent[]>([]);
   const [isLoadingComponents, setIsLoadingComponents] = useState(false);
+  const [showTrace, setShowTrace] = useState(false);
+  const [showMissingInputs, setShowMissingInputs] = useState(true);
 
   useEffect(() => {
     if (calculation?.id) {
@@ -95,6 +112,10 @@ export function IncomeSummaryCard({
       variable_income_ytd: "Variable (YTD)",
       voe_verified: "VOE Verified",
       k1_income: "K-1 Income",
+      k1_1120s_income: "S-Corp (K-1/1120S)",
+      partnership_k1_income: "Partnership (K-1/1065)",
+      ccorp_income: "C-Corp (1120)",
+      farm_income: "Farm (Schedule F)",
       other: "Other Income"
     };
     return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -108,7 +129,14 @@ export function IncomeSummaryCard({
       bonus: "text-orange-600",
       commission: "text-pink-600",
       self_employed: "text-indigo-600",
+      self_employment: "text-indigo-600",
       rental: "text-teal-600",
+      rental_income: "text-teal-600",
+      k1_income: "text-red-600",
+      k1_1120s_income: "text-red-600",
+      partnership_k1_income: "text-cyan-600",
+      ccorp_income: "text-amber-600",
+      farm_income: "text-lime-600",
       other: "text-gray-600"
     };
     return colors[type as keyof typeof colors] || "text-gray-600";
@@ -116,6 +144,8 @@ export function IncomeSummaryCard({
 
   const confidencePercentage = calculation?.confidence ? Math.round(calculation.confidence * 100) : 0;
   const hasWarnings = calculation?.warnings && calculation.warnings.length > 0;
+  const hasMissingInputs = calculation?.missing_inputs && calculation.missing_inputs.length > 0;
+  const hasTrace = calculation?.calculation_trace && calculation.calculation_trace.length > 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -182,11 +212,43 @@ export function IncomeSummaryCard({
           <Calculator className="h-5 w-5" />
           Income Summary
         </CardTitle>
-        <CardDescription>
-          Monthly qualifying income for {borrower?.first_name || 'Borrower'} {borrower?.last_name || ''}
+        <CardDescription className="flex items-center justify-between">
+          <span>Monthly qualifying income for {borrower?.first_name || 'Borrower'} {borrower?.last_name || ''}</span>
+          {calculation.calculation_version && (
+            <Badge variant="outline" className="text-xs">
+              {calculation.calculation_version}
+            </Badge>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Missing Inputs Warning */}
+        {hasMissingInputs && (
+          <Collapsible open={showMissingInputs} onOpenChange={setShowMissingInputs}>
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30">
+              <FileWarning className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <CollapsibleTrigger className="flex items-center justify-between w-full">
+                  <span className="font-medium">
+                    {calculation.missing_inputs?.length} Missing Document{calculation.missing_inputs?.length !== 1 ? 's' : ''} Detected
+                  </span>
+                  {showMissingInputs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <ul className="list-disc pl-4 text-sm space-y-1">
+                    {calculation.missing_inputs?.map((input, idx) => (
+                      <li key={idx}>{input}</li>
+                    ))}
+                  </ul>
+                  <p className="text-xs mt-2 text-amber-700">
+                    Upload the missing documents for a more accurate calculation.
+                  </p>
+                </CollapsibleContent>
+              </AlertDescription>
+            </Alert>
+          </Collapsible>
+        )}
+
         {/* Main Result - Large and prominent */}
         <div className="text-center p-6 bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-800 rounded-xl">
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -269,6 +331,55 @@ export function IncomeSummaryCard({
             </div>
           )}
         </div>
+
+        {/* Calculation Trace (Collapsible) */}
+        {hasTrace && (
+          <>
+            <Separator />
+            <Collapsible open={showTrace} onOpenChange={setShowTrace}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full py-2 hover:bg-muted/50 rounded px-2">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-sm">Calculation Trace</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {calculation.calculation_trace?.length} items
+                  </Badge>
+                </div>
+                {showTrace ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="max-h-64 overflow-y-auto border rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted sticky top-0">
+                      <tr>
+                        <th className="text-left p-2">Year</th>
+                        <th className="text-left p-2">Form</th>
+                        <th className="text-left p-2">Line/Box</th>
+                        <th className="text-left p-2">Description</th>
+                        <th className="text-right p-2">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {calculation.calculation_trace?.map((item, idx) => (
+                        <tr key={idx} className="border-t hover:bg-muted/30">
+                          <td className="p-2">{item.year}</td>
+                          <td className="p-2">{item.form}</td>
+                          <td className="p-2">{item.line_or_box}</td>
+                          <td className="p-2">{item.description}</td>
+                          <td className="p-2 text-right font-mono">
+                            <span className={item.sign === '-' ? 'text-red-600' : 'text-green-600'}>
+                              {item.sign}{formatCurrency(Math.abs(item.amount))}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
 
         <Separator />
 
