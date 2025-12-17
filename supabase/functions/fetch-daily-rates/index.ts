@@ -36,8 +36,7 @@ serve(async (req) => {
       .from('pricing_runs')
       .insert({
         scenario_json: scenario,
-        status: 'pending',
-        notes: 'Daily rate fetch - automated'
+        status: 'pending'
       })
       .select()
       .single();
