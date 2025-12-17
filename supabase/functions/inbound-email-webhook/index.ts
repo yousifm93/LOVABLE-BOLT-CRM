@@ -715,7 +715,7 @@ serve(async (req) => {
         // Fetch current lead data for context - include ALL fields that can be suggested
         const { data: leadData } = await supabase
           .from('leads')
-          .select('loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value, program, property_taxes, insurance_amount, total_monthly_income, escrows, occupancy, transaction_type, cash_to_close, property_type, dscr_ratio, fico_score, term, prepayment_penalty, appr_date_time')
+          .select('loan_status, appraisal_status, title_status, hoi_status, condo_status, disclosure_status, cd_status, package_status, epo_status, interest_rate, lock_expiration_date, close_date, discount_points, loan_amount, sales_price, appraisal_value, program, property_taxes, homeowners_insurance, total_monthly_income, escrows, occupancy, loan_type, cash_to_close, property_type, dscr_ratio, fico_score, term, prepayment_penalty, appr_date_time')
           .eq('id', leadId)
           .single();
 
@@ -723,7 +723,9 @@ serve(async (req) => {
         const fieldNameMap: Record<string, string> = {
           'loan_program': 'program',
           'monthly_taxes': 'property_taxes',
-          'monthly_insurance': 'insurance_amount',
+          'monthly_insurance': 'homeowners_insurance',
+          'insurance_amount': 'homeowners_insurance',
+          'transaction_type': 'loan_type',
           'escrow': 'escrows',
           'appraisal_date_time': 'appr_date_time',
         };
