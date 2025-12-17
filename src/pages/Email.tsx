@@ -947,27 +947,27 @@ export default function Email() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Email</h1>
               <p className="text-xs italic text-muted-foreground/70">yousif@mortgagebolt.org</p>
-            </div>
-            <div className="flex items-center gap-1 ml-2">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleCompose}
-                className="h-8 w-8"
-                title="Compose"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleRefresh} 
-                disabled={isLoading}
-                className="h-8 w-8"
-                title="Refresh"
-              >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-              </Button>
+              <div className="flex items-center gap-1 mt-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleCompose}
+                  className="h-8 w-8"
+                  title="Compose"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleRefresh} 
+                  disabled={isLoading}
+                  className="h-8 w-8"
+                  title="Refresh"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1007,7 +1007,7 @@ export default function Email() {
                 ))}
 
                 {/* Separator and Categories */}
-                <Separator className="my-3" />
+                <Separator className="mt-8 mb-3" />
                 <p className="text-xs font-medium text-muted-foreground px-3 mb-2">CATEGORIES</p>
                 
                 {customCategories.map((category) => (
@@ -1046,7 +1046,7 @@ export default function Email() {
           </div>
 
           {/* Email List - Fixed width */}
-          <div className="w-[450px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
+          <div className="w-[500px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
             <div className="p-2 border-b space-y-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
