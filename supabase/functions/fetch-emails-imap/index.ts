@@ -16,6 +16,8 @@ interface FetchEmailsRequest {
   limit?: number;
   fetchContent?: boolean;
   messageUid?: number;
+  action?: 'fetch' | 'move';
+  targetFolder?: string;
 }
 
 interface EmailMessage {
@@ -105,10 +107,10 @@ serve(async (req) => {
       throw new Error("IONOS_EMAIL_PASSWORD not configured");
     }
 
-    const { folder = "INBOX", limit = 50, fetchContent = false, messageUid }: FetchEmailsRequest = await req.json().catch(() => ({}));
+    const { folder = "INBOX", limit = 50, fetchContent = false, messageUid, action = 'fetch', targetFolder }: FetchEmailsRequest = await req.json().catch(() => ({}));
     
     console.log(`Connecting to IMAP: ${IMAP_HOST}:${IMAP_PORT} as ${EMAIL_USER}`);
-    console.log(`Folder: ${folder}, Limit: ${limit}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}`);
+    console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}`);
 
     const client = new ImapFlow({
       host: IMAP_HOST,
@@ -152,6 +154,29 @@ serve(async (req) => {
     const emails: EmailMessage[] = [];
 
     try {
+      // Handle move action
+      if (action === 'move' && messageUid && targetFolder) {
+        console.log(`Moving email UID ${messageUid} from ${imapFolder} to ${targetFolder}`);
+        const targetImapFolder = folderMap[targetFolder] || targetFolder;
+        
+        await client.messageMove(String(messageUid), targetImapFolder, { uid: true });
+        console.log(`Successfully moved email to ${targetImapFolder}`);
+        
+        lock.release();
+        await client.logout();
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            action: 'move',
+            messageUid,
+            fromFolder: imapFolder,
+            toFolder: targetImapFolder,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // If fetching specific message content
       if (fetchContent && messageUid) {
         console.log(`Fetching full content for UID: ${messageUid}`);

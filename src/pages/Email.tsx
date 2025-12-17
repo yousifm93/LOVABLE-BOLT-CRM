@@ -243,11 +243,66 @@ export default function Email() {
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [isAddingComment, setIsAddingComment] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [composeData, setComposeData] = useState({
     to: "",
     subject: "",
     body: ""
   });
+
+  // Keyboard shortcut: 'e' to archive selected email
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea or if no email selected
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key.toLowerCase() !== 'e') return;
+      if (!selectedEmail || isArchiving) return;
+      if (selectedFolder === 'Archive') return; // Already in archive
+      
+      setIsArchiving(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-emails-imap', {
+          body: {
+            action: 'move',
+            folder: selectedFolder,
+            messageUid: selectedEmail.uid,
+            targetFolder: 'Archive'
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Email archived",
+          description: `"${selectedEmail.subject.substring(0, 30)}..." moved to Archive`,
+        });
+        
+        // Remove email from current list
+        setEmails(prev => prev.filter(e => e.uid !== selectedEmail.uid));
+        setSelectedEmail(null);
+        setEmailContent(null);
+        
+        // Update folder counts
+        setFolderCounts(prev => ({
+          ...prev,
+          [selectedFolder]: Math.max(0, (prev[selectedFolder] || 0) - 1),
+          Archive: (prev.Archive || 0) + 1
+        }));
+      } catch (error: any) {
+        console.error('Error archiving email:', error);
+        toast({
+          title: "Archive failed",
+          description: error.message || "Could not move email to archive",
+          variant: "destructive"
+        });
+      } finally {
+        setIsArchiving(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedEmail, selectedFolder, isArchiving, toast]);
   const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
 
   // Fetch email categories from database
@@ -912,12 +967,12 @@ export default function Email() {
             <div className="h-full flex flex-col">
               <div className="space-y-1 flex-1 py-0">
                 {folders.map(folder => <DroppableFolder key={folder.name} id={folder.name} isActive={selectedFolder === folder.name}>
-                    <button onClick={() => handleFolderClick(folder.name)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors", selectedFolder === folder.name && !selectedCategory ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
+                    <button onClick={() => handleFolderClick(folder.name)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors", selectedFolder === folder.name && !selectedCategory ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
                       <div className="flex items-center gap-2">
                         <folder.icon className="h-4 w-4" />
                         {folder.name}
                       </div>
-                      {(folderCounts[folder.name] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedFolder === folder.name && !selectedCategory ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
+                      {(folderCounts[folder.name] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0", selectedFolder === folder.name && !selectedCategory ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
                           {folderCounts[folder.name]}
                         </span>}
                     </button>
@@ -925,15 +980,15 @@ export default function Email() {
 
                 {/* Separator and Categories */}
                 <Separator className="mt-8 mb-3" />
-                <p className="text-xs font-medium text-muted-foreground px-3 mb-2 my-[15px]">CATEGORIES</p>
+                <p className="text-xs font-medium text-muted-foreground pl-2 pr-3 mb-2 pt-4">CATEGORIES</p>
                 
                 {customCategories.map(category => <DroppableFolder key={category.key} id={category.key} isActive={selectedCategory === category.key}>
-                    <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
-                      <div className="flex items-center gap-2">
-                        <category.icon className={cn("h-4 w-4", selectedCategory !== category.key && category.color)} />
+                    <button onClick={() => handleCategoryClick(category.key)} className={cn("w-full flex items-center justify-between pl-2 pr-3 py-2 rounded-md text-sm transition-colors", selectedCategory === category.key ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground")}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <category.icon className={cn("h-4 w-4 flex-shrink-0", selectedCategory !== category.key && category.color)} />
                         <span className="truncate">{category.name}</span>
                       </div>
-                      {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
+                      {(categoryCounts[category.key] || 0) > 0 && <span className={cn("text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1", selectedCategory === category.key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground")}>
                           {categoryCounts[category.key]}
                         </span>}
                     </button>
