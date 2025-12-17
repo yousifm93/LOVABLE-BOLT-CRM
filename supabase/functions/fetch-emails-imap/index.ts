@@ -162,9 +162,7 @@ serve(async (req) => {
         await client.messageMove(String(messageUid), targetImapFolder, { uid: true });
         console.log(`Successfully moved email to ${targetImapFolder}`);
         
-        lock.release();
-        await client.logout();
-        
+        // Don't release lock or logout here - let the finally block handle it
         return new Response(
           JSON.stringify({
             success: true,
