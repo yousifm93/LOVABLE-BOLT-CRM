@@ -1,11 +1,25 @@
 import React from "react";
-import { FileText, Eye, Download, Trash2, AlertCircle, CheckCircle, Clock, RefreshCw } from "lucide-react";
+import { FileText, Eye, Download, Trash2, AlertCircle, CheckCircle, Clock, RefreshCw, Scan, FileWarning } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface ParserDiagnostics {
+  ocr_used?: boolean;
+  processing_method?: string;
+  anchors_found?: string[];
+  paystub_anchors_found?: string[];
+  classification_override?: boolean;
+  original_classification?: string;
+  final_classification?: string;
+  file_size_bytes?: number;
+  mime_type?: string;
+}
 
 interface IncomeDocument {
   id: string;
@@ -27,9 +41,11 @@ interface DocumentCardProps {
   isSelected?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
+  onReprocess?: () => void;
 }
 
-export function DocumentCard({ document, isSelected, onClick, onDelete }: DocumentCardProps) {
+export function DocumentCard({ document, isSelected, onClick, onDelete, onReprocess }: DocumentCardProps) {
+  const { toast } = useToast();
   
   const getStatusIcon = () => {
     switch (document.ocr_status) {
@@ -123,6 +139,30 @@ export function DocumentCard({ document, isSelected, onClick, onDelete }: Docume
     onDelete?.();
   };
 
+  const handleReprocessWithOCR = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      toast({
+        title: "Reprocessing with OCR",
+        description: "Document is being reprocessed with OCR enabled..."
+      });
+
+      await supabase.functions.invoke('income-ocr', {
+        body: { document_id: document.id, force_reprocess: true, force_ocr: true }
+      });
+
+      onReprocess?.();
+    } catch (error) {
+      console.error('Error reprocessing:', error);
+      toast({
+        title: "Reprocess Failed",
+        description: "Failed to reprocess document",
+        variant: "destructive"
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -132,6 +172,12 @@ export function DocumentCard({ document, isSelected, onClick, onDelete }: Docume
   };
 
   const confidencePercentage = document.parse_confidence ? Math.round(document.parse_confidence * 100) : 0;
+  
+  // Extract parser diagnostics from parsed_json
+  const parserDiagnostics: ParserDiagnostics = document.parsed_json?.parser_diagnostics || {};
+  const hasOCR = parserDiagnostics.ocr_used;
+  const anchorsFound = parserDiagnostics.anchors_found || [];
+  const wasReclassified = parserDiagnostics.classification_override;
 
   return (
     <Card 
@@ -180,11 +226,50 @@ export function DocumentCard({ document, isSelected, onClick, onDelete }: Docume
 
           {/* Document Type and Status */}
           <div className="flex items-center justify-between">
-            <Badge className={getDocTypeColor(document.doc_type)}>
-              {getDocTypeLabel(document.doc_type)}
-            </Badge>
+            <div className="flex items-center gap-1">
+              <Badge className={getDocTypeColor(document.doc_type)}>
+                {getDocTypeLabel(document.doc_type)}
+              </Badge>
+              {wasReclassified && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                        <FileWarning className="h-3 w-3 mr-1" />
+                        Reclassified
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        Originally classified as: {parserDiagnostics.original_classification}<br/>
+                        Corrected to: {parserDiagnostics.final_classification}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             {getStatusBadge()}
           </div>
+
+          {/* OCR Badge */}
+          {hasOCR && (
+            <div className="flex items-center gap-1">
+              <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
+                <Scan className="h-3 w-3 mr-1" />
+                OCR Used
+              </Badge>
+            </div>
+          )}
+
+          {/* IRS Anchors Found */}
+          {anchorsFound.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Forms detected:</span>{' '}
+              {anchorsFound.slice(0, 3).join(', ')}
+              {anchorsFound.length > 3 && ` +${anchorsFound.length - 3} more`}
+            </div>
+          )}
 
           {/* Document Period */}
           {(document.doc_period_start || document.doc_period_end) && (
@@ -212,11 +297,41 @@ export function DocumentCard({ document, isSelected, onClick, onDelete }: Docume
             </div>
           )}
 
-          {/* Processing Error */}
+          {/* Processing Error with Reprocess Button */}
           {document.ocr_status === 'failed' && (
-            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-2 rounded">
-              <AlertCircle className="h-3 w-3" />
-              <span>Processing failed. Please try re-uploading.</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                <AlertCircle className="h-3 w-3" />
+                <span>Processing failed. Try reprocessing with OCR.</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs"
+                onClick={handleReprocessWithOCR}
+              >
+                <Scan className="h-3 w-3 mr-1" />
+                Reprocess with OCR
+              </Button>
+            </div>
+          )}
+
+          {/* Low Confidence Warning with Reprocess */}
+          {document.ocr_status === 'success' && confidencePercentage < 60 && !hasOCR && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                <AlertCircle className="h-3 w-3" />
+                <span>Low confidence. Consider reprocessing with OCR.</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs"
+                onClick={handleReprocessWithOCR}
+              >
+                <Scan className="h-3 w-3 mr-1" />
+                Reprocess with OCR
+              </Button>
             </div>
           )}
 
@@ -243,6 +358,12 @@ export function DocumentCard({ document, isSelected, onClick, onDelete }: Docume
                   <span className="font-medium capitalize">
                     {document.parsed_json.pay_frequency.replace('_', ' ')}
                   </span>
+                </div>
+              )}
+              {document.parsed_json.tax_year && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tax Year:</span>
+                  <span className="font-medium">{document.parsed_json.tax_year}</span>
                 </div>
               )}
             </div>
