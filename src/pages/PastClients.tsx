@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Upload } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
+import { ImportPastClientsModal } from "@/components/modals/ImportPastClientsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -723,6 +724,7 @@ export default function PastClients() {
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const { toast } = useToast();
 
   // Column visibility management
@@ -1105,6 +1107,10 @@ export default function PastClients() {
               {filteredLoans.length} closed {filteredLoans.length === 1 ? 'loan' : 'loans'}
             </p>
           </div>
+          <Button onClick={() => setIsImportModalOpen(true)} variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
@@ -1314,6 +1320,13 @@ export default function PastClients() {
             label: `${u.first_name} ${u.last_name}` 
           })) },
         ]}
+      />
+
+      {/* Import Past Clients Modal */}
+      <ImportPastClientsModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        onImportComplete={loadData}
       />
     </div>
   );
