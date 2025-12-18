@@ -373,11 +373,12 @@ Deno.serve(async (req) => {
         // Get lender ID
         const lenderId = getLenderId(getColumnValue(row, 'LENDER', 'Lender Name', 'LENDER NAME'));
 
-        // Co-borrower info
+        // Co-borrower info (store in notes since columns don't exist)
         const coFull = getColumnValue(row, 'Co-Borrower Full Name', 'CO-BORROWER', 'CoBorrower') || null;
         const coParts = coFull ? coFull.split(' ').filter(Boolean) : [];
         const coFirst = coParts.length ? coParts[0] : null;
         const coLast = coParts.length > 1 ? coParts.slice(1).join(' ') : null;
+        const coEmail = cleanEmail(getColumnValue(row, 'Co-Borrower Email', 'CoBorrower Email'));
 
         // Dates
         const closeDate = parseDate(getColumnValue(row, 'CLOSE DATE', 'Close Date', 'CLOSING DATE', 'Closing Date'));
@@ -387,6 +388,9 @@ Deno.serve(async (req) => {
         const ctcDate = parseDate(getColumnValue(row, 'CTC', 'CTC DATE'));
         const lastCallDate = parseDate(getColumnValue(row, 'LAST CALL', 'Last Call'));
 
+        // Lender loan number (store in notes since column doesn't exist)
+        const lenderLoanNum = getColumnValue(row, 'LENDER LOAN #', 'Lender Loan #');
+
         // Title company notes
         const titleBits = [
           row['TITLE NAME'] ? `Title: ${row['TITLE NAME']}` : null,
@@ -394,8 +398,11 @@ Deno.serve(async (req) => {
           row['TITLE PHONE'] ? `Title Phone: ${cleanPhone(row['TITLE PHONE'])}` : null,
         ].filter(Boolean);
 
-        // Additional notes from dates
+        // Additional notes from dates and fields that don't have columns
         const dateBits = [
+          lenderLoanNum ? `Lender Loan #: ${lenderLoanNum}` : null,
+          lastCallDate ? `Last Call: ${lastCallDate}` : null,
+          (coFirst || coLast) ? `Co-Borrower: ${[coFirst, coLast].filter(Boolean).join(' ')}${coEmail ? ` (${coEmail})` : ''}` : null,
           subDate ? `SUB: ${subDate}` : null,
           awcDate ? `AWC: ${awcDate}` : null,
           ctcDate ? `CTC: ${ctcDate}` : null,
@@ -403,18 +410,12 @@ Deno.serve(async (req) => {
 
         const allNotes = [...titleBits, ...dateBits].join('\n') || null;
 
-        // Calculate LTV if not provided
+        // Calculate LTV for display only (not stored - calculated field)
         const loanAmt = parseDecimal(getColumnValue(row, 'LOAN AMT', 'Loan Amount', 'LOAN AMOUNT'));
         const salesPrice = parseDecimal(getColumnValue(row, 'SALES PRICE', 'Sales Price', 'Purchase Price'));
         const appraisalValue = parseDecimal(getColumnValue(row, 'APPRAISED VALUE', 'Appraised Value'));
-        const providedLtv = parsePercentage(getColumnValue(row, 'LTV', 'Ltv'));
-        
-        let ltv = providedLtv;
-        if (!ltv && loanAmt && salesPrice && salesPrice > 0) {
-          ltv = Math.round((loanAmt / salesPrice) * 100 * 100) / 100;
-        }
 
-        // Build lead record
+        // Build lead record - only include columns that exist in schema
         const lead: Record<string, any> = {
           first_name: borrowerFirst,
           last_name: borrowerLast,
@@ -422,8 +423,7 @@ Deno.serve(async (req) => {
           phone: cleanPhone(getColumnValue(row, 'Borrower Phone', 'Phone', 'BORROWER PHONE')),
           dob: parseDate(getColumnValue(row, 'BORROWER DOB', 'DOB', 'Date of Birth')),
 
-          arrive_loan_number: getColumnValue(row, 'ARIVE LOAN #', 'Arrive Loan #', 'MB LOAN #'),
-          lender_loan_number: getColumnValue(row, 'LENDER LOAN #', 'Lender Loan #'),
+          mb_loan_number: getColumnValue(row, 'ARIVE LOAN #', 'Arrive Loan #', 'MB LOAN #'),
           approved_lender_id: lenderId,
 
           loan_amount: loanAmt,
@@ -431,7 +431,6 @@ Deno.serve(async (req) => {
           appraisal_value: appraisalValue ? String(appraisalValue) : null,
           interest_rate: parseDecimal(getColumnValue(row, 'RATE', 'Interest Rate', 'Rate')),
           term: normalizeTerm(getColumnValue(row, 'TERM', 'Term', 'Loan Term')),
-          ltv: ltv,
 
           subject_address_1: getColumnValue(row, 'SUBJECT PROP ADDRESS', 'Property Address', 'Address'),
           subject_address_2: getColumnValue(row, 'ADDRESS 2', 'Unit', 'Apt'),
@@ -448,16 +447,11 @@ Deno.serve(async (req) => {
 
           close_date: closeDate,
           lead_on_date: leadOnDate,
-          last_call_date: lastCallDate,
 
           buyer_agent_id: buyerAgentId,
           listing_agent_id: listingAgentId,
 
-          co_borrower_first_name: coFirst,
-          co_borrower_last_name: coLast,
-          co_borrower_email: cleanEmail(getColumnValue(row, 'Co-Borrower Email', 'CoBorrower Email')),
-
-          referral_method: mapReferralMethod(getColumnValue(row, 'REFERRAL METHOD', 'Referral', 'Source')),
+          referral_source: mapReferralMethod(getColumnValue(row, 'REFERRAL METHOD', 'Referral', 'Source')),
           lead_strength: getColumnValue(row, 'LEAD STRENGTH', 'Lead Strength'),
           likely_to_apply: getColumnValue(row, 'LIKELY TO APPLY', 'Likely to Apply'),
 
