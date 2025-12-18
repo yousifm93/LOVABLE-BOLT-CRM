@@ -5,11 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Required constants
+const DEFAULT_ACCOUNT_ID = '05bad2ba-d44c-4af3-b3ff-2478f10a6cac';
+const DEFAULT_CREATED_BY = 'b06a12ea-00b9-4725-b368-e8a416d4028d';
+const PAST_CLIENTS_STAGE_ID = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
+
+// Direct lender name to UUID mapping
+const LENDER_ID_MAP: Record<string, string> = {
+  'A&D': '42d1d051-3d59-4f9a-af15-003a465fe68e',
+  'UWM': 'de9cb248-08fe-4554-a746-cb51a89c310b',
+  'PENNYMAC': '8ce48b0c-5c4e-43f9-8ac1-5c7f962c05ab',
+  'PRMG': 'fb605edb-285a-4b6e-839f-0bd13a44b23e',
+  'DEEPHAVEN': 'ca7ce886-de8f-4a0b-9735-92ac95e02d9b',
+  'THE LOAN STORE': '9ecc2c31-4439-43e0-86ba-6b2280949ff7',
+  'FUND LOANS': '9d4a54b2-0023-4784-86c5-f9589c1ed6b7',
+  'CHAMPIONS FUNDING': 'd3891cc2-7fd5-48cc-9bc1-f4564fbfa74f',
+  'REMN': 'b95b0ddd-0dc3-4543-a09f-a6c72ed0464b',
+  'NEWREZ': 'b95b0ddd-0dc3-4543-a09f-a6c72ed0464b',
+  'REMINGTON': 'b95b0ddd-0dc3-4543-a09f-a6c72ed0464b',
+  'JMAC': '2f73be4a-30aa-4126-aa2b-d8e9e0767872',
+  'SIERRA PACIFIC': '64db6af8-f0a5-4876-b7a7-8d3fa6f3c8e2',
+  'POWERTPO': '5df90f36-e9fb-4e8b-97e8-44e544bcfd5c',
+  'UCB': 'c2e5f8b1-0a3d-4e6f-9c2b-7d8a9e0f1b2c',
+};
+
 // Helper functions
 function parseDate(value: string | null | undefined): string | null {
   if (!value || value === '' || value === 'null' || value === 'undefined') return null;
   
-  // Handle ISO dates
+  // Handle ISO dates (2025-09-17T00:00:00)
   if (value.match(/^\d{4}-\d{2}-\d{2}/)) {
     return value.split('T')[0];
   }
@@ -21,11 +45,11 @@ function parseDate(value: string | null | undefined): string | null {
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
   
-  // Handle Excel date strings like "12/15/2023"
+  // Handle Excel date strings like "12/25/91 0:00"
   const dateMatch = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
   if (dateMatch) {
     const [, month, day, year] = dateMatch;
-    const fullYear = year.length === 2 ? `20${year}` : year;
+    const fullYear = year.length === 2 ? (parseInt(year) > 50 ? `19${year}` : `20${year}`) : year;
     return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
   
@@ -35,13 +59,6 @@ function parseDate(value: string | null | undefined): string | null {
 function parseDecimal(value: any): number | null {
   if (value === null || value === undefined || value === '' || value === 'null') return null;
   const cleaned = String(value).replace(/[^0-9.-]/g, '');
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
-}
-
-function parsePercentage(value: any): number | null {
-  if (value === null || value === undefined || value === '' || value === 'null') return null;
-  let cleaned = String(value).replace(/[%\s]/g, '');
   const num = parseFloat(cleaned);
   return isNaN(num) ? null : num;
 }
@@ -63,7 +80,7 @@ function mapPropertyType(value: string | null): string | null {
   if (upper.includes('MULTI')) return 'Multi-Family';
   if (upper.includes('2-4') || upper.includes('2 - 4')) return '2-4 Unit';
   if (upper.includes('PUD')) return 'PUD';
-  return value;
+  return null; // Return null for unrecognized values
 }
 
 function mapOccupancy(value: string | null): string | null {
@@ -72,7 +89,7 @@ function mapOccupancy(value: string | null): string | null {
   if (upper.includes('PRIMARY') || upper === 'OWNER' || upper === 'P' || upper === 'PRI') return 'Primary Residence';
   if (upper.includes('INVESTMENT') || upper === 'INV' || upper === 'I') return 'Investment Property';
   if (upper.includes('SECOND') || upper === 'SH' || upper === 'S') return 'Second Home';
-  return value;
+  return null; // Return null for unrecognized values
 }
 
 function mapPrType(value: string | null): string | null {
@@ -82,7 +99,7 @@ function mapPrType(value: string | null): string | null {
   if (upper === 'R' || upper === 'REFINANCE' || upper === 'REFI') return 'R';
   if (upper === 'HELOC') return 'HELOC';
   if (upper === 'CO') return 'CO';
-  return value;
+  return null; // Return null for unrecognized values
 }
 
 function mapCondoStatus(value: string | null): string | null {
@@ -95,69 +112,60 @@ function mapCondoStatus(value: string | null): string | null {
   if (upper === 'TRANSFER') return 'Transfer';
   if (upper === 'RECEIVED' || upper === 'REC') return 'Docs Received';
   if (upper === 'ORDERED' || upper === 'ORD') return 'Ordered';
-  return value;
-}
-
-function mapEscrows(value: string | null): string | null {
-  if (!value) return null;
-  const upper = value.toUpperCase().trim();
-  if (upper === 'COMPLETE' || upper === 'YES' || upper === 'Y' || upper === 'WAIVED') return 'Waived';
-  if (upper === 'REQUESTED' || upper === 'N/A' || upper === 'NO' || upper === 'N' || upper === 'ESCROWED') return 'Escrowed';
-  if (upper.includes('BOTH')) return 'Waived';
-  return null;
-}
-
-function mapLoanProgram(value: string | null): string | null {
-  if (!value) return null;
-  const upper = value.toUpperCase().trim();
-  if (upper.includes('CONV') || upper === 'C') return 'Conventional';
-  if (upper.includes('FHA') || upper === 'F') return 'FHA';
-  if (upper.includes('VA') || upper === 'V') return 'VA';
-  if (upper.includes('USDA')) return 'USDA';
-  if (upper.includes('NON-QM') || upper.includes('NONQM')) return 'Non-QM';
-  if (upper.includes('DSCR')) return 'DSCR';
-  if (upper.includes('BANK') && upper.includes('STATEMENT')) return 'Bank Statement';
-  if (upper.includes('JUMBO')) return 'Jumbo';
-  return value;
-}
-
-function mapReferralMethod(value: string | null): string | null {
-  if (!value) return null;
-  const upper = value.toUpperCase().trim();
-  if (upper.includes('AGENT') || upper.includes('REALTOR')) return 'Agent Referral';
-  if (upper.includes('PAST') && upper.includes('CLIENT')) return 'Past Client';
-  if (upper.includes('ZILLOW')) return 'Zillow';
-  if (upper.includes('SOCIAL')) return 'Social Media';
-  if (upper.includes('WEB')) return 'Website';
-  if (upper.includes('FRIEND') || upper.includes('FAMILY')) return 'Friend/Family';
-  return value;
+  return null; // Return null for unrecognized values
 }
 
 function cleanEmail(value: string | null | undefined): string | null {
   if (!value) return null;
-  // Remove backslashes from escaped emails and clean
   return value.replace(/\\/g, '').toLowerCase().trim() || null;
 }
 
 function cleanPhone(value: string | null | undefined): string | null {
   if (!value) return null;
-  // Keep only digits
   const digits = String(value).replace(/[^0-9]/g, '');
-  // Remove leading 1 if it's an 11-digit US number
   if (digits.length === 11 && digits.startsWith('1')) {
     return digits.slice(1);
   }
   return digits || null;
 }
 
-// Column name variations mapping
-function getColumnValue(row: Record<string, string | null>, ...keys: string[]): string | null {
-  for (const key of keys) {
-    if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-      return row[key];
+function getLenderId(lenderName: string | null): string | null {
+  if (!lenderName) return null;
+  const upperName = lenderName.toUpperCase().trim();
+  
+  // Direct match
+  if (LENDER_ID_MAP[upperName]) {
+    return LENDER_ID_MAP[upperName];
+  }
+  
+  // Partial match
+  for (const [key, id] of Object.entries(LENDER_ID_MAP)) {
+    if (upperName.includes(key) || key.includes(upperName)) {
+      return id;
     }
   }
+  
   return null;
+}
+
+function isValidRow(row: Record<string, any>): boolean {
+  const firstName = row.first_name || row['first_name'] || row['BORROWER FN'] || row['Borrower FN'];
+  
+  // Skip if no first name
+  if (!firstName || firstName.trim() === '') return false;
+  
+  // Skip header rows
+  const upper = firstName.toUpperCase().trim();
+  if (upper === 'BORROWER FN' || upper === 'BORROWER FULL NAME' || upper === 'FIRST_NAME' || upper === 'NAME') {
+    return false;
+  }
+  
+  return true;
+}
+
+function isUUID(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
 Deno.serve(async (req) => {
@@ -174,170 +182,66 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body?.mode ?? 'PREVIEW';
 
-    const parseTableText = (tableText: string): Record<string, string | null>[] => {
-      const lines = tableText
-        .split(/\r?\n/)
-        .map((l: string) => l.trim())
-        .filter((l: string) => l.startsWith('|'));
-
+    // Parse tab-separated data if provided as string
+    const parseTabData = (tabText: string): Record<string, any>[] => {
+      const lines = tabText.split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) return [];
-
-      const parseRow = (line: string): string[] =>
-        line
-          .split('|')
-          .slice(1, -1)
-          .map((v) => v.trim());
-
-      const headers = parseRow(lines[0]);
-      const out: Record<string, string | null>[] = [];
-
+      
+      const headers = lines[0].split('\t');
+      const out: Record<string, any>[] = [];
+      
       for (let i = 1; i < lines.length; i++) {
-        const values = parseRow(lines[i]);
-        const nameIdx = headers.indexOf('Name');
-        if (nameIdx >= 0 && (!values[nameIdx] || values[nameIdx].toLowerCase() === 'name')) continue;
-
-        const row: Record<string, string | null> = {};
+        const values = lines[i].split('\t');
+        const row: Record<string, any> = {};
         headers.forEach((h, idx) => {
-          row[h] = values[idx] === undefined || values[idx] === '' ? null : values[idx];
+          const val = values[idx]?.trim();
+          row[h.trim()] = (!val || val === '' || val === 'null') ? null : val;
         });
         out.push(row);
       }
-
+      
       return out;
     };
 
-    const data: Record<string, string | null>[] = Array.isArray(body?.data)
-      ? body.data
-      : typeof body?.table_text === 'string'
-        ? parseTableText(body.table_text)
-        : [];
+    // Accept data in multiple formats
+    let data: Record<string, any>[] = [];
+    if (Array.isArray(body?.data)) {
+      data = body.data;
+    } else if (typeof body?.tab_data === 'string') {
+      data = parseTabData(body.tab_data);
+    } else if (typeof body?.table_text === 'string') {
+      data = parseTabData(body.table_text);
+    }
 
-    console.log(`Import past clients - Mode: ${mode}, Records: ${data.length}`);
+    // Detect format: database format has 'first_name', Excel format has 'BORROWER FN'
+    const isDatabaseFormat = data.length > 0 && ('first_name' in data[0] || 'id' in data[0]);
+    
+    console.log(`Import past clients - Mode: ${mode}, Records: ${data.length}, Format: ${isDatabaseFormat ? 'database' : 'excel'}`);
     if (data.length > 0) {
       console.log('Sample columns:', Object.keys(data[0]).slice(0, 15).join(', '));
     }
 
-    // Fetch existing lenders for matching
-    const { data: existingLenders } = await supabase
-      .from('lenders')
-      .select('id, lender_name');
-
-    // Fetch existing agents for matching
-    const { data: existingAgents } = await supabase
-      .from('buyer_agents')
-      .select('id, first_name, last_name, email');
-
-    // Lender name mapping
-    const lenderNameMap: Record<string, string> = {
-      'UWM': 'UWM',
-      'REMN': 'REMN',
-      'A&D': 'A&D MORTGAGE LLC',
-      'PENNYMAC': 'PennyMac',
-      'PRMG': 'PRMG',
-      'DEEPHAVEN': 'DEEPHAVEN',
-      'FUND LOANS': 'FUND LOANS',
-      'THE LOAN STORE': 'THE LOAN STORE',
-      'NEWREZ': 'Newrez',
-      'REMINGTON': 'Remington',
-      'UCB': 'UCB',
-      'POWERTPO': 'PowerTPO',
-      'SIERRA PACIFIC': 'SIERRA PACIFIC',
-      'JMAC': 'JMAC',
-      'CHAMPIONS FUNDING': 'Champions Funding',
-      'PLANET HOME': 'Planet Home Lending',
-      'FLAGSTAR': 'Flagstar',
-      'ROCKET': 'Rocket Mortgage',
-      'GUARANTEED RATE': 'Guaranteed Rate',
-    };
-
-    function getLenderId(lenderName: string | null): string | null {
-      if (!lenderName) return null;
-      const upperName = lenderName.toUpperCase().trim();
-      
-      // Try direct match first
-      const mappedName = lenderNameMap[upperName] || lenderName;
-      
-      const found = existingLenders?.find(l => 
-        l.lender_name?.toUpperCase() === mappedName.toUpperCase() ||
-        l.lender_name?.toUpperCase().includes(upperName) ||
-        upperName.includes(l.lender_name?.toUpperCase() || '')
-      );
-      
-      return found?.id || null;
-    }
-
-    async function getOrCreateAgent(firstName: string | null, lastName: string | null, email: string | null, phone: string | null, brokerage: string | null = null): Promise<string | null> {
-      if (!firstName || firstName.toUpperCase() === 'REFI' || firstName.toUpperCase() === 'MY TEAM' || firstName.toUpperCase() === 'NO AGENT' || firstName.toUpperCase() === 'N/A') {
-        return null;
-      }
-
-      // Try to find existing agent
-      const cleanedEmail = cleanEmail(email);
-      let found = existingAgents?.find(a => 
-        (cleanedEmail && a.email?.toLowerCase() === cleanedEmail) ||
-        (a.first_name?.toLowerCase() === firstName.toLowerCase() && a.last_name?.toLowerCase() === lastName?.toLowerCase())
-      );
-
-      if (found) return found.id;
-
-      // Create new agent
-      const { data: newAgent, error } = await supabase
-        .from('buyer_agents')
-        .insert({
-          first_name: firstName,
-          last_name: lastName || '',
-          email: cleanedEmail,
-          phone: cleanPhone(phone),
-          brokerage: brokerage || 'Unknown',
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating agent:', error);
-        return null;
-      }
-
-      // Add to cache
-      existingAgents?.push({ id: newAgent.id, first_name: firstName, last_name: lastName, email: cleanedEmail });
-      return newAgent.id;
-    }
-
     if (mode === 'PREVIEW') {
+      const validCount = data.filter(isValidRow).length;
       return new Response(JSON.stringify({
         mode: 'PREVIEW',
-        recordCount: data.length,
-        lendersFound: existingLenders?.length || 0,
-        agentsFound: existingAgents?.length || 0,
-        sampleColumns: data.length > 0 ? Object.keys(data[0]).slice(0, 20) : [],
-        message: 'Ready to import. Call with mode=APPLY to execute.',
+        totalRecords: data.length,
+        validRecords: validCount,
+        format: isDatabaseFormat ? 'database' : 'excel',
+        sampleColumns: data.length > 0 ? Object.keys(data[0]).slice(0, 25) : [],
+        message: `Ready to import ${validCount} valid records. Call with mode=APPLY to execute.`,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // APPLY mode - do the import
-    const results = { imported: 0, errors: [] as string[] };
+    const results = { imported: 0, skipped: 0, errors: [] as string[] };
 
-    // Resolve Past Clients pipeline stage id
-    const fallbackPastClientsStageId = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
-    let pastClientsStageId = fallbackPastClientsStageId;
-    try {
-      const { data: stageRow, error: stageErr } = await supabase
-        .from('pipeline_stages')
-        .select('id, name')
-        .ilike('name', '%past%client%')
-        .limit(1)
-        .maybeSingle();
-      if (!stageErr && stageRow?.id) pastClientsStageId = stageRow.id;
-    } catch (_e) {
-      // ignore
-    }
-
-    // Soft-delete existing Past Clients so the imported list becomes the only Past Clients
+    // Soft-delete existing Past Clients
     const deletedAt = new Date().toISOString();
     const { error: deleteErr } = await supabase
       .from('leads')
       .update({ deleted_at: deletedAt, deleted_by: null })
-      .eq('pipeline_stage_id', pastClientsStageId)
+      .eq('pipeline_stage_id', PAST_CLIENTS_STAGE_ID)
       .is('deleted_at', null);
 
     if (deleteErr) {
@@ -346,136 +250,191 @@ Deno.serve(async (req) => {
 
     for (const row of data) {
       try {
-        // Get borrower info with column variations
-        const borrowerFirst = getColumnValue(row, 'Borrower FN', 'First Name', 'BORROWER FN', 'FN') || 
-                            row['Name']?.split(' ')[0] || 'Unknown';
-        const borrowerLast = getColumnValue(row, 'Borrower LN', 'Last Name', 'BORROWER LN', 'LN') || 
-                           row['Name']?.split(' ').slice(1).join(' ') || '';
+        // Skip invalid rows
+        if (!isValidRow(row)) {
+          results.skipped++;
+          continue;
+        }
 
-        // Get or create buyer agent
-        const buyerAgentId = await getOrCreateAgent(
-          getColumnValue(row, 'BUYERS AGENT FN', 'BA FN', 'BUYERS AGENT', 'Buyer Agent FN'),
-          getColumnValue(row, 'BUYERS AGENT LN', 'BA LN', 'Buyer Agent LN'),
-          getColumnValue(row, "Buyer's Agent Email", 'BA EMAIL', 'Buyer Agent Email'),
-          getColumnValue(row, "Buyer's Agent Phone #", 'BA PHONE', 'Buyer Agent Phone'),
-          getColumnValue(row, 'BUYERS AGENT BROKERAGE', 'BA BROKERAGE')
-        );
+        // Handle database format directly
+        if (isDatabaseFormat) {
+          // Extract lender name and map to ID
+          let lenderId: string | null = null;
+          
+          // If approved_lender_id is already a UUID, try to use it
+          if (isUUID(row.approved_lender_id)) {
+            lenderId = row.approved_lender_id;
+          }
+          
+          // If we have lender_id as UUID, use it
+          if (!lenderId && isUUID(row.lender_id)) {
+            lenderId = row.lender_id;
+          }
+          
+          // Extract lender name from various possible fields in notes or other places
+          const lenderNameFromRow = row.lender || row.lender_name;
+          if (!lenderId && lenderNameFromRow) {
+            lenderId = getLenderId(lenderNameFromRow);
+          }
 
-        // Get or create listing agent
-        const listingAgentId = await getOrCreateAgent(
-          getColumnValue(row, 'LISTING AGENT FN', 'LA FN', 'LISTING AGENT', 'Listing Agent FN'),
-          getColumnValue(row, 'LISTING AGENT LN', 'LA LN', 'Listing Agent LN'),
-          getColumnValue(row, 'Listing Agent Email', 'LA EMAIL'),
-          getColumnValue(row, "Seller's Agent Phone", 'LA PHONE', 'Listing Agent Phone'),
-          getColumnValue(row, 'LISTING AGENT BROKERAGE', 'LA BROKERAGE')
-        );
+          // Build co-borrower notes if present
+          const coBorrowerNotes: string[] = [];
+          if (row.co_borrower_first_name || row.co_borrower_last_name) {
+            const coName = [row.co_borrower_first_name, row.co_borrower_last_name].filter(Boolean).join(' ');
+            const coEmail = row.co_borrower_email;
+            coBorrowerNotes.push(`Co-Borrower: ${coName}${coEmail ? ` (${coEmail})` : ''}`);
+          }
+          if (row.lender_loan_number) {
+            coBorrowerNotes.push(`Lender Loan #: ${row.lender_loan_number}`);
+          }
+          
+          // Combine existing notes with co-borrower info
+          const existingNotes = row.notes || '';
+          const combinedNotes = [existingNotes, ...coBorrowerNotes].filter(Boolean).join('\n') || null;
 
-        // Get lender ID
-        const lenderId = getLenderId(getColumnValue(row, 'LENDER', 'Lender Name', 'LENDER NAME'));
+          const lead: Record<string, any> = {
+            // Required fields
+            account_id: DEFAULT_ACCOUNT_ID,
+            created_by: DEFAULT_CREATED_BY,
+            pipeline_stage_id: PAST_CLIENTS_STAGE_ID,
+            
+            // Basic info
+            first_name: row.first_name,
+            last_name: row.last_name || '',
+            email: cleanEmail(row.email),
+            phone: cleanPhone(row.phone),
+            dob: parseDate(row.dob),
+            
+            // Loan info
+            mb_loan_number: row.mb_loan_number || row.arrive_loan_number,
+            approved_lender_id: lenderId,
+            loan_amount: parseDecimal(row.loan_amount),
+            sales_price: parseDecimal(row.sales_price),
+            appraisal_value: row.appraisal_value ? String(parseDecimal(row.appraisal_value)) : null,
+            interest_rate: parseDecimal(row.interest_rate),
+            term: normalizeTerm(row.term),
+            down_pmt: parseDecimal(row.down_pmt),
+            fico_score: parseDecimal(row.fico_score),
+            
+            // Property info
+            subject_address_1: row.subject_address_1,
+            subject_address_2: row.subject_address_2,
+            subject_city: row.subject_city,
+            subject_state: row.subject_state,
+            subject_zip: row.subject_zip,
+            condo_name: row.condo_name,
+            property_type: mapPropertyType(row.property_type),
+            occupancy: mapOccupancy(row.occupancy),
+            pr_type: mapPrType(row.pr_type),
+            condo_status: mapCondoStatus(row.condo_status),
+            
+            // Dates
+            close_date: parseDate(row.close_date),
+            lead_on_date: parseDate(row.lead_on_date) || new Date().toISOString().split('T')[0],
+            
+            // Agents - use existing UUIDs if valid
+            buyer_agent_id: isUUID(row.buyer_agent_id) ? row.buyer_agent_id : null,
+            listing_agent_id: isUUID(row.listing_agent_id) ? row.listing_agent_id : null,
+            
+            // Status
+            status: row.status || 'CLOSED',
+            pipeline_section: 'Closed',
+            loan_status: 'Closed',
+            is_closed: true,
+            closed_at: parseDate(row.close_date) ? new Date(`${parseDate(row.close_date)}T00:00:00.000Z`).toISOString() : null,
+            
+            // Source - don't set source as it's an enum
+            referral_source: row.referral_source || 'Past Client',
+            
+            // Notes
+            notes: combinedNotes,
+          };
 
-        // Co-borrower info (store in notes since columns don't exist)
-        const coFull = getColumnValue(row, 'Co-Borrower Full Name', 'CO-BORROWER', 'CoBorrower') || null;
-        const coParts = coFull ? coFull.split(' ').filter(Boolean) : [];
-        const coFirst = coParts.length ? coParts[0] : null;
-        const coLast = coParts.length > 1 ? coParts.slice(1).join(' ') : null;
-        const coEmail = cleanEmail(getColumnValue(row, 'Co-Borrower Email', 'CoBorrower Email'));
+          // Remove undefined/null keys
+          Object.keys(lead).forEach(key => {
+            if (lead[key] === undefined || lead[key] === null || lead[key] === '') {
+              delete lead[key];
+            }
+          });
 
-        // Dates
-        const closeDate = parseDate(getColumnValue(row, 'CLOSE DATE', 'Close Date', 'CLOSING DATE', 'Closing Date'));
-        const leadOnDate = parseDate(getColumnValue(row, 'LEAD ON', 'Lead On', 'Lead Date', 'LEAD DATE'));
-        const subDate = parseDate(getColumnValue(row, 'SUB', 'SUB DATE', 'Submitted'));
-        const awcDate = parseDate(getColumnValue(row, 'AWC', 'AWC DATE'));
-        const ctcDate = parseDate(getColumnValue(row, 'CTC', 'CTC DATE'));
-        const lastCallDate = parseDate(getColumnValue(row, 'LAST CALL', 'Last Call'));
+          // Ensure required fields are present
+          lead.account_id = DEFAULT_ACCOUNT_ID;
+          lead.created_by = DEFAULT_CREATED_BY;
+          lead.pipeline_stage_id = PAST_CLIENTS_STAGE_ID;
+          lead.first_name = lead.first_name || 'Unknown';
 
-        // Lender loan number (store in notes since column doesn't exist)
-        const lenderLoanNum = getColumnValue(row, 'LENDER LOAN #', 'Lender Loan #');
+          const { error } = await supabase.from('leads').insert(lead);
 
-        // Title company notes
-        const titleBits = [
-          row['TITLE NAME'] ? `Title: ${row['TITLE NAME']}` : null,
-          row['TITLE EMAIL'] ? `Title Email: ${cleanEmail(row['TITLE EMAIL'])}` : null,
-          row['TITLE PHONE'] ? `Title Phone: ${cleanPhone(row['TITLE PHONE'])}` : null,
-        ].filter(Boolean);
-
-        // Additional notes from dates and fields that don't have columns
-        const dateBits = [
-          lenderLoanNum ? `Lender Loan #: ${lenderLoanNum}` : null,
-          lastCallDate ? `Last Call: ${lastCallDate}` : null,
-          (coFirst || coLast) ? `Co-Borrower: ${[coFirst, coLast].filter(Boolean).join(' ')}${coEmail ? ` (${coEmail})` : ''}` : null,
-          subDate ? `SUB: ${subDate}` : null,
-          awcDate ? `AWC: ${awcDate}` : null,
-          ctcDate ? `CTC: ${ctcDate}` : null,
-        ].filter(Boolean);
-
-        const allNotes = [...titleBits, ...dateBits].join('\n') || null;
-
-        // Calculate LTV for display only (not stored - calculated field)
-        const loanAmt = parseDecimal(getColumnValue(row, 'LOAN AMT', 'Loan Amount', 'LOAN AMOUNT'));
-        const salesPrice = parseDecimal(getColumnValue(row, 'SALES PRICE', 'Sales Price', 'Purchase Price'));
-        const appraisalValue = parseDecimal(getColumnValue(row, 'APPRAISED VALUE', 'Appraised Value'));
-
-        // Build lead record - only include columns that exist in schema
-        const lead: Record<string, any> = {
-          first_name: borrowerFirst,
-          last_name: borrowerLast,
-          email: cleanEmail(getColumnValue(row, 'Borrower Email', 'Email', 'BORROWER EMAIL')),
-          phone: cleanPhone(getColumnValue(row, 'Borrower Phone', 'Phone', 'BORROWER PHONE')),
-          dob: parseDate(getColumnValue(row, 'BORROWER DOB', 'DOB', 'Date of Birth')),
-
-          mb_loan_number: getColumnValue(row, 'ARIVE LOAN #', 'Arrive Loan #', 'MB LOAN #'),
-          approved_lender_id: lenderId,
-
-          loan_amount: loanAmt,
-          sales_price: salesPrice,
-          appraisal_value: appraisalValue ? String(appraisalValue) : null,
-          interest_rate: parseDecimal(getColumnValue(row, 'RATE', 'Interest Rate', 'Rate')),
-          term: normalizeTerm(getColumnValue(row, 'TERM', 'Term', 'Loan Term')),
-
-          subject_address_1: getColumnValue(row, 'SUBJECT PROP ADDRESS', 'Property Address', 'Address'),
-          subject_address_2: getColumnValue(row, 'ADDRESS 2', 'Unit', 'Apt'),
-          subject_city: getColumnValue(row, 'CITY', 'City'),
-          subject_state: getColumnValue(row, 'STATE', 'State'),
-          subject_zip: getColumnValue(row, 'ZIP CODE', 'Zip', 'ZIP'),
-          condo_name: getColumnValue(row, 'CONDO NAME', 'Condo Name'),
-          property_type: mapPropertyType(getColumnValue(row, 'PROP TYPE', 'Property Type')),
-          occupancy: mapOccupancy(getColumnValue(row, 'OCC', 'Occupancy')),
-          pr_type: mapPrType(getColumnValue(row, 'P/R', 'Purpose', 'Loan Purpose')),
-          condo_status: mapCondoStatus(getColumnValue(row, 'CONDO APPROVAL STATUS', 'Condo Status')),
-          escrows: mapEscrows(getColumnValue(row, 'ESCROW WAIVED?', 'Escrows', 'Escrow')),
-          program: mapLoanProgram(getColumnValue(row, 'PROGRAM', 'Loan Program', 'Product')),
-
-          close_date: closeDate,
-          lead_on_date: leadOnDate,
-
-          buyer_agent_id: buyerAgentId,
-          listing_agent_id: listingAgentId,
-
-          referral_source: mapReferralMethod(getColumnValue(row, 'REFERRAL METHOD', 'Referral', 'Source')),
-          lead_strength: getColumnValue(row, 'LEAD STRENGTH', 'Lead Strength'),
-          likely_to_apply: getColumnValue(row, 'LIKELY TO APPLY', 'Likely to Apply'),
-
-          pipeline_stage_id: pastClientsStageId,
-          pipeline_section: 'Closed',
-          loan_status: 'Closed',
-          is_closed: true,
-          closed_at: closeDate ? new Date(`${closeDate}T00:00:00.000Z`).toISOString() : null,
-
-          notes: allNotes,
-        };
-
-        // Remove undefined/null keys to avoid DB errors
-        Object.keys(lead).forEach(key => {
-          if (lead[key] === undefined) delete lead[key];
-        });
-
-        const { error } = await supabase.from('leads').insert(lead);
-
-        if (error) {
-          console.error('Error inserting lead:', error, { name: `${lead.first_name} ${lead.last_name}` });
-          results.errors.push(`${lead.first_name} ${lead.last_name}: ${error.message}`);
+          if (error) {
+            console.error('Error inserting lead:', error, { name: `${lead.first_name} ${lead.last_name}` });
+            results.errors.push(`${lead.first_name} ${lead.last_name}: ${error.message}`);
+          } else {
+            results.imported++;
+          }
         } else {
-          results.imported++;
+          // Handle Excel format (original logic) - simplified
+          const borrowerFirst = row['Borrower FN'] || row['BORROWER FN'] || row['First Name'] || 'Unknown';
+          const borrowerLast = row['Borrower LN'] || row['BORROWER LN'] || row['Last Name'] || '';
+          
+          const lenderId = getLenderId(row['LENDER'] || row['Lender Name']);
+          const closeDate = parseDate(row['CLOSE DATE'] || row['Close Date']);
+          const leadOnDate = parseDate(row['LEAD ON'] || row['Lead Date']);
+
+          const lead: Record<string, any> = {
+            account_id: DEFAULT_ACCOUNT_ID,
+            created_by: DEFAULT_CREATED_BY,
+            pipeline_stage_id: PAST_CLIENTS_STAGE_ID,
+            
+            first_name: borrowerFirst,
+            last_name: borrowerLast,
+            email: cleanEmail(row['Borrower Email'] || row['Email']),
+            phone: cleanPhone(row['Borrower Phone'] || row['Phone']),
+            
+            mb_loan_number: row['ARIVE LOAN #'] || row['MB LOAN #'],
+            approved_lender_id: lenderId,
+            loan_amount: parseDecimal(row['LOAN AMT'] || row['Loan Amount']),
+            sales_price: parseDecimal(row['SALES PRICE'] || row['Sales Price']),
+            
+            subject_address_1: row['SUBJECT PROP ADDRESS'] || row['Property Address'],
+            subject_city: row['CITY'] || row['City'],
+            subject_state: row['STATE'] || row['State'],
+            subject_zip: row['ZIP CODE'] || row['Zip'],
+            
+            property_type: mapPropertyType(row['PROP TYPE'] || row['Property Type']),
+            occupancy: mapOccupancy(row['OCC'] || row['Occupancy']),
+            
+            close_date: closeDate,
+            lead_on_date: leadOnDate || new Date().toISOString().split('T')[0],
+            
+            status: 'CLOSED',
+            pipeline_section: 'Closed',
+            loan_status: 'Closed',
+            is_closed: true,
+            closed_at: closeDate ? new Date(`${closeDate}T00:00:00.000Z`).toISOString() : null,
+            
+            referral_source: 'Past Client',
+            source: 'Past Client',
+          };
+
+          Object.keys(lead).forEach(key => {
+            if (lead[key] === undefined || lead[key] === null || lead[key] === '') {
+              delete lead[key];
+            }
+          });
+
+          lead.account_id = DEFAULT_ACCOUNT_ID;
+          lead.created_by = DEFAULT_CREATED_BY;
+          lead.pipeline_stage_id = PAST_CLIENTS_STAGE_ID;
+          lead.first_name = lead.first_name || 'Unknown';
+
+          const { error } = await supabase.from('leads').insert(lead);
+
+          if (error) {
+            console.error('Error inserting lead:', error, { name: `${lead.first_name} ${lead.last_name}` });
+            results.errors.push(`${lead.first_name} ${lead.last_name}: ${error.message}`);
+          } else {
+            results.imported++;
+          }
         }
       } catch (e: any) {
         console.error('Error processing row:', e);
@@ -483,13 +442,14 @@ Deno.serve(async (req) => {
       }
     }
     
-    console.log(`Import complete: ${results.imported} imported, ${results.errors.length} errors`);
+    console.log(`Import complete: ${results.imported} imported, ${results.skipped} skipped, ${results.errors.length} errors`);
 
     return new Response(JSON.stringify({
       mode: 'APPLY',
       imported: results.imported,
-      errors: results.errors,
-      message: `Successfully imported ${results.imported} past clients`,
+      skipped: results.skipped,
+      errors: results.errors.slice(0, 10), // Only return first 10 errors
+      message: `Successfully imported ${results.imported} past clients (${results.skipped} skipped)`,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
