@@ -102,17 +102,50 @@ function mapPrType(value: string | null): string | null {
   return null; // Return null for unrecognized values
 }
 
-function mapCondoStatus(value: string | null): string | null {
+// Map condo_status - ONLY valid enum values: Ordered, Received, Approved, N/A
+function mapCondoStatus(value: string | null): { status: string | null, note: string | null } {
+  if (!value) return { status: null, note: null };
+  const upper = value.toUpperCase().trim();
+  if (upper === 'APPROVED' || upper === 'FULL' || upper === 'APP' || upper === 'LIMITED' || upper === 'LTD') return { status: 'Approved', note: null };
+  if (upper === 'N/A' || upper === 'NA') return { status: 'N/A', note: null };
+  if (upper === 'RECEIVED' || upper === 'REC' || upper === 'DOCS RECEIVED') return { status: 'Received', note: null };
+  if (upper === 'ORDERED' || upper === 'ORD') return { status: 'Ordered', note: null };
+  // Non-valid values get stored in notes
+  if (upper === 'NWC' || upper === 'TRANSFER' || upper === 'LIMITED REVIEW') {
+    return { status: 'Approved', note: `Condo: ${value}` };
+  }
+  return { status: null, note: null };
+}
+
+// Map lead status (status column) - Past clients don't need lead status
+function mapLeadStatus(value: string | null): string | null {
   if (!value) return null;
   const upper = value.toUpperCase().trim();
-  if (upper === 'APPROVED' || upper === 'FULL' || upper === 'APP') return 'Approved';
-  if (upper === 'LIMITED' || upper === 'LTD') return 'Limited Review';
-  if (upper === 'NWC') return 'NWC';
-  if (upper === 'N/A' || upper === 'NA') return 'N/A';
-  if (upper === 'TRANSFER') return 'Transfer';
-  if (upper === 'RECEIVED' || upper === 'REC') return 'Docs Received';
-  if (upper === 'ORDERED' || upper === 'ORD') return 'Ordered';
-  return null; // Return null for unrecognized values
+  // CLOSED and NEEDS SUPPORT are not valid lead_status values for past clients
+  if (upper === 'CLOSED' || upper === 'NEEDS SUPPORT') return null;
+  if (upper === 'WORKING ON IT') return 'Working on it';
+  if (upper === 'PENDING APP') return 'Pending App';
+  if (upper === 'NURTURE') return 'Nurture';
+  if (upper === 'DEAD') return 'Dead';
+  if (upper === 'NEEDS ATTENTION') return 'Needs Attention';
+  return null;
+}
+
+// Map loan_status - valid values: NEW, RFP, SUB, AWC, CTC, Closed, Needs Support
+function mapLoanStatus(value: string | null, leadStatus: string | null): string | null {
+  // If lead status was CLOSED, force loan_status to Closed
+  if (leadStatus && leadStatus.toUpperCase() === 'CLOSED') return 'Closed';
+  
+  if (!value) return null;
+  const upper = value.toUpperCase().trim();
+  if (upper === 'CLOSED') return 'Closed';
+  if (upper === 'NEEDS SUPPORT') return 'Needs Support';
+  if (upper === 'NEW') return 'NEW';
+  if (upper === 'RFP') return 'RFP';
+  if (upper === 'SUB') return 'SUB';
+  if (upper === 'AWC') return 'AWC';
+  if (upper === 'CTC') return 'CTC';
+  return null;
 }
 
 function cleanEmail(value: string | null | undefined): string | null {
@@ -326,29 +359,40 @@ Deno.serve(async (req) => {
             property_type: mapPropertyType(row.property_type),
             occupancy: mapOccupancy(row.occupancy),
             pr_type: mapPrType(row.pr_type),
-            condo_status: mapCondoStatus(row.condo_status),
-            
-            // Dates
-            close_date: parseDate(row.close_date),
-            lead_on_date: parseDate(row.lead_on_date) || new Date().toISOString().split('T')[0],
-            
-            // Agents - use existing UUIDs if valid
-            buyer_agent_id: isUUID(row.buyer_agent_id) ? row.buyer_agent_id : null,
-            listing_agent_id: isUUID(row.listing_agent_id) ? row.listing_agent_id : null,
-            
-            // Status
-            status: row.status || 'CLOSED',
-            pipeline_section: 'Closed',
-            loan_status: 'Closed',
-            is_closed: true,
-            closed_at: parseDate(row.close_date) ? new Date(`${parseDate(row.close_date)}T00:00:00.000Z`).toISOString() : null,
-            
-            // Source - don't set source as it's an enum
-            referral_source: row.referral_source || 'Past Client',
-            
-            // Notes
-            notes: combinedNotes,
           };
+
+          // Handle condo_status with potential note
+          const condoResult = mapCondoStatus(row.condo_status);
+          if (condoResult.status) {
+            lead.condo_status = condoResult.status;
+          }
+          if (condoResult.note) {
+            coBorrowerNotes.push(condoResult.note);
+          }
+
+          // Re-combine notes after potential condo note
+          lead.notes = [existingNotes, ...coBorrowerNotes].filter(Boolean).join('\n') || null;
+
+          // Dates
+          lead.close_date = parseDate(row.close_date);
+          lead.lead_on_date = parseDate(row.lead_on_date) || new Date().toISOString().split('T')[0];
+
+          // Agents - use existing UUIDs if valid
+          lead.buyer_agent_id = isUUID(row.buyer_agent_id) ? row.buyer_agent_id : null;
+          lead.listing_agent_id = isUUID(row.listing_agent_id) ? row.listing_agent_id : null;
+
+          // Status - map properly
+          const originalStatus = row.status;
+          const isClosed = originalStatus && originalStatus.toUpperCase() === 'CLOSED';
+          
+          lead.status = mapLeadStatus(originalStatus);
+          lead.loan_status = mapLoanStatus(row.loan_status, originalStatus);
+          lead.pipeline_section = 'Closed';
+          lead.is_closed = isClosed || true;
+          lead.closed_at = parseDate(row.close_date) ? new Date(`${parseDate(row.close_date)}T00:00:00.000Z`).toISOString() : null;
+
+          // Source - don't set source as it's an enum
+          lead.referral_source = row.referral_source || 'Past Client';
 
           // Remove undefined/null keys
           Object.keys(lead).forEach(key => {
@@ -406,14 +450,13 @@ Deno.serve(async (req) => {
             close_date: closeDate,
             lead_on_date: leadOnDate || new Date().toISOString().split('T')[0],
             
-            status: 'CLOSED',
+            status: null, // Don't set lead status for past clients
             pipeline_section: 'Closed',
             loan_status: 'Closed',
             is_closed: true,
             closed_at: closeDate ? new Date(`${closeDate}T00:00:00.000Z`).toISOString() : null,
             
             referral_source: 'Past Client',
-            source: 'Past Client',
           };
 
           Object.keys(lead).forEach(key => {
