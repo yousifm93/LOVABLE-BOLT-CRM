@@ -26,8 +26,8 @@ export interface ScenarioData {
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
-  fico_score: 720,
-  zip_code: "",
+  fico_score: 780,
+  zip_code: "33131",
   num_units: 1,
   purchase_price: 400000,
   loan_amount: 320000,

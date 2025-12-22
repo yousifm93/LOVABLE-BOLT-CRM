@@ -287,11 +287,13 @@ const columns = (
     accessorKey: "reviewed",
     header: "Reviewed",
     cell: ({ row }) => (
-      <div className="flex justify-center">
+      <div className="flex justify-center items-center gap-1">
         <Checkbox
           checked={row.original.reviewed || false}
           onCheckedChange={(checked) => handleUpdate(row.original.id, "reviewed", checked)}
+          disabled={!canDeleteOrChangeDueDate}
         />
+        {!canDeleteOrChangeDueDate && <Lock className="h-3 w-3 text-muted-foreground" />}
       </div>
     ),
     sortable: true,
@@ -718,8 +720,10 @@ export default function TasksModern() {
     }
   };
 
-  const openTasks = filteredTasks.filter(task => task.status !== "Done");
-  const doneTasks = filteredTasks.filter(task => task.status === "Done");
+  // Open Tasks = Not done OR done but not yet reviewed
+  const openTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
+  // Completed Tasks = Done AND reviewed by admin
+  const doneTasks = filteredTasks.filter(task => task.status === "Done" && task.reviewed === true);
   const completedTasks = doneTasks.length;
   const overdueTasks = filteredTasks.filter(task => {
     if (!task.due_date || task.status === "Done") return false;
