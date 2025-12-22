@@ -407,7 +407,14 @@ export function ActivityLogModal({
           });
         } else if (entry.action === "update" && beforeData && afterData) {
           // Find changed fields
-          const excludedFields = ["updated_at", "created_at", "id"];
+          const excludedFields = [
+            "updated_at", 
+            "created_at", 
+            "id",
+            "latest_file_updates",
+            "latest_file_updates_updated_by",
+            "latest_file_updates_updated_at"
+          ];
           const changedFields = Object.keys(afterData).filter(
             (key) =>
               !excludedFields.includes(key) &&
