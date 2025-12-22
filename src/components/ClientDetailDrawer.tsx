@@ -3,6 +3,7 @@ import * as React from "react";
 import { format } from "date-fns";
 import { calculatePrincipalAndInterest } from "@/hooks/usePITICalculation";
 import { X, Phone, MessageSquare, Mail, FileText, Plus, Upload, User, MapPin, Building2, Calendar, FileCheck, Clock, Check, Send, Paperclip, Circle, CheckCircle, Mic, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { FileUpdatesDisplay } from "@/components/lead-details/FileUpdatesDisplay";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -2020,21 +2021,10 @@ export function ClientDetailDrawer({
                                 Cancel
                               </Button>
                             </div>}
-                        </> : <div className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px]" onClick={() => setIsEditingFileUpdates(true)}>
-                          {localFileUpdates.split('\n').map((line, i) => {
-                            // Bold timestamps in format [MM/DD/YY H:MM AM/PM]
-                            const parts = line.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi);
-                            return (
-                              <p key={i} className="mb-1 last:mb-0">
-                                {parts.map((part, j) => 
-                                  /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-                                    ? <span key={j} className="font-bold">{part}</span> 
-                                    : part
-                                ) || <br />}
-                              </p>
-                            );
-                          })}
-                        </div>}
+                        </> : <FileUpdatesDisplay 
+                          content={localFileUpdates} 
+                          onClick={() => setIsEditingFileUpdates(true)} 
+                        />}
                       {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
                           Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
@@ -2499,20 +2489,10 @@ export function ClientDetailDrawer({
                           Cancel
                         </Button>
                       </div>}
-                          </> : <div className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px]" onClick={() => setIsEditingFileUpdates(true)}>
-                    {localFileUpdates.split('\n').map((line, i) => {
-                      const parts = line.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi);
-                      return (
-                        <p key={i} className="mb-1 last:mb-0">
-                          {parts.map((part, j) => 
-                            /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-                              ? <span key={j} className="font-bold">{part}</span> 
-                              : part
-                          ) || <br />}
-                        </p>
-                      );
-                    })}
-                  </div>}
+                          </> : <FileUpdatesDisplay 
+                    content={localFileUpdates} 
+                    onClick={() => setIsEditingFileUpdates(true)} 
+                  />}
                 {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
                     Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
@@ -3005,20 +2985,10 @@ export function ClientDetailDrawer({
                               Cancel
                             </Button>
                           </div>}
-                      </> : <div className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px]" onClick={() => setIsEditingFileUpdates(true)}>
-                        {localFileUpdates.split('\n').map((line, i) => {
-                          const parts = line.split(/(\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\])/gi);
-                          return (
-                            <p key={i} className="mb-1 last:mb-0">
-                              {parts.map((part, j) => 
-                                /^\[\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)?\]$/i.test(part) 
-                                  ? <span key={j} className="font-bold">{part}</span> 
-                                  : part
-                              ) || <br />}
-                            </p>
-                          );
-                        })}
-                      </div>}
+                      </> : <FileUpdatesDisplay 
+                        content={localFileUpdates} 
+                        onClick={() => setIsEditingFileUpdates(true)} 
+                      />}
                     {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
                         <Clock className="h-3 w-3" />
                         Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
