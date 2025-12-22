@@ -51,7 +51,7 @@ export function FileUpdatesDisplay({ content, onClick }: FileUpdatesDisplayProps
 
   return (
     <div 
-      className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px]"
+      className="bg-white rounded-md p-2 text-xs border cursor-pointer hover:border-primary/50 transition-colors min-h-[80px] max-h-[180px] overflow-y-auto"
       onClick={(e) => {
         // Only trigger onClick if not clicking on the collapsible trigger
         if (!(e.target as HTMLElement).closest('[data-history-trigger]')) {
