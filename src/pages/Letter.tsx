@@ -1,38 +1,18 @@
-import { useState, useEffect } from 'react';
 import { PublicPreApprovalForm } from '@/components/PublicPreApprovalForm';
 
 const Letter = () => {
-  const [formVisible, setFormVisible] = useState(false);
-
-  useEffect(() => {
-    // Check for existing form state or URL parameters
-    const savedState = sessionStorage.getItem('formVisible');
-    const urlParams = new URLSearchParams(window.location.search);
-    const showForm = urlParams.get('form') === 'true';
-
-    if (showForm || savedState === 'true') {
-      setFormVisible(true);
-    }
-  }, []);
-
-  const handleExpandForm = () => {
-    setFormVisible(true);
-    sessionStorage.setItem('formVisible', 'true');
-  };
-
-  const handleCollapseForm = () => {
-    setFormVisible(false);
-    sessionStorage.removeItem('formVisible');
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Form Section */}
-      <PublicPreApprovalForm
-        formVisible={formVisible}
-        onExpand={handleExpandForm}
-        onCollapse={handleCollapseForm}
-      />
+    <div className="space-y-6">
+      {/* Header - matching other resource pages */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Pre-Approval Letter</h1>
+        <p className="text-sm text-muted-foreground">
+          Generate and send pre-approval letters to borrowers
+        </p>
+      </div>
+      
+      {/* Form always visible */}
+      <PublicPreApprovalForm formVisible={true} />
     </div>
   );
 };
