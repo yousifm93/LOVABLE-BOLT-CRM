@@ -113,6 +113,11 @@ export function EmailTasksModal({ open, onOpenChange, tasks }: EmailTasksModalPr
             <div style="font-weight: 600; color: #1a1a2e; margin-bottom: 6px;">
               ${String.fromCharCode(97 + taskIndex)}. ${task.title}
             </div>
+            ${task.description ? `
+              <div style="color: #444; font-size: 13px; margin-bottom: 8px; padding-left: 12px; border-left: 2px solid #e5e7eb;">
+                ${task.description}
+              </div>
+            ` : ''}
             <div style="color: #666; font-size: 13px; margin-bottom: 6px;">
               <span style="display: inline-block; background: ${task.priority === 'Critical' ? '#fee2e2' : task.priority === 'High' ? '#fef3c7' : '#d1fae5'}; color: ${task.priority === 'Critical' ? '#dc2626' : task.priority === 'High' ? '#d97706' : '#059669'}; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 8px;">
                 ${formatPriority(task.priority)}
@@ -247,6 +252,11 @@ export function EmailTasksModal({ open, onOpenChange, tasks }: EmailTasksModalPr
                             <div className="font-medium text-sm">
                               {String.fromCharCode(97 + taskIndex)}. {task.title}
                             </div>
+                            {task.description && (
+                              <p className="text-xs text-muted-foreground mt-1 pl-3 border-l-2 border-muted">
+                                {task.description}
+                              </p>
+                            )}
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                               <Badge
                                 variant={
