@@ -124,11 +124,13 @@ function AppRoutes() {
   );
 }
 function App() {
-  return <AuthProvider>
-      <Router>
+  return (
+    <Router>
+      <AuthProvider>
         <AppRoutes />
         <Toaster />
-      </Router>
-    </AuthProvider>;
+      </AuthProvider>
+    </Router>
+  );
 }
 export default App;
