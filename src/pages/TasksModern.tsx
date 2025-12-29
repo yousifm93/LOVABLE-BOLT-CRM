@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -75,8 +75,10 @@ const columns = (
   users: any[],
   handleBorrowerClick: (borrowerId: string) => void,
   canDeleteOrChangeDueDate: boolean,
-  canReassign: boolean
-): ColumnDef<ModernTask>[] => [
+  canReassign: boolean,
+  isAdmin: boolean
+): ColumnDef<ModernTask>[] => {
+  const baseColumns: ColumnDef<ModernTask>[] = [
   {
     accessorKey: "title",
     header: "Task",
@@ -189,18 +191,22 @@ const columns = (
     accessorKey: "priority",
     header: "Priority",
     cell: ({ row }) => (
-      <InlineEditSelect
-        value={row.original.priority}
-        options={[
-          { value: "Critical", label: "ASAP" },
-          { value: "High", label: "High" },
-          { value: "Medium", label: "Medium" },
-          { value: "Low", label: "Low" }
-        ]}
-        onValueChange={(value) => handleUpdate(row.original.id, "priority", value)}
-        showAsStatusBadge
-        fillCell={true}
-      />
+      isAdmin ? (
+        <InlineEditSelect
+          value={row.original.priority}
+          options={[
+            { value: "Critical", label: "ASAP" },
+            { value: "High", label: "High" },
+            { value: "Medium", label: "Medium" },
+            { value: "Low", label: "Low" }
+          ]}
+          onValueChange={(value) => handleUpdate(row.original.id, "priority", value)}
+          showAsStatusBadge
+          fillCell={true}
+        />
+      ) : (
+        <StatusBadge status={row.original.priority === "Critical" ? "ASAP" : row.original.priority} />
+      )
     ),
     sortable: true,
   },
@@ -284,22 +290,27 @@ const columns = (
     ),
     sortable: true,
   },
-  {
-    accessorKey: "reviewed",
-    header: "Reviewed",
-    cell: ({ row }) => (
-      <div className="flex justify-center items-center gap-1">
-        <Checkbox
-          checked={row.original.reviewed || false}
-          onCheckedChange={(checked) => handleUpdate(row.original.id, "reviewed", checked)}
-          disabled={!canDeleteOrChangeDueDate}
-        />
-        {!canDeleteOrChangeDueDate && <Lock className="h-3 w-3 text-muted-foreground" />}
-      </div>
-    ),
-    sortable: true,
-  },
-];
+  ];
+  
+  // Only include Reviewed column for admins
+  if (isAdmin) {
+    baseColumns.push({
+      accessorKey: "reviewed",
+      header: "Reviewed",
+      cell: ({ row }) => (
+        <div className="flex justify-center items-center gap-1">
+          <Checkbox
+            checked={row.original.reviewed || false}
+            onCheckedChange={(checked) => handleUpdate(row.original.id, "reviewed", checked)}
+          />
+        </div>
+      ),
+      sortable: true,
+    });
+  }
+  
+  return baseColumns;
+};
 
 // Task columns for views system
 const TASK_COLUMNS = [
@@ -344,7 +355,7 @@ export default function TasksModern() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'overdue' | 'completed'>('all');
+  const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'overdue' | 'completed'>('all');
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -769,21 +780,37 @@ export default function TasksModern() {
     return dueDate.getTime() < today.getTime();
   };
 
+  // Helper function to check if a task is due today or earlier (but not done)
+  const isTaskDueTodayOrEarlier = (task: ModernTask) => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDateStr = task.due_date.includes("T") 
+      ? task.due_date 
+      : `${task.due_date}T00:00:00`;
+    const dueDate = new Date(dueDateStr);
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dueDate.getTime() <= today.getTime(); // Due on or before today
+  };
+
   // Open Tasks = Not done OR done but not yet reviewed
   const allOpenTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
   // Completed Tasks = Done AND reviewed by admin
   const allDoneTasks = filteredTasks.filter(task => task.status === "Done" && task.reviewed === true);
   const completedTasks = allDoneTasks.length;
   const overdueTasks = filteredTasks.filter(isTaskOverdue).length;
+  const dueTodayOrEarlierTasks = filteredTasks.filter(isTaskDueTodayOrEarlier).length;
 
   // Apply stats filter
   const openTasks = statsFilter === 'all' 
     ? allOpenTasks 
     : statsFilter === 'active' 
       ? allOpenTasks.filter(t => !isTaskOverdue(t))
-      : statsFilter === 'overdue'
-        ? allOpenTasks.filter(t => isTaskOverdue(t))
-        : []; // completed filter shows nothing in open tasks
+      : statsFilter === 'dueToday'
+        ? allOpenTasks.filter(t => isTaskDueTodayOrEarlier(t))
+        : statsFilter === 'overdue'
+          ? allOpenTasks.filter(t => isTaskOverdue(t))
+          : []; // completed filter shows nothing in open tasks
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
@@ -806,7 +833,7 @@ export default function TasksModern() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card 
           className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'active' ? 'ring-2 ring-primary' : ''}`}
           onClick={() => setStatsFilter(statsFilter === 'active' ? 'all' : 'active')}
@@ -818,6 +845,21 @@ export default function TasksModern() {
                 <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'dueToday' ? 'ring-2 ring-amber-500' : ''}`}
+          onClick={() => setStatsFilter(statsFilter === 'dueToday' ? 'all' : 'dueToday')}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-amber-600">{dueTodayOrEarlierTasks}</p>
+                <p className="text-sm text-muted-foreground">Due Today or Earlier</p>
+              </div>
+              <CalendarCheck className="h-8 w-8 text-amber-500" />
             </div>
           </CardContent>
         </Card>
@@ -856,8 +898,8 @@ export default function TasksModern() {
       {/* Stats filter indicator */}
       {statsFilter !== 'all' && (
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize">
-            Showing: {statsFilter} tasks
+          <Badge variant="secondary">
+            Showing: {statsFilter === 'dueToday' ? 'Due Today or Earlier' : statsFilter} tasks
           </Badge>
           <Button variant="ghost" size="sm" onClick={() => setStatsFilter('all')}>
             <XIcon className="h-3 w-3 mr-1" />
@@ -1060,7 +1102,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
                     data={openTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1071,6 +1113,7 @@ export default function TasksModern() {
                     onSelectionChange={setSelectedTaskIds}
                     getRowId={(row) => row.id}
                     showRowNumbers={true}
+                    hideActions={!isAdmin}
                   />
                 </CollapsibleContent>
               </Collapsible>
@@ -1087,7 +1130,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
                     data={doneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1098,6 +1141,7 @@ export default function TasksModern() {
                     onSelectionChange={setSelectedTaskIds}
                     getRowId={(row) => row.id}
                     showRowNumbers={true}
+                    hideActions={!isAdmin}
                   />
                 </CollapsibleContent>
               </Collapsible>

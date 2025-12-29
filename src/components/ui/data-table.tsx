@@ -63,6 +63,7 @@ interface DataTableProps<T> {
   pageSize?: number;
   compact?: boolean;
   initialColumnWidths?: Record<string, number>;
+  hideActions?: boolean;
 }
 
 interface DraggableTableHeadProps<T> {
@@ -301,6 +302,7 @@ export function DataTable<T extends Record<string, any>>({
   pageSize,
   compact = false,
   initialColumnWidths,
+  hideActions = false,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
@@ -588,7 +590,7 @@ export function DataTable<T extends Record<string, any>>({
                   />
                 ))}
               </SortableContext>
-              <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>
+              {!hideActions && <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>}
             </TableRow>
           </TableHeader>
         </DndContext>
@@ -599,11 +601,10 @@ export function DataTable<T extends Record<string, any>>({
             const actualIndex = pageSize ? (currentPage - 1) * pageSize + index + 1 : index + 1;
             
             return (
-              <ContextMenu key={rowId}>
-                <ContextMenuTrigger asChild>
-                <TableRow
-                  key={rowId}
-                  className={cn(
+              <React.Fragment key={rowId}>
+                {hideActions ? (
+                  <TableRow
+                    className={cn(
                       "transition-colors h-10",
                       onRowClick && "cursor-pointer",
                       isSelected && "bg-primary/10"
@@ -611,12 +612,12 @@ export function DataTable<T extends Record<string, any>>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {selectable && (
-                      <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px]")} onClick={(e) => e.stopPropagation()}> {/* Match header width */}
+                      <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px]")} onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-center">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={(checked) => handleSelectRow(rowId, checked as boolean)}
-                            aria-label={`Select lead ${rowId}`}
+                            aria-label={`Select row ${rowId}`}
                           />
                         </div>
                       </TableCell>
@@ -648,68 +649,120 @@ export function DataTable<T extends Record<string, any>>({
                         )}
                       </TableCell>
                     ))}
-                    <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2")}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewDetails?.(row);
-                            }}
-                          >
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit?.(row);
-                            }}
-                          >
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete?.(row);
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowClick?.(row);
-                    }}
-                  >
-                    View Details
-                  </ContextMenuItem>
-                  <ContextMenuItem 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRowClick?.(row);
-                    }}
-                  >
-                    Edit
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
+                ) : (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                    <TableRow
+                      className={cn(
+                        "transition-colors h-10",
+                        onRowClick && "cursor-pointer",
+                        isSelected && "bg-primary/10"
+                      )}
+                      onClick={() => onRowClick?.(row)}
+                    >
+                      {selectable && (
+                        <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px]")} onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => handleSelectRow(rowId, checked as boolean)}
+                              aria-label={`Select lead ${rowId}`}
+                            />
+                          </div>
+                        </TableCell>
+                      )}
+                      {showRowNumbers && (
+                        <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2", "w-[50px] text-center")} onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs text-muted-foreground">{actualIndex}</span>
+                        </TableCell>
+                      )}
+                      {columns.map((column) => (
+                        <TableCell 
+                          key={column.accessorKey} 
+                          className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center")}
+                          style={{
+                            width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
+                            minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
+                            maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
+                          }}
+                        >
+                          {column.cell ? (
+                            <div className={cn(
+                              "flex",
+                              column.className?.includes("text-left") ? "justify-start" : "justify-center"
+                            )}>
+                              {column.cell({ row: { original: row } })}
+                            </div>
+                          ) : (
+                            <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
+                          )}
+                        </TableCell>
+                      ))}
+                      <TableCell className={cn(compact ? "py-1 px-2" : "py-2 px-2")}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onViewDetails?.(row);
+                              }}
+                            >
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit?.(row);
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete?.(row);
+                              }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRowClick?.(row);
+                        }}
+                      >
+                        View Details
+                      </ContextMenuItem>
+                      <ContextMenuItem 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRowClick?.(row);
+                        }}
+                      >
+                        Edit
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                )}
+              </React.Fragment>
             );
           })}
         </TableBody>
