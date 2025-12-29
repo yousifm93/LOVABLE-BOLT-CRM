@@ -167,13 +167,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) {
+      
+      // Treat "Auth session missing!" as a successful logout
+      // This happens when session is already expired or cleared in another tab
+      if (error && !error.message?.includes('Auth session missing')) {
         toast({
           title: "Sign out failed",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        // Clear local state regardless
+        setSession(null);
+        setUser(null);
+        setCrmUser(null);
+        
         toast({
           title: "Signed out",
           description: "You have been successfully signed out.",
@@ -181,6 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Sign out error:', error);
+      // Still clear local state on any error
+      setSession(null);
+      setUser(null);
+      setCrmUser(null);
     }
   };
 
