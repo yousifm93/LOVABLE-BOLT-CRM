@@ -895,6 +895,22 @@ export const databaseService = {
     
     if (error) throw error;
     
+    // Fetch all task assignees
+    const taskIds = data?.map(t => t.id) || [];
+    const { data: taskAssignees } = await supabase
+      .from('task_assignees')
+      .select('task_id, user_id')
+      .in('task_id', taskIds);
+    
+    // Create a map of task_id -> user_ids[]
+    const assigneesMap = new Map<string, string[]>();
+    taskAssignees?.forEach(ta => {
+      if (!assigneesMap.has(ta.task_id)) {
+        assigneesMap.set(ta.task_id, []);
+      }
+      assigneesMap.get(ta.task_id)!.push(ta.user_id);
+    });
+    
     // Fetch all unique buyer agent and listing agent IDs
     const buyerAgentIds = new Set(data?.map(t => t.borrower?.buyer_agent_id).filter(Boolean) || []);
     const listingAgentIds = new Set(data?.map(t => t.borrower?.listing_agent_id).filter(Boolean) || []);
@@ -915,12 +931,13 @@ export const databaseService = {
     const buyerAgentMap = new Map(buyerAgents?.map(a => [a.id, a]) || []);
     const listingAgentMap = new Map(listingAgents?.map(a => [a.id, a]) || []);
     
-    // Manually attach agent data to tasks
+    // Manually attach agent data and assignees to tasks
     const tasksWithAgents = data?.map((task: any) => ({
       ...task,
       lead: task.borrower, // Add lead reference for validation
       buyer_agent: task.borrower?.buyer_agent_id ? buyerAgentMap.get(task.borrower.buyer_agent_id) : null,
       listing_agent: task.borrower?.listing_agent_id ? listingAgentMap.get(task.borrower.listing_agent_id) : null,
+      assignee_ids: assigneesMap.get(task.id) || (task.assignee_id ? [task.assignee_id] : []),
     }));
     
     return tasksWithAgents;
@@ -1148,6 +1165,47 @@ export const databaseService = {
       completedCount: recentTasks.length,
       taskTitles: recentTasks.map(t => t.title)
     };
+  },
+
+  // Task Assignees operations
+  async getTaskAssignees(taskId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('task_assignees')
+      .select('user_id')
+      .eq('task_id', taskId);
+    
+    if (error) throw error;
+    return data?.map(ta => ta.user_id) || [];
+  },
+
+  async updateTaskAssignees(taskId: string, userIds: string[]): Promise<void> {
+    // Delete all existing assignees for this task
+    const { error: deleteError } = await supabase
+      .from('task_assignees')
+      .delete()
+      .eq('task_id', taskId);
+    
+    if (deleteError) throw deleteError;
+    
+    // Insert new assignees
+    if (userIds.length > 0) {
+      const { error: insertError } = await supabase
+        .from('task_assignees')
+        .insert(userIds.map(userId => ({ task_id: taskId, user_id: userId })));
+      
+      if (insertError) throw insertError;
+    }
+    
+    // Also update the legacy assignee_id field with the first assignee for backwards compatibility
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({ 
+        assignee_id: userIds.length > 0 ? userIds[0] : null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', taskId);
+    
+    if (updateError) throw updateError;
   },
 
   async autoCompleteTasksAfterFieldUpdate(

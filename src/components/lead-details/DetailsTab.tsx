@@ -40,7 +40,8 @@ import {
   ClipboardCheck,
   Hash,
   Target,
-  Star
+  Star,
+  ArrowLeft
 } from "lucide-react";
 import {
   AlertDialog,
@@ -78,11 +79,16 @@ interface DetailsTabProps {
   onClose?: () => void;
 }
 
+// Pipeline stage IDs
+const PRE_APPROVED_STAGE_ID = '3cbf38ff-752e-4163-a9a3-1757499b4945';
+const ACTIVE_STAGE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+
 export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTabProps) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMovingBack, setIsMovingBack] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
   const [lenders, setLenders] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -1793,6 +1799,68 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          {/* Back to Pre-Approved button - only show when in Active stage */}
+          {client.pipeline_stage_id === ACTIVE_STAGE_ID && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="secondary"
+                  disabled={isMovingBack}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  {isMovingBack ? "Moving..." : "Back to Pre-Approved"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Move Back to Pre-Approved?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will move the lead from the Active pipeline back to the Pre-Approved stage.
+                    The lead will remain open and can be moved back to Active later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    if (!leadId) return;
+                    setIsMovingBack(true);
+                    try {
+                      const { error } = await supabase
+                        .from('leads')
+                        .update({ 
+                          pipeline_stage_id: PRE_APPROVED_STAGE_ID,
+                          is_closed: false,
+                          closed_at: null,
+                          closed_status: null
+                        })
+                        .eq('id', leadId);
+                      
+                      if (error) throw error;
+                      
+                      toast({
+                        title: "Success",
+                        description: "Lead moved back to Pre-Approved stage",
+                      });
+                      
+                      if (onLeadUpdated) onLeadUpdated();
+                      if (onClose) onClose();
+                    } catch (error) {
+                      console.error("Error moving lead:", error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to move lead back to Pre-Approved",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsMovingBack(false);
+                    }
+                  }}>
+                    Move to Pre-Approved
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button 
             variant="default" 
             onClick={handleCloseLoan}
