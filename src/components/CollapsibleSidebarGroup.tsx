@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,39 +9,47 @@ interface CollapsibleSidebarGroupProps {
   children: React.ReactNode;
   defaultOpen?: boolean;
   className?: string;
+  locked?: boolean;
 }
 
 export function CollapsibleSidebarGroup({ 
   title, 
   children, 
   defaultOpen = true,
-  className 
+  className,
+  locked = false,
 }: CollapsibleSidebarGroupProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <SidebarGroup className={className}>
+    <SidebarGroup className={cn(className, locked && "opacity-50 pointer-events-none")}>
       <SidebarGroupLabel className="flex items-center justify-between w-full p-0">
-        <span className="text-xs uppercase tracking-wider text-sidebar-foreground/70 font-semibold">
+        <span className={cn(
+          "text-xs uppercase tracking-wider font-semibold flex items-center gap-1.5",
+          locked ? "text-sidebar-foreground/40" : "text-sidebar-foreground/70"
+        )}>
           {title}
+          {locked && <Lock className="h-3 w-3" />}
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsOpen(!isOpen)}
-          className="h-4 w-4 p-0 hover:bg-sidebar-accent"
-        >
-          {isOpen ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-        </Button>
+        {!locked && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsOpen(!isOpen)}
+            className="h-4 w-4 p-0 hover:bg-sidebar-accent"
+          >
+            {isOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
+        )}
       </SidebarGroupLabel>
       <SidebarGroupContent 
         className={cn(
           "overflow-hidden transition-all duration-200",
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          isOpen && !locked ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         )}
       >
         {children}

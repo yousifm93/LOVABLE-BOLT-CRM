@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface SearchResult {
   id: string;
@@ -104,6 +105,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, signOut } = useAuth();
+  const { hasPermission, loading: permissionsLoading } = usePermissions();
   
   const [pendingSuggestionCount, setPendingSuggestionCount] = useState(0);
   const [suggestionsModalOpen, setSuggestionsModalOpen] = useState(false);
@@ -431,108 +433,157 @@ export function AppSidebar() {
           </SidebarGroup>
 
           {/* Pipeline */}
-          <CollapsibleSidebarGroup title="Pipeline" className="mb-4" defaultOpen={false}>
-            <SidebarMenu>
-              {pipelineItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    {item.title === "Active" ? (
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && (
-                          <span className="flex items-center gap-2">
-                            {item.title}
-                            {pendingSuggestionCount > 0 && (
-                              <Badge 
-                                variant="destructive" 
-                                className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setSuggestionsModalOpen(true);
-                                }}
-                              >
-                                {pendingSuggestionCount}
-                              </Badge>
+          {hasPermission('pipeline') !== 'hidden' && (
+            <CollapsibleSidebarGroup 
+              title="Pipeline" 
+              className="mb-4" 
+              defaultOpen={false}
+              locked={hasPermission('pipeline') === 'locked'}
+            >
+              <SidebarMenu>
+                {pipelineItems
+                  .filter(item => {
+                    // Map sidebar item to permission key
+                    const permKeyMap: Record<string, 'pipeline_leads' | 'pipeline_pending_app' | 'pipeline_screening' | 'pipeline_pre_qualified' | 'pipeline_pre_approved' | 'pipeline_active' | 'pipeline_past_clients'> = {
+                      'Leads': 'pipeline_leads',
+                      'Pending App': 'pipeline_pending_app',
+                      'Screening': 'pipeline_screening',
+                      'Pre-Qualified': 'pipeline_pre_qualified',
+                      'Pre-Approved': 'pipeline_pre_approved',
+                      'Active': 'pipeline_active',
+                      'Past Clients': 'pipeline_past_clients',
+                    };
+                    const permKey = permKeyMap[item.title];
+                    return permKey ? hasPermission(permKey) !== 'hidden' : true;
+                  })
+                  .map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        {item.title === "Active" ? (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                {pendingSuggestionCount > 0 && (
+                                  <Badge 
+                                    variant="destructive" 
+                                    className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setSuggestionsModalOpen(true);
+                                    }}
+                                  >
+                                    {pendingSuggestionCount}
+                                  </Badge>
+                                )}
+                              </span>
                             )}
-                          </span>
+                          </NavLink>
+                        ) : (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
                         )}
-                      </NavLink>
-                    ) : (
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+              </SidebarMenu>
+            </CollapsibleSidebarGroup>
+          )}
+
+          {/* Contacts */}
+          {hasPermission('contacts') !== 'hidden' && (
+            <CollapsibleSidebarGroup 
+              title="Contacts" 
+              className="mb-4" 
+              defaultOpen={false}
+              locked={hasPermission('contacts') === 'locked'}
+            >
+              <SidebarMenu>
+                {contactItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
                       <NavLink to={item.url} className={getNavClassName}>
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </CollapsibleSidebarGroup>
-
-          {/* Contacts */}
-          <CollapsibleSidebarGroup title="Contacts" className="mb-4" defaultOpen={false}>
-            <SidebarMenu>
-              {contactItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </CollapsibleSidebarGroup>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </CollapsibleSidebarGroup>
+          )}
 
           {/* Resources */}
-          <CollapsibleSidebarGroup title="Resources" className="mb-4" defaultOpen={false}>
-            <SidebarMenu>
-              {resourceItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </CollapsibleSidebarGroup>
+          {hasPermission('resources') !== 'hidden' && (
+            <CollapsibleSidebarGroup 
+              title="Resources" 
+              className="mb-4" 
+              defaultOpen={false}
+              locked={hasPermission('resources') === 'locked'}
+            >
+              <SidebarMenu>
+                {resourceItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </CollapsibleSidebarGroup>
+          )}
 
           {/* Calculators */}
-          <CollapsibleSidebarGroup title="Calculators" className="mb-4" defaultOpen={false}>
-            <SidebarMenu>
-              {calculatorItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </CollapsibleSidebarGroup>
+          {hasPermission('calculators') !== 'hidden' && (
+            <CollapsibleSidebarGroup 
+              title="Calculators" 
+              className="mb-4" 
+              defaultOpen={false}
+              locked={hasPermission('calculators') === 'locked'}
+            >
+              <SidebarMenu>
+                {calculatorItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </CollapsibleSidebarGroup>
+          )}
 
           {/* Admin */}
-          <CollapsibleSidebarGroup title="Admin" defaultOpen={false}>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavClassName}>
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </CollapsibleSidebarGroup>
+          {hasPermission('admin') !== 'hidden' && (
+            <CollapsibleSidebarGroup 
+              title="Admin" 
+              defaultOpen={false}
+              locked={hasPermission('admin') === 'locked'}
+            >
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} className={getNavClassName}>
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </CollapsibleSidebarGroup>
+          )}
         </SidebarContent>
 
         {/* User Footer */}
