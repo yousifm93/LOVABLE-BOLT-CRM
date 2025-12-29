@@ -1830,8 +1830,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                         .update({ 
                           pipeline_stage_id: PRE_APPROVED_STAGE_ID,
                           is_closed: false,
-                          closed_at: null,
-                          closed_status: null
+                          closed_at: null
                         })
                         .eq('id', leadId);
                       
