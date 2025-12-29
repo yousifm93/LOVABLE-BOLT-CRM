@@ -43,66 +43,95 @@ export function usePermissions() {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      if (!crmUser?.id) {
-        setLoading(false);
-        return;
-      }
+  const fetchPermissions = useCallback(async () => {
+    if (!crmUser?.id) {
+      setLoading(false);
+      return;
+    }
 
-      // Admins get full access - no need to fetch permissions
-      if (crmUser.role === 'Admin') {
-        setPermissions(DEFAULT_PERMISSIONS);
-        setLoading(false);
-        return;
-      }
+    // Admins get full access - no need to fetch permissions
+    if (crmUser.role === 'Admin') {
+      setPermissions(DEFAULT_PERMISSIONS);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const { data, error } = await supabase
-          .from('user_permissions')
-          .select('*')
-          .eq('user_id', crmUser.id)
-          .single();
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', crmUser.id)
+        .single();
 
-        if (error) {
-          // If no permissions found, default to visible for non-admin sections
-          if (error.code === 'PGRST116') {
-            setPermissions({
-              ...DEFAULT_PERMISSIONS,
-              admin: 'hidden', // Default non-admins to hidden admin
-            });
-          } else {
-            console.error('Error fetching permissions:', error);
-            setPermissions(DEFAULT_PERMISSIONS);
-          }
-        } else if (data) {
+      if (error) {
+        // If no permissions found, default to visible for non-admin sections
+        if (error.code === 'PGRST116') {
           setPermissions({
-            overview: data.overview || 'visible',
-            tasks: data.tasks || 'visible',
-            pipeline: data.pipeline || 'visible',
-            contacts: data.contacts || 'visible',
-            resources: data.resources || 'visible',
-            calculators: data.calculators || 'visible',
-            admin: data.admin || 'hidden',
-            pipeline_leads: data.pipeline_leads || 'visible',
-            pipeline_pending_app: data.pipeline_pending_app || 'visible',
-            pipeline_screening: data.pipeline_screening || 'visible',
-            pipeline_pre_qualified: data.pipeline_pre_qualified || 'visible',
-            pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
-            pipeline_active: data.pipeline_active || 'visible',
-            pipeline_past_clients: data.pipeline_past_clients || 'visible',
+            ...DEFAULT_PERMISSIONS,
+            admin: 'hidden', // Default non-admins to hidden admin
           });
+        } else {
+          console.error('Error fetching permissions:', error);
+          setPermissions(DEFAULT_PERMISSIONS);
         }
-      } catch (error) {
-        console.error('Error fetching permissions:', error);
-        setPermissions(DEFAULT_PERMISSIONS);
-      } finally {
-        setLoading(false);
+      } else if (data) {
+        setPermissions({
+          overview: data.overview || 'visible',
+          tasks: data.tasks || 'visible',
+          pipeline: data.pipeline || 'visible',
+          contacts: data.contacts || 'visible',
+          resources: data.resources || 'visible',
+          calculators: data.calculators || 'visible',
+          admin: data.admin || 'hidden',
+          pipeline_leads: data.pipeline_leads || 'visible',
+          pipeline_pending_app: data.pipeline_pending_app || 'visible',
+          pipeline_screening: data.pipeline_screening || 'visible',
+          pipeline_pre_qualified: data.pipeline_pre_qualified || 'visible',
+          pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
+          pipeline_active: data.pipeline_active || 'visible',
+          pipeline_past_clients: data.pipeline_past_clients || 'visible',
+        });
       }
-    };
-
-    fetchPermissions();
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+      setPermissions(DEFAULT_PERMISSIONS);
+    } finally {
+      setLoading(false);
+    }
   }, [crmUser?.id, crmUser?.role]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  // Real-time subscription for permission changes
+  useEffect(() => {
+    if (!crmUser?.id || crmUser.role === 'Admin') {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`user_permissions_${crmUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_permissions',
+          filter: `user_id=eq.${crmUser.id}`
+        },
+        (payload) => {
+          console.log('Permission change detected:', payload);
+          fetchPermissions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [crmUser?.id, crmUser?.role, fetchPermissions]);
 
   const hasPermission = useCallback((section: keyof UserPermissions): PermissionLevel => {
     if (!permissions) return 'visible';
