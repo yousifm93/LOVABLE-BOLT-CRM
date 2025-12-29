@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   User,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmailFieldSuggestionsModal } from "@/components/modals/EmailFieldSuggestionsModal";
 import { EmailAutomationQueueModal } from "@/components/modals/EmailAutomationQueueModal";
 import { useAuth } from "@/hooks/useAuth";
-import { usePermissions } from "@/hooks/usePermissions";
+import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
 
 interface SearchResult {
   id: string;
@@ -54,48 +55,49 @@ interface SearchResult {
   subtext?: string;
 }
 
+// Dashboard items with permission keys
 const dashboardItems = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Email", url: "/email", icon: Mail },
+  { title: "Home", url: "/", icon: Home, permKey: 'home' as keyof UserPermissions },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, permKey: 'dashboard' as keyof UserPermissions },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare, permKey: 'tasks' as keyof UserPermissions },
+  { title: "Email", url: "/email", icon: Mail, permKey: 'email' as keyof UserPermissions },
 ];
 
 const pipelineItems = [
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Pending App", url: "/pending-app", icon: FileText },
-  { title: "Screening", url: "/screening", icon: ClipboardList },
-  { title: "Pre-Qualified", url: "/pre-qualified", icon: UserCheck },
-  { title: "Pre-Approved", url: "/pre-approved", icon: CheckSquare },
-  { title: "Active", url: "/active", icon: Calendar },
-  { title: "Past Clients", url: "/past-clients", icon: PieChart },
+  { title: "Leads", url: "/leads", icon: Users, permKey: 'pipeline_leads' as keyof UserPermissions },
+  { title: "Pending App", url: "/pending-app", icon: FileText, permKey: 'pipeline_pending_app' as keyof UserPermissions },
+  { title: "Screening", url: "/screening", icon: ClipboardList, permKey: 'pipeline_screening' as keyof UserPermissions },
+  { title: "Pre-Qualified", url: "/pre-qualified", icon: UserCheck, permKey: 'pipeline_pre_qualified' as keyof UserPermissions },
+  { title: "Pre-Approved", url: "/pre-approved", icon: CheckSquare, permKey: 'pipeline_pre_approved' as keyof UserPermissions },
+  { title: "Active", url: "/active", icon: Calendar, permKey: 'pipeline_active' as keyof UserPermissions },
+  { title: "Past Clients", url: "/past-clients", icon: PieChart, permKey: 'pipeline_past_clients' as keyof UserPermissions },
 ];
 
 const contactItems = [
-  { title: "Real Estate Agents", url: "/contacts/agents", icon: Phone },
-  { title: "Master Contact List", url: "/contacts/borrowers", icon: Users },
-  { title: "Approved Lenders", url: "/contacts/lenders", icon: Building },
+  { title: "Real Estate Agents", url: "/contacts/agents", icon: Phone, permKey: 'contacts_agents' as keyof UserPermissions },
+  { title: "Master Contact List", url: "/contacts/borrowers", icon: Users, permKey: 'contacts_borrowers' as keyof UserPermissions },
+  { title: "Approved Lenders", url: "/contacts/lenders", icon: Building, permKey: 'contacts_lenders' as keyof UserPermissions },
 ];
 
 const calculatorItems = [
-  { title: "Loan Pricer", url: "/resources/loan-pricer", icon: DollarSign },
-  { title: "Property Value", url: "/resources/property-value", icon: Home },
-  { title: "Income Calculator", url: "/resources/income-calculator", icon: Calculator },
-  { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator },
+  { title: "Loan Pricer", url: "/resources/loan-pricer", icon: DollarSign, permKey: 'calculators_loan_pricer' as keyof UserPermissions },
+  { title: "Property Value", url: "/resources/property-value", icon: Home, permKey: 'calculators_property_value' as keyof UserPermissions },
+  { title: "Income Calculator", url: "/resources/income-calculator", icon: Calculator, permKey: 'calculators_income' as keyof UserPermissions },
+  { title: "Loan Estimate", url: "/resources/estimate", icon: Calculator, permKey: 'calculators_estimate' as keyof UserPermissions },
 ];
 
 const resourceItems = [
-  { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot },
-  { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail },
-  { title: "Condo List", url: "/resources/condolist", icon: Search },
-  { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText },
+  { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot, permKey: 'resources_bolt_bot' as keyof UserPermissions },
+  { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail, permKey: 'resources_email_marketing' as keyof UserPermissions },
+  { title: "Condo List", url: "/resources/condolist", icon: Search, permKey: 'resources_condolist' as keyof UserPermissions },
+  { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText, permKey: 'resources_preapproval' as keyof UserPermissions },
 ];
 
 const adminItems = [
-  { title: "Assistant", url: "/admin/assistant", icon: Bot },
-  { title: "Mortgage App", url: "/admin/mortgage-app", icon: FileText },
-  { title: "Settings", url: "/admin", icon: Settings },
-  { title: "Deleted Items", url: "/admin/deleted-tasks", icon: CheckSquare },
+  { title: "Assistant", url: "/admin/assistant", icon: Bot, permKey: 'admin_assistant' as keyof UserPermissions },
+  { title: "Mortgage App", url: "/admin/mortgage-app", icon: FileText, permKey: 'admin_mortgage_app' as keyof UserPermissions },
+  { title: "Settings", url: "/admin", icon: Settings, permKey: 'admin_settings' as keyof UserPermissions },
+  { title: "Deleted Items", url: "/admin/deleted-tasks", icon: CheckSquare, permKey: 'admin_deleted_items' as keyof UserPermissions },
 ];
 
 export function AppSidebar() {
@@ -303,6 +305,19 @@ export function AppSidebar() {
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
+  const getLockedNavClassName = () =>
+    "opacity-50 cursor-not-allowed hover:bg-transparent";
+
+  // Helper to filter items based on permissions
+  const filterItemsByPermission = <T extends { permKey: keyof UserPermissions }>(items: T[]): T[] => {
+    return items.filter(item => hasPermission(item.permKey) !== 'hidden');
+  };
+
+  // Helper to check if an item is locked
+  const isItemLocked = (permKey: keyof UserPermissions): boolean => {
+    return hasPermission(permKey) === 'locked';
+  };
+
   return (
     <>
       <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
@@ -392,43 +407,57 @@ export function AppSidebar() {
         </SidebarHeader>
 
         <SidebarContent className="gap-0">
-          {/* Dashboard */}
+          {/* Dashboard Items */}
           <SidebarGroup className="mb-4">
             <SidebarMenu>
-              {dashboardItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    {item.title === "Dashboard" ? (
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && (
-                          <span className="flex items-center gap-2">
-                            {item.title}
-                            {pendingEmailQueueCount > 0 && (
-                              <Badge 
-                                variant="destructive" 
-                                className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setEmailQueueModalOpen(true);
-                                }}
-                              >
-                                {pendingEmailQueueCount}
-                              </Badge>
-                            )}
-                          </span>
-                        )}
-                      </NavLink>
-                    ) : (
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {filterItemsByPermission(dashboardItems).map((item) => {
+                const isLocked = isItemLocked(item.permKey);
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                      {isLocked ? (
+                        <div className={cn("flex items-center", getLockedNavClassName())}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.title}
+                              <Lock className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                      ) : item.title === "Dashboard" ? (
+                        <NavLink to={item.url} className={getNavClassName}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && (
+                            <span className="flex items-center gap-2">
+                              {item.title}
+                              {pendingEmailQueueCount > 0 && (
+                                <Badge 
+                                  variant="destructive" 
+                                  className="h-5 min-w-5 px-1.5 text-xs cursor-pointer"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setEmailQueueModalOpen(true);
+                                  }}
+                                >
+                                  {pendingEmailQueueCount}
+                                </Badge>
+                              )}
+                            </span>
+                          )}
+                        </NavLink>
+                      ) : (
+                        <NavLink to={item.url} className={getNavClassName}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroup>
 
@@ -441,25 +470,23 @@ export function AppSidebar() {
               locked={hasPermission('pipeline') === 'locked'}
             >
               <SidebarMenu>
-                {pipelineItems
-                  .filter(item => {
-                    // Map sidebar item to permission key
-                    const permKeyMap: Record<string, 'pipeline_leads' | 'pipeline_pending_app' | 'pipeline_screening' | 'pipeline_pre_qualified' | 'pipeline_pre_approved' | 'pipeline_active' | 'pipeline_past_clients'> = {
-                      'Leads': 'pipeline_leads',
-                      'Pending App': 'pipeline_pending_app',
-                      'Screening': 'pipeline_screening',
-                      'Pre-Qualified': 'pipeline_pre_qualified',
-                      'Pre-Approved': 'pipeline_pre_approved',
-                      'Active': 'pipeline_active',
-                      'Past Clients': 'pipeline_past_clients',
-                    };
-                    const permKey = permKeyMap[item.title];
-                    return permKey ? hasPermission(permKey) !== 'hidden' : true;
-                  })
-                  .map((item) => (
+                {filterItemsByPermission(pipelineItems).map((item) => {
+                  const isLocked = isItemLocked(item.permKey);
+                  
+                  return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        {item.title === "Active" ? (
+                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                        {isLocked ? (
+                          <div className={cn("flex items-center", getLockedNavClassName())}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        ) : item.title === "Active" ? (
                           <NavLink to={item.url} className={getNavClassName}>
                             <item.icon className="mr-2 h-4 w-4" />
                             {!collapsed && (
@@ -489,7 +516,8 @@ export function AppSidebar() {
                         )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
+                  );
+                })}
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}
@@ -503,16 +531,32 @@ export function AppSidebar() {
               locked={hasPermission('contacts') === 'locked'}
             >
               <SidebarMenu>
-                {contactItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {filterItemsByPermission(contactItems).map((item) => {
+                  const isLocked = isItemLocked(item.permKey);
+                  
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                        {isLocked ? (
+                          <div className={cn("flex items-center", getLockedNavClassName())}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}
@@ -526,16 +570,32 @@ export function AppSidebar() {
               locked={hasPermission('resources') === 'locked'}
             >
               <SidebarMenu>
-                {resourceItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {filterItemsByPermission(resourceItems).map((item) => {
+                  const isLocked = isItemLocked(item.permKey);
+                  
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                        {isLocked ? (
+                          <div className={cn("flex items-center", getLockedNavClassName())}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}
@@ -549,16 +609,32 @@ export function AppSidebar() {
               locked={hasPermission('calculators') === 'locked'}
             >
               <SidebarMenu>
-                {calculatorItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {filterItemsByPermission(calculatorItems).map((item) => {
+                  const isLocked = isItemLocked(item.permKey);
+                  
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                        {isLocked ? (
+                          <div className={cn("flex items-center", getLockedNavClassName())}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}
@@ -571,16 +647,32 @@ export function AppSidebar() {
               locked={hasPermission('admin') === 'locked'}
             >
               <SidebarMenu>
-                {adminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavClassName}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {filterItemsByPermission(adminItems).map((item) => {
+                  const isLocked = isItemLocked(item.permKey);
+                  
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild={!isLocked} disabled={isLocked}>
+                        {isLocked ? (
+                          <div className={cn("flex items-center", getLockedNavClassName())}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                <Lock className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <NavLink to={item.url} className={getNavClassName}>
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}

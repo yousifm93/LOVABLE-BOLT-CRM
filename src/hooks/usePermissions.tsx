@@ -3,13 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export interface UserPermissions {
+  // Top-level sections
+  home: string;
+  dashboard: string;
   overview: string;
   tasks: string;
+  email: string;
   pipeline: string;
   contacts: string;
   resources: string;
   calculators: string;
   admin: string;
+  // Pipeline sub-items
   pipeline_leads: string;
   pipeline_pending_app: string;
   pipeline_screening: string;
@@ -17,18 +22,42 @@ export interface UserPermissions {
   pipeline_pre_approved: string;
   pipeline_active: string;
   pipeline_past_clients: string;
+  // Contacts sub-items
+  contacts_agents: string;
+  contacts_borrowers: string;
+  contacts_lenders: string;
+  // Calculators sub-items
+  calculators_loan_pricer: string;
+  calculators_property_value: string;
+  calculators_income: string;
+  calculators_estimate: string;
+  // Resources sub-items
+  resources_bolt_bot: string;
+  resources_email_marketing: string;
+  resources_condolist: string;
+  resources_preapproval: string;
+  // Admin sub-items
+  admin_assistant: string;
+  admin_mortgage_app: string;
+  admin_settings: string;
+  admin_deleted_items: string;
 }
 
 type PermissionLevel = 'visible' | 'hidden' | 'locked';
 
 const DEFAULT_PERMISSIONS: UserPermissions = {
+  // Top-level sections
+  home: 'visible',
+  dashboard: 'visible',
   overview: 'visible',
   tasks: 'visible',
+  email: 'visible',
   pipeline: 'visible',
   contacts: 'visible',
   resources: 'visible',
   calculators: 'visible',
   admin: 'visible',
+  // Pipeline sub-items
   pipeline_leads: 'visible',
   pipeline_pending_app: 'visible',
   pipeline_screening: 'visible',
@@ -36,6 +65,25 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   pipeline_pre_approved: 'visible',
   pipeline_active: 'visible',
   pipeline_past_clients: 'visible',
+  // Contacts sub-items
+  contacts_agents: 'visible',
+  contacts_borrowers: 'visible',
+  contacts_lenders: 'visible',
+  // Calculators sub-items
+  calculators_loan_pricer: 'visible',
+  calculators_property_value: 'visible',
+  calculators_income: 'visible',
+  calculators_estimate: 'visible',
+  // Resources sub-items
+  resources_bolt_bot: 'visible',
+  resources_email_marketing: 'visible',
+  resources_condolist: 'visible',
+  resources_preapproval: 'visible',
+  // Admin sub-items
+  admin_assistant: 'visible',
+  admin_mortgage_app: 'visible',
+  admin_settings: 'visible',
+  admin_deleted_items: 'visible',
 };
 
 export function usePermissions() {
@@ -76,13 +124,18 @@ export function usePermissions() {
         }
       } else if (data) {
         setPermissions({
+          // Top-level sections
+          home: data.home || 'visible',
+          dashboard: data.dashboard || 'visible',
           overview: data.overview || 'visible',
           tasks: data.tasks || 'visible',
+          email: data.email || 'visible',
           pipeline: data.pipeline || 'visible',
           contacts: data.contacts || 'visible',
           resources: data.resources || 'visible',
           calculators: data.calculators || 'visible',
           admin: data.admin || 'hidden',
+          // Pipeline sub-items
           pipeline_leads: data.pipeline_leads || 'visible',
           pipeline_pending_app: data.pipeline_pending_app || 'visible',
           pipeline_screening: data.pipeline_screening || 'visible',
@@ -90,6 +143,25 @@ export function usePermissions() {
           pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
           pipeline_active: data.pipeline_active || 'visible',
           pipeline_past_clients: data.pipeline_past_clients || 'visible',
+          // Contacts sub-items
+          contacts_agents: data.contacts_agents || 'visible',
+          contacts_borrowers: data.contacts_borrowers || 'visible',
+          contacts_lenders: data.contacts_lenders || 'visible',
+          // Calculators sub-items
+          calculators_loan_pricer: data.calculators_loan_pricer || 'visible',
+          calculators_property_value: data.calculators_property_value || 'visible',
+          calculators_income: data.calculators_income || 'visible',
+          calculators_estimate: data.calculators_estimate || 'visible',
+          // Resources sub-items
+          resources_bolt_bot: data.resources_bolt_bot || 'visible',
+          resources_email_marketing: data.resources_email_marketing || 'visible',
+          resources_condolist: data.resources_condolist || 'visible',
+          resources_preapproval: data.resources_preapproval || 'visible',
+          // Admin sub-items
+          admin_assistant: data.admin_assistant || 'visible',
+          admin_mortgage_app: data.admin_mortgage_app || 'visible',
+          admin_settings: data.admin_settings || 'visible',
+          admin_deleted_items: data.admin_deleted_items || 'visible',
         });
       }
     } catch (error) {
