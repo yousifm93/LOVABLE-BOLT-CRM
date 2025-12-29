@@ -572,9 +572,17 @@ export default function TasksModern() {
     }
   };
 
+  // Check if current user is admin
+  const isAdmin = crmUser?.role === 'Admin';
+
   // Filter tasks by search term, user filter, and advanced filters
   const filteredTasks = (() => {
     let result = tasks;
+
+    // NON-ADMIN USERS: Only see tasks assigned to them
+    if (!isAdmin && crmUser?.id) {
+      result = result.filter(task => task.assignee_id === crmUser.id);
+    }
 
     // Apply search term filter (task name, borrower name, stage name, priority, status, assignee)
     if (searchTerm) {
@@ -590,8 +598,8 @@ export default function TasksModern() {
       );
     }
     
-    // Apply user filter
-    if (userFilter) {
+    // Apply user filter (only for admins since non-admins only see their own tasks)
+    if (userFilter && isAdmin) {
       result = result.filter(task => task.assignee_id === userFilter);
     }
     
@@ -740,10 +748,10 @@ export default function TasksModern() {
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">All Tasks</h1>
+        <h1 className="text-2xl font-bold text-foreground">{isAdmin ? 'All Tasks' : 'My Tasks'}</h1>
         <p className="text-xs italic text-muted-foreground/70">
           {completedTasks} completed • {overdueTasks} overdue • {filteredTasks.length - completedTasks} remaining
-          {userFilter && (
+          {isAdmin && userFilter && (
             <span className="ml-2 text-primary">
               • Filtered by {assignableUsers.find(u => u.id === userFilter)?.first_name}
             </span>
@@ -902,25 +910,27 @@ export default function TasksModern() {
               }}
             />
             
-            {/* User Filter Icons */}
-            <div className="flex items-center gap-2">
-              {assignableUsers.map((user) => (
-                <Button
-                  key={user.id}
-                  variant={userFilter === user.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setUserFilter(userFilter === user.id ? "" : user.id)}
-                  className="h-8 w-8 p-0"
-                >
-                  <UserAvatar
-                    firstName={user.first_name}
-                    lastName={user.last_name}
-                    email={user.email}
+            {/* User Filter Icons - Only visible to admins */}
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                {assignableUsers.map((user) => (
+                  <Button
+                    key={user.id}
+                    variant={userFilter === user.id ? "default" : "outline"}
                     size="sm"
-                  />
-                </Button>
-              ))}
-            </div>
+                    onClick={() => setUserFilter(userFilter === user.id ? "" : user.id)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <UserAvatar
+                      firstName={user.first_name}
+                      lastName={user.last_name}
+                      email={user.email}
+                      size="sm"
+                    />
+                  </Button>
+                ))}
+              </div>
+            )}
             
             <Button 
               variant={isFilterOpen ? "default" : "outline"} 
