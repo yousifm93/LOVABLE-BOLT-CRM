@@ -62,11 +62,7 @@ interface ModernTask {
   };
 }
 
-// Permission helper IDs - Herman and Salma can reassign tasks
-const REASSIGN_ALLOWED_USER_IDS = [
-  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
-  '159376ae-30e9-4997-b61f-76ab8d7f224b', // Salma
-];
+// Permission: Only admins can reassign tasks
 
 const columns = (
   handleUpdate: (taskId: string, field: string, value: any) => void, 
@@ -355,13 +351,13 @@ export default function TasksModern() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'overdue' | 'completed'>('all');
+  const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'review' | 'overdue' | 'completed'>('all');
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
-  // Permission checks
+  // Permission checks - only admins can delete/change due date/reassign
   const canDeleteOrChangeDueDate = crmUser?.role === 'Admin';
-  const canReassign = crmUser?.role === 'Admin' || REASSIGN_ALLOWED_USER_IDS.includes(crmUser?.id || '');
+  const canReassign = crmUser?.role === 'Admin';
 
   // Column visibility hook for views system
   const {
@@ -793,6 +789,19 @@ export default function TasksModern() {
     return dueDate.getTime() <= today.getTime(); // Due on or before today
   };
 
+  // Helper function to check if a task needs review (due yesterday or earlier, not done)
+  const isTaskNeedsReview = (task: ModernTask) => {
+    if (!task.due_date || task.status === "Done") return false;
+    const dueDateStr = task.due_date.includes("T") 
+      ? task.due_date 
+      : `${task.due_date}T00:00:00`;
+    const dueDate = new Date(dueDateStr);
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dueDate.getTime() < today.getTime(); // Due strictly before today (yesterday or earlier)
+  };
+
   // Open Tasks = Not done OR done but not yet reviewed
   const allOpenTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
   // Completed Tasks = Done AND reviewed by admin
@@ -800,6 +809,7 @@ export default function TasksModern() {
   const completedTasks = allDoneTasks.length;
   const overdueTasks = filteredTasks.filter(isTaskOverdue).length;
   const dueTodayOrEarlierTasks = filteredTasks.filter(isTaskDueTodayOrEarlier).length;
+  const needsReviewTasks = filteredTasks.filter(isTaskNeedsReview).length;
 
   // Apply stats filter
   const openTasks = statsFilter === 'all' 
@@ -808,9 +818,11 @@ export default function TasksModern() {
       ? allOpenTasks.filter(t => !isTaskOverdue(t))
       : statsFilter === 'dueToday'
         ? allOpenTasks.filter(t => isTaskDueTodayOrEarlier(t))
-        : statsFilter === 'overdue'
-          ? allOpenTasks.filter(t => isTaskOverdue(t))
-          : []; // completed filter shows nothing in open tasks
+        : statsFilter === 'review'
+          ? allOpenTasks.filter(t => isTaskNeedsReview(t))
+          : statsFilter === 'overdue'
+            ? allOpenTasks.filter(t => isTaskOverdue(t))
+            : []; // completed filter shows nothing in open tasks
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
@@ -833,16 +845,16 @@ export default function TasksModern() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'active' ? 'ring-2 ring-primary' : ''}`}
-          onClick={() => setStatsFilter(statsFilter === 'active' ? 'all' : 'active')}
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'all' ? 'ring-2 ring-primary' : ''}`}
+          onClick={() => setStatsFilter('all')}
         >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
-                <p className="text-sm text-muted-foreground">Active Tasks</p>
+                <p className="text-sm text-muted-foreground">All Tasks</p>
               </div>
               <Clock className="h-8 w-8 text-primary" />
             </div>
@@ -857,9 +869,24 @@ export default function TasksModern() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-amber-600">{dueTodayOrEarlierTasks}</p>
-                <p className="text-sm text-muted-foreground">Due Today or Earlier</p>
+                <p className="text-sm text-muted-foreground">Active Tasks</p>
               </div>
               <CalendarCheck className="h-8 w-8 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'review' ? 'ring-2 ring-violet-500' : ''}`}
+          onClick={() => setStatsFilter(statsFilter === 'review' ? 'all' : 'review')}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-violet-600">{needsReviewTasks}</p>
+                <p className="text-sm text-muted-foreground">Review</p>
+              </div>
+              <Edit className="h-8 w-8 text-violet-500" />
             </div>
           </CardContent>
         </Card>
@@ -899,7 +926,7 @@ export default function TasksModern() {
       {statsFilter !== 'all' && (
         <div className="flex items-center gap-2">
           <Badge variant="secondary">
-            Showing: {statsFilter === 'dueToday' ? 'Due Today or Earlier' : statsFilter} tasks
+            Showing: {statsFilter === 'dueToday' ? 'Active Tasks' : statsFilter === 'review' ? 'Review' : statsFilter} tasks
           </Badge>
           <Button variant="ghost" size="sm" onClick={() => setStatsFilter('all')}>
             <XIcon className="h-3 w-3 mr-1" />
