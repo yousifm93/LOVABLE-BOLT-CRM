@@ -4870,9 +4870,23 @@ export type Database = {
       user_permissions: {
         Row: {
           admin: string
+          admin_assistant: string | null
+          admin_deleted_items: string | null
+          admin_mortgage_app: string | null
+          admin_settings: string | null
           calculators: string
+          calculators_estimate: string | null
+          calculators_income: string | null
+          calculators_loan_pricer: string | null
+          calculators_property_value: string | null
           contacts: string
+          contacts_agents: string | null
+          contacts_borrowers: string | null
+          contacts_lenders: string | null
           created_at: string
+          dashboard: string | null
+          email: string | null
+          home: string | null
           id: string
           overview: string
           pipeline: string
@@ -4884,15 +4898,33 @@ export type Database = {
           pipeline_pre_qualified: string
           pipeline_screening: string
           resources: string
+          resources_bolt_bot: string | null
+          resources_condolist: string | null
+          resources_email_marketing: string | null
+          resources_preapproval: string | null
           tasks: string
           updated_at: string
           user_id: string
         }
         Insert: {
           admin?: string
+          admin_assistant?: string | null
+          admin_deleted_items?: string | null
+          admin_mortgage_app?: string | null
+          admin_settings?: string | null
           calculators?: string
+          calculators_estimate?: string | null
+          calculators_income?: string | null
+          calculators_loan_pricer?: string | null
+          calculators_property_value?: string | null
           contacts?: string
+          contacts_agents?: string | null
+          contacts_borrowers?: string | null
+          contacts_lenders?: string | null
           created_at?: string
+          dashboard?: string | null
+          email?: string | null
+          home?: string | null
           id?: string
           overview?: string
           pipeline?: string
@@ -4904,15 +4936,33 @@ export type Database = {
           pipeline_pre_qualified?: string
           pipeline_screening?: string
           resources?: string
+          resources_bolt_bot?: string | null
+          resources_condolist?: string | null
+          resources_email_marketing?: string | null
+          resources_preapproval?: string | null
           tasks?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           admin?: string
+          admin_assistant?: string | null
+          admin_deleted_items?: string | null
+          admin_mortgage_app?: string | null
+          admin_settings?: string | null
           calculators?: string
+          calculators_estimate?: string | null
+          calculators_income?: string | null
+          calculators_loan_pricer?: string | null
+          calculators_property_value?: string | null
           contacts?: string
+          contacts_agents?: string | null
+          contacts_borrowers?: string | null
+          contacts_lenders?: string | null
           created_at?: string
+          dashboard?: string | null
+          email?: string | null
+          home?: string | null
           id?: string
           overview?: string
           pipeline?: string
@@ -4924,6 +4974,10 @@ export type Database = {
           pipeline_pre_qualified?: string
           pipeline_screening?: string
           resources?: string
+          resources_bolt_bot?: string | null
+          resources_condolist?: string | null
+          resources_email_marketing?: string | null
+          resources_preapproval?: string | null
           tasks?: string
           updated_at?: string
           user_id?: string

@@ -19,13 +19,18 @@ interface User {
 interface UserPermission {
   id: string;
   user_id: string;
+  // Top-level sections
+  home: string;
+  dashboard: string;
   overview: string;
   tasks: string;
+  email: string;
   pipeline: string;
   contacts: string;
   resources: string;
   calculators: string;
   admin: string;
+  // Pipeline sub-items
   pipeline_leads: string;
   pipeline_pending_app: string;
   pipeline_screening: string;
@@ -33,6 +38,25 @@ interface UserPermission {
   pipeline_pre_approved: string;
   pipeline_active: string;
   pipeline_past_clients: string;
+  // Contacts sub-items
+  contacts_agents: string;
+  contacts_borrowers: string;
+  contacts_lenders: string;
+  // Calculators sub-items
+  calculators_loan_pricer: string;
+  calculators_property_value: string;
+  calculators_income: string;
+  calculators_estimate: string;
+  // Resources sub-items
+  resources_bolt_bot: string;
+  resources_email_marketing: string;
+  resources_condolist: string;
+  resources_preapproval: string;
+  // Admin sub-items
+  admin_assistant: string;
+  admin_mortgage_app: string;
+  admin_settings: string;
+  admin_deleted_items: string;
 }
 
 const PERMISSION_OPTIONS = [
@@ -41,9 +65,15 @@ const PERMISSION_OPTIONS = [
   { value: 'locked', label: 'Locked', icon: Lock, color: 'text-orange-600' },
 ];
 
-const SECTIONS = [
-  { key: 'overview', label: 'Overview' },
+// Top-level sidebar sections
+const DASHBOARD_SECTIONS = [
+  { key: 'home', label: 'Home' },
+  { key: 'dashboard', label: 'Dashboard' },
   { key: 'tasks', label: 'Tasks' },
+  { key: 'email', label: 'Email' },
+];
+
+const MAIN_SECTIONS = [
   { key: 'pipeline', label: 'Pipeline' },
   { key: 'contacts', label: 'Contacts' },
   { key: 'resources', label: 'Resources' },
@@ -60,6 +90,75 @@ const PIPELINE_SECTIONS = [
   { key: 'pipeline_active', label: 'Active' },
   { key: 'pipeline_past_clients', label: 'Past Clients' },
 ];
+
+const CONTACTS_SECTIONS = [
+  { key: 'contacts_agents', label: 'Real Estate Agents' },
+  { key: 'contacts_borrowers', label: 'Master Contact List' },
+  { key: 'contacts_lenders', label: 'Approved Lenders' },
+];
+
+const CALCULATORS_SECTIONS = [
+  { key: 'calculators_loan_pricer', label: 'Loan Pricer' },
+  { key: 'calculators_property_value', label: 'Property Value' },
+  { key: 'calculators_income', label: 'Income Calculator' },
+  { key: 'calculators_estimate', label: 'Loan Estimate' },
+];
+
+const RESOURCES_SECTIONS = [
+  { key: 'resources_bolt_bot', label: 'Bolt Bot' },
+  { key: 'resources_email_marketing', label: 'Email Marketing' },
+  { key: 'resources_condolist', label: 'Condo List' },
+  { key: 'resources_preapproval', label: 'Preapproval Letter' },
+];
+
+const ADMIN_SECTIONS = [
+  { key: 'admin_assistant', label: 'Assistant' },
+  { key: 'admin_mortgage_app', label: 'Mortgage App' },
+  { key: 'admin_settings', label: 'Settings' },
+  { key: 'admin_deleted_items', label: 'Deleted Items' },
+];
+
+const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
+  user_id: '',
+  // Top-level sections
+  home: 'visible',
+  dashboard: 'visible',
+  overview: 'visible',
+  tasks: 'visible',
+  email: 'visible',
+  pipeline: 'visible',
+  contacts: 'visible',
+  resources: 'visible',
+  calculators: 'visible',
+  admin: 'hidden',
+  // Pipeline sub-items
+  pipeline_leads: 'visible',
+  pipeline_pending_app: 'visible',
+  pipeline_screening: 'visible',
+  pipeline_pre_qualified: 'visible',
+  pipeline_pre_approved: 'visible',
+  pipeline_active: 'visible',
+  pipeline_past_clients: 'visible',
+  // Contacts sub-items
+  contacts_agents: 'visible',
+  contacts_borrowers: 'visible',
+  contacts_lenders: 'visible',
+  // Calculators sub-items
+  calculators_loan_pricer: 'visible',
+  calculators_property_value: 'visible',
+  calculators_income: 'visible',
+  calculators_estimate: 'visible',
+  // Resources sub-items
+  resources_bolt_bot: 'visible',
+  resources_email_marketing: 'visible',
+  resources_condolist: 'visible',
+  resources_preapproval: 'visible',
+  // Admin sub-items
+  admin_assistant: 'visible',
+  admin_mortgage_app: 'visible',
+  admin_settings: 'visible',
+  admin_deleted_items: 'visible',
+});
 
 export function UserPermissionsEditor() {
   const [users, setUsers] = useState<User[]>([]);
@@ -117,21 +216,8 @@ export function UserPermissionsEditor() {
     setPermissions(prev => {
       const existing = prev[userId] || {
         id: '',
+        ...getDefaultPermissions(),
         user_id: userId,
-        overview: 'visible',
-        tasks: 'visible',
-        pipeline: 'visible',
-        contacts: 'visible',
-        resources: 'visible',
-        calculators: 'visible',
-        admin: 'hidden',
-        pipeline_leads: 'visible',
-        pipeline_pending_app: 'visible',
-        pipeline_screening: 'visible',
-        pipeline_pre_qualified: 'visible',
-        pipeline_pre_approved: 'visible',
-        pipeline_active: 'visible',
-        pipeline_past_clients: 'visible',
       };
       
       return {
@@ -156,13 +242,18 @@ export function UserPermissionsEditor() {
           .from('user_permissions')
           .upsert({
             user_id: userId,
+            // Top-level sections
+            home: perm.home,
+            dashboard: perm.dashboard,
             overview: perm.overview,
             tasks: perm.tasks,
+            email: perm.email,
             pipeline: perm.pipeline,
             contacts: perm.contacts,
             resources: perm.resources,
             calculators: perm.calculators,
             admin: perm.admin,
+            // Pipeline sub-items
             pipeline_leads: perm.pipeline_leads,
             pipeline_pending_app: perm.pipeline_pending_app,
             pipeline_screening: perm.pipeline_screening,
@@ -170,6 +261,25 @@ export function UserPermissionsEditor() {
             pipeline_pre_approved: perm.pipeline_pre_approved,
             pipeline_active: perm.pipeline_active,
             pipeline_past_clients: perm.pipeline_past_clients,
+            // Contacts sub-items
+            contacts_agents: perm.contacts_agents,
+            contacts_borrowers: perm.contacts_borrowers,
+            contacts_lenders: perm.contacts_lenders,
+            // Calculators sub-items
+            calculators_loan_pricer: perm.calculators_loan_pricer,
+            calculators_property_value: perm.calculators_property_value,
+            calculators_income: perm.calculators_income,
+            calculators_estimate: perm.calculators_estimate,
+            // Resources sub-items
+            resources_bolt_bot: perm.resources_bolt_bot,
+            resources_email_marketing: perm.resources_email_marketing,
+            resources_condolist: perm.resources_condolist,
+            resources_preapproval: perm.resources_preapproval,
+            // Admin sub-items
+            admin_assistant: perm.admin_assistant,
+            admin_mortgage_app: perm.admin_mortgage_app,
+            admin_settings: perm.admin_settings,
+            admin_deleted_items: perm.admin_deleted_items,
           }, { onConflict: 'user_id' });
         
         if (error) throw error;
@@ -196,17 +306,66 @@ export function UserPermissionsEditor() {
     return permissions[userId]?.[section as keyof UserPermission] as string || 'visible';
   };
 
-  const getPermissionBadge = (value: string) => {
-    const option = PERMISSION_OPTIONS.find(o => o.value === value);
-    if (!option) return null;
-    const Icon = option.icon;
-    return (
-      <Badge variant="outline" className={`${option.color} gap-1`}>
-        <Icon className="h-3 w-3" />
-        {option.label}
-      </Badge>
-    );
-  };
+  const renderPermissionTable = (
+    title: string,
+    description: string,
+    sections: { key: string; label: string }[],
+    teamMembers: User[]
+  ) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 bg-background">Team Member</TableHead>
+                {sections.map(section => (
+                  <TableHead key={section.key} className="text-center min-w-[100px]">
+                    {section.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teamMembers.map(user => (
+                <TableRow key={user.id}>
+                  <TableCell className="sticky left-0 bg-background font-medium">
+                    {user.first_name} {user.last_name}
+                  </TableCell>
+                  {sections.map(section => (
+                    <TableCell key={section.key} className="text-center">
+                      <Select
+                        value={getPermissionValue(user.id, section.key)}
+                        onValueChange={(value) => handlePermissionChange(user.id, section.key, value)}
+                      >
+                        <SelectTrigger className="w-[110px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PERMISSION_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center gap-2">
+                                <option.icon className={`h-3 w-3 ${option.color}`} />
+                                {option.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   if (loading) {
     return (
@@ -222,6 +381,7 @@ export function UserPermissionsEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Save Button */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -240,112 +400,65 @@ export function UserPermissionsEditor() {
             </Button>
           )}
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background">Team Member</TableHead>
-                  {SECTIONS.map(section => (
-                    <TableHead key={section.key} className="text-center min-w-[100px]">
-                      {section.label}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teamMembers.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell className="sticky left-0 bg-background font-medium">
-                      {user.first_name} {user.last_name}
-                      <div className="text-xs text-muted-foreground">{user.email}</div>
-                    </TableCell>
-                    {SECTIONS.map(section => (
-                      <TableCell key={section.key} className="text-center">
-                        <Select
-                          value={getPermissionValue(user.id, section.key)}
-                          onValueChange={(value) => handlePermissionChange(user.id, section.key, value)}
-                        >
-                          <SelectTrigger className="w-[110px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PERMISSION_OPTIONS.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div className="flex items-center gap-2">
-                                  <option.icon className={`h-3 w-3 ${option.color}`} />
-                                  {option.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pipeline Stage Permissions</CardTitle>
-          <CardDescription>
-            Fine-grained control over which pipeline stages each team member can access.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background">Team Member</TableHead>
-                  {PIPELINE_SECTIONS.map(section => (
-                    <TableHead key={section.key} className="text-center min-w-[100px]">
-                      {section.label}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teamMembers.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell className="sticky left-0 bg-background font-medium">
-                      {user.first_name} {user.last_name}
-                    </TableCell>
-                    {PIPELINE_SECTIONS.map(section => (
-                      <TableCell key={section.key} className="text-center">
-                        <Select
-                          value={getPermissionValue(user.id, section.key)}
-                          onValueChange={(value) => handlePermissionChange(user.id, section.key, value)}
-                        >
-                          <SelectTrigger className="w-[110px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PERMISSION_OPTIONS.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div className="flex items-center gap-2">
-                                  <option.icon className={`h-3 w-3 ${option.color}`} />
-                                  {option.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Dashboard Section Permissions */}
+      {renderPermissionTable(
+        "Dashboard Section Permissions",
+        "Control access to main dashboard items (Home, Dashboard, Tasks, Email).",
+        DASHBOARD_SECTIONS,
+        teamMembers
+      )}
 
+      {/* Main Category Permissions */}
+      {renderPermissionTable(
+        "Main Category Permissions",
+        "Control access to main collapsible sidebar categories.",
+        MAIN_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Pipeline Stage Permissions */}
+      {renderPermissionTable(
+        "Pipeline Stage Permissions",
+        "Fine-grained control over which pipeline stages each team member can access.",
+        PIPELINE_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Contacts Sub-Item Permissions */}
+      {renderPermissionTable(
+        "Contacts Sub-Item Permissions",
+        "Control access to items within the Contacts section.",
+        CONTACTS_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Calculators Sub-Item Permissions */}
+      {renderPermissionTable(
+        "Calculators Sub-Item Permissions",
+        "Control access to items within the Calculators section.",
+        CALCULATORS_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Resources Sub-Item Permissions */}
+      {renderPermissionTable(
+        "Resources Sub-Item Permissions",
+        "Control access to items within the Resources section.",
+        RESOURCES_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Admin Sub-Item Permissions */}
+      {renderPermissionTable(
+        "Admin Sub-Item Permissions",
+        "Control access to items within the Admin section.",
+        ADMIN_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Permission Legend */}
       <Card>
         <CardHeader>
           <CardTitle>Permission Legend</CardTitle>

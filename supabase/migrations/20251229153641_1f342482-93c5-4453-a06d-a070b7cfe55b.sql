@@ -1,0 +1,20 @@
+-- Add missing top-level sections and granular sub-item permissions
+ALTER TABLE public.user_permissions
+  ADD COLUMN IF NOT EXISTS home TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS dashboard TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS email TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS contacts_agents TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS contacts_borrowers TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS contacts_lenders TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS calculators_loan_pricer TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS calculators_property_value TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS calculators_income TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS calculators_estimate TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS resources_bolt_bot TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS resources_email_marketing TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS resources_condolist TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS resources_preapproval TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS admin_assistant TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS admin_mortgage_app TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS admin_settings TEXT DEFAULT 'visible',
+  ADD COLUMN IF NOT EXISTS admin_deleted_items TEXT DEFAULT 'visible';
