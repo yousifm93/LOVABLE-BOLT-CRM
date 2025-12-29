@@ -15,22 +15,23 @@ Deno.serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    console.log('Fixing pipeline_section for Past Clients...');
+    console.log('Fixing lead_on_date for Past Clients with December 2025 dates...');
 
-    // Update all closed leads with NULL pipeline_section to 'Closed'
+    // Update all closed leads with December 2025 lead_on_date to November 30, 2025
     const { data, error } = await supabase
       .from('leads')
-      .update({ pipeline_section: 'Closed' })
+      .update({ lead_on_date: '2025-11-30' })
       .eq('is_closed', true)
-      .is('pipeline_section', null)
-      .select('id, first_name, last_name');
+      .gte('lead_on_date', '2025-12-01')
+      .lt('lead_on_date', '2026-01-01')
+      .select('id, first_name, last_name, lead_on_date');
 
     if (error) {
       throw new Error(`Failed to update leads: ${error.message}`);
     }
 
     const updatedCount = data?.length || 0;
-    console.log(`✅ Updated ${updatedCount} Past Clients with pipeline_section = 'Closed'`);
+    console.log(`✅ Updated ${updatedCount} Past Clients lead_on_date to November 30, 2025`);
 
     return new Response(
       JSON.stringify({
