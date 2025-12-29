@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
@@ -16,8 +17,10 @@ import {
   Calculator,
   User,
   Users,
-  Landmark
+  Landmark,
+  Lock
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
@@ -38,6 +41,7 @@ interface QuickAccessCard {
   count?: number;
   description?: string;
   color: string;
+  permissionKey: keyof UserPermissions;
 }
 
 interface SearchResult {
@@ -50,6 +54,7 @@ interface SearchResult {
 export default function Home() {
   const navigate = useNavigate();
   const { crmUser } = useAuth();
+  const { hasPermission } = usePermissions();
   const [leadsThisMonth, setLeadsThisMonth] = useState(0);
   const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
   const [closedThisMonth, setClosedThisMonth] = useState(0);
@@ -302,14 +307,14 @@ export default function Home() {
   };
 
   const quickAccessCards: QuickAccessCard[] = [
-    { title: "Inbox", icon: Mail, url: "/email", count: unreadEmailCount, color: "bg-blue-500/10 text-blue-600" },
-    { title: "Real Estate Agents", icon: Phone, url: "/contacts/agents", count: agentCount, color: "bg-teal-500/10 text-teal-600" },
-    { title: "Approved Lenders", icon: Building2, url: "/contacts/lenders", count: 34, color: "bg-purple-500/10 text-purple-600" },
-    { title: "Active Files", icon: Calendar, url: "/active", count: activeCount, color: "bg-orange-500/10 text-orange-600" },
-    { title: "Loan Estimate", icon: FileText, url: "/resources/loan-estimate", description: "Generate a loan estimate in seconds", color: "bg-pink-500/10 text-pink-600" },
-    { title: "Income Calculator", icon: Calculator, url: "/resources/income-calculator", description: "Calculate income in seconds", color: "bg-teal-500/10 text-teal-600" },
-    { title: "Loan Pricer", icon: DollarSign, url: "/resources/loan-pricer", description: "Price out any loan quickly", color: "bg-amber-500/10 text-amber-600" },
-    { title: "Bolt Bot", icon: Bot, url: "/resources/chatbot", description: "Search all guides and scenarios", color: "bg-indigo-500/10 text-indigo-600" },
+    { title: "Inbox", icon: Mail, url: "/email", count: unreadEmailCount, color: "bg-blue-500/10 text-blue-600", permissionKey: "home_inbox" },
+    { title: "Real Estate Agents", icon: Phone, url: "/contacts/agents", count: agentCount, color: "bg-teal-500/10 text-teal-600", permissionKey: "home_agents" },
+    { title: "Approved Lenders", icon: Building2, url: "/contacts/lenders", count: 34, color: "bg-purple-500/10 text-purple-600", permissionKey: "home_lenders" },
+    { title: "Active Files", icon: Calendar, url: "/active", count: activeCount, color: "bg-orange-500/10 text-orange-600", permissionKey: "home_active_files" },
+    { title: "Loan Estimate", icon: FileText, url: "/resources/loan-estimate", description: "Generate a loan estimate in seconds", color: "bg-pink-500/10 text-pink-600", permissionKey: "home_loan_estimate" },
+    { title: "Income Calculator", icon: Calculator, url: "/resources/income-calculator", description: "Calculate income in seconds", color: "bg-teal-500/10 text-teal-600", permissionKey: "home_income_calculator" },
+    { title: "Loan Pricer", icon: DollarSign, url: "/resources/loan-pricer", description: "Price out any loan quickly", color: "bg-amber-500/10 text-amber-600", permissionKey: "home_loan_pricer" },
+    { title: "Bolt Bot", icon: Bot, url: "/resources/chatbot", description: "Search all guides and scenarios", color: "bg-indigo-500/10 text-indigo-600", permissionKey: "home_bolt_bot" },
   ];
 
   const firstName = crmUser?.first_name || "there";
@@ -394,31 +399,48 @@ export default function Home() {
 
         {/* Quick Access Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickAccessCards.map((card) => (
-            <Card 
-              key={card.title}
-              className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
-              onClick={() => navigate(card.url)}
-            >
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between">
-                  <div className={`p-2 rounded-lg ${card.color}`}>
-                    <card.icon className="h-4 w-4" />
-                  </div>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <div className="mt-2">
-                  <h3 className="text-sm font-medium text-foreground">{card.title}</h3>
-                  {card.count !== undefined && (
-                    <p className="text-xl font-semibold text-foreground">{card.count}</p>
+          {quickAccessCards
+            .filter(card => hasPermission(card.permissionKey) !== 'hidden')
+            .map((card) => {
+              const permLevel = hasPermission(card.permissionKey);
+              const isLocked = permLevel === 'locked';
+              
+              return (
+                <Card 
+                  key={card.title}
+                  className={cn(
+                    "transition-all relative",
+                    isLocked 
+                      ? "opacity-50 cursor-not-allowed" 
+                      : "cursor-pointer hover:shadow-md hover:border-primary/30 group"
                   )}
-                  {card.description && (
-                    <p className="text-xs text-muted-foreground">{card.description}</p>
+                  onClick={() => !isLocked && navigate(card.url)}
+                >
+                  {isLocked && (
+                    <Lock className="absolute top-2 right-2 h-4 w-4 text-orange-500" />
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between">
+                      <div className={`p-2 rounded-lg ${card.color}`}>
+                        <card.icon className="h-4 w-4" />
+                      </div>
+                      {!isLocked && (
+                        <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <h3 className="text-sm font-medium text-foreground">{card.title}</h3>
+                      {card.count !== undefined && (
+                        <p className="text-xl font-semibold text-foreground">{card.count}</p>
+                      )}
+                      {card.description && (
+                        <p className="text-xs text-muted-foreground">{card.description}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
         </div>
 
         {/* Quick Stats */}

@@ -64,6 +64,15 @@ interface UserPermission {
   admin_mortgage_app: string;
   admin_settings: string;
   admin_deleted_items: string;
+  // Homepage card permissions
+  home_inbox: string;
+  home_agents: string;
+  home_lenders: string;
+  home_active_files: string;
+  home_loan_estimate: string;
+  home_income_calculator: string;
+  home_loan_pricer: string;
+  home_bolt_bot: string;
 }
 
 const PERMISSION_OPTIONS = [
@@ -135,6 +144,17 @@ const ADMIN_SECTIONS = [
   { key: 'admin_deleted_items', label: 'Deleted Items' },
 ];
 
+const HOME_CARD_SECTIONS = [
+  { key: 'home_inbox', label: 'Inbox' },
+  { key: 'home_agents', label: 'Real Estate Agents' },
+  { key: 'home_lenders', label: 'Approved Lenders' },
+  { key: 'home_active_files', label: 'Active Files' },
+  { key: 'home_loan_estimate', label: 'Loan Estimate' },
+  { key: 'home_income_calculator', label: 'Income Calculator' },
+  { key: 'home_loan_pricer', label: 'Loan Pricer' },
+  { key: 'home_bolt_bot', label: 'Bolt Bot' },
+];
+
 const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   user_id: '',
   // Top-level sections
@@ -182,6 +202,15 @@ const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   admin_mortgage_app: 'visible',
   admin_settings: 'visible',
   admin_deleted_items: 'visible',
+  // Homepage card permissions
+  home_inbox: 'visible',
+  home_agents: 'visible',
+  home_lenders: 'visible',
+  home_active_files: 'visible',
+  home_loan_estimate: 'visible',
+  home_income_calculator: 'visible',
+  home_loan_pricer: 'visible',
+  home_bolt_bot: 'visible',
 });
 
 export function UserPermissionsEditor() {
@@ -311,6 +340,15 @@ export function UserPermissionsEditor() {
             admin_mortgage_app: perm.admin_mortgage_app,
             admin_settings: perm.admin_settings,
             admin_deleted_items: perm.admin_deleted_items,
+            // Homepage card permissions
+            home_inbox: perm.home_inbox,
+            home_agents: perm.home_agents,
+            home_lenders: perm.home_lenders,
+            home_active_files: perm.home_active_files,
+            home_loan_estimate: perm.home_loan_estimate,
+            home_income_calculator: perm.home_income_calculator,
+            home_loan_pricer: perm.home_loan_pricer,
+            home_bolt_bot: perm.home_bolt_bot,
           }, { onConflict: 'user_id' });
         
         if (error) throw error;
@@ -432,6 +470,14 @@ export function UserPermissionsEditor() {
           )}
         </CardHeader>
       </Card>
+
+      {/* Homepage Card Permissions */}
+      {renderPermissionTable(
+        "Homepage Card Permissions",
+        "Control which quick access cards users can see and click on the homepage.",
+        HOME_CARD_SECTIONS,
+        teamMembers
+      )}
 
       {/* Dashboard Section Permissions */}
       {renderPermissionTable(
