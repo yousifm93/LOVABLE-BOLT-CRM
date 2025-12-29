@@ -343,6 +343,7 @@ export default function TasksModern() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'overdue' | 'completed'>('all');
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -728,12 +729,8 @@ export default function TasksModern() {
     }
   };
 
-  // Open Tasks = Not done OR done but not yet reviewed
-  const openTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
-  // Completed Tasks = Done AND reviewed by admin
-  const doneTasks = filteredTasks.filter(task => task.status === "Done" && task.reviewed === true);
-  const completedTasks = doneTasks.length;
-  const overdueTasks = filteredTasks.filter(task => {
+  // Helper function to check if a task is overdue
+  const isTaskOverdue = (task: ModernTask) => {
     if (!task.due_date || task.status === "Done") return false;
     const dueDateStr = task.due_date.includes("T") 
       ? task.due_date 
@@ -743,7 +740,25 @@ export default function TasksModern() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return dueDate.getTime() < today.getTime();
-  }).length;
+  };
+
+  // Open Tasks = Not done OR done but not yet reviewed
+  const allOpenTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
+  // Completed Tasks = Done AND reviewed by admin
+  const allDoneTasks = filteredTasks.filter(task => task.status === "Done" && task.reviewed === true);
+  const completedTasks = allDoneTasks.length;
+  const overdueTasks = filteredTasks.filter(isTaskOverdue).length;
+
+  // Apply stats filter
+  const openTasks = statsFilter === 'all' 
+    ? allOpenTasks 
+    : statsFilter === 'active' 
+      ? allOpenTasks.filter(t => !isTaskOverdue(t))
+      : statsFilter === 'overdue'
+        ? allOpenTasks.filter(t => isTaskOverdue(t))
+        : []; // completed filter shows nothing in open tasks
+
+  const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
@@ -765,7 +780,10 @@ export default function TasksModern() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'active' ? 'ring-2 ring-primary' : ''}`}
+          onClick={() => setStatsFilter(statsFilter === 'active' ? 'all' : 'active')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -777,7 +795,10 @@ export default function TasksModern() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'overdue' ? 'ring-2 ring-destructive' : ''}`}
+          onClick={() => setStatsFilter(statsFilter === 'overdue' ? 'all' : 'overdue')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -789,7 +810,10 @@ export default function TasksModern() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'completed' ? 'ring-2 ring-success' : ''}`}
+          onClick={() => setStatsFilter(statsFilter === 'completed' ? 'all' : 'completed')}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -801,6 +825,19 @@ export default function TasksModern() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Stats filter indicator */}
+      {statsFilter !== 'all' && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="capitalize">
+            Showing: {statsFilter} tasks
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={() => setStatsFilter('all')}>
+            <XIcon className="h-3 w-3 mr-1" />
+            Clear
+          </Button>
+        </div>
+      )}
 
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
@@ -852,49 +889,53 @@ export default function TasksModern() {
               />
             </div>
             
-            {/* Views System */}
-            <Button
-              variant={activeView === 'Main View' && !isReviewActive ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                loadView('Main View');
-                setFilters([]);
-                setIsReviewActive(false);
-              }}
-              className="h-8"
-            >
-              Main View
-            </Button>
-            
-            <Button
-              variant={isReviewActive ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                // Review View: All tasks with due date on or before yesterday (dynamic)
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
+            {/* Views System - Admin only */}
+            {isAdmin && (
+              <>
+                <Button
+                  variant={activeView === 'Main View' && !isReviewActive ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    loadView('Main View');
+                    setFilters([]);
+                    setIsReviewActive(false);
+                  }}
+                  className="h-8"
+                >
+                  Main View
+                </Button>
                 
-                // Only filter by due date - show all tasks due on or before yesterday
-                setFilters([
-                  { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
-                ]);
-                setIsReviewActive(true);
-              }}
-              className="h-8"
-            >
-              Review
-            </Button>
-            
-            <ViewPills
-              views={views}
-              activeView={activeView}
-              onLoadView={(viewName) => {
-                loadView(viewName);
-                setIsReviewActive(false);
-              }}
-              onDeleteView={deleteView}
-            />
+                <Button
+                  variant={isReviewActive ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    // Review View: All tasks with due date on or before yesterday (dynamic)
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toISOString().split('T')[0];
+                    
+                    // Only filter by due date - show all tasks due on or before yesterday
+                    setFilters([
+                      { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
+                    ]);
+                    setIsReviewActive(true);
+                  }}
+                  className="h-8"
+                >
+                  Review
+                </Button>
+                
+                <ViewPills
+                  views={views}
+                  activeView={activeView}
+                  onLoadView={(viewName) => {
+                    loadView(viewName);
+                    setIsReviewActive(false);
+                  }}
+                  onDeleteView={deleteView}
+                />
+              </>
+            )}
             
             <ColumnVisibilityButton
               columns={columnConfig}
@@ -946,14 +987,17 @@ export default function TasksModern() {
               )}
             </Button>
             
-            <Button
-              variant="outline"
-              onClick={() => setIsEmailModalOpen(true)}
-              disabled={openTasks.length === 0}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email Tasks
-            </Button>
+            {/* Email Tasks - Admin only */}
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setIsEmailModalOpen(true)}
+                disabled={openTasks.length === 0}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Tasks
+              </Button>
+            )}
           </div>
         </CardHeader>
         

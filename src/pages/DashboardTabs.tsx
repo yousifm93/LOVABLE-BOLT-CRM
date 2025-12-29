@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search, Star } from "lucide-react";
+import { TrendingUp, Users, DollarSign, CalendarDays, BarChart3, TrendingDown, Target, Activity, Clock, FileText, Phone, Mail, Calendar, CheckCircle, Loader2, ArrowRight, Search, Star, Lock } from "lucide-react";
 import { ModernStatsCard } from "@/components/ui/modern-stats-card";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ModernChartCard } from "@/components/ui/modern-chart-card";
@@ -24,6 +24,7 @@ import { databaseService } from "@/services/database";
 import { CRMClient } from "@/types/crm";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Monthly goals
 const MONTHLY_GOALS = {
@@ -249,6 +250,7 @@ export default function DashboardTabs() {
   const leadsGoal = 100;
   const appsGoal = 30;
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
 
   const calculateAverageMonthlyUnits = (ytdUnits: number): string => {
     const currentDate = new Date();
@@ -455,14 +457,44 @@ export default function DashboardTabs() {
         />
       </div>
 
-      <Tabs defaultValue="sales" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 h-9">
-          <TabsTrigger value="sales" className="text-sm">Sales</TabsTrigger>
-          <TabsTrigger value="calls" className="text-sm">Calls</TabsTrigger>
-          <TabsTrigger value="active" className="text-sm">Active</TabsTrigger>
-          <TabsTrigger value="closed" className="text-sm">Closed</TabsTrigger>
-          <TabsTrigger value="miscellaneous" className="text-sm">Miscellaneous</TabsTrigger>
-          <TabsTrigger value="all" className="text-sm">All</TabsTrigger>
+      <Tabs defaultValue={hasPermission('dashboard_sales') !== 'hidden' ? 'sales' : 'calls'} className="space-y-4">
+        <TabsList className="grid w-full h-9" style={{ gridTemplateColumns: `repeat(${[hasPermission('dashboard_sales'), hasPermission('dashboard_calls'), hasPermission('dashboard_active'), hasPermission('dashboard_closed'), hasPermission('dashboard_miscellaneous'), hasPermission('dashboard_all')].filter(p => p !== 'hidden').length}, 1fr)` }}>
+          {hasPermission('dashboard_sales') !== 'hidden' && (
+            <TabsTrigger value="sales" className="text-sm" disabled={hasPermission('dashboard_sales') === 'locked'}>
+              {hasPermission('dashboard_sales') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              Sales
+            </TabsTrigger>
+          )}
+          {hasPermission('dashboard_calls') !== 'hidden' && (
+            <TabsTrigger value="calls" className="text-sm" disabled={hasPermission('dashboard_calls') === 'locked'}>
+              {hasPermission('dashboard_calls') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              Calls
+            </TabsTrigger>
+          )}
+          {hasPermission('dashboard_active') !== 'hidden' && (
+            <TabsTrigger value="active" className="text-sm" disabled={hasPermission('dashboard_active') === 'locked'}>
+              {hasPermission('dashboard_active') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              Active
+            </TabsTrigger>
+          )}
+          {hasPermission('dashboard_closed') !== 'hidden' && (
+            <TabsTrigger value="closed" className="text-sm" disabled={hasPermission('dashboard_closed') === 'locked'}>
+              {hasPermission('dashboard_closed') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              Closed
+            </TabsTrigger>
+          )}
+          {hasPermission('dashboard_miscellaneous') !== 'hidden' && (
+            <TabsTrigger value="miscellaneous" className="text-sm" disabled={hasPermission('dashboard_miscellaneous') === 'locked'}>
+              {hasPermission('dashboard_miscellaneous') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              Miscellaneous
+            </TabsTrigger>
+          )}
+          {hasPermission('dashboard_all') !== 'hidden' && (
+            <TabsTrigger value="all" className="text-sm" disabled={hasPermission('dashboard_all') === 'locked'}>
+              {hasPermission('dashboard_all') === 'locked' && <Lock className="h-3 w-3 mr-1" />}
+              All
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">

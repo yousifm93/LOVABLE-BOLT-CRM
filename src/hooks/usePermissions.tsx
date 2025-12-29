@@ -14,6 +14,13 @@ export interface UserPermissions {
   resources: string;
   calculators: string;
   admin: string;
+  // Dashboard tabs
+  dashboard_sales: string;
+  dashboard_calls: string;
+  dashboard_active: string;
+  dashboard_closed: string;
+  dashboard_miscellaneous: string;
+  dashboard_all: string;
   // Pipeline sub-items
   pipeline_leads: string;
   pipeline_pending_app: string;
@@ -57,6 +64,13 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   resources: 'visible',
   calculators: 'visible',
   admin: 'visible',
+  // Dashboard tabs
+  dashboard_sales: 'visible',
+  dashboard_calls: 'visible',
+  dashboard_active: 'visible',
+  dashboard_closed: 'visible',
+  dashboard_miscellaneous: 'visible',
+  dashboard_all: 'visible',
   // Pipeline sub-items
   pipeline_leads: 'visible',
   pipeline_pending_app: 'visible',
@@ -135,6 +149,13 @@ export function usePermissions() {
           resources: data.resources || 'visible',
           calculators: data.calculators || 'visible',
           admin: data.admin || 'hidden',
+          // Dashboard tabs
+          dashboard_sales: data.dashboard_sales || 'visible',
+          dashboard_calls: data.dashboard_calls || 'visible',
+          dashboard_active: data.dashboard_active || 'visible',
+          dashboard_closed: data.dashboard_closed || 'visible',
+          dashboard_miscellaneous: data.dashboard_miscellaneous || 'visible',
+          dashboard_all: data.dashboard_all || 'visible',
           // Pipeline sub-items
           pipeline_leads: data.pipeline_leads || 'visible',
           pipeline_pending_app: data.pipeline_pending_app || 'visible',

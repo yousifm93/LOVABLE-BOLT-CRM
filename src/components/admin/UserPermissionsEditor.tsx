@@ -30,6 +30,13 @@ interface UserPermission {
   resources: string;
   calculators: string;
   admin: string;
+  // Dashboard tabs
+  dashboard_sales: string;
+  dashboard_calls: string;
+  dashboard_active: string;
+  dashboard_closed: string;
+  dashboard_miscellaneous: string;
+  dashboard_all: string;
   // Pipeline sub-items
   pipeline_leads: string;
   pipeline_pending_app: string;
@@ -71,6 +78,16 @@ const DASHBOARD_SECTIONS = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'email', label: 'Email' },
+];
+
+// Dashboard tab permissions
+const DASHBOARD_TAB_SECTIONS = [
+  { key: 'dashboard_sales', label: 'Sales Tab' },
+  { key: 'dashboard_calls', label: 'Calls Tab' },
+  { key: 'dashboard_active', label: 'Active Tab' },
+  { key: 'dashboard_closed', label: 'Closed Tab' },
+  { key: 'dashboard_miscellaneous', label: 'Miscellaneous Tab' },
+  { key: 'dashboard_all', label: 'All Tab' },
 ];
 
 const MAIN_SECTIONS = [
@@ -131,6 +148,13 @@ const getDefaultPermissions = (): Omit<UserPermission, 'id'> => ({
   resources: 'visible',
   calculators: 'visible',
   admin: 'hidden',
+  // Dashboard tabs
+  dashboard_sales: 'visible',
+  dashboard_calls: 'visible',
+  dashboard_active: 'visible',
+  dashboard_closed: 'visible',
+  dashboard_miscellaneous: 'visible',
+  dashboard_all: 'visible',
   // Pipeline sub-items
   pipeline_leads: 'visible',
   pipeline_pending_app: 'visible',
@@ -253,6 +277,13 @@ export function UserPermissionsEditor() {
             resources: perm.resources,
             calculators: perm.calculators,
             admin: perm.admin,
+            // Dashboard tabs
+            dashboard_sales: perm.dashboard_sales,
+            dashboard_calls: perm.dashboard_calls,
+            dashboard_active: perm.dashboard_active,
+            dashboard_closed: perm.dashboard_closed,
+            dashboard_miscellaneous: perm.dashboard_miscellaneous,
+            dashboard_all: perm.dashboard_all,
             // Pipeline sub-items
             pipeline_leads: perm.pipeline_leads,
             pipeline_pending_app: perm.pipeline_pending_app,
@@ -407,6 +438,14 @@ export function UserPermissionsEditor() {
         "Dashboard Section Permissions",
         "Control access to main dashboard items (Home, Dashboard, Tasks, Email).",
         DASHBOARD_SECTIONS,
+        teamMembers
+      )}
+
+      {/* Dashboard Tab Permissions */}
+      {renderPermissionTable(
+        "Dashboard Tab Permissions",
+        "Control which tabs users can see within the Dashboard page (Sales, Calls, Active, Closed, Miscellaneous, All).",
+        DASHBOARD_TAB_SECTIONS,
         teamMembers
       )}
 

@@ -4885,6 +4885,12 @@ export type Database = {
           contacts_lenders: string | null
           created_at: string
           dashboard: string | null
+          dashboard_active: string | null
+          dashboard_all: string | null
+          dashboard_calls: string | null
+          dashboard_closed: string | null
+          dashboard_miscellaneous: string | null
+          dashboard_sales: string | null
           email: string | null
           home: string | null
           id: string
@@ -4923,6 +4929,12 @@ export type Database = {
           contacts_lenders?: string | null
           created_at?: string
           dashboard?: string | null
+          dashboard_active?: string | null
+          dashboard_all?: string | null
+          dashboard_calls?: string | null
+          dashboard_closed?: string | null
+          dashboard_miscellaneous?: string | null
+          dashboard_sales?: string | null
           email?: string | null
           home?: string | null
           id?: string
@@ -4961,6 +4973,12 @@ export type Database = {
           contacts_lenders?: string | null
           created_at?: string
           dashboard?: string | null
+          dashboard_active?: string | null
+          dashboard_all?: string | null
+          dashboard_calls?: string | null
+          dashboard_closed?: string | null
+          dashboard_miscellaneous?: string | null
+          dashboard_sales?: string | null
           email?: string | null
           home?: string | null
           id?: string
