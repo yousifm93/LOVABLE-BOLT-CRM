@@ -25,6 +25,7 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assignee";
 import { formatDateModern } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
@@ -43,6 +44,7 @@ interface ModernTask {
   status: string;
   priority: string;
   assignee_id?: string;
+  assignee_ids?: string[];
   borrower_id?: string;
   task_order: number;
   created_at: string;
@@ -68,6 +70,7 @@ const REASSIGN_ALLOWED_USER_IDS = [
 
 const columns = (
   handleUpdate: (taskId: string, field: string, value: any) => void, 
+  handleAssigneesUpdate: (taskId: string, userIds: string[]) => void,
   leads: any[], 
   users: any[],
   handleBorrowerClick: (borrowerId: string) => void,
@@ -206,20 +209,18 @@ const columns = (
     header: "Assigned To",
     cell: ({ row }) => (
       canReassign ? (
-        <InlineEditAssignee
-          assigneeId={row.original.assignee_id}
+        <InlineEditMultiAssignee
+          assigneeIds={row.original.assignee_ids || (row.original.assignee_id ? [row.original.assignee_id] : [])}
           users={users}
-          onValueChange={(userId) => handleUpdate(row.original.id, 'assignee_id', userId)}
-          className="w-32"
-          showNameText={false}
+          onValueChange={(userIds) => handleAssigneesUpdate(row.original.id, userIds)}
+          maxVisible={2}
         />
       ) : (
-        <InlineEditAssignee
-          assigneeId={row.original.assignee_id}
+        <InlineEditMultiAssignee
+          assigneeIds={row.original.assignee_ids || (row.original.assignee_id ? [row.original.assignee_id] : [])}
           users={users}
           onValueChange={() => {}}
-          className="w-32"
-          showNameText={false}
+          maxVisible={2}
           disabled={true}
         />
       )
@@ -515,6 +516,28 @@ export default function TasksModern() {
     }
   };
 
+  const handleAssigneesUpdate = async (taskId: string, userIds: string[]) => {
+    try {
+      await databaseService.updateTaskAssignees(taskId, userIds);
+      
+      // Update local state
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { 
+          ...task, 
+          assignee_ids: userIds,
+          assignee_id: userIds.length > 0 ? userIds[0] : undefined 
+        } : task
+      ));
+    } catch (error) {
+      console.error("Error updating task assignees:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task assignees",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLogCallFromModal = () => {
     if (!completionRequirement?.contactInfo) return;
 
@@ -580,9 +603,11 @@ export default function TasksModern() {
   const filteredTasks = (() => {
     let result = tasks;
 
-    // NON-ADMIN USERS: Only see tasks assigned to them
+    // NON-ADMIN USERS: Only see tasks assigned to them (check both assignee_ids and legacy assignee_id)
     if (!isAdmin && crmUser?.id) {
-      result = result.filter(task => task.assignee_id === crmUser.id);
+      result = result.filter(task => 
+        task.assignee_ids?.includes(crmUser.id) || task.assignee_id === crmUser.id
+      );
     }
 
     // Apply search term filter (task name, borrower name, stage name, priority, status, assignee)
@@ -601,7 +626,9 @@ export default function TasksModern() {
     
     // Apply user filter (only for admins since non-admins only see their own tasks)
     if (userFilter && isAdmin) {
-      result = result.filter(task => task.assignee_id === userFilter);
+      result = result.filter(task => 
+        task.assignee_ids?.includes(userFilter) || task.assignee_id === userFilter
+      );
     }
     
     // Apply advanced filters using shared utility
@@ -1033,7 +1060,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
                     data={openTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1060,7 +1087,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign)}
                     data={doneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
