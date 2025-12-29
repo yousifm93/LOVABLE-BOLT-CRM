@@ -23,6 +23,7 @@ interface User {
   created_at: string;
   display_password?: string | null;
   email_signature?: string | null;
+  auth_user_id?: string | null;
 }
 
 export default function UserManagement() {
@@ -225,15 +226,19 @@ export default function UserManagement() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCreateAuthAccount(user)}
-                          disabled={!user.email}
-                          title="Create auth account"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                        </Button>
+                        {!user.auth_user_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateAuthAccount(user)}
+                            disabled={!user.email}
+                            title="Create login credentials"
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Create Login
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -340,15 +345,19 @@ export default function UserManagement() {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCreateAuthAccount(user)}
-                          disabled={!user.email}
-                          title="Create auth account"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                        </Button>
+                        {!user.auth_user_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateAuthAccount(user)}
+                            disabled={!user.email}
+                            title="Create login credentials"
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Create Login
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
