@@ -164,6 +164,8 @@ export function transformLeadToClient(lead: any): any {
     notes: lead.notes || '', // Top-level for compatibility
     name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
     databaseId: lead.id,
+    pipeline_stage_id: lead.pipeline_stage_id || null,
+    pipeline_stage: lead.pipeline_stage || null,
     loanStatus: lead.loan_status || null,
     referral_method: lead.referred_via || null, // Map referred_via to referral_method
     referred_via: lead.referred_via || null,
