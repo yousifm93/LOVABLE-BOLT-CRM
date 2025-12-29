@@ -472,7 +472,7 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-6 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               {/* COLUMN 1 - LEADS */}
               <Card className="border-green-500/30 bg-green-500/5">
                 <CardHeader className="pb-3">
@@ -818,68 +818,6 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* COLUMN 6 - EMAILS */}
-              <Card className="border-blue-500/30 bg-blue-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-blue-600" />
-                    Emails
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ModernStatsCard
-                    title="This Month"
-                    value={thisMonthEmails.length}
-                    icon={<Mail />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("This Month's Emails", thisMonthEmails, "emails")}
-                  />
-                  <ModernStatsCard
-                    title="Yesterday"
-                    value={yesterdayEmails.length}
-                    icon={<Mail />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Yesterday's Emails", yesterdayEmails, "emails")}
-                  />
-                  <ModernStatsCard
-                    title="Today"
-                    value={todayEmails.length}
-                    icon={<Mail />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Today's Emails", todayEmails, "emails")}
-                  />
-                  
-                  <CollapsibleSection
-                    title="All Emails" 
-                    count={allEmails.length}
-                    data={allEmails}
-                    renderItem={(email: any, index) => {
-                      const highlightClass = getHighlightClasses(email.timestamp);
-                      return (
-                        <div 
-                          key={index} 
-                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
-                        >
-                          <div className="flex flex-col gap-1 flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {email.lead?.first_name} {email.lead?.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {email.subject || "No subject"}
-                            </p>
-                          </div>
-                          <Badge variant={email.direction === 'Out' ? 'default' : 'secondary'} className="text-xs shrink-0">
-                            {email.direction === 'Out' ? 'Sent' : 'Received'}
-                          </Badge>
-                        </div>
-                      );
-                    }}
-                  />
-                </CardContent>
-              </Card>
               </div>
 
             {/* Recent Activity & Pipeline Summary */}
@@ -1528,6 +1466,71 @@ export default function DashboardTabs() {
         </TabsContent>
 
         <TabsContent value="miscellaneous" className="space-y-6">
+          {/* EMAILS - Moved from Sales tab */}
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-600" />
+                Emails
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <ModernStatsCard
+                  title="This Month"
+                  value={thisMonthEmails.length}
+                  icon={<Mail />}
+                  size="large"
+                  clickable={true}
+                  onClick={() => handleOpenModal("This Month's Emails", thisMonthEmails, "emails")}
+                />
+                <ModernStatsCard
+                  title="Yesterday"
+                  value={yesterdayEmails.length}
+                  icon={<Mail />}
+                  size="large"
+                  clickable={true}
+                  onClick={() => handleOpenModal("Yesterday's Emails", yesterdayEmails, "emails")}
+                />
+                <ModernStatsCard
+                  title="Today"
+                  value={todayEmails.length}
+                  icon={<Mail />}
+                  size="large"
+                  clickable={true}
+                  onClick={() => handleOpenModal("Today's Emails", todayEmails, "emails")}
+                />
+              </div>
+              
+              <CollapsibleSection
+                title="All Emails" 
+                count={allEmails.length}
+                data={allEmails}
+                renderItem={(email: any, index) => {
+                  const highlightClass = getHighlightClasses(email.timestamp);
+                  return (
+                    <div 
+                      key={index} 
+                      className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
+                    >
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {email.lead?.first_name} {email.lead?.last_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {email.subject || "No subject"}
+                        </p>
+                      </div>
+                      <Badge variant={email.direction === 'Out' ? 'default' : 'secondary'} className="text-xs shrink-0">
+                        {email.direction === 'Out' ? 'Sent' : 'Received'}
+                      </Badge>
+                    </div>
+                  );
+                }}
+              />
+            </CardContent>
+          </Card>
+          
           <ActivityMonitor />
           
           <ConversionAnalytics />
