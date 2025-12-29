@@ -48,6 +48,15 @@ export interface UserPermissions {
   admin_mortgage_app: string;
   admin_settings: string;
   admin_deleted_items: string;
+  // Homepage card permissions
+  home_inbox: string;
+  home_agents: string;
+  home_lenders: string;
+  home_active_files: string;
+  home_loan_estimate: string;
+  home_income_calculator: string;
+  home_loan_pricer: string;
+  home_bolt_bot: string;
 }
 
 type PermissionLevel = 'visible' | 'hidden' | 'locked';
@@ -98,6 +107,15 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   admin_mortgage_app: 'visible',
   admin_settings: 'visible',
   admin_deleted_items: 'visible',
+  // Homepage card permissions
+  home_inbox: 'visible',
+  home_agents: 'visible',
+  home_lenders: 'visible',
+  home_active_files: 'visible',
+  home_loan_estimate: 'visible',
+  home_income_calculator: 'visible',
+  home_loan_pricer: 'visible',
+  home_bolt_bot: 'visible',
 };
 
 export function usePermissions() {
@@ -183,6 +201,15 @@ export function usePermissions() {
           admin_mortgage_app: data.admin_mortgage_app || 'visible',
           admin_settings: data.admin_settings || 'visible',
           admin_deleted_items: data.admin_deleted_items || 'visible',
+          // Homepage card permissions
+          home_inbox: data.home_inbox || 'visible',
+          home_agents: data.home_agents || 'visible',
+          home_lenders: data.home_lenders || 'visible',
+          home_active_files: data.home_active_files || 'visible',
+          home_loan_estimate: data.home_loan_estimate || 'visible',
+          home_income_calculator: data.home_income_calculator || 'visible',
+          home_loan_pricer: data.home_loan_pricer || 'visible',
+          home_bolt_bot: data.home_bolt_bot || 'visible',
         });
       }
     } catch (error) {

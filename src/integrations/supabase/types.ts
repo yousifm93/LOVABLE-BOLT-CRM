@@ -4929,6 +4929,14 @@ export type Database = {
           dashboard_sales: string | null
           email: string | null
           home: string | null
+          home_active_files: string | null
+          home_agents: string | null
+          home_bolt_bot: string | null
+          home_inbox: string | null
+          home_income_calculator: string | null
+          home_lenders: string | null
+          home_loan_estimate: string | null
+          home_loan_pricer: string | null
           id: string
           overview: string
           pipeline: string
@@ -4973,6 +4981,14 @@ export type Database = {
           dashboard_sales?: string | null
           email?: string | null
           home?: string | null
+          home_active_files?: string | null
+          home_agents?: string | null
+          home_bolt_bot?: string | null
+          home_inbox?: string | null
+          home_income_calculator?: string | null
+          home_lenders?: string | null
+          home_loan_estimate?: string | null
+          home_loan_pricer?: string | null
           id?: string
           overview?: string
           pipeline?: string
@@ -5017,6 +5033,14 @@ export type Database = {
           dashboard_sales?: string | null
           email?: string | null
           home?: string | null
+          home_active_files?: string | null
+          home_agents?: string | null
+          home_bolt_bot?: string | null
+          home_inbox?: string | null
+          home_income_calculator?: string | null
+          home_lenders?: string | null
+          home_loan_estimate?: string | null
+          home_loan_pricer?: string | null
           id?: string
           overview?: string
           pipeline?: string
