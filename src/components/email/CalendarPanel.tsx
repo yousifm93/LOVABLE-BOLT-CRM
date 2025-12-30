@@ -29,8 +29,15 @@ export function CalendarPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [icsUrl, setIcsUrl] = useState("");
+  const [caldavUsername, setCaldavUsername] = useState("");
+  const [caldavPassword, setCaldavPassword] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [hasCalendarConfigured, setHasCalendarConfigured] = useState<boolean | null>(null);
+  const [requiresAuth, setRequiresAuth] = useState(false);
+
+  const isCalDAVUrl = (url: string) => {
+    return url.includes('/caldav/') || url.includes('/dav/') || url.includes('/calendars/');
+  };
 
   const fetchEvents = useCallback(async () => {
     if (!user) return;
@@ -49,8 +56,23 @@ export function CalendarPanel() {
       if (data.message === 'No calendar configured') {
         setHasCalendarConfigured(false);
         setEvents([]);
+      } else if (data.requiresAuth) {
+        setRequiresAuth(true);
+        setIsSettingsOpen(true);
+        toast({
+          title: "Authentication Required",
+          description: "This calendar URL requires a username and password.",
+          variant: "default",
+        });
+      } else if (data.error) {
+        toast({
+          title: "Calendar Error",
+          description: data.error,
+          variant: "destructive",
+        });
       } else {
         setHasCalendarConfigured(true);
+        setRequiresAuth(false);
         setEvents(data.events || []);
       }
     } catch (error: any) {
@@ -72,12 +94,14 @@ export function CalendarPanel() {
       
       const { data } = await supabase
         .from('user_calendar_settings')
-        .select('ics_url')
+        .select('ics_url, caldav_username, caldav_password')
         .eq('user_id', user.id)
         .maybeSingle();
       
       if (data?.ics_url) {
         setIcsUrl(data.ics_url);
+        setCaldavUsername(data.caldav_username || "");
+        setCaldavPassword(data.caldav_password || "");
         setHasCalendarConfigured(true);
       } else {
         setHasCalendarConfigured(false);
@@ -104,6 +128,8 @@ export function CalendarPanel() {
         .upsert({
           user_id: user.id,
           ics_url: icsUrl,
+          caldav_username: caldavUsername || null,
+          caldav_password: caldavPassword || null,
           calendar_enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
@@ -117,6 +143,7 @@ export function CalendarPanel() {
       
       setIsSettingsOpen(false);
       setHasCalendarConfigured(!!icsUrl);
+      setRequiresAuth(false);
       
       if (icsUrl) {
         fetchEvents();
@@ -145,6 +172,7 @@ export function CalendarPanel() {
   };
 
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  const showCredentials = isCalDAVUrl(icsUrl) || requiresAuth;
 
   return (
     <div className="flex flex-col h-full border-l bg-background">
@@ -239,12 +267,12 @@ export function CalendarPanel() {
           <DialogHeader>
             <DialogTitle>Calendar Settings</DialogTitle>
             <DialogDescription>
-              Enter your calendar's ICS subscription URL. You can find this in your email provider's calendar settings.
+              Enter your calendar's URL. For IONOS CalDAV, you'll also need your email credentials.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="ics-url">ICS Calendar URL</Label>
+              <Label htmlFor="ics-url">Calendar URL (ICS or CalDAV)</Label>
               <Input
                 id="ics-url"
                 placeholder="https://calendar.example.com/calendar.ics"
@@ -252,13 +280,41 @@ export function CalendarPanel() {
                 onChange={(e) => setIcsUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                For IONOS: Go to Calendar → Properties → Copy the ICS URL
+                For IONOS: Use your CalDAV URL from calendar settings
               </p>
             </div>
+            
+            {showCredentials && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="caldav-username">Email/Username</Label>
+                  <Input
+                    id="caldav-username"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={caldavUsername}
+                    onChange={(e) => setCaldavUsername(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="caldav-password">Password</Label>
+                  <Input
+                    id="caldav-password"
+                    type="password"
+                    placeholder="Your email password"
+                    value={caldavPassword}
+                    onChange={(e) => setCaldavPassword(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your credentials are stored securely and used only to sync your calendar.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveSettings} disabled={isSavingSettings}>
+            <Button onClick={handleSaveSettings} disabled={isSavingSettings || !icsUrl}>
               {isSavingSettings ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>

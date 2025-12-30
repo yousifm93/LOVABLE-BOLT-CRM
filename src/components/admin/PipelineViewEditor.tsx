@@ -201,12 +201,15 @@ export function PipelineViewEditor({
     })
   );
 
-  // Initialize columns from props or defaults
+  // Initialize columns from props or defaults when view changes
   useEffect(() => {
     // Wait for fields to load before initializing columns
     if (fieldsLoading || allFields.length === 0) return;
     
-    if (columnOrder.length > 0) {
+    // Store the columnWidths in a stable reference for this effect
+    const widths = columnWidths || {};
+    
+    if (columnOrder && columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
           // Try to find in crm_fields first
@@ -215,7 +218,7 @@ export function PipelineViewEditor({
             return {
               field_name: field.field_name,
               display_name: field.display_name,
-              width: columnWidths[fieldName] || 150,
+              width: widths[fieldName] || 150,
               visible: true,
             };
           }
@@ -226,7 +229,7 @@ export function PipelineViewEditor({
             return {
               field_name: fieldName,
               display_name: displayName,
-              width: columnWidths[fieldName] || 150,
+              width: widths[fieldName] || 150,
               visible: true,
             };
           }
@@ -253,7 +256,17 @@ export function PipelineViewEditor({
         .filter(Boolean) as ColumnConfig[];
       setColumns(initialColumns);
     }
-  }, [viewId, allFields, columnOrder, columnWidths, fieldsLoading]);
+  }, [viewId, allFields, fieldsLoading]); // Only depend on viewId, allFields, and fieldsLoading
+
+  // Sync column widths when columnWidths prop changes (from DB reload)
+  useEffect(() => {
+    if (!columnWidths || Object.keys(columnWidths).length === 0) return;
+    
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      width: columnWidths[col.field_name] || col.width
+    })));
+  }, [columnWidths]);
 
   // Sync local state when switching views
   useEffect(() => {
@@ -372,10 +385,14 @@ export function PipelineViewEditor({
 
   const handleSave = async () => {
     const columnOrderArray = columns.map(col => col.field_name);
-    const columnWidthsObj = columns.reduce((acc, col) => {
-      acc[col.field_name] = col.width;
-      return acc;
-    }, {} as Record<string, number>);
+    const columnWidthsObj: Record<string, number> = {};
+    
+    // Explicitly build the widths object from all columns
+    columns.forEach(col => {
+      columnWidthsObj[col.field_name] = col.width;
+    });
+    
+    console.log('📊 Saving column widths:', columnWidthsObj);
 
     await onSave({
       name,

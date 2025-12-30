@@ -4919,6 +4919,8 @@ export type Database = {
       }
       user_calendar_settings: {
         Row: {
+          caldav_password: string | null
+          caldav_username: string | null
           calendar_enabled: boolean
           created_at: string
           ics_url: string | null
@@ -4927,6 +4929,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          caldav_password?: string | null
+          caldav_username?: string | null
           calendar_enabled?: boolean
           created_at?: string
           ics_url?: string | null
@@ -4935,6 +4939,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          caldav_password?: string | null
+          caldav_username?: string | null
           calendar_enabled?: boolean
           created_at?: string
           ics_url?: string | null
