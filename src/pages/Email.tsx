@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil } from "lucide-react";
+import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
+import { CalendarPanel } from "@/components/email/CalendarPanel";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
 import { format } from "date-fns";
 
@@ -249,6 +250,7 @@ export default function Email() {
     subject: "",
     body: ""
   });
+  const [showCalendar, setShowCalendar] = useState(true);
 
   // Fetch custom categories from database
   const fetchCustomCategories = useCallback(async () => {
@@ -1490,6 +1492,24 @@ export default function Email() {
                 </div>
               </div>}
           </div>
+          
+          {/* Calendar Toggle Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0 self-start mt-2"
+            onClick={() => setShowCalendar(!showCalendar)}
+            title={showCalendar ? "Hide Calendar" : "Show Calendar"}
+          >
+            <Calendar className="h-4 w-4" />
+          </Button>
+          
+          {/* Calendar Panel */}
+          {showCalendar && (
+            <div className="w-[320px] flex-shrink-0 h-full border-l pl-2">
+              <CalendarPanel />
+            </div>
+          )}
         </div>
 
         {/* Drag Overlay */}

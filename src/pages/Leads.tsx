@@ -1153,8 +1153,26 @@ export default function Leads() {
           </div>
         )}
         <CardContent className="mx-0 py-[10px] px-[20px] rounded-none">
-          <DataTable columns={columns} data={filteredLeads} searchTerm="" storageKey="leads-table" onRowClick={() => {}} // Disable generic row click
-          onViewDetails={handleRowClick} onEdit={handleRowClick} onDelete={handleDelete} onColumnReorder={handleColumnReorder} selectable selectedIds={selectedLeadIds} onSelectionChange={setSelectedLeadIds} getRowId={row => row.id} defaultSortColumn="createdAtTs" defaultSortDirection="desc" showRowNumbers />
+          <DataTable 
+            columns={columns} 
+            data={filteredLeads} 
+            searchTerm="" 
+            storageKey="leads-table" 
+            onRowClick={() => {}} 
+            onViewDetails={handleRowClick} 
+            onEdit={handleRowClick} 
+            onDelete={handleDelete} 
+            onColumnReorder={handleColumnReorder} 
+            selectable 
+            selectedIds={selectedLeadIds} 
+            onSelectionChange={setSelectedLeadIds} 
+            getRowId={row => row.id} 
+            defaultSortColumn="createdAtTs" 
+            defaultSortDirection="desc" 
+            showRowNumbers
+            initialColumnWidths={savedColumnWidths}
+            lockResize={true}
+          />
         </CardContent>
       </Card>
 

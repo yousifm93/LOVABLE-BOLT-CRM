@@ -100,13 +100,11 @@ interface ColumnConfig {
 function SortableColumnHeader({ 
   column, 
   onRemove, 
-  onToggleVisibility,
-  onWidthChange 
+  onToggleVisibility
 }: { 
   column: ColumnConfig; 
   onRemove: () => void;
   onToggleVisibility: () => void;
-  onWidthChange: (delta: number) => void;
 }) {
   const {
     attributes,
@@ -122,39 +120,6 @@ function SortableColumnHeader({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  const [isResizing, setIsResizing] = useState(false);
-  const [startX, setStartX] = useState(0);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
-    setStartX(e.clientX);
-    e.preventDefault();
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const delta = e.clientX - startX;
-      if (Math.abs(delta) > 5) {
-        onWidthChange(delta);
-        setStartX(e.clientX);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing, startX, onWidthChange]);
 
   return (
     <TableHead
@@ -198,10 +163,6 @@ function SortableColumnHeader({
           </Button>
         </div>
       </div>
-      <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 active:bg-primary"
-        onMouseDown={handleMouseDown}
-      />
     </TableHead>
   );
 }
@@ -710,7 +671,6 @@ export function PipelineViewEditor({
                             column={column}
                             onRemove={() => removeColumn(column.field_name)}
                             onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
-                            onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
                           />
                         ))}
                       </SortableContext>
