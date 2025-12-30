@@ -54,7 +54,21 @@ interface SearchResult {
   type: 'lead' | 'agent' | 'lender';
   name: string;
   subtext?: string;
+  pipelineStageId?: string;
 }
+
+// Map pipeline_stage_id to route path
+const getPipelineRoute = (pipelineStageId: string | undefined): string => {
+  const routeMap: Record<string, string> = {
+    '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': '/pending-app',
+    'a4e162e0-5421-4d17-8ad5-4b1195bbc995': '/screening',
+    '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': '/pre-qualified',
+    '3cbf38ff-752e-4163-a9a3-1757499b4945': '/pre-approved',
+    '76eb2e82-e1d9-4f2d-a57d-2120a25696db': '/active',
+    'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0': '/past-clients',
+  };
+  return routeMap[pipelineStageId || ''] || '/leads';
+};
 
 // Dashboard items with permission keys
 const dashboardItems = [
@@ -137,10 +151,10 @@ export function AppSidebar() {
     try {
       const results: SearchResult[] = [];
       
-      // Search leads (borrowers)
+      // Search leads (borrowers) - include pipeline_stage_id for routing
       const { data: leads } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, email')
+        .select('id, first_name, last_name, email, pipeline_stage_id')
         .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
         .limit(5);
       
@@ -150,6 +164,7 @@ export function AppSidebar() {
           type: 'lead' as const,
           name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Unknown',
           subtext: l.email || undefined,
+          pipelineStageId: l.pipeline_stage_id,
         })));
       }
       
@@ -230,8 +245,9 @@ export function AppSidebar() {
     
     switch (result.type) {
       case 'lead':
-        // Navigate to pipeline and open lead - for now just go to dashboard with a query param
-        navigate(`/dashboard?openLead=${result.id}`);
+        // Navigate to the correct pipeline page based on pipeline_stage_id
+        const route = getPipelineRoute(result.pipelineStageId);
+        navigate(`${route}?openLead=${result.id}`);
         break;
       case 'agent':
         navigate(`/contacts/agents?openAgent=${result.id}`);

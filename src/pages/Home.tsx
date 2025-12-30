@@ -26,6 +26,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
 import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
 import { MarketRatesCard } from "@/components/dashboard/MarketRatesCard";
+import { transformLeadToClient } from "@/utils/clientTransform";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -250,54 +251,20 @@ export default function Home() {
     }, 300);
   };
 
-  const getStageFromPipelineId = (pipelineId: string): string => {
-    const stageMap: Record<string, string> = {
-      '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'pending-app',
-      'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'app-complete',
-      '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'pre-qualified',
-      '3cbf38ff-752e-4163-a9a3-1757499b4945': 'pre-approved',
-      '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'active',
-      'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0': 'past-clients',
-    };
-    return stageMap[pipelineId] || 'screening';
-  };
-
-  const transformLeadToCRMClient = (lead: any) => ({
-    id: 0,
-    databaseId: lead.id,
-    name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
-    email: lead.email || '',
-    phone: lead.phone || '',
-    ops: {
-      status: lead.status || 'Working on it',
-      stage: getStageFromPipelineId(lead.pipeline_stage_id),
-      assignedTo: lead.teammate_assigned,
-      priority: lead.priority || 'Medium',
-    },
-    loan: {
-      loanAmount: lead.loan_amount,
-      salesPrice: lead.sales_price,
-      interestRate: lead.interest_rate,
-      ficoScore: lead.credit_score,
-      term: lead.loan_term || 360,
-    },
-    property: {
-      address: lead.subject_property_address || '',
-      propertyType: lead.property_type,
-    },
-    ...lead,
-  });
-
   const handleResultClick = async (result: SearchResult) => {
     setShowDropdown(false);
     setSearchQuery("");
 
     switch (result.type) {
       case 'lead':
-        // Fetch full lead data and transform to CRMClient format
-        const { data: lead } = await supabase.from('leads').select('*').eq('id', result.id).single();
+        // Fetch full lead data with pipeline_stage and transform using proper utility
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('*, pipeline_stage:pipeline_stages(id, name)')
+          .eq('id', result.id)
+          .maybeSingle();
         if (lead) {
-          const transformedLead = transformLeadToCRMClient(lead);
+          const transformedLead = transformLeadToClient(lead);
           setSelectedLead(transformedLead);
         }
         break;
