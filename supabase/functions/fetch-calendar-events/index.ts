@@ -155,24 +155,57 @@ async function fetchCalDAVEvents(
     const xmlText = await response.text();
     console.log('[CalDAV] Response length:', xmlText.length);
     
-    // Parse calendar-data from XML response
-    const events: CalendarEvent[] = [];
-    const calendarDataRegex = /<C:calendar-data[^>]*>([\s\S]*?)<\/C:calendar-data>/gi;
-    let match;
+    // Debug: Log first 1000 chars of response to see the actual format
+    console.log('[CalDAV] Raw XML (first 1000 chars):', xmlText.substring(0, 1000));
     
-    while ((match = calendarDataRegex.exec(xmlText)) !== null) {
-      const icsContent = match[1]
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'");
+    // Parse calendar-data from XML response with flexible namespace matching
+    // IONOS might use different namespace prefixes (C:, cal:, caldav:, or no prefix)
+    const events: CalendarEvent[] = [];
+    
+    // Try multiple regex patterns for calendar-data
+    const patterns = [
+      /<(?:C:|cal:|caldav:)?calendar-data[^>]*>([\s\S]*?)<\/(?:C:|cal:|caldav:)?calendar-data>/gi,
+      /<[^:>]+:calendar-data[^>]*>([\s\S]*?)<\/[^:>]+:calendar-data>/gi,
+      /BEGIN:VCALENDAR[\s\S]*?END:VCALENDAR/gi, // Direct ICS content without XML wrapper
+    ];
+    
+    let foundEvents = false;
+    
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0; // Reset regex state
+      let match;
       
-      const parsedEvents = parseICS(icsContent);
-      events.push(...parsedEvents);
+      while ((match = pattern.exec(xmlText)) !== null) {
+        foundEvents = true;
+        // If match[1] exists (captured group), use it, otherwise use match[0] (full match)
+        const rawContent = match[1] || match[0];
+        
+        const icsContent = rawContent
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/<!\[CDATA\[/g, '')
+          .replace(/\]\]>/g, '');
+        
+        console.log('[CalDAV] Found ICS content, length:', icsContent.length);
+        
+        const parsedEvents = parseICS(icsContent);
+        console.log('[CalDAV] Parsed', parsedEvents.length, 'events from this block');
+        events.push(...parsedEvents);
+      }
+      
+      if (foundEvents) break; // Stop if we found events with this pattern
     }
     
-    console.log('[CalDAV] Parsed', events.length, 'events');
+    if (!foundEvents) {
+      console.log('[CalDAV] No calendar-data blocks found. Checking if response is multistatus...');
+      // Log more of the response to debug
+      console.log('[CalDAV] Full response:', xmlText.substring(0, 2000));
+    }
+    
+    console.log('[CalDAV] Total parsed events:', events.length);
     return events;
   } catch (error) {
     console.error('[CalDAV] Error:', error);
