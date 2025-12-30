@@ -100,11 +100,13 @@ interface ColumnConfig {
 function SortableColumnHeader({ 
   column, 
   onRemove, 
-  onToggleVisibility
+  onToggleVisibility,
+  onWidthChange,
 }: { 
   column: ColumnConfig; 
   onRemove: () => void;
   onToggleVisibility: () => void;
+  onWidthChange: (delta: number) => void;
 }) {
   const {
     attributes,
@@ -121,10 +123,36 @@ function SortableColumnHeader({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Resize state
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = column.width;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(80, Math.min(600, startWidth + delta));
+      onWidthChange(newWidth - column.width);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    setIsResizing(true);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <TableHead
       ref={setNodeRef}
-      style={{ ...style, width: column.width }}
+      style={{ ...style, width: column.width, minWidth: column.width }}
       className="relative border-r border-border/60 bg-muted/50"
     >
       <div className="flex items-center justify-between gap-2">
@@ -163,6 +191,14 @@ function SortableColumnHeader({
           </Button>
         </div>
       </div>
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={cn(
+          "absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-primary/30 transition-colors",
+          isResizing && "bg-primary/50"
+        )}
+      />
     </TableHead>
   );
 }
@@ -202,12 +238,17 @@ export function PipelineViewEditor({
   );
 
   // Initialize columns from props or defaults when view changes
+  // Use columnOrder and columnWidths in dependencies to properly sync when view switches
   useEffect(() => {
     // Wait for fields to load before initializing columns
     if (fieldsLoading || allFields.length === 0) return;
     
-    // Store the columnWidths in a stable reference for this effect
+    // Use the columnWidths directly from props
     const widths = columnWidths || {};
+    
+    console.log(`[PipelineViewEditor] Initializing columns for view ${viewId}, pipeline: ${pipelineType}`);
+    console.log('[PipelineViewEditor] Column order:', columnOrder);
+    console.log('[PipelineViewEditor] Column widths from props:', widths);
     
     if (columnOrder && columnOrder.length > 0) {
       const initialColumns = columnOrder
@@ -238,6 +279,8 @@ export function PipelineViewEditor({
           return null;
         })
         .filter(Boolean) as ColumnConfig[];
+      
+      console.log('[PipelineViewEditor] Setting columns with widths:', initialColumns.map(c => ({ name: c.field_name, width: c.width })));
       setColumns(initialColumns);
     } else {
       // Default columns for new view
@@ -256,17 +299,7 @@ export function PipelineViewEditor({
         .filter(Boolean) as ColumnConfig[];
       setColumns(initialColumns);
     }
-  }, [viewId, allFields, fieldsLoading]); // Only depend on viewId, allFields, and fieldsLoading
-
-  // Sync column widths when columnWidths prop changes (from DB reload)
-  useEffect(() => {
-    if (!columnWidths || Object.keys(columnWidths).length === 0) return;
-    
-    setColumns(prev => prev.map(col => ({
-      ...col,
-      width: columnWidths[col.field_name] || col.width
-    })));
-  }, [columnWidths]);
+  }, [viewId, columnOrder, columnWidths, pipelineType, allFields, fieldsLoading]);
 
   // Sync local state when switching views
   useEffect(() => {
@@ -688,6 +721,7 @@ export function PipelineViewEditor({
                             column={column}
                             onRemove={() => removeColumn(column.field_name)}
                             onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
+                            onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
                           />
                         ))}
                       </SortableContext>
