@@ -4917,6 +4917,33 @@ export type Database = {
           },
         ]
       }
+      user_calendar_settings: {
+        Row: {
+          calendar_enabled: boolean
+          created_at: string
+          ics_url: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calendar_enabled?: boolean
+          created_at?: string
+          ics_url?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calendar_enabled?: boolean
+          created_at?: string
+          ics_url?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_loan_interests: {
         Row: {
           calculators_used: string[] | null

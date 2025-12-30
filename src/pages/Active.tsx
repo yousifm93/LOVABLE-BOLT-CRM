@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, Filter, X, Pencil, Activity } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
@@ -1006,9 +1007,47 @@ export default function Active() {
     localStorage.setItem('active-pipeline-filters', JSON.stringify(filters));
   }, [filters]);
 
+  // URL search params for deep linking
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   useEffect(() => {
     loadData();
   }, []);
+  
+  // Handle ?openLead= query param for deep linking from search
+  useEffect(() => {
+    const openLeadId = searchParams.get('openLead');
+    if (openLeadId && !loading) {
+      // Find the lead in activeLoans or fetch it
+      const existingLoan = activeLoans.find(loan => loan.id === openLeadId);
+      if (existingLoan) {
+        handleRowClick(existingLoan);
+        // Clear the param to prevent re-opening on refresh
+        setSearchParams(prev => {
+          prev.delete('openLead');
+          return prev;
+        }, { replace: true });
+      } else {
+        // Lead not in current list, fetch it directly
+        (async () => {
+          try {
+            const freshLead = await databaseService.getLeadByIdWithEmbeds(openLeadId);
+            if (freshLead) {
+              setSelectedClient(transformLeadToClient(freshLead));
+              setIsDrawerOpen(true);
+              // Clear the param
+              setSearchParams(prev => {
+                prev.delete('openLead');
+                return prev;
+              }, { replace: true });
+            }
+          } catch (error) {
+            console.error('Error fetching lead from openLead param:', error);
+          }
+        })();
+      }
+    }
+  }, [searchParams, loading, activeLoans]);
 
   const loadData = async () => {
     try {

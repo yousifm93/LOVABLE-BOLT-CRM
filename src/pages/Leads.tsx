@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { Search, Plus, Filter, Phone, Mail, X, Trash2, Edit3 } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
@@ -256,6 +257,10 @@ export default function Leads() {
   const {
     toast
   } = useToast();
+  
+  // URL search params for deep linking
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<CRMClient | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -279,6 +284,46 @@ export default function Leads() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  
+  // Handle ?openLead= query param for deep linking from search
+  useEffect(() => {
+    const openLeadId = searchParams.get('openLead');
+    if (openLeadId && !loading) {
+      // Find the lead in dbLeadsMap or fetch it directly
+      const existingLead = dbLeadsMap.get(openLeadId);
+      if (existingLead) {
+        setSelectedClient(transformLeadToClient(existingLead));
+        setIsDrawerOpen(true);
+        // Clear the param to prevent re-opening on refresh
+        setSearchParams(prev => {
+          prev.delete('openLead');
+          return prev;
+        }, { replace: true });
+      } else {
+        // Lead not in current list, fetch it directly
+        (async () => {
+          try {
+            const { data: freshLead } = await supabase
+              .from('leads')
+              .select('*, pipeline_stage:pipeline_stages(id, name), buyer_agent:buyer_agents(*), teammate:users(*)')
+              .eq('id', openLeadId)
+              .maybeSingle();
+            if (freshLead) {
+              setSelectedClient(transformLeadToClient(freshLead));
+              setIsDrawerOpen(true);
+              // Clear the param
+              setSearchParams(prev => {
+                prev.delete('openLead');
+                return prev;
+              }, { replace: true });
+            }
+          } catch (error) {
+            console.error('Error fetching lead from openLead param:', error);
+          }
+        })();
+      }
+    }
+  }, [searchParams, loading, dbLeadsMap]);
 
   // Use column visibility with all available columns (core + database)
   const {

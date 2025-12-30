@@ -66,6 +66,26 @@ export function ClientDetailDrawer({
   onLeadUpdated,
   autoStartRecording = false
 }: ClientDetailDrawerProps) {
+  // Defensive guard: check for valid client with person data
+  if (!client?.person) {
+    console.warn('[ClientDetailDrawer] Invalid client object - missing person data:', client);
+    return (
+      <div className={`fixed inset-y-0 right-0 w-[480px] bg-background shadow-xl border-l z-50 transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+          <div className="bg-destructive/10 rounded-full p-4 mb-4">
+            <X className="h-8 w-8 text-destructive" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Unable to Load Lead</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            The lead details could not be loaded. This may be due to missing data or a sync issue.
+          </p>
+          <Button onClick={onClose} variant="outline">
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  }
   // Extract lead UUID - handle both CRMClient and database Lead objects
   const getLeadId = (): string | null => {
     // Check if it's a database Lead object (has UUID id directly)
