@@ -28,8 +28,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 // Monthly goals
 const MONTHLY_GOALS = {
-  leads: 70,
-  applications: 30,
+  leads: 80,
+  applications: 28,
   meetings: 20,
   brokerOpens: 12,
   reviews: 12,
