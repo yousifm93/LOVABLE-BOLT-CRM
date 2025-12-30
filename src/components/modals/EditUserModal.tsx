@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 interface User {
   id: string;
@@ -19,6 +20,7 @@ interface User {
   is_active: boolean;
   is_assignable: boolean;
   email_signature?: string | null;
+  auth_user_id?: string | null;
 }
 
 interface EditUserModalProps {
@@ -31,6 +33,8 @@ interface EditUserModalProps {
 export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditUserModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -52,6 +56,8 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
         is_assignable: user.is_assignable ?? true,
         email_signature: user.email_signature || "",
       });
+      setNewPassword("");
+      setShowPassword(false);
     }
   }, [user]);
 
@@ -59,27 +65,66 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
     e.preventDefault();
     if (!user) return;
 
+    // Validate password if provided
+    if (newPassword && newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      // Update user table first
+      const updateData: Record<string, any> = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone || null,
+        role: formData.role,
+        is_active: formData.is_active,
+        is_assignable: formData.is_assignable,
+        email_signature: formData.email_signature || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      // If password provided, also update display_password
+      if (newPassword) {
+        updateData.display_password = newPassword;
+      }
+
       const { error } = await supabase
         .from("users")
-        .update({
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          phone: formData.phone || null,
-          role: formData.role,
-          is_active: formData.is_active,
-          is_assignable: formData.is_assignable,
-          email_signature: formData.email_signature || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       if (error) throw error;
 
+      // If password provided and user has auth account, update Supabase auth password
+      if (newPassword && user.auth_user_id) {
+        const { error: authError } = await supabase.functions.invoke('admin-update-user', {
+          body: { 
+            userId: user.auth_user_id, 
+            password: newPassword 
+          }
+        });
+
+        if (authError) {
+          toast({
+            title: "Warning",
+            description: "User updated but password change failed: " + authError.message,
+            variant: "destructive",
+          });
+          onUserUpdated();
+          onOpenChange(false);
+          return;
+        }
+      }
+
       toast({
         title: "Success",
-        description: "User updated successfully",
+        description: newPassword ? "User and password updated successfully" : "User updated successfully",
       });
 
       onUserUpdated();
@@ -145,6 +190,34 @@ export function EditUserModal({ open, onOpenChange, user, onUserUpdated }: EditU
                 <SelectItem value="ReadOnly">Read Only</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="new_password">New Password</Label>
+            <p className="text-xs text-muted-foreground">Leave blank to keep current password</p>
+            <div className="relative">
+              <Input
+                id="new_password"
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password..."
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between space-x-2">
