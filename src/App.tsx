@@ -36,6 +36,8 @@ import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Email from "@/pages/Email";
 import EmailMarketing from "@/pages/resources/EmailMarketing";
 import EmailHistory from "@/pages/admin/EmailHistory";
+import Feedback from "@/pages/Feedback";
+import FeedbackReview from "@/pages/admin/FeedbackReview";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -113,6 +115,8 @@ function AppRoutes() {
               <Route path="/resources/condolist" element={<Condolist />} />
               <Route path="/resources/preapproval" element={<Letter />} />
               <Route path="/resources/estimate" element={<LoanEstimate />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/admin/feedback-review" element={<FeedbackReview />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
