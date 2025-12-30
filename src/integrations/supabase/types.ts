@@ -4840,6 +4840,83 @@ export type Database = {
           },
         ]
       }
+      team_feedback: {
+        Row: {
+          created_at: string
+          feedback_items: Json
+          id: string
+          section_key: string
+          section_label: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_items?: Json
+          id?: string
+          section_key: string
+          section_label: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_items?: Json
+          id?: string
+          section_key?: string
+          section_label?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_feedback_comments: {
+        Row: {
+          admin_id: string
+          comment: string
+          created_at: string
+          feedback_id: string
+          id: string
+        }
+        Insert: {
+          admin_id: string
+          comment: string
+          created_at?: string
+          feedback_id: string
+          id?: string
+        }
+        Update: {
+          admin_id?: string
+          comment?: string
+          created_at?: string
+          feedback_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_feedback_comments_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_feedback_comments_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "team_feedback"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_loan_interests: {
         Row: {
           calculators_used: string[] | null

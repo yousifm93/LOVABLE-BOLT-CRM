@@ -23,6 +23,7 @@ import {
   User,
   Loader2,
   Lock,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -676,6 +677,33 @@ export function AppSidebar() {
               </SidebarMenu>
             </CollapsibleSidebarGroup>
           )}
+
+          {/* Feedback */}
+          <CollapsibleSidebarGroup 
+            title="Feedback" 
+            defaultOpen={false}
+          >
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/feedback" className={getNavClassName}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Submit Feedback</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {hasPermission('admin') !== 'hidden' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/admin/feedback-review" className={getNavClassName}>
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Review Feedback</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+            </SidebarMenu>
+          </CollapsibleSidebarGroup>
         </SidebarContent>
 
         {/* User Footer */}
