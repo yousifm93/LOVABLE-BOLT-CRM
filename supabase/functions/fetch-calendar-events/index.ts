@@ -105,6 +105,86 @@ function parseICS(icsContent: string): CalendarEvent[] {
   return events;
 }
 
+// Fetch events via CalDAV protocol
+async function fetchCalDAVEvents(
+  caldavUrl: string, 
+  username: string, 
+  password: string,
+  startDate: Date,
+  endDate: Date
+): Promise<CalendarEvent[]> {
+  console.log('[CalDAV] Fetching events from:', caldavUrl);
+  
+  // Format dates for CalDAV query
+  const formatCalDAVDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  
+  // CalDAV REPORT request body to get events in date range
+  const reportBody = `<?xml version="1.0" encoding="utf-8"?>
+<C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:prop>
+    <D:getetag/>
+    <C:calendar-data/>
+  </D:prop>
+  <C:filter>
+    <C:comp-filter name="VCALENDAR">
+      <C:comp-filter name="VEVENT">
+        <C:time-range start="${formatCalDAVDate(startDate)}" end="${formatCalDAVDate(endDate)}"/>
+      </C:comp-filter>
+    </C:comp-filter>
+  </C:filter>
+</C:calendar-query>`;
+
+  const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+  
+  try {
+    const response = await fetch(caldavUrl, {
+      method: 'REPORT',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Depth': '1',
+      },
+      body: reportBody,
+    });
+    
+    if (!response.ok) {
+      console.error('[CalDAV] REPORT failed:', response.status, await response.text());
+      throw new Error(`CalDAV request failed: ${response.status}`);
+    }
+    
+    const xmlText = await response.text();
+    console.log('[CalDAV] Response length:', xmlText.length);
+    
+    // Parse calendar-data from XML response
+    const events: CalendarEvent[] = [];
+    const calendarDataRegex = /<C:calendar-data[^>]*>([\s\S]*?)<\/C:calendar-data>/gi;
+    let match;
+    
+    while ((match = calendarDataRegex.exec(xmlText)) !== null) {
+      const icsContent = match[1]
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      
+      const parsedEvents = parseICS(icsContent);
+      events.push(...parsedEvents);
+    }
+    
+    console.log('[CalDAV] Parsed', events.length, 'events');
+    return events;
+  } catch (error) {
+    console.error('[CalDAV] Error:', error);
+    throw error;
+  }
+}
+
+// Check if URL is a CalDAV URL
+function isCalDAVUrl(url: string): boolean {
+  return url.includes('/caldav/') || url.includes('/dav/') || url.includes('/calendars/');
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -155,7 +235,7 @@ serve(async (req) => {
     }
 
     if (!settings?.ics_url) {
-      console.log('[fetch-calendar-events] No ICS URL configured for user');
+      console.log('[fetch-calendar-events] No calendar URL configured for user');
       return new Response(JSON.stringify({ events: [], message: 'No calendar configured' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -169,36 +249,72 @@ serve(async (req) => {
       });
     }
 
-    // Fetch ICS content
-    console.log('[fetch-calendar-events] Fetching ICS from URL');
-    const icsResponse = await fetch(settings.ics_url);
-    
-    if (!icsResponse.ok) {
-      console.error('[fetch-calendar-events] Failed to fetch ICS:', icsResponse.status);
-      return new Response(JSON.stringify({ error: 'Failed to fetch calendar data' }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    let events: CalendarEvent[] = [];
+    const startDate = start ? new Date(start) : new Date();
+    const endDate = end ? new Date(end) : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
 
-    const icsContent = await icsResponse.text();
-    console.log(`[fetch-calendar-events] Received ${icsContent.length} bytes of ICS data`);
-
-    // Parse events
-    let events = parseICS(icsContent);
-    console.log(`[fetch-calendar-events] Parsed ${events.length} events`);
-
-    // Filter by date range if provided
-    if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
+    // Check if this is a CalDAV URL requiring authentication
+    if (isCalDAVUrl(settings.ics_url) && settings.caldav_username && settings.caldav_password) {
+      console.log('[fetch-calendar-events] Using CalDAV protocol');
+      try {
+        events = await fetchCalDAVEvents(
+          settings.ics_url,
+          settings.caldav_username,
+          settings.caldav_password,
+          startDate,
+          endDate
+        );
+      } catch (caldavError) {
+        console.error('[fetch-calendar-events] CalDAV fetch failed:', caldavError);
+        return new Response(JSON.stringify({ 
+          error: 'Failed to fetch calendar. Please check your CalDAV credentials.',
+          details: caldavError.message 
+        }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Standard ICS fetch
+      console.log('[fetch-calendar-events] Fetching standard ICS');
+      const icsResponse = await fetch(settings.ics_url);
       
-      events = events.filter(event => {
-        const eventStart = new Date(event.start);
-        const eventEnd = new Date(event.end);
-        return eventStart <= endDate && eventEnd >= startDate;
-      });
-      console.log(`[fetch-calendar-events] Filtered to ${events.length} events in range`);
+      if (!icsResponse.ok) {
+        console.error('[fetch-calendar-events] Failed to fetch ICS:', icsResponse.status);
+        
+        // Check if it might need CalDAV auth
+        if (isCalDAVUrl(settings.ics_url)) {
+          return new Response(JSON.stringify({ 
+            error: 'This appears to be a CalDAV URL. Please provide your email username and password.',
+            requiresAuth: true 
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        return new Response(JSON.stringify({ error: 'Failed to fetch calendar data' }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const icsContent = await icsResponse.text();
+      console.log(`[fetch-calendar-events] Received ${icsContent.length} bytes of ICS data`);
+
+      // Parse events
+      events = parseICS(icsContent);
+      console.log(`[fetch-calendar-events] Parsed ${events.length} events`);
+
+      // Filter by date range if provided
+      if (start && end) {
+        events = events.filter(event => {
+          const eventStart = new Date(event.start);
+          const eventEnd = new Date(event.end);
+          return eventStart <= endDate && eventEnd >= startDate;
+        });
+        console.log(`[fetch-calendar-events] Filtered to ${events.length} events in range`);
+      }
     }
 
     // Sort by start time
