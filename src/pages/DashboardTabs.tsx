@@ -33,10 +33,10 @@ const MONTHLY_GOALS = {
   meetings: 20,
   brokerOpens: 12,
   reviews: 12,
-  newAgentCalls: 25,
-  currentAgentCalls: 70,
-  pastClientCalls: 10,
-  topAgentCalls: 5,
+  newAgentCalls: 55,
+  currentAgentCalls: 90,
+  pastClientCalls: 20,
+  topAgentCalls: 10,
   pastLACalls: 10
 };
 
