@@ -22,6 +22,7 @@ import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, Calendar, Users, Phone } from "lucide-react";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
 
 export type ActivityType = 'broker_open' | 'face_to_face' | 'call' | 'lead';
 export type CallSubType = 'new_agent' | 'current_agent' | 'top_agent' | 'past_la';
@@ -102,7 +103,7 @@ export function QuickAddActivityModal({
     }
   }, [isOpen, activityType]);
 
-  // Filter agents based on search
+  // Filter agents based on search - show ALL matches when searching
   useEffect(() => {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -110,11 +111,13 @@ export function QuickAddActivityModal({
         agents.filter(
           (a) =>
             `${a.first_name} ${a.last_name}`.toLowerCase().includes(term) ||
+            a.first_name?.toLowerCase().includes(term) ||
+            a.last_name?.toLowerCase().includes(term) ||
             a.brokerage?.toLowerCase().includes(term)
         )
       );
     } else {
-      setFilteredAgents(agents.slice(0, 20)); // Show first 20 by default
+      setFilteredAgents(agents); // Show all agents when not searching
     }
   }, [searchTerm, agents]);
 
@@ -140,7 +143,7 @@ export function QuickAddActivityModal({
 
       if (error) throw error;
       setAgents(data || []);
-      setFilteredAgents((data || []).slice(0, 20));
+      setFilteredAgents(data || []); // Show all agents initially
     } catch (error) {
       console.error("Error fetching agents:", error);
     } finally {
@@ -344,10 +347,15 @@ export function QuickAddActivityModal({
           {/* Notes */}
           {(activityType === 'call' || activityType === 'face_to_face') && (
             <div className="space-y-2">
-              <Label htmlFor="notes">
-                {config.notesLabel}
-                {activityType === 'call' && ' *'}
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="notes">
+                  {config.notesLabel}
+                  {activityType === 'call' && ' *'}
+                </Label>
+                <VoiceRecorder 
+                  onTranscriptionComplete={(text) => setNotes(prev => prev ? `${prev} ${text}` : text)}
+                />
+              </div>
               <Textarea
                 id="notes"
                 placeholder={

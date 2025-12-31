@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
 
 interface AgentMeetingLogModalProps {
   agent: {
@@ -112,7 +113,12 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="summary">Meeting Notes</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="summary">Meeting Notes</Label>
+              <VoiceRecorder 
+                onTranscriptionComplete={(text) => setSummary(prev => prev ? `${prev} ${text}` : text)}
+              />
+            </div>
             <Textarea
               id="summary"
               placeholder="What was discussed during the meeting?"

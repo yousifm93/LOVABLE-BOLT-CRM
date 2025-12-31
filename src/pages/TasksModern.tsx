@@ -1166,7 +1166,8 @@ export default function TasksModern() {
                     onSelectionChange={setSelectedTaskIds}
                     getRowId={(row) => row.id}
                     showRowNumbers={true}
-                    hideActions={!isAdmin}
+                    compact={true}
+                    limitedActions={!isAdmin}
                   />
                 </CollapsibleContent>
               </Collapsible>
@@ -1194,7 +1195,8 @@ export default function TasksModern() {
                     onSelectionChange={setSelectedTaskIds}
                     getRowId={(row) => row.id}
                     showRowNumbers={true}
-                    hideActions={!isAdmin}
+                    compact={true}
+                    limitedActions={!isAdmin}
                   />
                 </CollapsibleContent>
               </Collapsible>

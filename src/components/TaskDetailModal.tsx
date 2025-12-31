@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, Clock, Edit2, Phone, ShieldCheck } from "lucide-react";
+import { Calendar, User, Clock, Edit2, Phone, ShieldCheck, UserCheck } from "lucide-react";
 import { formatDateModern } from "@/utils/dateUtils";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
@@ -146,11 +146,11 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
   return (
     <TooltipProvider>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <DialogTitle>Task Details</DialogTitle>
+                <DialogTitle className="text-sm font-medium text-muted-foreground">Task Details</DialogTitle>
                 {task?.completion_requirement_type && task.completion_requirement_type !== 'none' && (
                   <Tooltip>
                     <TooltipTrigger>
@@ -170,7 +170,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   size="sm"
                   variant="outline"
                   onClick={() => setIsEditing(true)}
-                  className="h-8 mr-6"
+                  className="h-7 mr-6"
                 >
                   <Edit2 className="h-3 w-3 mr-1" />
                   Edit
@@ -308,17 +308,24 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
           ) : (
             <>
               <div>
-                <h3 className="text-lg font-semibold">{task.title}</h3>
+                <h3 className="text-xl font-bold">{task.title}</h3>
                 {task.description && (
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap gap-1">
                     <span className="text-sm font-medium text-muted-foreground">Description:</span>
-                    <p className="text-muted-foreground mt-1">{task.description}</p>
+                    <span className="text-sm text-muted-foreground">{task.description}</span>
                   </div>
                 )}
                 {task.notes && (
                   <div className="mt-3 p-3 bg-muted/50 rounded-md">
-                    <span className="text-sm font-medium text-muted-foreground">Notes:</span>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{task.notes}</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-sm font-medium text-muted-foreground">Notes:</span>
+                      <span className="text-sm whitespace-pre-wrap">{task.notes}</span>
+                    </div>
+                    {task.updated_at && task.updated_at !== task.created_at && (
+                      <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
+                        Updated: {formatDateModern(task.updated_at)}
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -354,8 +361,8 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Due Date:</span>
@@ -376,6 +383,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Borrower:</span>
                     <span className="text-sm">
                       {task.borrower 
@@ -386,7 +394,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Status:</span>
                     <Badge variant="outline">{task.status}</Badge>
@@ -395,11 +403,6 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Priority:</span>
                     <Badge variant="outline">{task.priority}</Badge>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Order:</span>
-                    <span className="text-sm">{task.task_order}</span>
                   </div>
                 </div>
               </div>
