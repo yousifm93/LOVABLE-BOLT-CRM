@@ -46,12 +46,21 @@ export default function PipelineViews() {
     setLoading(true);
     try {
       const data = await databaseService.getPipelineViews(selectedPipeline);
-      // Cast Json types to proper TypeScript types
-      const typedViews: PipelineView[] = (data || []).map(view => ({
-        ...view,
-        column_order: view.column_order as unknown as string[],
-        column_widths: view.column_widths as unknown as Record<string, number> | undefined,
-      }));
+      // Cast Json types to proper TypeScript types (and normalize widths)
+      const typedViews: PipelineView[] = (data || []).map(view => {
+        const rawWidths = (view.column_widths ?? {}) as unknown as Record<string, unknown>;
+        const normalizedWidths: Record<string, number> = {};
+        Object.entries(rawWidths).forEach(([k, v]) => {
+          const n = typeof v === "number" ? v : Number(v);
+          if (Number.isFinite(n)) normalizedWidths[k] = n;
+        });
+
+        return {
+          ...view,
+          column_order: view.column_order as unknown as string[],
+          column_widths: Object.keys(normalizedWidths).length ? normalizedWidths : undefined,
+        };
+      });
       setViews(typedViews);
       
       // Auto-select default view or first view or Main View

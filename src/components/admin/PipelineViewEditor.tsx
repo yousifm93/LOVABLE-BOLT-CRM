@@ -263,10 +263,11 @@ export function PipelineViewEditor({
     if (columnOrder && columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
-          // Get width - use nullish coalescing to handle 0 properly
-          const savedWidth = widths[fieldName];
-          const width = (typeof savedWidth === 'number' && savedWidth >= 80) ? savedWidth : 150;
-          
+          // Widths can come back from Supabase JSON as numbers or strings
+          const savedWidthRaw = (widths as Record<string, unknown>)[fieldName];
+          const savedWidthNum = typeof savedWidthRaw === "number" ? savedWidthRaw : Number(savedWidthRaw);
+          const width = Number.isFinite(savedWidthNum) && savedWidthNum >= 80 && savedWidthNum <= 600 ? savedWidthNum : 150;
+
           // Try to find in crm_fields first
           const field = allFields.find(f => f.field_name === fieldName);
           if (field) {
