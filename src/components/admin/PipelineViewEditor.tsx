@@ -752,7 +752,7 @@ export function PipelineViewEditor({
               onDragEnd={handleDragEnd}
             >
               <div className="border rounded-lg overflow-hidden">
-                <Table className="min-w-max table-fixed">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow>
                       <SortableContext
