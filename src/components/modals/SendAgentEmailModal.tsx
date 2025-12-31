@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { X, Send, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -189,7 +190,7 @@ export function SendAgentEmailModal({
                 <div 
                   className="bg-muted rounded-md p-4 overflow-y-auto max-h-[300px] text-sm"
                   dangerouslySetInnerHTML={{ 
-                    __html: selectedTemplate.html.replace(/\{\{AgentName\}\}/g, agentName) 
+                    __html: DOMPurify.sanitize(selectedTemplate.html.replace(/\{\{AgentName\}\}/g, agentName))
                   }}
                 />
               </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -363,9 +364,11 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                         }
                       }}
                       dangerouslySetInnerHTML={{ 
-                        __html: activity.type === 'email' && activity.direction === 'In'
-                          ? stripForwardingContent(activity.description || '')
-                          : activity.description 
+                        __html: DOMPurify.sanitize(
+                          activity.type === 'email' && activity.direction === 'In'
+                            ? stripForwardingContent(activity.description || '')
+                            : activity.description || ''
+                        )
                       }}
                     />
                   </div>
