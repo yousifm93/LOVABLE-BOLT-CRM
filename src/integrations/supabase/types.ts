@@ -4774,6 +4774,7 @@ export type Database = {
           notes: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           reviewed: boolean | null
+          reviewed_at: string | null
           status: Database["public"]["Enums"]["task_status"]
           task_order: number
           title: string
@@ -4794,6 +4795,7 @@ export type Database = {
           notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           reviewed?: boolean | null
+          reviewed_at?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_order?: number
           title: string
@@ -4814,6 +4816,7 @@ export type Database = {
           notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           reviewed?: boolean | null
+          reviewed_at?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_order?: number
           title?: string
