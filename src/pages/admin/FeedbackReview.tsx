@@ -196,9 +196,13 @@ export default function FeedbackReview() {
             <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
             <p className={`text-sm flex-1 ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>{item}</p>
           </div>
-          <div className="flex gap-1">
-            <Button size="sm" variant={currentStatus === 'complete' ? 'default' : 'ghost'} className={currentStatus === 'complete' ? 'bg-green-600 hover:bg-green-700 h-7 px-2' : 'h-7 px-2 text-green-600 hover:bg-green-50'} onClick={() => updateItemStatus(fb.id, index, 'complete')}><Check className="h-3.5 w-3.5" /></Button>
-            <Button size="sm" variant={currentStatus === 'needs_help' ? 'default' : 'ghost'} className={currentStatus === 'needs_help' ? 'bg-orange-600 hover:bg-orange-700 h-7 px-2' : 'h-7 px-2 text-orange-600 hover:bg-orange-50'} onClick={() => updateItemStatus(fb.id, index, 'needs_help')}><HelpCircle className="h-3.5 w-3.5" /></Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant={currentStatus === 'complete' ? 'default' : 'outline'} className={currentStatus === 'complete' ? 'bg-green-600 hover:bg-green-700 h-7' : 'h-7 text-green-600 border-green-600 hover:bg-green-50'} onClick={() => updateItemStatus(fb.id, index, 'complete')}>
+              <Check className="h-3.5 w-3.5 mr-1" /> Complete
+            </Button>
+            <Button size="sm" variant={currentStatus === 'needs_help' ? 'default' : 'outline'} className={currentStatus === 'needs_help' ? 'bg-orange-600 hover:bg-orange-700 h-7' : 'h-7 text-orange-600 border-orange-600 hover:bg-orange-50'} onClick={() => updateItemStatus(fb.id, index, 'needs_help')}>
+              <HelpCircle className="h-3.5 w-3.5 mr-1" /> Still Need Help
+            </Button>
           </div>
         </div>
         {itemComments.length > 0 && (
@@ -238,13 +242,7 @@ export default function FeedbackReview() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><CardTitle className="text-xl">{fb.section_label}</CardTitle></div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-sm text-muted-foreground">Last updated: {format(new Date(fb.updated_at), 'MMM d, yyyy h:mm a')}</span>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50" onClick={() => { fb.feedback_items.forEach((_, index) => { updateItemStatus(fb.id, index, 'complete'); }); }}><Check className="h-4 w-4 mr-1" />Complete</Button>
-                            <Button size="sm" variant="outline" className="text-orange-600 border-orange-600 hover:bg-orange-50" onClick={() => { fb.feedback_items.forEach((_, index) => { updateItemStatus(fb.id, index, 'needs_help'); }); }}><HelpCircle className="h-4 w-4 mr-1" />Still Need Help</Button>
-                          </div>
-                        </div>
+                        <span className="text-sm text-muted-foreground">Last updated: {format(new Date(fb.updated_at), 'MMM d, yyyy h:mm a')}</span>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">

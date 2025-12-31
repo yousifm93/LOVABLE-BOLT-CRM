@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Check, Loader2, Trash2, ChevronDown, ChevronRight, ImagePlus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,8 +32,13 @@ const userSections: Record<string, FeedbackSection[]> = {
   ],
 };
 
+interface FeedbackItemData {
+  text: string;
+  image_url?: string;
+}
+
 interface SectionFeedback {
-  items: string[];
+  items: FeedbackItemData[];
   saved: boolean;
   loading: boolean;
 }
@@ -68,8 +73,15 @@ export default function Feedback() {
         sections.forEach(section => {
           const existingFeedback = data?.find(f => f.section_key === section.key);
           const feedbackItems = existingFeedback?.feedback_items;
+          // Handle both old string[] format and new {text, image_url}[] format
+          let items: FeedbackItemData[] = [{ text: '' }, { text: '' }, { text: '' }];
+          if (Array.isArray(feedbackItems)) {
+            items = feedbackItems.map((item: any) => 
+              typeof item === 'string' ? { text: item } : { text: item.text || '', image_url: item.image_url }
+            );
+          }
           initialData[section.key] = {
-            items: Array.isArray(feedbackItems) ? feedbackItems as string[] : ['', '', ''],
+            items,
             saved: !!existingFeedback,
             loading: false,
           };
@@ -93,18 +105,56 @@ export default function Feedback() {
     setExpandedSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
   };
 
-  const updateFeedbackItem = (sectionKey: string, index: number, value: string) => {
+  const updateFeedbackItem = (sectionKey: string, index: number, text: string) => {
     setFeedbackData(prev => ({
       ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? value : item), saved: false }
+      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, text } : item), saved: false }
+    }));
+  };
+
+  const handleImageUpload = async (sectionKey: string, index: number, file: File) => {
+    if (!crmUser?.id) return;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${crmUser.id}/${sectionKey}/${Date.now()}.${fileExt}`;
+    
+    const { error, data } = await supabase.storage
+      .from('feedback-attachments')
+      .upload(fileName, file);
+    
+    if (error) {
+      toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
+      return;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage.from('feedback-attachments').getPublicUrl(fileName);
+    
+    setFeedbackData(prev => ({
+      ...prev,
+      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, image_url: publicUrl } : item), saved: false }
+    }));
+  };
+
+  const removeImage = (sectionKey: string, index: number) => {
+    setFeedbackData(prev => ({
+      ...prev,
+      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, image_url: undefined } : item), saved: false }
     }));
   };
 
   const addMoreFeedback = (sectionKey: string) => {
     setFeedbackData(prev => ({
       ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: [...prev[sectionKey].items, ''], saved: false }
+      [sectionKey]: { ...prev[sectionKey], items: [...prev[sectionKey].items, { text: '' }], saved: false }
     }));
+  };
+
+  const removeFeedbackItem = (sectionKey: string, index: number) => {
+    setFeedbackData(prev => {
+      const items = prev[sectionKey].items.filter((_, i) => i !== index);
+      while (items.length < 3) items.push({ text: '' });
+      return { ...prev, [sectionKey]: { ...prev[sectionKey], items, saved: false } };
+    });
   };
 
   const removeFeedbackItem = (sectionKey: string, index: number) => {
@@ -121,11 +171,11 @@ export default function Feedback() {
     setFeedbackData(prev => ({ ...prev, [sectionKey]: { ...prev[sectionKey], loading: true } }));
 
     try {
-      const feedbackItems = feedbackData[sectionKey].items.filter(item => item.trim() !== '');
+      const feedbackItems = feedbackData[sectionKey].items.filter(item => item.text.trim() !== '' || item.image_url);
 
       const { error } = await supabase
         .from('team_feedback')
-        .upsert({ user_id: crmUser.id, section_key: sectionKey, section_label: sectionLabel, feedback_items: feedbackItems.length > 0 ? feedbackItems : [''], updated_at: new Date().toISOString() }, { onConflict: 'user_id,section_key' });
+        .upsert({ user_id: crmUser.id, section_key: sectionKey, section_label: sectionLabel, feedback_items: feedbackItems.length > 0 ? feedbackItems : [{ text: '' }], updated_at: new Date().toISOString() }, { onConflict: 'user_id,section_key' });
 
       if (error) throw error;
 
@@ -154,7 +204,7 @@ export default function Feedback() {
 
       <div className="space-y-4">
         {sections.map((section) => {
-          const sectionData = feedbackData[section.key] || { items: ['', '', ''], saved: false, loading: false };
+  const sectionData = feedbackData[section.key] || { items: [{ text: '' }, { text: '' }, { text: '' }], saved: false, loading: false };
           const isExpanded = expandedSections[section.key] ?? true;
 
           return (
@@ -177,12 +227,27 @@ export default function Feedback() {
                 <CollapsibleContent>
                   <CardContent className="space-y-4">
                     {sectionData.items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1"><span className="text-sm font-medium text-muted-foreground">Feedback {index + 1}</span></div>
-                          <Textarea placeholder={`Enter your feedback for ${section.label}...`} value={item} onChange={(e) => updateFeedbackItem(section.key, index, e.target.value)} className="min-h-[80px]" />
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1"><span className="text-sm font-medium text-muted-foreground">Feedback {index + 1}</span></div>
+                            <Textarea placeholder={`Enter your feedback for ${section.label}...`} value={item.text} onChange={(e) => updateFeedbackItem(section.key, index, e.target.value)} className="min-h-[80px]" />
+                          </div>
+                          {sectionData.items.length > 3 && <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive mt-6" onClick={() => removeFeedbackItem(section.key, index)}><Trash2 className="h-4 w-4" /></Button>}
                         </div>
-                        {sectionData.items.length > 3 && <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive mt-6" onClick={() => removeFeedbackItem(section.key, index)}><Trash2 className="h-4 w-4" /></Button>}
+                        <div className="flex items-center gap-2 ml-0">
+                          {item.image_url ? (
+                            <div className="relative">
+                              <img src={item.image_url} alt="Attached" className="h-16 w-16 object-cover rounded border" />
+                              <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => removeImage(section.key, index)}><X className="h-3 w-3" /></Button>
+                            </div>
+                          ) : (
+                            <label className="cursor-pointer">
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(section.key, index, e.target.files[0]); }} />
+                              <Button variant="outline" size="sm" asChild><span><ImagePlus className="h-4 w-4 mr-1" />Attach Screenshot</span></Button>
+                            </label>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <div className="flex items-center justify-between pt-2">
