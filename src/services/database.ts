@@ -636,12 +636,38 @@ export const databaseService = {
         throw error;
       }
       
-      // Handle null relations to prevent transformation errors
+      // Get earliest task due dates for all leads
+      const leadIds = data?.map(lead => lead.id) || [];
+      let taskDueDates: Record<string, string | null> = {};
+
+      if (leadIds.length > 0) {
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select('borrower_id, due_date')
+          .in('borrower_id', leadIds)
+          .is('deleted_at', null)
+          .neq('status', 'Done')
+          .not('due_date', 'is', null)
+          .order('due_date', { ascending: true });
+        
+        if (tasksData) {
+          for (const task of tasksData) {
+            if (task.borrower_id && task.due_date) {
+              if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+                taskDueDates[task.borrower_id] = task.due_date;
+              }
+            }
+          }
+        }
+      }
+      
+      // Handle null relations and add earliest_task_due_date
       return data?.map(lead => ({
         ...lead,
         teammate: lead.teammate || null,
         pipeline_stage: lead.pipeline_stage || null,
-        buyer_agent: lead.buyer_agent || null
+        buyer_agent: lead.buyer_agent || null,
+        earliest_task_due_date: taskDueDates[lead.id] || null
       })) || [];
     } catch (error) {
       console.error('Failed to load new leads:', error);

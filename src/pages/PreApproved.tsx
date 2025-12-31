@@ -27,6 +27,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import {
@@ -272,7 +273,39 @@ const allAvailableColumns = useMemo(() => {
       .eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945')
       .order('created_at', { ascending: false });
     if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
-    setLeads(data || []);
+    
+    // Get earliest task due dates for all leads
+    const leadIds = data?.map(lead => lead.id) || [];
+    let taskDueDates: Record<string, string | null> = {};
+
+    if (leadIds.length > 0) {
+      const { data: tasksData } = await supabase
+        .from('tasks')
+        .select('borrower_id, due_date')
+        .in('borrower_id', leadIds)
+        .is('deleted_at', null)
+        .neq('status', 'Done')
+        .not('due_date', 'is', null)
+        .order('due_date', { ascending: true });
+      
+      if (tasksData) {
+        for (const task of tasksData) {
+          if (task.borrower_id && task.due_date) {
+            if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+              taskDueDates[task.borrower_id] = task.due_date;
+            }
+          }
+        }
+      }
+    }
+    
+    // Add earliest_task_due_date to each lead
+    const enrichedData = data?.map(lead => ({
+      ...lead,
+      earliest_task_due_date: taskDueDates[lead.id] || null
+    })) || [];
+    
+    setLeads(enrichedData);
   };
 
   useEffect(() => {
@@ -495,7 +528,7 @@ const allAvailableColumns = useMemo(() => {
     user: lead.teammate_assigned || '',
     userData: (lead as any).teammate || null,
     baStatus: lead.ba_status || '',
-    dueDate: lead.task_eta || '',
+    dueDate: (lead as any).earliest_task_due_date || '',
     dti: lead.dti || 0,
     salesPrice: lead.sales_price || 0,
     ltv: (lead as any).ltv || null,
@@ -779,19 +812,10 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "dueDate",
-      header: "Due Date",
+      header: "Task Due",
       sortable: true,
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditDate
-            value={row.original.dueDate || ''}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "task_eta", value);
-              fetchLeads();
-            }}
-            placeholder="Set date"
-          />
-        </div>
+        <TaskDueDateDisplay dueDate={row.original.dueDate} />
       ),
     },
     { 

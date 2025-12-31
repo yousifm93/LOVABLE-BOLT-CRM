@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
@@ -106,7 +107,7 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & {
     referralSource: dbLead.referral_source || '',
     converted: migrateConverted(dbLead.converted || 'Working on it'),
     leadStrength: migrateLeadStrength(dbLead.lead_strength || 'Medium'),
-    dueDate: dbLead.task_eta || dbLead.lead_on_date || dbLead.created_at?.split('T')[0] || '',
+    dueDate: (dbLead as any).earliest_task_due_date || '',
     loanType: dbLead.loan_type,
     loanAmount: dbLead.loan_amount,
     notes: dbLead.notes || null
@@ -853,12 +854,10 @@ export default function Leads() {
       sortable: true
     }, {
       accessorKey: "dueDate",
-      header: "Due Date",
-      cell: ({
-        row
-      }) => <div onClick={e => e.stopPropagation()}>
-          <InlineEditDate value={row.original.dueDate ? new Date(row.original.dueDate) : undefined} onValueChange={date => handleFieldUpdate(row.original.id, "due_date", date)} placeholder="Set due date" />
-        </div>,
+      header: "Task Due",
+      cell: ({ row }) => (
+        <TaskDueDateDisplay dueDate={row.original.dueDate} />
+      ),
       sortable: true
     }, {
       accessorKey: "loanType",
@@ -966,11 +965,37 @@ export default function Leads() {
       const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
       const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
 
-      // Enrich leads with related user and agent data
+      // Get earliest task due dates for all leads
+      const leadIds = dbLeads?.map(lead => lead.id) || [];
+      let taskDueDates: Record<string, string | null> = {};
+
+      if (leadIds.length > 0) {
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select('borrower_id, due_date')
+          .in('borrower_id', leadIds)
+          .is('deleted_at', null)
+          .neq('status', 'Done')
+          .not('due_date', 'is', null)
+          .order('due_date', { ascending: true });
+        
+        if (tasksData) {
+          for (const task of tasksData) {
+            if (task.borrower_id && task.due_date) {
+              if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+                taskDueDates[task.borrower_id] = task.due_date;
+              }
+            }
+          }
+        }
+      }
+
+      // Enrich leads with related user and agent data and task due dates
       const enrichedLeads = (dbLeads || []).map(lead => ({
         ...lead,
         teammate: lead.teammate_assigned ? usersMap.get(lead.teammate_assigned) : null,
-        buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null
+        buyer_agent: lead.buyer_agent_id ? agentsMap.get(lead.buyer_agent_id) : null,
+        earliest_task_due_date: taskDueDates[lead.id] || null
       }));
 
       // Store full database leads for drawer access
