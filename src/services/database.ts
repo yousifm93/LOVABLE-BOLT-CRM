@@ -849,7 +849,107 @@ export const databaseService = {
         userId: user.id
       });
 
-      // Delete the lead (RLS handles access control)
+      // Step 1: Hard-delete any soft-deleted tasks for this lead
+      const { error: softDeletedTasksError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('borrower_id', id)
+        .not('deleted_at', 'is', null);
+
+      if (softDeletedTasksError) {
+        console.warn('[DEBUG] Error deleting soft-deleted tasks:', softDeletedTasksError);
+      }
+
+      // Step 2: Check for active tasks (not soft-deleted)
+      const { count: activeTaskCount, error: countError } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('borrower_id', id)
+        .is('deleted_at', null);
+
+      if (!countError && activeTaskCount && activeTaskCount > 0) {
+        throw new Error(`This lead has ${activeTaskCount} active task(s). Please complete or delete them first.`);
+      }
+
+      // Step 3: Delete related records that reference this lead
+      // Delete documents
+      const { error: docsError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('lead_id', id);
+      if (docsError) console.warn('[DEBUG] Error deleting documents:', docsError);
+
+      // Delete notes
+      const { error: notesError } = await supabase
+        .from('notes')
+        .delete()
+        .eq('lead_id', id);
+      if (notesError) console.warn('[DEBUG] Error deleting notes:', notesError);
+
+      // Delete activity comments
+      const { error: commentsError } = await supabase
+        .from('activity_comments')
+        .delete()
+        .eq('lead_id', id);
+      if (commentsError) console.warn('[DEBUG] Error deleting activity comments:', commentsError);
+
+      // Delete email logs
+      const { error: emailLogsError } = await supabase
+        .from('email_logs')
+        .delete()
+        .eq('lead_id', id);
+      if (emailLogsError) console.warn('[DEBUG] Error deleting email logs:', emailLogsError);
+
+      // Delete call logs
+      const { error: callLogsError } = await supabase
+        .from('call_logs')
+        .delete()
+        .eq('lead_id', id);
+      if (callLogsError) console.warn('[DEBUG] Error deleting call logs:', callLogsError);
+
+      // Delete SMS logs
+      const { error: smsLogsError } = await supabase
+        .from('sms_logs')
+        .delete()
+        .eq('lead_id', id);
+      if (smsLogsError) console.warn('[DEBUG] Error deleting SMS logs:', smsLogsError);
+
+      // Delete stage history
+      const { error: stageHistoryError } = await supabase
+        .from('stage_history')
+        .delete()
+        .eq('lead_id', id);
+      if (stageHistoryError) console.warn('[DEBUG] Error deleting stage history:', stageHistoryError);
+
+      // Delete borrowers linked to this lead
+      const { error: borrowersError } = await supabase
+        .from('borrowers')
+        .delete()
+        .eq('lead_id', id);
+      if (borrowersError) console.warn('[DEBUG] Error deleting borrowers:', borrowersError);
+
+      // Delete borrower_documents linked to this lead
+      const { error: borrowerDocsError } = await supabase
+        .from('borrower_documents')
+        .delete()
+        .eq('lead_id', id);
+      if (borrowerDocsError) console.warn('[DEBUG] Error deleting borrower documents:', borrowerDocsError);
+
+      // Delete borrower_tasks linked to this lead
+      const { error: borrowerTasksError } = await supabase
+        .from('borrower_tasks')
+        .delete()
+        .eq('lead_id', id);
+      if (borrowerTasksError) console.warn('[DEBUG] Error deleting borrower tasks:', borrowerTasksError);
+
+      // Delete lead conditions
+      const { error: conditionsError } = await supabase
+        .from('lead_conditions')
+        .delete()
+        .eq('lead_id', id);
+      if (conditionsError) console.warn('[DEBUG] Error deleting lead conditions:', conditionsError);
+
+      // Step 4: Delete the lead (RLS handles access control)
       const { error } = await supabase
         .from('leads')
         .delete()
