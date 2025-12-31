@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface TeamMember {
@@ -16,12 +16,17 @@ interface TeamMember {
   last_name: string;
 }
 
+interface FeedbackItemContent {
+  text: string;
+  image_url?: string;
+}
+
 interface FeedbackItem {
   id: string;
   user_id: string;
   section_key: string;
   section_label: string;
-  feedback_items: string[];
+  feedback_items: Array<FeedbackItemContent | string>;
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +45,7 @@ interface ItemStatus {
   id: string;
   feedback_id: string;
   item_index: number;
-  status: 'pending' | 'complete' | 'needs_help';
+  status: 'pending' | 'complete' | 'needs_help' | 'idea';
   updated_by: string;
   updated_at: string;
 }
@@ -54,7 +59,9 @@ export default function FeedbackReview() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [completedSectionsOpen, setCompletedSectionsOpen] = useState<Record<string, boolean>>({});
+  const [ideasSectionsOpen, setIdeasSectionsOpen] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -103,10 +110,18 @@ export default function FeedbackReview() {
         setTeamMembers(usersData || []);
         setFeedback((feedbackData || []).map(f => ({
           ...f,
-          feedback_items: Array.isArray(f.feedback_items) ? f.feedback_items as string[] : []
+          feedback_items: Array.isArray(f.feedback_items) ? f.feedback_items as Array<FeedbackItemContent | string> : []
         })));
         setComments(enrichedComments);
         setItemStatuses((statusData || []) as ItemStatus[]);
+        
+        // Initialize expanded sections
+        const initialExpanded: Record<string, boolean> = {};
+        feedbackData?.forEach(f => {
+          initialExpanded[f.id] = true;
+        });
+        setExpandedSections(initialExpanded);
+        
         if (usersData && usersData.length > 0) {
           setSelectedUser(usersData[0].id);
         }
@@ -126,10 +141,20 @@ export default function FeedbackReview() {
   const getItemComments = (feedbackId: string, itemIndex: number) => 
     comments.filter(c => c.feedback_id === feedbackId && c.item_index === itemIndex);
 
-  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' => 
+  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' => 
     itemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === itemIndex)?.status || 'pending';
 
-  const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help') => {
+  const getItemText = (item: FeedbackItemContent | string): string => {
+    if (typeof item === 'string') return item;
+    return item.text || '';
+  };
+
+  const getItemImageUrl = (item: FeedbackItemContent | string): string | undefined => {
+    if (typeof item === 'string') return undefined;
+    return item.image_url;
+  };
+
+  const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help' | 'idea') => {
     if (!crmUser?.id) return;
     
     try {
@@ -142,7 +167,12 @@ export default function FeedbackReview() {
       if (error) throw error;
 
       setItemStatuses(prev => [...prev.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)), data as ItemStatus]);
-      toast({ title: status === 'complete' ? "Marked Complete" : "Still Needs Help", description: "Status updated." });
+      const statusMessages = {
+        complete: "Marked Complete",
+        needs_help: "Still Needs Help",
+        idea: "Marked as Idea"
+      };
+      toast({ title: statusMessages[status], description: "Status updated." });
     } catch (error) {
       console.error('Error updating status:', error);
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
@@ -184,24 +214,37 @@ export default function FeedbackReview() {
     </div>
   );
 
-  const renderFeedbackItem = (fb: FeedbackItem, item: string, index: number, isCompleted: boolean) => {
+  const renderFeedbackItem = (fb: FeedbackItem, item: FeedbackItemContent | string, index: number, isCompleted: boolean, isIdea: boolean) => {
     const itemComments = getItemComments(fb.id, index);
     const commentKey = `${fb.id}-${index}`;
     const currentStatus = getItemStatus(fb.id, index);
+    const itemText = getItemText(item);
+    const itemImageUrl = getItemImageUrl(item);
 
     return (
-      <div key={index} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : 'bg-muted/50'}`}>
+      <div key={index} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : isIdea ? 'bg-purple-50 dark:bg-purple-950/20' : 'bg-muted/50'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
-            <p className={`text-sm flex-1 ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>{item}</p>
+            <div className="flex-1">
+              <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>{itemText || '(No text)'}</p>
+              {itemImageUrl && (
+                <a href={itemImageUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                  <img src={itemImageUrl} alt="Attached screenshot" className="h-20 w-auto object-cover rounded border hover:opacity-80 transition-opacity" />
+                </a>
+              )}
+              {isIdea && <span className="text-xs text-purple-600 font-medium mt-1 block">Section: {fb.section_label}</span>}
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button size="sm" variant={currentStatus === 'complete' ? 'default' : 'outline'} className={currentStatus === 'complete' ? 'bg-green-600 hover:bg-green-700 h-7' : 'h-7 text-green-600 border-green-600 hover:bg-green-50'} onClick={() => updateItemStatus(fb.id, index, 'complete')}>
               <Check className="h-3.5 w-3.5 mr-1" /> Complete
             </Button>
             <Button size="sm" variant={currentStatus === 'needs_help' ? 'default' : 'outline'} className={currentStatus === 'needs_help' ? 'bg-orange-600 hover:bg-orange-700 h-7' : 'h-7 text-orange-600 border-orange-600 hover:bg-orange-50'} onClick={() => updateItemStatus(fb.id, index, 'needs_help')}>
               <HelpCircle className="h-3.5 w-3.5 mr-1" /> Still Need Help
+            </Button>
+            <Button size="sm" variant={currentStatus === 'idea' ? 'default' : 'outline'} className={currentStatus === 'idea' ? 'bg-purple-600 hover:bg-purple-700 h-7' : 'h-7 text-purple-600 border-purple-600 hover:bg-purple-50'} onClick={() => updateItemStatus(fb.id, index, 'idea')}>
+              <Lightbulb className="h-3.5 w-3.5 mr-1" /> Idea
             </Button>
           </div>
         </div>
@@ -234,27 +277,48 @@ export default function FeedbackReview() {
           <TabsContent key={member.id} value={member.id} className="space-y-6">
             {getUserFeedback(member.id).length === 0 ? (<Card><CardContent className="py-8 text-center text-muted-foreground">No feedback submitted by {member.first_name} yet.</CardContent></Card>) : (
               getUserFeedback(member.id).map((fb) => {
-                const pendingItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) !== 'complete');
+                const pendingItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
+                  const status = getItemStatus(fb.id, index);
+                  return status !== 'complete' && status !== 'idea';
+                });
                 const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'complete');
+                const ideaItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'idea');
+                const isExpanded = expandedSections[fb.id] ?? true;
 
                 return (
-                  <Card key={fb.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><CardTitle className="text-xl">{fb.section_label}</CardTitle></div>
-                        <span className="text-sm text-muted-foreground">Last updated: {format(new Date(fb.updated_at), 'MMM d, yyyy h:mm a')}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {pendingItems.length > 0 && <div className="space-y-3">{pendingItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false))}</div>}
-                      {completedItems.length > 0 && (
-                        <Collapsible open={completedSectionsOpen[fb.id]} onOpenChange={(open) => setCompletedSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
-                          <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50">{completedSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Check className="h-4 w-4" />Completed ({completedItems.length})</Button></CollapsibleTrigger>
-                          <CollapsibleContent className="space-y-3 mt-2">{completedItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, true))}</CollapsibleContent>
-                        </Collapsible>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <Collapsible key={fb.id} open={isExpanded} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [fb.id]: open }))}>
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                              <MessageSquare className="h-5 w-5 text-primary" />
+                              <CardTitle className="text-xl">{fb.section_label}</CardTitle>
+                            </div>
+                            <span className="text-sm text-muted-foreground">Last updated: {format(new Date(fb.updated_at), 'MMM d, yyyy h:mm a')}</span>
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="space-y-4">
+                          {pendingItems.length > 0 && <div className="space-y-3">{pendingItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, false))}</div>}
+                          {completedItems.length > 0 && (
+                            <Collapsible open={completedSectionsOpen[fb.id]} onOpenChange={(open) => setCompletedSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
+                              <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50">{completedSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Check className="h-4 w-4" />Completed ({completedItems.length})</Button></CollapsibleTrigger>
+                              <CollapsibleContent className="space-y-3 mt-2">{completedItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, true, false))}</CollapsibleContent>
+                            </Collapsible>
+                          )}
+                          {ideaItems.length > 0 && (
+                            <Collapsible open={ideasSectionsOpen[fb.id]} onOpenChange={(open) => setIdeasSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
+                              <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50">{ideasSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Lightbulb className="h-4 w-4" />Ideas ({ideaItems.length})</Button></CollapsibleTrigger>
+                              <CollapsibleContent className="space-y-3 mt-2">{ideaItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, true))}</CollapsibleContent>
+                            </Collapsible>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
                 );
               })
             )}
