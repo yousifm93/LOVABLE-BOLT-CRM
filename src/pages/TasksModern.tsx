@@ -26,6 +26,7 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditBorrower } from "@/components/ui/inline-edit-borrower";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assignee";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { formatDateModern } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
@@ -40,6 +41,7 @@ interface ModernTask {
   id: string;
   title: string;
   description?: string;
+  notes?: string;
   due_date?: string;
   status: string;
   priority: string;
@@ -119,21 +121,6 @@ const columns = (
       )}
       </div>
     ),
-    sortable: true,
-  },
-  {
-    accessorKey: "created_at",
-    header: "Creation Log",
-    cell: ({ row }) => {
-      const date = row.original.created_at ? new Date(row.original.created_at) : null;
-      if (!date) return <span className="text-muted-foreground">-</span>;
-      return (
-        <div className="text-sm">
-          <div>{format(date, 'MMM dd, yyyy')}</div>
-          <div className="text-xs text-muted-foreground">{format(date, 'h:mm a')}</div>
-        </div>
-      );
-    },
     sortable: true,
   },
   {
@@ -269,6 +256,21 @@ const columns = (
     sortable: true,
   },
   {
+    accessorKey: "notes",
+    header: "Notes",
+    cell: ({ row }) => (
+      <div className="w-48 min-w-48">
+        <InlineEditNotes
+          value={row.original.notes || null}
+          onValueChange={(value) => handleUpdate(row.original.id, "notes", value)}
+          placeholder="Add notes..."
+          maxLength={500}
+        />
+      </div>
+    ),
+    sortable: false,
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
@@ -288,8 +290,26 @@ const columns = (
   },
   ];
   
-  // Only include Reviewed column for admins
+  // Only include Creation Log and Reviewed columns for admins
   if (isAdmin) {
+    // Insert Creation Log column after title (at index 1)
+    baseColumns.splice(1, 0, {
+      accessorKey: "created_at",
+      header: "Creation Log",
+      cell: ({ row }) => {
+        const date = row.original.created_at ? new Date(row.original.created_at) : null;
+        if (!date) return <span className="text-muted-foreground">-</span>;
+        return (
+          <div className="text-sm">
+            <div>{format(date, 'MMM dd, yyyy')}</div>
+            <div className="text-xs text-muted-foreground">{format(date, 'h:mm a')}</div>
+          </div>
+        );
+      },
+      sortable: true,
+    });
+    
+    // Add Reviewed column at the end
     baseColumns.push({
       accessorKey: "reviewed",
       header: "Reviewed",
@@ -311,13 +331,14 @@ const columns = (
 // Task columns for views system
 const TASK_COLUMNS = [
   { id: "title", label: "Task", visible: true },
-  { id: "created_at", label: "Creation Log", visible: true },
   { id: "borrower", label: "Borrower", visible: true },
   { id: "borrower_stage", label: "Borrower Stage", visible: true },
   { id: "priority", label: "Priority", visible: true },
   { id: "assignee", label: "Assigned To", visible: true },
   { id: "due_date", label: "Due Date", visible: true },
+  { id: "notes", label: "Notes", visible: true },
   { id: "status", label: "Status", visible: true },
+  { id: "created_at", label: "Creation Log", visible: true },
   { id: "reviewed", label: "Reviewed", visible: true },
   { id: "description", label: "Description", visible: false },
 ];
