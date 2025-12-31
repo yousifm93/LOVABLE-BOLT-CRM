@@ -53,9 +53,11 @@ const formatDateTime = (timestamp: string) => {
   });
 };
 
-// Format date-only strings as local dates (avoid timezone issues)
+// Format date-only strings OR timestamps as local dates (avoid timezone issues)
 const formatLocalDate = (dateString: string) => {
-  const [year, month, day] = dateString.split('-').map(Number);
+  // Handle full timestamps (e.g., "2025-12-10 14:30:00+00") by extracting just the date part
+  const datePart = dateString.includes(' ') ? dateString.split(' ')[0] : dateString.split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
   const date = new Date(year, month - 1, day); // month is 0-indexed
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
