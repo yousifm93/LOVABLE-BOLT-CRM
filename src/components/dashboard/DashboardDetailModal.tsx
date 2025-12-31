@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateShort } from "@/utils/formatters";
-import { Check, X, ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { Check, X, ArrowRight, Loader2, RefreshCw, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { QuickAddActivityModal, ActivityType, CallSubType } from "@/components/modals/QuickAddActivityModal";
+import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
 
 interface Lead {
   id: string;
@@ -116,6 +118,8 @@ interface DashboardDetailModalProps {
   onLeadClick?: (leadId: string) => void;
   goal?: number;
   expectedProgress?: number;
+  activityType?: ActivityType;
+  callSubType?: CallSubType;
 }
 
 // Goal Slot Grid Component for visualizing progress toward monthly goals
@@ -127,9 +131,11 @@ interface GoalSlotGridProps {
   onLeadClick?: (leadId: string) => void;
   formatDate: (item: any) => string;
   getName: (item: any) => string;
+  onEmptySlotClick?: () => void;
+  allowAdd?: boolean;
 }
 
-const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatDate, getName }: GoalSlotGridProps) => {
+const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatDate, getName, onEmptySlotClick, allowAdd }: GoalSlotGridProps) => {
   // Generate all slots from 1 to goal
   const slots = Array.from({ length: goal }, (_, i) => i + 1);
   
@@ -142,6 +148,8 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
     if (goal <= 30) return 'grid-cols-5 sm:grid-cols-6 md:grid-cols-10';
     return 'grid-cols-5 sm:grid-cols-7 md:grid-cols-10';
   };
+
+  const canClickSlot = allowAdd && onEmptySlotClick;
 
   return (
     <div className="space-y-4">
@@ -209,10 +217,20 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
                   </p>
                 </div>
               ) : (
-                <div className="pt-4 flex items-center justify-center h-[40px]">
+                <div 
+                  className={`pt-4 flex items-center justify-center h-[40px] ${canClickSlot ? 'cursor-pointer group/slot hover:bg-muted/40 transition-colors rounded' : ''}`}
+                  onClick={() => {
+                    if (canClickSlot) {
+                      onEmptySlotClick();
+                    }
+                  }}
+                >
                   <span className="text-[10px] text-muted-foreground">
                     {isPastExpected ? 'Behind' : 'Empty'}
                   </span>
+                  {canClickSlot && (
+                    <Plus className="h-3 w-3 ml-1 opacity-0 group-hover/slot:opacity-100 text-primary transition-opacity" />
+                  )}
                 </div>
               )}
             </div>
@@ -252,6 +270,8 @@ export function DashboardDetailModal({
   onLeadClick,
   goal,
   expectedProgress,
+  activityType,
+  callSubType,
 }: DashboardDetailModalProps) {
   const [emailSuggestions, setEmailSuggestions] = useState<Record<string, EmailSuggestion[]>>({});
   const [responseSuggestions, setResponseSuggestions] = useState<Record<string, EmailResponseSuggestion>>({});
@@ -259,6 +279,10 @@ export function DashboardDetailModal({
   const [rerunningIds, setRerunningIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'lead-updates' | 'emails-to-respond'>('lead-updates');
   const [localEmails, setLocalEmails] = useState<Email[]>([]);
+  
+  // Quick-add modal state
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [createLeadModalOpen, setCreateLeadModalOpen] = useState(false);
 
   // Sync local emails with data prop
   useEffect(() => {
@@ -1054,8 +1078,12 @@ export function DashboardDetailModal({
     if (type === "applications" && item.app_complete_at) {
       return new Date(item.app_complete_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
-    if (type === "meetings" && item.face_to_face_meeting) {
-      return new Date(item.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (type === "meetings") {
+      // Handle both face-to-face meetings AND broker opens
+      const dateValue = item.face_to_face_meeting || item.broker_open;
+      if (dateValue) {
+        return new Date(dateValue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
     }
     if (type === "calls" && item.call_date) {
       return new Date(item.call_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -1123,6 +1151,14 @@ export function DashboardDetailModal({
               onLeadClick={onLeadClick}
               formatDate={formatDateForGrid}
               getName={getName}
+              allowAdd={!!activityType && activityType !== 'lead' || type === 'leads'}
+              onEmptySlotClick={() => {
+                if (activityType === 'lead' || type === 'leads') {
+                  setCreateLeadModalOpen(true);
+                } else if (activityType) {
+                  setQuickAddOpen(true);
+                }
+              }}
             />
           </ScrollArea>
         ) : type === 'calls' ? (
@@ -1137,6 +1173,30 @@ export function DashboardDetailModal({
           </ScrollArea>
         )}
       </DialogContent>
+
+      {/* Quick-add activity modal */}
+      {activityType && activityType !== 'lead' && (
+        <QuickAddActivityModal
+          isOpen={quickAddOpen}
+          onClose={() => setQuickAddOpen(false)}
+          activityType={activityType}
+          callSubType={callSubType}
+          onActivityAdded={() => {
+            setQuickAddOpen(false);
+            onOpenChange(false);
+          }}
+        />
+      )}
+
+      {/* Create lead modal */}
+      <CreateLeadModal
+        open={createLeadModalOpen}
+        onOpenChange={setCreateLeadModalOpen}
+        onLeadCreated={() => {
+          setCreateLeadModalOpen(false);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }

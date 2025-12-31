@@ -275,6 +275,8 @@ export default function DashboardTabs() {
   const [modalType, setModalType] = useState<"leads" | "applications" | "meetings" | "calls" | "emails" | "reviews">("leads");
   const [modalGoal, setModalGoal] = useState<number | undefined>(undefined);
   const [modalExpectedProgress, setModalExpectedProgress] = useState<number | undefined>(undefined);
+  const [modalActivityType, setModalActivityType] = useState<'broker_open' | 'face_to_face' | 'call' | 'lead' | undefined>(undefined);
+  const [modalCallSubType, setModalCallSubType] = useState<'new_agent' | 'current_agent' | 'top_agent' | 'past_la' | undefined>(undefined);
 
   // Volume modal state
   const [volumeModalOpen, setVolumeModalOpen] = useState(false);
@@ -295,13 +297,17 @@ export default function DashboardTabs() {
     title: string, 
     data: any[], 
     type: "leads" | "applications" | "meetings" | "calls" | "emails" | "reviews",
-    goal?: number
+    goal?: number,
+    activityType?: 'broker_open' | 'face_to_face' | 'call' | 'lead',
+    callSubType?: 'new_agent' | 'current_agent' | 'top_agent' | 'past_la'
   ) => {
     setModalTitle(title);
     setModalData(data);
     setModalType(type);
     setModalGoal(goal);
     setModalExpectedProgress(goal ? calculateExpectedProgress(goal) : undefined);
+    setModalActivityType(activityType);
+    setModalCallSubType(callSubType);
     setModalOpen(true);
   };
 
@@ -520,7 +526,7 @@ export default function DashboardTabs() {
                     icon={<Target />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads", MONTHLY_GOALS.leads)}
+                    onClick={() => handleOpenModal("This Month's Leads", thisMonthLeads, "leads", MONTHLY_GOALS.leads, 'lead')}
                     showProgress={true}
                     progressValue={thisMonthLeads.length}
                     progressMax={MONTHLY_GOALS.leads}
@@ -658,7 +664,7 @@ export default function DashboardTabs() {
                     icon={<Users />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings", MONTHLY_GOALS.meetings)}
+                    onClick={() => handleOpenModal("This Month's Face-to-Face Meetings", thisMonthMeetings, "meetings", MONTHLY_GOALS.meetings, 'face_to_face')}
                     showProgress={true}
                     progressValue={thisMonthMeetings.length}
                     progressMax={MONTHLY_GOALS.meetings}
@@ -727,7 +733,7 @@ export default function DashboardTabs() {
                     icon={<Calendar />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings", MONTHLY_GOALS.brokerOpens)}
+                    onClick={() => handleOpenModal("This Month's Broker Opens", thisMonthBrokerOpens, "meetings", MONTHLY_GOALS.brokerOpens, 'broker_open')}
                     showProgress={true}
                     progressValue={thisMonthBrokerOpens.length}
                     progressMax={MONTHLY_GOALS.brokerOpens}
@@ -923,7 +929,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls", MONTHLY_GOALS.newAgentCalls)}
+                    onClick={() => handleOpenModal("This Month's New Agent Calls", thisMonthNewAgentCalls, "calls", MONTHLY_GOALS.newAgentCalls, 'call', 'new_agent')}
                     showProgress={true}
                     progressValue={thisMonthNewAgentCalls.length}
                     progressMax={MONTHLY_GOALS.newAgentCalls}
@@ -965,7 +971,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls", MONTHLY_GOALS.currentAgentCalls)}
+                    onClick={() => handleOpenModal("This Month's Current Agent Calls", thisMonthCurrentAgentCalls, "calls", MONTHLY_GOALS.currentAgentCalls, 'call', 'current_agent')}
                     showProgress={true}
                     progressValue={thisMonthCurrentAgentCalls.length}
                     progressMax={MONTHLY_GOALS.currentAgentCalls}
@@ -1049,7 +1055,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls", MONTHLY_GOALS.topAgentCalls)}
+                    onClick={() => handleOpenModal("This Month's Top Agent Calls", thisMonthTopAgentCalls, "calls", MONTHLY_GOALS.topAgentCalls, 'call', 'top_agent')}
                     showProgress={true}
                     progressValue={thisMonthTopAgentCalls.length}
                     progressMax={MONTHLY_GOALS.topAgentCalls}
@@ -1091,7 +1097,7 @@ export default function DashboardTabs() {
                     icon={<Phone />}
                     size="large"
                     clickable={true}
-                    onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls", MONTHLY_GOALS.pastLACalls)}
+                    onClick={() => handleOpenModal("This Month's Past LA Calls", thisMonthPastLACalls, "calls", MONTHLY_GOALS.pastLACalls, 'call', 'past_la')}
                     showProgress={true}
                     progressValue={thisMonthPastLACalls.length}
                     progressMax={MONTHLY_GOALS.pastLACalls}
@@ -1622,6 +1628,8 @@ export default function DashboardTabs() {
         onLeadClick={handleLeadClick}
         goal={modalGoal}
         expectedProgress={modalExpectedProgress}
+        activityType={modalActivityType}
+        callSubType={modalCallSubType}
       />
 
       <VolumeDetailModal
