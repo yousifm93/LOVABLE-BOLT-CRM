@@ -436,7 +436,7 @@ export default function DashboardTabs() {
     },
     {
       accessorKey: 'latestFileUpdates',
-      header: 'Latest File Updates',
+      header: 'Pipeline Review',
       cell: ({ row }) => (
         <div 
           className="max-w-md text-sm line-clamp-2" 
