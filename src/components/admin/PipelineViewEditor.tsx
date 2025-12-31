@@ -40,7 +40,7 @@ const ACCESSOR_KEY_DISPLAY_NAMES: Record<string, string> = {
   status: "Status",
   dueDate: "Due Date",
   notes: "About the Borrower",
-  latestFileUpdates: "Latest File Updates",
+  latestFileUpdates: "Pipeline Review",
   
   // Financial fields
   loanNumber: "Loan #",

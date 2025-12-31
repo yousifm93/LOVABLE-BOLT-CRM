@@ -1927,9 +1927,11 @@ export function ClientDetailDrawer({
                             setHasUnsavedNotes(false);
                             setIsEditingNotes(false);
                             toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                          } catch (error) {
+                          } catch (error: any) {
                             console.error('Error saving notes:', error);
-                            toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                            const errorMessage = error?.message || error?.details || 'Unknown error';
+                            console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
+                            toast({ title: "Error", description: `Failed to save: ${errorMessage}`, variant: "destructive" });
                           } finally {
                             setIsSavingNotes(false);
                           }
@@ -1960,91 +1962,46 @@ export function ClientDetailDrawer({
                   </Card>
                 )}
 
-                {/* Latest File Updates - for Leads/Pending App/Pre-Qualified/Pre-Approved (NOT Screening - moved to right column) */}
+                {/* Pipeline Review - for Leads/Pending App/Pre-Qualified/Pre-Approved (NOT Screening - moved to right column) */}
                 {!isActiveOrPastClient && opsStage !== 'screening' && (
                   <Card>
                     <CardHeader className="pb-3 bg-white">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              if (isRecordingFileUpdates) {
-                                handleVoiceRecordingStop();
-                              } else {
-                                handleVoiceRecordingStart();
-                              }
-                            }}
-                            disabled={isSummarizingTranscript}
-                            className={cn(
-                              "w-8 h-8 rounded-full transition-all",
-                              isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                            )}
-                            title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                          >
-                            {isSummarizingTranscript ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                            )}
-                          </Button>
-                        </div>
-                        {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
-                            Edit
-                          </Button>}
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            if (isRecordingFileUpdates) {
+                              handleVoiceRecordingStop();
+                            } else {
+                              handleVoiceRecordingStart();
+                            }
+                          }}
+                          disabled={isSummarizingTranscript}
+                          className={cn(
+                            "w-8 h-8 rounded-full transition-all",
+                            isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                          )}
+                          title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                        >
+                          {isSummarizingTranscript ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                          )}
+                        </Button>
                       </div>
                     </CardHeader>
                     <CardContent className="bg-gray-50">
-                      {isEditingFileUpdates || !localFileUpdates ? <>
-                          <Textarea key="file-updates-textarea-left" value={localFileUpdates} onChange={e => {
-                        setLocalFileUpdates(e.target.value);
-                        setHasUnsavedFileUpdates(true);
-                      }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[200px] resize-none bg-white mb-2" />
-                          {hasUnsavedFileUpdates && <div className="flex gap-2">
-                              <Button size="sm" onClick={async () => {
-                          const currentFileUpdates = (client as any).latest_file_updates ?? '';
-                          if (localFileUpdates === currentFileUpdates) {
-                            toast({ title: "No Changes", description: "File updates haven't changed." });
-                            setHasUnsavedFileUpdates(false);
-                            setIsEditingFileUpdates(false);
-                            return;
-                          }
-                          setIsSavingFileUpdates(true);
-                          try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            await databaseService.updateLead(leadId!, {
-                              latest_file_updates: localFileUpdates,
-                              latest_file_updates_updated_by: user?.id || null,
-                              latest_file_updates_updated_at: new Date().toISOString()
-                            });
-                            if (onLeadUpdated) await onLeadUpdated();
-                            setHasUnsavedFileUpdates(false);
-                            setIsEditingFileUpdates(false);
-                            toast({ title: "Saved", description: "Latest File Updates section has been updated." });
-                          } catch (error) {
-                            console.error('Error saving file updates:', error);
-                            toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                          } finally {
-                            setIsSavingFileUpdates(false);
-                          }
-                        }} disabled={isSavingFileUpdates}>
-                                {isSavingFileUpdates ? 'Saving...' : 'Save'}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => {
-                          setLocalFileUpdates((client as any).latest_file_updates || '');
-                          setHasUnsavedFileUpdates(false);
-                          setIsEditingFileUpdates(false);
-                        }}>
-                                Cancel
-                              </Button>
-                            </div>}
-                        </> : <FileUpdatesDisplay 
-                          content={localFileUpdates} 
-                          onClick={() => setIsEditingFileUpdates(true)} 
-                        />}
+                      {localFileUpdates ? (
+                        <FileUpdatesDisplay content={localFileUpdates} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          Click the microphone to record a voice note
+                        </p>
+                      )}
                       {(client as any).latest_file_updates_updated_at && <div className="mt-2 pt-2 border-t text-xs text-muted-foreground flex items-center gap-2">
                           <Clock className="h-3 w-3" />
                           Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
@@ -2406,7 +2363,7 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Latest File Updates Section - Only show for Active/Past Clients in right column */}
+            {/* Pipeline Review Section - Only show for Active/Past Clients in right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               const isActiveOrPastClient = opsStage === 'active' || opsStage === 'past-clients';
@@ -2414,105 +2371,42 @@ export function ClientDetailDrawer({
               return (
             <Card>
               <CardHeader className="pb-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        if (isRecordingFileUpdates) {
-                          handleVoiceRecordingStop();
-                        } else {
-                          handleVoiceRecordingStart();
-                        }
-                      }}
-                      disabled={isSummarizingTranscript}
-                      className={cn(
-                        "w-8 h-8 rounded-full transition-all",
-                        isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                      )}
-                      title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                    >
-                      {isSummarizingTranscript ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                      )}
-                    </Button>
-                  </div>
-                  {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
-                      Edit
-                    </Button>}
-                </div>
-                      </CardHeader>
-                      <CardContent className="bg-gray-50">
-                        {isEditingFileUpdates || !localFileUpdates ? <>
-                    <Textarea key="file-updates-textarea" value={localFileUpdates} onChange={e => {
-                  setLocalFileUpdates(e.target.value);
-                  setHasUnsavedFileUpdates(true);
-                }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[160px] resize-none bg-white mb-2" />
-                    {hasUnsavedFileUpdates && <div className="flex gap-2">
-                        <Button size="sm" onClick={async () => {
-                    const currentFileUpdates = (client as any).latest_file_updates ?? '';
-                    if (localFileUpdates === currentFileUpdates) {
-                      toast({
-                        title: "No Changes",
-                        description: "File updates haven't changed."
-                      });
-                      setHasUnsavedFileUpdates(false);
-                      setIsEditingFileUpdates(false);
-                      return;
-                    }
-                    setIsSavingFileUpdates(true);
-                    try {
-                      const {
-                        data: {
-                          user
-                        }
-                      } = await supabase.auth.getUser();
-
-                      // Batch update to prevent multiple toasts
-                      await databaseService.updateLead(leadId!, {
-                        latest_file_updates: localFileUpdates,
-                        latest_file_updates_updated_by: user?.id || null,
-                        latest_file_updates_updated_at: new Date().toISOString()
-                      });
-                      if (onLeadUpdated) {
-                        await onLeadUpdated();
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      if (isRecordingFileUpdates) {
+                        handleVoiceRecordingStop();
+                      } else {
+                        handleVoiceRecordingStart();
                       }
-                      setHasUnsavedFileUpdates(false);
-                      setIsEditingFileUpdates(false);
-                      toast({
-                        title: "Saved",
-                        description: "Latest File Updates section has been updated."
-                      });
-                    } catch (error) {
-                      console.error('Error saving file updates:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to save. Please try again.",
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setIsSavingFileUpdates(false);
-                    }
-                  }} disabled={isSavingFileUpdates}>
-                          {isSavingFileUpdates ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                    setLocalFileUpdates((client as any).latest_file_updates || '');
-                    setHasUnsavedFileUpdates(false);
-                    setIsEditingFileUpdates(false);
-                  }}>
-                          Cancel
-                        </Button>
-                      </div>}
-                          </> : <FileUpdatesDisplay 
-                    content={localFileUpdates} 
-                    onClick={() => setIsEditingFileUpdates(true)} 
-                  />}
+                    }}
+                    disabled={isSummarizingTranscript}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-all",
+                      isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                    )}
+                    title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                  >
+                    {isSummarizingTranscript ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="bg-gray-50">
+                {localFileUpdates ? (
+                  <FileUpdatesDisplay content={localFileUpdates} />
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    Click the microphone to record a voice note
+                  </p>
+                )}
                 {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
                     <Clock className="h-3 w-3" />
                     Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
@@ -2628,11 +2522,13 @@ export function ClientDetailDrawer({
                         title: "Saved",
                         description: "About the Borrower section has been updated."
                       });
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error('[ClientDetailDrawer] Error saving notes:', error);
+                      const errorMessage = error?.message || error?.details || 'Unknown error';
+                      console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
                       toast({
                         title: "Error",
-                        description: "Failed to save. Please try again.",
+                        description: `Failed to save: ${errorMessage}`,
                         variant: "destructive"
                       });
                     } finally {
@@ -2921,94 +2817,49 @@ export function ClientDetailDrawer({
               );
             })()}
 
-            {/* Latest File Updates - For Screening stage in right column */}
+            {/* Pipeline Review - For Screening stage in right column */}
             {(() => {
               const opsStage = client.ops?.stage?.toLowerCase() || '';
               if (opsStage !== 'screening') return null;
               return (
                 <Card>
                   <CardHeader className="pb-3 bg-white">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-sm font-bold">Latest File Updates</CardTitle>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            if (isRecordingFileUpdates) {
-                              handleVoiceRecordingStop();
-                            } else {
-                              handleVoiceRecordingStart();
-                            }
-                          }}
-                          disabled={isSummarizingTranscript}
-                          className={cn(
-                            "w-8 h-8 rounded-full transition-all",
-                            isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                          )}
-                          title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                        >
-                          {isSummarizingTranscript ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                          )}
-                        </Button>
-                      </div>
-                      {!isEditingFileUpdates && localFileUpdates && <Button variant="ghost" size="sm" onClick={() => setIsEditingFileUpdates(true)} className="h-7 text-xs">
-                          Edit
-                        </Button>}
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          if (isRecordingFileUpdates) {
+                            handleVoiceRecordingStop();
+                          } else {
+                            handleVoiceRecordingStart();
+                          }
+                        }}
+                        disabled={isSummarizingTranscript}
+                        className={cn(
+                          "w-8 h-8 rounded-full transition-all",
+                          isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                        )}
+                        title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                      >
+                        {isSummarizingTranscript ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                        )}
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="bg-gray-50">
-                    {isEditingFileUpdates || !localFileUpdates ? <>
-                        <Textarea key="file-updates-textarea-right-screening" value={localFileUpdates} onChange={e => {
-                      setLocalFileUpdates(e.target.value);
-                      setHasUnsavedFileUpdates(true);
-                    }} placeholder="Track file uploads, document updates, and important file changes..." className="min-h-[200px] resize-none bg-white mb-2" />
-                        {hasUnsavedFileUpdates && <div className="flex gap-2">
-                            <Button size="sm" onClick={async () => {
-                        const currentFileUpdates = (client as any).latest_file_updates ?? '';
-                        if (localFileUpdates === currentFileUpdates) {
-                          toast({ title: "No Changes", description: "File updates haven't changed." });
-                          setHasUnsavedFileUpdates(false);
-                          setIsEditingFileUpdates(false);
-                          return;
-                        }
-                        setIsSavingFileUpdates(true);
-                        try {
-                          const { data: { user } } = await supabase.auth.getUser();
-                          await databaseService.updateLead(leadId!, {
-                            latest_file_updates: localFileUpdates,
-                            latest_file_updates_updated_by: user?.id || null,
-                            latest_file_updates_updated_at: new Date().toISOString()
-                          });
-                          if (onLeadUpdated) await onLeadUpdated();
-                          setHasUnsavedFileUpdates(false);
-                          setIsEditingFileUpdates(false);
-                          toast({ title: "Saved", description: "Latest File Updates section has been updated." });
-                        } catch (error) {
-                          console.error('Error saving file updates:', error);
-                          toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
-                        } finally {
-                          setIsSavingFileUpdates(false);
-                        }
-                      }} disabled={isSavingFileUpdates}>
-                              {isSavingFileUpdates ? 'Saving...' : 'Save'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => {
-                        setLocalFileUpdates((client as any).latest_file_updates || '');
-                        setHasUnsavedFileUpdates(false);
-                        setIsEditingFileUpdates(false);
-                      }}>
-                              Cancel
-                            </Button>
-                          </div>}
-                      </> : <FileUpdatesDisplay 
-                        content={localFileUpdates} 
-                        onClick={() => setIsEditingFileUpdates(true)} 
-                      />}
+                    {localFileUpdates ? (
+                      <FileUpdatesDisplay content={localFileUpdates} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Click the microphone to record a voice note
+                      </p>
+                    )}
                     {(client as any).latest_file_updates_updated_at && <div className="mt-1 pt-1 border-t text-xs text-muted-foreground flex items-center gap-2">
                         <Clock className="h-3 w-3" />
                         Last updated: <span className="font-bold">{format(new Date((client as any).latest_file_updates_updated_at), 'MMM dd, yyyy h:mm a')}</span>
@@ -3092,9 +2943,11 @@ export function ClientDetailDrawer({
                       setHasUnsavedNotes(false);
                       setIsEditingNotes(false);
                       toast({ title: "Saved", description: "About the Borrower section has been updated." });
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error('Error saving notes:', error);
-                      toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+                      const errorMessage = error?.message || error?.details || 'Unknown error';
+                      console.error('Error details:', { message: error?.message, details: error?.details, code: error?.code });
+                      toast({ title: "Error", description: `Failed to save: ${errorMessage}`, variant: "destructive" });
                     } finally {
                       setIsSavingNotes(false);
                     }

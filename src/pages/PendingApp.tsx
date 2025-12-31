@@ -878,7 +878,7 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "latestFileUpdates",
-      header: "Latest File Updates",
+      header: "Pipeline Review",
       sortable: true,
       cell: ({ row }) => (
         <div className="max-w-md text-sm line-clamp-2" title={row.original.latestFileUpdates || ''}>
