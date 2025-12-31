@@ -9,6 +9,7 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { usePipelineView } from "@/hooks/usePipelineView";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
@@ -188,6 +189,9 @@ const allAvailableColumns = useMemo(() => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+
+  // Get saved column widths from pipeline view
+  const { columnWidths: savedColumnWidths } = usePipelineView('pre_qualified');
 
   // Use column visibility with all available columns
   const {
@@ -1128,6 +1132,8 @@ const allAvailableColumns = useMemo(() => {
             onSelectionChange={setSelectedLeadIds}
             getRowId={(row) => row.id}
             showRowNumbers={true}
+            initialColumnWidths={savedColumnWidths}
+            lockResize={true}
           />
         </CardContent>
       </Card>

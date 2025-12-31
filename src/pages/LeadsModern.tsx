@@ -8,6 +8,7 @@ import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
+import { usePipelineView } from "@/hooks/usePipelineView";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
@@ -119,6 +120,9 @@ export function LeadsModern() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+
+  // Get saved column widths from pipeline view
+  const { columnWidths: savedColumnWidths } = usePipelineView('leads');
 
   // Use column visibility
   const {
@@ -648,6 +652,8 @@ export function LeadsModern() {
             onRowClick={handleRowClick}
             onColumnReorder={handleColumnReorder}
             getRowId={(row) => row.id}
+            initialColumnWidths={savedColumnWidths}
+            lockResize={true}
           />
         </CardContent>
       </Card>
