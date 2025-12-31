@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QuickAddActivityModal, ActivityType, CallSubType } from "@/components/modals/QuickAddActivityModal";
 import { CreateLeadModal } from "@/components/modals/CreateLeadModal";
+import { StatusBadge } from "@/components/ui/data-table";
 
 interface Lead {
   id: string;
@@ -212,6 +213,10 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
                   <p className="text-xs font-medium truncate">
                     {getName(item)}
                   </p>
+                  {/* Show pipeline stage for leads and applications */}
+                  {(type === 'leads' || type === 'applications') && item.ops?.stage && (
+                    <StatusBadge status={item.ops.stage} />
+                  )}
                   <p className="text-[10px] text-muted-foreground truncate">
                     {formatDate(item)}
                   </p>

@@ -21,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
 import { supabase } from "@/integrations/supabase/client";
+import { VoiceRecorder } from "@/components/ui/voice-recorder";
 
 const CALL_TYPE_OPTIONS = [
   { value: "new_agent", label: "New Agent Call" },
@@ -123,11 +124,11 @@ export function AgentCallLogModal({
       setCallType("");
       onCallLogged();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error logging call:", error);
       toast({
         title: "Error",
-        description: "Failed to log call",
+        description: error?.message || "Failed to log call. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -175,9 +176,14 @@ export function AgentCallLogModal({
             </Select>
           </div>
           <div>
-            <label className="text-sm font-medium mb-2 block">
-              Call Summary *
-            </label>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="text-sm font-medium">
+                Call Summary *
+              </label>
+              <VoiceRecorder 
+                onTranscriptionComplete={(text) => setSummary(prev => prev ? `${prev} ${text}` : text)}
+              />
+            </div>
             <Textarea
               value={summary}
               onChange={(e) => setSummary(e.target.value)}

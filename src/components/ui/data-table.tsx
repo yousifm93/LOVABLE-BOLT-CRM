@@ -64,6 +64,7 @@ interface DataTableProps<T> {
   compact?: boolean;
   initialColumnWidths?: Record<string, number>;
   hideActions?: boolean;
+  limitedActions?: boolean; // Show only View Details in actions menu
 }
 
 interface DraggableTableHeadProps<T> {
@@ -303,6 +304,7 @@ export function DataTable<T extends Record<string, any>>({
   compact = false,
   initialColumnWidths,
   hideActions = false,
+  limitedActions = false,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = React.useState<string>(defaultSortColumn);
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(defaultSortDirection);
@@ -590,7 +592,7 @@ export function DataTable<T extends Record<string, any>>({
                   />
                 ))}
               </SortableContext>
-              {!hideActions && <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>}
+              {(!hideActions || limitedActions) && <TableHead className="w-[50px] h-8 px-2">Actions</TableHead>}
             </TableRow>
           </TableHeader>
         </DndContext>
@@ -602,7 +604,7 @@ export function DataTable<T extends Record<string, any>>({
             
             return (
               <React.Fragment key={rowId}>
-                {hideActions ? (
+                {hideActions && !limitedActions ? (
                   <TableRow
                     className={cn(
                       "transition-colors h-10",
@@ -720,23 +722,27 @@ export function DataTable<T extends Record<string, any>>({
                             >
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEdit?.(row);
-                              }}
-                            >
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete?.(row);
-                              }}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              Delete
-                            </DropdownMenuItem>
+                            {!limitedActions && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit?.(row);
+                                  }}
+                                >
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete?.(row);
+                                  }}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
