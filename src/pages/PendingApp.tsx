@@ -30,6 +30,7 @@ import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditDateTime } from "@/components/ui/inline-edit-datetime";
 import {
   AlertDialog,
@@ -260,7 +261,39 @@ const allAvailableColumns = useMemo(() => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setLeads(data || []);
+      
+      // Get earliest task due dates for all leads
+      const leadIds = data?.map(lead => lead.id) || [];
+      let taskDueDates: Record<string, string | null> = {};
+
+      if (leadIds.length > 0) {
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select('borrower_id, due_date')
+          .in('borrower_id', leadIds)
+          .is('deleted_at', null)
+          .neq('status', 'Done')
+          .not('due_date', 'is', null)
+          .order('due_date', { ascending: true });
+        
+        if (tasksData) {
+          for (const task of tasksData) {
+            if (task.borrower_id && task.due_date) {
+              if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+                taskDueDates[task.borrower_id] = task.due_date;
+              }
+            }
+          }
+        }
+      }
+      
+      // Add earliest_task_due_date to each lead
+      const enrichedData = data?.map(lead => ({
+        ...lead,
+        earliest_task_due_date: taskDueDates[lead.id] || null
+      })) || [];
+      
+      setLeads(enrichedData);
     } catch (error) {
       console.error('Error loading pending applications:', error);
       toast({
@@ -519,7 +552,7 @@ const allAvailableColumns = useMemo(() => {
     loanType: lead.loan_type || '',
     loanAmount: lead.loan_amount || null,
     creditScore: lead.fico_score || 0,
-    dueDate: lead.task_eta || new Date().toISOString().split('T')[0], // Default to today
+    dueDate: (lead as any).earliest_task_due_date || '',
     latestFileUpdates: lead.latest_file_updates || '',
 // Add all database fields dynamically
     ...allFields
@@ -860,20 +893,10 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "dueDate",
-      header: "Due Date",
+      header: "Task Due",
       sortable: true,
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditDate
-            value={row.original.dueDate}
-            onValueChange={(date) => {
-              const dateString = date ? date.toISOString().split('T')[0] : null;
-              handleFieldUpdate(row.original.id, "due_date", dateString);
-              fetchLeads();
-            }}
-            placeholder="Select date"
-          />
-        </div>
+        <TaskDueDateDisplay dueDate={row.original.dueDate} />
       ),
     },
     {

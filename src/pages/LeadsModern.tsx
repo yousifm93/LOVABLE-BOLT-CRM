@@ -9,7 +9,7 @@ import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
-import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
@@ -49,6 +49,7 @@ interface ModernLead extends Lead {
   buyer_agent?: BuyerAgent | null;
   teammate?: User | null;
   pipeline_stage?: any;
+  earliest_task_due_date?: string | null;
 }
 
 // Display type for table rows
@@ -404,7 +405,7 @@ export function LeadsModern() {
     referredVia: lead.referred_via || '',
     referralSource: lead.referral_source || '',
     mdStatus: lead.converted || '',
-    dueDate: lead.task_eta || '',
+    dueDate: lead.earliest_task_due_date || '',
     user: lead.teammate_assigned || '',
     userData: lead.teammate || null,
   }));
@@ -509,18 +510,12 @@ export function LeadsModern() {
     },
     {
       accessorKey: "dueDate",
-      header: "Due Date",
+      header: "Task Due",
       headerClassName: "text-left",
       className: "text-left",
       sortable: true,
       cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditDate
-            value={row.original.dueDate}
-            onValueChange={(date) => handleUpdateLead(row.original.id, 'task_eta', date)}
-            placeholder="Set date"
-          />
-        </div>
+        <TaskDueDateDisplay dueDate={row.original.dueDate} />
       ),
     },
     {
