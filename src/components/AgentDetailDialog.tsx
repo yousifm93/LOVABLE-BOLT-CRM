@@ -237,10 +237,12 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Call</label>
-                  <InlineEditDate
-                    value={agent.last_agent_call}
-                    onValueChange={(value) => handleFieldUpdate('last_agent_call', value)}
-                  />
+                  <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
+                    {agent.last_agent_call 
+                      ? new Date(agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground">—</span>
+                    }
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Next Call</label>
@@ -251,17 +253,21 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Face-to-Face Meeting</label>
-                  <InlineEditDateTime
-                    value={agent.face_to_face_meeting}
-                    onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
-                  />
+                  <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
+                    {agent.face_to_face_meeting 
+                      ? new Date(agent.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground">—</span>
+                    }
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Broker Open</label>
-                  <InlineEditDateTime
-                    value={agent.broker_open}
-                    onValueChange={(value) => handleFieldUpdate('broker_open', value)}
-                  />
+                  <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
+                    {agent.broker_open 
+                      ? new Date(agent.broker_open + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground">—</span>
+                    }
+                  </div>
                 </div>
               </div>
               <div className="mt-4">

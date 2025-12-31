@@ -774,7 +774,7 @@ export default function DashboardTabs() {
                               {agent.first_name} {agent.last_name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Date of Broker's Open: {new Date(agent.broker_open).toLocaleDateString()}
+                              Date of Broker's Open: {formatLocalDate(agent.broker_open)}
                             </p>
                           </div>
                           <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
