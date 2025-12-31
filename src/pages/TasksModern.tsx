@@ -789,8 +789,13 @@ export default function TasksModern() {
     return dueDate.getTime() <= today.getTime(); // Due on or before today
   };
 
-  // Helper function to check if a task needs review (due yesterday or earlier, not done)
+  // Helper function to check if a task needs review
+  // Includes: overdue tasks (not done) OR completed tasks that haven't been reviewed yet
   const isTaskNeedsReview = (task: ModernTask) => {
+    // Include completed tasks that haven't been reviewed yet
+    if (task.status === "Done" && !task.reviewed) return true;
+    
+    // Include overdue tasks that aren't done
     if (!task.due_date || task.status === "Done") return false;
     const dueDateStr = task.due_date.includes("T") 
       ? task.due_date 
