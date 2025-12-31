@@ -39,6 +39,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
       setEditData({
         title: task.title || "",
         description: task.description || "",
+        notes: task.notes || "",
         due_date: task.due_date || "",
         status: task.status || "To Do",
         priority: task.priority || "Medium",
@@ -77,6 +78,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
       await databaseService.updateTask(task.id, {
         title: editData.title,
         description: editData.description || null,
+        notes: editData.notes || null,
         due_date: editData.due_date || null,
         status: editData.status,
         priority: editData.priority,
@@ -168,7 +170,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   size="sm"
                   variant="outline"
                   onClick={() => setIsEditing(true)}
-                  className="h-8"
+                  className="h-8 mr-6"
                 >
                   <Edit2 className="h-3 w-3 mr-1" />
                   Edit
@@ -196,6 +198,17 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                   value={editData.description}
                   onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                   rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={editData.notes}
+                  onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Add notes about this task..."
                 />
               </div>
 
@@ -276,6 +289,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
                     setEditData({
                       title: task.title || "",
                       description: task.description || "",
+                      notes: task.notes || "",
                       due_date: task.due_date || "",
                       status: task.status || "To Do",
                       priority: task.priority || "Medium",
@@ -296,7 +310,16 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
               <div>
                 <h3 className="text-lg font-semibold">{task.title}</h3>
                 {task.description && (
-                  <p className="text-muted-foreground mt-2">{task.description}</p>
+                  <div className="mt-2">
+                    <span className="text-sm font-medium text-muted-foreground">Description:</span>
+                    <p className="text-muted-foreground mt-1">{task.description}</p>
+                  </div>
+                )}
+                {task.notes && (
+                  <div className="mt-3 p-3 bg-muted/50 rounded-md">
+                    <span className="text-sm font-medium text-muted-foreground">Notes:</span>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{task.notes}</p>
+                  </div>
                 )}
                 
                 {/* Contact Info based on completion requirement */}
