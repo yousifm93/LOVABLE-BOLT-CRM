@@ -228,6 +228,16 @@ export function PipelineViewEditor({
   const [isFieldsPanelOpen, setIsFieldsPanelOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showWidthCalibration, setShowWidthCalibration] = useState(false);
+  const [widthDrafts, setWidthDrafts] = useState<Record<string, string>>({});
+
+  // Sync width drafts when columns change
+  useEffect(() => {
+    const drafts: Record<string, string> = {};
+    columns.forEach(col => {
+      drafts[col.field_name] = String(col.width);
+    });
+    setWidthDrafts(drafts);
+  }, [columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -595,8 +605,28 @@ export function PipelineViewEditor({
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={column.width}
-                        onChange={(e) => setColumnWidth(column.field_name, parseInt(e.target.value) || 150)}
+                        value={widthDrafts[column.field_name] ?? String(column.width)}
+                        onChange={(e) => setWidthDrafts(prev => ({ 
+                          ...prev, 
+                          [column.field_name]: e.target.value 
+                        }))}
+                        onBlur={(e) => {
+                          const parsed = parseInt(e.target.value);
+                          if (!isNaN(parsed) && parsed >= 80 && parsed <= 600) {
+                            setColumnWidth(column.field_name, parsed);
+                          } else {
+                            // Revert to current column width if invalid
+                            setWidthDrafts(prev => ({ 
+                              ...prev, 
+                              [column.field_name]: String(column.width) 
+                            }));
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
                         className="h-8 text-xs px-2"
                         min={80}
                         max={600}

@@ -65,6 +65,37 @@ interface ModernTask {
   };
 }
 
+// Priority ranking helper for sorting
+const getPriorityRank = (priority: string): number => {
+  switch (priority) {
+    case 'Critical': return 0;
+    case 'ASAP': return 0;
+    case 'High': return 1;
+    case 'Medium': return 2;
+    case 'Low': return 3;
+    default: return 99;
+  }
+};
+
+// Sort tasks by priority first, then due date, then created date
+const sortTasksByPriority = (tasks: ModernTask[]): ModernTask[] => {
+  return [...tasks].sort((a, b) => {
+    // Primary: Priority rank (lower = higher priority)
+    const priorityDiff = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+    if (priorityDiff !== 0) return priorityDiff;
+    
+    // Secondary: Due date (earlier first, no due date last)
+    if (a.due_date && b.due_date) {
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    }
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    
+    // Tertiary: Created date (newest first for stability)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+};
+
 // Permission: Only admins can reassign tasks
 
 const columns = (
@@ -933,6 +964,25 @@ export default function TasksModern() {
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
+  // Sort tasks by priority (ASAP/Critical first, then High, Medium, Low)
+  const sortedOpenTasks = sortTasksByPriority(openTasks);
+  const sortedDoneTasks = sortTasksByPriority(doneTasks);
+
+  // Calculate "Completed Today" - tasks marked Done today that haven't been reviewed
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const completedTodayCount = unReviewedDoneTasks.filter(task => {
+    const updatedAt = new Date(task.updated_at);
+    updatedAt.setHours(0, 0, 0, 0);
+    return updatedAt.getTime() === today.getTime();
+  }).length;
+
+  // Progress calculation for non-admins: Done today vs due today or earlier
+  const totalDueTodayOrCompletedToday = dueTodayOrEarlierTasks + completedTodayCount;
+  const progressPercent = totalDueTodayOrCompletedToday > 0 
+    ? Math.round((completedTodayCount / totalDueTodayOrCompletedToday) * 100) 
+    : 0;
+
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
@@ -952,82 +1002,191 @@ export default function TasksModern() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'all' ? 'ring-2 ring-primary' : ''}`}
-          onClick={() => setStatsFilter('all')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
-                <p className="text-sm text-muted-foreground">All Tasks</p>
+      {/* Stats cards - different layout for admin vs non-admin */}
+      {isAdmin ? (
+        // Admin view: All Tasks, Active, Review, Overdue, Completed, Completed Today
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'all' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => setStatsFilter('all')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
+                  <p className="text-sm text-muted-foreground">All Tasks</p>
+                </div>
+                <Clock className="h-8 w-8 text-primary" />
               </div>
-              <Clock className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'dueToday' ? 'ring-2 ring-amber-500' : ''}`}
-          onClick={() => setStatsFilter(statsFilter === 'dueToday' ? 'all' : 'dueToday')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{dueTodayOrEarlierTasks}</p>
-                <p className="text-sm text-muted-foreground">Active Tasks</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'dueToday' ? 'ring-2 ring-amber-500' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'dueToday' ? 'all' : 'dueToday')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{dueTodayOrEarlierTasks}</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                </div>
+                <CalendarCheck className="h-8 w-8 text-amber-500" />
               </div>
-              <CalendarCheck className="h-8 w-8 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'review' ? 'ring-2 ring-violet-500' : ''}`}
-          onClick={() => setStatsFilter(statsFilter === 'review' ? 'all' : 'review')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-violet-600">{needsReviewTasks}</p>
-                <p className="text-sm text-muted-foreground">Review</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'review' ? 'ring-2 ring-violet-500' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'review' ? 'all' : 'review')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-violet-600">{needsReviewTasks}</p>
+                  <p className="text-sm text-muted-foreground">Review</p>
+                </div>
+                <Edit className="h-8 w-8 text-violet-500" />
               </div>
-              <Edit className="h-8 w-8 text-violet-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'overdue' ? 'ring-2 ring-destructive' : ''}`}
-          onClick={() => setStatsFilter(statsFilter === 'overdue' ? 'all' : 'overdue')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-destructive">{overdueTasks}</p>
-                <p className="text-sm text-muted-foreground">Overdue</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'overdue' ? 'ring-2 ring-destructive' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'overdue' ? 'all' : 'overdue')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-destructive">{overdueTasks}</p>
+                  <p className="text-sm text-muted-foreground">Overdue</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-destructive" />
               </div>
-              <AlertCircle className="h-8 w-8 text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'completed' ? 'ring-2 ring-success' : ''}`}
-          onClick={() => setStatsFilter(statsFilter === 'completed' ? 'all' : 'completed')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-success">{completedTasks}</p>
-                <p className="text-sm text-muted-foreground">Completed</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'completed' ? 'ring-2 ring-success' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'completed' ? 'all' : 'completed')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-success">{completedTasks}</p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-success" />
               </div>
-              <CheckCircle className="h-8 w-8 text-success" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+
+          {/* Completed Today indicator for admin */}
+          <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{completedTodayCount}</p>
+                  <p className="text-sm text-muted-foreground">Done Today</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-emerald-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        // Non-admin view: Active, All Tasks, Overdue, Done Today, Progress
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'dueToday' ? 'ring-2 ring-amber-500' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'dueToday' ? 'all' : 'dueToday')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">{dueTodayOrEarlierTasks}</p>
+                  <p className="text-sm text-muted-foreground">Active Tasks</p>
+                </div>
+                <CalendarCheck className="h-8 w-8 text-amber-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'all' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => setStatsFilter('all')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
+                  <p className="text-sm text-muted-foreground">All Tasks</p>
+                </div>
+                <Clock className="h-8 w-8 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${statsFilter === 'overdue' ? 'ring-2 ring-destructive' : ''}`}
+            onClick={() => setStatsFilter(statsFilter === 'overdue' ? 'all' : 'overdue')}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-destructive">{overdueTasks}</p>
+                  <p className="text-sm text-muted-foreground">Overdue</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Done Today - tasks marked Done but not yet reviewed */}
+          <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-emerald-600">{completedTodayCount}</p>
+                  <p className="text-sm text-muted-foreground">Done Today</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-emerald-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Progress indicator */}
+          <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{completedTodayCount}/{totalDueTodayOrCompletedToday}</p>
+                  <p className="text-sm text-muted-foreground">{progressPercent}% Progress</p>
+                </div>
+                <div className="relative h-8 w-8">
+                  <svg className="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="text-blue-200 dark:text-blue-900"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeDasharray={`${progressPercent}, 100`}
+                      className="text-blue-500"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Stats filter indicator */}
       {statsFilter !== 'all' && (
@@ -1237,7 +1396,7 @@ export default function TasksModern() {
                 <CollapsibleContent>
                   <DataTable
                     columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
-                    data={openTasks}
+                    data={sortedOpenTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
                     onEdit={handleEdit}
@@ -1261,12 +1420,12 @@ export default function TasksModern() {
                   ) : (
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <span className="font-semibold text-muted-foreground">Completed Tasks ({doneTasks.length})</span>
+                  <span className="font-semibold text-muted-foreground">Completed Tasks ({sortedDoneTasks.length})</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
                     columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
-                    data={doneTasks}
+                    data={sortedDoneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
                     onEdit={handleEdit}
@@ -1398,7 +1557,7 @@ export default function TasksModern() {
       <EmailTasksModal
         open={isEmailModalOpen}
         onOpenChange={setIsEmailModalOpen}
-        tasks={openTasks}
+        tasks={sortedOpenTasks}
       />
     </div>
   );
