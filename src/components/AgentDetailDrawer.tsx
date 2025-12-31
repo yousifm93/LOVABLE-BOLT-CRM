@@ -263,11 +263,11 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
+                <div>
                     <label className="text-xs font-medium text-muted-foreground">Last Call</label>
                     <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
                       {agent.last_agent_call 
-                        ? new Date(agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        ? new Date(agent.last_agent_call.includes('T') || agent.last_agent_call.includes(' ') ? agent.last_agent_call : agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                         : <span className="text-muted-foreground">—</span>
                       }
                     </div>

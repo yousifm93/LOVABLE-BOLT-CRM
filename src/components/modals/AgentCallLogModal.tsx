@@ -47,7 +47,7 @@ export function AgentCallLogModal({
 }: AgentCallLogModalProps) {
   const { toast } = useToast();
   const [summary, setSummary] = useState("");
-  const [callDateTime, setCallDateTime] = useState(new Date().toISOString().slice(0, 16));
+  const [callDate, setCallDate] = useState(new Date().toISOString().slice(0, 10));
   const [callType, setCallType] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -76,11 +76,11 @@ export function AgentCallLogModal({
       if (!crmUser) throw new Error("CRM user not found");
 
       // Create call log with custom date/time and call type
-      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDateTime, callType || undefined);
+      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDate, callType || undefined);
 
       // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
-        last_agent_call: new Date(callDateTime).toISOString().split('T')[0], // Date only
+        last_agent_call: callDate, // Already date-only format
       });
 
       toast({
@@ -151,12 +151,12 @@ export function AgentCallLogModal({
 
         <div className="space-y-4 py-4">
           <div>
-            <Label htmlFor="call-date">Call Date & Time</Label>
+            <Label htmlFor="call-date">Call Date</Label>
             <Input
               id="call-date"
-              type="datetime-local"
-              value={callDateTime}
-              onChange={(e) => setCallDateTime(e.target.value)}
+              type="date"
+              value={callDate}
+              onChange={(e) => setCallDate(e.target.value)}
               className="mt-2"
             />
           </div>

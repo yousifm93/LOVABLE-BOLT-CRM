@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Settings, Database, Users, FileText, Activity, Plus, Edit, Trash2, Check, X, Search, Filter, Zap, Mail, CalendarIcon, AlertTriangle, Shield, Layout, Bot, FileQuestion } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserManagement from "@/pages/UserManagement";
@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useFieldManagement } from "@/hooks/useFieldManagement";
+import { usePermissions } from "@/hooks/usePermissions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 interface Field {
@@ -69,6 +70,8 @@ export default function Admin() {
     updateField,
     deleteField
   } = useFieldManagement();
+  
+  const { isAdmin } = usePermissions();
 
   // Fetch dashboard stats
   useEffect(() => {
@@ -605,7 +608,7 @@ export default function Admin() {
           );
       }
     }
-  }, {
+  }, ...(isAdmin ? [{
     accessorKey: 'actions',
     header: 'Actions',
     width: 90,
@@ -614,7 +617,7 @@ export default function Admin() {
     sortable: false,
     cell: ({
       row
-    }) => {
+    }: { row: { original: Field } }) => {
       const field = row.original;
       return <div className="flex gap-1">
             {editingField === field.id ? <>
@@ -634,7 +637,7 @@ export default function Admin() {
               </>}
           </div>;
     }
-  }];
+  }] as ColumnDef<Field>[] : [])];
   return <div className="pl-4 pr-0 pt-2 pb-0 space-y-3">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>

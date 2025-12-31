@@ -239,7 +239,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Call</label>
                   <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
                     {agent.last_agent_call 
-                      ? new Date(agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      ? new Date(agent.last_agent_call.includes('T') || agent.last_agent_call.includes(' ') ? agent.last_agent_call : agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : <span className="text-muted-foreground">—</span>
                     }
                   </div>
@@ -264,7 +264,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Broker Open</label>
                   <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
                     {agent.broker_open 
-                      ? new Date(agent.broker_open + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      ? new Date(agent.broker_open.includes('T') || agent.broker_open.includes(' ') ? agent.broker_open : agent.broker_open + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : <span className="text-muted-foreground">—</span>
                     }
                   </div>
