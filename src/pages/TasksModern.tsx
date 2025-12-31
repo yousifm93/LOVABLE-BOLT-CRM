@@ -914,17 +914,21 @@ export default function TasksModern() {
   const dueTodayOrEarlierTasks = filteredTasks.filter(isTaskDueTodayOrEarlier).length;
   const needsReviewTasks = filteredTasks.filter(isTaskNeedsReview).length;
 
-  // Apply stats filter
+  // Apply stats filter - but always include Done tasks that haven't been reviewed yet
+  // This ensures tasks don't disappear when marked Done, they stay visible until admin reviews them
+  const unReviewedDoneTasks = allOpenTasks.filter(t => t.status === "Done" && !t.reviewed);
+  const nonDoneTasks = allOpenTasks.filter(t => t.status !== "Done");
+
   const openTasks = statsFilter === 'all' 
     ? allOpenTasks 
     : statsFilter === 'active' 
-      ? allOpenTasks.filter(t => !isTaskOverdue(t))
+      ? [...nonDoneTasks.filter(t => !isTaskOverdue(t)), ...unReviewedDoneTasks]
       : statsFilter === 'dueToday'
-        ? allOpenTasks.filter(t => isTaskDueTodayOrEarlier(t))
+        ? [...nonDoneTasks.filter(t => isTaskDueTodayOrEarlier(t)), ...unReviewedDoneTasks]
         : statsFilter === 'review'
-          ? allOpenTasks.filter(t => isTaskNeedsReview(t))
+          ? [...nonDoneTasks.filter(t => isTaskNeedsReview(t)), ...unReviewedDoneTasks]
           : statsFilter === 'overdue'
-            ? allOpenTasks.filter(t => isTaskOverdue(t))
+            ? [...nonDoneTasks.filter(t => isTaskOverdue(t)), ...unReviewedDoneTasks]
             : []; // completed filter shows nothing in open tasks
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
