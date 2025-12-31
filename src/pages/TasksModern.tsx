@@ -52,6 +52,7 @@ interface ModernTask {
   created_at: string;
   updated_at: string;
   reviewed?: boolean;
+  reviewed_at?: string;
   assignee?: { first_name: string; last_name: string; email: string };
   borrower?: { 
     first_name: string; 
@@ -500,6 +501,53 @@ export default function TasksModern() {
     loadTasks();
   }, []);
 
+  // Auto-reset reviewed status for non-Done tasks after 1 hour
+  useEffect(() => {
+    const resetExpiredReviews = async () => {
+      const now = Date.now();
+      const oneHourMs = 60 * 60 * 1000;
+      
+      const tasksToReset = tasks.filter(task => {
+        if (task.status === "Done") return false;
+        if (!task.reviewed || !task.reviewed_at) return false;
+        
+        const reviewedTime = new Date(task.reviewed_at).getTime();
+        return (now - reviewedTime) > oneHourMs;
+      });
+      
+      if (tasksToReset.length > 0) {
+        // Update local state immediately
+        setTasks(prevTasks => 
+          prevTasks.map(task => {
+            const shouldReset = tasksToReset.some(t => t.id === task.id);
+            if (shouldReset) {
+              return { ...task, reviewed: false, reviewed_at: undefined };
+            }
+            return task;
+          })
+        );
+        
+        // Update database in background
+        for (const task of tasksToReset) {
+          try {
+            await databaseService.updateTask(task.id, { reviewed: false, reviewed_at: null });
+          } catch (error) {
+            console.error("Error resetting reviewed status:", error);
+          }
+        }
+      }
+    };
+    
+    // Run immediately on tasks change
+    if (tasks.length > 0) {
+      resetExpiredReviews();
+    }
+    
+    // Also check every minute
+    const interval = setInterval(resetExpiredReviews, 60000);
+    return () => clearInterval(interval);
+  }, [tasks.length]); // Only re-run when tasks count changes (after initial load)
+
   const handleRowClick = (task: ModernTask) => {
     setSelectedTask(task);
     setIsDetailModalOpen(true);
@@ -526,12 +574,26 @@ export default function TasksModern() {
     }
 
     try {
-      await databaseService.updateTask(taskId, { [field]: value });
-      
-      // Update local state
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, [field]: value } : task
-      ));
+      // When marking as reviewed, also set reviewed_at timestamp
+      if (field === 'reviewed') {
+        const updateData = value 
+          ? { reviewed: true, reviewed_at: new Date().toISOString() }
+          : { reviewed: false, reviewed_at: null };
+        
+        await databaseService.updateTask(taskId, updateData);
+        
+        // Update local state
+        setTasks(tasks.map(task => 
+          task.id === taskId ? { ...task, ...updateData } : task
+        ));
+      } else {
+        await databaseService.updateTask(taskId, { [field]: value });
+        
+        // Update local state
+        setTasks(tasks.map(task => 
+          task.id === taskId ? { ...task, [field]: value } : task
+        ));
+      }
       
       // No toast for inline edits - they're too frequent and distracting
     } catch (error) {
@@ -813,10 +875,25 @@ export default function TasksModern() {
   // Helper function to check if a task needs review
   // Includes: overdue tasks (not done) OR completed tasks that haven't been reviewed yet
   const isTaskNeedsReview = (task: ModernTask) => {
-    // Include completed tasks that haven't been reviewed yet
+    // If task is Done and reviewed, it's completed - not in Review view
+    if (task.status === "Done" && task.reviewed) return false;
+    
+    // If task is Done but NOT reviewed, it needs review
     if (task.status === "Done" && !task.reviewed) return true;
     
-    // Include overdue tasks that aren't done
+    // For non-Done tasks: check if recently reviewed (within 1 hour)
+    if (task.reviewed && task.reviewed_at) {
+      const reviewedTime = new Date(task.reviewed_at);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      
+      // If reviewed within the last hour, hide from Review view
+      if (reviewedTime > oneHourAgo) {
+        return false;
+      }
+      // If more than 1 hour has passed, task needs review again
+    }
+    
+    // Include overdue tasks that aren't done (and weren't recently reviewed)
     if (!task.due_date || task.status === "Done") return false;
     const dueDateStr = task.due_date.includes("T") 
       ? task.due_date 
