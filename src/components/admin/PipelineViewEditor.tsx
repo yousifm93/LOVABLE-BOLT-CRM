@@ -106,7 +106,7 @@ function SortableColumnHeader({
   column: ColumnConfig; 
   onRemove: () => void;
   onToggleVisibility: () => void;
-  onWidthChange: (delta: number) => void;
+  onWidthChange: (newWidth: number) => void;
 }) {
   const {
     attributes,
@@ -135,7 +135,7 @@ function SortableColumnHeader({
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
       const newWidth = Math.max(80, Math.min(600, startWidth + delta));
-      onWidthChange(newWidth - column.width);
+      onWidthChange(newWidth);
     };
 
     const handleMouseUp = () => {
@@ -263,13 +263,17 @@ export function PipelineViewEditor({
     if (columnOrder && columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
+          // Get width - use nullish coalescing to handle 0 properly
+          const savedWidth = widths[fieldName];
+          const width = (typeof savedWidth === 'number' && savedWidth >= 80) ? savedWidth : 150;
+          
           // Try to find in crm_fields first
           const field = allFields.find(f => f.field_name === fieldName);
           if (field) {
             return {
               field_name: field.field_name,
               display_name: field.display_name,
-              width: widths[fieldName] || 150,
+              width,
               visible: true,
             };
           }
@@ -280,7 +284,7 @@ export function PipelineViewEditor({
             return {
               field_name: fieldName,
               display_name: displayName,
-              width: widths[fieldName] || 150,
+              width,
               visible: true,
             };
           }
@@ -430,9 +434,19 @@ export function PipelineViewEditor({
     const columnOrderArray = columns.map(col => col.field_name);
     const columnWidthsObj: Record<string, number> = {};
     
-    // Explicitly build the widths object from all columns
+    // Build widths from widthDrafts first (latest typed values), fallback to columns state
     columns.forEach(col => {
-      columnWidthsObj[col.field_name] = col.width;
+      const draftValue = widthDrafts[col.field_name];
+      if (draftValue !== undefined && draftValue !== '') {
+        const parsed = parseInt(draftValue, 10);
+        if (!isNaN(parsed) && parsed >= 80 && parsed <= 600) {
+          columnWidthsObj[col.field_name] = parsed;
+        } else {
+          columnWidthsObj[col.field_name] = col.width;
+        }
+      } else {
+        columnWidthsObj[col.field_name] = col.width;
+      }
     });
     
     console.log('📊 Saving column widths:', columnWidthsObj);
@@ -738,7 +752,7 @@ export function PipelineViewEditor({
               onDragEnd={handleDragEnd}
             >
               <div className="border rounded-lg overflow-hidden">
-                <Table className="min-w-max">
+                <Table className="min-w-max table-fixed">
                   <TableHeader>
                     <TableRow>
                       <SortableContext
@@ -751,7 +765,7 @@ export function PipelineViewEditor({
                             column={column}
                             onRemove={() => removeColumn(column.field_name)}
                             onToggleVisibility={() => toggleColumnVisibility(column.field_name)}
-                            onWidthChange={(delta) => updateColumnWidth(column.field_name, delta)}
+                            onWidthChange={(newWidth) => setColumnWidth(column.field_name, newWidth)}
                           />
                         ))}
                       </SortableContext>
