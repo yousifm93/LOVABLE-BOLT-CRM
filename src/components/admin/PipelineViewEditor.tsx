@@ -230,14 +230,6 @@ export function PipelineViewEditor({
   const [showWidthCalibration, setShowWidthCalibration] = useState(false);
   const [widthDrafts, setWidthDrafts] = useState<Record<string, string>>({});
 
-  // Sync width drafts when columns change
-  useEffect(() => {
-    const drafts: Record<string, string> = {};
-    columns.forEach(col => {
-      drafts[col.field_name] = String(col.width);
-    });
-    setWidthDrafts(drafts);
-  }, [columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -297,6 +289,13 @@ export function PipelineViewEditor({
       
       console.log('[PipelineViewEditor] Setting columns with widths:', initialColumns.map(c => ({ name: c.field_name, width: c.width })));
       setColumns(initialColumns);
+      setWidthDrafts(() => {
+        const drafts: Record<string, string> = {};
+        initialColumns.forEach(c => {
+          drafts[c.field_name] = String(c.width);
+        });
+        return drafts;
+      });
     } else {
       // Default columns for new view
       const defaultFields = ['borrower_name', 'email', 'phone', 'sales_price', 'close_date'];
@@ -313,6 +312,13 @@ export function PipelineViewEditor({
         })
         .filter(Boolean) as ColumnConfig[];
       setColumns(initialColumns);
+      setWidthDrafts(() => {
+        const drafts: Record<string, string> = {};
+        initialColumns.forEach(c => {
+          drafts[c.field_name] = String(c.width);
+        });
+        return drafts;
+      });
     }
   }, [viewId, columnOrder, columnWidths, pipelineType, allFields, fieldsLoading]);
 
@@ -373,21 +379,29 @@ export function PipelineViewEditor({
 
   const addColumn = (fieldName: string) => {
     if (columns.some(col => col.field_name === fieldName)) return;
-    
+
     const field = allFields.find(f => f.field_name === fieldName);
     if (!field) return;
 
-    setColumns([...columns, {
+    const newCol: ColumnConfig = {
       field_name: field.field_name,
       display_name: field.display_name,
       width: 150,
       visible: true,
-    }]);
+    };
+
+    setColumns([...columns, newCol]);
+    setWidthDrafts(prev => ({ ...prev, [newCol.field_name]: String(newCol.width) }));
     setHasUnsavedChanges(true);
   };
 
   const removeColumn = (fieldName: string) => {
     setColumns(columns.filter(col => col.field_name !== fieldName));
+    setWidthDrafts(prev => {
+      const next = { ...prev };
+      delete next[fieldName];
+      return next;
+    });
     setHasUnsavedChanges(true);
   };
 
@@ -410,12 +424,17 @@ export function PipelineViewEditor({
   };
 
   const setColumnWidth = (fieldName: string, newWidth: number) => {
+    const clamped = Math.max(80, Math.min(600, newWidth));
+
     setColumns(columns.map(col => {
       if (col.field_name === fieldName) {
-        return { ...col, width: Math.max(80, Math.min(600, newWidth)) };
+        return { ...col, width: clamped };
       }
       return col;
     }));
+
+    // Keep draft in sync when width is changed via resize/blur commits
+    setWidthDrafts(prev => ({ ...prev, [fieldName]: String(clamped) }));
     setHasUnsavedChanges(true);
   };
 
