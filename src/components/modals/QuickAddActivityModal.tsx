@@ -74,6 +74,7 @@ interface Agent {
   first_name: string;
   last_name: string;
   brokerage: string;
+  notes?: string | null;
 }
 
 export function QuickAddActivityModal({
@@ -170,6 +171,16 @@ export function QuickAddActivityModal({
       return;
     }
 
+    // Require notes for broker opens
+    if (activityType === 'broker_open' && !notes.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter notes about the broker open",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Get CRM user ID
@@ -187,9 +198,10 @@ export function QuickAddActivityModal({
       const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
       if (activityType === 'broker_open') {
-        // Update agent's broker_open date
+        // Update agent's broker_open date and notes
         await databaseService.updateBuyerAgent(selectedAgentId, {
           broker_open: new Date(activityDate).toISOString().split('T')[0],
+          notes: notes.trim() || selectedAgent?.notes, // Update notes with broker open notes
         });
 
         toast({

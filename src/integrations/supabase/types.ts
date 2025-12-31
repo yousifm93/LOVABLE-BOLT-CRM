@@ -5465,6 +5465,7 @@ export type Database = {
       execute_scheduled_automations: { Args: never; Returns: Json }
       format_date_modern: { Args: { input_date: string }; Returns: string }
       get_crm_user_id: { Args: { auth_uid: string }; Returns: string }
+      get_current_crm_user_id: { Args: never; Returns: string }
       get_user_account_id: { Args: { user_uuid: string }; Returns: string }
       is_team_member: { Args: { user_uuid: string }; Returns: boolean }
       search_blog_posts: {

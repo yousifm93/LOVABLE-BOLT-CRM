@@ -421,7 +421,7 @@ export const useDashboardData = () => {
         .from('buyer_agents')
         .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
         .not('broker_open', 'is', null)
-        .order('broker_open', { ascending: false });
+        .order('broker_open', { ascending: true });
       
       if (error) throw error;
       return data || [];

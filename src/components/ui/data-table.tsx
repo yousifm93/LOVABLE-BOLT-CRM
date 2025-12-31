@@ -437,11 +437,17 @@ export function DataTable<T extends Record<string, any>>({
     let filtered = data;
 
     if (searchTerm) {
-      filtered = data.filter((item) =>
-        Object.values(item).some((value) =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      );
+      const searchWords = searchTerm.toLowerCase().trim().split(/\s+/).filter(word => word.length > 0);
+      
+      filtered = data.filter((item) => {
+        // Combine all values into a single searchable string
+        const itemString = Object.values(item)
+          .map(value => String(value).toLowerCase())
+          .join(' ');
+        
+        // All search words must be found somewhere in the item
+        return searchWords.every(word => itemString.includes(word));
+      });
     }
 
     if (sortColumn) {
