@@ -1918,9 +1918,15 @@ export function ClientDetailDrawer({
                           setIsSavingNotes(true);
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
+                            // Get CRM user ID (not auth user ID)
+                            const { data: crmUser } = await supabase
+                              .from('users')
+                              .select('id')
+                              .eq('auth_user_id', user?.id)
+                              .single();
                             await databaseService.updateLead(leadId!, {
                               notes: localNotes,
-                              notes_updated_by: user?.id || null,
+                              notes_updated_by: crmUser?.id || null,
                               notes_updated_at: new Date().toISOString()
                             });
                             if (onLeadUpdated) await onLeadUpdated();
@@ -2089,9 +2095,15 @@ export function ClientDetailDrawer({
                           setIsSavingNotes(true);
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
+                            // Get CRM user ID (not auth user ID)
+                            const { data: crmUser } = await supabase
+                              .from('users')
+                              .select('id')
+                              .eq('auth_user_id', user?.id)
+                              .single();
                             await databaseService.updateLead(leadId!, {
                               notes: localNotes,
-                              notes_updated_by: user?.id || null,
+                              notes_updated_by: crmUser?.id || null,
                               notes_updated_at: new Date().toISOString()
                             });
                             if (onLeadUpdated) await onLeadUpdated();
@@ -2934,9 +2946,15 @@ export function ClientDetailDrawer({
                     setIsSavingNotes(true);
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
+                      // Get CRM user ID (not auth user ID)
+                      const { data: crmUser } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('auth_user_id', user?.id)
+                        .single();
                       await databaseService.updateLead(leadId!, {
                         notes: localNotes,
-                        notes_updated_by: user?.id || null,
+                        notes_updated_by: crmUser?.id || null,
                         notes_updated_at: new Date().toISOString()
                       });
                       if (onLeadUpdated) await onLeadUpdated();

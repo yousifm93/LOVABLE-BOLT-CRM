@@ -265,11 +265,12 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Last Call</label>
-                    <InlineEditDate
-                      value={agent.last_agent_call}
-                      onValueChange={(value) => handleFieldUpdate('last_agent_call', value?.toISOString().split('T')[0])}
-                      className="mt-1"
-                    />
+                    <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
+                      {agent.last_agent_call 
+                        ? new Date(agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : <span className="text-muted-foreground">—</span>
+                      }
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Next Scheduled Call</label>
@@ -281,11 +282,12 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Face-to-Face Meeting</label>
-                    <InlineEditDateTime
-                      value={agent.face_to_face_meeting}
-                      onValueChange={(value) => handleFieldUpdate('face_to_face_meeting', value)}
-                      className="mt-1"
-                    />
+                    <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
+                      {agent.face_to_face_meeting 
+                        ? new Date(agent.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : <span className="text-muted-foreground">—</span>
+                      }
+                    </div>
                   </div>
                 </div>
               </CardContent>
