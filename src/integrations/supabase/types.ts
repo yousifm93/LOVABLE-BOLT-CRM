@@ -4885,6 +4885,7 @@ export type Database = {
           created_at: string
           feedback_id: string
           id: string
+          item_index: number | null
         }
         Insert: {
           admin_id: string
@@ -4892,6 +4893,7 @@ export type Database = {
           created_at?: string
           feedback_id: string
           id?: string
+          item_index?: number | null
         }
         Update: {
           admin_id?: string
@@ -4899,6 +4901,7 @@ export type Database = {
           created_at?: string
           feedback_id?: string
           id?: string
+          item_index?: number | null
         }
         Relationships: [
           {
