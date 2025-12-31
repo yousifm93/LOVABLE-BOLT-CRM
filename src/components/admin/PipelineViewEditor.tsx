@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -239,24 +239,29 @@ export function PipelineViewEditor({
     })
   );
 
+  const initKeyRef = useRef<string | null>(null);
+
   // Initialize columns from props or defaults when view changes
-  // Use columnOrder and columnWidths in dependencies to properly sync when view switches
   useEffect(() => {
     // Wait for fields to load before initializing columns
     if (fieldsLoading || allFields.length === 0) return;
-    
-    // Use the columnWidths directly from props
-    const widths = columnWidths || {};
-    
+
+    const widths = (columnWidths || {}) as Record<string, unknown>;
+    const initKey = `${viewId ?? "new"}|${pipelineType}|${JSON.stringify(columnOrder)}|${JSON.stringify(widths)}`;
+
+    // Prevent re-initializing on incidental rerenders (e.g., allFields identity changes)
+    if (initKeyRef.current === initKey) return;
+    initKeyRef.current = initKey;
+
     console.log(`[PipelineViewEditor] Initializing columns for view ${viewId}, pipeline: ${pipelineType}`);
     console.log('[PipelineViewEditor] Column order:', columnOrder);
     console.log('[PipelineViewEditor] Column widths from props:', widths);
-    
+
     if (columnOrder && columnOrder.length > 0) {
       const initialColumns = columnOrder
         .map(fieldName => {
           // Widths can come back from Supabase JSON as numbers or strings
-          const savedWidthRaw = (widths as Record<string, unknown>)[fieldName];
+          const savedWidthRaw = widths[fieldName];
           const savedWidthNum = typeof savedWidthRaw === "number" ? savedWidthRaw : Number(savedWidthRaw);
           const width = Number.isFinite(savedWidthNum) && savedWidthNum >= 80 && savedWidthNum <= 600 ? savedWidthNum : 150;
 
@@ -270,7 +275,7 @@ export function PipelineViewEditor({
               visible: true,
             };
           }
-          
+
           // If not found, check if it's a custom accessorKey
           const displayName = ACCESSOR_KEY_DISPLAY_NAMES[fieldName];
           if (displayName) {
@@ -281,12 +286,12 @@ export function PipelineViewEditor({
               visible: true,
             };
           }
-          
+
           console.warn(`Field not found: ${fieldName}`);
           return null;
         })
         .filter(Boolean) as ColumnConfig[];
-      
+
       console.log('[PipelineViewEditor] Setting columns with widths:', initialColumns.map(c => ({ name: c.field_name, width: c.width })));
       setColumns(initialColumns);
       setWidthDrafts(() => {
