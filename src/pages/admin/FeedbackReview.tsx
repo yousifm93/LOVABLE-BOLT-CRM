@@ -157,22 +157,41 @@ export default function FeedbackReview() {
   const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help' | 'idea') => {
     if (!crmUser?.id) return;
     
+    // Check if clicking the same status - if so, clear it (toggle off)
+    const currentStatus = getItemStatus(feedbackId, itemIndex);
+    const shouldClear = currentStatus === status;
+    
     try {
-      const { data, error } = await supabase
-        .from('team_feedback_item_status')
-        .upsert({ feedback_id: feedbackId, item_index: itemIndex, status, updated_by: crmUser.id, updated_at: new Date().toISOString() }, { onConflict: 'feedback_id,item_index' })
-        .select()
-        .single();
+      if (shouldClear) {
+        // Delete the status record to reset to 'pending'
+        const { error } = await supabase
+          .from('team_feedback_item_status')
+          .delete()
+          .eq('feedback_id', feedbackId)
+          .eq('item_index', itemIndex);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setItemStatuses(prev => [...prev.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)), data as ItemStatus]);
-      const statusMessages = {
-        complete: "Marked Complete",
-        needs_help: "Still Needs Help",
-        idea: "Marked as Idea"
-      };
-      toast({ title: statusMessages[status], description: "Status updated." });
+        setItemStatuses(prev => prev.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)));
+        toast({ title: "Status Cleared", description: "Item returned to pending." });
+      } else {
+        // Upsert the new status
+        const { data, error } = await supabase
+          .from('team_feedback_item_status')
+          .upsert({ feedback_id: feedbackId, item_index: itemIndex, status, updated_by: crmUser.id, updated_at: new Date().toISOString() }, { onConflict: 'feedback_id,item_index' })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setItemStatuses(prev => [...prev.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)), data as ItemStatus]);
+        const statusMessages = {
+          complete: "Marked Complete",
+          needs_help: "Still Needs Help",
+          idea: "Marked as Idea"
+        };
+        toast({ title: statusMessages[status], description: "Status updated." });
+      }
     } catch (error) {
       console.error('Error updating status:', error);
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });

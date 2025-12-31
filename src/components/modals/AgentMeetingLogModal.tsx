@@ -23,7 +23,7 @@ interface AgentMeetingLogModalProps {
 export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }: AgentMeetingLogModalProps) {
   const [summary, setSummary] = useState("");
   const [location, setLocation] = useState("");
-  const [meetingDate, setMeetingDate] = useState(new Date().toISOString().slice(0, 16));
+  const [meetingDate, setMeetingDate] = useState(new Date().toISOString().slice(0, 10));
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -72,7 +72,7 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
 
       setSummary("");
       setLocation("");
-      setMeetingDate(new Date().toISOString().slice(0, 16));
+      setMeetingDate(new Date().toISOString().slice(0, 10));
       onMeetingSaved();
       onClose();
     } catch (error) {
@@ -95,10 +95,10 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="meeting-date">Meeting Date & Time</Label>
+            <Label htmlFor="meeting-date">Meeting Date <span className="text-destructive">*</span></Label>
             <Input
               id="meeting-date"
-              type="datetime-local"
+              type="date"
               value={meetingDate}
               onChange={(e) => setMeetingDate(e.target.value)}
             />
@@ -114,8 +114,8 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="summary">Meeting Notes</Label>
-              <VoiceRecorder 
+              <Label htmlFor="summary">Meeting Notes <span className="text-destructive">*</span></Label>
+              <VoiceRecorder
                 onTranscriptionComplete={(text) => setSummary(prev => prev ? `${prev} ${text}` : text)}
               />
             </div>

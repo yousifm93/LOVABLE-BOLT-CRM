@@ -143,6 +143,9 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
   // Map actual data to slot numbers
   const filledSlots = data.slice(0, goal);
   
+  // Calculate the next available slot (only this one can be clicked to add)
+  const nextAvailableSlot = filledSlots.length + 1;
+  
   // Determine grid columns based on goal size
   const getGridCols = () => {
     if (goal <= 12) return 'grid-cols-4 sm:grid-cols-6 md:grid-cols-6';
@@ -150,7 +153,8 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
     return 'grid-cols-5 sm:grid-cols-7 md:grid-cols-10';
   };
 
-  const canClickSlot = allowAdd && onEmptySlotClick;
+  // Only allow clicking on the next available slot
+  const canClickSlot = (slotNum: number) => allowAdd && onEmptySlotClick && slotNum === nextAvailableSlot;
 
   return (
     <div className="space-y-4">
@@ -214,8 +218,8 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
                     {getName(item)}
                   </p>
                   {/* Show pipeline stage for leads and applications */}
-                  {(type === 'leads' || type === 'applications') && item.ops?.stage && (
-                    <StatusBadge status={item.ops.stage} />
+                  {(type === 'leads' || type === 'applications') && item.pipeline_stage_id && (
+                    <StatusBadge status={STAGE_ID_TO_NAME[item.pipeline_stage_id] || 'Unknown'} />
                   )}
                   <p className="text-[10px] text-muted-foreground truncate">
                     {formatDate(item)}
@@ -223,9 +227,9 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
                 </div>
               ) : (
                 <div 
-                  className={`pt-4 flex items-center justify-center h-[40px] ${canClickSlot ? 'cursor-pointer group/slot hover:bg-muted/40 transition-colors rounded' : ''}`}
+                  className={`pt-4 flex items-center justify-center h-[40px] ${canClickSlot(slotNum) ? 'cursor-pointer group/slot hover:bg-muted/40 transition-colors rounded' : ''}`}
                   onClick={() => {
-                    if (canClickSlot) {
+                    if (canClickSlot(slotNum)) {
                       onEmptySlotClick();
                     }
                   }}
@@ -233,7 +237,7 @@ const GoalSlotGrid = ({ goal, expectedProgress, data, type, onLeadClick, formatD
                   <span className="text-[10px] text-muted-foreground">
                     {isPastExpected ? 'Behind' : 'Empty'}
                   </span>
-                  {canClickSlot && (
+                  {canClickSlot(slotNum) && (
                     <Plus className="h-3 w-3 ml-1 opacity-0 group-hover/slot:opacity-100 text-primary transition-opacity" />
                   )}
                 </div>
