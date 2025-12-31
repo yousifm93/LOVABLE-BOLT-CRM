@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import DOMPurify from "dompurify";
 import { Mail, Inbox, Send, Star, Trash2, Archive, RefreshCw, Search, Plus, Loader2, AlertCircle, CheckCircle, Paperclip, FileText, Download, GripVertical, Square, CheckSquare, X, AtSign, Smile, Maximize2, ArrowRight, Tag, Pencil, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1327,7 +1328,7 @@ export default function Email() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div> : <>
                       {emailContent?.htmlBody ? <div className="prose prose-sm max-w-none text-foreground" dangerouslySetInnerHTML={{
-                  __html: emailContent.htmlBody
+                  __html: DOMPurify.sanitize(emailContent.htmlBody)
                 }} /> : emailContent?.body ? <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
                           {emailContent.body}
                         </div> : <div className="text-muted-foreground italic text-sm">

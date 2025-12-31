@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -172,7 +173,7 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
               <div 
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: note.description || 'No description provided.' }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.description || 'No description provided.') }}
               />
             </ScrollArea>
           )}

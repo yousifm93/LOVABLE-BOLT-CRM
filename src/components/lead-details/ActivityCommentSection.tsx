@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MentionableRichTextEditor } from '@/components/ui/mentionable-rich-text-editor';
@@ -188,7 +189,7 @@ export function ActivityCommentSection({
                 </div>
                 <div 
                   className="text-xs text-muted-foreground prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: comment.body }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.body) }}
                 />
               </div>
             </div>

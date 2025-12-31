@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -747,7 +748,7 @@ export function EmailAutomationModal({
                   <div className="p-4">
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getPreviewHtml()) }}
                     />
                   </div>
                 </div>

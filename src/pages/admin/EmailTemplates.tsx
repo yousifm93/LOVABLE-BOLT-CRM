@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -594,7 +595,7 @@ export default function EmailTemplates() {
                     {livePreview ? (
                       <div
                         className="bg-background prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: livePreview }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(livePreview) }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
