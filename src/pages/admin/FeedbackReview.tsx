@@ -34,6 +34,7 @@ interface FeedbackComment {
   comment: string;
   created_at: string;
   admin_name?: string;
+  item_index?: number | null;
 }
 
 export default function FeedbackReview() {
@@ -117,14 +118,22 @@ export default function FeedbackReview() {
     return feedback.filter(f => f.user_id === userId);
   };
 
-  const getFeedbackComments = (feedbackId: string) => {
-    return comments.filter(c => c.feedback_id === feedbackId);
+  const getFeedbackComments = (feedbackId: string, itemIndex?: number) => {
+    return comments.filter(c => 
+      c.feedback_id === feedbackId && 
+      (itemIndex !== undefined ? c.item_index === itemIndex : true)
+    );
   };
 
-  const submitComment = async (feedbackId: string) => {
-    if (!crmUser?.id || !newComments[feedbackId]?.trim()) return;
+  const getItemComments = (feedbackId: string, itemIndex: number) => {
+    return comments.filter(c => c.feedback_id === feedbackId && c.item_index === itemIndex);
+  };
 
-    setSubmittingComment(feedbackId);
+  const submitComment = async (feedbackId: string, itemIndex: number) => {
+    const commentKey = `${feedbackId}-${itemIndex}`;
+    if (!crmUser?.id || !newComments[commentKey]?.trim()) return;
+
+    setSubmittingComment(commentKey);
 
     try {
       const { data, error } = await supabase
@@ -132,7 +141,8 @@ export default function FeedbackReview() {
         .insert({
           feedback_id: feedbackId,
           admin_id: crmUser.id,
-          comment: newComments[feedbackId].trim(),
+          comment: newComments[commentKey].trim(),
+          item_index: itemIndex,
         })
         .select()
         .single();
@@ -146,11 +156,11 @@ export default function FeedbackReview() {
       }]);
 
       // Clear the input
-      setNewComments(prev => ({ ...prev, [feedbackId]: '' }));
+      setNewComments(prev => ({ ...prev, [commentKey]: '' }));
 
       toast({
         title: "Comment Added",
-        description: "Your comment has been saved.",
+        description: "Your response has been saved.",
       });
     } catch (error: any) {
       console.error('Error adding comment:', error);
@@ -218,10 +228,7 @@ export default function FeedbackReview() {
                 </CardContent>
               </Card>
             ) : (
-              getUserFeedback(member.id).map(fb => {
-                const fbComments = getFeedbackComments(fb.id);
-                
-                return (
+              getUserFeedback(member.id).map(fb => (
                   <Card key={fb.id}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -231,68 +238,71 @@ export default function FeedbackReview() {
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Feedback Items */}
-                      <div className="space-y-3">
-                        {fb.feedback_items.map((item, index) => (
-                          <div key={index} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
-                            <Badge variant="outline" className="h-6 shrink-0">
-                              {index + 1}
-                            </Badge>
-                            <p className="text-sm">{item}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Admin Comments Section */}
-                      <div className="border-t pt-4 space-y-4">
-                        <h4 className="font-medium flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4" />
-                          Admin Comments
-                        </h4>
-
-                        {/* Existing Comments */}
-                        {fbComments.length > 0 && (
-                          <div className="space-y-3">
-                            {fbComments.map(comment => (
-                              <div key={comment.id} className="bg-primary/5 border border-primary/10 rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-sm">{comment.admin_name}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {format(new Date(comment.created_at), 'MMM d, yyyy h:mm a')}
-                                  </span>
-                                </div>
-                                <p className="text-sm">{comment.comment}</p>
+                    <CardContent className="space-y-4">
+                      {/* Feedback Items with Individual Comments */}
+                      <div className="space-y-4">
+                        {fb.feedback_items.map((item, index) => {
+                          const itemComments = getItemComments(fb.id, index);
+                          const commentKey = `${fb.id}-${index}`;
+                          
+                          return (
+                            <div key={index} className="border rounded-lg overflow-hidden">
+                              {/* Feedback Item */}
+                              <div className="flex gap-3 p-3 bg-muted/50">
+                                <Badge variant="outline" className="h-6 shrink-0">
+                                  {index + 1}
+                                </Badge>
+                                <p className="text-sm">{item}</p>
                               </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Add Comment Form */}
-                        <div className="flex gap-2">
-                          <Textarea
-                            value={newComments[fb.id] || ''}
-                            onChange={(e) => setNewComments(prev => ({ ...prev, [fb.id]: e.target.value }))}
-                            placeholder="Add a comment or response..."
-                            className="min-h-[60px]"
-                          />
-                          <Button
-                            onClick={() => submitComment(fb.id)}
-                            disabled={!newComments[fb.id]?.trim() || submittingComment === fb.id}
-                            className="shrink-0"
-                          >
-                            {submittingComment === fb.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                              
+                              {/* Comments for this item */}
+                              <div className="p-3 space-y-3 bg-background">
+                                {/* Existing Comments */}
+                                {itemComments.length > 0 && (
+                                  <div className="space-y-2">
+                                    {itemComments.map(comment => (
+                                      <div key={comment.id} className="bg-primary/5 border border-primary/10 rounded-md p-2">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-xs text-primary">{comment.admin_name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {format(new Date(comment.created_at), 'MMM d, h:mm a')}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm">{comment.comment}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Add Comment Form */}
+                                <div className="flex gap-2">
+                                  <Textarea
+                                    value={newComments[commentKey] || ''}
+                                    onChange={(e) => setNewComments(prev => ({ ...prev, [commentKey]: e.target.value }))}
+                                    placeholder="Add a response..."
+                                    className="min-h-[50px] text-sm"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => submitComment(fb.id, index)}
+                                    disabled={!newComments[commentKey]?.trim() || submittingComment === commentKey}
+                                    className="shrink-0"
+                                  >
+                                    {submittingComment === commentKey ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Send className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })
+              ))
             )}
           </TabsContent>
         ))}
