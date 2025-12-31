@@ -4923,6 +4923,41 @@ export type Database = {
           },
         ]
       }
+      team_feedback_item_status: {
+        Row: {
+          feedback_id: string | null
+          id: string
+          item_index: number
+          status: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          feedback_id?: string | null
+          id?: string
+          item_index: number
+          status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          feedback_id?: string | null
+          id?: string
+          item_index?: number
+          status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_feedback_item_status_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "team_feedback"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_calendar_settings: {
         Row: {
           caldav_password: string | null
