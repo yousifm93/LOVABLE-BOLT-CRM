@@ -693,6 +693,30 @@ export default function TasksModern() {
     }
   };
 
+  // Handler for opening lead from field-based requirement modal
+  const handleOpenLeadFromModal = async () => {
+    if (!pendingStatusChange) return;
+    
+    // Find the task to get its borrower_id
+    const task = tasks.find(t => t.id === pendingStatusChange.taskId);
+    if (!task?.borrower_id) return;
+    
+    try {
+      const fullLead = await databaseService.getLeadByIdWithEmbeds(task.borrower_id);
+      const transformedLead = transformLeadToClient(fullLead);
+      setSelectedLead(transformedLead);
+      setIsLeadDrawerOpen(true);
+      setRequirementModalOpen(false);
+    } catch (error) {
+      console.error("Error loading lead details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load lead details",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAgentCallLogged = () => {
     setAgentCallLogModalOpen(false);
     
@@ -916,6 +940,14 @@ export default function TasksModern() {
     return dueDate.getTime() <= today.getTime(); // Due on or before today
   };
 
+  // Helper function to check if task was recently reviewed (within 1 hour)
+  const isRecentlyReviewed = (task: ModernTask): boolean => {
+    if (!task.reviewed || !task.reviewed_at) return false;
+    const reviewedTime = new Date(task.reviewed_at).getTime();
+    const oneHourMs = 60 * 60 * 1000;
+    return (Date.now() - reviewedTime) < oneHourMs;
+  };
+
   // Helper function to check if a task needs review
   // Includes: overdue tasks (not done) OR completed tasks that haven't been reviewed yet
   const isTaskNeedsReview = (task: ModernTask) => {
@@ -925,17 +957,8 @@ export default function TasksModern() {
     // If task is Done but NOT reviewed, it needs review
     if (task.status === "Done" && !task.reviewed) return true;
     
-    // For non-Done tasks: check if recently reviewed (within 1 hour)
-    if (task.reviewed && task.reviewed_at) {
-      const reviewedTime = new Date(task.reviewed_at);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
-      // If reviewed within the last hour, hide from Review view
-      if (reviewedTime > oneHourAgo) {
-        return false;
-      }
-      // If more than 1 hour has passed, task needs review again
-    }
+    // For non-Done tasks: if recently reviewed, hide from Review view
+    if (isRecentlyReviewed(task)) return false;
     
     // Include overdue tasks that aren't done (and weren't recently reviewed)
     if (!task.due_date || task.status === "Done") return false;
@@ -949,7 +972,13 @@ export default function TasksModern() {
     return dueDate.getTime() < today.getTime(); // Due strictly before today (yesterday or earlier)
   };
 
+  // Filter out recently reviewed tasks from non-All views
+  const filterRecentlyReviewed = (taskList: ModernTask[]): ModernTask[] => {
+    return taskList.filter(task => !isRecentlyReviewed(task) || task.status === "Done");
+  };
+
   // Open Tasks = Not done OR done but not yet reviewed
+  // IMPORTANT: Exclude recently reviewed tasks from non-All views
   const allOpenTasks = filteredTasks.filter(task => task.status !== "Done" || (task.status === "Done" && !task.reviewed));
   // Completed Tasks = Done AND reviewed by admin
   const allDoneTasks = filteredTasks.filter(task => task.status === "Done" && task.reviewed === true);
@@ -963,7 +992,8 @@ export default function TasksModern() {
   const unReviewedDoneTasks = allOpenTasks.filter(t => t.status === "Done" && !t.reviewed);
   const nonDoneTasks = allOpenTasks.filter(t => t.status !== "Done");
 
-  const openTasks = statsFilter === 'all' 
+  // When not viewing 'all', filter out recently reviewed tasks
+  const openTasksUnfiltered = statsFilter === 'all' 
     ? allOpenTasks 
     : statsFilter === 'active' 
       ? [...nonDoneTasks.filter(t => !isTaskOverdue(t)), ...unReviewedDoneTasks]
@@ -974,6 +1004,9 @@ export default function TasksModern() {
           : statsFilter === 'overdue'
             ? [...nonDoneTasks.filter(t => isTaskOverdue(t)), ...unReviewedDoneTasks]
             : []; // completed filter shows nothing in open tasks
+
+  // Apply the recently reviewed filter for non-All views
+  const openTasks = statsFilter === 'all' ? openTasksUnfiltered : filterRecentlyReviewed(openTasksUnfiltered);
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
@@ -1500,6 +1533,8 @@ export default function TasksModern() {
           onOpenChange={setRequirementModalOpen}
           requirement={completionRequirement}
           onLogCall={handleLogCallFromModal}
+          onOpenLead={handleOpenLeadFromModal}
+          borrowerId={pendingStatusChange ? tasks.find(t => t.id === pendingStatusChange.taskId)?.borrower_id : undefined}
         />
       )}
 

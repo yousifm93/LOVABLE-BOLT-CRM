@@ -5521,6 +5521,7 @@ export type Database = {
         | "Received"
         | "Waiver"
         | "Transfer"
+        | "On Hold"
       approval_source_type: "PennyMac" | "A&D" | "UWM"
       approval_type_type: "Full" | "Limited" | "Non-QM" | "Hard Money"
       audit_step:
@@ -5559,7 +5560,13 @@ export type Database = {
         | "self_employed"
         | "rental"
         | "other"
-      condo_status: "Ordered" | "Received" | "Approved" | "N/A"
+      condo_status:
+        | "Ordered"
+        | "Received"
+        | "Approved"
+        | "N/A"
+        | "Transfer"
+        | "On Hold"
       contact_type:
         | "Agent"
         | "Realtor"
@@ -5814,6 +5821,7 @@ export const Constants = {
         "Received",
         "Waiver",
         "Transfer",
+        "On Hold",
       ],
       approval_source_type: ["PennyMac", "A&D", "UWM"],
       approval_type_type: ["Full", "Limited", "Non-QM", "Hard Money"],
@@ -5857,7 +5865,14 @@ export const Constants = {
         "rental",
         "other",
       ],
-      condo_status: ["Ordered", "Received", "Approved", "N/A"],
+      condo_status: [
+        "Ordered",
+        "Received",
+        "Approved",
+        "N/A",
+        "Transfer",
+        "On Hold",
+      ],
       contact_type: [
         "Agent",
         "Realtor",

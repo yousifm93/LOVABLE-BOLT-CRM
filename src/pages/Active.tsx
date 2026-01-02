@@ -182,7 +182,7 @@ const hoiStatusOptions = [
 
 const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
-  { value: "Docs Received", label: "Docs Received" },
+  { value: "Received", label: "Docs Received" },
   { value: "Approved", label: "Approved" },
   { value: "Transfer", label: "Transfer" },
   { value: "On Hold", label: "On Hold" },
@@ -1134,14 +1134,14 @@ export default function Active() {
         }
       }
       
-      // Automation: When NEW or RFP, move from Live/On Hold back to Incoming (case-insensitive)
+      // Automation: When NEW or RFP, ALWAYS move to Incoming (unless Closed)
       if (field === 'loan_status' && (value?.toUpperCase() === 'NEW' || value?.toUpperCase() === 'RFP')) {
         const currentLoan = activeLoans.find(loan => loan.id === id);
-        if (currentLoan?.pipeline_section === 'Live' || currentLoan?.pipeline_section === 'On Hold') {
+        if (currentLoan?.pipeline_section !== 'Closed' && currentLoan?.pipeline_section !== 'Incoming') {
           updateData.pipeline_section = 'Incoming';
           toast({
             title: "Moved to Incoming",
-            description: "Loan moved back to Incoming section",
+            description: "Loan moved to Incoming section",
           });
         }
       }
