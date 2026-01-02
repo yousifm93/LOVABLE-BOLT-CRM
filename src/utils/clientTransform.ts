@@ -318,5 +318,9 @@ export function transformLeadToClient(lead: any): any {
     
     // Paper application URL from mortgage application submission
     paper_application_url: lead.paper_application_url || null,
+    
+    // Lead qualification fields
+    lead_strength: lead.lead_strength || null,
+    likely_to_apply: lead.likely_to_apply || null,
   };
 }
