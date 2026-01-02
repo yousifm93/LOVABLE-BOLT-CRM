@@ -930,10 +930,10 @@ export function ClientDetailDrawer({
         const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
         
         return (
-          <div className="h-[280px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
-              {/* Left Column: Lead Details */}
-              <div className="space-y-3">
+              {/* Left Column: Lead Details - 2x2 grid layout */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lead Status</span>
                   <InlineEditSelect 
@@ -946,6 +946,20 @@ export function ClientDetailDrawer({
                       { value: 'Dead', label: 'Dead' },
                       { value: 'Needs Attention', label: 'Needs Attention' }
                     ]} 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Strength:</span>
+                  <InlineEditSelect 
+                    value={(client as any).lead_strength || ''} 
+                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
+                    options={[
+                      { value: 'Hot', label: 'Hot' },
+                      { value: 'Warm', label: 'Warm' },
+                      { value: 'Cold', label: 'Cold' }
+                    ]} 
+                    placeholder="Select strength" 
                   />
                 </div>
                 
@@ -966,6 +980,20 @@ export function ClientDetailDrawer({
                 </div>
                 
                 <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Likely to Apply:</span>
+                  <InlineEditSelect 
+                    value={(client as any).likely_to_apply || ''} 
+                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
+                    options={[
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]} 
+                    placeholder="Select likelihood" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1 col-span-2">
                   <span className="text-xs text-muted-foreground">Referral Source:</span>
                   <InlineEditSelect 
                     value={(client as any).referral_source || ''} 
@@ -979,35 +1007,6 @@ export function ClientDetailDrawer({
                       { value: 'Miscellaneous', label: 'Miscellaneous' }
                     ]} 
                     placeholder="Select source" 
-                  />
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Lead Strength:</span>
-                  <InlineEditSelect 
-                    value={(client as any).lead_strength || ''} 
-                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
-                    options={[
-                      { value: 'Hot', label: 'Hot' },
-                      { value: 'Warm', label: 'Warm' },
-                      { value: 'Cold', label: 'Cold' }
-                    ]} 
-                    placeholder="Select strength" 
-                  />
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Likely to Apply:</span>
-                  <InlineEditSelect 
-                    value={(client as any).likely_to_apply || ''} 
-                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
-                    options={[
-                      { value: 'Very Likely', label: 'Very Likely' },
-                      { value: 'Likely', label: 'Likely' },
-                      { value: 'Unlikely', label: 'Unlikely' },
-                      { value: 'Very Unlikely', label: 'Very Unlikely' }
-                    ]} 
-                    placeholder="Select likelihood" 
                   />
                 </div>
               </div>
@@ -1069,8 +1068,8 @@ export function ClientDetailDrawer({
         return (
           <div className="flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
-              {/* Left Column: Gray fields - Transaction Type, LTV, Credit Score */}
-              <div className="flex flex-col gap-3">
+              {/* Left Column: Gray fields - 2x2 grid layout */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Transaction Type:</span>
                   <InlineEditSelect 
@@ -1086,11 +1085,39 @@ export function ClientDetailDrawer({
                 </div>
                 
                 <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Strength:</span>
+                  <InlineEditSelect 
+                    value={(client as any).lead_strength || ''} 
+                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
+                    options={[
+                      { value: 'Hot', label: 'Hot' },
+                      { value: 'Warm', label: 'Warm' },
+                      { value: 'Cold', label: 'Cold' }
+                    ]} 
+                    placeholder="Select strength" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">LTV:</span>
                   <span className="text-sm font-medium">{ltvPendingApp ? `${ltvPendingApp}%` : '—'}</span>
                 </div>
                 
                 <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Likely to Apply:</span>
+                  <InlineEditSelect 
+                    value={(client as any).likely_to_apply || ''} 
+                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
+                    options={[
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]} 
+                    placeholder="Select likelihood" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1 col-span-2">
                   <span className="text-xs text-muted-foreground">Credit Score:</span>
                   <span className="text-sm font-medium">{localFicoScore ?? (client as any).fico_score ?? '—'}</span>
                 </div>
@@ -3135,10 +3162,9 @@ export function ClientDetailDrawer({
                         value={modalLikelyToApply} 
                         onValueChange={setModalLikelyToApply} 
                         options={[
-                          { value: 'Very Likely', label: 'Very Likely' },
-                          { value: 'Likely', label: 'Likely' },
-                          { value: 'Unlikely', label: 'Unlikely' },
-                          { value: 'Very Unlikely', label: 'Very Unlikely' }
+                          { value: 'High', label: 'High' },
+                          { value: 'Medium', label: 'Medium' },
+                          { value: 'Low', label: 'Low' }
                         ]} 
                         placeholder="Select likelihood" 
                       />
