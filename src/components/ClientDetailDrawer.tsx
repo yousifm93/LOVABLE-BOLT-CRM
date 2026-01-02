@@ -186,6 +186,10 @@ export function ClientDetailDrawer({
   const [pipelineValidationMissingFields, setPipelineValidationMissingFields] = useState<string[]>([]);
   const [pendingPipelineStage, setPendingPipelineStage] = useState<{ stageId: string; stageLabel: string } | null>(null);
   const [isRefinanceBypass, setIsRefinanceBypass] = useState(false);
+  
+  // Modal inline edit state for pipeline validation
+  const [modalLeadStrength, setModalLeadStrength] = useState<string>('');
+  const [modalLikelyToApply, setModalLikelyToApply] = useState<string>('');
 
   // User info for timestamps
   const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
@@ -926,7 +930,7 @@ export function ClientDetailDrawer({
         const { lastCall, lastText, lastEmail } = getLastCommunicationTimes();
         
         return (
-          <div className="h-[220px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
+          <div className="h-[280px] overflow-y-auto flex flex-col p-4 bg-muted/30 rounded-lg border border-muted/60">
             <div className="grid grid-cols-[1fr_1fr_auto] gap-6 flex-1">
               {/* Left Column: Lead Details */}
               <div className="space-y-3">
@@ -975,6 +979,35 @@ export function ClientDetailDrawer({
                       { value: 'Miscellaneous', label: 'Miscellaneous' }
                     ]} 
                     placeholder="Select source" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Lead Strength:</span>
+                  <InlineEditSelect 
+                    value={(client as any).lead_strength || ''} 
+                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
+                    options={[
+                      { value: 'Hot', label: 'Hot' },
+                      { value: 'Warm', label: 'Warm' },
+                      { value: 'Cold', label: 'Cold' }
+                    ]} 
+                    placeholder="Select strength" 
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Likely to Apply:</span>
+                  <InlineEditSelect 
+                    value={(client as any).likely_to_apply || ''} 
+                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
+                    options={[
+                      { value: 'Very Likely', label: 'Very Likely' },
+                      { value: 'Likely', label: 'Likely' },
+                      { value: 'Unlikely', label: 'Unlikely' },
+                      { value: 'Very Unlikely', label: 'Very Unlikely' }
+                    ]} 
+                    placeholder="Select likelihood" 
                   />
                 </div>
               </div>
@@ -3057,6 +3090,12 @@ export function ClientDetailDrawer({
                 setPipelineValidationModalOpen(false);
                 setIsRefinanceBypass(false);
                 setPendingPipelineStage(null);
+                setModalLeadStrength('');
+                setModalLikelyToApply('');
+              } else {
+                // Initialize modal values when opening
+                setModalLeadStrength((client as any).lead_strength || '');
+                setModalLikelyToApply((client as any).likely_to_apply || '');
               }
             }}>
               <DialogContent className="max-w-md">
@@ -3070,16 +3109,52 @@ export function ClientDetailDrawer({
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Please update the following fields:</p>
+                  <p className="text-sm text-muted-foreground">Please update the following fields:</p>
+                  
+                  {/* Inline editable fields */}
+                  {pipelineValidationMissingFields.includes('lead_strength') && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-sm font-medium">Lead Strength</Label>
+                      <InlineEditSelect 
+                        value={modalLeadStrength} 
+                        onValueChange={setModalLeadStrength} 
+                        options={[
+                          { value: 'Hot', label: 'Hot' },
+                          { value: 'Warm', label: 'Warm' },
+                          { value: 'Cold', label: 'Cold' }
+                        ]} 
+                        placeholder="Select strength" 
+                      />
+                    </div>
+                  )}
+                  
+                  {pipelineValidationMissingFields.includes('likely_to_apply') && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-sm font-medium">Likely to Apply</Label>
+                      <InlineEditSelect 
+                        value={modalLikelyToApply} 
+                        onValueChange={setModalLikelyToApply} 
+                        options={[
+                          { value: 'Very Likely', label: 'Very Likely' },
+                          { value: 'Likely', label: 'Likely' },
+                          { value: 'Unlikely', label: 'Unlikely' },
+                          { value: 'Very Unlikely', label: 'Very Unlikely' }
+                        ]} 
+                        placeholder="Select likelihood" 
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Show other missing fields as a list */}
+                  {pipelineValidationMissingFields.filter(f => !['lead_strength', 'likely_to_apply'].includes(f)).length > 0 && (
                     <ul className="list-disc list-inside text-sm space-y-1">
-                      {pipelineValidationMissingFields.map(field => (
+                      {pipelineValidationMissingFields.filter(f => !['lead_strength', 'likely_to_apply'].includes(f)).map(field => (
                         <li key={field} className="text-foreground font-medium">
                           {field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  )}
                   
                   {/* Show refinance bypass option when moving to Active */}
                   {pendingPipelineStage?.stageLabel.toLowerCase() === 'active' && pipelineValidationMissingFields.includes('contract_file') && (
@@ -3100,9 +3175,115 @@ export function ClientDetailDrawer({
                     setPipelineValidationModalOpen(false);
                     setIsRefinanceBypass(false);
                     setPendingPipelineStage(null);
+                    setModalLeadStrength('');
+                    setModalLikelyToApply('');
                   }}>
                     Close
                   </Button>
+                  
+                  {/* Save & Continue button for lead_strength/likely_to_apply fields */}
+                  {(pipelineValidationMissingFields.includes('lead_strength') || pipelineValidationMissingFields.includes('likely_to_apply')) && pendingPipelineStage && (
+                    <Button onClick={async () => {
+                      // Validate that required fields are filled
+                      const stillMissing: string[] = [];
+                      if (pipelineValidationMissingFields.includes('lead_strength') && !modalLeadStrength) {
+                        stillMissing.push('Lead Strength');
+                      }
+                      if (pipelineValidationMissingFields.includes('likely_to_apply') && !modalLikelyToApply) {
+                        stillMissing.push('Likely to Apply');
+                      }
+                      // Check other required fields that can't be edited in modal
+                      const otherMissing = pipelineValidationMissingFields.filter(f => !['lead_strength', 'likely_to_apply'].includes(f));
+                      
+                      if (stillMissing.length > 0) {
+                        toast({
+                          title: "Missing Fields",
+                          description: `Please fill in: ${stillMissing.join(', ')}`,
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      if (otherMissing.length > 0) {
+                        toast({
+                          title: "Additional Fields Required",
+                          description: `Please also update: ${otherMissing.map(f => f.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')).join(', ')}`,
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      try {
+                        // Save the field updates
+                        const updateData: any = {};
+                        if (modalLeadStrength) updateData.lead_strength = modalLeadStrength;
+                        if (modalLikelyToApply) updateData.likely_to_apply = modalLikelyToApply;
+                        
+                        if (Object.keys(updateData).length > 0) {
+                          await databaseService.updateLead(leadId!, updateData);
+                        }
+                        
+                        // Close modal and proceed with stage change
+                        setPipelineValidationModalOpen(false);
+                        setModalLeadStrength('');
+                        setModalLikelyToApply('');
+                        
+                        // Perform the stage change
+                        const stageId = pendingPipelineStage.stageId;
+                        const normalizedLabel = pendingPipelineStage.stageLabel;
+                        setPendingPipelineStage(null);
+                        
+                        const STAGE_ORDER = ['leads', 'pending-app', 'screening', 'pre-qualified', 'pre-approved', 'active'];
+                        const STAGE_DATE_FIELDS: Record<string, string> = {
+                          'pending-app': 'pending_app_at',
+                          'screening': 'app_complete_at',
+                          'pre-qualified': 'pre_qualified_at',
+                          'pre-approved': 'pre_approved_at',
+                          'active': 'active_at'
+                        };
+
+                        const currentStageKey = client.ops.stage;
+                        const targetStageKey = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
+                        
+                        const currentIndex = STAGE_ORDER.indexOf(currentStageKey);
+                        const targetIndex = STAGE_ORDER.indexOf(targetStageKey);
+
+                        const stageUpdateData: any = { pipeline_stage_id: stageId };
+
+                        if (currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex) {
+                          const now = new Date().toISOString();
+                          for (let i = currentIndex + 1; i <= targetIndex; i++) {
+                            const stageKey = STAGE_ORDER[i];
+                            const dateField = STAGE_DATE_FIELDS[stageKey];
+                            if (dateField) {
+                              stageUpdateData[dateField] = now;
+                            }
+                          }
+                        }
+
+                        await databaseService.updateLead(leadId!, stageUpdateData);
+                        
+                        toast({
+                          title: "Pipeline Updated",
+                          description: `Lead moved to ${normalizedLabel}`
+                        });
+                        
+                        if (onLeadUpdated) {
+                          await onLeadUpdated();
+                        }
+                      } catch (error: any) {
+                        console.error('Error updating fields and pipeline stage:', error);
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to update",
+                          variant: "destructive"
+                        });
+                      }
+                    }}>
+                      Save & Continue
+                    </Button>
+                  )}
+                  
                   {isRefinanceBypass && pendingPipelineStage && (
                     <Button onClick={async () => {
                       // Close modal and proceed with stage change bypassing the requirement
