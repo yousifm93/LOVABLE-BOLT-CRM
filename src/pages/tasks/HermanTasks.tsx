@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,6 +15,7 @@ interface ModernTask {
   id: string;
   title: string;
   description?: string;
+  notes?: string;
   due_date?: string;
   status: string;
   priority: string;
@@ -167,6 +169,26 @@ const columns: ColumnDef<ModernTask>[] = [
   },
 ];
 
+// Columns with notes - needs handleUpdate function passed in
+const getColumnsWithNotes = (handleUpdate: (taskId: string, field: string, value: any) => Promise<void>): ColumnDef<ModernTask>[] => [
+  ...columns.slice(0, -1), // All columns except status
+  {
+    accessorKey: "notes",
+    header: "Notes",
+    cell: ({ row }) => (
+      <div className="w-48 min-w-48">
+        <InlineEditNotes
+          value={row.original.notes || null}
+          onValueChange={(value) => handleUpdate(row.original.id, "notes", value)}
+          placeholder="Add notes..."
+          maxLength={500}
+        />
+      </div>
+    ),
+  },
+  columns[columns.length - 1], // Status column at end
+];
+
 export default function HermanTasks() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tasks, setTasks] = useState<ModernTask[]>([]);
@@ -200,9 +222,29 @@ export default function HermanTasks() {
     console.log("View task details:", task);
   };
 
+  const handleUpdate = async (taskId: string, field: string, value: any) => {
+    try {
+      await databaseService.updateTask(taskId, { [field]: value });
+      await loadTasks();
+      toast({
+        title: "Updated",
+        description: `Task ${field} updated successfully`,
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleTaskCreated = () => {
     loadTasks();
   };
+
+  const columnsWithNotes = getColumnsWithNotes(handleUpdate);
 
   const completedTasks = tasks.filter(task => task.status === "Done").length;
   const overdueTasks = tasks.filter(task => {
@@ -289,7 +331,7 @@ export default function HermanTasks() {
             </div>
           ) : (
             <DataTable
-              columns={columns}
+              columns={columnsWithNotes}
               data={tasks}
               searchTerm={searchTerm}
               onRowClick={handleRowClick}
