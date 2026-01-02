@@ -24,7 +24,7 @@ export const STATUS_OPTIONS = {
   appraisalStatus: ['Ordered', 'Scheduled', 'Inspected', 'Received', 'Waiver', 'Transfer', 'On Hold'],
   titleStatus: ['Requested', 'Received'],
   hoiStatus: ['Quoted', 'Ordered', 'Bound'],
-  condoStatus: ['Ordered', 'Docs Received', 'Approved', 'Transfer', 'On Hold', 'N/A'],
+  condoStatus: ['Ordered', 'Received', 'Approved', 'Transfer', 'On Hold', 'N/A'],
   cdStatus: ['Requested', 'Sent', 'Signed', 'N/A'],
   packageStatus: ['Initial', 'Final'],
   baStatus: ['Send', 'Sent', 'Signed', 'N/A'],

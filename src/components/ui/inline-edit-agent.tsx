@@ -42,12 +42,35 @@ export function InlineEditAgent({
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const filteredAgents = React.useMemo(() => {
-    if (!searchTerm) return agents;
-    return agents.filter(agent =>
+    // Find the N/A agent to pin at top
+    const naAgent = agents.find(agent => 
+      agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable')
+    );
+    const otherAgents = agents.filter(agent => 
+      !(agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable'))
+    );
+    
+    if (!searchTerm) {
+      // Pin N/A agent at top when no search
+      return naAgent ? [naAgent, ...otherAgents] : otherAgents;
+    }
+    
+    // Filter based on search term
+    const filtered = agents.filter(agent =>
       `${agent.first_name} ${agent.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       agent.brokerage?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       agent.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    
+    // Still pin N/A at top if it matches
+    const naMatch = filtered.find(agent => 
+      agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable')
+    );
+    const othersMatch = filtered.filter(agent => 
+      !(agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable'))
+    );
+    
+    return naMatch ? [naMatch, ...othersMatch] : filtered;
   }, [agents, searchTerm]);
 
   const handleSelect = (agent: Agent) => {

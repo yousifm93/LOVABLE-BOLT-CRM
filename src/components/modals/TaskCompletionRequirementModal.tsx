@@ -1,4 +1,4 @@
-import { AlertCircle, Phone, User } from "lucide-react";
+import { AlertCircle, Phone, User, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,8 @@ interface TaskCompletionRequirementModalProps {
     };
   };
   onLogCall: () => void;
+  onOpenLead?: () => void;
+  borrowerId?: string;
 }
 
 export function TaskCompletionRequirementModal({
@@ -28,7 +30,17 @@ export function TaskCompletionRequirementModal({
   onOpenChange,
   requirement,
   onLogCall,
+  onOpenLead,
+  borrowerId,
 }: TaskCompletionRequirementModalProps) {
+  // Determine if this is a field-based requirement (not a call log requirement)
+  const isFieldRequirement = requirement.missingRequirement?.startsWith('field_value:') || 
+                             requirement.missingRequirement?.startsWith('field_populated:');
+  
+  // Determine if this is a call-based requirement
+  const isCallRequirement = requirement.missingRequirement?.startsWith('log_call_') || 
+                            requirement.missingRequirement?.startsWith('log_note_');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -44,7 +56,7 @@ export function TaskCompletionRequirementModal({
             {requirement.message}
           </p>
 
-          {requirement.contactInfo && (
+          {requirement.contactInfo && isCallRequirement && (
             <div className="bg-muted p-4 rounded-md space-y-2">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -58,16 +70,33 @@ export function TaskCompletionRequirementModal({
               )}
             </div>
           )}
+
+          {isFieldRequirement && (
+            <div className="bg-muted p-4 rounded-md space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="text-sm">Update the required field on the lead to complete this task.</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onLogCall}>
-            <Phone className="h-4 w-4 mr-2" />
-            Log Call Now
-          </Button>
+          {isCallRequirement && requirement.contactInfo && (
+            <Button onClick={onLogCall}>
+              <Phone className="h-4 w-4 mr-2" />
+              Log Call Now
+            </Button>
+          )}
+          {isFieldRequirement && borrowerId && onOpenLead && (
+            <Button onClick={onOpenLead}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open Lead
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

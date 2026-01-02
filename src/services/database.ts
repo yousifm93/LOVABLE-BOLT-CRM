@@ -1003,7 +1003,7 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('tasks')
       .select(`
-        id, title, description, notes, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type, reviewed,
+        id, title, description, notes, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type, reviewed, reviewed_at,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         borrower:leads!tasks_borrower_id_fkey(
           id, 
@@ -1073,7 +1073,7 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('tasks')
       .select(`
-        id, title, description, notes, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type, reviewed,
+        id, title, description, notes, due_date, status, priority, assignee_id, borrower_id, task_order, created_at, updated_at, created_by, completion_requirement_type, reviewed, reviewed_at,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         borrower:leads!tasks_borrower_id_fkey(
           id, 
