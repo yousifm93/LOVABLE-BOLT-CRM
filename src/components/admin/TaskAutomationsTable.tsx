@@ -314,6 +314,7 @@ export function TaskAutomationsTable() {
         <TableRow>
           <TableHead className="w-12">#</TableHead>
           <TableHead>Task Name</TableHead>
+          <TableHead>Assigned To</TableHead>
           <TableHead>Trigger</TableHead>
           <TableHead>Contingency</TableHead>
           <TableHead className="w-[100px]">Last Run</TableHead>
@@ -326,6 +327,15 @@ export function TaskAutomationsTable() {
           <TableRow key={automation.id}>
             <TableCell className="font-medium py-2">{index + 1}</TableCell>
             <TableCell className="font-medium py-2">{automation.task_name}</TableCell>
+            <TableCell className="text-sm py-2">
+              {automation.assigned_user ? (
+                <span className="text-foreground">
+                  {automation.assigned_user.first_name} {automation.assigned_user.last_name}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/50">Unassigned</span>
+              )}
+            </TableCell>
             <TableCell className="text-sm text-muted-foreground py-2">
               {formatTrigger(automation)}
             </TableCell>

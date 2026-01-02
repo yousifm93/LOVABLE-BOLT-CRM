@@ -36,6 +36,8 @@ const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
   { value: "Docs Received", label: "Docs Received" },
   { value: "Approved", label: "Approved" },
+  { value: "Transfer", label: "Transfer" },
+  { value: "On Hold", label: "On Hold" },
   { value: "N/A", label: "N/A" }
 ];
 

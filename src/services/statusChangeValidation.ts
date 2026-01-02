@@ -19,6 +19,8 @@ export interface PipelineStageRule {
   requires: string[];
   message: string;
   actionLabel?: string;
+  bypassField?: string;
+  bypassValues?: string[];
 }
 
 export interface PipelineStageRules {
@@ -34,7 +36,9 @@ export const pipelineStageRules: PipelineStageRules = {
   'active': {
     requires: ['contract_file'],
     message: 'Please upload a contract before moving to Active pipeline',
-    actionLabel: 'Upload Contract'
+    actionLabel: 'Upload Contract',
+    bypassField: 'pr_type',
+    bypassValues: ['R', 'HELOC']
   }
 };
 
@@ -159,11 +163,20 @@ export interface PipelineValidationResult {
 
 export function validatePipelineStageChange(
   targetStageKey: string,
-  lead: any
+  lead: any,
+  bypassRefinance: boolean = false
 ): PipelineValidationResult {
   const rule = pipelineStageRules[targetStageKey];
   if (!rule) {
     return { isValid: true };
+  }
+
+  // Check if rule has bypass conditions (for refinances)
+  if (rule.bypassField && rule.bypassValues) {
+    const bypassValue = lead[rule.bypassField];
+    if (rule.bypassValues.includes(bypassValue) || bypassRefinance) {
+      return { isValid: true };
+    }
   }
 
   const missingFields: string[] = [];

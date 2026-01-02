@@ -138,7 +138,9 @@ const appraisalStatusOptions = [
   { value: "Scheduled", label: "Scheduled" },
   { value: "Inspected", label: "Inspected" },
   { value: "Received", label: "Received" },
-  { value: "Waiver", label: "Waiver" }
+  { value: "Waiver", label: "Waiver" },
+  { value: "Transfer", label: "Transfer" },
+  { value: "On Hold", label: "On Hold" }
 ];
 
 const titleStatusOptions = [
@@ -155,7 +157,10 @@ const hoiStatusOptions = [
 const condoStatusOptions = [
   { value: "Ordered", label: "Ordered" },
   { value: "Docs Received", label: "Docs Received" },
-  { value: "Approved", label: "Approved" }
+  { value: "Approved", label: "Approved" },
+  { value: "Transfer", label: "Transfer" },
+  { value: "On Hold", label: "On Hold" },
+  { value: "N/A", label: "N/A" }
 ];
 
 const cdStatusOptions = [

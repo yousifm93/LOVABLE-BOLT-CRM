@@ -184,6 +184,8 @@ export function ClientDetailDrawer({
   const [pipelineValidationModalOpen, setPipelineValidationModalOpen] = useState(false);
   const [pipelineValidationRule, setPipelineValidationRule] = useState<PipelineStageRule | null>(null);
   const [pipelineValidationMissingFields, setPipelineValidationMissingFields] = useState<string[]>([]);
+  const [pendingPipelineStage, setPendingPipelineStage] = useState<{ stageId: string; stageLabel: string } | null>(null);
+  const [isRefinanceBypass, setIsRefinanceBypass] = useState(false);
 
   // User info for timestamps
   const [notesUpdatedByUser, setNotesUpdatedByUser] = useState<any>(null);
@@ -1402,12 +1404,14 @@ export function ClientDetailDrawer({
     }
     
     // Validate pipeline stage change requirements
-    const targetStageKey = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
-    const pipelineValidation = validatePipelineStageChange(targetStageKey, client);
+    const targetStageKeyVal = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
+    const pipelineValidation = validatePipelineStageChange(targetStageKeyVal, client);
     
     if (!pipelineValidation.isValid && pipelineValidation.rule) {
       setPipelineValidationRule(pipelineValidation.rule);
       setPipelineValidationMissingFields(pipelineValidation.missingFields || []);
+      setPendingPipelineStage({ stageId, stageLabel: normalizedLabel });
+      setIsRefinanceBypass(false);
       setPipelineValidationModalOpen(true);
       return;
     }
@@ -3048,7 +3052,13 @@ export function ClientDetailDrawer({
 
           {/* Pipeline Stage Validation Modal */}
           {pipelineValidationRule && (
-            <Dialog open={pipelineValidationModalOpen} onOpenChange={setPipelineValidationModalOpen}>
+            <Dialog open={pipelineValidationModalOpen} onOpenChange={(open) => {
+              if (!open) {
+                setPipelineValidationModalOpen(false);
+                setIsRefinanceBypass(false);
+                setPendingPipelineStage(null);
+              }
+            }}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <div className="flex items-center gap-2 text-amber-600">
@@ -3059,20 +3069,102 @@ export function ClientDetailDrawer({
                     {pipelineValidationRule.message}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                  <p className="text-sm text-muted-foreground mb-2">Please update the following fields:</p>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    {pipelineValidationMissingFields.map(field => (
-                      <li key={field} className="text-foreground font-medium">
-                        {field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="py-4 space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Please update the following fields:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {pipelineValidationMissingFields.map(field => (
+                        <li key={field} className="text-foreground font-medium">
+                          {field.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  {/* Show refinance bypass option when moving to Active */}
+                  {pendingPipelineStage?.stageLabel.toLowerCase() === 'active' && pipelineValidationMissingFields.includes('contract_file') && (
+                    <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg border">
+                      <Checkbox
+                        id="refinance-bypass"
+                        checked={isRefinanceBypass}
+                        onCheckedChange={(checked) => setIsRefinanceBypass(checked as boolean)}
+                      />
+                      <Label htmlFor="refinance-bypass" className="text-sm cursor-pointer">
+                        This is a refinance or HELOC (no contract needed)
+                      </Label>
+                    </div>
+                  )}
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setPipelineValidationModalOpen(false)}>
+                <DialogFooter className="flex gap-2">
+                  <Button variant="outline" onClick={() => {
+                    setPipelineValidationModalOpen(false);
+                    setIsRefinanceBypass(false);
+                    setPendingPipelineStage(null);
+                  }}>
                     Close
                   </Button>
+                  {isRefinanceBypass && pendingPipelineStage && (
+                    <Button onClick={async () => {
+                      // Close modal and proceed with stage change bypassing the requirement
+                      setPipelineValidationModalOpen(false);
+                      setIsRefinanceBypass(false);
+                      
+                      // Perform the stage change
+                      const stageId = pendingPipelineStage.stageId;
+                      const normalizedLabel = pendingPipelineStage.stageLabel;
+                      setPendingPipelineStage(null);
+                      
+                      try {
+                        const STAGE_ORDER = ['leads', 'pending-app', 'screening', 'pre-qualified', 'pre-approved', 'active'];
+                        const STAGE_DATE_FIELDS: Record<string, string> = {
+                          'pending-app': 'pending_app_at',
+                          'screening': 'app_complete_at',
+                          'pre-qualified': 'pre_qualified_at',
+                          'pre-approved': 'pre_approved_at',
+                          'active': 'active_at'
+                        };
+
+                        const currentStageKey = client.ops.stage;
+                        const targetStageKey = normalizedLabel.toLowerCase().replace(/\s+/g, '-');
+                        
+                        const currentIndex = STAGE_ORDER.indexOf(currentStageKey);
+                        const targetIndex = STAGE_ORDER.indexOf(targetStageKey);
+
+                        const updateData: any = { pipeline_stage_id: stageId };
+
+                        if (currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex) {
+                          const now = new Date().toISOString();
+                          for (let i = currentIndex + 1; i <= targetIndex; i++) {
+                            const stageKey = STAGE_ORDER[i];
+                            const dateField = STAGE_DATE_FIELDS[stageKey];
+                            if (dateField) {
+                              updateData[dateField] = now;
+                            }
+                          }
+                        }
+
+                        await databaseService.updateLead(leadId!, updateData);
+                        
+                        toast({
+                          title: "Pipeline Updated",
+                          description: `Lead moved to ${normalizedLabel}`
+                        });
+                        
+                        if (onLeadUpdated) {
+                          await onLeadUpdated();
+                        }
+                      } catch (error: any) {
+                        console.error('Error updating pipeline stage:', error);
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to update pipeline stage",
+                          variant: "destructive"
+                        });
+                      }
+                    }}>
+                      Continue Without Contract
+                    </Button>
+                  )}
                 </DialogFooter>
               </DialogContent>
             </Dialog>
