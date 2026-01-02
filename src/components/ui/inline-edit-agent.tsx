@@ -42,33 +42,53 @@ export function InlineEditAgent({
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const filteredAgents = React.useMemo(() => {
+    // Helper to check if an agent is the N/A agent
+    const isNaAgent = (agent: Agent) => {
+      const fullName = `${agent.first_name || ''} ${agent.last_name || ''}`.toLowerCase();
+      return fullName.includes('n/a') && fullName.includes('not applicable');
+    };
+    
     // Find the N/A agent to pin at top
-    const naAgent = agents.find(agent => 
-      agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable')
-    );
-    const otherAgents = agents.filter(agent => 
-      !(agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable'))
-    );
+    const naAgent = agents.find(isNaAgent);
+    const otherAgents = agents.filter(agent => !isNaAgent(agent));
     
     if (!searchTerm) {
       // Pin N/A agent at top when no search
       return naAgent ? [naAgent, ...otherAgents] : otherAgents;
     }
     
-    // Filter based on search term
-    const filtered = agents.filter(agent =>
-      `${agent.first_name} ${agent.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.brokerage?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Normalize search term - remove punctuation, lowercase
+    const normalizedSearch = searchTerm.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+    
+    // Special handling for N/A searches
+    const isSearchingForNa = ['na', 'n a', 'not applicable', 'not', 'applicable'].some(
+      term => normalizedSearch.includes(term) || term.includes(normalizedSearch)
     );
     
-    // Still pin N/A at top if it matches
-    const naMatch = filtered.find(agent => 
-      agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable')
-    );
-    const othersMatch = filtered.filter(agent => 
-      !(agent.first_name === 'N/A' && agent.last_name?.includes('Not Applicable'))
-    );
+    // Filter based on search term
+    const filtered = agents.filter(agent => {
+      // Build searchable text from all fields
+      const searchBlob = [
+        agent.first_name || '',
+        agent.last_name || '',
+        agent.brokerage || '',
+        agent.email || '',
+        agent.phone || ''
+      ].join(' ').toLowerCase();
+      
+      // Check if matches search
+      return searchBlob.includes(searchTerm.toLowerCase()) ||
+        searchBlob.replace(/[^a-z0-9\s]/g, '').includes(normalizedSearch);
+    });
+    
+    // If searching for N/A and N/A agent exists but wasn't matched, add it
+    if (isSearchingForNa && naAgent && !filtered.some(isNaAgent)) {
+      filtered.unshift(naAgent);
+    }
+    
+    // Pin N/A at top if it's in results
+    const naMatch = filtered.find(isNaAgent);
+    const othersMatch = filtered.filter(agent => !isNaAgent(agent));
     
     return naMatch ? [naMatch, ...othersMatch] : filtered;
   }, [agents, searchTerm]);

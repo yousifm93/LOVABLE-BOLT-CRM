@@ -135,7 +135,8 @@ export function ClientDetailDrawer({
   // Local state for gray section fields to reflect updates immediately
   const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
   const [localPriority, setLocalPriority] = useState((client as any).priority || 'Medium');
-  const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || 'Likely');
+  const [localLikelyToApply, setLocalLikelyToApply] = useState((client as any).likely_to_apply || '');
+  const [localLeadStrength, setLocalLeadStrength] = useState((client as any).lead_strength || '');
   const [localNotes, setLocalNotes] = useState((client as any).meta?.notes ?? (client as any).notes ?? '');
   const [localUpdatedAt, setLocalUpdatedAt] = useState((client as any).updated_at || new Date().toISOString());
   
@@ -349,6 +350,10 @@ export function ClientDetailDrawer({
         ? 'Primary' 
         : rawOccupancy;
       setLocalOccupancy(normalizedOccupancy);
+      
+      // Sync lead qualification fields
+      setLocalLeadStrength((client as any).lead_strength || '');
+      setLocalLikelyToApply((client as any).likely_to_apply || '');
 
       // Load user info for timestamps
       if ((client as any).notes_updated_by) {
@@ -952,8 +957,11 @@ export function ClientDetailDrawer({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lead Strength:</span>
                   <InlineEditSelect 
-                    value={(client as any).lead_strength || ''} 
-                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
+                    value={localLeadStrength || (client as any).lead_strength || ''} 
+                    onValueChange={value => {
+                      setLocalLeadStrength(value);
+                      handleLeadUpdate('lead_strength', value);
+                    }} 
                     options={[
                       { value: 'Hot', label: 'Hot' },
                       { value: 'Warm', label: 'Warm' },
@@ -982,8 +990,11 @@ export function ClientDetailDrawer({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Likely to Apply:</span>
                   <InlineEditSelect 
-                    value={(client as any).likely_to_apply || ''} 
-                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
+                    value={localLikelyToApply || (client as any).likely_to_apply || ''} 
+                    onValueChange={value => {
+                      setLocalLikelyToApply(value);
+                      handleLeadUpdate('likely_to_apply', value);
+                    }} 
                     options={[
                       { value: 'High', label: 'High' },
                       { value: 'Medium', label: 'Medium' },
@@ -1087,8 +1098,11 @@ export function ClientDetailDrawer({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Lead Strength:</span>
                   <InlineEditSelect 
-                    value={(client as any).lead_strength || ''} 
-                    onValueChange={value => handleLeadUpdate('lead_strength', value)} 
+                    value={localLeadStrength || (client as any).lead_strength || ''} 
+                    onValueChange={value => {
+                      setLocalLeadStrength(value);
+                      handleLeadUpdate('lead_strength', value);
+                    }} 
                     options={[
                       { value: 'Hot', label: 'Hot' },
                       { value: 'Warm', label: 'Warm' },
@@ -1106,8 +1120,11 @@ export function ClientDetailDrawer({
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Likely to Apply:</span>
                   <InlineEditSelect 
-                    value={(client as any).likely_to_apply || ''} 
-                    onValueChange={value => handleLeadUpdate('likely_to_apply', value)} 
+                    value={localLikelyToApply || (client as any).likely_to_apply || ''} 
+                    onValueChange={value => {
+                      setLocalLikelyToApply(value);
+                      handleLeadUpdate('likely_to_apply', value);
+                    }} 
                     options={[
                       { value: 'High', label: 'High' },
                       { value: 'Medium', label: 'Medium' },
