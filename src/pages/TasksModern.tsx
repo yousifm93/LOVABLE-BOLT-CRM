@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -405,6 +405,7 @@ export default function TasksModern() {
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'review' | 'overdue' | 'completed'>('all');
+  const modalJustClosed = useRef(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -535,6 +536,12 @@ export default function TasksModern() {
   // Auto-reset reviewed status for non-Done tasks after 1 hour
   useEffect(() => {
     const resetExpiredReviews = async () => {
+      // Skip reset if modal just closed (to prevent checkbox from disappearing)
+      if (modalJustClosed.current) {
+        modalJustClosed.current = false;
+        return;
+      }
+      
       const now = Date.now();
       const oneHourMs = 60 * 60 * 1000;
       
@@ -582,6 +589,12 @@ export default function TasksModern() {
   const handleRowClick = (task: ModernTask) => {
     setSelectedTask(task);
     setIsDetailModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    modalJustClosed.current = true;
+    setIsDetailModalOpen(false);
+    setSelectedTask(null);
   };
 
   const handleTaskCreated = () => {
@@ -1453,7 +1466,13 @@ export default function TasksModern() {
 
       <TaskDetailModal
         open={isDetailModalOpen}
-        onOpenChange={setIsDetailModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleModalClose();
+          } else {
+            setIsDetailModalOpen(true);
+          }
+        }}
         task={selectedTask}
         onTaskUpdated={handleTaskCreated}
       />

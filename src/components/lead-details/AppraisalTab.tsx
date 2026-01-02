@@ -35,7 +35,9 @@ const appraisalStatusOptions = [
   { value: "Scheduled", label: "Scheduled" },
   { value: "Inspected", label: "Inspected" },
   { value: "Received", label: "Received" },
-  { value: "Waiver", label: "Waiver" }
+  { value: "Waiver", label: "Waiver" },
+  { value: "Transfer", label: "Transfer" },
+  { value: "On Hold", label: "On Hold" }
 ];
 
 export function AppraisalTab({ leadId, borrowerLastName, data, onUpdate }: AppraisalTabProps) {

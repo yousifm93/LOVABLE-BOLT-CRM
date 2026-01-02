@@ -171,7 +171,12 @@ export async function validateTaskCompletion(
   if (requirementType.startsWith('field_value:')) {
     const [, fieldConfig] = requirementType.split(':');
     const [fieldName, valuesStr] = fieldConfig.split('=');
-    const allowedValues = valuesStr.split(',');
+    let allowedValues = valuesStr.split(',');
+    
+    // Special handling for loan_status=SUB - also accept SUV as a valid value
+    if (fieldName === 'loan_status' && allowedValues.includes('SUB')) {
+      allowedValues = [...allowedValues, 'SUV'];
+    }
     
     const borrowerId = task.borrower_id;
     if (!borrowerId) return { canComplete: true };
@@ -190,9 +195,11 @@ export async function validateTaskCompletion(
         'disclosure_status': 'Disclosure Status',
         'epo_status': 'EPO Status',
       };
+      // Show original expected value in message, not the expanded list
+      const displayValues = valuesStr.split(',');
       return {
         canComplete: false,
-        message: `${fieldDisplayNames[fieldName] || fieldName} must be ${allowedValues.join(' or ')} before completing this task`,
+        message: `${fieldDisplayNames[fieldName] || fieldName} must be ${displayValues.join(' or ')} before completing this task`,
         missingRequirement: requirementType,
       };
     }
