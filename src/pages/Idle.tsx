@@ -12,10 +12,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
+import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { formatDateShort } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { transformLeadToClient } from "@/utils/clientTransform";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 // Idle stage ID from database
 const IDLE_PIPELINE_STAGE_ID = '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a';
@@ -28,6 +31,9 @@ interface IdleLead {
   lead_on_date: string | null;
   notes: string | null;
   buyer_agent_id: string | null;
+  idle_reason: string | null;
+  idle_future_steps: boolean | null;
+  idle_followup_date: string | null;
   buyer_agent?: {
     id: string;
     first_name: string;
@@ -64,6 +70,9 @@ export default function Idle() {
           lead_on_date,
           notes,
           buyer_agent_id,
+          idle_reason,
+          idle_future_steps,
+          idle_followup_date,
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', IDLE_PIPELINE_STAGE_ID)
@@ -171,7 +180,8 @@ export default function Idle() {
       const term = searchTerm.toLowerCase();
       result = result.filter(lead =>
         `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(term) ||
-        (lead.notes || '').toLowerCase().includes(term)
+        (lead.notes || '').toLowerCase().includes(term) ||
+        (lead.idle_reason || '').toLowerCase().includes(term)
       );
     }
 
@@ -187,7 +197,7 @@ export default function Idle() {
       headerClassName: "text-left",
       cell: ({ row }) => (
         <div 
-          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors truncate max-w-[160px] text-left"
+          className="text-sm text-foreground hover:text-warning cursor-pointer transition-colors truncate max-w-[120px] text-left"
           title={`${row.original.first_name} ${row.original.last_name}`}
           onClick={(e) => {
             e.stopPropagation();
@@ -243,8 +253,72 @@ export default function Idle() {
               handleUpdate(row.original.id, "notes", value)
             }
             placeholder="Add notes..."
-            className="min-w-[200px]"
+            className="min-w-[150px]"
           />
+        </div>
+      ),
+      sortable: false,
+    },
+    {
+      accessorKey: "idle_reason",
+      header: "Why Moved to Idle?",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={row.original.idle_reason || ''}
+            onValueChange={(value) =>
+              handleUpdate(row.original.id, "idle_reason", value)
+            }
+            placeholder="Add reason..."
+            className="min-w-[180px]"
+          />
+        </div>
+      ),
+      sortable: false,
+    },
+    {
+      accessorKey: "idle_future_steps",
+      header: "Future Steps",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditBoolean
+            value={row.original.idle_future_steps}
+            onValueChange={(value) =>
+              handleUpdate(row.original.id, "idle_future_steps", value)
+            }
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "idle_followup_date",
+      header: "Follow-up Date",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditDate
+            value={row.original.idle_followup_date || undefined}
+            onValueChange={(value) =>
+              handleUpdate(row.original.id, "idle_followup_date", value || null)
+            }
+            placeholder="Set date..."
+          />
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleRowClick(row.original)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
         </div>
       ),
       sortable: false,
@@ -298,10 +372,14 @@ export default function Idle() {
               onRowClick={handleRowClick}
               showRowNumbers
               initialColumnWidths={{
-                borrower_name: 150,
-                createdOn: 120,
-                realEstateAgent: 150,
-                notes: 250,
+                borrower_name: 105,
+                createdOn: 80,
+                realEstateAgent: 95,
+                notes: 275,
+                idle_reason: 200,
+                idle_future_steps: 80,
+                idle_followup_date: 100,
+                actions: 60,
               }}
             />
           </CardContent>

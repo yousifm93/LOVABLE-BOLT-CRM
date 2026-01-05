@@ -97,21 +97,27 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
 };
 
 // Default column widths for each pipeline type (hardcoded fallback)
+// Leads widths adjusted: borrower -30%, agent -20%, createdOn -20%, notes +10%
+// Before: name: 150, realEstateAgent: 120, createdOn: 100, notes: 250
+// After:  name: 105, realEstateAgent: 95,  createdOn: 80,  notes: 275
 const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
   leads: {
-    notes: 250,
+    notes: 275,       // was 250, +10%
     dueDate: 80,
     user: 80,
     status: 100,
-    createdOn: 100,
-    realEstateAgent: 120,
-    name: 150,
+    createdOn: 80,    // was 100, -20%
+    realEstateAgent: 95, // was 120, -20%
+    name: 105,        // was 150, -30%
   },
   idle: {
-    borrower_name: 150,
-    createdOn: 100,
-    realEstateAgent: 120,
-    notes: 250,
+    borrower_name: 105,   // was 150, -30% (matching leads)
+    createdOn: 80,        // was 100, -20%
+    realEstateAgent: 95,  // was 120, -20%
+    notes: 275,           // was 250, +10%
+    idle_reason: 200,
+    idle_future_steps: 80,
+    idle_followup_date: 100,
   },
 };
 

@@ -257,10 +257,12 @@ const allAvailableColumns = useMemo(() => {
   };
 
   const loadAgents = async () => {
-    const { data } = await supabase
-      .from('buyer_agents')
-      .select('id, first_name, last_name, brokerage, email, phone');
-    if (data) setAgents(data);
+    try {
+      const agentData = await databaseService.getBuyerAgents();
+      setAgents(agentData || []);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    }
   };
 
   // Load leads from database filtered by Screening pipeline stage
