@@ -2634,6 +2634,8 @@ export type Database = {
           id: string
           idle_followup_date: string | null
           idle_future_steps: boolean | null
+          idle_previous_stage_id: string | null
+          idle_previous_stage_name: string | null
           idle_reason: string | null
           income_type: string | null
           initial_approval_file: string | null
@@ -2823,6 +2825,8 @@ export type Database = {
           id?: string
           idle_followup_date?: string | null
           idle_future_steps?: boolean | null
+          idle_previous_stage_id?: string | null
+          idle_previous_stage_name?: string | null
           idle_reason?: string | null
           income_type?: string | null
           initial_approval_file?: string | null
@@ -3014,6 +3018,8 @@ export type Database = {
           id?: string
           idle_followup_date?: string | null
           idle_future_steps?: boolean | null
+          idle_previous_stage_id?: string | null
+          idle_previous_stage_name?: string | null
           idle_reason?: string | null
           income_type?: string | null
           initial_approval_file?: string | null

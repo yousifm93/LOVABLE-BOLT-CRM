@@ -17,8 +17,6 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { formatDateShort } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { transformLeadToClient } from "@/utils/clientTransform";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 
 // Idle stage ID from database
 const IDLE_PIPELINE_STAGE_ID = '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a';
@@ -34,6 +32,7 @@ interface IdleLead {
   idle_reason: string | null;
   idle_future_steps: boolean | null;
   idle_followup_date: string | null;
+  idle_previous_stage_name: string | null;
   buyer_agent?: {
     id: string;
     first_name: string;
@@ -73,6 +72,7 @@ export default function Idle() {
           idle_reason,
           idle_future_steps,
           idle_followup_date,
+          idle_previous_stage_name,
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', IDLE_PIPELINE_STAGE_ID)
@@ -223,6 +223,16 @@ export default function Idle() {
       sortable: true,
     },
     {
+      accessorKey: "idle_previous_stage_name",
+      header: "Previous Stage",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.idle_previous_stage_name || '—'}
+        </span>
+      ),
+      sortable: true,
+    },
+    {
       accessorKey: "realEstateAgent",
       header: "Real Estate Agent",
       cell: ({ row }) => {
@@ -290,22 +300,6 @@ export default function Idle() {
       ),
       sortable: true,
     },
-    {
-      accessorKey: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleRowClick(row.original)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-      sortable: false,
-    },
   ], [agents, leads]);
 
   return (
@@ -357,11 +351,11 @@ export default function Idle() {
               initialColumnWidths={{
                 borrower_name: 105,
                 createdOn: 80,
+                idle_previous_stage_name: 100,
                 realEstateAgent: 95,
                 idle_reason: 200,
                 idle_future_steps: 80,
                 idle_followup_date: 100,
-                actions: 60,
               }}
             />
           </CardContent>

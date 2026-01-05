@@ -46,10 +46,17 @@ export function InlineEditAgent({
 }: InlineEditAgentProps) {
   const [open, setOpen] = React.useState(false);
 
-  // Helper to check if an agent is the N/A agent
+  // Normalize text for search: lowercase and remove non-alphanumeric characters
+  const normalizeForSearch = (text: string) => {
+    return text.toLowerCase().replace(/[^a-z0-9]/g, '');
+  };
+
+  // Helper to check if an agent is the N/A agent (more flexible matching)
   const isNaAgent = (agent: Agent) => {
-    const fullName = `${agent.first_name || ''} ${agent.last_name || ''}`.toLowerCase();
-    return fullName.includes('n/a') && fullName.includes('not applicable');
+    const normalized = normalizeForSearch(`${agent.first_name || ''} ${agent.last_name || ''}`);
+    // Match variations: "na", "notapplicable", "nanotapplicable", etc.
+    return normalized.includes('notapplicable') || 
+           (normalized.includes('na') && normalized.length <= 20);
   };
 
   // Separate N/A agent from others for pinning
@@ -66,15 +73,17 @@ export function InlineEditAgent({
     setOpen(false);
   };
 
-  // Build searchable value for Command filtering
+  // Build searchable value for Command filtering (includes normalized version for flexible matching)
   const getSearchValue = (agent: Agent) => {
-    return [
+    const raw = [
       agent.first_name || '',
       agent.last_name || '',
       agent.brokerage || '',
       agent.email || '',
       agent.phone || ''
-    ].join(' ').toLowerCase();
+    ].join(' ');
+    // Include both raw and normalized for flexible matching
+    return `${raw.toLowerCase()} ${normalizeForSearch(raw)}`;
   };
 
   if (disabled) {
@@ -117,6 +126,11 @@ export function InlineEditAgent({
       <PopoverContent className="w-64 p-0" align="start">
         <Command
           filter={(value, search) => {
+            // Normalize both for flexible matching (handles "n/a", "na", "not applicable", etc.)
+            const normalizedSearch = normalizeForSearch(search);
+            const normalizedValue = normalizeForSearch(value);
+            if (normalizedValue.includes(normalizedSearch)) return 1;
+            // Also try raw lowercase match
             if (value.toLowerCase().includes(search.toLowerCase())) return 1;
             return 0;
           }}
