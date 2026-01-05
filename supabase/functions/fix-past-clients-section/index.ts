@@ -15,30 +15,89 @@ Deno.serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    console.log('Fixing lead_on_date for Past Clients with December 2025 dates...');
+    // 1. Cancel all stuck pricing runs
+    console.log('Cancelling stuck pricing runs...');
+    const { data: cancelledRuns, error: cancelError } = await supabase
+      .from('pricing_runs')
+      .update({ status: 'cancelled' })
+      .eq('status', 'running')
+      .select('id');
 
-    // Update all closed leads with December 2025 lead_on_date to November 30, 2025
-    const { data, error } = await supabase
-      .from('leads')
-      .update({ lead_on_date: '2025-11-30' })
-      .eq('is_closed', true)
-      .gte('lead_on_date', '2025-12-01')
-      .lt('lead_on_date', '2026-01-01')
-      .select('id, first_name, last_name, lead_on_date');
-
-    if (error) {
-      throw new Error(`Failed to update leads: ${error.message}`);
+    if (cancelError) {
+      console.error('Failed to cancel pricing runs:', cancelError.message);
+    } else {
+      console.log(`✅ Cancelled ${cancelledRuns?.length || 0} stuck pricing runs`);
     }
 
-    const updatedCount = data?.length || 0;
-    console.log(`✅ Updated ${updatedCount} Past Clients lead_on_date to November 30, 2025`);
+    // 2. Get all 2024 past clients IDs first
+    console.log('Finding 2024 past clients...');
+    const { data: leadsToDelete, error: findError } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('is_closed', true)
+      .gte('close_date', '2024-01-01')
+      .lt('close_date', '2025-01-01');
+
+    if (findError) {
+      throw new Error(`Failed to find 2024 past clients: ${findError.message}`);
+    }
+
+    const leadIds = leadsToDelete?.map(l => l.id) || [];
+    console.log(`Found ${leadIds.length} 2024 past clients to delete`);
+
+    if (leadIds.length > 0) {
+      // Delete related tasks first
+      console.log('Deleting related tasks...');
+      const { error: tasksError } = await supabase
+        .from('tasks')
+        .delete()
+        .in('borrower_id', leadIds);
+
+      if (tasksError) {
+        console.error('Failed to delete related tasks:', tasksError.message);
+      }
+
+      // Delete related email logs
+      const { error: emailLogsError } = await supabase
+        .from('email_logs')
+        .delete()
+        .in('lead_id', leadIds);
+
+      if (emailLogsError) {
+        console.error('Failed to delete related email logs:', emailLogsError.message);
+      }
+
+      // Delete related notes
+      const { error: notesError } = await supabase
+        .from('notes')
+        .delete()
+        .in('lead_id', leadIds);
+
+      if (notesError) {
+        console.error('Failed to delete related notes:', notesError.message);
+      }
+
+      // Now delete the leads
+      console.log('Deleting 2024 past clients...');
+      const { error: deleteError } = await supabase
+        .from('leads')
+        .delete()
+        .in('id', leadIds);
+
+      if (deleteError) {
+        throw new Error(`Failed to delete 2024 past clients: ${deleteError.message}`);
+      }
+    }
+
+    const deletedCount = leadIds.length;
+    console.log(`✅ Deleted ${deletedCount} 2024 past clients`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        updated_count: updatedCount,
-        updated_leads: data,
-        message: `Successfully updated ${updatedCount} Past Clients`,
+        cancelled_runs: cancelledRuns?.length || 0,
+        deleted_past_clients: deletedCount,
+        message: `Cancelled ${cancelledRuns?.length || 0} stuck runs, deleted ${deletedCount} 2024 past clients`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
