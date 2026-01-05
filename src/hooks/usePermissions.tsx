@@ -29,6 +29,7 @@ export interface UserPermissions {
   pipeline_pre_approved: string;
   pipeline_active: string;
   pipeline_past_clients: string;
+  pipeline_idle: string;
   // Contacts sub-items
   contacts_agents: string;
   contacts_borrowers: string;
@@ -88,6 +89,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   pipeline_pre_approved: 'visible',
   pipeline_active: 'visible',
   pipeline_past_clients: 'visible',
+  pipeline_idle: 'visible',
   // Contacts sub-items
   contacts_agents: 'visible',
   contacts_borrowers: 'visible',
@@ -182,6 +184,7 @@ export function usePermissions() {
           pipeline_pre_approved: data.pipeline_pre_approved || 'visible',
           pipeline_active: data.pipeline_active || 'visible',
           pipeline_past_clients: data.pipeline_past_clients || 'visible',
+          pipeline_idle: (data as any).pipeline_idle || 'visible',
           // Contacts sub-items
           contacts_agents: data.contacts_agents || 'visible',
           contacts_borrowers: data.contacts_borrowers || 'visible',
