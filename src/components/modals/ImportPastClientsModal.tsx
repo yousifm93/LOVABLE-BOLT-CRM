@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +38,7 @@ export function ImportPastClientsModal({
   const [records, setRecords] = useState<ParsedRecord[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
+  const [appendMode, setAppendMode] = useState(true); // Default to append (add to existing)
   const { toast } = useToast();
 
   const cleanValue = (value: any): string | null => {
@@ -114,7 +116,7 @@ export function ImportPastClientsModal({
     try {
       // Call edge function with parsed data
       const { data, error } = await supabase.functions.invoke("import-past-clients", {
-        body: { mode: "APPLY", data: records },
+        body: { mode: "APPLY", data: records, append: appendMode },
       });
 
       if (error) {
@@ -154,6 +156,7 @@ export function ImportPastClientsModal({
     setRecords([]);
     setProgress(0);
     setResult(null);
+    setAppendMode(true); // Reset to default
     onOpenChange(false);
   };
 
@@ -263,12 +266,25 @@ export function ImportPastClientsModal({
                 </ScrollArea>
               </div>
 
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  <strong>Note:</strong> This will replace all existing Past Clients records.
-                  Existing Past Client leads will be soft-deleted before importing.
-                </p>
+              <div className="flex items-center space-x-2 bg-muted/50 rounded-lg p-3">
+                <Checkbox 
+                  id="append-mode" 
+                  checked={appendMode} 
+                  onCheckedChange={(checked) => setAppendMode(!!checked)} 
+                />
+                <label htmlFor="append-mode" className="text-sm font-medium cursor-pointer">
+                  Add to existing records (keep current Past Clients)
+                </label>
               </div>
+              
+              {!appendMode && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    <strong>Warning:</strong> This will replace all existing Past Clients records.
+                    Existing Past Client leads will be soft-deleted before importing.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

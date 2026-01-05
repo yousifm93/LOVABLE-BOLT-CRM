@@ -27,6 +27,13 @@ const LENDER_ID_MAP: Record<string, string> = {
   'SIERRA PACIFIC': '64db6af8-f0a5-4876-b7a7-8d3fa6f3c8e2',
   'POWERTPO': '5df90f36-e9fb-4e8b-97e8-44e544bcfd5c',
   'UCB': 'c2e5f8b1-0a3d-4e6f-9c2b-7d8a9e0f1b2c',
+  // Additional lenders from 2024 data
+  'FRANKLIN': 'franklin-lender-id-placeholder',
+  'ANGEL OAK': 'angel-oak-lender-id-placeholder',
+  'WINDSOR': 'windsor-lender-id-placeholder',
+  'NEWFI': 'newfi-lender-id-placeholder',
+  'SPRINGEQ': 'springeq-lender-id-placeholder',
+  'FUND': '9d4a54b2-0023-4784-86c5-f9589c1ed6b7', // Map to FUND LOANS
 };
 
 // Helper functions
@@ -182,13 +189,16 @@ function getLenderId(lenderName: string | null): string | null {
 }
 
 function isValidRow(row: Record<string, any>): boolean {
+  // Check for Name column (2024 format) or first_name column
   const firstName = row.first_name || row['first_name'] || row['BORROWER FN'] || row['Borrower FN'];
+  const fullName = row['Name'] || row['NAME'];
   
-  // Skip if no first name
-  if (!firstName || firstName.trim() === '') return false;
+  // Skip if no first name and no full name
+  if ((!firstName || firstName.trim() === '') && (!fullName || fullName.trim() === '')) return false;
   
   // Skip header rows
-  const upper = firstName.toUpperCase().trim();
+  const checkValue = firstName || fullName;
+  const upper = checkValue.toUpperCase().trim();
   if (upper === 'BORROWER FN' || upper === 'BORROWER FULL NAME' || upper === 'FIRST_NAME' || upper === 'NAME') {
     return false;
   }
@@ -268,17 +278,23 @@ Deno.serve(async (req) => {
 
     // APPLY mode - do the import
     const results = { imported: 0, skipped: 0, errors: [] as string[] };
+    
+    // Check if append mode is enabled (add to existing, don't replace)
+    const appendMode = body?.append === true;
+    console.log(`Append mode: ${appendMode}`);
 
-    // Soft-delete existing Past Clients
-    const deletedAt = new Date().toISOString();
-    const { error: deleteErr } = await supabase
-      .from('leads')
-      .update({ deleted_at: deletedAt, deleted_by: null })
-      .eq('pipeline_stage_id', PAST_CLIENTS_STAGE_ID)
-      .is('deleted_at', null);
+    // Only soft-delete existing Past Clients if NOT in append mode
+    if (!appendMode) {
+      const deletedAt = new Date().toISOString();
+      const { error: deleteErr } = await supabase
+        .from('leads')
+        .update({ deleted_at: deletedAt, deleted_by: null })
+        .eq('pipeline_stage_id', PAST_CLIENTS_STAGE_ID)
+        .is('deleted_at', null);
 
-    if (deleteErr) {
-      console.error('Failed to clear existing Past Clients:', deleteErr);
+      if (deleteErr) {
+        console.error('Failed to clear existing Past Clients:', deleteErr);
+      }
     }
 
     for (const row of data) {
@@ -416,11 +432,21 @@ Deno.serve(async (req) => {
             results.imported++;
           }
         } else {
-          // Handle Excel format (original logic) - simplified
-          const borrowerFirst = row['Borrower FN'] || row['BORROWER FN'] || row['First Name'] || 'Unknown';
-          const borrowerLast = row['Borrower LN'] || row['BORROWER LN'] || row['Last Name'] || '';
+          // Handle Excel format - supports both old format and 2024 format with "Name" column
+          let borrowerFirst: string;
+          let borrowerLast: string;
           
-          const lenderId = getLenderId(row['LENDER'] || row['Lender Name']);
+          // Check if using "Name" column (2024 format) or separate first/last name columns
+          if (row['Name']) {
+            const nameParts = row['Name'].trim().split(' ');
+            borrowerFirst = nameParts[0] || 'Unknown';
+            borrowerLast = nameParts.slice(1).join(' ') || '';
+          } else {
+            borrowerFirst = row['Borrower FN'] || row['BORROWER FN'] || row['First Name'] || 'Unknown';
+            borrowerLast = row['Borrower LN'] || row['BORROWER LN'] || row['Last Name'] || '';
+          }
+          
+          const lenderId = getLenderId(row['LENDER'] || row['Lender'] || row['Lender Name']);
           const closeDate = parseDate(row['CLOSE DATE'] || row['Close Date']);
           const leadOnDate = parseDate(row['LEAD ON'] || row['Lead Date']);
 
@@ -438,11 +464,13 @@ Deno.serve(async (req) => {
             approved_lender_id: lenderId,
             loan_amount: parseDecimal(row['LOAN AMT'] || row['Loan Amount']),
             sales_price: parseDecimal(row['SALES PRICE'] || row['Sales Price']),
+            interest_rate: parseDecimal(row['RATE'] || row['Rate'] || row['Interest Rate']),
             
             subject_address_1: row['SUBJECT PROP ADDRESS'] || row['Property Address'],
+            subject_address_2: row['ADDRESS 2'] || row['Address 2'] || row['UNIT'] || row['Unit'],
             subject_city: row['CITY'] || row['City'],
             subject_state: row['STATE'] || row['State'],
-            subject_zip: row['ZIP CODE'] || row['Zip'],
+            subject_zip: row['ZIP CODE'] || row['ZIP'] || row['Zip'],
             
             property_type: mapPropertyType(row['PROP TYPE'] || row['Property Type']),
             occupancy: mapOccupancy(row['OCC'] || row['Occupancy']),
@@ -458,6 +486,18 @@ Deno.serve(async (req) => {
             
             referral_source: 'Past Client',
           };
+          
+          // Store agent names in notes since we can't look them up
+          const agentNotes: string[] = [];
+          if (row['BUYERS AGENT'] || row['Buyers Agent']) {
+            agentNotes.push(`Buyer's Agent: ${row['BUYERS AGENT'] || row['Buyers Agent']}`);
+          }
+          if (row['LISTING AGENT'] || row['Listing Agent']) {
+            agentNotes.push(`Listing Agent: ${row['LISTING AGENT'] || row['Listing Agent']}`);
+          }
+          if (agentNotes.length > 0) {
+            lead.notes = agentNotes.join('\n');
+          }
 
           Object.keys(lead).forEach(key => {
             if (lead[key] === undefined || lead[key] === null || lead[key] === '') {
