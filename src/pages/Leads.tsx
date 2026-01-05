@@ -890,7 +890,7 @@ export default function Leads() {
       sortable: true,
       cell: ({
         row
-      }) => <div className="max-w-[350px] text-sm line-clamp-3 whitespace-normal" title={row.original.notes || ''}>
+      }) => <div className="w-full text-sm line-clamp-4 whitespace-normal text-left px-2" title={row.original.notes || ''}>
           {row.original.notes || '—'}
         </div>
     }];

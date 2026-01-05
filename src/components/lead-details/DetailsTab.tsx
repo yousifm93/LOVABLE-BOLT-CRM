@@ -1965,11 +1965,23 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                         if (!leadId) return;
                         setIsMovingToIdle(true);
                         try {
+                          // First, get the current stage name before updating
+                          const { data: currentLead } = await supabase
+                            .from('leads')
+                            .select('pipeline_stage_id, pipeline_stage:pipeline_stages(name)')
+                            .eq('id', leadId)
+                            .single();
+                          
+                          const previousStageName = (currentLead?.pipeline_stage as any)?.name || null;
+                          const previousStageId = currentLead?.pipeline_stage_id || null;
+                          
                           const updateData: Record<string, any> = {
                             pipeline_stage_id: IDLE_STAGE_ID,
                             idle_reason: idleReason.trim(),
                             idle_future_steps: idleHasFutureSteps,
                             idle_followup_date: idleHasFutureSteps && idleFollowupDate ? idleFollowupDate : null,
+                            idle_previous_stage_id: previousStageId,
+                            idle_previous_stage_name: previousStageName,
                           };
                           
                           const { error } = await supabase

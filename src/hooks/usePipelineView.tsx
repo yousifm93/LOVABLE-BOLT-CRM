@@ -91,8 +91,11 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
     "rowNumber",
     "borrower_name",
     "createdOn",
+    "idle_previous_stage_name",
     "realEstateAgent",
-    "notes"
+    "idle_reason",
+    "idle_future_steps",
+    "idle_followup_date"
   ]
 };
 
@@ -114,10 +117,10 @@ const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
     name: 84,             // Borrower: was 105, -20%
   },
   idle: {
-    borrower_name: 84,        // Matching leads borrower
-    createdOn: 64,            // Matching leads createdOn
-    realEstateAgent: 85,      // Matching leads realEstateAgent
-    notes: 330,               // Matching leads notes
+    borrower_name: 105,
+    createdOn: 80,
+    idle_previous_stage_name: 100,
+    realEstateAgent: 95,
     idle_reason: 200,
     idle_future_steps: 80,
     idle_followup_date: 100,
