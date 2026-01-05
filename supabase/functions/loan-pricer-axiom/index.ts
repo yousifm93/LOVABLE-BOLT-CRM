@@ -58,7 +58,8 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // Index 10: loan_term
+    // NOTE: loan_term (index 10) is stored in scenario_json but NOT sent to Axiom
+    // until the Axiom automation is updated to handle webhook-data?all&10
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -69,9 +70,12 @@ serve(async (req) => {
       scenario.occupancy || '',
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
-      scenario.dscr_ratio || '',
-      scenario.loan_term?.toString() || '30'
+      scenario.dscr_ratio || ''
+      // To re-enable loan_term when Axiom is ready, uncomment:
+      // scenario.loan_term?.toString() || '30'
     ]];
+
+    console.log(`Sending ${axiomData[0].length} fields to Axiom (schema v1 - 10 fields)`);
 
     console.log('Sending to Axiom:', axiomData);
 
