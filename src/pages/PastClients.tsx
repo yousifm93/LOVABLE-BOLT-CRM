@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck } from "lucide-react";
+import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck, Trash2, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { ImportPastClientsModal } from "@/components/modals/ImportPastClientsModal";
@@ -861,7 +862,33 @@ export default function PastClients() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isDeduping, setIsDeduping] = useState(false);
+  const [isDedupeConfirmOpen, setIsDedupeConfirmOpen] = useState(false);
   const { toast } = useToast();
+
+  const handleDedupe = async () => {
+    setIsDedupeConfirmOpen(false);
+    setIsDeduping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dedupe-past-clients", {
+        body: { year: 2024 }
+      });
+      if (error) throw error;
+      toast({
+        title: "Duplicates Cleaned",
+        description: `Processed ${data.duplicateGroupsProcessed} groups. Merged ${data.mergedCount} fields. Deleted ${data.deletedCount} duplicates.`,
+      });
+      loadData();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to clean duplicates",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeduping(false);
+    }
+  };
 
   // Column visibility management
   const {
@@ -1309,10 +1336,24 @@ export default function PastClients() {
               {filteredLoans.length} closed {filteredLoans.length === 1 ? 'loan' : 'loans'}
             </p>
           </div>
-          <Button onClick={() => setIsImportModalOpen(true)} variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            Import Excel
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => setIsDedupeConfirmOpen(true)} 
+              variant="outline"
+              disabled={isDeduping}
+            >
+              {isDeduping ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Clean Duplicates (2024)
+            </Button>
+            <Button onClick={() => setIsImportModalOpen(true)} variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Import Excel
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
@@ -1607,6 +1648,25 @@ export default function PastClients() {
         onOpenChange={setIsImportModalOpen}
         onImportComplete={loadData}
       />
+
+      {/* Dedupe Confirmation Dialog */}
+      <AlertDialog open={isDedupeConfirmOpen} onOpenChange={setIsDedupeConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clean Up 2024 Duplicates</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will find duplicate records (same Loan #) in 2024, keep the best record with the most data, 
+              merge missing fields, and soft-delete the duplicates. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDedupe}>
+              Yes, Clean Duplicates
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
