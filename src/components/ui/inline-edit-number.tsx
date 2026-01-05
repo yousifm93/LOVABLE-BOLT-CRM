@@ -10,6 +10,7 @@ interface InlineEditNumberProps {
   disabled?: boolean;
   min?: number;
   max?: number;
+  suffix?: string;
 }
 
 export function InlineEditNumber({
@@ -19,13 +20,14 @@ export function InlineEditNumber({
   className,
   disabled = false,
   min,
-  max
+  max,
+  suffix
 }: InlineEditNumberProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value?.toString() || "");
 
   const handleSave = () => {
-    const newValue = parseInt(editValue) || 0;
+    const newValue = parseFloat(editValue) || 0;
     if (min !== undefined && newValue < min) return;
     if (max !== undefined && newValue > max) return;
     onValueChange(newValue);
@@ -48,7 +50,7 @@ export function InlineEditNumber({
   if (disabled) {
     return (
       <span className={cn("text-sm", className)}>
-        {value ?? "—"}
+        {value !== null && value !== undefined ? `${value}${suffix || ''}` : "—"}
       </span>
     );
   }
@@ -57,6 +59,7 @@ export function InlineEditNumber({
     return (
       <Input
         type="number"
+        step="any"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleSave}
@@ -80,7 +83,7 @@ export function InlineEditNumber({
         className
       )}
     >
-      {value ?? "—"}
+      {value !== null && value !== undefined ? `${value}${suffix || ''}` : "—"}
     </button>
   );
 }

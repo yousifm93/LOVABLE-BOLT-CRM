@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Upload, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { ImportPastClientsModal } from "@/components/modals/ImportPastClientsModal";
@@ -71,6 +71,7 @@ interface PastClientLoan {
   // New fields for simplified view
   interest_rate: number | null;
   subject_address_1: string | null;
+  subject_address_2: string | null;
   subject_city: string | null;
   subject_state: string | null;
   subject_zip: string | null;
@@ -198,7 +199,6 @@ const epoStatusOptions = [
 // Main view default columns - simplified for past clients
 const MAIN_VIEW_COLUMNS = [
   "borrower_name",
-  "team",
   "lender",
   "loan_amount",
   "sales_price",
@@ -206,13 +206,12 @@ const MAIN_VIEW_COLUMNS = [
   "loan_status",
   "interest_rate",
   "subject_address_1",
+  "subject_address_2",
   "subject_city",
   "subject_state",
   "subject_zip",
   "buyer_agent",
-  "listing_agent",
-  "email",
-  "phone"
+  "listing_agent"
 ];
 
 const createColumns = (
@@ -684,6 +683,7 @@ const createColumns = (
           }
           placeholder="0.00"
           className="w-16"
+          suffix="%"
         />
       </div>
     ),
@@ -701,6 +701,23 @@ const createColumns = (
           }
           placeholder="Address"
           className="w-32"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "subject_address_2",
+    header: "Unit #",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.subject_address_2 || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "subject_address_2", value)
+          }
+          placeholder="Unit"
+          className="w-16"
         />
       </div>
     ),
@@ -799,22 +816,23 @@ export default function PastClients() {
   // Core columns that should appear first with default visibility
   const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "User", visible: true },
     { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "sales_price", label: "Sales Price", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
-    { id: "interest_rate", label: "Interest Rate", visible: true },
+    { id: "interest_rate", label: "Rate", visible: true },
     { id: "subject_address_1", label: "Property Address", visible: true },
+    { id: "subject_address_2", label: "Unit #", visible: true },
     { id: "subject_city", label: "City", visible: true },
     { id: "subject_state", label: "State", visible: true },
     { id: "subject_zip", label: "Zip", visible: true },
     { id: "buyer_agent", label: "Buyer's Agent", visible: true },
     { id: "listing_agent", label: "Listing Agent", visible: true },
-    { id: "email", label: "Borrower Email", visible: true },
-    { id: "phone", label: "Borrower Phone", visible: true },
     // Hidden by default but available
+    { id: "team", label: "User", visible: false },
+    { id: "email", label: "Borrower Email", visible: false },
+    { id: "phone", label: "Borrower Phone", visible: false },
     { id: "mb_loan_number", label: "Loan #", visible: false },
     { id: "pr_type", label: "P/R", visible: false },
     { id: "occupancy", label: "Occupancy", visible: false },
@@ -895,25 +913,21 @@ export default function PastClients() {
     { value: 'closed_at', label: 'Closed Date', type: 'date' as const },
   ];
 
-  // Auto-load Main View on initial mount
+  // Auto-load Main View on initial mount - ALWAYS apply Main View as default
   useEffect(() => {
-    const hasCustomization = localStorage.getItem('past-clients-columns');
+    const orderedMainColumns = MAIN_VIEW_COLUMNS
+      .map(id => columnVisibility.find(col => col.id === id))
+      .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+      .map(col => ({ ...col, visible: true }));
     
-    if (!activeView && !hasCustomization) {
-      const orderedMainColumns = MAIN_VIEW_COLUMNS
-        .map(id => columnVisibility.find(col => col.id === id))
-        .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-        .map(col => ({ ...col, visible: true }));
-      
-      const existingIds = new Set(MAIN_VIEW_COLUMNS);
-      const remainingColumns = columnVisibility
-        .filter(col => !existingIds.has(col.id))
-        .map(col => ({ ...col, visible: false }));
-      
-      const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-      setColumns(newColumnOrder);
-      setActiveView("Main View");
-    }
+    const existingIds = new Set(MAIN_VIEW_COLUMNS);
+    const remainingColumns = columnVisibility
+      .filter(col => !existingIds.has(col.id))
+      .map(col => ({ ...col, visible: false }));
+    
+    const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
+    setColumns(newColumnOrder);
+    setActiveView("Main");
   }, []);
 
   const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
@@ -1231,6 +1245,25 @@ export default function PastClients() {
     const totalLoanAmount = filteredLoans.reduce((sum, c) => sum + (c.loan_amount || 0), 0);
     const totalSalesPrice = filteredLoans.reduce((sum, c) => sum + (c.sales_price || 0), 0);
     
+    // Average interest rate (only from loans that have a rate)
+    const loansWithRate = filteredLoans.filter(l => l.interest_rate !== null && l.interest_rate !== undefined);
+    const avgInterestRate = loansWithRate.length > 0 
+      ? loansWithRate.reduce((sum, l) => sum + (l.interest_rate || 0), 0) / loansWithRate.length 
+      : 0;
+    
+    // Average units closed per month
+    const closeDates = filteredLoans
+      .filter(l => l.close_date)
+      .map(l => new Date(l.close_date!));
+    
+    let avgPerMonth = 0;
+    if (closeDates.length > 0) {
+      const earliest = Math.min(...closeDates.map(d => d.getTime()));
+      const latest = Math.max(...closeDates.map(d => d.getTime()));
+      const monthsDiff = Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24 * 30)));
+      avgPerMonth = totalLoans / monthsDiff;
+    }
+    
     // Group counts by year
     const byYear = filteredLoans.reduce((acc, c) => {
       const year = c.close_date ? new Date(c.close_date).getFullYear() : 'Unknown';
@@ -1238,7 +1271,7 @@ export default function PastClients() {
       return acc;
     }, {} as Record<string | number, number>);
     
-    return { totalLoans, totalLoanAmount, totalSalesPrice, byYear };
+    return { totalLoans, totalLoanAmount, totalSalesPrice, avgInterestRate, avgPerMonth, byYear };
   }, [filteredLoans]);
 
   // Group loans by close date year
@@ -1268,8 +1301,6 @@ export default function PastClients() {
     salesTotal: loans.reduce((sum, l) => sum + (l.sales_price || 0), 0),
   });
 
-  // State for summary header collapse
-  const [isSummaryOpen, setIsSummaryOpen] = useState(true);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -1402,56 +1433,80 @@ export default function PastClients() {
         )}
       </div>
 
-      {/* Summary Header */}
-      <Card className="bg-gradient-card shadow-soft">
-        <CardHeader className="py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSummaryOpen(!isSummaryOpen)}
-                className="h-6 w-6 p-0"
-              >
-                {isSummaryOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
-              <h3 className="text-lg font-semibold text-foreground">
-                Summary: {summaryData.totalLoans} Past Clients
-              </h3>
-            </div>
-            <div className="flex gap-6 text-sm">
-              <span className="text-muted-foreground">
-                Total Loan Amount: <span className="font-semibold text-foreground">{formatCurrency(summaryData.totalLoanAmount)}</span>
-              </span>
-              <span className="text-muted-foreground">
-                Total Sales Price: <span className="font-semibold text-foreground">{formatCurrency(summaryData.totalSalesPrice)}</span>
-              </span>
-            </div>
-          </div>
-        </CardHeader>
-        {isSummaryOpen && (
-          <CardContent className="pt-0">
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(summaryData.byYear)
-                .sort(([a], [b]) => {
-                  if (a === 'Unknown') return 1;
-                  if (b === 'Unknown') return -1;
-                  return Number(b) - Number(a);
-                })
-                .map(([year, count]) => (
-                  <Badge key={year} variant="secondary" className="text-xs">
-                    {year}: {count} loan{count !== 1 ? 's' : ''}
-                  </Badge>
-                ))
-              }
+      {/* Dashboard Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Total Loans Card */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-bold text-primary">{summaryData.totalLoans}</p>
+                <p className="text-sm text-muted-foreground">Total Loans</p>
+              </div>
+              <FileCheck className="h-8 w-8 text-primary/60" />
             </div>
           </CardContent>
-        )}
-      </Card>
+        </Card>
+        
+        {/* Total Volume Card */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardContent className="p-4">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-xl font-bold text-emerald-600">{formatCurrency(summaryData.totalLoanAmount)}</p>
+                <span className="text-xs text-muted-foreground">loans</span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <p className="text-xl font-bold text-blue-600">{formatCurrency(summaryData.totalSalesPrice)}</p>
+                <span className="text-xs text-muted-foreground">sales</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Total Volume</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Average Interest Rate Card */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-bold text-amber-600">{summaryData.avgInterestRate.toFixed(3)}%</p>
+                <p className="text-sm text-muted-foreground">Avg Interest Rate</p>
+              </div>
+              <Percent className="h-8 w-8 text-amber-500/60" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Average Per Month Card */}
+        <Card className="bg-gradient-card shadow-soft">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-bold text-violet-600">{summaryData.avgPerMonth.toFixed(1)}</p>
+                <p className="text-sm text-muted-foreground">Avg Loans/Month</p>
+              </div>
+              <CalendarCheck className="h-8 w-8 text-violet-500/60" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Year breakdown badges */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(summaryData.byYear)
+          .sort(([a], [b]) => {
+            if (a === 'Unknown') return 1;
+            if (b === 'Unknown') return -1;
+            return Number(b) - Number(a);
+          })
+          .map(([year, count]) => (
+            <Badge key={year} variant="secondary" className="text-xs">
+              {year}: {count} loan{count !== 1 ? 's' : ''}
+            </Badge>
+          ))
+        }
+      </div>
 
       {/* Year-Grouped Sections */}
       <div className="space-y-4">
