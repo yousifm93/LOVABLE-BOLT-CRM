@@ -103,12 +103,25 @@ export function usePipelineView(pipelineType: string) {
       try {
         const views = await databaseService.getPipelineViews(pipelineType);
         
-        // Cast Json types to proper TypeScript types
-        const typedViews: PipelineView[] = (views || []).map(v => ({
-          ...v,
-          column_order: v.column_order as unknown as string[],
-          column_widths: v.column_widths as unknown as Record<string, number> | undefined,
-        }));
+        // Cast Json types to proper TypeScript types and normalize widths
+        const typedViews: PipelineView[] = (views || []).map(v => {
+          const rawWidths = v.column_widths as unknown as Record<string, unknown> | undefined;
+          // Normalize widths: convert strings to numbers, drop non-finite values
+          const normalizedWidths: Record<string, number> = {};
+          if (rawWidths && typeof rawWidths === 'object') {
+            Object.entries(rawWidths).forEach(([key, val]) => {
+              const num = typeof val === 'number' ? val : Number(val);
+              if (Number.isFinite(num) && num >= 80 && num <= 600) {
+                normalizedWidths[key] = num;
+              }
+            });
+          }
+          return {
+            ...v,
+            column_order: v.column_order as unknown as string[],
+            column_widths: Object.keys(normalizedWidths).length > 0 ? normalizedWidths : undefined,
+          };
+        });
         
         // Find default view, or Main View, or first view
         const defaultView = typedViews.find(v => v.is_default);

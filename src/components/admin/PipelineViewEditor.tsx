@@ -628,11 +628,21 @@ export function PipelineViewEditor({
       <Collapsible open={showWidthCalibration} onOpenChange={setShowWidthCalibration}>
         <CollapsibleContent>
           <Card className="border-blue-500/50 bg-blue-500/5">
-            <div className="p-3 border-b">
-              <h3 className="font-semibold text-sm">Column Width Calibration</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Set exact pixel widths for each column (80-600px)
-              </p>
+            <div className="p-3 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-sm">Column Width Calibration</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set exact pixel widths for each column (80-600px). <span className="text-yellow-600 font-medium">Click "Save View" when done.</span>
+                </p>
+              </div>
+              <Button size="sm" onClick={handleSave} disabled={!name || columns.length === 0 || isSaving}>
+                {isSaving ? "Saving..." : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save View
+                  </>
+                )}
+              </Button>
             </div>
             <div className="p-3">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
@@ -645,10 +655,14 @@ export function PipelineViewEditor({
                       <Input
                         type="number"
                         value={widthDrafts[column.field_name] ?? String(column.width)}
-                        onChange={(e) => setWidthDrafts(prev => ({ 
-                          ...prev, 
-                          [column.field_name]: e.target.value 
-                        }))}
+                        onChange={(e) => {
+                          setWidthDrafts(prev => ({ 
+                            ...prev, 
+                            [column.field_name]: e.target.value 
+                          }));
+                          // Mark as dirty immediately when typing
+                          setHasUnsavedChanges(true);
+                        }}
                         onBlur={(e) => {
                           const parsed = parseInt(e.target.value);
                           if (!isNaN(parsed) && parsed >= 80 && parsed <= 600) {
