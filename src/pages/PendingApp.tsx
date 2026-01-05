@@ -236,14 +236,10 @@ const allAvailableColumns = useMemo(() => {
     }
   };
 
-  // Load agents
+  // Load agents with pagination
   const loadAgents = async () => {
     try {
-      const { data, error } = await supabase
-        .from('buyer_agents')
-        .select('id, first_name, last_name, brokerage, email, phone')
-        .order('first_name');
-      if (error) throw error;
+      const data = await databaseService.getBuyerAgents();
       setAgents(data || []);
     } catch (error) {
       console.error('Error loading agents:', error);

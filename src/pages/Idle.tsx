@@ -243,23 +243,6 @@ export default function Idle() {
       sortable: true,
     },
     {
-      accessorKey: "notes",
-      header: "About the Borrower",
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditText
-            value={row.original.notes || ''}
-            onValueChange={(value) =>
-              handleUpdate(row.original.id, "notes", value)
-            }
-            placeholder="Add notes..."
-            className="min-w-[150px]"
-          />
-        </div>
-      ),
-      sortable: false,
-    },
-    {
       accessorKey: "idle_reason",
       header: "Why Moved to Idle?",
       cell: ({ row }) => (
@@ -375,7 +358,6 @@ export default function Idle() {
                 borrower_name: 105,
                 createdOn: 80,
                 realEstateAgent: 95,
-                notes: 275,
                 idle_reason: 200,
                 idle_future_steps: 80,
                 idle_followup_date: 100,
