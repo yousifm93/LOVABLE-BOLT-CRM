@@ -10,6 +10,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
 
+// Helper to get local datetime string for datetime-local input
+const getLocalDateTimeString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 interface TeamMember {
   id: string;
   first_name: string;
@@ -29,7 +40,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
   const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    timestamp: new Date().toISOString().slice(0, 16),
+    timestamp: getLocalDateTimeString(),
     notes: '',
   });
 
@@ -78,7 +89,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
       onOpenChange(false);
       
       setFormData({
-        timestamp: new Date().toISOString().slice(0, 16),
+        timestamp: getLocalDateTimeString(),
         notes: '',
       });
 
@@ -163,7 +174,7 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
   const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    timestamp: new Date().toISOString().slice(0, 16),
+    timestamp: getLocalDateTimeString(),
     notes: '',
   });
 
@@ -213,7 +224,7 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
       onOpenChange(false);
       
       setFormData({
-        timestamp: new Date().toISOString().slice(0, 16),
+        timestamp: getLocalDateTimeString(),
         notes: '',
       });
 
@@ -279,7 +290,7 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
   const { crmUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    timestamp: new Date().toISOString().slice(0, 16),
+    timestamp: getLocalDateTimeString(),
     notes: '',
   });
 
@@ -330,7 +341,7 @@ export function EmailLogModal({ open, onOpenChange, leadId, onActivityCreated }:
       onOpenChange(false);
       
       setFormData({
-        timestamp: new Date().toISOString().slice(0, 16),
+        timestamp: getLocalDateTimeString(),
         notes: '',
       });
 

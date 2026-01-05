@@ -118,9 +118,9 @@ export function InlineEditAgent({
             <UserCheck className="h-3 w-3 flex-shrink-0 absolute left-1 top-1/2 -translate-y-1/2" />
             <div className="flex flex-col items-start min-w-0 flex-1">
               <span className="text-sm leading-tight truncate w-full">
-                {value ? `${value.first_name} ${value.last_name}` : placeholder}
+                {value ? (isNaAgent(value) ? 'N/A' : `${value.first_name} ${value.last_name}`) : placeholder}
               </span>
-              {value?.phone && (
+              {value?.phone && !isNaAgent(value) && (
                 <span className="text-xs text-muted-foreground leading-tight truncate w-full">
                   {formatPhone(value.phone)}
                 </span>
@@ -162,14 +162,7 @@ export function InlineEditAgent({
                   onSelect={() => handleSelect(naAgent)}
                   className="flex flex-col items-start p-3"
                 >
-                  <div className="font-medium">
-                    {naAgent.first_name} {naAgent.last_name}
-                  </div>
-                  {naAgent.phone && (
-                    <div className="text-xs text-muted-foreground">
-                      {formatPhone(naAgent.phone)}
-                    </div>
-                  )}
+                  <div className="font-medium">N/A</div>
                 </CommandItem>
               </CommandGroup>
             )}
