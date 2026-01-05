@@ -65,7 +65,7 @@ export function CollapsiblePipelineSection({
   };
 
   return (
-    <Card className={cn("bg-gradient-card shadow-soft", className)}>
+    <Card className={cn("bg-gradient-card shadow-soft overflow-visible", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

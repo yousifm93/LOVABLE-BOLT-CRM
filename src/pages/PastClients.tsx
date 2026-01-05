@@ -68,6 +68,14 @@ interface PastClientLoan {
   is_closed: boolean | null;
   closed_at: string | null;
   notes: string | null;
+  // New fields for simplified view
+  interest_rate: number | null;
+  subject_address_1: string | null;
+  subject_city: string | null;
+  subject_state: string | null;
+  subject_zip: string | null;
+  email: string | null;
+  phone: string | null;
   lender?: {
     id: string;
     first_name: string;
@@ -187,27 +195,24 @@ const epoStatusOptions = [
   { value: "Signed", label: "Signed" }
 ];
 
-// Main view default columns
+// Main view default columns - simplified for past clients
 const MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "team",
   "lender",
-  "mb_loan_number",
   "loan_amount",
   "sales_price",
   "close_date",
-  "closed_at",
   "loan_status",
-  "appraisal_status",
-  "title_status",
-  "hoi_status",
-  "condo_status",
-  "cd_status",
-  "disclosure_status",
-  "package_status",
-  "ba_status",
-  "real_estate_agent",
-  "listing_agent"
+  "interest_rate",
+  "subject_address_1",
+  "subject_city",
+  "subject_state",
+  "subject_zip",
+  "buyer_agent",
+  "listing_agent",
+  "email",
+  "phone"
 ];
 
 const createColumns = (
@@ -667,6 +672,125 @@ const createColumns = (
     },
     sortable: true,
   },
+  {
+    accessorKey: "interest_rate",
+    header: "Rate",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditNumber
+          value={row.original.interest_rate}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "interest_rate", value)
+          }
+          placeholder="0.00"
+          className="w-16"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "subject_address_1",
+    header: "Property Address",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.subject_address_1 || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "subject_address_1", value)
+          }
+          placeholder="Address"
+          className="w-32"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "subject_city",
+    header: "City",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.subject_city || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "subject_city", value)
+          }
+          placeholder="City"
+          className="w-24"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "subject_state",
+    header: "State",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.subject_state || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "subject_state", value)
+          }
+          placeholder="ST"
+          className="w-14"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "subject_zip",
+    header: "Zip",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.subject_zip || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "subject_zip", value)
+          }
+          placeholder="Zip"
+          className="w-16"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "email",
+    header: "Borrower Email",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.email || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "email", value)
+          }
+          placeholder="Email"
+          className="w-40"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "phone",
+    header: "Borrower Phone",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()}>
+        <InlineEditText
+          value={row.original.phone || ''}
+          onValueChange={(value) => 
+            handleUpdate(row.original.id, "phone", value)
+          }
+          placeholder="Phone"
+          className="w-28"
+        />
+      </div>
+    ),
+    sortable: true,
+  },
 ];
 
 export default function PastClients() {
@@ -675,28 +799,36 @@ export default function PastClients() {
   // Core columns that should appear first with default visibility
   const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "Team", visible: true },
-    { id: "mb_loan_number", label: "Loan #", visible: true },
+    { id: "team", label: "User", visible: true },
     { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "sales_price", label: "Sales Price", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
-    { id: "pr_type", label: "P/R", visible: true },
-    { id: "occupancy", label: "Occupancy", visible: true },
-    { id: "disclosure_status", label: "DISC", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
-    { id: "title_status", label: "Title", visible: true },
-    { id: "hoi_status", label: "HOI", visible: true },
-    { id: "appraisal_status", label: "Appraisal", visible: true },
-    { id: "cd_status", label: "CD", visible: true },
-    { id: "package_status", label: "Package", visible: true },
-    { id: "condo_status", label: "Condo", visible: true },
-    { id: "lock_expiration_date", label: "LOC EXP", visible: true },
-    { id: "ba_status", label: "BA", visible: true },
-    { id: "epo_status", label: "EPO", visible: true },
+    { id: "interest_rate", label: "Interest Rate", visible: true },
+    { id: "subject_address_1", label: "Property Address", visible: true },
+    { id: "subject_city", label: "City", visible: true },
+    { id: "subject_state", label: "State", visible: true },
+    { id: "subject_zip", label: "Zip", visible: true },
     { id: "buyer_agent", label: "Buyer's Agent", visible: true },
     { id: "listing_agent", label: "Listing Agent", visible: true },
-    { id: "closed_at", label: "Closed Date", visible: true },
+    { id: "email", label: "Borrower Email", visible: true },
+    { id: "phone", label: "Borrower Phone", visible: true },
+    // Hidden by default but available
+    { id: "mb_loan_number", label: "Loan #", visible: false },
+    { id: "pr_type", label: "P/R", visible: false },
+    { id: "occupancy", label: "Occupancy", visible: false },
+    { id: "disclosure_status", label: "DISC", visible: false },
+    { id: "title_status", label: "Title", visible: false },
+    { id: "hoi_status", label: "HOI", visible: false },
+    { id: "appraisal_status", label: "Appraisal", visible: false },
+    { id: "cd_status", label: "CD", visible: false },
+    { id: "package_status", label: "Package", visible: false },
+    { id: "condo_status", label: "Condo", visible: false },
+    { id: "lock_expiration_date", label: "LOC EXP", visible: false },
+    { id: "ba_status", label: "BA", visible: false },
+    { id: "epo_status", label: "EPO", visible: false },
+    { id: "closed_at", label: "Closed Date", visible: false },
   ], []);
   
   // Load ALL database fields for Hide/Show modal (~85 total)
@@ -1157,7 +1289,7 @@ export default function PastClients() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 overflow-x-auto">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
