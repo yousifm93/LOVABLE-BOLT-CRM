@@ -2,6 +2,7 @@ import * as React from "react";
 import { UserCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { formatPhone } from "@/utils/formatters";
 import {
   Popover,
   PopoverContent,
@@ -116,7 +117,7 @@ export function InlineEditAgent({
               </span>
               {value?.phone && (
                 <span className="text-xs text-muted-foreground leading-tight truncate w-full">
-                  {value.phone}
+                  {formatPhone(value.phone)}
                 </span>
               )}
             </div>
@@ -161,7 +162,7 @@ export function InlineEditAgent({
                   </div>
                   {naAgent.phone && (
                     <div className="text-xs text-muted-foreground">
-                      {naAgent.phone}
+                      {formatPhone(naAgent.phone)}
                     </div>
                   )}
                 </CommandItem>
@@ -180,7 +181,7 @@ export function InlineEditAgent({
                   </div>
                   {agent.phone && (
                     <div className="text-xs text-muted-foreground">
-                      {agent.phone}
+                      {formatPhone(agent.phone)}
                     </div>
                   )}
                 </CommandItem>
