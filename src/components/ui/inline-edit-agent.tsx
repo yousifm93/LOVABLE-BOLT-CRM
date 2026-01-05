@@ -52,12 +52,17 @@ export function InlineEditAgent({
     return text.toLowerCase().replace(/[^a-z0-9]/g, '');
   };
 
-  // Helper to check if an agent is the N/A agent (more flexible matching)
+  // Helper to check if an agent is the N/A agent (specific matching to avoid false positives)
   const isNaAgent = (agent: Agent) => {
-    const normalized = normalizeForSearch(`${agent.first_name || ''} ${agent.last_name || ''}`);
-    // Match variations: "na", "notapplicable", "nanotapplicable", etc.
+    const firstName = (agent.first_name || '').toLowerCase().trim();
+    const lastName = (agent.last_name || '').toLowerCase().trim();
+    const normalized = normalizeForSearch(`${firstName} ${lastName}`);
+    
+    // Must match specific patterns - not just containing "na"
     return normalized.includes('notapplicable') || 
-           (normalized.includes('na') && normalized.length <= 20);
+           firstName === 'n/a' || 
+           firstName === 'na' ||
+           (firstName === 'not' && lastName.includes('applicable'));
   };
 
   // Separate N/A agent from others for pinning
