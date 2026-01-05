@@ -1895,7 +1895,10 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => setIdleDialogStep('form')}>
+                    <AlertDialogAction onClick={(e) => {
+                      e.preventDefault();
+                      setIdleDialogStep('form');
+                    }}>
                       Yes
                     </AlertDialogAction>
                   </AlertDialogFooter>

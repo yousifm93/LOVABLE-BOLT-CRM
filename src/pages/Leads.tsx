@@ -34,7 +34,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
 // Sheet removed - using inline filters
-import { formatDateModern } from "@/utils/dateUtils";
+import { formatDateModern, parseLocalDate } from "@/utils/dateUtils";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -46,6 +46,7 @@ interface Lead {
   id: string;
   name: string;
   createdOn: string;
+  createdOnIsDateOnly: boolean; // Flag to know if we should show time
   createdAtTs: number;
   phone: string;
   email: string;
@@ -92,10 +93,13 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & {
         return ['Working on it', 'Converted', 'Nurture', 'Dead'].includes(oldValue) ? oldValue : 'Working on it';
     }
   };
+  // Determine if we're using lead_on_date (date-only) or created_at (full timestamp)
+  const isDateOnly = !!dbLead.lead_on_date;
   return {
     id: dbLead.id,
     name: `${dbLead.first_name || ''} ${dbLead.last_name || ''}`.trim() || 'Unnamed Lead',
     createdOn: dbLead.lead_on_date || dbLead.created_at,
+    createdOnIsDateOnly: isDateOnly,
     createdAtTs: new Date(dbLead.created_at).getTime(),
     phone: dbLead.phone || '',
     email: dbLead.email || '',
@@ -770,14 +774,21 @@ export default function Leads() {
       className: "w-32",
       cell: ({
         row
-      }) => (
-        <div className="flex flex-col">
-          <span>{formatDateShort(row.original.createdOn)}</span>
-          <span className="text-xs text-muted-foreground">
-            {row.original.createdOn ? format(new Date(row.original.createdOn), 'h:mm a') : ''}
-          </span>
-        </div>
-      ),
+      }) => {
+        const dateValue = row.original.createdOn;
+        const isDateOnly = row.original.createdOnIsDateOnly;
+        const parsedDate = parseLocalDate(dateValue);
+        return (
+          <div className="flex flex-col">
+            <span>{parsedDate ? format(parsedDate, 'MMM d, yyyy') : ''}</span>
+            {!isDateOnly && parsedDate && (
+              <span className="text-xs text-muted-foreground">
+                {format(parsedDate, 'h:mm a')}
+              </span>
+            )}
+          </div>
+        );
+      },
       sortable: true
     }, {
       accessorKey: "phone",

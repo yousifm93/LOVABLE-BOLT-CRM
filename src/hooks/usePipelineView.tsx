@@ -97,24 +97,27 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
 };
 
 // Default column widths for each pipeline type (hardcoded fallback)
-// Leads widths adjusted: borrower -30%, agent -20%, createdOn -20%, notes +10%
-// Before: name: 150, realEstateAgent: 120, createdOn: 100, notes: 250
-// After:  name: 105, realEstateAgent: 95,  createdOn: 80,  notes: 275
+// Leads widths updated per user request:
+// - notes (About the Borrower): was 275, +20% = 330
+// - status: was 100, -10% = 90
+// - realEstateAgent: was 95, -10% = 85
+// - createdOn (Lead Created On): was 80, -20% = 64
+// - name (Borrower): was 105, -20% = 84
 const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
   leads: {
-    notes: 275,       // was 250, +10%
+    notes: 330,           // About the Borrower: was 275, +20%
     dueDate: 80,
     user: 80,
-    status: 100,
-    createdOn: 80,    // was 100, -20%
-    realEstateAgent: 95, // was 120, -20%
-    name: 105,        // was 150, -30%
+    status: 90,           // was 100, -10%
+    createdOn: 64,        // Lead Created On: was 80, -20%
+    realEstateAgent: 85,  // was 95, -10%
+    name: 84,             // Borrower: was 105, -20%
   },
   idle: {
-    borrower_name: 105,   // was 150, -30% (matching leads)
-    createdOn: 80,        // was 100, -20%
-    realEstateAgent: 95,  // was 120, -20%
-    notes: 275,           // was 250, +10%
+    borrower_name: 84,        // Matching leads borrower
+    createdOn: 64,            // Matching leads createdOn
+    realEstateAgent: 85,      // Matching leads realEstateAgent
+    notes: 330,               // Matching leads notes
     idle_reason: 200,
     idle_future_steps: 80,
     idle_followup_date: 100,
