@@ -27,7 +27,6 @@ const LENDER_ID_MAP: Record<string, string> = {
   'SIERRA PACIFIC': '64db6af8-f0a5-4876-b7a7-8d3fa6f3c8e2',
   'POWERTPO': '5df90f36-e9fb-4e8b-97e8-44e544bcfd5c',
   'UCB': 'c2e5f8b1-0a3d-4e6f-9c2b-7d8a9e0f1b2c',
-  // Additional lenders - set to null if not in system (allows import without lender assignment)
   'FUND': '9d4a54b2-0023-4784-86c5-f9589c1ed6b7', // Map to FUND LOANS
 };
 
@@ -206,6 +205,29 @@ function isUUID(value: string | null | undefined): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
+// Normalize row keys by trimming spaces
+function normalizeRow(row: Record<string, any>): Record<string, any> {
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const trimmedKey = key.trim();
+    // Also trim string values
+    normalized[trimmedKey] = typeof value === 'string' ? value.trim() : value;
+  }
+  return normalized;
+}
+
+// Merge incoming data into existing record, only updating if incoming is non-null
+function mergeLeadData(existing: Record<string, any>, incoming: Record<string, any>): Record<string, any> {
+  const merged: Record<string, any> = {};
+  for (const [key, value] of Object.entries(incoming)) {
+    // Only update if the incoming value is not null/undefined/empty
+    if (value !== null && value !== undefined && value !== '') {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -271,8 +293,8 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // APPLY mode - do the import
-    const results = { imported: 0, skipped: 0, errors: [] as string[] };
+    // APPLY mode - do the import with UPSERT logic
+    const results = { imported: 0, updated: 0, skipped: 0, errors: [] as string[] };
     
     // Check if append mode is enabled (add to existing, don't replace)
     const appendMode = body?.append === true;
@@ -292,8 +314,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (const row of data) {
+    for (const originalRow of data) {
       try {
+        // Normalize row keys and values by trimming spaces
+        const row = normalizeRow(originalRow);
+        
         // Skip invalid rows
         if (!isValidRow(row)) {
           results.skipped++;
@@ -428,28 +453,25 @@ Deno.serve(async (req) => {
           }
         } else {
           // Handle Excel format - supports both old format and 2024 format with "Name" column
-          // Normalize row keys by trimming spaces
-          const normalizedRow: Record<string, any> = {};
-          for (const [key, value] of Object.entries(row)) {
-            normalizedRow[key.trim()] = value;
-          }
-          
           let borrowerFirst: string;
           let borrowerLast: string;
           
           // Check if using "Name" column (2024 format) or separate first/last name columns
-          if (normalizedRow['Name']) {
-            const nameParts = normalizedRow['Name'].trim().split(' ');
+          if (row['Name']) {
+            const nameParts = row['Name'].trim().split(' ');
             borrowerFirst = nameParts[0] || 'Unknown';
             borrowerLast = nameParts.slice(1).join(' ') || '';
           } else {
-            borrowerFirst = normalizedRow['Borrower FN'] || normalizedRow['BORROWER FN'] || normalizedRow['First Name'] || 'Unknown';
-            borrowerLast = normalizedRow['Borrower LN'] || normalizedRow['BORROWER LN'] || normalizedRow['Last Name'] || '';
+            borrowerFirst = row['Borrower FN'] || row['BORROWER FN'] || row['First Name'] || 'Unknown';
+            borrowerLast = row['Borrower LN'] || row['BORROWER LN'] || row['Last Name'] || '';
           }
           
-          const lenderId = getLenderId(normalizedRow['LENDER'] || normalizedRow['Lender'] || normalizedRow['Lender Name']);
-          const closeDate = parseDate(normalizedRow['CLOSE DATE'] || normalizedRow['Close Date']);
-          const leadOnDate = parseDate(normalizedRow['LEAD ON'] || normalizedRow['Lead Date']);
+          const lenderId = getLenderId(row['LENDER'] || row['Lender'] || row['Lender Name']);
+          const closeDate = parseDate(row['CLOSE DATE'] || row['Close Date']);
+          const leadOnDate = parseDate(row['LEAD ON'] || row['Lead Date']);
+          
+          // Get loan number for upsert matching
+          const mbLoanNumber = (row['ARIVE LOAN #'] || row['MB LOAN #'] || '').toString().trim();
 
           const lead: Record<string, any> = {
             account_id: DEFAULT_ACCOUNT_ID,
@@ -458,23 +480,23 @@ Deno.serve(async (req) => {
             
             first_name: borrowerFirst,
             last_name: borrowerLast,
-            email: cleanEmail(normalizedRow['Borrower Email'] || normalizedRow['Email']),
-            phone: cleanPhone(normalizedRow['Borrower Phone'] || normalizedRow['Phone']),
+            email: cleanEmail(row['Borrower Email'] || row['Email']),
+            phone: cleanPhone(row['Borrower Phone'] || row['Phone']),
             
-            mb_loan_number: normalizedRow['ARIVE LOAN #'] || normalizedRow['MB LOAN #'],
+            mb_loan_number: mbLoanNumber || null,
             approved_lender_id: lenderId,
-            loan_amount: parseDecimal(normalizedRow['LOAN AMT'] || normalizedRow['Loan Amount']),
-            sales_price: parseDecimal(normalizedRow['SALES PRICE'] || normalizedRow['Sales Price']),
-            interest_rate: parseDecimal(normalizedRow['RATE'] || normalizedRow['Rate'] || normalizedRow['Interest Rate']),
+            loan_amount: parseDecimal(row['LOAN AMT'] || row['Loan Amount']),
+            sales_price: parseDecimal(row['SALES PRICE'] || row['Sales Price']),
+            interest_rate: parseDecimal(row['RATE'] || row['Rate'] || row['Interest Rate']),
             
-            subject_address_1: normalizedRow['SUBJECT PROP ADDRESS'] || normalizedRow['Property Address'],
-            subject_address_2: normalizedRow['ADDRESS 2'] || normalizedRow['Address 2'] || normalizedRow['UNIT'] || normalizedRow['Unit'],
-            subject_city: normalizedRow['CITY'] || normalizedRow['City'],
-            subject_state: normalizedRow['STATE'] || normalizedRow['State'],
-            subject_zip: normalizedRow['ZIP CODE'] || normalizedRow['ZIP'] || normalizedRow['Zip'],
+            subject_address_1: row['SUBJECT PROP ADDRESS'] || row['Property Address'],
+            subject_address_2: row['ADDRESS 2'] || row['Address 2'] || row['UNIT'] || row['Unit'],
+            subject_city: row['CITY'] || row['City'],
+            subject_state: row['STATE'] || row['State'],
+            subject_zip: row['ZIP CODE'] || row['ZIP'] || row['Zip'],
             
-            property_type: mapPropertyType(normalizedRow['PROP TYPE'] || normalizedRow['Property Type']),
-            occupancy: mapOccupancy(normalizedRow['OCC'] || normalizedRow['Occupancy']),
+            property_type: mapPropertyType(row['PROP TYPE'] || row['Property Type']),
+            occupancy: mapOccupancy(row['OCC'] || row['Occupancy']),
             
             close_date: closeDate,
             lead_on_date: leadOnDate || new Date().toISOString().split('T')[0],
@@ -490,34 +512,76 @@ Deno.serve(async (req) => {
           
           // Store agent names in notes since we can't look them up
           const agentNotes: string[] = [];
-          if (normalizedRow['BUYERS AGENT'] || normalizedRow['Buyers Agent']) {
-            agentNotes.push(`Buyer's Agent: ${normalizedRow['BUYERS AGENT'] || normalizedRow['Buyers Agent']}`);
+          if (row['BUYERS AGENT'] || row['Buyers Agent']) {
+            agentNotes.push(`Buyer's Agent: ${row['BUYERS AGENT'] || row['Buyers Agent']}`);
           }
-          if (normalizedRow['LISTING AGENT'] || normalizedRow['Listing Agent']) {
-            agentNotes.push(`Listing Agent: ${normalizedRow['LISTING AGENT'] || normalizedRow['Listing Agent']}`);
+          if (row['LISTING AGENT'] || row['Listing Agent']) {
+            agentNotes.push(`Listing Agent: ${row['LISTING AGENT'] || row['Listing Agent']}`);
           }
           if (agentNotes.length > 0) {
             lead.notes = agentNotes.join('\n');
           }
 
+          // Remove undefined/null keys for insert, but keep for update comparison
+          const cleanedLead: Record<string, any> = {};
           Object.keys(lead).forEach(key => {
-            if (lead[key] === undefined || lead[key] === null || lead[key] === '') {
-              delete lead[key];
+            if (lead[key] !== undefined && lead[key] !== null && lead[key] !== '') {
+              cleanedLead[key] = lead[key];
             }
           });
 
-          lead.account_id = DEFAULT_ACCOUNT_ID;
-          lead.created_by = DEFAULT_CREATED_BY;
-          lead.pipeline_stage_id = PAST_CLIENTS_STAGE_ID;
-          lead.first_name = lead.first_name || 'Unknown';
+          // Ensure required fields are present
+          cleanedLead.account_id = DEFAULT_ACCOUNT_ID;
+          cleanedLead.created_by = DEFAULT_CREATED_BY;
+          cleanedLead.pipeline_stage_id = PAST_CLIENTS_STAGE_ID;
+          cleanedLead.first_name = cleanedLead.first_name || 'Unknown';
 
-          const { error } = await supabase.from('leads').insert(lead);
+          // UPSERT logic: Check if a Past Client with same mb_loan_number already exists
+          let existingId: string | null = null;
+          if (mbLoanNumber) {
+            const { data: existingLeads } = await supabase
+              .from('leads')
+              .select('id')
+              .eq('pipeline_stage_id', PAST_CLIENTS_STAGE_ID)
+              .eq('mb_loan_number', mbLoanNumber)
+              .is('deleted_at', null)
+              .limit(1);
+            
+            if (existingLeads && existingLeads.length > 0) {
+              existingId = existingLeads[0].id;
+            }
+          }
 
-          if (error) {
-            console.error('Error inserting lead:', error, { name: `${lead.first_name} ${lead.last_name}` });
-            results.errors.push(`${lead.first_name} ${lead.last_name}: ${error.message}`);
+          if (existingId) {
+            // UPDATE existing record with non-null values
+            const updateData = mergeLeadData({}, cleanedLead);
+            // Don't overwrite these system fields
+            delete updateData.account_id;
+            delete updateData.created_by;
+            delete updateData.pipeline_stage_id;
+            
+            const { error } = await supabase
+              .from('leads')
+              .update(updateData)
+              .eq('id', existingId);
+
+            if (error) {
+              console.error('Error updating lead:', error, { name: `${cleanedLead.first_name} ${cleanedLead.last_name}` });
+              results.errors.push(`${cleanedLead.first_name} ${cleanedLead.last_name}: ${error.message}`);
+            } else {
+              results.updated++;
+              console.log(`Updated existing lead: ${mbLoanNumber} - ${cleanedLead.first_name} ${cleanedLead.last_name}`);
+            }
           } else {
-            results.imported++;
+            // INSERT new record
+            const { error } = await supabase.from('leads').insert(cleanedLead);
+
+            if (error) {
+              console.error('Error inserting lead:', error, { name: `${cleanedLead.first_name} ${cleanedLead.last_name}` });
+              results.errors.push(`${cleanedLead.first_name} ${cleanedLead.last_name}: ${error.message}`);
+            } else {
+              results.imported++;
+            }
           }
         }
       } catch (e: any) {
@@ -526,14 +590,15 @@ Deno.serve(async (req) => {
       }
     }
     
-    console.log(`Import complete: ${results.imported} imported, ${results.skipped} skipped, ${results.errors.length} errors`);
+    console.log(`Import complete: ${results.imported} imported, ${results.updated} updated, ${results.skipped} skipped, ${results.errors.length} errors`);
 
     return new Response(JSON.stringify({
       mode: 'APPLY',
       imported: results.imported,
+      updated: results.updated,
       skipped: results.skipped,
       errors: results.errors.slice(0, 10), // Only return first 10 errors
-      message: `Successfully imported ${results.imported} past clients (${results.skipped} skipped)`,
+      message: `Successfully imported ${results.imported} new, updated ${results.updated} existing past clients (${results.skipped} skipped)`,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {

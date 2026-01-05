@@ -201,7 +201,6 @@ const MAIN_VIEW_COLUMNS = [
   "borrower_name",
   "lender",
   "loan_amount",
-  "sales_price",
   "close_date",
   "loan_status",
   "interest_rate",
@@ -353,23 +352,6 @@ const createColumns = (
             value={row.original.loan_amount}
             onValueChange={(value) => 
               handleUpdate(row.original.id, "loan_amount", value)
-            }
-          />
-        </div>
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "sales_price",
-    header: "Sales Price",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <div className="whitespace-nowrap">
-          <InlineEditCurrency
-            value={row.original.sales_price}
-            onValueChange={(value) => 
-              handleUpdate(row.original.id, "sales_price", value)
             }
           />
         </div>

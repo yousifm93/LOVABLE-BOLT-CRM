@@ -186,5 +186,8 @@ verify_jwt = false
 [functions.import-past-clients]
 verify_jwt = false
 
+[functions.dedupe-past-clients]
+verify_jwt = true
+
 [functions.fetch-calendar-events]
 verify_jwt = true
