@@ -75,8 +75,13 @@ export function AgentCallLogModal({
       
       if (!crmUser) throw new Error("CRM user not found");
 
-      // Create call log with custom date/time and call type
-      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, callDate, callType || undefined);
+      // Combine selected date with current time to create proper local timestamp
+      // This ensures the date falls on the correct local day (not midnight UTC which shows as previous day)
+      const now = new Date();
+      const selectedDateTime = new Date(`${callDate}T${now.toTimeString().slice(0, 8)}`);
+      
+      // Create call log with proper local timestamp
+      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, selectedDateTime.toISOString(), callType || undefined);
 
       // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
