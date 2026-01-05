@@ -108,13 +108,13 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
 // - name (Borrower): was 105, -20% = 84
 const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
   leads: {
-    notes: 330,           // About the Borrower: was 275, +20%
-    dueDate: 80,
-    user: 80,
-    status: 90,           // was 100, -10%
-    createdOn: 64,        // Lead Created On: was 80, -20%
-    realEstateAgent: 85,  // was 95, -10%
-    name: 84,             // Borrower: was 105, -20%
+    notes: 396,           // About the Borrower: +20% (was 330)
+    dueDate: 72,          // Task Due: -10% (was 80)
+    user: 72,             // User: -10% (was 80)
+    status: 72,           // Status: -20% (was 90)
+    createdOn: 58,        // Lead Created On: -10% (was 64)
+    realEstateAgent: 77,  // Real Estate Agent: -10% (was 85)
+    name: 76,             // Borrower: -10% (was 84)
   },
   idle: {
     borrower_name: 105,

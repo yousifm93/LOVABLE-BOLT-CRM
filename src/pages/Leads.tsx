@@ -46,7 +46,7 @@ interface Lead {
   id: string;
   name: string;
   createdOn: string;
-  createdOnIsDateOnly: boolean; // Flag to know if we should show time
+  createdAtTimestamp: string; // Full timestamp for time display
   createdAtTs: number;
   phone: string;
   email: string;
@@ -93,13 +93,12 @@ const transformLeadToDisplay = (dbLead: DatabaseLead & {
         return ['Working on it', 'Converted', 'Nurture', 'Dead'].includes(oldValue) ? oldValue : 'Working on it';
     }
   };
-  // Determine if we're using lead_on_date (date-only) or created_at (full timestamp)
-  const isDateOnly = !!dbLead.lead_on_date;
+  // Always store created_at for time display
   return {
     id: dbLead.id,
     name: `${dbLead.first_name || ''} ${dbLead.last_name || ''}`.trim() || 'Unnamed Lead',
     createdOn: dbLead.lead_on_date || dbLead.created_at,
-    createdOnIsDateOnly: isDateOnly,
+    createdAtTimestamp: dbLead.created_at, // Full timestamp for time display
     createdAtTs: new Date(dbLead.created_at).getTime(),
     phone: dbLead.phone || '',
     email: dbLead.email || '',
@@ -769,23 +768,22 @@ export default function Leads() {
         </div>,
       sortable: true
     }, {
-      accessorKey: "createdOn",
+    accessorKey: "createdOn",
       header: "Lead Created On",
       className: "w-32",
       cell: ({
         row
       }) => {
         const dateValue = row.original.createdOn;
-        const isDateOnly = row.original.createdOnIsDateOnly;
         const parsedDate = parseLocalDate(dateValue);
+        // Always show time from created_at timestamp
+        const timeDate = new Date(row.original.createdAtTimestamp);
         return (
           <div className="flex flex-col">
             <span>{parsedDate ? format(parsedDate, 'MMM d, yyyy') : ''}</span>
-            {!isDateOnly && parsedDate && (
-              <span className="text-xs text-muted-foreground">
-                {format(parsedDate, 'h:mm a')}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground">
+              {format(timeDate, 'h:mm a')}
+            </span>
           </div>
         );
       },
@@ -885,12 +883,12 @@ export default function Leads() {
       }) => formatCurrency(row.original.loanAmount),
       sortable: true
     }, {
-      accessorKey: "notes",
+    accessorKey: "notes",
       header: "About the Borrower",
       sortable: true,
       cell: ({
         row
-      }) => <div className="w-full text-sm line-clamp-4 whitespace-normal text-left px-2" title={row.original.notes || ''}>
+      }) => <div className="w-full text-xs line-clamp-3 whitespace-normal text-left px-2" title={row.original.notes || ''}>
           {row.original.notes || '—'}
         </div>
     }];
