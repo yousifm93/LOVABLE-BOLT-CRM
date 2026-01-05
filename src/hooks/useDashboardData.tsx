@@ -10,6 +10,7 @@ export interface DashboardLead {
   lead_on_date: string;
   app_complete_at: string | null;
   pipeline_stage_id?: string;
+  notes?: string | null;
 }
 
 export interface DashboardFaceToFaceMeeting {
@@ -109,7 +110,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .gte('lead_on_date', formatDate(startOfMonth))
         .lt('lead_on_date', formatDate(startOfNextMonth))
         .order('lead_on_date', { ascending: false });
@@ -126,7 +127,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('lead_on_date', formatDate(yesterday))
         .order('created_at', { ascending: false });
       
@@ -142,7 +143,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('lead_on_date', formatDate(today))
         .order('created_at', { ascending: false });
       
@@ -158,7 +159,7 @@ export const useDashboardData = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .order('lead_on_date', { ascending: false })
         .order('created_at', { ascending: false });
       

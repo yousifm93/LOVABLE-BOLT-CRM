@@ -23,6 +23,7 @@ interface Lead {
   app_complete_at?: string | null;
   pipeline_stage_id?: string;
   assigned_user_id?: string | null;
+  notes?: string | null;
 }
 
 const STAGE_ID_TO_NAME: Record<string, string> = {
@@ -1044,7 +1045,10 @@ export function DashboardDetailModal({
           <TableRow className="text-[11px]">
             <TableHead className="w-[90px] py-2">Name</TableHead>
             <TableHead className="w-[85px] py-2">{getDateColumnTitle()}</TableHead>
-            <TableHead className="py-2">{getThirdColumnTitle()}</TableHead>
+            <TableHead className="w-[100px] py-2">{getThirdColumnTitle()}</TableHead>
+            {'pipeline_stage_id' in (data[0] || {}) && (
+              <TableHead className="py-2">About the Borrower</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1072,6 +1076,13 @@ export function DashboardDetailModal({
                   </span>
                 )}
               </TableCell>
+              {'pipeline_stage_id' in item && (
+                <TableCell className="py-1.5">
+                  <span className="text-[11px] text-muted-foreground line-clamp-2">
+                    {(item as Lead).notes || "—"}
+                  </span>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

@@ -54,8 +54,8 @@ const MAIN_VIEW_COLUMNS = [
   "realEstateAgent",
   "user",
   "dueDate",
-  "latestFileUpdates",
-  "notes"
+  "notes",
+  "latestFileUpdates"
 ];
 
 // Map database field names to frontend accessorKey names
@@ -914,7 +914,7 @@ const allAvailableColumns = useMemo(() => {
       header: "About the Borrower",
       sortable: true,
       cell: ({ row }) => (
-        <div className="max-w-[350px] text-sm line-clamp-3 whitespace-normal" title={row.original.notes || ''}>
+        <div className="w-full text-xs line-clamp-3 whitespace-normal text-left px-2" title={row.original.notes || ''}>
           {row.original.notes || '—'}
         </div>
       ),

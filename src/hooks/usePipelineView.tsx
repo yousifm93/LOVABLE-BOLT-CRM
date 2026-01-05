@@ -43,12 +43,14 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
     "notes"
   ],
   pending_app: [
-    "borrower_name",
-    "email",
-    "phone",
-    "team",
+    "name",
+    "pendingAppOn",
+    "status",
+    "realEstateAgent",
+    "user",
     "dueDate",
-    "notes"
+    "notes",
+    "latestFileUpdates"
   ],
   screening: [
     "borrower_name",
@@ -115,6 +117,15 @@ const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
     createdOn: 58,        // Lead Created On: -10% (was 64)
     realEstateAgent: 77,  // Real Estate Agent: -10% (was 85)
     name: 76,             // Borrower: -10% (was 84)
+  },
+  pending_app: {
+    name: 76,             // Borrower: match leads
+    pendingAppOn: 58,     // Pending App On: match createdOn from leads
+    status: 72,           // Status: match leads
+    realEstateAgent: 77,  // Real Estate Agent: match leads
+    user: 72,             // User: match leads
+    dueDate: 72,          // Task Due: match leads
+    notes: 396,           // About the Borrower: match leads
   },
   idle: {
     borrower_name: 105,
