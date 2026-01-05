@@ -274,8 +274,6 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (editingCondition) {
         await databaseService.updateLeadCondition(editingCondition.id, {
           ...formData,
@@ -286,10 +284,10 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           description: "Condition updated successfully",
         });
       } else {
+        // Service handles setting created_by with correct CRM user ID
         await databaseService.createLeadCondition({
           lead_id: leadId,
           ...formData,
-          created_by: user?.id || null,
         });
         toast({
           title: "Success",
@@ -324,13 +322,11 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Service handles setting created_by with correct CRM user ID
       for (const conditionData of bulkConditions) {
         await databaseService.createLeadCondition({
           lead_id: leadId,
           ...conditionData,
-          created_by: user?.id || null,
         });
       }
       

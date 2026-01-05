@@ -87,6 +87,25 @@ export const validateLead = (lead: Partial<Lead>): string[] => {
   return errors;
 };
 
+// Helper to get current CRM user ID (from users table, NOT auth.users)
+async function getCurrentCrmUserId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return null;
+  
+  const { data, error } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .single();
+  
+  if (error || !data) {
+    console.error('Could not find CRM user for auth user:', user.id, error);
+    return null;
+  }
+  
+  return data.id;
+}
+
 // Database service functions
 export const databaseService = {
   // Check if lead has associated tasks
@@ -405,13 +424,14 @@ export const databaseService = {
   },
 
   async createTaskAutomation(automation: any) {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Use CRM user ID (users.id), not auth user ID
+    const crmUserId = await getCurrentCrmUserId();
     
     const { data, error } = await supabase
       .from('task_automations')
       .insert({
         ...automation,
-        created_by: user?.id,
+        created_by: crmUserId,
       })
       .select()
       .single();
@@ -511,12 +531,13 @@ export const databaseService = {
   },
 
   async createLeadCondition(condition: any) {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Use CRM user ID (users.id), not auth user ID
+    const crmUserId = await getCurrentCrmUserId();
     const { data, error } = await supabase
       .from('lead_conditions')
       .insert({
         ...condition,
-        created_by: user?.id,
+        created_by: crmUserId,
       })
       .select()
       .single();
