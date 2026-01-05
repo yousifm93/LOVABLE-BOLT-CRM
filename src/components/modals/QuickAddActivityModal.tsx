@@ -229,6 +229,10 @@ export function QuickAddActivityModal({
           description: `Logged meeting with ${selectedAgent?.first_name} ${selectedAgent?.last_name}`,
         });
       } else if (activityType === 'call') {
+        // Ensure datetime is properly formatted as ISO string
+        // datetime-local gives us local time, convert to proper ISO format
+        const callDateTime = new Date(activityDate);
+        
         // Create call log
         await databaseService.createAgentCallLog(
           selectedAgentId,
@@ -236,7 +240,7 @@ export function QuickAddActivityModal({
           crmUser.id,
           'call',
           undefined,
-          activityDate,
+          callDateTime.toISOString(),
           callSubType
         );
 
