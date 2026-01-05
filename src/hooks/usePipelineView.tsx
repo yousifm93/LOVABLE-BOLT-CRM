@@ -88,6 +88,19 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
   ]
 };
 
+// Default column widths for each pipeline type (hardcoded fallback)
+const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
+  leads: {
+    notes: 250,
+    dueDate: 80,
+    user: 80,
+    status: 100,
+    createdOn: 100,
+    realEstateAgent: 120,
+    name: 150,
+  },
+};
+
 /**
  * Hook to fetch and use the active pipeline view for a given pipeline type
  * Returns column order, column widths, view name, and loading state
@@ -140,9 +153,13 @@ export function usePipelineView(pipelineType: string) {
     fetchView();
   }, [pipelineType]);
 
+  // Merge hardcoded defaults with any saved widths from the database
+  const defaultWidthsForType = DEFAULT_WIDTHS[pipelineType] || {};
+  const mergedWidths = { ...defaultWidthsForType, ...(view?.column_widths || {}) };
+
   return {
     columnOrder: view?.column_order || DEFAULT_COLUMNS[pipelineType] || [],
-    columnWidths: view?.column_widths || {},
+    columnWidths: mergedWidths,
     viewName: view?.name,
     loading
   };
