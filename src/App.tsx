@@ -12,6 +12,7 @@ import PreQualified from "@/pages/PreQualified";
 import PreApproved from "@/pages/PreApproved";
 import Active from "@/pages/Active";
 import PastClients from "@/pages/PastClients";
+import Idle from "@/pages/Idle";
 import Admin from "@/pages/Admin";
 import AdminAssistant from "@/pages/AdminAssistant";
 import MortgageAppAdmin from "@/pages/admin/MortgageAppAdmin";
@@ -97,6 +98,7 @@ function AppRoutes() {
               <Route path="/pre-approved" element={<PreApproved />} />
               <Route path="/active" element={<Active />} />
               <Route path="/past-clients" element={<PastClients />} />
+              <Route path="/idle" element={<Idle />} />
               <Route path="/admin/assistant" element={<AdminAssistant />} />
               <Route path="/admin/mortgage-app" element={<MortgageAppAdmin />} />
               <Route path="/admin" element={<Admin />} />

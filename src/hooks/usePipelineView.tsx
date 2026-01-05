@@ -85,6 +85,14 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
     "closeDate",
     "loanAmount",
     "status"
+  ],
+  idle: [
+    "select",
+    "rowNumber",
+    "borrower_name",
+    "createdOn",
+    "realEstateAgent",
+    "notes"
   ]
 };
 
@@ -98,6 +106,12 @@ const DEFAULT_WIDTHS: Record<string, Record<string, number>> = {
     createdOn: 100,
     realEstateAgent: 120,
     name: 150,
+  },
+  idle: {
+    borrower_name: 150,
+    createdOn: 100,
+    realEstateAgent: 120,
+    notes: 250,
   },
 };
 
