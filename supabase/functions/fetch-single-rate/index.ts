@@ -46,29 +46,32 @@ serve(async (req) => {
         ...baseScenario,
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
+        loan_term: 30,
       },
       '15yr_fixed': {
         ...baseScenario,
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
-        // Note: The Axiom bot will need to handle term selection for 15-year
+        loan_term: 15,
       },
       'fha_30yr': {
         ...baseScenario,
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
-        // Note: The Axiom bot will need to handle FHA loan type selection
+        loan_term: 30,
       },
       'bank_statement': {
         ...baseScenario,
         income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
+        loan_term: 30,
       },
       'dscr': {
         ...baseScenario,
         income_type: 'DSCR',
         dscr_ratio: '1.5',  // CRITICAL: Must always be 1.5 for DSCR scenarios
         occupancy: 'Investment',
+        loan_term: 30,
       }
     };
 
@@ -113,7 +116,8 @@ serve(async (req) => {
       scenarioConfig.occupancy || '',
       scenarioConfig.property_type || '',
       scenarioConfig.income_type || 'Full Doc - 24M',
-      dscrRatioValue  // Explicitly use dscrRatioValue to ensure DSCR always has 1.5
+      dscrRatioValue,  // Explicitly use dscrRatioValue to ensure DSCR always has 1.5
+      scenarioConfig.loan_term?.toString() || '30'  // Index 10: loan_term
     ]];
 
     console.log(`Triggering Axiom for ${scenario_type}:`, {

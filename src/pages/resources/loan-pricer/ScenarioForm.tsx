@@ -25,6 +25,11 @@ const INCOME_TYPES = [
   { label: "No Ratio Primary", value: "Community - No income/No employment/No DTI" }
 ];
 
+const LOAN_TERMS = [
+  { label: "30 Years", value: 30 },
+  { label: "15 Years", value: 15 }
+];
+
 interface ScenarioFormProps {
   data: ScenarioData;
   onChange: (data: ScenarioData) => void;
@@ -153,8 +158,8 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
         </div>
       </div>
 
-      {/* Row 3: Occupancy & Number of Units */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Row 3: Occupancy, Number of Units & Loan Term */}
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Occupancy</Label>
           <Select
@@ -186,6 +191,24 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
               {NUM_UNITS.map((num) => (
                 <SelectItem key={num} value={num.toString()}>
                   {num} {num === 1 ? 'Unit' : 'Units'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Loan Term</Label>
+          <Select
+            value={data.loan_term?.toString() || "30"}
+            onValueChange={(value) => updateData('loan_term', Number(value))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LOAN_TERMS.map((term) => (
+                <SelectItem key={term.value} value={term.value.toString()}>
+                  {term.label}
                 </SelectItem>
               ))}
             </SelectContent>
