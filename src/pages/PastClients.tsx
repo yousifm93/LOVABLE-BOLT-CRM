@@ -1243,7 +1243,6 @@ export default function PastClients() {
   const summaryData = useMemo(() => {
     const totalLoans = filteredLoans.length;
     const totalLoanAmount = filteredLoans.reduce((sum, c) => sum + (c.loan_amount || 0), 0);
-    const totalSalesPrice = filteredLoans.reduce((sum, c) => sum + (c.sales_price || 0), 0);
     
     // Average interest rate (only from loans that have a rate)
     const loansWithRate = filteredLoans.filter(l => l.interest_rate !== null && l.interest_rate !== undefined);
@@ -1271,7 +1270,7 @@ export default function PastClients() {
       return acc;
     }, {} as Record<string | number, number>);
     
-    return { totalLoans, totalLoanAmount, totalSalesPrice, avgInterestRate, avgPerMonth, byYear };
+    return { totalLoans, totalLoanAmount, avgInterestRate, avgPerMonth, byYear };
   }, [filteredLoans]);
 
   // Group loans by close date year
@@ -1298,7 +1297,6 @@ export default function PastClients() {
   // Calculate summary stats per year group
   const getYearSummary = (loans: PastClientLoan[]) => ({
     loanTotal: loans.reduce((sum, l) => sum + (l.loan_amount || 0), 0),
-    salesTotal: loans.reduce((sum, l) => sum + (l.sales_price || 0), 0),
   });
 
 
@@ -1451,16 +1449,12 @@ export default function PastClients() {
         {/* Total Volume Card */}
         <Card className="bg-gradient-card shadow-soft">
           <CardContent className="p-4">
-            <div>
-              <div className="flex items-baseline gap-2">
-                <p className="text-xl font-bold text-emerald-600">{formatCurrency(summaryData.totalLoanAmount)}</p>
-                <span className="text-xs text-muted-foreground">loans</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(summaryData.totalLoanAmount)}</p>
+                <p className="text-sm text-muted-foreground">Loan Amount</p>
               </div>
-              <div className="flex items-baseline gap-2 mt-1">
-                <p className="text-xl font-bold text-blue-600">{formatCurrency(summaryData.totalSalesPrice)}</p>
-                <span className="text-xs text-muted-foreground">sales</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Total Volume</p>
+              <DollarSign className="h-8 w-8 text-emerald-500/60" />
             </div>
           </CardContent>
         </Card>

@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 interface SummaryStats {
   loanTotal?: number;
-  salesTotal?: number;
 }
 
 interface CollapsiblePipelineSectionProps {
@@ -84,19 +83,10 @@ export function CollapsiblePipelineSection({
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           </div>
           <div className="flex items-center gap-4">
-            {summaryStats && (
-              <>
-                {summaryStats.loanTotal !== undefined && (
-                  <span className="text-sm text-muted-foreground">
-                    Loans: <span className="font-medium text-foreground">{formatCurrency(summaryStats.loanTotal)}</span>
-                  </span>
-                )}
-                {summaryStats.salesTotal !== undefined && (
-                  <span className="text-sm text-muted-foreground">
-                    Sales: <span className="font-medium text-foreground">{formatCurrency(summaryStats.salesTotal)}</span>
-                  </span>
-                )}
-              </>
+            {summaryStats && summaryStats.loanTotal !== undefined && (
+              <span className="text-sm text-muted-foreground">
+                Loan Amount: <span className="font-medium text-foreground">{formatCurrency(summaryStats.loanTotal)}</span>
+              </span>
             )}
             <span className="text-sm text-muted-foreground">
               {data.length} loan{data.length !== 1 ? 's' : ''}
