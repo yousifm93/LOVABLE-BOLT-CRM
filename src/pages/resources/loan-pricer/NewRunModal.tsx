@@ -23,6 +23,7 @@ export interface ScenarioData {
   property_type: string;     // Single Family | Condo | 2-4 Units
   income_type: string;       // Full Doc - 24M | DSCR | Bank Statements | No Ratio
   dscr_ratio: string;        // DSCR ratio (0-2.0), only when DSCR selected
+  loan_term: number;         // 15 or 30 years
 }
 
 const INITIAL_SCENARIO: ScenarioData = {
@@ -34,7 +35,8 @@ const INITIAL_SCENARIO: ScenarioData = {
   occupancy: "Primary Residence",
   property_type: "Single Family",
   income_type: "Full Doc - 24M",
-  dscr_ratio: ""
+  dscr_ratio: "",
+  loan_term: 30
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {

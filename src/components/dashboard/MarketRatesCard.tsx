@@ -113,40 +113,29 @@ export function MarketRatesCard() {
     setIsLoading(false);
   };
 
-  const fetchHistoricalRates = async (rateType: RateType) => {
+const fetchHistoricalRates = async (rateType: RateType) => {
     setIsLoadingHistory(true);
     
+    // Query pricing_runs table filtered by scenario_type to show all completed runs
     const { data, error } = await supabase
-      .from('daily_market_updates')
-      .select('date, rate_30yr_fixed, points_30yr_fixed, rate_bank_statement, points_bank_statement, rate_dscr, points_dscr')
-      .order('date', { ascending: false })
+      .from('pricing_runs')
+      .select('started_at, results_json, scenario_type')
+      .eq('scenario_type', rateType)
+      .eq('status', 'completed')
+      .order('started_at', { ascending: false })
       .limit(30);
     
     if (error) {
       console.error('Error fetching historical rates:', error);
       setHistoricalRates([]);
     } else {
-      // Map based on rate type
       const mapped = data?.map(row => {
-        let rate: number | null = null;
-        let points: number | null = null;
-        
-        switch (rateType) {
-          case '30yr_fixed':
-            rate = row.rate_30yr_fixed;
-            points = row.points_30yr_fixed;
-            break;
-          case 'bank_statement':
-            rate = row.rate_bank_statement;
-            points = row.points_bank_statement;
-            break;
-          case 'dscr':
-            rate = row.rate_dscr;
-            points = row.points_dscr;
-            break;
-        }
-        
-        return { date: row.date, rate, points };
+        const results = row.results_json as { rate?: number; discount_points?: number } | null;
+        return { 
+          date: row.started_at, 
+          rate: results?.rate ?? null, 
+          points: results?.discount_points ?? null 
+        };
       }).filter(row => row.rate !== null) || [];
       
       setHistoricalRates(mapped);
@@ -260,11 +249,13 @@ export function MarketRatesCard() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric',
-      year: 'numeric'
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -375,7 +366,7 @@ export function MarketRatesCard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Date/Time</TableHead>
                     <TableHead className="text-right">Rate</TableHead>
                     <TableHead className="text-right">Points</TableHead>
                     <TableHead className="text-right">Change</TableHead>

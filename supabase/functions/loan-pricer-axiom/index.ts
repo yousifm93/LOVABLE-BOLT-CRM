@@ -58,6 +58,7 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
+    // Index 10: loan_term
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -68,7 +69,8 @@ serve(async (req) => {
       scenario.occupancy || '',
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
-      scenario.dscr_ratio || ''
+      scenario.dscr_ratio || '',
+      scenario.loan_term?.toString() || '30'
     ]];
 
     console.log('Sending to Axiom:', axiomData);
