@@ -44,9 +44,12 @@ export function FieldsProvider({ children }: { children: ReactNode }) {
       .eq('is_in_use', true)
       .order('sort_order', { ascending: true });
     
-    if (!error && data) {
-      setAllFields(data as unknown as Field[]);
+    if (error) {
+      console.error('[FieldsContext] Error loading fields:', error);
     }
+    
+    // Always set data (even if empty) so UI can show proper state
+    setAllFields((data as unknown as Field[]) || []);
     setLoading(false);
   };
 
@@ -62,8 +65,17 @@ export function FieldsProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // Reload fields when auth state changes (e.g., session becomes available)
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('[FieldsContext] Auth state changed, reloading fields');
+        loadFields();
+      }
+    });
+
     return () => {
       supabase.removeChannel(channel);
+      authSubscription.unsubscribe();
     };
   }, []);
 

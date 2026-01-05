@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Search, Plus, X, GripVertical, Eye, EyeOff, Save, ChevronRight, Settings } from "lucide-react";
+import { Search, Plus, X, GripVertical, Eye, EyeOff, Save, ChevronRight, Settings, RefreshCw } from "lucide-react";
 import { generateTestRows } from "@/utils/testDataGenerator";
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
@@ -219,7 +219,7 @@ export function PipelineViewEditor({
   onEditView,
   isSaving = false,
 }: PipelineViewEditorProps) {
-  const { allFields, loading: fieldsLoading } = useFields();
+  const { allFields, loading: fieldsLoading, reloadFields } = useFields();
   const [name, setName] = useState(viewName);
   const [isDefaultView, setIsDefaultView] = useState(isDefault);
   const [searchQuery, setSearchQuery] = useState("");
@@ -243,8 +243,9 @@ export function PipelineViewEditor({
 
   // Initialize columns from props or defaults when view changes
   useEffect(() => {
-    // Wait for fields to load before initializing columns
-    if (fieldsLoading || allFields.length === 0) return;
+    // Only block while actively loading - allow initialization even if allFields is empty
+    // (we can still use ACCESSOR_KEY_DISPLAY_NAMES for computed columns)
+    if (fieldsLoading) return;
 
     const widths = (columnWidths || {}) as Record<string, unknown>;
     const initKey = `${viewId ?? "new"}|${pipelineType}|${JSON.stringify(columnOrder)}|${JSON.stringify(widths)}`;
@@ -703,6 +704,9 @@ export function PipelineViewEditor({
                 <ChevronRight className={cn("h-4 w-4 transition-transform", isFieldsPanelOpen && "rotate-90")} />
                 <span className="font-semibold text-sm">Available Fields</span>
                 <Badge variant="secondary" className="text-xs">{allFields.length} fields</Badge>
+                {allFields.length === 0 && !fieldsLoading && (
+                  <span className="text-xs text-yellow-600">(none loaded)</span>
+                )}
               </div>
               <span className="text-xs text-muted-foreground">
                 {isFieldsPanelOpen ? "Click to collapse" : "Click to expand"}
@@ -721,6 +725,10 @@ export function PipelineViewEditor({
                     className="pl-8 h-9"
                   />
                 </div>
+                <Button variant="outline" size="sm" onClick={() => reloadFields()} disabled={fieldsLoading}>
+                  <RefreshCw className={cn("h-4 w-4 mr-1", fieldsLoading && "animate-spin")} />
+                  Reload Fields
+                </Button>
               </div>
               <ScrollArea className="w-full">
                 <div className="flex gap-4 pb-2">
