@@ -87,30 +87,56 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
       if (runError) throw runError;
 
       // Call edge function to trigger Axiom
-      const { error: axiomError } = await supabase.functions.invoke('loan-pricer-axiom', {
+      const { data: axiomResponse, error: axiomError } = await supabase.functions.invoke('loan-pricer-axiom', {
         body: { run_id: pricingRun.id }
       });
 
       if (axiomError) {
         // Update status to failed if Axiom trigger fails
+        const errorMsg = typeof axiomError === 'object' 
+          ? (axiomError.message || JSON.stringify(axiomError))
+          : String(axiomError);
         await supabase.from('pricing_runs')
-          .update({ status: 'failed', error_message: axiomError.message })
+          .update({ status: 'failed', error_message: errorMsg })
           .eq('id', pricingRun.id);
-        throw axiomError;
+        throw new Error(errorMsg);
+      }
+
+      // Parse Axiom response for VNC link (for debugging)
+      let vncUrl = '';
+      if (axiomResponse?.axiom_response) {
+        try {
+          const parsed = typeof axiomResponse.axiom_response === 'string' 
+            ? JSON.parse(axiomResponse.axiom_response)
+            : axiomResponse.axiom_response;
+          vncUrl = parsed?.vnc || '';
+        } catch {
+          // Response might not be JSON
+        }
       }
 
       toast({
         title: "Pricing run started",
-        description: "Data sent to pricing system. Results will appear automatically when ready.",
+        description: vncUrl 
+          ? "Data sent to pricing system. Robot is running..." 
+          : "Data sent to pricing system. Results will appear automatically when ready.",
       });
+
+      // Log VNC URL for debugging
+      if (vncUrl) {
+        console.log('Axiom VNC URL:', vncUrl);
+      }
 
       onRunCreated();
       onOpenChange(false);
       setScenarioData(INITIAL_SCENARIO);
     } catch (error: any) {
+      const errorMsg = typeof error === 'object'
+        ? (error.message || JSON.stringify(error))
+        : String(error);
       toast({
         title: "Error creating pricing run",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
