@@ -1,14 +1,20 @@
 import * as React from "react";
-import { Search, UserCheck } from "lucide-react";
+import { UserCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 interface Agent {
   id: string;
@@ -39,70 +45,36 @@ export function InlineEditAgent({
   type = "buyer"
 }: InlineEditAgentProps) {
   const [open, setOpen] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
 
-  const filteredAgents = React.useMemo(() => {
-    // Helper to check if an agent is the N/A agent
-    const isNaAgent = (agent: Agent) => {
-      const fullName = `${agent.first_name || ''} ${agent.last_name || ''}`.toLowerCase();
-      return fullName.includes('n/a') && fullName.includes('not applicable');
-    };
-    
-    // Find the N/A agent to pin at top
-    const naAgent = agents.find(isNaAgent);
-    const otherAgents = agents.filter(agent => !isNaAgent(agent));
-    
-    if (!searchTerm) {
-      // Pin N/A agent at top when no search
-      return naAgent ? [naAgent, ...otherAgents] : otherAgents;
-    }
-    
-    // Normalize search term - remove punctuation, lowercase
-    const normalizedSearch = searchTerm.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    
-    // Special handling for N/A searches
-    const isSearchingForNa = ['na', 'n a', 'not applicable', 'not', 'applicable'].some(
-      term => normalizedSearch.includes(term) || term.includes(normalizedSearch)
-    );
-    
-    // Filter based on search term
-    const filtered = agents.filter(agent => {
-      // Build searchable text from all fields
-      const searchBlob = [
-        agent.first_name || '',
-        agent.last_name || '',
-        agent.brokerage || '',
-        agent.email || '',
-        agent.phone || ''
-      ].join(' ').toLowerCase();
-      
-      // Check if matches search
-      return searchBlob.includes(searchTerm.toLowerCase()) ||
-        searchBlob.replace(/[^a-z0-9\s]/g, '').includes(normalizedSearch);
-    });
-    
-    // If searching for N/A and N/A agent exists but wasn't matched, add it
-    if (isSearchingForNa && naAgent && !filtered.some(isNaAgent)) {
-      filtered.unshift(naAgent);
-    }
-    
-    // Pin N/A at top if it's in results
-    const naMatch = filtered.find(isNaAgent);
-    const othersMatch = filtered.filter(agent => !isNaAgent(agent));
-    
-    return naMatch ? [naMatch, ...othersMatch] : filtered;
-  }, [agents, searchTerm]);
+  // Helper to check if an agent is the N/A agent
+  const isNaAgent = (agent: Agent) => {
+    const fullName = `${agent.first_name || ''} ${agent.last_name || ''}`.toLowerCase();
+    return fullName.includes('n/a') && fullName.includes('not applicable');
+  };
+
+  // Separate N/A agent from others for pinning
+  const naAgent = React.useMemo(() => agents.find(isNaAgent), [agents]);
+  const otherAgents = React.useMemo(() => agents.filter(agent => !isNaAgent(agent)), [agents]);
 
   const handleSelect = (agent: Agent) => {
     onValueChange(agent);
     setOpen(false);
-    setSearchTerm("");
   };
 
   const handleClear = () => {
     onValueChange(null);
     setOpen(false);
-    setSearchTerm("");
+  };
+
+  // Build searchable value for Command filtering
+  const getSearchValue = (agent: Agent) => {
+    return [
+      agent.first_name || '',
+      agent.last_name || '',
+      agent.brokerage || '',
+      agent.email || '',
+      agent.phone || ''
+    ].join(' ').toLowerCase();
   };
 
   if (disabled) {
@@ -114,10 +86,12 @@ export function InlineEditAgent({
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
           variant="ghost"
+          role="combobox"
+          aria-expanded={open}
           className={cn(
             "h-9 px-0 py-1 justify-start text-left font-normal hover:bg-muted/50 w-full relative",
             !value && "text-muted-foreground",
@@ -139,52 +113,63 @@ export function InlineEditAgent({
             </div>
           </div>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 p-0" align="start">
-        <div className="p-2 border-b">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-            <Input
-              placeholder="Search agents..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-7 h-8"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
-        <div className="max-h-64 overflow-auto">
-          {value && (
-            <DropdownMenuItem
-              onClick={handleClear}
-              className="text-muted-foreground"
-            >
-              Clear selection
-            </DropdownMenuItem>
-          )}
-          {filteredAgents.map((agent) => (
-            <DropdownMenuItem
-              key={agent.id}
-              onClick={() => handleSelect(agent)}
-              className="flex flex-col items-start p-3"
-            >
-              <div className="font-medium">
-                {agent.first_name} {agent.last_name}
-              </div>
-              {agent.phone && (
-                <div className="text-xs text-muted-foreground">
-                  {agent.phone}
-                </div>
-              )}
-            </DropdownMenuItem>
-          ))}
-          {filteredAgents.length === 0 && (
-            <div className="p-3 text-sm text-muted-foreground">
-              No agents found
-            </div>
-          )}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search agents..." />
+          <CommandList>
+            <CommandEmpty>No agents found</CommandEmpty>
+            {value && (
+              <CommandGroup>
+                <CommandItem
+                  onSelect={handleClear}
+                  className="text-muted-foreground"
+                >
+                  <X className="mr-2 h-3 w-3" />
+                  Clear selection
+                </CommandItem>
+              </CommandGroup>
+            )}
+            {naAgent && (
+              <CommandGroup heading="Quick Select">
+                <CommandItem
+                  value={getSearchValue(naAgent)}
+                  onSelect={() => handleSelect(naAgent)}
+                  className="flex flex-col items-start p-3"
+                >
+                  <div className="font-medium">
+                    {naAgent.first_name} {naAgent.last_name}
+                  </div>
+                  {naAgent.phone && (
+                    <div className="text-xs text-muted-foreground">
+                      {naAgent.phone}
+                    </div>
+                  )}
+                </CommandItem>
+              </CommandGroup>
+            )}
+            <CommandGroup heading="Agents">
+              {otherAgents.map((agent) => (
+                <CommandItem
+                  key={agent.id}
+                  value={getSearchValue(agent)}
+                  onSelect={() => handleSelect(agent)}
+                  className="flex flex-col items-start p-3"
+                >
+                  <div className="font-medium">
+                    {agent.first_name} {agent.last_name}
+                  </div>
+                  {agent.phone && (
+                    <div className="text-xs text-muted-foreground">
+                      {agent.phone}
+                    </div>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
