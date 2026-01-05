@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Upload } from "lucide-react";
+import { Search, Filter, X, Upload, ChevronDown, ChevronRight } from "lucide-react";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
 import { ImportPastClientsModal } from "@/components/modals/ImportPastClientsModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
-import { ColumnDef } from "@/components/ui/data-table";
-import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef, DataTable } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
 import { ViewPills } from "@/components/ui/view-pills";
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
@@ -32,12 +31,12 @@ import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { ButtonFilterBuilder, FilterCondition } from "@/components/ui/button-filter-builder";
 import { countActiveFilters } from "@/utils/filterUtils";
-// Sheet removed - using inline filters
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { CRMClient } from "@/types/crm";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { CollapsiblePipelineSection } from "@/components/CollapsiblePipelineSection";
 
 interface PastClientLoan {
   id: string;
@@ -1094,6 +1093,61 @@ export default function PastClients() {
     return result;
   }, [pastClients, searchTerm, filters]);
 
+  // Summary statistics
+  const summaryData = useMemo(() => {
+    const totalLoans = filteredLoans.length;
+    const totalLoanAmount = filteredLoans.reduce((sum, c) => sum + (c.loan_amount || 0), 0);
+    const totalSalesPrice = filteredLoans.reduce((sum, c) => sum + (c.sales_price || 0), 0);
+    
+    // Group counts by year
+    const byYear = filteredLoans.reduce((acc, c) => {
+      const year = c.close_date ? new Date(c.close_date).getFullYear() : 'Unknown';
+      acc[year] = (acc[year] || 0) + 1;
+      return acc;
+    }, {} as Record<string | number, number>);
+    
+    return { totalLoans, totalLoanAmount, totalSalesPrice, byYear };
+  }, [filteredLoans]);
+
+  // Group loans by close date year
+  const groupedByYear = useMemo(() => {
+    const groups: Record<number | string, PastClientLoan[]> = {};
+    
+    filteredLoans.forEach(loan => {
+      const year = loan.close_date 
+        ? new Date(loan.close_date).getFullYear() 
+        : 'Unknown';
+      if (!groups[year]) groups[year] = [];
+      groups[year].push(loan);
+    });
+    
+    // Sort years descending (2025, 2024, 2023...), Unknown at end
+    return Object.entries(groups)
+      .sort(([a], [b]) => {
+        if (a === 'Unknown') return 1;
+        if (b === 'Unknown') return -1;
+        return Number(b) - Number(a);
+      });
+  }, [filteredLoans]);
+
+  // Calculate summary stats per year group
+  const getYearSummary = (loans: PastClientLoan[]) => ({
+    loanTotal: loans.reduce((sum, l) => sum + (l.loan_amount || 0), 0),
+    salesTotal: loans.reduce((sum, l) => sum + (l.sales_price || 0), 0),
+  });
+
+  // State for summary header collapse
+  const [isSummaryOpen, setIsSummaryOpen] = useState(true);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -1215,25 +1269,82 @@ export default function PastClients() {
           </div>
         )}
       </div>
-      <Card>
-        <CardContent className="p-0">
-        <DataTable 
-          columns={columns} 
-          data={filteredLoans} 
-          searchTerm={searchTerm} 
-          onRowClick={handleRowClick}
-          onColumnReorder={handleColumnReorder}
-          storageKey="past-clients"
-          selectable
-          selectedIds={selectedLeadIds}
-          onSelectionChange={setSelectedLeadIds}
-          getRowId={(row) => row.id}
-          onDelete={handleDelete}
-          onViewDetails={handleViewDetails}
-          onEdit={handleEdit}
-        />
-        </CardContent>
+
+      {/* Summary Header */}
+      <Card className="bg-gradient-card shadow-soft">
+        <CardHeader className="py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSummaryOpen(!isSummaryOpen)}
+                className="h-6 w-6 p-0"
+              >
+                {isSummaryOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+              <h3 className="text-lg font-semibold text-foreground">
+                Summary: {summaryData.totalLoans} Past Clients
+              </h3>
+            </div>
+            <div className="flex gap-6 text-sm">
+              <span className="text-muted-foreground">
+                Total Loan Amount: <span className="font-semibold text-foreground">{formatCurrency(summaryData.totalLoanAmount)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Total Sales Price: <span className="font-semibold text-foreground">{formatCurrency(summaryData.totalSalesPrice)}</span>
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        {isSummaryOpen && (
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(summaryData.byYear)
+                .sort(([a], [b]) => {
+                  if (a === 'Unknown') return 1;
+                  if (b === 'Unknown') return -1;
+                  return Number(b) - Number(a);
+                })
+                .map(([year, count]) => (
+                  <Badge key={year} variant="secondary" className="text-xs">
+                    {year}: {count} loan{count !== 1 ? 's' : ''}
+                  </Badge>
+                ))
+              }
+            </div>
+          </CardContent>
+        )}
       </Card>
+
+      {/* Year-Grouped Sections */}
+      <div className="space-y-4">
+        {groupedByYear.map(([year, loans]) => (
+          <CollapsiblePipelineSection
+            key={year}
+            title={String(year)}
+            data={loans}
+            columns={columns}
+            searchTerm=""
+            defaultOpen={year === String(new Date().getFullYear())}
+            onRowClick={handleRowClick}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onColumnReorder={handleColumnReorder}
+            selectable
+            selectedIds={selectedLeadIds}
+            onSelectionChange={setSelectedLeadIds}
+            getRowId={(row) => row.id}
+            showRowNumbers={true}
+            summaryStats={getYearSummary(loans)}
+          />
+        ))}
+      </div>
       {selectedClient && (
         <ClientDetailDrawer 
           isOpen={isDrawerOpen} 
