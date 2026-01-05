@@ -2632,6 +2632,9 @@ export type Database = {
           homeowners_insurance: number | null
           icd_file: string | null
           id: string
+          idle_followup_date: string | null
+          idle_future_steps: boolean | null
+          idle_reason: string | null
           income_type: string | null
           initial_approval_file: string | null
           inspection_file: string | null
@@ -2818,6 +2821,9 @@ export type Database = {
           homeowners_insurance?: number | null
           icd_file?: string | null
           id?: string
+          idle_followup_date?: string | null
+          idle_future_steps?: boolean | null
+          idle_reason?: string | null
           income_type?: string | null
           initial_approval_file?: string | null
           inspection_file?: string | null
@@ -3006,6 +3012,9 @@ export type Database = {
           homeowners_insurance?: number | null
           icd_file?: string | null
           id?: string
+          idle_followup_date?: string | null
+          idle_future_steps?: boolean | null
+          idle_reason?: string | null
           income_type?: string | null
           initial_approval_file?: string | null
           inspection_file?: string | null

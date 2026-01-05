@@ -82,6 +82,7 @@ interface DetailsTabProps {
 // Pipeline stage IDs
 const PRE_APPROVED_STAGE_ID = '3cbf38ff-752e-4163-a9a3-1757499b4945';
 const ACTIVE_STAGE_ID = '76eb2e82-e1d9-4f2d-a57d-2120a25696db';
+const IDLE_STAGE_ID = '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a';
 
 export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTabProps) {
   const { toast } = useToast();
@@ -89,6 +90,11 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMovingBack, setIsMovingBack] = useState(false);
+  const [isMovingToIdle, setIsMovingToIdle] = useState(false);
+  const [idleDialogStep, setIdleDialogStep] = useState<'confirm' | 'form' | null>(null);
+  const [idleReason, setIdleReason] = useState('');
+  const [idleHasFutureSteps, setIdleHasFutureSteps] = useState<boolean | null>(null);
+  const [idleFollowupDate, setIdleFollowupDate] = useState('');
   const [agents, setAgents] = useState<any[]>([]);
   const [lenders, setLenders] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -1860,6 +1866,147 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
               </AlertDialogContent>
             </AlertDialog>
           )}
+          {/* Idle button with 2-step dialog flow */}
+          <AlertDialog open={idleDialogStep !== null} onOpenChange={(open) => {
+            if (!open) {
+              setIdleDialogStep(null);
+              setIdleReason('');
+              setIdleHasFutureSteps(null);
+              setIdleFollowupDate('');
+            }
+          }}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={isMovingToIdle}
+                onClick={() => setIdleDialogStep('confirm')}
+              >
+                {isMovingToIdle ? "Moving..." : "Idle"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              {idleDialogStep === 'confirm' ? (
+                <>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Move to Idle?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to move this client to idle?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => setIdleDialogStep('form')}>
+                      Yes
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </>
+              ) : (
+                <>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Idle Details</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Please provide additional information about why this client is being moved to idle.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="idle-reason">Why is this client moving into idle?</Label>
+                      <Input
+                        id="idle-reason"
+                        placeholder="Enter reason..."
+                        value={idleReason}
+                        onChange={(e) => setIdleReason(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Is there any future follow-ups for this lead?</Label>
+                      <div className="flex gap-4">
+                        <Button
+                          type="button"
+                          variant={idleHasFutureSteps === true ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIdleHasFutureSteps(true)}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={idleHasFutureSteps === false ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setIdleHasFutureSteps(false);
+                            setIdleFollowupDate('');
+                          }}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+                    {idleHasFutureSteps === true && (
+                      <div className="space-y-2">
+                        <Label htmlFor="idle-followup-date">Follow-up Date</Label>
+                        <Input
+                          id="idle-followup-date"
+                          type="date"
+                          value={idleFollowupDate}
+                          onChange={(e) => setIdleFollowupDate(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={!idleReason.trim() || idleHasFutureSteps === null}
+                      onClick={async () => {
+                        if (!leadId) return;
+                        setIsMovingToIdle(true);
+                        try {
+                          const updateData: Record<string, any> = {
+                            pipeline_stage_id: IDLE_STAGE_ID,
+                            idle_reason: idleReason.trim(),
+                            idle_future_steps: idleHasFutureSteps,
+                            idle_followup_date: idleHasFutureSteps && idleFollowupDate ? idleFollowupDate : null,
+                          };
+                          
+                          const { error } = await supabase
+                            .from('leads')
+                            .update(updateData)
+                            .eq('id', leadId);
+                          
+                          if (error) throw error;
+                          
+                          toast({
+                            title: "Success",
+                            description: "Lead moved to Idle",
+                          });
+                          
+                          setIdleDialogStep(null);
+                          setIdleReason('');
+                          setIdleHasFutureSteps(null);
+                          setIdleFollowupDate('');
+                          
+                          if (onLeadUpdated) onLeadUpdated();
+                          if (onClose) onClose();
+                        } catch (error) {
+                          console.error("Error moving lead to idle:", error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to move lead to Idle",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsMovingToIdle(false);
+                        }
+                      }}
+                    >
+                      Save & Move to Idle
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </>
+              )}
+            </AlertDialogContent>
+          </AlertDialog>
           <Button 
             variant="default" 
             onClick={handleCloseLoan}
