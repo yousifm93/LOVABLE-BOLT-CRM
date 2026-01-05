@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 
+interface SummaryStats {
+  loanTotal?: number;
+  salesTotal?: number;
+}
+
 interface CollapsiblePipelineSectionProps {
   title: string;
   data: any[];
@@ -24,6 +29,7 @@ interface CollapsiblePipelineSectionProps {
   showRowNumbers?: boolean;
   initialColumnWidths?: Record<string, number>;
   lockResize?: boolean;
+  summaryStats?: SummaryStats;
 }
 
 export function CollapsiblePipelineSection({ 
@@ -44,9 +50,19 @@ export function CollapsiblePipelineSection({
   getRowId,
   showRowNumbers = false,
   initialColumnWidths,
-  lockResize = false
+  lockResize = false,
+  summaryStats
 }: CollapsiblePipelineSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
   return (
     <Card className={cn("bg-gradient-card shadow-soft", className)}>
@@ -67,14 +83,30 @@ export function CollapsiblePipelineSection({
             </Button>
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {data.length} loan{data.length !== 1 ? 's' : ''}
-          </span>
+          <div className="flex items-center gap-4">
+            {summaryStats && (
+              <>
+                {summaryStats.loanTotal !== undefined && (
+                  <span className="text-sm text-muted-foreground">
+                    Loans: <span className="font-medium text-foreground">{formatCurrency(summaryStats.loanTotal)}</span>
+                  </span>
+                )}
+                {summaryStats.salesTotal !== undefined && (
+                  <span className="text-sm text-muted-foreground">
+                    Sales: <span className="font-medium text-foreground">{formatCurrency(summaryStats.salesTotal)}</span>
+                  </span>
+                )}
+              </>
+            )}
+            <span className="text-sm text-muted-foreground">
+              {data.length} loan{data.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
       </CardHeader>
       
       {isOpen && (
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 overflow-x-auto">
           <DataTable
             columns={columns}
             data={data}
