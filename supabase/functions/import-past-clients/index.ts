@@ -27,12 +27,7 @@ const LENDER_ID_MAP: Record<string, string> = {
   'SIERRA PACIFIC': '64db6af8-f0a5-4876-b7a7-8d3fa6f3c8e2',
   'POWERTPO': '5df90f36-e9fb-4e8b-97e8-44e544bcfd5c',
   'UCB': 'c2e5f8b1-0a3d-4e6f-9c2b-7d8a9e0f1b2c',
-  // Additional lenders from 2024 data
-  'FRANKLIN': 'franklin-lender-id-placeholder',
-  'ANGEL OAK': 'angel-oak-lender-id-placeholder',
-  'WINDSOR': 'windsor-lender-id-placeholder',
-  'NEWFI': 'newfi-lender-id-placeholder',
-  'SPRINGEQ': 'springeq-lender-id-placeholder',
+  // Additional lenders - set to null if not in system (allows import without lender assignment)
   'FUND': '9d4a54b2-0023-4784-86c5-f9589c1ed6b7', // Map to FUND LOANS
 };
 
@@ -433,22 +428,28 @@ Deno.serve(async (req) => {
           }
         } else {
           // Handle Excel format - supports both old format and 2024 format with "Name" column
+          // Normalize row keys by trimming spaces
+          const normalizedRow: Record<string, any> = {};
+          for (const [key, value] of Object.entries(row)) {
+            normalizedRow[key.trim()] = value;
+          }
+          
           let borrowerFirst: string;
           let borrowerLast: string;
           
           // Check if using "Name" column (2024 format) or separate first/last name columns
-          if (row['Name']) {
-            const nameParts = row['Name'].trim().split(' ');
+          if (normalizedRow['Name']) {
+            const nameParts = normalizedRow['Name'].trim().split(' ');
             borrowerFirst = nameParts[0] || 'Unknown';
             borrowerLast = nameParts.slice(1).join(' ') || '';
           } else {
-            borrowerFirst = row['Borrower FN'] || row['BORROWER FN'] || row['First Name'] || 'Unknown';
-            borrowerLast = row['Borrower LN'] || row['BORROWER LN'] || row['Last Name'] || '';
+            borrowerFirst = normalizedRow['Borrower FN'] || normalizedRow['BORROWER FN'] || normalizedRow['First Name'] || 'Unknown';
+            borrowerLast = normalizedRow['Borrower LN'] || normalizedRow['BORROWER LN'] || normalizedRow['Last Name'] || '';
           }
           
-          const lenderId = getLenderId(row['LENDER'] || row['Lender'] || row['Lender Name']);
-          const closeDate = parseDate(row['CLOSE DATE'] || row['Close Date']);
-          const leadOnDate = parseDate(row['LEAD ON'] || row['Lead Date']);
+          const lenderId = getLenderId(normalizedRow['LENDER'] || normalizedRow['Lender'] || normalizedRow['Lender Name']);
+          const closeDate = parseDate(normalizedRow['CLOSE DATE'] || normalizedRow['Close Date']);
+          const leadOnDate = parseDate(normalizedRow['LEAD ON'] || normalizedRow['Lead Date']);
 
           const lead: Record<string, any> = {
             account_id: DEFAULT_ACCOUNT_ID,
@@ -457,23 +458,23 @@ Deno.serve(async (req) => {
             
             first_name: borrowerFirst,
             last_name: borrowerLast,
-            email: cleanEmail(row['Borrower Email'] || row['Email']),
-            phone: cleanPhone(row['Borrower Phone'] || row['Phone']),
+            email: cleanEmail(normalizedRow['Borrower Email'] || normalizedRow['Email']),
+            phone: cleanPhone(normalizedRow['Borrower Phone'] || normalizedRow['Phone']),
             
-            mb_loan_number: row['ARIVE LOAN #'] || row['MB LOAN #'],
+            mb_loan_number: normalizedRow['ARIVE LOAN #'] || normalizedRow['MB LOAN #'],
             approved_lender_id: lenderId,
-            loan_amount: parseDecimal(row['LOAN AMT'] || row['Loan Amount']),
-            sales_price: parseDecimal(row['SALES PRICE'] || row['Sales Price']),
-            interest_rate: parseDecimal(row['RATE'] || row['Rate'] || row['Interest Rate']),
+            loan_amount: parseDecimal(normalizedRow['LOAN AMT'] || normalizedRow['Loan Amount']),
+            sales_price: parseDecimal(normalizedRow['SALES PRICE'] || normalizedRow['Sales Price']),
+            interest_rate: parseDecimal(normalizedRow['RATE'] || normalizedRow['Rate'] || normalizedRow['Interest Rate']),
             
-            subject_address_1: row['SUBJECT PROP ADDRESS'] || row['Property Address'],
-            subject_address_2: row['ADDRESS 2'] || row['Address 2'] || row['UNIT'] || row['Unit'],
-            subject_city: row['CITY'] || row['City'],
-            subject_state: row['STATE'] || row['State'],
-            subject_zip: row['ZIP CODE'] || row['ZIP'] || row['Zip'],
+            subject_address_1: normalizedRow['SUBJECT PROP ADDRESS'] || normalizedRow['Property Address'],
+            subject_address_2: normalizedRow['ADDRESS 2'] || normalizedRow['Address 2'] || normalizedRow['UNIT'] || normalizedRow['Unit'],
+            subject_city: normalizedRow['CITY'] || normalizedRow['City'],
+            subject_state: normalizedRow['STATE'] || normalizedRow['State'],
+            subject_zip: normalizedRow['ZIP CODE'] || normalizedRow['ZIP'] || normalizedRow['Zip'],
             
-            property_type: mapPropertyType(row['PROP TYPE'] || row['Property Type']),
-            occupancy: mapOccupancy(row['OCC'] || row['Occupancy']),
+            property_type: mapPropertyType(normalizedRow['PROP TYPE'] || normalizedRow['Property Type']),
+            occupancy: mapOccupancy(normalizedRow['OCC'] || normalizedRow['Occupancy']),
             
             close_date: closeDate,
             lead_on_date: leadOnDate || new Date().toISOString().split('T')[0],
@@ -489,11 +490,11 @@ Deno.serve(async (req) => {
           
           // Store agent names in notes since we can't look them up
           const agentNotes: string[] = [];
-          if (row['BUYERS AGENT'] || row['Buyers Agent']) {
-            agentNotes.push(`Buyer's Agent: ${row['BUYERS AGENT'] || row['Buyers Agent']}`);
+          if (normalizedRow['BUYERS AGENT'] || normalizedRow['Buyers Agent']) {
+            agentNotes.push(`Buyer's Agent: ${normalizedRow['BUYERS AGENT'] || normalizedRow['Buyers Agent']}`);
           }
-          if (row['LISTING AGENT'] || row['Listing Agent']) {
-            agentNotes.push(`Listing Agent: ${row['LISTING AGENT'] || row['Listing Agent']}`);
+          if (normalizedRow['LISTING AGENT'] || normalizedRow['Listing Agent']) {
+            agentNotes.push(`Listing Agent: ${normalizedRow['LISTING AGENT'] || normalizedRow['Listing Agent']}`);
           }
           if (agentNotes.length > 0) {
             lead.notes = agentNotes.join('\n');
