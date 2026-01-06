@@ -108,7 +108,8 @@ serve(async (req) => {
       // Trigger Axiom - For DSCR, always ensure dscr_ratio is '1.5'
       const dscrRatioValue = scenario_type === 'dscr' ? '1.5' : (scenarioData.dscr_ratio || '');
       
-      const baseAxiomRow = [
+      // Always send 11 fields including loan_term
+      const axiomData = [[
         pricingRun.id,
         scenarioData.fico_score?.toString() || '',
         scenarioData.zip_code || '',
@@ -118,15 +119,9 @@ serve(async (req) => {
         scenarioData.occupancy || '',
         scenarioData.property_type || '',
         scenarioData.income_type || 'Full Doc - 24M',
-        dscrRatioValue,  // Explicitly use dscrRatioValue to ensure DSCR always has 1.5
-      ];
-
-      // Only add loan_term if it's 15 years (30 is already the default)
-      if (scenarioData.loan_term === 15) {
-        baseAxiomRow.push('15');
-      }
-
-      const axiomData = [baseAxiomRow];
+        dscrRatioValue,
+        scenarioData.loan_term?.toString() || '30',
+      ]];
 
       console.log(`Triggering Axiom for ${scenario_type}:`, {
         run_id: pricingRun.id,

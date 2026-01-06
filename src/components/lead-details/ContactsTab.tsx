@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
+import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
+import { databaseService } from "@/services/database";
 
 interface Lender {
   id: string;
@@ -17,6 +19,15 @@ interface Lender {
   lender_type: string;
   account_executive: string | null;
   account_executive_email: string | null;
+}
+
+interface Agent {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  brokerage?: string;
 }
 
 interface Contact {
@@ -37,9 +48,13 @@ interface ExternalContact {
 
 interface ContactsTabProps {
   leadId: string;
+  lead?: any;
+  onLeadUpdated?: () => void;
 }
 
 const CONTACT_TYPES = [
+  { key: 'buyer_agent', label: "Buyer's Agent", icon: User, type: 'agent' },
+  { key: 'listing_agent', label: 'Listing Agent', icon: User, type: 'agent' },
   { key: 'lender', label: 'Lender', icon: Landmark, type: 'lender' },
   { key: 'account_executive', label: 'Account Executive', icon: User, type: 'readonly' },
   { key: 'title', label: 'Title Company', icon: Building, type: 'contact' },
@@ -254,23 +269,41 @@ function AddContactModal({ isOpen, onClose, onSave, contactType }: {
   );
 }
 
-export function ContactsTab({ leadId }: ContactsTabProps) {
+export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
   const [assignments, setAssignments] = useState<ExternalContact[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [lenders, setLenders] = useState<Lender[]>([]);
-  const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
+  const [leadData, setLeadData] = useState<any>(lead || null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalType, setAddModalType] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
-    Promise.all([loadAssignments(), loadContacts(), loadLenders()]);
+    Promise.all([loadLeadData(), loadContacts(), loadAgents(), loadLenders()]);
   }, [leadId]);
 
-  const loadAssignments = async () => {
-    console.log('[DISABLED] External contacts feature - table deleted');
-    setAssignments([]);
+  // Update local state when lead prop changes
+  useEffect(() => {
+    if (lead) {
+      setLeadData(lead);
+    }
+  }, [lead]);
+
+  const loadLeadData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('buyer_agent_id, listing_agent_id, approved_lender_id')
+        .eq('id', leadId)
+        .single();
+
+      if (error) throw error;
+      setLeadData((prev: any) => ({ ...prev, ...data }));
+    } catch (error) {
+      console.error('Error loading lead data:', error);
+    }
   };
 
   const loadContacts = async () => {
@@ -294,6 +327,15 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
     }
   };
 
+  const loadAgents = async () => {
+    try {
+      const data = await databaseService.getBuyerAgents();
+      setAgents(data || []);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    }
+  };
+
   const loadLenders = async () => {
     try {
       const { data, error } = await supabase
@@ -308,20 +350,42 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
     }
   };
 
-  const handleAssign = async (type: string, contactId: string) => {
-    toast({
-      title: "Feature Disabled",
-      description: "External contacts table has been removed",
-      variant: "destructive",
-    });
+  const handleAgentChange = async (fieldName: 'buyer_agent_id' | 'listing_agent_id', agent: Agent | null) => {
+    try {
+      await databaseService.updateLead(leadId, { [fieldName]: agent?.id || null });
+      setLeadData((prev: any) => ({ ...prev, [fieldName]: agent?.id || null }));
+      onLeadUpdated?.();
+      toast({
+        title: "Updated",
+        description: "Agent updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating agent:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update agent",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRemove = async (type: string) => {
-    toast({
-      title: "Feature Disabled",
-      description: "External contacts table has been removed",
-      variant: "destructive",
-    });
+  const handleLenderChange = async (lender: Lender | null) => {
+    try {
+      await databaseService.updateLead(leadId, { approved_lender_id: lender?.id || null });
+      setLeadData((prev: any) => ({ ...prev, approved_lender_id: lender?.id || null }));
+      onLeadUpdated?.();
+      toast({
+        title: "Updated",
+        description: "Lender updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating lender:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lender",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddNew = (type: string) => {
@@ -335,20 +399,17 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
         .from('contacts')
         .insert({
           ...contactData,
-          type: contactData.type as any // Cast to handle enum types
+          type: contactData.type as any
         })
         .select()
         .single();
 
       if (createError) throw createError;
-
-      // Auto-assign the new contact
-      await handleAssign(addModalType, newContact.id);
       await loadContacts();
       
       toast({
         title: "Success",
-        description: "Contact created and linked successfully",
+        description: "Contact created successfully",
       });
     } catch (error) {
       console.error('Error creating contact:', error);
@@ -359,6 +420,11 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
       });
     }
   };
+
+  // Get current agent/lender values
+  const buyerAgent = agents.find(a => a.id === leadData?.buyer_agent_id) || null;
+  const listingAgent = agents.find(a => a.id === leadData?.listing_agent_id) || null;
+  const selectedLender = lenders.find(l => l.id === leadData?.approved_lender_id) || null;
 
   if (loading) {
     return (
@@ -374,7 +440,49 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
     <>
       <div className="space-y-1">
         {CONTACT_TYPES.map(contactType => {
-          // Handle lender type differently
+          // Handle buyer's agent
+          if (contactType.key === 'buyer_agent') {
+            return (
+              <div key={contactType.key} className="py-3 border-b">
+                <div className="flex items-center gap-2 mb-2">
+                  <contactType.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">{contactType.label}</span>
+                </div>
+                <div className="pl-5">
+                  <InlineEditAgent
+                    value={buyerAgent}
+                    agents={agents}
+                    onValueChange={(agent) => handleAgentChange('buyer_agent_id', agent)}
+                    placeholder="Select buyer's agent..."
+                    type="buyer"
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          // Handle listing agent
+          if (contactType.key === 'listing_agent') {
+            return (
+              <div key={contactType.key} className="py-3 border-b">
+                <div className="flex items-center gap-2 mb-2">
+                  <contactType.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">{contactType.label}</span>
+                </div>
+                <div className="pl-5">
+                  <InlineEditAgent
+                    value={listingAgent}
+                    agents={agents}
+                    onValueChange={(agent) => handleAgentChange('listing_agent_id', agent)}
+                    placeholder="Select listing agent..."
+                    type="listing"
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          // Handle lender type
           if (contactType.type === 'lender') {
             return (
               <div key={contactType.key} className="py-3 border-b">
@@ -386,7 +494,7 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
                   <InlineEditApprovedLender
                     value={selectedLender}
                     lenders={lenders}
-                    onValueChange={(lender) => setSelectedLender(lender as Lender | null)}
+                    onValueChange={(lender) => handleLenderChange(lender as Lender | null)}
                     placeholder="Select lender..."
                   />
                 </div>
@@ -421,18 +529,12 @@ export function ContactsTab({ leadId }: ContactsTabProps) {
               icon={contactType.icon}
               assignment={assignment}
               contacts={contacts}
-              onAssign={handleAssign}
-              onRemove={handleRemove}
+              onAssign={() => {}}
+              onRemove={() => {}}
               onAddNew={handleAddNew}
             />
           );
         })}
-        
-        {assignments.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No external contacts linked
-          </p>
-        )}
       </div>
 
       <AddContactModal

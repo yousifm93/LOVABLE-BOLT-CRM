@@ -197,3 +197,6 @@ verify_jwt = false
 
 [functions.cleanup-past-client-data]
 verify_jwt = false
+
+[functions.create-recurring-tasks]
+verify_jwt = false
