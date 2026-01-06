@@ -111,6 +111,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
         .gte('lead_on_date', formatDate(startOfMonth))
         .lt('lead_on_date', formatDate(startOfNextMonth))
         .order('lead_on_date', { ascending: false });
@@ -128,6 +129,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
         .eq('lead_on_date', formatDate(yesterday))
         .order('created_at', { ascending: false });
       
@@ -144,6 +146,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
         .eq('lead_on_date', formatDate(today))
         .order('created_at', { ascending: false });
       
@@ -160,6 +163,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
         .order('lead_on_date', { ascending: false })
         .order('created_at', { ascending: false });
       
@@ -179,6 +183,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', startOfMonthTimestamp)
         .lt('app_complete_at', startOfNextMonthTimestamp)
@@ -197,6 +202,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', yesterdayBoundaries.start)
         .lte('app_complete_at', yesterdayBoundaries.end)
@@ -215,6 +221,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', todayBoundaries.start)
         .lte('app_complete_at', todayBoundaries.end)
@@ -233,6 +240,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
         .not('app_complete_at', 'is', null)
         .order('app_complete_at', { ascending: false });
       
