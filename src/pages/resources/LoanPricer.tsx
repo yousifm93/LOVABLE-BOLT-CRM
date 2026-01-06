@@ -350,6 +350,7 @@ export function LoanPricer() {
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Program</TableHead>
+                  <TableHead>Term</TableHead>
                   <TableHead>FICO</TableHead>
                   <TableHead>LTV</TableHead>
                   <TableHead>Property Type</TableHead>
@@ -422,6 +423,9 @@ export function LoanPricer() {
                       <div className="text-sm font-medium">
                         {getIncomeTypeLabel(run.scenario_json?.income_type)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium">{run.scenario_json?.loan_term || 30}</span>
                     </TableCell>
                     <TableCell>
                       <span className="font-medium">{run.scenario_json?.fico_score || '-'}</span>
