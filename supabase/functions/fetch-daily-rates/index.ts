@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('fetch-daily-rates: Starting daily rate fetch with 3 scenarios');
+    console.log('fetch-daily-rates: Starting daily rate fetch with 5 scenarios');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -34,13 +34,27 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
-    // Three scenarios: 30Y Conventional, Bank Statement, DSCR
+    // All 5 scenarios: 30Y Fixed, 15Y Fixed, FHA 30Y, Bank Statement, DSCR
     const scenarios = [
       {
         ...baseScenario,
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         scenario_type: '30yr_fixed',
+        loan_term: 30
+      },
+      {
+        ...baseScenario,
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '15yr_fixed',
+        loan_term: 15
+      },
+      {
+        ...baseScenario,
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: 'fha_30yr',
         loan_term: 30
       },
       {
@@ -53,7 +67,7 @@ serve(async (req) => {
       {
         ...baseScenario,
         income_type: 'DSCR',
-        dscr_ratio: '1.3',  // CRITICAL: Must always be 1.3 for DSCR scenarios
+        dscr_ratio: '1.5',
         occupancy: 'Investment',
         scenario_type: 'dscr',
         loan_term: 30
@@ -91,8 +105,8 @@ serve(async (req) => {
       console.log(`Created pricing run for ${scenario_type}:`, pricingRun.id);
       pricingRunIds.push(pricingRun.id);
 
-      // Trigger Axiom - CRITICAL: For DSCR, always ensure dscr_ratio is '1.3'
-      const dscrRatioValue = scenario_type === 'dscr' ? '1.3' : (scenarioData.dscr_ratio || '');
+      // Trigger Axiom - For DSCR, always ensure dscr_ratio is '1.5'
+      const dscrRatioValue = scenario_type === 'dscr' ? '1.5' : (scenarioData.dscr_ratio || '');
       
       const axiomData = [[
         pricingRun.id,
@@ -104,7 +118,7 @@ serve(async (req) => {
         scenarioData.occupancy || '',
         scenarioData.property_type || '',
         scenarioData.income_type || 'Full Doc - 24M',
-        dscrRatioValue,  // Explicitly use dscrRatioValue to ensure DSCR always has 1.3
+        dscrRatioValue,  // Explicitly use dscrRatioValue to ensure DSCR always has 1.5
         scenarioData.loan_term?.toString() || '30'  // 11th field: loan term
       ]];
 
@@ -145,7 +159,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily rate fetch triggered for 3 scenarios',
+        message: 'Daily rate fetch triggered for 5 scenarios',
         pricing_run_ids: pricingRunIds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
