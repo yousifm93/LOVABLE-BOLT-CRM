@@ -113,17 +113,17 @@ serve(async (req) => {
       }
     }
 
-    // Method 2: Fallback to API trigger
+    // Method 2: Fallback to API trigger (key in body, not header)
     if (!axiomResponse) {
       console.log('Using API trigger method...');
       const apiResponse = await fetch('https://lar.axiom.ai/api/v3/trigger', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${axiomApiKey}`,
         },
         body: JSON.stringify({
-          tool: 'Axiom Loan Pricer Tool',
+          key: axiomApiKey,
+          name: 'Axiom Loan Pricer Tool',
           data: axiomData,
         }),
       });
