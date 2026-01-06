@@ -109,15 +109,19 @@ export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefille
           const parsed = typeof axiomResponse.axiom_response === 'string' 
             ? JSON.parse(axiomResponse.axiom_response)
             : axiomResponse.axiom_response;
-          vncUrl = parsed?.vnc || '';
+          // Axiom returns VNC URL under "OPEN LINK IN BROWSER" key, fallback to "vnc"
+          vncUrl = parsed?.["OPEN LINK IN BROWSER"] || parsed?.vnc || '';
         } catch {
           // Response might not be JSON
         }
       }
 
+      const triggerMethod = axiomResponse?.trigger_method || 'unknown';
+      const fieldsSent = axiomResponse?.fields_sent || 0;
+
       toast({
         title: "Pricing run started",
-        description: vncUrl 
+        description: vncUrl
           ? "Data sent to pricing system. Robot is running..." 
           : "Data sent to pricing system. Results will appear automatically when ready.",
       });
