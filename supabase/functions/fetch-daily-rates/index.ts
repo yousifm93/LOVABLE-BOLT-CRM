@@ -40,20 +40,23 @@ serve(async (req) => {
         ...baseScenario,
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
-        scenario_type: '30yr_fixed'
+        scenario_type: '30yr_fixed',
+        loan_term: 30
       },
       {
         ...baseScenario,
         income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
-        scenario_type: 'bank_statement'
+        scenario_type: 'bank_statement',
+        loan_term: 30
       },
       {
         ...baseScenario,
         income_type: 'DSCR',
         dscr_ratio: '1.3',  // CRITICAL: Must always be 1.3 for DSCR scenarios
         occupancy: 'Investment',
-        scenario_type: 'dscr'
+        scenario_type: 'dscr',
+        loan_term: 30
       }
     ];
 
@@ -101,7 +104,8 @@ serve(async (req) => {
         scenarioData.occupancy || '',
         scenarioData.property_type || '',
         scenarioData.income_type || 'Full Doc - 24M',
-        dscrRatioValue  // Explicitly use dscrRatioValue to ensure DSCR always has 1.3
+        dscrRatioValue,  // Explicitly use dscrRatioValue to ensure DSCR always has 1.3
+        scenarioData.loan_term?.toString() || '30'  // 11th field: loan term
       ]];
 
       console.log(`Triggering Axiom for ${scenario_type}:`, {
