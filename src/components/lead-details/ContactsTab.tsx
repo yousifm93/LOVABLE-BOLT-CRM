@@ -284,10 +284,18 @@ export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
     Promise.all([loadLeadData(), loadContacts(), loadAgents(), loadLenders()]);
   }, [leadId]);
 
-  // Update local state when lead prop changes
+  // Update local state when lead prop changes - include embedded objects
   useEffect(() => {
     if (lead) {
-      setLeadData(lead);
+      setLeadData({
+        ...lead,
+        buyer_agent_id: lead.buyer_agent_id,
+        listing_agent_id: lead.listing_agent_id,
+        approved_lender_id: lead.approved_lender_id,
+        buyer_agent: lead.buyer_agent,
+        listing_agent: lead.listing_agent,
+        approved_lender: lead.approved_lender,
+      });
     }
   }, [lead]);
 
@@ -295,12 +303,25 @@ export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
     try {
       const { data, error } = await supabase
         .from('leads')
-        .select('buyer_agent_id, listing_agent_id, approved_lender_id')
+        .select(`
+          buyer_agent_id, 
+          listing_agent_id, 
+          approved_lender_id,
+          buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(*),
+          listing_agent:buyer_agents!leads_listing_agent_id_fkey(*),
+          approved_lender:lenders!leads_approved_lender_id_fkey(*)
+        `)
         .eq('id', leadId)
         .single();
 
       if (error) throw error;
-      setLeadData((prev: any) => ({ ...prev, ...data }));
+      setLeadData((prev: any) => ({ 
+        ...prev, 
+        ...data,
+        buyer_agent: data.buyer_agent,
+        listing_agent: data.listing_agent,
+        approved_lender: data.approved_lender,
+      }));
     } catch (error) {
       console.error('Error loading lead data:', error);
     }
@@ -421,10 +442,10 @@ export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
     }
   };
 
-  // Get current agent/lender values
-  const buyerAgent = agents.find(a => a.id === leadData?.buyer_agent_id) || null;
-  const listingAgent = agents.find(a => a.id === leadData?.listing_agent_id) || null;
-  const selectedLender = lenders.find(l => l.id === leadData?.approved_lender_id) || null;
+  // Get current agent/lender values - prioritize embedded objects from lead prop
+  const buyerAgent = leadData?.buyer_agent || agents.find(a => a.id === leadData?.buyer_agent_id) || null;
+  const listingAgent = leadData?.listing_agent || agents.find(a => a.id === leadData?.listing_agent_id) || null;
+  const selectedLender = leadData?.approved_lender || lenders.find(l => l.id === leadData?.approved_lender_id) || null;
 
   if (loading) {
     return (

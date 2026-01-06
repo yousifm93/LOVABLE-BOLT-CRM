@@ -961,7 +961,7 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     { 
       icon: Calendar, 
       label: "Closing Date", 
-      value: formatDate((client as any).close_date),
+      value: formatDate((client as any).close_date || (client as any).closeDate),
       editComponent: isEditing ? (
         <Input
           type="date"
