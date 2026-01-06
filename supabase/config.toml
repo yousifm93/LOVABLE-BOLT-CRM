@@ -194,3 +194,6 @@ verify_jwt = true
 
 [functions.fetch-single-rate]
 verify_jwt = false
+
+[functions.cleanup-past-client-data]
+verify_jwt = false
