@@ -90,6 +90,15 @@ export function LoanPricer() {
   useEffect(() => {
     fetchPricingRuns();
 
+    // Refetch when page becomes visible (user navigates back to this page)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page visible, refetching pricing runs');
+        fetchPricingRuns();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Subscribe to real-time updates for INSERT, UPDATE, and DELETE
     const channel = supabase
       .channel('pricing_runs_realtime')
@@ -127,7 +136,14 @@ export function LoanPricer() {
               });
             }
           } else if (payload.eventType === 'INSERT') {
-            // For inserts, fetch fresh data to get related leads info
+            // Add the new run immediately to state for instant feedback
+            const newRun = payload.new as PricingRun;
+            setPricingRuns(prev => {
+              // Avoid duplicates
+              if (prev.some(run => run.id === newRun.id)) return prev;
+              return [newRun, ...prev.slice(0, 49)];
+            });
+            // Also fetch fresh data to get related leads info
             fetchPricingRuns();
           } else if (payload.eventType === 'DELETE') {
             setPricingRuns(prev => prev.filter(run => run.id !== payload.old.id));
@@ -139,6 +155,7 @@ export function LoanPricer() {
       });
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [toast]);

@@ -115,6 +115,7 @@ export function MarketRatesCard() {
 
 const fetchHistoricalRates = async (rateType: RateType) => {
     setIsLoadingHistory(true);
+    console.log('Fetching historical rates for:', rateType);
     
     // Query pricing_runs table filtered by scenario_type to show all completed runs
     const { data, error } = await supabase
@@ -125,12 +126,16 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       .order('started_at', { ascending: false })
       .limit(30);
     
+    console.log('Historical rates query result:', { data, error, rateType });
+    
     if (error) {
       console.error('Error fetching historical rates:', error);
       setHistoricalRates([]);
     } else {
       const mapped = data?.map(row => {
         const results = row.results_json as { rate?: string | number; discount_points?: number } | null;
+        console.log('Processing row:', { started_at: row.started_at, results });
+        
         // Parse rate - handle both number and string with % symbol
         let rateValue: number | null = null;
         if (results?.rate !== undefined && results?.rate !== null) {
@@ -138,13 +143,22 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             ? results.rate 
             : parseFloat(String(results.rate).replace(/[^0-9.]/g, ''));
         }
+        
+        // Convert discount_points from Axiom format (99.934 = 0.066 points) to display format
+        let pointsValue: number | null = null;
+        if (results?.discount_points !== undefined && results?.discount_points !== null) {
+          // Axiom returns price (e.g., 99.934), convert to points (100 - 99.934 = 0.066)
+          pointsValue = Math.round((100 - results.discount_points) * 1000) / 1000;
+        }
+        
         return { 
           date: row.started_at, 
           rate: rateValue, 
-          points: results?.discount_points ?? null 
+          points: pointsValue 
         };
       }).filter(row => row.rate !== null) || [];
       
+      console.log('Mapped historical rates:', mapped);
       setHistoricalRates(mapped);
     }
     
