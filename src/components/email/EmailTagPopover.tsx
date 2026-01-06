@@ -18,9 +18,10 @@ interface EmailTagData {
 interface EmailTagPopoverProps {
   tagData: EmailTagData;
   className?: string;
+  pendingSuggestionCount?: number;
 }
 
-export function EmailTagPopover({ tagData, className }: EmailTagPopoverProps) {
+export function EmailTagPopover({ tagData, className, pendingSuggestionCount = 0 }: EmailTagPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<EmailFieldSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,11 +70,16 @@ export function EmailTagPopover({ tagData, className }: EmailTagPopoverProps) {
         <button
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full truncate max-w-[140px] hover:bg-primary/20 transition-colors font-medium",
+            "bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full truncate max-w-[160px] hover:bg-primary/20 transition-colors font-medium inline-flex items-center gap-1",
             className
           )}
         >
           {tagData.leadName}
+          {pendingSuggestionCount > 0 && (
+            <span className="bg-primary text-primary-foreground text-[9px] px-1.5 min-w-[16px] text-center rounded-full">
+              {pendingSuggestionCount}
+            </span>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent 

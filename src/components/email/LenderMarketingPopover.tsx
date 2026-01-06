@@ -60,9 +60,10 @@ interface LenderMarketingPopoverProps {
   category: string | null;
   subject: string;
   className?: string;
+  pendingSuggestionCount?: number;
 }
 
-export function LenderMarketingPopover({ emailLogId, category, subject, className }: LenderMarketingPopoverProps) {
+export function LenderMarketingPopover({ emailLogId, category, subject, className, pendingSuggestionCount = 0 }: LenderMarketingPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<LenderMarketingData | null>(null);
@@ -286,9 +287,9 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           )}
         >
           Lender Marketing
-          {pendingSuggestions.length > 0 && (
-            <span className="bg-blue-600 text-white text-[9px] px-1 rounded-full">
-              {pendingSuggestions.length}
+          {pendingSuggestionCount > 0 && (
+            <span className="bg-blue-600 text-white text-[9px] px-1.5 min-w-[16px] text-center rounded-full">
+              {pendingSuggestionCount}
             </span>
           )}
         </button>
