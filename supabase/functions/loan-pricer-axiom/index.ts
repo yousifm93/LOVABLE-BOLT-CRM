@@ -77,7 +77,7 @@ serve(async (req) => {
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
-      scenario.loan_term?.toString() || '30',
+      (scenario.loan_term?.toString() || '30') + 'yr',
     ]];
 
     console.log('Sending 11 fields to Axiom (loan_term always included)');
