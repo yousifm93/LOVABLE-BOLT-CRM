@@ -130,10 +130,17 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       setHistoricalRates([]);
     } else {
       const mapped = data?.map(row => {
-        const results = row.results_json as { rate?: number; discount_points?: number } | null;
+        const results = row.results_json as { rate?: string | number; discount_points?: number } | null;
+        // Parse rate - handle both number and string with % symbol
+        let rateValue: number | null = null;
+        if (results?.rate !== undefined && results?.rate !== null) {
+          rateValue = typeof results.rate === 'number' 
+            ? results.rate 
+            : parseFloat(String(results.rate).replace(/[^0-9.]/g, ''));
+        }
         return { 
           date: row.started_at, 
-          rate: results?.rate ?? null, 
+          rate: rateValue, 
           points: results?.discount_points ?? null 
         };
       }).filter(row => row.rate !== null) || [];
@@ -285,22 +292,22 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             onRefresh={() => handleRefreshSingle('30yr_fixed')}
             isRefreshing={refreshingType === '30yr_fixed'}
           />
-          <RateCard 
-            label="15-Year Fixed" 
-            rate={null} 
-            points={null}
-            showTBD
-            onRefresh={() => handleRefreshSingle('15yr_fixed')}
-            isRefreshing={refreshingType === '15yr_fixed'}
-          />
-          <RateCard 
-            label="FHA 30-Year" 
-            rate={null} 
-            points={null}
-            showTBD
-            onRefresh={() => handleRefreshSingle('fha_30yr')}
-            isRefreshing={refreshingType === 'fha_30yr'}
-          />
+        <RateCard 
+          label="15-Year Fixed" 
+          rate={marketData?.rate_15yr_fixed ?? null} 
+          points={marketData?.points_15yr_fixed ?? null}
+          onClick={() => handleRateCardClick('15yr_fixed')}
+          onRefresh={() => handleRefreshSingle('15yr_fixed')}
+          isRefreshing={refreshingType === '15yr_fixed'}
+        />
+        <RateCard 
+          label="FHA 30-Year" 
+          rate={marketData?.rate_30yr_fha ?? null} 
+          points={marketData?.points_30yr_fha ?? null}
+          onClick={() => handleRateCardClick('fha_30yr')}
+          onRefresh={() => handleRefreshSingle('fha_30yr')}
+          isRefreshing={refreshingType === 'fha_30yr'}
+        />
           <RateCard 
             label="Bank Statement" 
             rate={marketData?.rate_bank_statement ?? null} 

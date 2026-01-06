@@ -149,9 +149,12 @@ async function updateDailyMarketRates(supabase: any, scenarioType: string, rate:
     case '30yr_fixed':
       updateFields.rate_30yr_fixed = rateNum;
       updateFields.points_30yr_fixed = pointsNum;
-      // Also copy to 15yr and FHA as per user request
+      break;
+    case '15yr_fixed':
       updateFields.rate_15yr_fixed = rateNum;
       updateFields.points_15yr_fixed = pointsNum;
+      break;
+    case 'fha_30yr':
       updateFields.rate_30yr_fha = rateNum;
       updateFields.points_30yr_fha = pointsNum;
       break;

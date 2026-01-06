@@ -425,7 +425,7 @@ export function LoanPricer() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium">{run.scenario_json?.loan_term || 30}</span>
+                      <span className="text-sm font-medium">{run.scenario_json?.loan_term || 30} YR</span>
                     </TableCell>
                     <TableCell>
                       <span className="font-medium">{run.scenario_json?.fico_score || '-'}</span>
