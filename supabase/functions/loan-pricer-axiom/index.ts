@@ -54,7 +54,7 @@ serve(async (req) => {
     // Format scenario data for Axiom
     const scenario = pricingRun.scenario_json || {};
     
-    // Build the data array matching Axiom's expected field order:
+    // Build the data array matching Axiom's expected field order (10 fields):
     // Index 0: run_id (for webhook callback)
     // Index 1: fico_score
     // Index 2: zip_code
@@ -65,7 +65,6 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // Index 10: loan_term (just the number: "15" or "30")
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -76,11 +75,10 @@ serve(async (req) => {
       scenario.occupancy || '',
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
-      scenario.dscr_ratio || '',
-      scenario.loan_term?.toString() || '30'
+      scenario.dscr_ratio || ''
     ]];
 
-    console.log(`Sending ${axiomData[0].length} fields to Axiom (schema v2 - 11 fields with loan_term)`);
+    console.log(`Sending ${axiomData[0].length} fields to Axiom (10 fields)`);
     console.log('Axiom payload:', JSON.stringify(axiomData));
 
     // Check for direct webhook URL (preferred method for "Receive data from another app" step)
