@@ -318,6 +318,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           label="FHA 30-Year" 
           rate={marketData?.rate_30yr_fha ?? null} 
           points={marketData?.points_30yr_fha ?? null}
+          showTBD={true}
           onClick={() => handleRateCardClick('fha_30yr')}
           onRefresh={() => handleRefreshSingle('fha_30yr')}
           isRefreshing={refreshingType === 'fha_30yr'}
