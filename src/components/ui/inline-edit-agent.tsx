@@ -52,22 +52,39 @@ export function InlineEditAgent({
     return text.toLowerCase().replace(/[^a-z0-9]/g, '');
   };
 
-  // Helper to check if an agent is the N/A agent (specific matching to avoid false positives)
+  // Helper to check if an agent is the N/A agent
   const isNaAgent = (agent: Agent) => {
     const firstName = (agent.first_name || '').toLowerCase().trim();
     const lastName = (agent.last_name || '').toLowerCase().trim();
     const normalized = normalizeForSearch(`${firstName} ${lastName}`);
-    
-    // Must match specific patterns - not just containing "na"
     return normalized.includes('notapplicable') || 
            firstName === 'n/a' || 
            firstName === 'na' ||
            (firstName === 'not' && lastName.includes('applicable'));
   };
 
-  // Separate N/A agent from others for pinning
+  // Helper to check if an agent is the Developer agent
+  const isDeveloperAgent = (agent: Agent) => {
+    const firstName = (agent.first_name || '').toLowerCase().trim();
+    return firstName === 'developer';
+  };
+
+  // Helper to check if an agent is the ReFi agent
+  const isRefiAgent = (agent: Agent) => {
+    const firstName = (agent.first_name || '').toLowerCase().trim();
+    return firstName === 'refi';
+  };
+
+  // Combined check for any special agent
+  const isSpecialAgent = (agent: Agent) => {
+    return isNaAgent(agent) || isDeveloperAgent(agent) || isRefiAgent(agent);
+  };
+
+  // Separate special agents from others for pinning
   const naAgent = React.useMemo(() => agents.find(isNaAgent), [agents]);
-  const otherAgents = React.useMemo(() => agents.filter(agent => !isNaAgent(agent)), [agents]);
+  const developerAgent = React.useMemo(() => agents.find(isDeveloperAgent), [agents]);
+  const refiAgent = React.useMemo(() => agents.find(isRefiAgent), [agents]);
+  const otherAgents = React.useMemo(() => agents.filter(agent => !isSpecialAgent(agent)), [agents]);
 
   const handleSelect = (agent: Agent) => {
     onValueChange(agent);
@@ -118,9 +135,14 @@ export function InlineEditAgent({
             <UserCheck className="h-3 w-3 flex-shrink-0 absolute left-1 top-1/2 -translate-y-1/2" />
             <div className="flex flex-col items-start min-w-0 flex-1">
               <span className="text-sm leading-tight truncate w-full">
-                {value ? (isNaAgent(value) ? 'N/A' : `${value.first_name} ${value.last_name}`) : placeholder}
+                {value ? (
+                  isNaAgent(value) ? 'N/A' : 
+                  isDeveloperAgent(value) ? 'Developer' :
+                  isRefiAgent(value) ? 'ReFi' :
+                  `${value.first_name} ${value.last_name}`
+                ) : placeholder}
               </span>
-              {value?.phone && !isNaAgent(value) && (
+              {value?.phone && !isSpecialAgent(value) && (
                 <span className="text-xs text-muted-foreground leading-tight truncate w-full">
                   {formatPhone(value.phone)}
                 </span>
@@ -155,15 +177,35 @@ export function InlineEditAgent({
                 </CommandItem>
               </CommandGroup>
             )}
-            {naAgent && (
+            {(naAgent || developerAgent || refiAgent) && (
               <CommandGroup heading="Quick Select">
-                <CommandItem
-                  value={getSearchValue(naAgent)}
-                  onSelect={() => handleSelect(naAgent)}
-                  className="flex flex-col items-start p-3"
-                >
-                  <div className="font-medium">N/A</div>
-                </CommandItem>
+                {naAgent && (
+                  <CommandItem
+                    value={getSearchValue(naAgent)}
+                    onSelect={() => handleSelect(naAgent)}
+                    className="flex flex-col items-start p-3"
+                  >
+                    <div className="font-medium">N/A</div>
+                  </CommandItem>
+                )}
+                {developerAgent && (
+                  <CommandItem
+                    value={getSearchValue(developerAgent)}
+                    onSelect={() => handleSelect(developerAgent)}
+                    className="flex flex-col items-start p-3"
+                  >
+                    <div className="font-medium">Developer</div>
+                  </CommandItem>
+                )}
+                {refiAgent && (
+                  <CommandItem
+                    value={getSearchValue(refiAgent)}
+                    onSelect={() => handleSelect(refiAgent)}
+                    className="flex flex-col items-start p-3"
+                  >
+                    <div className="font-medium">ReFi</div>
+                  </CommandItem>
+                )}
               </CommandGroup>
             )}
             <CommandGroup heading="Agents">
