@@ -274,6 +274,7 @@ export function transformLeadToClient(lead: any): any {
     latest_file_updates_updated_by: lead.latest_file_updates_updated_by || null,
     
     // Key Dates
+    close_date: lead.close_date || null,
     closeDate: lead.close_date || null,
     financeContingency: lead.finance_contingency || null,
     

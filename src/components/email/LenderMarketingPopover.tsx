@@ -297,6 +297,10 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
       <PopoverContent 
         className="w-[520px] p-0" 
         align="end"
+        side="bottom"
+        sideOffset={5}
+        collisionPadding={16}
+        avoidCollisions={true}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-3 border-b bg-muted/30">

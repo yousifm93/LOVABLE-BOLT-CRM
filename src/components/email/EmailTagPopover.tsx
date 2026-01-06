@@ -85,6 +85,10 @@ export function EmailTagPopover({ tagData, className, pendingSuggestionCount = 0
       <PopoverContent 
         className="w-[520px] p-0" 
         align="end"
+        side="bottom"
+        sideOffset={5}
+        collisionPadding={16}
+        avoidCollisions={true}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-3 border-b bg-muted/30">
