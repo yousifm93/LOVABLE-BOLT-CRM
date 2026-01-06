@@ -65,8 +65,8 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // Index 10: loan_term (ONLY if 15 years - 30 is default)
-    const baseAxiomRow = [
+    // Index 10: loan_term (always send as 11th field)
+    const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
       scenario.zip_code || '',
@@ -77,16 +77,10 @@ serve(async (req) => {
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
-    ];
+      scenario.loan_term?.toString() || '30',
+    ]];
 
-    // Only add loan_term if it's 15 years (30 is already the default in Axiom)
-    if (scenario.loan_term === 15 || scenario.loan_term === '15') {
-      baseAxiomRow.push('15');
-    }
-
-    const axiomData = [baseAxiomRow];
-
-    console.log(`Sending ${axiomData[0].length} fields to Axiom (loan_term only for 15yr)`);
+    console.log('Sending 11 fields to Axiom (loan_term always included)');
     console.log('Axiom payload:', JSON.stringify(axiomData));
 
     // Check for direct webhook URL (preferred method for "Receive data from another app" step)
