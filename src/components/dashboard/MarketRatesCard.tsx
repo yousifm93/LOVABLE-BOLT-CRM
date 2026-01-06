@@ -405,7 +405,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
                           {row.rate ? `${row.rate.toFixed(3)}%` : '—'}
                         </TableCell>
                         <TableCell className="text-right">
-                          {row.points !== null ? `${(100 - row.points).toFixed(2)}` : '—'}
+                          {row.points !== null ? `${row.points.toFixed(2)}` : '—'}
                         </TableCell>
                         <TableCell className="text-right">
                           {rateChange !== null ? (

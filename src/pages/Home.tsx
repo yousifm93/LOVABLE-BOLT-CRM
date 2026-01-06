@@ -80,12 +80,15 @@ export default function Home() {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
       const startOfMonthISO = startOfMonth.toISOString();
+      // Format as YYYY-MM-DD for date columns
+      const startOfMonthDate = startOfMonthISO.split('T')[0];
 
-      // Fetch leads created this month
+      // Fetch leads created this month (exclude past clients)
       const { count: leads } = await supabase
         .from('leads')
         .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfMonthISO);
+        .eq('is_closed', false)
+        .gte('lead_on_date', startOfMonthDate);
       setLeadsThisMonth(leads || 0);
 
       // Fetch applications this month (Pending App stage)
