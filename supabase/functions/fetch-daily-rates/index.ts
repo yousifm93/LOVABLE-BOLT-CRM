@@ -120,7 +120,7 @@ serve(async (req) => {
         scenarioData.property_type || '',
         scenarioData.income_type || 'Full Doc - 24M',
         dscrRatioValue,
-        scenarioData.loan_term?.toString() || '30',
+        (scenarioData.loan_term?.toString() || '30') + 'yr',
       ]];
 
       console.log(`Triggering Axiom for ${scenario_type}:`, {
