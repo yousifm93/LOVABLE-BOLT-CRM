@@ -226,6 +226,10 @@ export default function Email() {
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [draggedEmail, setDraggedEmail] = useState<EmailMessage | null>(null);
+  
+  // Suggestion counts for badges (emailLogId -> pending count)
+  const [emailFieldSuggestionsCount, setEmailFieldSuggestionsCount] = useState<Map<string, number>>(new Map());
+  const [lenderFieldSuggestionsCount, setLenderFieldSuggestionsCount] = useState<Map<string, number>>(new Map());
 
   // Category editing state
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -502,6 +506,40 @@ export default function Email() {
       }
       setEmailTagsMap(tagsMap);
       setLenderMarketingMap(marketingMap);
+
+      // Fetch pending suggestion counts for File View badges
+      const emailLogIds = (emailLogs || []).filter(l => l.lead_id).map(l => l.id);
+      const lenderEmailLogIds = (emailLogs || []).filter(l => l.is_lender_marketing).map(l => l.id);
+      
+      // Fetch email field suggestions counts
+      if (emailLogIds.length > 0) {
+        const { data: fieldSuggestions } = await supabase
+          .from('email_field_suggestions')
+          .select('email_log_id')
+          .in('email_log_id', emailLogIds)
+          .eq('status', 'pending');
+        
+        const countsMap = new Map<string, number>();
+        for (const s of fieldSuggestions || []) {
+          countsMap.set(s.email_log_id, (countsMap.get(s.email_log_id) || 0) + 1);
+        }
+        setEmailFieldSuggestionsCount(countsMap);
+      }
+      
+      // Fetch lender field suggestions counts
+      if (lenderEmailLogIds.length > 0) {
+        const { data: lenderSuggestions } = await supabase
+          .from('lender_field_suggestions')
+          .select('email_log_id')
+          .in('email_log_id', lenderEmailLogIds)
+          .eq('status', 'pending');
+        
+        const lenderCountsMap = new Map<string, number>();
+        for (const s of lenderSuggestions || []) {
+          lenderCountsMap.set(s.email_log_id, (lenderCountsMap.get(s.email_log_id) || 0) + 1);
+        }
+        setLenderFieldSuggestionsCount(lenderCountsMap);
+      }
     } catch (error) {
       console.error('Error fetching email tags:', error);
     }
@@ -1278,15 +1316,11 @@ export default function Email() {
                   const isReviewed = reviewedUids.has(email.uid);
                   const emailCategory = getEmailCategory(email);
                   
-                  // Check if email has CRM update suggestions (for File View highlighting)
-                  const hasFieldUpdateSuggestion = emailView === 'file' && tagData?.aiSummary && 
-                    (tagData.aiSummary.toLowerCase().includes('status') || 
-                     tagData.aiSummary.toLowerCase().includes('cdb') ||
-                     tagData.aiSummary.toLowerCase().includes('update') ||
-                     tagData.aiSummary.toLowerCase().includes('change') ||
-                     tagData.aiSummary.toLowerCase().includes('request'));
+                  // Get pending suggestion counts
+                  const pendingFieldCount = tagData ? (emailFieldSuggestionsCount.get(tagData.emailLogId) || 0) : 0;
+                  const pendingLenderCount = marketingData ? (lenderFieldSuggestionsCount.get(marketingData.emailLogId) || 0) : 0;
                   
-                  return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4", hasFieldUpdateSuggestion && "border-l-4 border-orange-500 -ml-1 pl-5")}>
+                  return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
                             <span className={cn("text-sm truncate flex-shrink-0", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
@@ -1296,8 +1330,8 @@ export default function Email() {
                               {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
                                   <CheckCircle className={cn("h-3 w-3", emailCategory === 'reviewed_file' && "text-green-500", emailCategory === 'reviewed_lender_marketing' && "text-blue-500", emailCategory === 'reviewed_na' && "text-gray-500")} />
                                 </span>}
-                              {tagData && <EmailTagPopover tagData={tagData} />}
-                              {marketingData && <LenderMarketingPopover emailLogId={marketingData.emailLogId} category={marketingData.category} subject={email.subject} />}
+                              {tagData && <EmailTagPopover tagData={tagData} pendingSuggestionCount={pendingFieldCount} />}
+                              {marketingData && <LenderMarketingPopover emailLogId={marketingData.emailLogId} category={marketingData.category} subject={email.subject} pendingSuggestionCount={pendingLenderCount} />}
                               {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                               {email.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
                             </div>
