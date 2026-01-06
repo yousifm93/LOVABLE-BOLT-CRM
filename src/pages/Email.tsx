@@ -213,6 +213,9 @@ export default function Email() {
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [emailOffset, setEmailOffset] = useState(0);
+  const [hasMoreEmails, setHasMoreEmails] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -503,8 +506,14 @@ export default function Email() {
       console.error('Error fetching email tags:', error);
     }
   }, []);
-  const fetchEmails = useCallback(async (folder: string) => {
-    setIsLoading(true);
+  const fetchEmails = useCallback(async (folder: string, offset: number = 0, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setEmailOffset(0);
+      setHasMoreEmails(true);
+    }
     try {
       const {
         data,
@@ -512,16 +521,32 @@ export default function Email() {
       } = await supabase.functions.invoke("fetch-emails-imap", {
         body: {
           folder,
-          limit: 50
+          limit: 50,
+          offset
         }
       });
       if (error) throw error;
       if (data?.success) {
         const fetchedEmails = data.emails || [];
-        setEmails(fetchedEmails);
+        
+        if (append) {
+          // Append to existing emails, avoiding duplicates
+          setEmails(prev => {
+            const existingUids = new Set(prev.map(e => e.uid));
+            const newEmails = fetchedEmails.filter((e: EmailMessage) => !existingUids.has(e.uid));
+            return [...prev, ...newEmails];
+          });
+        } else {
+          setEmails(fetchedEmails);
+        }
+        
+        // Update offset and hasMore
+        setEmailOffset(offset + fetchedEmails.length);
+        setHasMoreEmails(fetchedEmails.length === 50); // If we got a full page, there might be more
+        
         setFolderCounts(prev => ({
           ...prev,
-          [folder]: fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0
+          [folder]: (append ? prev[folder] : 0) + fetchedEmails.filter((e: EmailMessage) => e.unread).length || 0
         }));
 
         // Fetch email tags for matching
@@ -536,11 +561,21 @@ export default function Email() {
         description: error.message || "Could not connect to email server.",
         variant: "destructive"
       });
-      setEmails([]);
+      if (!append) {
+        setEmails([]);
+      }
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [toast, fetchEmailTags]);
+
+  // Load more emails
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMoreEmails) {
+      fetchEmails(selectedFolder, emailOffset, true);
+    }
+  };
 
   // Fetch attachments from documents table (primary) or email_logs (fallback)
   // Uses subject-only matching since email.date is a display string (e.g., "10:47 AM")
@@ -1242,7 +1277,16 @@ export default function Email() {
                   // Check if reviewed (for visual indicator in tag views)
                   const isReviewed = reviewedUids.has(email.uid);
                   const emailCategory = getEmailCategory(email);
-                  return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
+                  
+                  // Check if email has CRM update suggestions (for File View highlighting)
+                  const hasFieldUpdateSuggestion = emailView === 'file' && tagData?.aiSummary && 
+                    (tagData.aiSummary.toLowerCase().includes('status') || 
+                     tagData.aiSummary.toLowerCase().includes('cdb') ||
+                     tagData.aiSummary.toLowerCase().includes('update') ||
+                     tagData.aiSummary.toLowerCase().includes('change') ||
+                     tagData.aiSummary.toLowerCase().includes('request'));
+                  
+                  return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4", hasFieldUpdateSuggestion && "border-l-4 border-orange-500 -ml-1 pl-5")}>
                             <span className={cn("text-sm truncate flex-shrink-0", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
@@ -1270,6 +1314,28 @@ export default function Email() {
                           {email.snippet}
                         </p>}
                     </DraggableEmailItem>)}
+                  
+                  {/* Load More button */}
+                  {!selectedCategory && hasMoreEmails && filteredEmails.length > 0 && (
+                    <div className="p-4 flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                        className="w-full"
+                      >
+                        {isLoadingMore ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Loading more...
+                          </>
+                        ) : (
+                          <>Load More Emails</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>}
             </ScrollArea>
           </div>

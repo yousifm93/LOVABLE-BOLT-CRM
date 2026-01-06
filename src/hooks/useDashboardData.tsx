@@ -534,6 +534,56 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Current Client Calls (from call_logs where lead is in current client stages - NOT Past Clients)
+  const CURRENT_CLIENT_STAGE_IDS = [
+    'c54f417b-3f67-43de-80f5-954cf260d571', // Leads
+    '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945', // Pending App
+    'a4e162e0-5421-4d17-8ad5-4b1195bbc995', // Screening
+    '09162eec-d2b2-48e5-86d0-9e66ee8b2af7', // Pre-Qualified
+    '3cbf38ff-752e-4163-a9a3-1757499b4945', // Pre-Approved
+    '76eb2e82-e1d9-4f2d-a57d-2120a25696db', // Active
+    '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a', // Idle
+  ];
+
+  const fetchCurrentClientCalls = async (startTime?: string, endTime?: string) => {
+    let query = supabase
+      .from('call_logs')
+      .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+      .in('leads.pipeline_stage_id', CURRENT_CLIENT_STAGE_IDS);
+    
+    if (startTime) query = query.gte('timestamp', startTime);
+    if (endTime) query = query.lte('timestamp', endTime);
+    
+    const { data, error } = await query.order('timestamp', { ascending: false });
+    if (error) throw error;
+    
+    return (data || []).map(c => ({
+      id: c.id,
+      name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+      person_type: 'Lead' as const,
+      call_date: c.timestamp,
+      call_type: 'current_client',
+      notes: c.notes,
+      lead_id: c.lead_id,
+    }));
+  };
+
+  const { data: thisMonthCurrentClientCalls, isLoading: isLoadingThisMonthCurrentClientCalls } = useQuery({
+    queryKey: ['currentClientCalls', 'thisMonth', formatDate(startOfMonth)],
+    queryFn: () => fetchCurrentClientCalls(startOfMonth.toISOString(), startOfNextMonth.toISOString()),
+    staleTime: 30000,
+  });
+  const { data: yesterdayCurrentClientCalls, isLoading: isLoadingYesterdayCurrentClientCalls } = useQuery({
+    queryKey: ['currentClientCalls', 'yesterday', formatDate(yesterday)],
+    queryFn: () => fetchCurrentClientCalls(yesterdayBoundaries.start, yesterdayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: todayCurrentClientCalls, isLoading: isLoadingTodayCurrentClientCalls } = useQuery({
+    queryKey: ['currentClientCalls', 'today', formatDate(today)],
+    queryFn: () => fetchCurrentClientCalls(todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+
   // Past Client Calls (from call_logs where lead is in Past Clients stage)
   const fetchPastClientCalls = async (startTime?: string, endTime?: string) => {
     let query = supabase
@@ -1427,7 +1477,10 @@ export const useDashboardData = () => {
     isLoadingTodayPastLACalls ||
     isLoadingThisMonthPastClientCalls ||
     isLoadingYesterdayPastClientCalls ||
-    isLoadingTodayPastClientCalls;
+    isLoadingTodayPastClientCalls ||
+    isLoadingThisMonthCurrentClientCalls ||
+    isLoadingYesterdayCurrentClientCalls ||
+    isLoadingTodayCurrentClientCalls;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -1468,6 +1521,10 @@ export const useDashboardData = () => {
     thisMonthPastClientCalls: thisMonthPastClientCalls || [],
     yesterdayPastClientCalls: yesterdayPastClientCalls || [],
     todayPastClientCalls: todayPastClientCalls || [],
+    // Current Client Calls (leads in active pipeline stages)
+    thisMonthCurrentClientCalls: thisMonthCurrentClientCalls || [],
+    yesterdayCurrentClientCalls: yesterdayCurrentClientCalls || [],
+    todayCurrentClientCalls: todayCurrentClientCalls || [],
     // Emails
     thisMonthEmails: thisMonthEmails || [],
     yesterdayEmails: yesterdayEmails || [],

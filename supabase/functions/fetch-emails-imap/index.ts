@@ -14,6 +14,7 @@ const EMAIL_USER = "yousif@mortgagebolt.org";
 interface FetchEmailsRequest {
   folder?: string;
   limit?: number;
+  offset?: number;  // NEW: offset for pagination
   fetchContent?: boolean;
   messageUid?: number;
   action?: 'fetch' | 'move';
@@ -107,10 +108,10 @@ serve(async (req) => {
       throw new Error("IONOS_EMAIL_PASSWORD not configured");
     }
 
-    const { folder = "INBOX", limit = 50, fetchContent = false, messageUid, action = 'fetch', targetFolder }: FetchEmailsRequest = await req.json().catch(() => ({}));
+    const { folder = "INBOX", limit = 50, offset = 0, fetchContent = false, messageUid, action = 'fetch', targetFolder }: FetchEmailsRequest = await req.json().catch(() => ({}));
     
     console.log(`Connecting to IMAP: ${IMAP_HOST}:${IMAP_PORT} as ${EMAIL_USER}`);
-    console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}`);
+    console.log(`Action: ${action}, Folder: ${folder}, Limit: ${limit}, Offset: ${offset}, FetchContent: ${fetchContent}, MessageUid: ${messageUid}, TargetFolder: ${targetFolder}`);
 
     const client = new ImapFlow({
       host: IMAP_HOST,
@@ -204,8 +205,8 @@ serve(async (req) => {
         }
       }
 
-      // Fetch email list
-      console.log(`Fetching up to ${limit} emails from ${imapFolder}`);
+      // Fetch email list with pagination support
+      console.log(`Fetching up to ${limit} emails from ${imapFolder} (offset: ${offset})`);
       
       // Get total messages in folder
       const status = client.mailbox;
@@ -213,11 +214,13 @@ serve(async (req) => {
       console.log(`Total messages in folder: ${totalMessages}`);
 
       if (totalMessages > 0) {
-        // Calculate range for most recent emails
-        const startSeq = Math.max(1, totalMessages - limit + 1);
-        const range = `${startSeq}:${totalMessages}`;
+        // Calculate range for emails, accounting for offset
+        // offset 0 = most recent, offset 50 = skip most recent 50
+        const endSeq = Math.max(1, totalMessages - offset);
+        const startSeq = Math.max(1, endSeq - limit + 1);
+        const range = `${startSeq}:${endSeq}`;
         
-        console.log(`Fetching sequence range: ${range}`);
+        console.log(`Fetching sequence range: ${range} (offset: ${offset})`);
 
         for await (const message of client.fetch(range, {
           envelope: true,
