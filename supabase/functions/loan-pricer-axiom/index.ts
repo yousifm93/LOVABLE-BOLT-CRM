@@ -7,25 +7,24 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('loan-pricer-axiom v3 - deployed');
     const { run_id } = await req.json();
     
     if (!run_id) {
       throw new Error('run_id is required');
     }
 
-    console.log(`Processing pricing run: ${run_id}`);
+    console.log('Processing pricing run:', run_id);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch the pricing run
     const { data: pricingRun, error: fetchError } = await supabase
@@ -34,12 +33,17 @@ serve(async (req) => {
       .eq('id', run_id)
       .single();
 
-    if (fetchError || !pricingRun) {
-      throw new Error(`Failed to fetch pricing run: ${fetchError?.message || 'Not found'}`);
+    if (fetchError) {
+      console.error('Error fetching pricing run:', fetchError);
+      throw new Error(`Failed to fetch pricing run: ${fetchError.message}`);
     }
 
-    const scenario = pricingRun.scenario_json;
-    console.log('Scenario data:', scenario);
+    if (!pricingRun) {
+      throw new Error('Pricing run not found');
+    }
+
+    console.log('Pricing run found:', pricingRun.id);
+    console.log('Scenario data:', JSON.stringify(pricingRun.scenario_json));
 
     // Get Axiom API key
     const axiomApiKey = Deno.env.get('AXIOM_API_KEY');
@@ -47,8 +51,11 @@ serve(async (req) => {
       throw new Error('AXIOM_API_KEY not configured');
     }
 
-    // Prepare data for Axiom - order must match webhook-data indices
-    // Index 0: run_id
+    // Format scenario data for Axiom
+    const scenario = pricingRun.scenario_json || {};
+    
+    // Build the data array matching Axiom's expected field order:
+    // Index 0: run_id (for webhook callback)
     // Index 1: fico_score
     // Index 2: zip_code
     // Index 3: num_units
@@ -58,8 +65,7 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // NOTE: loan_term (index 10) is stored in scenario_json but NOT sent to Axiom
-    // until the Axiom automation is updated to handle webhook-data?all&10
+    // Index 10: loan_term (just the number: "15" or "30")
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -70,65 +76,94 @@ serve(async (req) => {
       scenario.occupancy || '',
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
-      scenario.dscr_ratio || ''
-      // To re-enable loan_term when Axiom is ready, uncomment:
-      // scenario.loan_term?.toString() || '30'
+      scenario.dscr_ratio || '',
+      scenario.loan_term?.toString() || '30'
     ]];
 
-    console.log(`Sending ${axiomData[0].length} fields to Axiom (schema v1 - 10 fields)`);
+    console.log(`Sending ${axiomData[0].length} fields to Axiom (schema v2 - 11 fields with loan_term)`);
+    console.log('Axiom payload:', JSON.stringify(axiomData));
 
-    console.log('Sending to Axiom:', axiomData);
+    // Check for direct webhook URL (preferred method for "Receive data from another app" step)
+    const webhookUrl = Deno.env.get('AXIOM_WEBHOOK_URL');
+    let axiomResponse: any = null;
+    let triggerMethod = '';
 
-    // Call Axiom API
-    const axiomResponse = await fetch('https://lar.axiom.ai/api/v3/trigger', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        key: axiomApiKey,
-        name: 'Axiom Loan Pricer Tool',
-        data: axiomData
-      }),
-    });
+    if (webhookUrl) {
+      // Method 1: Direct webhook POST to Axiom's "Receive data from another app" step
+      // This ensures Step 1 receives the data directly
+      console.log('Attempting direct webhook trigger...');
+      try {
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(axiomData),
+        });
 
-    const axiomResult = await axiomResponse.text();
-    console.log('Axiom API response:', axiomResponse.status, axiomResult);
-
-    if (!axiomResponse.ok) {
-      throw new Error(`Axiom API error: ${axiomResponse.status} - ${axiomResult}`);
+        if (webhookResponse.ok) {
+          axiomResponse = await webhookResponse.text();
+          triggerMethod = 'webhook';
+          console.log('Direct webhook trigger successful:', axiomResponse);
+        } else {
+          console.log('Direct webhook failed, falling back to API trigger. Status:', webhookResponse.status);
+        }
+      } catch (webhookError) {
+        console.log('Direct webhook error, falling back to API trigger:', webhookError);
+      }
     }
 
-    // Update status to 'running'
+    // Method 2: Fallback to API trigger
+    if (!axiomResponse) {
+      console.log('Using API trigger method...');
+      const apiResponse = await fetch('https://lar.axiom.ai/api/v3/trigger', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${axiomApiKey}`,
+        },
+        body: JSON.stringify({
+          tool: 'Axiom Loan Pricer Tool',
+          data: axiomData,
+        }),
+      });
+
+      axiomResponse = await apiResponse.text();
+      triggerMethod = 'api';
+      console.log('Axiom API response:', apiResponse.status, axiomResponse);
+
+      if (!apiResponse.ok) {
+        throw new Error(`Axiom API error: ${apiResponse.status} - ${axiomResponse}`);
+      }
+    }
+
+    // Update pricing run status to running
     const { error: updateError } = await supabase
       .from('pricing_runs')
-      .update({ 
-        status: 'running',
-        updated_at: new Date().toISOString()
-      })
+      .update({ status: 'running' })
       .eq('id', run_id);
 
     if (updateError) {
-      console.error('Failed to update status:', updateError);
+      console.error('Error updating pricing run status:', updateError);
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Pricing run triggered successfully',
-        axiom_response: axiomResult
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.log(`Pricing run ${run_id} triggered successfully via ${triggerMethod}`);
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      run_id,
+      trigger_method: triggerMethod,
+      fields_sent: axiomData[0].length,
+      axiom_response: axiomResponse 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in loan-pricer-axiom:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
