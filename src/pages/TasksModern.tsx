@@ -1059,7 +1059,7 @@ export default function TasksModern() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
+                  <p className="text-2xl font-bold">{allOpenTasks.length}</p>
                   <p className="text-sm text-muted-foreground">All Tasks</p>
                 </div>
                 <Clock className="h-8 w-8 text-primary" />
@@ -1165,7 +1165,7 @@ export default function TasksModern() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">{filteredTasks.length - completedTasks}</p>
+                  <p className="text-2xl font-bold">{allOpenTasks.length}</p>
                   <p className="text-sm text-muted-foreground">All Tasks</p>
                 </div>
                 <Clock className="h-8 w-8 text-primary" />

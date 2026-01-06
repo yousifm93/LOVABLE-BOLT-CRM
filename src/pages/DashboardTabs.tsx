@@ -36,6 +36,7 @@ const MONTHLY_GOALS = {
   newAgentCalls: 55,
   currentAgentCalls: 90,
   pastClientCalls: 20,
+  currentClientCalls: 40,  // New goal for current client calls
   topAgentCalls: 10,
   pastLACalls: 10
 };
@@ -184,6 +185,9 @@ export default function DashboardTabs() {
     thisMonthPastClientCalls,
     yesterdayPastClientCalls,
     todayPastClientCalls,
+    thisMonthCurrentClientCalls,
+    yesterdayCurrentClientCalls,
+    todayCurrentClientCalls,
     // Emails
     thisMonthEmails,
     yesterdayEmails,
@@ -1038,6 +1042,48 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Past Client Calls", todayPastClientCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Current Client Calls - NEW */}
+              <Card className="border-teal-500/30 bg-teal-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-teal-600" />
+                    Current Client Calls
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Current Client Calls", thisMonthCurrentClientCalls, "calls", MONTHLY_GOALS.currentClientCalls)}
+                    showProgress={true}
+                    progressValue={thisMonthCurrentClientCalls.length}
+                    progressMax={MONTHLY_GOALS.currentClientCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-teal-500"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Current Client Calls", yesterdayCurrentClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Current Client Calls", todayCurrentClientCalls, "calls")}
                   />
                 </CardContent>
               </Card>
