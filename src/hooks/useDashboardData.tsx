@@ -114,7 +114,7 @@ export const useDashboardData = () => {
         .eq('is_closed', false)
         .gte('lead_on_date', formatDate(startOfMonth))
         .lt('lead_on_date', formatDate(startOfNextMonth))
-        .order('lead_on_date', { ascending: false });
+        .order('lead_on_date', { ascending: true });
       
       if (error) throw error;
       return data as DashboardLead[];
