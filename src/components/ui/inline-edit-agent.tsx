@@ -178,8 +178,12 @@ export function InlineEditAgent({
             onValueChange={setSearchTerm}
           />
           <CommandList>
-            <CommandEmpty>
-              {searchTerm.trim() ? "No agents found" : "Type to search..."}
+          <CommandEmpty>
+              {searchTerm.trim() 
+                ? `No agents found for "${searchTerm}"` 
+                : agents.length === 0 
+                  ? "Loading agents..." 
+                  : "Type to search or scroll below"}
             </CommandEmpty>
             {value && (
               <CommandGroup>

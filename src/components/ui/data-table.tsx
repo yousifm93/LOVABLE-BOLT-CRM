@@ -433,6 +433,43 @@ export function DataTable<T extends Record<string, any>>({
     }));
   }, [columns, selectable]);
 
+  // Helper function to extract searchable text from a value, handling nested objects
+  const extractSearchableText = React.useCallback((value: any, depth: number = 0): string => {
+    if (value === null || value === undefined) return '';
+    if (depth > 2) return ''; // Prevent infinite recursion
+    
+    if (typeof value === 'string') return value.toLowerCase();
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value).toLowerCase();
+    
+    if (Array.isArray(value)) {
+      return value.map(v => extractSearchableText(v, depth + 1)).join(' ');
+    }
+    
+    if (typeof value === 'object') {
+      // For objects, extract common name-like fields + all string values
+      const parts: string[] = [];
+      
+      // Common name fields to prioritize
+      const nameFields = ['first_name', 'last_name', 'name', 'title', 'lender_name', 'email'];
+      for (const field of nameFields) {
+        if (value[field] && typeof value[field] === 'string') {
+          parts.push(value[field].toLowerCase());
+        }
+      }
+      
+      // Also include other string values
+      for (const [key, val] of Object.entries(value)) {
+        if (!nameFields.includes(key) && typeof val === 'string') {
+          parts.push(val.toLowerCase());
+        }
+      }
+      
+      return parts.join(' ');
+    }
+    
+    return '';
+  }, []);
+
   const filteredData = React.useMemo(() => {
     let filtered = data;
 
@@ -440,9 +477,9 @@ export function DataTable<T extends Record<string, any>>({
       const searchWords = searchTerm.toLowerCase().trim().split(/\s+/).filter(word => word.length > 0);
       
       filtered = data.filter((item) => {
-        // Combine all values into a single searchable string
+        // Build searchable string by extracting text from all values, including nested objects
         const itemString = Object.values(item)
-          .map(value => String(value).toLowerCase())
+          .map(value => extractSearchableText(value))
           .join(' ');
         
         // All search words must be found somewhere in the item
@@ -515,7 +552,7 @@ export function DataTable<T extends Record<string, any>>({
     }
 
     return filtered;
-  }, [data, searchTerm, sortColumn, sortDirection, getRowId]);
+  }, [data, searchTerm, sortColumn, sortDirection, getRowId, extractSearchableText]);
 
   // Reset to page 1 when data or searchTerm changes
   React.useEffect(() => {

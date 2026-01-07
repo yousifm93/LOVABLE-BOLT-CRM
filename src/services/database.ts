@@ -907,15 +907,30 @@ export const databaseService = {
         console.warn('[DEBUG] Error deleting soft-deleted tasks:', softDeletedTasksError);
       }
 
-      // Step 2: Check for active tasks (not soft-deleted)
-      const { count: activeTaskCount, error: countError } = await supabase
+      // Step 2: Check for open tasks (not soft-deleted AND not Done)
+      const { data: openTasks, error: openTasksError } = await supabase
         .from('tasks')
-        .select('*', { count: 'exact', head: true })
+        .select('id, title, status')
         .eq('borrower_id', id)
-        .is('deleted_at', null);
+        .is('deleted_at', null)
+        .neq('status', 'Done');
 
-      if (!countError && activeTaskCount && activeTaskCount > 0) {
-        throw new Error(`This lead has ${activeTaskCount} active task(s). Please complete or delete them first.`);
+      if (!openTasksError && openTasks && openTasks.length > 0) {
+        const taskTitles = openTasks.slice(0, 3).map(t => `"${t.title}"`).join(', ');
+        const moreCount = openTasks.length > 3 ? ` and ${openTasks.length - 3} more` : '';
+        throw new Error(`This lead has ${openTasks.length} open task(s): ${taskTitles}${moreCount}. Please complete or delete them first.`);
+      }
+
+      // Step 2b: Delete any completed (Done) tasks since they don't block deletion
+      const { error: doneTasksError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('borrower_id', id)
+        .is('deleted_at', null)
+        .eq('status', 'Done');
+
+      if (doneTasksError) {
+        console.warn('[DEBUG] Error deleting completed tasks:', doneTasksError);
       }
 
       // Step 3: Delete related records that reference this lead
