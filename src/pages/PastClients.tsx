@@ -206,12 +206,13 @@ const MAIN_VIEW_COLUMNS = [
   "close_date",
   "loan_status",
   "interest_rate",
-  "agents",
   "subject_address_1",
   "subject_address_2",
   "subject_city",
   "subject_state",
-  "subject_zip"
+  "subject_zip",
+  "buyer_agent",
+  "listing_agent"
 ];
 
 
@@ -848,16 +849,16 @@ export default function PastClients() {
     { id: "close_date", label: "Close Date", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
     { id: "interest_rate", label: "Interest Rate", visible: true },
-    { id: "agents", label: "Agents", visible: true },
     { id: "subject_address_1", label: "Property Address", visible: true },
     { id: "subject_address_2", label: "Unit #", visible: true },
     { id: "subject_city", label: "City", visible: true },
     { id: "subject_state", label: "State", visible: true },
     { id: "subject_zip", label: "Zip", visible: true },
+    { id: "buyer_agent", label: "Buyer's Agent", visible: true },
+    { id: "listing_agent", label: "Listing Agent", visible: true },
 
     // Hidden by default but available in Hide/Show
-    { id: "buyer_agent", label: "Buyer's Agent", visible: false },
-    { id: "listing_agent", label: "Listing Agent", visible: false },
+    { id: "agents", label: "Agents (Combined)", visible: false },
     { id: "sales_price", label: "Sales Price", visible: false },
     { id: "mb_loan_number", label: "Loan #", visible: false },
     { id: "pr_type", label: "P/R", visible: false },
@@ -925,7 +926,7 @@ export default function PastClients() {
     setColumns,
     setActiveView,
     isLoadingViews
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v3', 'past_clients');
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v4', 'past_clients');
 
   // Filter columns definition with proper types and options
   const filterColumns = [
