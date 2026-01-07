@@ -200,7 +200,6 @@ const epoStatusOptions = [
 // Main view default columns - simplified for past clients
 const MAIN_VIEW_COLUMNS = [
   "borrower_name",
-  "team",
   "lender",
   "loan_amount",
   "close_date",
@@ -843,7 +842,7 @@ export default function PastClients() {
   const coreColumns = useMemo(() => [
     // Visible by default (your "Main" list view)
     { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "team", label: "User", visible: true },
+    { id: "team", label: "User", visible: false },
     { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
@@ -926,7 +925,7 @@ export default function PastClients() {
     setColumns,
     setActiveView,
     isLoadingViews
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v4', 'past_clients');
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v5', 'past_clients');
 
   // Filter columns definition with proper types and options
   const filterColumns = [
