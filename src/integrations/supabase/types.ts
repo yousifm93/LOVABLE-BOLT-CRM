@@ -624,6 +624,7 @@ export type Database = {
           first_name: string
           id: string
           last_agent_call: string | null
+          last_attempted_call: string | null
           last_name: string
           license_number: string | null
           next_agent_call: string | null
@@ -644,6 +645,7 @@ export type Database = {
           first_name: string
           id?: string
           last_agent_call?: string | null
+          last_attempted_call?: string | null
           last_name: string
           license_number?: string | null
           next_agent_call?: string | null
@@ -664,6 +666,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_agent_call?: string | null
+          last_attempted_call?: string | null
           last_name?: string
           license_number?: string | null
           next_agent_call?: string | null

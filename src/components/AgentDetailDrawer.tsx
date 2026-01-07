@@ -262,9 +262,9 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-3 gap-4">
-                <div>
-                    <label className="text-xs font-medium text-muted-foreground">Last Call</label>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Last Connected Call</label>
                     <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
                       {agent.last_agent_call 
                         ? new Date(agent.last_agent_call.includes('T') || agent.last_agent_call.includes(' ') ? agent.last_agent_call : agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -272,6 +272,17 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                       }
                     </div>
                   </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Last Attempted Call</label>
+                    <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
+                      {agent.last_attempted_call 
+                        ? new Date(agent.last_attempted_call.includes('T') || agent.last_attempted_call.includes(' ') ? agent.last_attempted_call : agent.last_attempted_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : <span className="text-muted-foreground">—</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Next Scheduled Call</label>
                     <InlineEditDate
@@ -285,6 +296,15 @@ export function AgentDetailDrawer({ agent, isOpen, onClose, onAgentUpdated }: Ag
                     <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
                       {agent.face_to_face_meeting 
                         ? new Date(agent.face_to_face_meeting).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : <span className="text-muted-foreground">—</span>
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Broker Open</label>
+                    <div className="text-sm py-1 px-2 border rounded-md bg-muted/30 mt-1">
+                      {agent.broker_open 
+                        ? new Date(agent.broker_open.includes('T') || agent.broker_open.includes(' ') ? agent.broker_open : agent.broker_open + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                         : <span className="text-muted-foreground">—</span>
                       }
                     </div>

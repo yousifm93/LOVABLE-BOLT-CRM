@@ -81,6 +81,7 @@ export function CreateContactModal({ open, onOpenChange, onContactCreated, defau
           email: formData.email || null,
           phone: formData.phone || null,
           brokerage: formData.company || null,
+          notes: formData.notes || null,
         });
       }
       // If Lender, insert into lenders table

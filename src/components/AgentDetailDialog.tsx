@@ -234,12 +234,21 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                 <Calendar className="h-4 w-4" />
                 Activity Tracking
               </h3>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Call</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Connected Call</label>
                   <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
                     {agent.last_agent_call 
                       ? new Date(agent.last_agent_call.includes('T') || agent.last_agent_call.includes(' ') ? agent.last_agent_call : agent.last_agent_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground">—</span>
+                    }
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last Attempted Call</label>
+                  <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
+                    {agent.last_attempted_call 
+                      ? new Date(agent.last_attempted_call.includes('T') || agent.last_attempted_call.includes(' ') ? agent.last_attempted_call : agent.last_attempted_call + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       : <span className="text-muted-foreground">—</span>
                     }
                   </div>

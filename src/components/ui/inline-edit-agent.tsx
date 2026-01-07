@@ -87,7 +87,7 @@ export function InlineEditAgent({
   const refiAgent = React.useMemo(() => agents.find(isRefiAgent), [agents]);
   const otherAgents = React.useMemo(() => agents.filter(agent => !isSpecialAgent(agent)), [agents]);
 
-  // Manual filtering for large agent lists
+  // Manual filtering for large agent lists - prioritize first name matches
   const filteredAgents = React.useMemo(() => {
     if (!searchTerm.trim()) {
       // Show first 50 when no search
@@ -96,7 +96,8 @@ export function InlineEditAgent({
     const normalizedSearch = normalizeForSearch(searchTerm);
     const lowerSearch = searchTerm.toLowerCase();
     
-    return otherAgents.filter(agent => {
+    // Score and filter agents
+    const scoredAgents = otherAgents.map(agent => {
       const firstName = (agent.first_name || '').toLowerCase();
       const lastName = (agent.last_name || '').toLowerCase();
       const brokerage = (agent.brokerage || '').toLowerCase();
@@ -104,13 +105,59 @@ export function InlineEditAgent({
       const reverseName = `${lastName} ${firstName}`;
       const normalizedName = normalizeForSearch(fullName);
       
-      return fullName.includes(lowerSearch) ||
-             reverseName.includes(lowerSearch) ||
-             normalizedName.includes(normalizedSearch) ||
-             firstName.includes(lowerSearch) ||
-             lastName.includes(lowerSearch) ||
-             brokerage.includes(lowerSearch);
-    }).slice(0, 50); // Limit to 50 results for performance
+      let score = 0;
+      let matches = false;
+      
+      // Highest priority: first name starts with search term
+      if (firstName.startsWith(lowerSearch)) {
+        score = 100;
+        matches = true;
+      }
+      // Second priority: full name starts with search term
+      else if (fullName.startsWith(lowerSearch)) {
+        score = 90;
+        matches = true;
+      }
+      // Third priority: last name starts with search term
+      else if (lastName.startsWith(lowerSearch)) {
+        score = 80;
+        matches = true;
+      }
+      // Fourth priority: first name contains search term
+      else if (firstName.includes(lowerSearch)) {
+        score = 70;
+        matches = true;
+      }
+      // Fifth priority: full name or reverse name contains search term
+      else if (fullName.includes(lowerSearch) || reverseName.includes(lowerSearch)) {
+        score = 60;
+        matches = true;
+      }
+      // Sixth priority: normalized name match
+      else if (normalizedName.includes(normalizedSearch)) {
+        score = 50;
+        matches = true;
+      }
+      // Seventh priority: last name contains search term
+      else if (lastName.includes(lowerSearch)) {
+        score = 40;
+        matches = true;
+      }
+      // Lowest priority: brokerage match
+      else if (brokerage.includes(lowerSearch)) {
+        score = 30;
+        matches = true;
+      }
+      
+      return { agent, score, matches };
+    });
+    
+    // Filter matches, sort by score (highest first), and return agents
+    return scoredAgents
+      .filter(item => item.matches)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.agent)
+      .slice(0, 50); // Limit to 50 results for performance
   }, [otherAgents, searchTerm]);
 
   const handleSelect = (agent: Agent) => {

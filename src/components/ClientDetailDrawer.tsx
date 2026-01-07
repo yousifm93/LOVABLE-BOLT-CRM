@@ -2057,30 +2057,32 @@ export function ClientDetailDrawer({
                     <CardHeader className="pb-3 bg-white">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            if (isRecordingFileUpdates) {
-                              handleVoiceRecordingStop();
-                            } else {
-                              handleVoiceRecordingStart();
-                            }
-                          }}
-                          disabled={isSummarizingTranscript}
-                          className={cn(
-                            "w-8 h-8 rounded-full transition-all",
-                            isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                          )}
-                          title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                        >
-                          {isSummarizingTranscript ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                          )}
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              if (isRecordingFileUpdates) {
+                                handleVoiceRecordingStop();
+                              } else {
+                                handleVoiceRecordingStart();
+                              }
+                            }}
+                            disabled={isSummarizingTranscript}
+                            className={cn(
+                              "w-8 h-8 rounded-full transition-all",
+                              isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                            )}
+                            title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                          >
+                            {isSummarizingTranscript ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="bg-gray-50">
@@ -2468,30 +2470,32 @@ export function ClientDetailDrawer({
               <CardHeader className="pb-3 bg-white">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-bold">Pipeline Review</CardTitle>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      if (isRecordingFileUpdates) {
-                        handleVoiceRecordingStop();
-                      } else {
-                        handleVoiceRecordingStart();
-                      }
-                    }}
-                    disabled={isSummarizingTranscript}
-                    className={cn(
-                      "w-8 h-8 rounded-full transition-all",
-                      isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
-                    )}
-                    title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
-                  >
-                    {isSummarizingTranscript ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
-                    )}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        if (isRecordingFileUpdates) {
+                          handleVoiceRecordingStop();
+                        } else {
+                          handleVoiceRecordingStart();
+                        }
+                      }}
+                      disabled={isSummarizingTranscript}
+                      className={cn(
+                        "w-8 h-8 rounded-full transition-all",
+                        isRecordingFileUpdates && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                      )}
+                      title={isRecordingFileUpdates ? "Stop recording" : "Record voice note"}
+                    >
+                      {isSummarizingTranscript ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mic className={cn("h-4 w-4", isRecordingFileUpdates && "text-red-500")} />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="bg-gray-50">

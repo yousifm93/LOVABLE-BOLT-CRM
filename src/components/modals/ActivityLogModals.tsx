@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,127 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
+import { Mic, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Voice recording hook
+function useVoiceRecording(onTranscriptionComplete: (text: string) => void) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access to record voice notes.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+
+      const { data, error } = await supabase.functions.invoke('voice-transcribe', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) throw error;
+
+      if (data?.text) {
+        onTranscriptionComplete(data.text);
+      } else {
+        throw new Error('No transcription returned');
+      }
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      toast({
+        title: 'Transcription Failed',
+        description: 'Could not transcribe the audio. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const handleClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  return { isRecording, isTranscribing, handleClick };
+}
+
+// Voice button component
+function VoiceButton({ isRecording, isTranscribing, onClick }: { isRecording: boolean; isTranscribing: boolean; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      onClick={onClick}
+      disabled={isTranscribing}
+      className={cn(
+        "w-9 h-9 rounded-full transition-all",
+        isRecording && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+      )}
+      title={isRecording ? "Stop recording" : "Record voice note"}
+    >
+      {isTranscribing ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Mic className={cn("h-4 w-4", isRecording && "text-red-500")} />
+      )}
+    </Button>
+  );
+}
 
 // Helper to get local datetime string for datetime-local input
 const getLocalDateTimeString = () => {
@@ -177,6 +298,10 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
     timestamp: getLocalDateTimeString(),
     notes: '',
   });
+  
+  const { isRecording, isTranscribing, handleClick: handleVoiceClick } = useVoiceRecording((text) => {
+    setFormData(prev => ({ ...prev, notes: prev.notes ? prev.notes + ' ' + text : text }));
+  });
 
   // UUID validation helper
   const isValidUUID = (uuid: string): boolean => {
@@ -263,7 +388,10 @@ export function SmsLogModal({ open, onOpenChange, leadId, onActivityCreated }: A
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notes">Notes</Label>
+              <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+            </div>
             <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
@@ -408,6 +536,10 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
   const [loading, setLoading] = useState(false);
   const [noteBody, setNoteBody] = useState('');
   const [mentions, setMentions] = useState<TeamMember[]>([]);
+  
+  const { isRecording, isTranscribing, handleClick: handleVoiceClick } = useVoiceRecording((text) => {
+    setNoteBody(prev => prev ? prev + ' ' + text : text);
+  });
 
   // UUID validation helper
   const isValidUUID = (uuid: string): boolean => {
@@ -536,7 +668,10 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="note">Note <span className="text-xs text-muted-foreground">(Type @ to mention team members)</span></Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="note">Note <span className="text-xs text-muted-foreground">(Type @ to mention team members)</span></Label>
+              <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+            </div>
             <MentionableRichTextEditor
               value={noteBody}
               onChange={setNoteBody}
