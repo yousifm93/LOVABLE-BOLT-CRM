@@ -200,8 +200,6 @@ const epoStatusOptions = [
 // Main view default columns - simplified for past clients
 const MAIN_VIEW_COLUMNS = [
   "borrower_name",
-  "team",
-  "lender",
   "loan_amount",
   "close_date",
   "loan_status",
@@ -783,22 +781,23 @@ export default function PastClients() {
   const { allFields } = useFields();
   
   // Core columns that should appear first with default visibility
+  // Main view columns: borrower, loan_amount, close_date, loan_status, interest_rate, address, city, state, zip, buyer_agent, listing_agent
   const coreColumns = useMemo(() => [
     { id: "borrower_name", label: "Borrower", visible: true },
-    { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
-    { id: "sales_price", label: "Sales Price", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
     { id: "interest_rate", label: "Rate", visible: true },
     { id: "subject_address_1", label: "Property Address", visible: true },
-    { id: "subject_address_2", label: "Unit #", visible: true },
     { id: "subject_city", label: "City", visible: true },
     { id: "subject_state", label: "State", visible: true },
     { id: "subject_zip", label: "Zip", visible: true },
     { id: "buyer_agent", label: "Buyer's Agent", visible: true },
     { id: "listing_agent", label: "Listing Agent", visible: true },
     // Hidden by default but available
+    { id: "lender", label: "Lender", visible: false },
+    { id: "sales_price", label: "Sales Price", visible: false },
+    { id: "subject_address_2", label: "Unit #", visible: false },
     { id: "team", label: "User", visible: false },
     { id: "email", label: "Borrower Email", visible: false },
     { id: "phone", label: "Borrower Phone", visible: false },
@@ -1188,7 +1187,7 @@ export default function PastClients() {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<PastClientLoan> => col !== undefined);
 
-  // Filter loans based on search and advanced filters
+  // Filter loans based on search and advanced filters, sorted by close_date desc
   const filteredLoans = useMemo(() => {
     // First apply search term
     let result = pastClients.filter(loan => {
@@ -1202,6 +1201,13 @@ export default function PastClients() {
     
     // Then apply advanced filters
     result = applyAdvancedFilters(result);
+    
+    // Sort by close_date descending (newest first)
+    result.sort((a, b) => {
+      const dateA = a.close_date ? new Date(a.close_date).getTime() : 0;
+      const dateB = b.close_date ? new Date(b.close_date).getTime() : 0;
+      return dateB - dateA;
+    });
     
     return result;
   }, [pastClients, searchTerm, filters]);
@@ -1253,12 +1259,21 @@ export default function PastClients() {
     });
     
     // Sort years descending (2025, 2024, 2023...), Unknown at end
+    // Also sort loans within each year by close_date descending
     return Object.entries(groups)
       .sort(([a], [b]) => {
         if (a === 'Unknown') return 1;
         if (b === 'Unknown') return -1;
         return Number(b) - Number(a);
-      });
+      })
+      .map(([year, loans]) => [
+        year,
+        [...loans].sort((a, b) => {
+          const dateA = a.close_date ? new Date(a.close_date).getTime() : 0;
+          const dateB = b.close_date ? new Date(b.close_date).getTime() : 0;
+          return dateB - dateA;
+        })
+      ] as [string, PastClientLoan[]]);
   }, [filteredLoans]);
 
   // Calculate summary stats per year group

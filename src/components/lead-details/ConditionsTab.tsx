@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, FileText, X, ChevronDown, ChevronRight, Trash2, CalendarIcon, Loader2 } from "lucide-react";
 import { format, formatDistance } from "date-fns";
 import { formatDateModern } from "@/utils/dateUtils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -43,6 +43,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
+import { PdfPreview } from "./PdfPreview";
 
 interface Condition {
   id: string;
@@ -125,6 +127,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
+
+  // Document preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{
+    name: string;
+    url: string | null;
+    mimeType: string;
+    pdfData?: ArrayBuffer;
+  }>({ name: '', url: null, mimeType: '' });
 
   // Single condition form data
   const [formData, setFormData] = useState({
@@ -493,18 +505,60 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  // Helper to get actual MIME type from file extension
+  const getActualMimeType = (fileName: string, storedMimeType: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'gif') return 'image/gif';
+    if (ext === 'webp') return 'image/webp';
+    if (storedMimeType && (storedMimeType.startsWith('application/') || storedMimeType.startsWith('image/') || storedMimeType.startsWith('text/'))) {
+      return storedMimeType;
+    }
+    return 'application/octet-stream';
+  };
+
   const viewDocument = async (documentId: string) => {
     try {
+      setPreviewLoading(true);
       const { data: doc, error } = await supabase
         .from('documents')
-        .select('file_url')
+        .select('file_url, file_name, mime_type, title')
         .eq('id', documentId)
         .single();
       
       if (error) throw error;
-      if (doc?.file_url) {
-        window.open(doc.file_url, '_blank');
+      if (!doc?.file_url) throw new Error('No file URL found');
+      
+      const signedUrl = await databaseService.getDocumentSignedUrl(doc.file_url);
+      const res = await fetch(signedUrl);
+      if (!res.ok) throw new Error('Failed to fetch file');
+      
+      const actualMimeType = getActualMimeType(doc.file_name, doc.mime_type);
+      const isPdf = actualMimeType === 'application/pdf' || 
+                    doc.file_name.toLowerCase().endsWith('.pdf') ||
+                    doc.file_url.toLowerCase().includes('.pdf');
+      
+      if (isPdf) {
+        const arrayBuffer = await res.arrayBuffer();
+        setPreviewDoc({
+          name: doc.title || doc.file_name,
+          url: null,
+          mimeType: 'application/pdf',
+          pdfData: arrayBuffer,
+        });
+      } else {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type: actualMimeType }));
+        setPreviewDoc({
+          name: doc.title || doc.file_name,
+          url: blobUrl,
+          mimeType: actualMimeType,
+        });
       }
+      
+      setPreviewOpen(true);
     } catch (error) {
       console.error('Error viewing document:', error);
       toast({
@@ -512,7 +566,19 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
         description: "Failed to open document",
         variant: "destructive"
       });
+    } finally {
+      setPreviewLoading(false);
     }
+  };
+
+  const handlePreviewClose = (open: boolean) => {
+    if (!open) {
+      if (previewDoc.url) {
+        URL.revokeObjectURL(previewDoc.url);
+      }
+      setPreviewDoc({ name: '', url: null, mimeType: '' });
+    }
+    setPreviewOpen(open);
   };
 
   // Helper to get user initials
@@ -1324,6 +1390,26 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        open={previewOpen}
+        onOpenChange={handlePreviewClose}
+        documentName={previewDoc.name}
+        documentUrl={previewDoc.url}
+        mimeType={previewDoc.mimeType}
+        pdfData={previewDoc.pdfData}
+      />
+      
+      {/* Loading overlay for preview */}
+      {previewLoading && (
+        <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
+          <div className="flex items-center gap-2 bg-background p-4 rounded-lg shadow-lg">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Loading document...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

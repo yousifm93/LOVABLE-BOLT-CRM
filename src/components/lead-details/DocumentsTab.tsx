@@ -440,7 +440,7 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
           <p className="text-sm mt-1">Upload documents to get started</p>
         </div>
       ) : (
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[calc(100vh-500px)] min-h-[360px]">
           <div className="space-y-2">
             {documents.map((doc) => (
               <div
