@@ -1369,8 +1369,9 @@ export default function Active() {
   const { liveLoans, incomingLoans, onHoldLoans } = useMemo(() => {
     const filteredLoans = applyAdvancedFilters(activeLoans, filters, fieldAccessor);
     
-    const live = filteredLoans.filter(loan => loan.pipeline_section === 'Live' || !loan.pipeline_section);
-    const incoming = filteredLoans.filter(loan => loan.pipeline_section === 'Incoming');
+    // NULL or missing pipeline_section defaults to 'Incoming' (not 'Live')
+    const live = filteredLoans.filter(loan => loan.pipeline_section === 'Live');
+    const incoming = filteredLoans.filter(loan => loan.pipeline_section === 'Incoming' || !loan.pipeline_section);
     const onHold = filteredLoans.filter(loan => loan.pipeline_section === 'On Hold');
     
     return {
