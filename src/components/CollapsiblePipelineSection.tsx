@@ -84,8 +84,8 @@ export function CollapsiblePipelineSection({
           </div>
           <div className="flex items-center gap-4">
             {summaryStats && summaryStats.loanTotal !== undefined && (
-              <span className="text-sm text-muted-foreground">
-                Loan Amount: <span className="font-medium text-foreground">{formatCurrency(summaryStats.loanTotal)}</span>
+              <span className="text-sm font-medium text-foreground">
+                {formatCurrency(summaryStats.loanTotal)}
               </span>
             )}
             <span className="text-sm text-muted-foreground">
