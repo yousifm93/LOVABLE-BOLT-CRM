@@ -278,10 +278,17 @@ export default function AgentList() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.email).length.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">With Email</p>
+                <p className="text-2xl font-bold">
+                  {agents.filter(a => {
+                    if (!a.created_at) return false;
+                    const createdDate = new Date(a.created_at);
+                    const now = new Date();
+                    return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear();
+                  }).length.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Added This Month</p>
               </div>
-              <Mail className="h-8 w-8 text-success" />
+              <Plus className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -290,10 +297,17 @@ export default function AgentList() {
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.phone).length.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">With Phone</p>
+                <p className="text-2xl font-bold">
+                  {agents.filter(a => {
+                    if (!a.broker_open) return false;
+                    const brokerOpenDate = new Date(a.broker_open);
+                    const now = new Date();
+                    return brokerOpenDate.getMonth() === now.getMonth() && brokerOpenDate.getFullYear() === now.getFullYear();
+                  }).length.toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Brokers Opens This Month</p>
               </div>
-              <Phone className="h-8 w-8 text-warning" />
+              <Building2 className="h-8 w-8 text-warning" />
             </div>
           </CardContent>
         </Card>
