@@ -784,18 +784,22 @@ const createColumns = (
   {
     accessorKey: "subject_zip",
     header: "Zip",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <InlineEditText
-          value={row.original.subject_zip || ''}
-          onValueChange={(value) => 
-            handleUpdate(row.original.id, "subject_zip", value)
-          }
-          placeholder="Zip"
-          className="w-16"
-        />
-      </div>
-    ),
+    cell: ({ row }) => {
+      const fullZip = row.original.subject_zip || '';
+      const displayZip = fullZip.substring(0, 5);
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditText
+            value={displayZip}
+            onValueChange={(value) => 
+              handleUpdate(row.original.id, "subject_zip", value.substring(0, 5))
+            }
+            placeholder="Zip"
+            className="w-16"
+          />
+        </div>
+      );
+    },
     sortable: true,
   },
   {
@@ -918,9 +922,9 @@ const COLUMN_WIDTHS: Record<string, number> = {
   close_date: 100,
   loan_status: 80,
   interest_rate: 60,
-  subject_address_1: 150,
+  subject_address_1: 130,
   subject_address_2: 50,
-  subject_city: 70,
+  subject_city: 60,
   subject_state: 30,
   subject_zip: 60,
   buyer_agent: 130,
