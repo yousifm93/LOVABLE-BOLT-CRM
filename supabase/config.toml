@@ -206,3 +206,6 @@ verify_jwt = false
 
 [functions.auto-status-transition]
 verify_jwt = false
+
+[functions.check-open-tasks]
+verify_jwt = false
