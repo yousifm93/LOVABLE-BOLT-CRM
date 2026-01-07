@@ -1154,19 +1154,39 @@ export const databaseService = {
   },
 
   async getDeletedTasks() {
+    // First get the deleted tasks
     const { data, error } = await supabase
       .from('tasks')
       .select(`
         *,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
-        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name),
-        deleted_by_user:users!tasks_deleted_by_fkey(id, first_name, last_name, email)
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
       `)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });
     
     if (error) throw error;
-    return data;
+    
+    // Now get the deleted_by user info by looking up auth_user_id
+    if (data && data.length > 0) {
+      const deletedByIds = [...new Set(data.filter(t => t.deleted_by).map(t => t.deleted_by))];
+      
+      if (deletedByIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, auth_user_id, first_name, last_name, email')
+          .in('auth_user_id', deletedByIds);
+        
+        const userMap = new Map(usersData?.map(u => [u.auth_user_id, u]) || []);
+        
+        return data.map(task => ({
+          ...task,
+          deleted_by_user: task.deleted_by ? userMap.get(task.deleted_by) || null : null
+        }));
+      }
+    }
+    
+    return data?.map(task => ({ ...task, deleted_by_user: null })) || [];
   },
 
   async createTask(task: TaskInsert) {
