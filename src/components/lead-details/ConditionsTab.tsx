@@ -540,13 +540,13 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <TableHead className="w-[30px] text-center text-xs">#</TableHead>
           <TableHead 
             onClick={() => handleSortClick('condition')}
-            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px] text-xs"
+            className="cursor-pointer hover:bg-muted w-[340px] max-w-[340px] text-xs"
           >
             Condition {sortBy === 'condition' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
           <TableHead 
             onClick={() => handleSortClick('status')}
-            className="cursor-pointer hover:bg-muted w-[110px] text-center text-xs"
+            className="cursor-pointer hover:bg-muted w-[95px] text-center text-xs"
           >
             Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -562,7 +562,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[100px] text-center text-xs">Last updated</TableHead>
+          <TableHead className="w-[85px] text-center text-xs">Last updated</TableHead>
           <TableHead className="w-[40px] text-center text-xs">Doc</TableHead>
           <TableHead className="w-[30px]"></TableHead>
         </TableRow>
