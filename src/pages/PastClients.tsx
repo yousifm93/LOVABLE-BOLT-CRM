@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFields } from "@/contexts/FieldsContext";
@@ -206,14 +206,14 @@ const MAIN_VIEW_COLUMNS = [
   "close_date",
   "loan_status",
   "interest_rate",
-  "buyer_agent",
-  "listing_agent",
+  "agents",
   "subject_address_1",
   "subject_address_2",
   "subject_city",
   "subject_state",
   "subject_zip"
 ];
+
 
 const createColumns = (
   users: any[], 
@@ -660,6 +660,60 @@ const createColumns = (
     sortable: true,
   },
   {
+    accessorKey: "agents",
+    header: "Agents",
+    cell: ({ row }) => (
+      <div onClick={(e) => e.stopPropagation()} className="min-w-[220px]">
+        <div className="space-y-1">
+          <InlineEditAgent
+            value={row.original.buyer_agent ? {
+              id: row.original.buyer_agent.id,
+              first_name: row.original.buyer_agent.first_name,
+              last_name: row.original.buyer_agent.last_name,
+              brokerage: row.original.buyer_agent.company,
+              email: row.original.buyer_agent.email,
+              phone: row.original.buyer_agent.phone,
+            } : null}
+            agents={agents}
+            onValueChange={async (agent) => 
+              await handleUpdate(row.original.id, "buyer_agent_id", agent?.id || null)
+            }
+            type="buyer"
+          />
+
+          <InlineEditAgent
+            value={row.original.listing_agent ? {
+              id: row.original.listing_agent.id,
+              first_name: row.original.listing_agent.first_name,
+              last_name: row.original.listing_agent.last_name,
+              brokerage: row.original.listing_agent.brokerage,
+              email: row.original.listing_agent.email,
+            } : null}
+            agents={agents}
+            onValueChange={async (agent) => {
+              if (!agent) {
+                await handleUpdate(row.original.id, "listing_agent_id", null);
+              } else {
+                try {
+                  const buyerAgentId = await databaseService.ensureBuyerAgentFromContact(agent.id);
+                  await handleUpdate(row.original.id, "listing_agent_id", buyerAgentId);
+                } catch (error) {
+                  console.error('Error mapping listing agent:', error);
+                  toast({
+                    variant: "destructive",
+                    title: "Failed to update listing agent",
+                  });
+                }
+              }
+            }}
+            type="listing"
+          />
+        </div>
+      </div>
+    ),
+    sortable: false,
+  },
+  {
     accessorKey: "subject_address_1",
     header: "Property Address",
     cell: ({ row }) => (
@@ -786,24 +840,25 @@ export default function PastClients() {
   // Core columns that should appear first with default visibility
   // Main view columns: borrower, loan_amount, close_date, loan_status, interest_rate, address, city, state, zip, buyer_agent, listing_agent
   const coreColumns = useMemo(() => [
+    // Visible by default (your "Main" list view)
     { id: "borrower_name", label: "Borrower", visible: true },
+    { id: "team", label: "User", visible: true },
+    { id: "lender", label: "Lender", visible: true },
     { id: "loan_amount", label: "Loan Amount", visible: true },
     { id: "close_date", label: "Close Date", visible: true },
     { id: "loan_status", label: "Loan Status", visible: true },
-    { id: "interest_rate", label: "Rate", visible: true },
+    { id: "interest_rate", label: "Interest Rate", visible: true },
+    { id: "agents", label: "Agents", visible: true },
     { id: "subject_address_1", label: "Property Address", visible: true },
+    { id: "subject_address_2", label: "Unit #", visible: true },
     { id: "subject_city", label: "City", visible: true },
     { id: "subject_state", label: "State", visible: true },
     { id: "subject_zip", label: "Zip", visible: true },
-    { id: "buyer_agent", label: "Buyer's Agent", visible: true },
-    { id: "listing_agent", label: "Listing Agent", visible: true },
-    // Hidden by default but available
-    { id: "lender", label: "Lender", visible: false },
+
+    // Hidden by default but available in Hide/Show
+    { id: "buyer_agent", label: "Buyer's Agent", visible: false },
+    { id: "listing_agent", label: "Listing Agent", visible: false },
     { id: "sales_price", label: "Sales Price", visible: false },
-    { id: "subject_address_2", label: "Unit #", visible: false },
-    { id: "team", label: "User", visible: false },
-    { id: "email", label: "Borrower Email", visible: false },
-    { id: "phone", label: "Borrower Phone", visible: false },
     { id: "mb_loan_number", label: "Loan #", visible: false },
     { id: "pr_type", label: "P/R", visible: false },
     { id: "occupancy", label: "Occupancy", visible: false },
@@ -817,6 +872,8 @@ export default function PastClients() {
     { id: "lock_expiration_date", label: "LOC EXP", visible: false },
     { id: "ba_status", label: "BA", visible: false },
     { id: "epo_status", label: "EPO", visible: false },
+    { id: "email", label: "Borrower Email", visible: false },
+    { id: "phone", label: "Borrower Phone", visible: false },
   ], []);
   
   // Load ALL database fields for Hide/Show modal (~85 total)
@@ -851,6 +908,8 @@ export default function PastClients() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const { toast } = useToast();
 
+  const hasAppliedMainViewDefaults = useRef(false);
+
   // Column visibility management
   const {
     columns: columnVisibility,
@@ -864,8 +923,9 @@ export default function PastClients() {
     deleteView,
     reorderColumns,
     setColumns,
-    setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v2', 'past_clients');
+    setActiveView,
+    isLoadingViews
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v3', 'past_clients');
 
   // Filter columns definition with proper types and options
   const filterColumns = [
@@ -882,22 +942,28 @@ export default function PastClients() {
     { value: 'close_date', label: 'Close Date', type: 'date' as const },
   ];
 
-  // Auto-load Main View on initial mount - ALWAYS apply Main View as default
+  // Auto-load Main View defaults after column prefs/views finish loading.
+  // (Previously, saved prefs or shared "Main View" could override this.)
   useEffect(() => {
+    if (isLoadingViews) return;
+    if (hasAppliedMainViewDefaults.current) return;
+    if (!columnVisibility?.length) return;
+
     const orderedMainColumns = MAIN_VIEW_COLUMNS
       .map(id => columnVisibility.find(col => col.id === id))
       .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
       .map(col => ({ ...col, visible: true }));
-    
+
     const existingIds = new Set(MAIN_VIEW_COLUMNS);
     const remainingColumns = columnVisibility
       .filter(col => !existingIds.has(col.id))
       .map(col => ({ ...col, visible: false }));
-    
+
     const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
     setColumns(newColumnOrder);
     setActiveView("Main");
-  }, []);
+    hasAppliedMainViewDefaults.current = true;
+  }, [isLoadingViews, columnVisibility, setColumns, setActiveView]);
 
   const handleColumnReorder = (oldVisibleIndex: number, newVisibleIndex: number) => {
     // Get the column IDs from the visible columns array
