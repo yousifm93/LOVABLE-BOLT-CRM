@@ -1541,6 +1541,12 @@ export function ClientDetailDrawer({
         }
       }
 
+      // If moving to Pre-Approved, set default converted status to "New"
+      const isPreApproved = normalizedLabel === 'Pre-Approved' || stageId === '3cbf38ff-752e-4163-a9a3-1757499b4945';
+      if (isPreApproved) {
+        updateData.converted = 'New';
+      }
+
       // If moving to Active, also update the pipeline_section to Incoming and set default loan_status
       if (normalizedLabel === 'Active') {
         updateData.pipeline_section = 'Incoming';
