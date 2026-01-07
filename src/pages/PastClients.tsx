@@ -200,16 +200,19 @@ const epoStatusOptions = [
 // Main view default columns - simplified for past clients
 const MAIN_VIEW_COLUMNS = [
   "borrower_name",
+  "team",
+  "lender",
   "loan_amount",
   "close_date",
   "loan_status",
   "interest_rate",
+  "buyer_agent",
+  "listing_agent",
   "subject_address_1",
+  "subject_address_2",
   "subject_city",
   "subject_state",
-  "subject_zip",
-  "buyer_agent",
-  "listing_agent"
+  "subject_zip"
 ];
 
 const createColumns = (
