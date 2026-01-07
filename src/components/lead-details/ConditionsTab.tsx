@@ -61,6 +61,7 @@ interface Condition {
   created_at: string;
   created_by: string | null;
   updated_at: string | null;
+  updated_by: string | null;
 }
 
 const NEEDED_FROM_OPTIONS = [
@@ -441,14 +442,16 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
     
     // Optimistically update local state first to prevent refresh flicker
+    const currentUserId = user?.id || null;
     setConditions(prev => prev.map(c => 
-      c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString() } : c
+      c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString(), updated_by: currentUserId } : c
     ));
     
     try {
       await databaseService.updateLeadCondition(conditionId, {
         [field]: value,
         updated_at: new Date().toISOString(),
+        updated_by: currentUserId,
       });
       // Only reload if status changed to completion statuses (for status history)
       if (field === 'status' && ['4_collected', '5_sent_to_lender', '6_cleared'].includes(value)) {
@@ -512,6 +515,24 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
     }
   };
 
+  // Helper to get user initials
+  const getUserInitials = (userId: string | null) => {
+    if (!userId) return "?";
+    const userObj = users.find(u => u.id === userId);
+    if (!userObj) return "?";
+    const first = userObj.first_name?.[0] || userObj.email?.[0] || "?";
+    const last = userObj.last_name?.[0] || "";
+    return `${first}${last}`.toUpperCase();
+  };
+
+  // Helper to get user full name for tooltip
+  const getUserName = (userId: string | null) => {
+    if (!userId) return "Unknown";
+    const userObj = users.find(u => u.id === userId);
+    if (!userObj) return "Unknown";
+    return `${userObj.first_name || ''} ${userObj.last_name || ''}`.trim() || userObj.email || "Unknown";
+  };
+
   const renderConditionsTable = (conditionsList: Condition[]) => (
     <Table>
       <TableHeader>
@@ -519,7 +540,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           <TableHead className="w-[30px] text-center text-xs">#</TableHead>
           <TableHead 
             onClick={() => handleSortClick('condition')}
-            className="cursor-pointer hover:bg-muted w-[340px] max-w-[340px] text-xs"
+            className="cursor-pointer hover:bg-muted w-[280px] max-w-[280px] text-xs"
           >
             Condition {sortBy === 'condition' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -531,7 +552,7 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           </TableHead>
           <TableHead 
             onClick={() => handleSortClick('due_date')}
-            className="cursor-pointer hover:bg-muted w-[90px] text-center text-xs"
+            className="cursor-pointer hover:bg-muted w-[80px] text-center text-xs"
           >
             ETA {sortBy === 'due_date' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
@@ -541,19 +562,22 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
           >
             From {sortBy === 'needed_from' && (sortOrder === 'asc' ? '↑' : '↓')}
           </TableHead>
-          <TableHead className="w-[50px] text-center text-xs">Doc</TableHead>
+          <TableHead className="w-[100px] text-center text-xs">Last updated</TableHead>
+          <TableHead className="w-[40px] text-center text-xs">Doc</TableHead>
           <TableHead className="w-[30px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {conditionsList.length === 0 ? (
           <TableRow>
-          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 px-3">
+          <TableCell colSpan={8} className="text-center text-muted-foreground py-8 px-3">
             No conditions in this group
           </TableCell>
           </TableRow>
         ) : (
           conditionsList.map((condition, index) => {
+            const lastUpdatedAt = condition.updated_at || condition.created_at;
+            const lastUpdatedBy = condition.updated_by || condition.created_by;
             return (
               <TableRow 
                 key={condition.id}
@@ -637,6 +661,26 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
                       ))}
                     </SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell className="py-0.5 px-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-[10px] bg-muted">
+                            {getUserInitials(lastUpdatedBy)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistance(new Date(lastUpdatedAt), new Date(), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2 text-xs" align="center">
+                      <div className="font-medium">{getUserName(lastUpdatedBy)}</div>
+                      <div className="text-muted-foreground">{format(new Date(lastUpdatedAt), 'MMM d, yyyy h:mm a')}</div>
+                    </PopoverContent>
+                  </Popover>
                 </TableCell>
                 <TableCell className="py-0.5 px-1 text-center" onClick={(e) => e.stopPropagation()}>
                   {condition.document_id ? (

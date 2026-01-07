@@ -2470,6 +2470,7 @@ export type Database = {
           priority: string | null
           status: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -2488,6 +2489,7 @@ export type Database = {
           priority?: string | null
           status?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -2506,6 +2508,7 @@ export type Database = {
           priority?: string | null
           status?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -2541,6 +2544,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_conditions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

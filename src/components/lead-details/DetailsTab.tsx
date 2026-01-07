@@ -561,25 +561,8 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
     
     setIsDeleting(true);
     try {
-      // Delete the lead - the database will throw an error if there are associated tasks due to FK constraint
-      const { error: deleteError } = await supabase
-        .from('leads')
-        .delete()
-        .eq('id', leadId);
-      
-      if (deleteError) {
-        // Check if it's a foreign key violation (associated tasks exist)
-        if (deleteError.code === '23503' || deleteError.message?.includes('foreign key') || deleteError.message?.includes('violates')) {
-          toast({
-            title: "Cannot Delete Lead",
-            description: "There are tasks associated with this lead. Please complete or delete the associated tasks first, then try again.",
-            variant: "destructive",
-          });
-          setIsDeleting(false);
-          return;
-        }
-        throw deleteError;
-      }
+      // Use databaseService.deleteLead which properly handles associated records
+      await databaseService.deleteLead(leadId);
       
       toast({
         title: "Lead Deleted",

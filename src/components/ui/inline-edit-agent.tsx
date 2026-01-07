@@ -46,6 +46,7 @@ export function InlineEditAgent({
   type = "buyer"
 }: InlineEditAgentProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
 
   // Normalize text for search: lowercase and remove non-alphanumeric characters
   const normalizeForSearch = (text: string) => {
@@ -86,29 +87,42 @@ export function InlineEditAgent({
   const refiAgent = React.useMemo(() => agents.find(isRefiAgent), [agents]);
   const otherAgents = React.useMemo(() => agents.filter(agent => !isSpecialAgent(agent)), [agents]);
 
+  // Manual filtering for large agent lists
+  const filteredAgents = React.useMemo(() => {
+    if (!searchTerm.trim()) {
+      // Show first 50 when no search
+      return otherAgents.slice(0, 50);
+    }
+    const normalizedSearch = normalizeForSearch(searchTerm);
+    const lowerSearch = searchTerm.toLowerCase();
+    
+    return otherAgents.filter(agent => {
+      const firstName = (agent.first_name || '').toLowerCase();
+      const lastName = (agent.last_name || '').toLowerCase();
+      const brokerage = (agent.brokerage || '').toLowerCase();
+      const fullName = `${firstName} ${lastName}`;
+      const reverseName = `${lastName} ${firstName}`;
+      const normalizedName = normalizeForSearch(fullName);
+      
+      return fullName.includes(lowerSearch) ||
+             reverseName.includes(lowerSearch) ||
+             normalizedName.includes(normalizedSearch) ||
+             firstName.includes(lowerSearch) ||
+             lastName.includes(lowerSearch) ||
+             brokerage.includes(lowerSearch);
+    }).slice(0, 50); // Limit to 50 results for performance
+  }, [otherAgents, searchTerm]);
+
   const handleSelect = (agent: Agent) => {
     onValueChange(agent);
     setOpen(false);
+    setSearchTerm("");
   };
 
   const handleClear = () => {
     onValueChange(null);
     setOpen(false);
-  };
-
-  // Build searchable value for Command filtering (includes normalized version for flexible matching)
-  const getSearchValue = (agent: Agent) => {
-    const firstName = agent.first_name || '';
-    const lastName = agent.last_name || '';
-    const brokerage = agent.brokerage || '';
-    const email = agent.email || '';
-    const phone = agent.phone || '';
-    // Create multiple search patterns for better matching
-    const fullName = `${firstName} ${lastName}`;
-    const reverseName = `${lastName} ${firstName}`;
-    const raw = [firstName, lastName, brokerage, email, phone].join(' ');
-    // Include full name, reverse name, raw and normalized for flexible matching
-    return `${fullName} ${reverseName} ${raw.toLowerCase()} ${normalizeForSearch(raw)}`;
+    setSearchTerm("");
   };
 
   if (disabled) {
@@ -120,7 +134,10 @@ export function InlineEditAgent({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) setSearchTerm("");
+    }}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -154,20 +171,16 @@ export function InlineEditAgent({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
-        <Command
-          filter={(value, search) => {
-            // Normalize both for flexible matching (handles "n/a", "na", "not applicable", etc.)
-            const normalizedSearch = normalizeForSearch(search);
-            const normalizedValue = normalizeForSearch(value);
-            if (normalizedValue.includes(normalizedSearch)) return 1;
-            // Also try raw lowercase match
-            if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-            return 0;
-          }}
-        >
-          <CommandInput placeholder="Search agents..." />
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder="Search agents..." 
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          />
           <CommandList>
-            <CommandEmpty>No agents found</CommandEmpty>
+            <CommandEmpty>
+              {searchTerm.trim() ? "No agents found" : "Type to search..."}
+            </CommandEmpty>
             {value && (
               <CommandGroup>
                 <CommandItem
@@ -179,11 +192,10 @@ export function InlineEditAgent({
                 </CommandItem>
               </CommandGroup>
             )}
-            {(naAgent || developerAgent || refiAgent) && (
+            {(naAgent || developerAgent || refiAgent) && !searchTerm.trim() && (
               <CommandGroup heading="Quick Select">
                 {naAgent && (
                   <CommandItem
-                    value={getSearchValue(naAgent)}
                     onSelect={() => handleSelect(naAgent)}
                     className="flex flex-col items-start p-3"
                   >
@@ -192,7 +204,6 @@ export function InlineEditAgent({
                 )}
                 {developerAgent && (
                   <CommandItem
-                    value={getSearchValue(developerAgent)}
                     onSelect={() => handleSelect(developerAgent)}
                     className="flex flex-col items-start p-3"
                   >
@@ -201,7 +212,6 @@ export function InlineEditAgent({
                 )}
                 {refiAgent && (
                   <CommandItem
-                    value={getSearchValue(refiAgent)}
                     onSelect={() => handleSelect(refiAgent)}
                     className="flex flex-col items-start p-3"
                   >
@@ -210,11 +220,10 @@ export function InlineEditAgent({
                 )}
               </CommandGroup>
             )}
-            <CommandGroup heading="Agents">
-              {otherAgents.map((agent) => (
+            <CommandGroup heading={searchTerm.trim() ? `Results (${filteredAgents.length})` : "Agents (showing first 50)"}>
+              {filteredAgents.map((agent) => (
                 <CommandItem
                   key={agent.id}
-                  value={getSearchValue(agent)}
                   onSelect={() => handleSelect(agent)}
                   className="flex flex-col items-start p-3"
                 >
