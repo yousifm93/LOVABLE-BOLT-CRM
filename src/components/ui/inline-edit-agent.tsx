@@ -98,15 +98,17 @@ export function InlineEditAgent({
 
   // Build searchable value for Command filtering (includes normalized version for flexible matching)
   const getSearchValue = (agent: Agent) => {
-    const raw = [
-      agent.first_name || '',
-      agent.last_name || '',
-      agent.brokerage || '',
-      agent.email || '',
-      agent.phone || ''
-    ].join(' ');
-    // Include both raw and normalized for flexible matching
-    return `${raw.toLowerCase()} ${normalizeForSearch(raw)}`;
+    const firstName = agent.first_name || '';
+    const lastName = agent.last_name || '';
+    const brokerage = agent.brokerage || '';
+    const email = agent.email || '';
+    const phone = agent.phone || '';
+    // Create multiple search patterns for better matching
+    const fullName = `${firstName} ${lastName}`;
+    const reverseName = `${lastName} ${firstName}`;
+    const raw = [firstName, lastName, brokerage, email, phone].join(' ');
+    // Include full name, reverse name, raw and normalized for flexible matching
+    return `${fullName} ${reverseName} ${raw.toLowerCase()} ${normalizeForSearch(raw)}`;
   };
 
   if (disabled) {

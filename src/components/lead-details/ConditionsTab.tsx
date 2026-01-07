@@ -71,7 +71,7 @@ const NEEDED_FROM_OPTIONS = [
 ];
 
 interface ConditionsTabProps {
-  leadId: string;
+  leadId: string | null;
   onConditionsChange?: () => void;
 }
 
@@ -146,11 +146,21 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
   }>>([]);
 
   useEffect(() => {
-    loadConditions();
-    loadUsers();
+    if (leadId) {
+      loadConditions();
+      loadUsers();
+    } else {
+      setLoading(false);
+      setConditions([]);
+    }
   }, [leadId]);
 
   const loadConditions = async () => {
+    if (!leadId) {
+      setConditions([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await databaseService.getLeadConditions(leadId);

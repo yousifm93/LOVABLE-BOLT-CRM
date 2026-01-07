@@ -374,7 +374,13 @@ export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
   const handleAgentChange = async (fieldName: 'buyer_agent_id' | 'listing_agent_id', agent: Agent | null) => {
     try {
       await databaseService.updateLead(leadId, { [fieldName]: agent?.id || null });
-      setLeadData((prev: any) => ({ ...prev, [fieldName]: agent?.id || null }));
+      // Update both ID and embedded object in local state
+      const embeddedFieldName = fieldName === 'buyer_agent_id' ? 'buyer_agent' : 'listing_agent';
+      setLeadData((prev: any) => ({ 
+        ...prev, 
+        [fieldName]: agent?.id || null,
+        [embeddedFieldName]: agent 
+      }));
       onLeadUpdated?.();
       toast({
         title: "Updated",
@@ -393,7 +399,12 @@ export function ContactsTab({ leadId, lead, onLeadUpdated }: ContactsTabProps) {
   const handleLenderChange = async (lender: Lender | null) => {
     try {
       await databaseService.updateLead(leadId, { approved_lender_id: lender?.id || null });
-      setLeadData((prev: any) => ({ ...prev, approved_lender_id: lender?.id || null }));
+      // Update both ID and embedded object in local state
+      setLeadData((prev: any) => ({ 
+        ...prev, 
+        approved_lender_id: lender?.id || null,
+        approved_lender: lender 
+      }));
       onLeadUpdated?.();
       toast({
         title: "Updated",
