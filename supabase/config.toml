@@ -203,3 +203,6 @@ verify_jwt = false
 
 [functions.parse-voice-task]
 verify_jwt = false
+
+[functions.auto-status-transition]
+verify_jwt = false

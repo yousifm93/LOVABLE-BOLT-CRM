@@ -959,6 +959,37 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Create "Screen new application" task assigned to Salma Mohamed
+    try {
+      console.log('Creating "Screen new application" task...');
+      const taskDueDate = new Date();
+      taskDueDate.setDate(taskDueDate.getDate() + 1);
+      
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .insert({
+          title: 'Screen new application',
+          description: `Review and screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
+          borrower_id: result.id,
+          assigned_to: '159376ae-30e9-4997-b61f-76ab8d7f224b', // Salma Mohamed
+          status: 'To Do',
+          priority: 'high',
+          due_date: taskDueDate.toISOString(),
+          created_by: '08e73d69-4707-4773-84a4-69ce2acd6c904ee', // System
+        })
+        .select()
+        .single();
+      
+      if (taskError) {
+        console.error('Error creating screening task:', taskError);
+      } else {
+        console.log('Successfully created screening task:', taskData?.id);
+      }
+    } catch (taskCreationError) {
+      console.error('Failed to create screening task:', taskCreationError);
+      // Don't fail the entire submission if task creation fails
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
