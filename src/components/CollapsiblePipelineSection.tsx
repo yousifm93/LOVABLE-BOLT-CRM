@@ -82,16 +82,12 @@ export function CollapsiblePipelineSection({
             </Button>
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           </div>
-          <div className="flex items-center gap-4">
-            {summaryStats && summaryStats.loanTotal !== undefined && (
-              <span className="text-sm font-medium text-foreground">
-                {formatCurrency(summaryStats.loanTotal)}
-              </span>
-            )}
+          {/* Count shown inline in header when collapsed */}
+          {!isOpen && (
             <span className="text-sm text-muted-foreground">
               {data.length} loan{data.length !== 1 ? 's' : ''}
             </span>
-          </div>
+          )}
         </div>
       </CardHeader>
       
@@ -114,6 +110,19 @@ export function CollapsiblePipelineSection({
             initialColumnWidths={initialColumnWidths}
             lockResize={lockResize}
           />
+          {/* Summary stats at bottom right */}
+          {data.length > 0 && (
+            <div className="flex justify-end items-center gap-4 pt-3 mt-3 border-t border-border">
+              {summaryStats && summaryStats.loanTotal !== undefined && (
+                <span className="text-sm font-medium text-foreground">
+                  {formatCurrency(summaryStats.loanTotal)}
+                </span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {data.length} loan{data.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
         </CardContent>
       )}
     </Card>

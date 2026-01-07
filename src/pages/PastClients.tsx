@@ -906,7 +906,26 @@ export default function PastClients() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [showHighRates, setShowHighRates] = useState(false);
   const { toast } = useToast();
+
+  // Hardcoded column widths for list view
+  const COLUMN_WIDTHS: Record<string, number> = {
+    borrower_name: 140,
+    lender: 120,
+    loan_amount: 110,
+    close_date: 100,
+    loan_status: 90,
+    interest_rate: 80,
+    subject_address_1: 180,
+    subject_address_2: 70,
+    subject_city: 100,
+    subject_state: 50,
+    subject_zip: 70,
+    buyer_agent: 130,
+    listing_agent: 130,
+  };
 
   const hasAppliedMainViewDefaults = useRef(false);
 
@@ -1251,7 +1270,7 @@ export default function PastClients() {
     .map(visibleCol => allColumns.find(col => col.accessorKey === visibleCol.id))
     .filter((col): col is ColumnDef<PastClientLoan> => col !== undefined);
 
-  // Filter loans based on search and advanced filters, sorted by close_date desc
+  // Filter loans based on search, advanced filters, year filter, and high rates filter
   const filteredLoans = useMemo(() => {
     // First apply search term
     let result = pastClients.filter(loan => {
@@ -1266,6 +1285,23 @@ export default function PastClients() {
     // Then apply advanced filters
     result = applyAdvancedFilters(result);
     
+    // Apply year filter
+    if (selectedYear) {
+      result = result.filter(loan => {
+        const year = loan.close_date && loan.close_date.length >= 4 
+          ? loan.close_date.slice(0, 4) 
+          : null;
+        return year === selectedYear;
+      });
+    }
+    
+    // Apply high rates filter (> 7%)
+    if (showHighRates) {
+      result = result.filter(loan => 
+        loan.interest_rate !== null && loan.interest_rate > 7
+      );
+    }
+    
     // Sort by close_date descending (newest first) - string compare works for YYYY-MM-DD
     result.sort((a, b) => {
       const dateA = a.close_date || '';
@@ -1274,7 +1310,7 @@ export default function PastClients() {
     });
     
     return result;
-  }, [pastClients, searchTerm, filters]);
+  }, [pastClients, searchTerm, filters, selectedYear, showHighRates]);
 
   // Summary statistics
   const summaryData = useMemo(() => {
@@ -1413,6 +1449,35 @@ export default function PastClients() {
           />
         </div>
 
+        {/* Year Filter Buttons and High Rates Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={selectedYear === null ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedYear(null)}
+          >
+            All Years
+          </Button>
+          {['2026', '2025', '2024', '2023'].map(year => (
+            <Button
+              key={year}
+              variant={selectedYear === year ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedYear(year)}
+            >
+              {year}
+            </Button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1" />
+          <Button
+            variant={showHighRates ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowHighRates(!showHighRates)}
+          >
+            Rates over 7%
+          </Button>
+        </div>
+
         {/* Inline Filter Section */}
         {isFilterOpen && (
           <div className="mb-4">
@@ -1520,6 +1585,7 @@ export default function PastClients() {
           onSelectionChange={setSelectedLeadIds}
           getRowId={(row) => row.id}
           showRowNumbers={true}
+          initialColumnWidths={COLUMN_WIDTHS}
           summaryStats={getYearSummary(filteredLoans)}
         />
         {groupedByYear.map(([year, loans]) => (
@@ -1540,6 +1606,7 @@ export default function PastClients() {
             onSelectionChange={setSelectedLeadIds}
             getRowId={(row) => row.id}
             showRowNumbers={true}
+            initialColumnWidths={COLUMN_WIDTHS}
             summaryStats={getYearSummary(loans)}
           />
         ))}
