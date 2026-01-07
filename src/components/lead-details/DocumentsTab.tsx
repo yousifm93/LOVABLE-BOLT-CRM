@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, File, Upload, Trash2, X, Sparkles, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Download, Eye, File, Upload, Trash2, X, Sparkles, Loader2, ChevronDown, ChevronRight, Image, FileIcon } from "lucide-react";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { Button } from "@/components/ui/button";
 import { formatDistance } from "date-fns";
@@ -12,6 +12,7 @@ import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { ActiveFileDocuments } from "./ActiveFileDocuments";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 interface Document {
   id: string;
@@ -74,6 +75,9 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   const [isConditionDocsOpen, setIsConditionDocsOpen] = useState(true);
   const [isEmailDocsOpen, setIsEmailDocsOpen] = useState(true);
   const [isOtherDocsOpen, setIsOtherDocsOpen] = useState(true);
+  const [isImagesOpen, setIsImagesOpen] = useState(true);
+  const [isPdfsOpen, setIsPdfsOpen] = useState(true);
+  const [isOtherFilesOpen, setIsOtherFilesOpen] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<{ 
     name: string; 
     url: string | null; 
@@ -102,8 +106,8 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
     loadConditions();
   }, [leadId, documents]); // Reload when documents change
 
-  // Group documents by source type
-  const { conditionDocs, emailDocs, otherDocs, conditionDocMap } = useMemo(() => {
+  // Group documents by source type and file type
+  const { conditionDocs, emailDocs, imageDocs, pdfDocs, otherFiles, conditionDocMap } = useMemo(() => {
     const conditionDocIds = new Set(conditions.filter(c => c.document_id).map(c => c.document_id!));
     
     // Build map of document ID to condition description
@@ -128,10 +132,27 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
       }
     });
     
+    // Further split otherDocs into Images, PDFs, and Other Files
+    const imageDocsList: Document[] = [];
+    const pdfDocsList: Document[] = [];
+    const otherFilesList: Document[] = [];
+    
+    otherDocsList.forEach(doc => {
+      if (doc.mime_type?.includes('image')) {
+        imageDocsList.push(doc);
+      } else if (doc.mime_type?.includes('pdf') || doc.file_name.toLowerCase().endsWith('.pdf')) {
+        pdfDocsList.push(doc);
+      } else {
+        otherFilesList.push(doc);
+      }
+    });
+    
     return { 
       conditionDocs: conditionDocsList, 
       emailDocs: emailDocsList, 
-      otherDocs: otherDocsList,
+      imageDocs: imageDocsList,
+      pdfDocs: pdfDocsList,
+      otherFiles: otherFilesList,
       conditionDocMap: docToCondition
     };
   }, [documents, conditions]);
@@ -613,59 +634,144 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
           <div className="space-y-3">
             {/* Condition Documents Section */}
             {conditionDocs.length > 0 && (
-              <Collapsible open={isConditionDocsOpen} onOpenChange={setIsConditionDocsOpen}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
-                  {isConditionDocsOpen ? (
-                    <ChevronDown className="h-4 w-4 text-purple-600" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-purple-600" />
-                  )}
-                  <span className="font-medium text-sm text-purple-900">
-                    Condition Documents ({conditionDocs.length})
-                  </span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-2">
-                  {conditionDocs.map((doc) => renderDocumentRow(doc, conditionDocMap[doc.id]))}
-                </CollapsibleContent>
-              </Collapsible>
+              <Card className="shadow-sm border">
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <button
+                    onClick={() => setIsConditionDocsOpen(!isConditionDocsOpen)}
+                    className="flex items-center gap-2 w-full text-left"
+                  >
+                    <div className="h-6 w-6 flex items-center justify-center rounded hover:bg-purple-100 transition-colors">
+                      {isConditionDocsOpen ? (
+                        <ChevronDown className="h-4 w-4 text-purple-600" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-purple-600" />
+                      )}
+                    </div>
+                    <span className="font-semibold text-sm text-purple-900">
+                      Condition Documents ({conditionDocs.length})
+                    </span>
+                  </button>
+                </CardHeader>
+                {isConditionDocsOpen && (
+                  <CardContent className="pt-0 px-3 pb-3 space-y-2">
+                    {conditionDocs.map((doc) => renderDocumentRow(doc, conditionDocMap[doc.id]))}
+                  </CardContent>
+                )}
+              </Card>
             )}
 
             {/* Email Documents Section */}
             {emailDocs.length > 0 && (
-              <Collapsible open={isEmailDocsOpen} onOpenChange={setIsEmailDocsOpen}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-                  {isEmailDocsOpen ? (
-                    <ChevronDown className="h-4 w-4 text-blue-600" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-blue-600" />
-                  )}
-                  <span className="font-medium text-sm text-blue-900">
-                    Email Documents ({emailDocs.length})
-                  </span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-2">
-                  {emailDocs.map((doc) => renderDocumentRow(doc))}
-                </CollapsibleContent>
-              </Collapsible>
+              <Card className="shadow-sm border">
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <button
+                    onClick={() => setIsEmailDocsOpen(!isEmailDocsOpen)}
+                    className="flex items-center gap-2 w-full text-left"
+                  >
+                    <div className="h-6 w-6 flex items-center justify-center rounded hover:bg-blue-100 transition-colors">
+                      {isEmailDocsOpen ? (
+                        <ChevronDown className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-blue-600" />
+                      )}
+                    </div>
+                    <span className="font-semibold text-sm text-blue-900">
+                      Email Documents ({emailDocs.length})
+                    </span>
+                  </button>
+                </CardHeader>
+                {isEmailDocsOpen && (
+                  <CardContent className="pt-0 px-3 pb-3 space-y-2">
+                    {emailDocs.map((doc) => renderDocumentRow(doc))}
+                  </CardContent>
+                )}
+              </Card>
             )}
 
             {/* Other Documents Section */}
-            {otherDocs.length > 0 && (
-              <Collapsible open={isOtherDocsOpen} onOpenChange={setIsOtherDocsOpen}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
-                  {isOtherDocsOpen ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="font-medium text-sm">
-                    Other Documents ({otherDocs.length})
-                  </span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-2 space-y-2">
-                  {otherDocs.map((doc) => renderDocumentRow(doc))}
-                </CollapsibleContent>
-              </Collapsible>
+            {(imageDocs.length > 0 || pdfDocs.length > 0 || otherFiles.length > 0) && (
+              <Card className="shadow-sm border">
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <button
+                    onClick={() => setIsOtherDocsOpen(!isOtherDocsOpen)}
+                    className="flex items-center gap-2 w-full text-left"
+                  >
+                    <div className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted transition-colors">
+                      {isOtherDocsOpen ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="font-semibold text-sm">
+                      Other Documents ({imageDocs.length + pdfDocs.length + otherFiles.length})
+                    </span>
+                  </button>
+                </CardHeader>
+                {isOtherDocsOpen && (
+                  <CardContent className="pt-0 px-3 pb-3 space-y-3">
+                    {/* Images Subcategory */}
+                    {imageDocs.length > 0 && (
+                      <Collapsible open={isImagesOpen} onOpenChange={setIsImagesOpen}>
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          {isImagesOpen ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <Image className="h-3.5 w-3.5 text-blue-500" />
+                          <span className="font-medium text-xs">
+                            Images ({imageDocs.length})
+                          </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2 pl-2">
+                          {imageDocs.map((doc) => renderDocumentRow(doc))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+
+                    {/* PDFs Subcategory */}
+                    {pdfDocs.length > 0 && (
+                      <Collapsible open={isPdfsOpen} onOpenChange={setIsPdfsOpen}>
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          {isPdfsOpen ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <FileText className="h-3.5 w-3.5 text-red-500" />
+                          <span className="font-medium text-xs">
+                            PDFs ({pdfDocs.length})
+                          </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2 pl-2">
+                          {pdfDocs.map((doc) => renderDocumentRow(doc))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+
+                    {/* Other Files Subcategory */}
+                    {otherFiles.length > 0 && (
+                      <Collapsible open={isOtherFilesOpen} onOpenChange={setIsOtherFilesOpen}>
+                        <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          {isOtherFilesOpen ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <FileIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium text-xs">
+                            Other Files ({otherFiles.length})
+                          </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2 pl-2">
+                          {otherFiles.map((doc) => renderDocumentRow(doc))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
             )}
           </div>
         </ScrollArea>
