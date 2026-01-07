@@ -920,7 +920,7 @@ export default function PastClients() {
     setColumns,
     setActiveView,
     isLoadingViews
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v5', 'past_clients');
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v6');
 
   // Filter columns definition with proper types and options
   const filterColumns = [
