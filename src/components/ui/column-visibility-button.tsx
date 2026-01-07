@@ -13,7 +13,7 @@ interface ColumnVisibilityButtonProps {
   columns: Column[];
   onColumnToggle: (columnId: string, label?: string) => void;
   onToggleAll: (visible: boolean) => void;
-  onSaveView: (viewName: string) => void;
+  onSaveView?: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
   onViewSaved?: (viewName: string) => void;
 }

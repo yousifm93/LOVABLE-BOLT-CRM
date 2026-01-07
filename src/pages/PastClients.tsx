@@ -20,7 +20,7 @@ import {
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { ColumnDef, DataTable } from "@/components/ui/data-table";
 import { ColumnVisibilityButton } from "@/components/ui/column-visibility-button";
-import { ViewPills } from "@/components/ui/view-pills";
+
 import { useColumnVisibility } from "@/hooks/useColumnVisibility";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
 import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
@@ -913,14 +913,9 @@ export default function PastClients() {
   // Column visibility management
   const {
     columns: columnVisibility,
-    views,
     visibleColumns,
-    activeView,
     toggleColumn,
     toggleAll,
-    saveView,
-    loadView,
-    deleteView,
     reorderColumns,
     setColumns,
     setActiveView,
@@ -1410,39 +1405,11 @@ export default function PastClients() {
             Filter {countActiveFilters(filters) > 0 && `(${countActiveFilters(filters)})`}
           </Button>
           
-          <ViewPills
-            views={[{ name: "Main", columns: {}, order: [] }, ...views]}
-            activeView={activeView}
-            onLoadView={(viewName) => {
-              if (viewName === "Main") {
-                // Reset to Main View defaults
-                const orderedMainColumns = MAIN_VIEW_COLUMNS
-                  .map(id => columnVisibility.find(col => col.id === id))
-                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-                  .map(col => ({ ...col, visible: true }));
-                const existingIds = new Set(MAIN_VIEW_COLUMNS);
-                const remainingColumns = columnVisibility
-                  .filter(col => !existingIds.has(col.id))
-                  .map(col => ({ ...col, visible: false }));
-                setColumns([...orderedMainColumns, ...remainingColumns]);
-                setActiveView("Main");
-              } else {
-                loadView(viewName);
-              }
-            }}
-            onDeleteView={deleteView}
-          />
-
           <ColumnVisibilityButton 
             columns={columnVisibility} 
             onColumnToggle={toggleColumn} 
             onToggleAll={toggleAll} 
-            onSaveView={saveView}
             onReorderColumns={handleColumnReorder}
-            onViewSaved={(name) => { 
-              toast({ title: "View Saved", description: `"${name}" saved` }); 
-              loadView(name); 
-            }}
           />
         </div>
 

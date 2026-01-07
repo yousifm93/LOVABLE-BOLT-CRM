@@ -37,7 +37,7 @@ interface ColumnVisibilityModalProps {
   columns: Column[];
   onColumnToggle: (columnId: string, label?: string) => void;
   onToggleAll: (visible: boolean) => void;
-  onSaveView: (viewName: string) => void;
+  onSaveView?: (viewName: string) => void;
   onReorderColumns: (oldIndex: number, newIndex: number) => void;
   onViewSaved?: (viewName: string) => void;
 }
@@ -204,7 +204,7 @@ export function ColumnVisibilityModal({
   };
 
   const handleSaveView = () => {
-    if (viewName.trim()) {
+    if (viewName.trim() && onSaveView) {
       onSaveView(viewName.trim());
       onViewSaved?.(viewName.trim());
       setViewName("");
@@ -342,32 +342,36 @@ export function ColumnVisibilityModal({
             )}
           </div>
 
-          <Separator />
+          {onSaveView && (
+            <>
+              <Separator />
 
-          {/* Save View Section */}
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Save current configuration as a new view:</p>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Enter view name"
-                value={viewName}
-                onChange={(e) => setViewName(e.target.value)}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && viewName.trim()) {
-                    handleSaveView();
-                  }
-                }}
-              />
-              <Button 
-                onClick={handleSaveView}
-                disabled={!viewName.trim()}
-                size="sm"
-              >
-                Save as New View
-              </Button>
-            </div>
-          </div>
+              {/* Save View Section */}
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Save current configuration as a new view:</p>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Enter view name"
+                    value={viewName}
+                    onChange={(e) => setViewName(e.target.value)}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && viewName.trim()) {
+                        handleSaveView();
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={handleSaveView}
+                    disabled={!viewName.trim()}
+                    size="sm"
+                  >
+                    Save as New View
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
