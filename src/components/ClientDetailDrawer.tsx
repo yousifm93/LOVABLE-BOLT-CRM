@@ -48,6 +48,7 @@ import { getDatabaseFieldName } from "@/types/crm";
 import { formatDateModern, formatDateForInput, formatDateFull } from "@/utils/dateUtils";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { validatePipelineStageChange, PipelineStageRule } from "@/services/statusChangeValidation";
+import { usePermissions } from "@/hooks/usePermissions";
 interface ClientDetailDrawerProps {
   client: CRMClient;
   isOpen: boolean;
@@ -198,6 +199,7 @@ export function ClientDetailDrawer({
   const {
     toast
   } = useToast();
+  const { isAdmin } = usePermissions();
 
   // Default interest rate constant
   const DEFAULT_INTEREST_RATE = 7.0;
@@ -2536,7 +2538,13 @@ export function ClientDetailDrawer({
                   if (!a.due_date && b.due_date) return 1;
                   return 0;
                 }).map(task => <div key={task.id} className="flex items-center gap-2">
-                      <Checkbox checked={task.status === "Done"} onCheckedChange={() => handleTaskToggle(task.id, task.status)} />
+                      <Checkbox 
+                        checked={task.status === "Done"} 
+                        onCheckedChange={() => handleTaskToggle(task.id, task.status)} 
+                        disabled={!isAdmin}
+                        className={!isAdmin ? "opacity-50 cursor-not-allowed" : ""}
+                        title={!isAdmin ? "Only admins can complete tasks" : undefined}
+                      />
                       <div className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1" onClick={() => {
                   setSelectedTask(task);
                   setShowTaskDetailModal(true);
