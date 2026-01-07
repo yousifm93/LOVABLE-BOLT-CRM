@@ -5,7 +5,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight, ThumbsUp, Reply } from "lucide-react";
+import { Phone, Mail, MessageSquare, FileText, Circle, Plus, ChevronDown, ChevronRight, ThumbsUp, Reply, Trash2 } from "lucide-react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { databaseService } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistance } from "date-fns";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
 import { ReplyEmailModal } from "@/components/modals/ReplyEmailModal";
@@ -150,12 +153,47 @@ const getEmailBadgeClassName = (activity: Activity): string => {
 };
 
 export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick, onNoteClick, onTaskClick, onTaskActivityClick, onActivityUpdated }: ActivityTabProps) {
+  const { toast } = useToast();
   const [selectedNote, setSelectedNote] = React.useState<Activity | null>(null);
   const [showNoteDetailModal, setShowNoteDetailModal] = React.useState(false);
   const [expandedActivities, setExpandedActivities] = React.useState<Set<number>>(new Set());
   const [showReplyEmailModal, setShowReplyEmailModal] = React.useState(false);
   const [selectedEmailForReply, setSelectedEmailForReply] = React.useState<Activity | null>(null);
   const [activityComments, setActivityComments] = React.useState<Record<string, any[]>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [activityToDelete, setActivityToDelete] = React.useState<Activity | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDeleteActivity = async () => {
+    if (!activityToDelete) return;
+    setIsDeleting(true);
+    
+    try {
+      switch (activityToDelete.type) {
+        case 'note':
+          await databaseService.deleteNote(String(activityToDelete.id));
+          break;
+        case 'call':
+          await databaseService.deleteCallLog(String(activityToDelete.id));
+          break;
+        case 'sms':
+          await databaseService.deleteSmsLog(String(activityToDelete.id));
+          break;
+        case 'task':
+          await databaseService.deleteTask(String(activityToDelete.task_id || activityToDelete.id));
+          break;
+      }
+      
+      toast({ title: "Deleted", description: "Activity has been deleted." });
+      setDeleteDialogOpen(false);
+      setActivityToDelete(null);
+      if (onActivityUpdated) onActivityUpdated();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete activity.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Load comments for all activities
   React.useEffect(() => {
@@ -313,6 +351,18 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
                     <span className="text-xs text-muted-foreground">
                       {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                     </span>
+                    {['note', 'call', 'sms', 'task'].includes(activity.type) && (
+                      <button
+                        className="hover:bg-destructive/10 p-1 rounded flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActivityToDelete(activity);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      </button>
+                    )}
                     <CollapsibleTrigger asChild>
                       <button className="ml-auto hover:bg-muted p-1 rounded flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         {isExpanded ? (
@@ -414,6 +464,15 @@ export function ActivityTab({ activities, onCallClick, onSmsClick, onEmailClick,
           to_email: selectedEmailForReply.to_email,
         } : null}
         onEmailSent={onActivityUpdated}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={`Delete ${activityToDelete?.type}?`}
+        description="This action cannot be undone. Are you sure you want to delete this activity?"
+        onConfirm={handleDeleteActivity}
+        isLoading={isDeleting}
       />
     </div>
   );

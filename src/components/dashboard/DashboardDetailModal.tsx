@@ -978,11 +978,26 @@ export function DashboardDetailModal({
     </div>
   );
 
+  // Helper to strip HTML tags from notes
+  const stripHtmlTags = (html: string | null): string => {
+    if (!html) return '';
+    return html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const CALL_TYPE_LABELS: Record<string, string> = {
     'new_agent': 'New Agent',
     'current_agent': 'Current Agent',
     'top_agent': 'Top Agent',
     'past_la': 'Past LA',
+    'current_client': 'Borrower Call',
+    'past_client': 'Past Client Call',
   };
 
   const renderCallsContent = () => (
@@ -1028,7 +1043,7 @@ export function DashboardDetailModal({
               </TableCell>
               <TableCell className="py-1.5 max-w-xs">
                 <span className="text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
-                  {item.notes || "—"}
+                  {stripHtmlTags(item.notes) || "—"}
                 </span>
               </TableCell>
             </TableRow>
