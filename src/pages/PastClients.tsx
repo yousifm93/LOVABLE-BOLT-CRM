@@ -1410,6 +1410,29 @@ export default function PastClients() {
             Filter {countActiveFilters(filters) > 0 && `(${countActiveFilters(filters)})`}
           </Button>
           
+          <ViewPills
+            views={[{ name: "Main", columns: {}, order: [] }, ...views]}
+            activeView={activeView}
+            onLoadView={(viewName) => {
+              if (viewName === "Main") {
+                // Reset to Main View defaults
+                const orderedMainColumns = MAIN_VIEW_COLUMNS
+                  .map(id => columnVisibility.find(col => col.id === id))
+                  .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+                  .map(col => ({ ...col, visible: true }));
+                const existingIds = new Set(MAIN_VIEW_COLUMNS);
+                const remainingColumns = columnVisibility
+                  .filter(col => !existingIds.has(col.id))
+                  .map(col => ({ ...col, visible: false }));
+                setColumns([...orderedMainColumns, ...remainingColumns]);
+                setActiveView("Main");
+              } else {
+                loadView(viewName);
+              }
+            }}
+            onDeleteView={deleteView}
+          />
+
           <ColumnVisibilityButton 
             columns={columnVisibility} 
             onColumnToggle={toggleColumn} 
