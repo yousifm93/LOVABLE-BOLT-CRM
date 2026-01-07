@@ -164,6 +164,10 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     timestamp: getLocalDateTimeString(),
     notes: '',
   });
+  
+  const { isRecording, isTranscribing, handleClick: handleVoiceClick } = useVoiceRecording((text) => {
+    setFormData(prev => ({ ...prev, notes: prev.notes ? prev.notes + ' ' + text : text }));
+  });
 
   // UUID validation helper
   const isValidUUID = (uuid: string): boolean => {
@@ -268,7 +272,10 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="notes">Notes</Label>
+              <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+            </div>
             <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
