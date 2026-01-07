@@ -2545,7 +2545,7 @@ export const databaseService = {
   async uploadLeadDocument(
     leadId: string,
     file: File,
-    metadata?: { title?: string; notes?: string }
+    metadata?: { title?: string; notes?: string; source?: string }
   ) {
     // 1. Upload to storage
     const timestamp = Date.now();
@@ -2574,7 +2574,7 @@ export const databaseService = {
         uploaded_by: userData.user?.id,
         title: metadata?.title || file.name,
         notes: metadata?.notes,
-        source: 'manual'
+        source: metadata?.source || 'manual'
       })
       .select()
       .single();

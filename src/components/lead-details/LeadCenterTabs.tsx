@@ -88,6 +88,7 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
               <ConditionsTab 
                 leadId={leadId} 
                 onConditionsChange={onLeadUpdated}
+                lead={client}
               />
             ) : (
               <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">

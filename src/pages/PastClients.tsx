@@ -862,7 +862,7 @@ export default function PastClients() {
     reorderColumns,
     setColumns,
     setActiveView
-  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns', 'past_clients');
+  } = useColumnVisibility(allAvailableColumns, 'past-clients-columns-v2', 'past_clients');
 
   // Filter columns definition with proper types and options
   const filterColumns = [
@@ -1202,11 +1202,11 @@ export default function PastClients() {
     // Then apply advanced filters
     result = applyAdvancedFilters(result);
     
-    // Sort by close_date descending (newest first)
+    // Sort by close_date descending (newest first) - string compare works for YYYY-MM-DD
     result.sort((a, b) => {
-      const dateA = a.close_date ? new Date(a.close_date).getTime() : 0;
-      const dateB = b.close_date ? new Date(b.close_date).getTime() : 0;
-      return dateB - dateA;
+      const dateA = a.close_date || '';
+      const dateB = b.close_date || '';
+      return dateB.localeCompare(dateA);
     });
     
     return result;
@@ -1236,9 +1236,12 @@ export default function PastClients() {
       avgPerMonth = totalLoans / monthsDiff;
     }
     
-    // Group counts by year
+  // Group counts by year (timezone-safe: extract year from string directly)
     const byYear = filteredLoans.reduce((acc, c) => {
-      const year = c.close_date ? new Date(c.close_date).getFullYear() : 'Unknown';
+      // Extract year directly from close_date string (YYYY-MM-DD format) to avoid timezone issues
+      const year = c.close_date && c.close_date.length >= 4 
+        ? c.close_date.slice(0, 4) 
+        : 'Unknown';
       acc[year] = (acc[year] || 0) + 1;
       return acc;
     }, {} as Record<string | number, number>);
@@ -1246,32 +1249,34 @@ export default function PastClients() {
     return { totalLoans, totalLoanAmount, avgInterestRate, avgPerMonth, byYear };
   }, [filteredLoans]);
 
-  // Group loans by close date year
+  // Group loans by close date year (timezone-safe)
   const groupedByYear = useMemo(() => {
-    const groups: Record<number | string, PastClientLoan[]> = {};
+    const groups: Record<string, PastClientLoan[]> = {};
     
     filteredLoans.forEach(loan => {
-      const year = loan.close_date 
-        ? new Date(loan.close_date).getFullYear() 
+      // Extract year directly from close_date string (YYYY-MM-DD format) to avoid timezone issues
+      const year = loan.close_date && loan.close_date.length >= 4 
+        ? loan.close_date.slice(0, 4) 
         : 'Unknown';
       if (!groups[year]) groups[year] = [];
       groups[year].push(loan);
     });
     
-    // Sort years descending (2025, 2024, 2023...), Unknown at end
-    // Also sort loans within each year by close_date descending
+    // Sort years descending (2026, 2025, 2024...), Unknown at end
+    // Also sort loans within each year by close_date descending (string compare works for YYYY-MM-DD)
     return Object.entries(groups)
       .sort(([a], [b]) => {
         if (a === 'Unknown') return 1;
         if (b === 'Unknown') return -1;
-        return Number(b) - Number(a);
+        return b.localeCompare(a); // String compare works correctly for years
       })
       .map(([year, loans]) => [
         year,
         [...loans].sort((a, b) => {
-          const dateA = a.close_date ? new Date(a.close_date).getTime() : 0;
-          const dateB = b.close_date ? new Date(b.close_date).getTime() : 0;
-          return dateB - dateA;
+          // String compare for YYYY-MM-DD format works correctly
+          const dateA = a.close_date || '';
+          const dateB = b.close_date || '';
+          return dateB.localeCompare(dateA);
         })
       ] as [string, PastClientLoan[]]);
   }, [filteredLoans]);

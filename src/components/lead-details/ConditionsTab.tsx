@@ -76,6 +76,7 @@ const NEEDED_FROM_OPTIONS = [
 interface ConditionsTabProps {
   leadId: string | null;
   onConditionsChange?: () => void;
+  lead?: any; // Lead data for borrower name and loan number
 }
 
 const CONDITION_TYPES = [
@@ -104,7 +105,7 @@ const PRIORITIES = [
   { value: "high", label: "High", color: "bg-red-100 text-red-800" },
 ];
 
-export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps) {
+export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTabProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [conditions, setConditions] = useState<Condition[]>([]);
@@ -383,8 +384,28 @@ export function ConditionsTab({ leadId, onConditionsChange }: ConditionsTabProps
       if (!file) return;
       
       try {
+        // Find the condition to get its name
+        const condition = conditions.find(c => c.id === conditionId);
+        const conditionName = condition?.description || 'Condition';
+        
+        // Build borrower name and loan number from lead data
+        const borrowerName = lead 
+          ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() 
+          : '';
+        const loanNumber = lead?.mb_loan_number || '';
+        
+        // Build formatted title: "{Condition Name} (Condition) - {Borrower Name} #{Loan Number}"
+        let formattedTitle = `${conditionName} (Condition)`;
+        if (borrowerName) {
+          formattedTitle += ` - ${borrowerName}`;
+        }
+        if (loanNumber) {
+          formattedTitle += ` #${loanNumber}`;
+        }
+        
         const uploadedDoc = await databaseService.uploadLeadDocument(leadId, file, {
-          title: file.name
+          title: formattedTitle,
+          source: 'condition'
         });
         
         await databaseService.updateLeadCondition(conditionId, {
