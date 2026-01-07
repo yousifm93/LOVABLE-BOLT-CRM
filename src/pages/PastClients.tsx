@@ -911,21 +911,21 @@ export default function PastClients() {
   const { toast } = useToast();
 
   // Hardcoded column widths for list view
-  const COLUMN_WIDTHS: Record<string, number> = {
-    borrower_name: 140,
-    lender: 120,
-    loan_amount: 110,
-    close_date: 100,
-    loan_status: 90,
-    interest_rate: 80,
-    subject_address_1: 180,
-    subject_address_2: 70,
-    subject_city: 100,
-    subject_state: 50,
-    subject_zip: 70,
-    buyer_agent: 130,
-    listing_agent: 130,
-  };
+const COLUMN_WIDTHS: Record<string, number> = {
+  borrower_name: 140,
+  lender: 110,
+  loan_amount: 100,
+  close_date: 100,
+  loan_status: 80,
+  interest_rate: 60,
+  subject_address_1: 150,
+  subject_address_2: 50,
+  subject_city: 70,
+  subject_state: 30,
+  subject_zip: 60,
+  buyer_agent: 130,
+  listing_agent: 130,
+};
 
   const hasAppliedMainViewDefaults = useRef(false);
 
@@ -1585,8 +1585,9 @@ export default function PastClients() {
           onSelectionChange={setSelectedLeadIds}
           getRowId={(row) => row.id}
           showRowNumbers={true}
-          initialColumnWidths={COLUMN_WIDTHS}
-          summaryStats={getYearSummary(filteredLoans)}
+            initialColumnWidths={COLUMN_WIDTHS}
+            lockResize={true}
+            summaryStats={getYearSummary(filteredLoans)}
         />
         {groupedByYear.map(([year, loans]) => (
           <CollapsiblePipelineSection
@@ -1607,6 +1608,7 @@ export default function PastClients() {
             getRowId={(row) => row.id}
             showRowNumbers={true}
             initialColumnWidths={COLUMN_WIDTHS}
+            lockResize={true}
             summaryStats={getYearSummary(loans)}
           />
         ))}
