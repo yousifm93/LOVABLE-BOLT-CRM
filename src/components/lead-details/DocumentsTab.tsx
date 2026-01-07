@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, File, Upload, Trash2, X, Sparkles, Loader2 } from "lucide-react";
+import { FileText, Download, Eye, File, Upload, Trash2, X, Sparkles, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { InlineEditText } from "@/components/ui/inline-edit-text";
 import { Button } from "@/components/ui/button";
 import { formatDistance } from "date-fns";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { ActiveFileDocuments } from "./ActiveFileDocuments";
 import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface Document {
   id: string;
@@ -23,6 +24,12 @@ interface Document {
   title?: string;
   notes?: string;
   source?: string;
+}
+
+interface Condition {
+  id: string;
+  document_id: string | null;
+  description: string;
 }
 
 interface DocumentsTabProps {
@@ -63,6 +70,10 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [isConditionDocsOpen, setIsConditionDocsOpen] = useState(true);
+  const [isEmailDocsOpen, setIsEmailDocsOpen] = useState(true);
+  const [isOtherDocsOpen, setIsOtherDocsOpen] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<{ 
     name: string; 
     url: string | null; 
@@ -76,6 +87,54 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
   });
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Load conditions to identify condition documents
+  useEffect(() => {
+    const loadConditions = async () => {
+      if (!leadId) return;
+      try {
+        const data = await databaseService.getLeadConditions(leadId);
+        setConditions(data || []);
+      } catch (error) {
+        console.error("Error loading conditions:", error);
+      }
+    };
+    loadConditions();
+  }, [leadId, documents]); // Reload when documents change
+
+  // Group documents by source type
+  const { conditionDocs, emailDocs, otherDocs, conditionDocMap } = useMemo(() => {
+    const conditionDocIds = new Set(conditions.filter(c => c.document_id).map(c => c.document_id!));
+    
+    // Build map of document ID to condition description
+    const docToCondition: Record<string, string> = {};
+    conditions.forEach(c => {
+      if (c.document_id) {
+        docToCondition[c.document_id] = c.description;
+      }
+    });
+    
+    const conditionDocsList: Document[] = [];
+    const emailDocsList: Document[] = [];
+    const otherDocsList: Document[] = [];
+    
+    documents.forEach(doc => {
+      if (conditionDocIds.has(doc.id) || doc.source === 'condition') {
+        conditionDocsList.push(doc);
+      } else if (doc.source === 'email_attachment') {
+        emailDocsList.push(doc);
+      } else {
+        otherDocsList.push(doc);
+      }
+    });
+    
+    return { 
+      conditionDocs: conditionDocsList, 
+      emailDocs: emailDocsList, 
+      otherDocs: otherDocsList,
+      conditionDocMap: docToCondition
+    };
+  }, [documents, conditions]);
 
   const handleAIRename = async (doc: Document) => {
     setRenamingDocId(doc.id);
@@ -330,6 +389,116 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
     }
   };
 
+  // Render a single document row
+  const renderDocumentRow = (doc: Document, conditionName?: string) => (
+    <div
+      key={doc.id}
+      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+    >
+      <div className="shrink-0">
+        {getFileTypeIcon(doc.mime_type)}
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <InlineEditText
+            value={doc.title || doc.file_name}
+            onValueChange={(newValue) => handleRename(doc, newValue)}
+            placeholder="Enter document name"
+            className="flex-1"
+          />
+          <Badge variant="outline" className="text-xs">
+            {getFileTypeBadge(doc.mime_type)}
+          </Badge>
+          <Badge 
+            variant="secondary" 
+            className={cn(
+              "text-xs",
+              doc.source === 'email_attachment' && "bg-blue-100 text-blue-700",
+              doc.source === 'borrower_upload' && "bg-orange-100 text-orange-700",
+              doc.source === 'application' && "bg-green-100 text-green-700",
+              doc.source === 'condition' && "bg-purple-100 text-purple-700",
+              (!doc.source || doc.source === 'manual') && "bg-gray-100 text-gray-600"
+            )}
+          >
+            {doc.source === 'email_attachment' ? 'Email' :
+             doc.source === 'borrower_upload' ? 'Borrower' :
+             doc.source === 'application' ? 'App' :
+             doc.source === 'condition' ? 'Condition' : 'Manual'}
+          </Badge>
+        </div>
+        
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{formatFileSize(doc.size_bytes)}</span>
+          <span>•</span>
+          <span>
+            Uploaded {formatDistance(new Date(doc.created_at), new Date(), { addSuffix: true })}
+          </span>
+          {conditionName && (
+            <>
+              <span>•</span>
+              <span className="truncate text-purple-600" title={conditionName}>
+                Condition: {conditionName}
+              </span>
+            </>
+          )}
+          {doc.title && !conditionName && (
+            <>
+              <span>•</span>
+              <span className="truncate" title={doc.file_name}>
+                Original: {doc.file_name}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={() => handleAIRename(doc)}
+          disabled={renamingDocId === doc.id}
+          title="AI Rename"
+        >
+          {renamingDocId === doc.id ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={() => handlePreview(doc)}
+          title="Preview"
+        >
+          <Eye className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={() => handleDownload(doc)}
+          title="Download"
+        >
+          <Download className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+          onClick={() => handleDelete(doc)}
+          title="Delete"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+
   if (!leadId) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -432,7 +601,7 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
         />
       )}
 
-      {/* Documents List */}
+      {/* Document Sections */}
       {documents.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <FileText className="mx-auto h-12 w-12 opacity-50 mb-4" />
@@ -441,105 +610,63 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
         </div>
       ) : (
         <ScrollArea className="h-[calc(100vh-500px)] min-h-[360px]">
-          <div className="space-y-2">
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="shrink-0">
-                  {getFileTypeIcon(doc.mime_type)}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <InlineEditText
-                      value={doc.title || doc.file_name}
-                      onValueChange={(newValue) => handleRename(doc, newValue)}
-                      placeholder="Enter document name"
-                      className="flex-1"
-                    />
-                    <Badge variant="outline" className="text-xs">
-                      {getFileTypeBadge(doc.mime_type)}
-                    </Badge>
-                    <Badge 
-                      variant="secondary" 
-                      className={cn(
-                        "text-xs",
-                        doc.source === 'email_attachment' && "bg-blue-100 text-blue-700",
-                        doc.source === 'borrower_upload' && "bg-orange-100 text-orange-700",
-                        doc.source === 'application' && "bg-green-100 text-green-700",
-                        (!doc.source || doc.source === 'manual') && "bg-gray-100 text-gray-600"
-                      )}
-                    >
-                      {doc.source === 'email_attachment' ? 'Email' :
-                       doc.source === 'borrower_upload' ? 'Borrower' :
-                       doc.source === 'application' ? 'App' : 'Manual'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{formatFileSize(doc.size_bytes)}</span>
-                    <span>•</span>
-                    <span>
-                      Uploaded {formatDistance(new Date(doc.created_at), new Date(), { addSuffix: true })}
-                    </span>
-                    {doc.title && (
-                      <>
-                        <span>•</span>
-                        <span className="truncate" title={doc.file_name}>
-                          Original: {doc.file_name}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => handleAIRename(doc)}
-                    disabled={renamingDocId === doc.id}
-                    title="AI Rename"
-                  >
-                    {renamingDocId === doc.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => handlePreview(doc)}
-                    title="Preview"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={() => handleDownload(doc)}
-                    title="Download"
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(doc)}
-                    title="Delete"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {/* Condition Documents Section */}
+            {conditionDocs.length > 0 && (
+              <Collapsible open={isConditionDocsOpen} onOpenChange={setIsConditionDocsOpen}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                  {isConditionDocsOpen ? (
+                    <ChevronDown className="h-4 w-4 text-purple-600" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-purple-600" />
+                  )}
+                  <span className="font-medium text-sm text-purple-900">
+                    Condition Documents ({conditionDocs.length})
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  {conditionDocs.map((doc) => renderDocumentRow(doc, conditionDocMap[doc.id]))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Email Documents Section */}
+            {emailDocs.length > 0 && (
+              <Collapsible open={isEmailDocsOpen} onOpenChange={setIsEmailDocsOpen}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+                  {isEmailDocsOpen ? (
+                    <ChevronDown className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-blue-600" />
+                  )}
+                  <span className="font-medium text-sm text-blue-900">
+                    Email Documents ({emailDocs.length})
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  {emailDocs.map((doc) => renderDocumentRow(doc))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Other Documents Section */}
+            {otherDocs.length > 0 && (
+              <Collapsible open={isOtherDocsOpen} onOpenChange={setIsOtherDocsOpen}>
+                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                  {isOtherDocsOpen ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="font-medium text-sm">
+                    Other Documents ({otherDocs.length})
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-2">
+                  {otherDocs.map((doc) => renderDocumentRow(doc))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
         </ScrollArea>
       )}
