@@ -1932,17 +1932,18 @@ export const databaseService = {
 
   // ===== DELETED BUYER AGENTS =====
   async getDeletedBuyerAgents() {
+    // Simple query without FK embed that may fail due to missing/mismatched FK constraint
     const { data, error } = await supabase
       .from('buyer_agents')
-      .select(`
-        *,
-        deleted_by_user:users!buyer_agents_deleted_by_fkey(id, first_name, last_name, email)
-      `)
+      .select('*')
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });
     
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('Error fetching deleted buyer agents:', error);
+      throw error;
+    }
+    return data || [];
   },
 
   async softDeleteBuyerAgent(agentId: string) {
@@ -1982,17 +1983,18 @@ export const databaseService = {
 
   // ===== DELETED LENDERS =====
   async getDeletedLenders() {
+    // Simple query without FK embed that may fail due to missing/mismatched FK constraint
     const { data, error } = await supabase
       .from('lenders')
-      .select(`
-        *,
-        deleted_by_user:users!lenders_deleted_by_fkey(id, first_name, last_name, email)
-      `)
+      .select('*')
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });
     
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('Error fetching deleted lenders:', error);
+      throw error;
+    }
+    return data || [];
   },
 
   async softDeleteLender(lenderId: string) {
