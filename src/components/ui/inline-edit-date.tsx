@@ -36,8 +36,10 @@ export function InlineEditDate({
         const parsed = new Date(value);
         return isNaN(parsed.getTime()) ? undefined : parsed;
       }
-      // For date-only strings like "2024-01-15", append time to ensure correct parsing
-      const parsed = new Date(value + 'T00:00:00');
+      // For date-only strings like "2024-01-15", parse as UTC to avoid timezone shift
+      // This fixes the off-by-one day issue
+      const [year, month, day] = value.split('-').map(Number);
+      const parsed = new Date(year, month - 1, day);
       return isNaN(parsed.getTime()) ? undefined : parsed;
     }
     
@@ -46,7 +48,7 @@ export function InlineEditDate({
   }, [value]);
 
   const displayValue = dateValue && !isNaN(dateValue.getTime()) 
-    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
     : placeholder;
 
   const handleSelect = (date: Date | undefined) => {

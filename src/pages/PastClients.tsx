@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck, Trash2, Loader2 } from "lucide-react";
+import { Search, Filter, X, Upload, FileCheck, DollarSign, Percent, CalendarCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFields } from "@/contexts/FieldsContext";
 import { Input } from "@/components/ui/input";
@@ -641,20 +641,6 @@ const createColumns = (
     sortable: true,
   },
   {
-    accessorKey: "closed_at",
-    header: "Closed Date",
-    cell: ({ row }) => {
-      if (!row.original.closed_at) return <span className="text-muted-foreground">—</span>;
-      const date = new Date(row.original.closed_at);
-      return (
-        <span className="text-sm">
-          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-        </span>
-      );
-    },
-    sortable: true,
-  },
-  {
     accessorKey: "interest_rate",
     header: "Rate",
     cell: ({ row }) => (
@@ -683,7 +669,7 @@ const createColumns = (
             handleUpdate(row.original.id, "subject_address_1", value)
           }
           placeholder="Address"
-          className="w-32"
+          className="w-56"
         />
       </div>
     ),
@@ -829,7 +815,6 @@ export default function PastClients() {
     { id: "lock_expiration_date", label: "LOC EXP", visible: false },
     { id: "ba_status", label: "BA", visible: false },
     { id: "epo_status", label: "EPO", visible: false },
-    { id: "closed_at", label: "Closed Date", visible: false },
   ], []);
   
   // Load ALL database fields for Hide/Show modal (~85 total)
@@ -862,33 +847,7 @@ export default function PastClients() {
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isDeduping, setIsDeduping] = useState(false);
-  const [isDedupeConfirmOpen, setIsDedupeConfirmOpen] = useState(false);
   const { toast } = useToast();
-
-  const handleDedupe = async () => {
-    setIsDedupeConfirmOpen(false);
-    setIsDeduping(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("dedupe-past-clients", {
-        body: { year: 2024 }
-      });
-      if (error) throw error;
-      toast({
-        title: "Duplicates Cleaned",
-        description: `Processed ${data.duplicateGroupsProcessed} groups. Merged ${data.mergedCount} fields. Deleted ${data.deletedCount} duplicates.`,
-      });
-      loadData();
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to clean duplicates",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeduping(false);
-    }
-  };
 
   // Column visibility management
   const {
@@ -919,7 +878,6 @@ export default function PastClients() {
     { value: 'loan_amount', label: 'Loan Amount', type: 'number' as const },
     { value: 'sales_price', label: 'Sales Price', type: 'number' as const },
     { value: 'close_date', label: 'Close Date', type: 'date' as const },
-    { value: 'closed_at', label: 'Closed Date', type: 'date' as const },
   ];
 
   // Auto-load Main View on initial mount - ALWAYS apply Main View as default
@@ -1337,18 +1295,6 @@ export default function PastClients() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => setIsDedupeConfirmOpen(true)} 
-              variant="outline"
-              disabled={isDeduping}
-            >
-              {isDeduping ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
-              )}
-              Clean Duplicates (2024)
-            </Button>
             <Button onClick={() => setIsImportModalOpen(true)} variant="outline">
               <Upload className="h-4 w-4 mr-2" />
               Import Excel
@@ -1385,40 +1331,6 @@ export default function PastClients() {
               toast({ title: "View Saved", description: `"${name}" saved` }); 
               loadView(name); 
             }}
-          />
-
-          <Button
-            variant={activeView === "Main" ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              const orderedMainColumns = MAIN_VIEW_COLUMNS
-                .map(id => columnVisibility.find(col => col.id === id))
-                .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
-                .map(col => ({ ...col, visible: true }));
-              
-              const existingIds = new Set(MAIN_VIEW_COLUMNS);
-              const remainingColumns = columnVisibility
-                .filter(col => !existingIds.has(col.id))
-                .map(col => ({ ...col, visible: false }));
-              
-              const newColumnOrder = [...orderedMainColumns, ...remainingColumns];
-              setColumns(newColumnOrder);
-              
-              toast({
-                title: "Main View Loaded",
-                description: "Default column configuration restored"
-              });
-            }}
-            className="h-8 text-xs"
-          >
-            Main
-          </Button>
-
-          <ViewPills 
-            views={views} 
-            activeView={activeView} 
-            onLoadView={loadView} 
-            onDeleteView={deleteView} 
           />
         </div>
 
@@ -1509,24 +1421,28 @@ export default function PastClients() {
         </Card>
       </div>
 
-      {/* Year breakdown badges */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(summaryData.byYear)
-          .sort(([a], [b]) => {
-            if (a === 'Unknown') return 1;
-            if (b === 'Unknown') return -1;
-            return Number(b) - Number(a);
-          })
-          .map(([year, count]) => (
-            <Badge key={year} variant="secondary" className="text-xs">
-              {year}: {count} loan{count !== 1 ? 's' : ''}
-            </Badge>
-          ))
-        }
-      </div>
-
       {/* Year-Grouped Sections */}
       <div className="space-y-4">
+        {/* All loans section */}
+        <CollapsiblePipelineSection
+          key="all"
+          title="All"
+          data={filteredLoans}
+          columns={columns}
+          searchTerm=""
+          defaultOpen={false}
+          onRowClick={handleRowClick}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onColumnReorder={handleColumnReorder}
+          selectable
+          selectedIds={selectedLeadIds}
+          onSelectionChange={setSelectedLeadIds}
+          getRowId={(row) => row.id}
+          showRowNumbers={true}
+          summaryStats={getYearSummary(filteredLoans)}
+        />
         {groupedByYear.map(([year, loans]) => (
           <CollapsiblePipelineSection
             key={year}
@@ -1649,24 +1565,6 @@ export default function PastClients() {
         onImportComplete={loadData}
       />
 
-      {/* Dedupe Confirmation Dialog */}
-      <AlertDialog open={isDedupeConfirmOpen} onOpenChange={setIsDedupeConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clean Up 2024 Duplicates</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will find duplicate records (same Loan #) in 2024, keep the best record with the most data, 
-              merge missing fields, and soft-delete the duplicates. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDedupe}>
-              Yes, Clean Duplicates
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
