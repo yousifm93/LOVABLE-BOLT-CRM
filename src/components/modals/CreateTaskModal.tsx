@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +10,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { databaseService } from "@/services/database";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, X, Plus, Mic, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CommandList } from "@/components/ui/command";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -50,6 +51,10 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   const [loading, setLoading] = useState(false);
   const [borrowerOpen, setBorrowerOpen] = useState(false);
   const [borrowerSearch, setBorrowerSearch] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isParsingVoice, setIsParsingVoice] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,6 +65,152 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
       }
     }
   }, [open, preselectedBorrowerId]);
+
+  // Voice recording handlers
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        await processVoiceRecording(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access to use voice input.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const processVoiceRecording = async (audioBlob: Blob) => {
+    setIsParsingVoice(true);
+    try {
+      // First, transcribe the audio
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+
+      // Call voice transcribe function
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('voice-transcribe', {
+        body: { audio: base64Audio }
+      });
+
+      if (transcribeError) throw transcribeError;
+      
+      const transcript = transcribeData?.text;
+      if (!transcript) {
+        throw new Error('No transcription returned');
+      }
+
+      console.log('Voice transcript:', transcript);
+
+      // Now parse the transcript to extract task details
+      const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-voice-task', {
+        body: { 
+          transcript,
+          users: users.filter(u => u.is_active === true && u.is_assignable !== false).map(u => ({
+            id: u.id,
+            first_name: u.first_name,
+            last_name: u.last_name,
+          })),
+          leads: leads.slice(0, 100).map(l => ({
+            id: l.id,
+            first_name: l.first_name,
+            last_name: l.last_name,
+          })),
+        }
+      });
+
+      if (parseError) throw parseError;
+
+      console.log('Parsed task data:', parseData);
+
+      // Auto-fill the form with parsed data
+      if (parseData) {
+        setFormData(prev => ({
+          ...prev,
+          title: parseData.title || prev.title,
+          description: parseData.description || prev.description,
+          due_date: parseData.due_date || prev.due_date,
+        }));
+
+        // Match assignee by name
+        if (parseData.assignee_name) {
+          const matchedUser = users.find(u => {
+            const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
+            return fullName.includes(parseData.assignee_name.toLowerCase());
+          });
+          if (matchedUser) {
+            setFormData(prev => ({ ...prev, assignee_id: matchedUser.id }));
+          }
+        }
+
+        // Match borrower by name
+        if (parseData.borrower_name) {
+          const matchedLead = leads.find(l => {
+            const fullName = `${l.first_name} ${l.last_name}`.toLowerCase();
+            return fullName.includes(parseData.borrower_name.toLowerCase());
+          });
+          if (matchedLead) {
+            setFormData(prev => ({ ...prev, borrower_id: matchedLead.id }));
+          }
+        }
+
+        toast({
+          title: 'Voice Input Processed',
+          description: 'Task details have been filled in. Review and submit.',
+        });
+      }
+    } catch (error) {
+      console.error('Error processing voice input:', error);
+      toast({
+        title: 'Voice Processing Failed',
+        description: 'Could not process voice input. Please try again or enter manually.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsParsingVoice(false);
+    }
+  };
+
+  const handleVoiceClick = () => {
+    if (isRecording) {
+      stopVoiceRecording();
+    } else {
+      startVoiceRecording();
+    }
+  };
 
   const loadData = async () => {
     const results = await Promise.allSettled([
@@ -276,7 +427,29 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Create New Task{mode === 'multiple' ? 's' : ''}</DialogTitle>
+            <div className="flex items-center gap-3">
+              <DialogTitle>Create New Task{mode === 'multiple' ? 's' : ''}</DialogTitle>
+              {mode === 'single' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleVoiceClick}
+                  disabled={isParsingVoice}
+                  className={cn(
+                    "w-9 h-9 rounded-full transition-all",
+                    isRecording && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
+                  )}
+                  title={isRecording ? "Stop recording" : "Speak to create task"}
+                >
+                  {isParsingVoice ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className={cn("h-4 w-4", isRecording && "text-red-500")} />
+                  )}
+                </Button>
+              )}
+            </div>
             <ToggleGroup type="single" value={mode} onValueChange={(v) => v && setMode(v as any)} className="border rounded-md">
               <ToggleGroupItem value="single" className="px-3 py-1 text-sm">Single</ToggleGroupItem>
               <ToggleGroupItem value="multiple" className="px-3 py-1 text-sm">Multiple</ToggleGroupItem>

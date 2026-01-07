@@ -200,3 +200,6 @@ verify_jwt = false
 
 [functions.create-recurring-tasks]
 verify_jwt = false
+
+[functions.parse-voice-task]
+verify_jwt = false
