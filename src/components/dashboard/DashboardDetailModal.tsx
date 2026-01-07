@@ -1026,8 +1026,8 @@ export function DashboardDetailModal({
               <TableCell className="py-1.5 text-[11px] text-muted-foreground">
                 {item.call_type ? CALL_TYPE_LABELS[item.call_type] || item.call_type : "—"}
               </TableCell>
-              <TableCell className="py-1.5">
-                <span className="text-[11px] text-muted-foreground line-clamp-2">
+              <TableCell className="py-1.5 max-w-xs">
+                <span className="text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
                   {item.notes || "—"}
                 </span>
               </TableCell>

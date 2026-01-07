@@ -84,10 +84,16 @@ export function LeadCenterTabs({ leadId, activities, documents, client, onLeadUp
           </TabsContent>
           
           <TabsContent value="conditions" className="mt-0 h-[calc(100%-56px)] overflow-auto">
-            <ConditionsTab 
-              leadId={leadId} 
-              onConditionsChange={onLeadUpdated}
-            />
+            {leadId ? (
+              <ConditionsTab 
+                leadId={leadId} 
+                onConditionsChange={onLeadUpdated}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                No lead selected
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="all-fields" className="mt-0 h-[calc(100%-56px)] overflow-auto">
