@@ -49,7 +49,18 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       const salesPrice = Number(client.loan?.salesPrice) || 0;
       const loanAmount = Number(client.loan?.loanAmount) || 0;
       const interestRate = Number((client as any).loan?.interestRate || (client as any).interestRate) || 7.0;
-      const discountPoints = Number((client as any).discount_points_percentage) || 0;
+      
+      // Handle discount points: prefer percentage, but convert dollar amount if necessary
+      let discountPointsValue = 0;
+      const discountPointsPercentage = Number((client as any).discount_points_percentage);
+      const discountPointsDollar = Number((client as any).discount_points || (client as any).discountPoints);
+      if (discountPointsPercentage && discountPointsPercentage <= 5) {
+        discountPointsValue = discountPointsPercentage;
+      } else if (discountPointsDollar && loanAmount > 0) {
+        discountPointsValue = (discountPointsDollar / loanAmount) * 100;
+      }
+      const discountPoints = discountPointsValue;
+      
       const credits = Number((client as any).adjustments_credits) || 0;
       const principalInterest = Number((client as any).principal_interest) || calculatePI(loanAmount, interestRate, 360);
       const propertyTaxes = Number((client as any).propertyTaxes || (client as any).property_taxes) || 0;
@@ -90,6 +101,29 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
     return Math.round(loanAmount * (numerator / denominator));
   };
 
+  // Florida Title Insurance Calculation Functions
+  const calculateOwnersTitleInsurance = (purchasePrice: number): number => {
+    if (purchasePrice <= 0) return 0;
+    const firstTier = Math.min(purchasePrice, 100000);
+    const secondTier = Math.max(0, purchasePrice - 100000);
+    return (firstTier / 1000) * 5.75 + (secondTier / 1000) * 5.00;
+  };
+
+  const calculateLendersTitleStandalone = (loanAmt: number): number => {
+    if (loanAmt <= 0) return 0;
+    const firstTier = Math.min(loanAmt, 100000);
+    const secondTier = Math.max(0, loanAmt - 100000);
+    return (firstTier / 1000) * 5.75 + (secondTier / 1000) * 5.00;
+  };
+
+  const calculateTotalTitleInsurance = (purchasePrice: number, loanAmt: number): number => {
+    const ownersTI = calculateOwnersTitleInsurance(purchasePrice);
+    const lendersTI = 25;  // Simultaneous issue rate
+    const flForm9 = calculateLendersTitleStandalone(loanAmt) * 0.10;  // FL Form 9: 10%
+    const alta81 = 25;  // ALTA 8.1: Flat fee
+    return ownersTI + lendersTI + flForm9 + alta81;
+  };
+
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -102,7 +136,9 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
   const extractLoanEstimateData = (): LoanEstimateData => {
     const firstName = client?.person?.firstName || '';
     const lastName = client?.person?.lastName || '';
-    const lenderLoanNumber = (client as any)?.lender_loan_number || (client as any)?.mb_loan_number || '';
+    // Use MB App Number as the loan number (prioritize MB loan number)
+    const lenderLoanNumber = (client as any)?.mbLoanNumber || (client as any)?.mb_loan_number || 
+                             (client as any)?.lenderLoanNumber || (client as any)?.lender_loan_number || '';
     const loanProgram = (client as any)?.loanProgram || client?.loan?.loanProgram || 'Conventional';
     const propertyType = (client as any)?.property?.propertyType || (client as any)?.propertyType || 'Single Family';
     // Use database field names (subject_zip, subject_state)
@@ -141,15 +177,16 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       appraisalFee: Number((client as any).appraisal_fee) || 550,
       creditReportFee: Number((client as any).credit_report_fee) || 95,
       processingFee: Number((client as any).processing_fee) || 995,
-      lendersTitleInsurance: Number((client as any).lenders_title_insurance) || 500,
+      lendersTitleInsurance: Number((client as any).lenders_title_insurance) || 
+        Math.round(calculateTotalTitleInsurance(formData.salesPrice, formData.loanAmount) * 100) / 100,
       titleClosingFee: Number((client as any).title_closing_fee) || 600,
       intangibleTax: Number((client as any).intangible_tax) || Math.round(formData.loanAmount * 0.002),
-      transferTax: Number((client as any).transfer_tax) || 0,
+      transferTax: Number((client as any).transfer_tax) || Math.round(formData.loanAmount * 0.005),
       recordingFees: Number((client as any).recording_fees) || 350,
       prepaidHoi: Number((client as any).prepaid_hoi) || formData.homeownersInsurance * 12,
-      prepaidInterest: Number((client as any).prepaid_interest) || Math.round((formData.loanAmount * (formData.interestRate / 100) / 365) * 15),
+      prepaidInterest: Number((client as any).prepaid_interest) || Math.round((formData.loanAmount * (formData.interestRate / 100) / 365) * 5),
       escrowHoi: formData.homeownersInsurance * 2,
-      escrowTaxes: formData.propertyTaxes * 3,
+      escrowTaxes: formData.propertyTaxes * 2,
       principalInterest: formData.principalInterest,
       propertyTaxes: formData.propertyTaxes,
       homeownersInsurance: formData.homeownersInsurance,
