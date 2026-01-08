@@ -10,12 +10,13 @@ const TARGET_STAGE_IDS = [
   "c54f417b-3f67-43de-80f5-954cf260d571", // Leads
   "44d74bfb-c4f3-4f7d-a69e-e47ac67a5945", // Pending App
   "a4e162e0-5421-4d17-8ad5-4b1195bbc995", // Screening
-  "09162eec-d2b2-48e5-86d0-9e66ee8b2af7", // Pre-Qualified
+  "09162eec-d2b2-48e5-86d0-9e66ee8b2ad7", // Pre-Qualified
   "3cbf38ff-752e-4163-a9a3-1757499b4945", // Pre-Approved
   "76eb2e82-e1d9-4f2d-a57d-2120a25696db", // Active
 ];
 
-const YOUSIF_MOHAMED_ID = "230ccf6d-48f5-4f3c-89fd-f2907ebdba1e";
+// Default fallback user
+const DEFAULT_ASSIGNEE_ID = "230ccf6d-48f5-4f3c-89fd-f2907ebdba1e"; // Yousif Mohamed
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -85,6 +86,33 @@ Deno.serve(async (req) => {
       );
     }
 
+    // For each lead without tasks, find the last assignee from their most recent task
+    const leadIdsWithoutTasks = leadsWithoutTasks.map((l) => l.id);
+    console.log("Fetching last task assignees for leads without tasks...");
+    
+    const { data: recentTasks, error: recentTasksError } = await supabase
+      .from("tasks")
+      .select("borrower_id, assignee_id, updated_at")
+      .in("borrower_id", leadIdsWithoutTasks)
+      .is("deleted_at", null)
+      .not("assignee_id", "is", null)
+      .order("updated_at", { ascending: false });
+
+    if (recentTasksError) {
+      console.error("Error fetching recent tasks:", recentTasksError);
+      // Continue with default assignee if this fails
+    }
+
+    // Build a map of lead_id -> last_assignee_id (first occurrence is most recent)
+    const lastAssigneeMap: Record<string, string> = {};
+    for (const task of recentTasks || []) {
+      if (!lastAssigneeMap[task.borrower_id] && task.assignee_id) {
+        lastAssigneeMap[task.borrower_id] = task.assignee_id;
+      }
+    }
+
+    console.log(`Found last assignees for ${Object.keys(lastAssigneeMap).length} leads`);
+
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split("T")[0];
 
@@ -92,18 +120,19 @@ Deno.serve(async (req) => {
     const tasksToCreate = leadsWithoutTasks.map((lead) => ({
       title: "No open task found",
       borrower_id: lead.id,
-      assignee_id: YOUSIF_MOHAMED_ID,
+      // Use the last task's assignee if available, otherwise use default
+      assignee_id: lastAssigneeMap[lead.id] || DEFAULT_ASSIGNEE_ID,
       due_date: today,
       status: "To Do",
       priority: "High",
-      creation_log: `Auto-created: No open tasks found for ${lead.first_name} ${lead.last_name}`,
+      creation_log: `Auto-created: No open tasks found for ${lead.first_name} ${lead.last_name}. Assigned to ${lastAssigneeMap[lead.id] ? 'last task assignee' : 'default user'}.`,
     }));
 
     console.log(`Creating ${tasksToCreate.length} tasks...`);
     const { data: createdTasks, error: createError } = await supabase
       .from("tasks")
       .insert(tasksToCreate)
-      .select("id, title, borrower_id");
+      .select("id, title, borrower_id, assignee_id");
 
     if (createError) {
       console.error("Error creating tasks:", createError);
@@ -115,7 +144,7 @@ Deno.serve(async (req) => {
     // Log details of created tasks
     for (const task of createdTasks || []) {
       const lead = leadsWithoutTasks.find((l) => l.id === task.borrower_id);
-      console.log(`Created task for: ${lead?.first_name} ${lead?.last_name} (Lead ID: ${task.borrower_id})`);
+      console.log(`Created task for: ${lead?.first_name} ${lead?.last_name} (Lead ID: ${task.borrower_id}, Assignee: ${task.assignee_id})`);
     }
 
     return new Response(
@@ -125,6 +154,7 @@ Deno.serve(async (req) => {
         leads: leadsWithoutTasks.map((l) => ({
           id: l.id,
           name: `${l.first_name} ${l.last_name}`,
+          assignedTo: lastAssigneeMap[l.id] || DEFAULT_ASSIGNEE_ID,
         })),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
