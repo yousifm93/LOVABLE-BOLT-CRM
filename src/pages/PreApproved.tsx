@@ -26,6 +26,7 @@ import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditPhone } from "@/components/ui/inline-edit-phone";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assignee";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { TaskDueDateDisplay } from "@/components/ui/task-due-date-display";
@@ -735,19 +736,26 @@ const allAvailableColumns = useMemo(() => {
       header: "User",
       className: "text-center",
       sortable: true,
-      cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditAssignee
-            assigneeId={row.original.user}
-            users={users}
-            onValueChange={(userId) => {
-              handleFieldUpdate(row.original.id, "teammate_assigned", userId);
-              fetchLeads();
-            }}
-            showNameText={false}
-          />
-        </div>
-      ),
+      cell: ({ row }) => {
+        const assigneeIds = (row.original as any).teammate_assigned_ids?.length 
+          ? (row.original as any).teammate_assigned_ids 
+          : (row.original.user ? [row.original.user] : []);
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditMultiAssignee
+              assigneeIds={assigneeIds}
+              users={users}
+              onValueChange={async (userIds) => {
+                await handleFieldUpdate(row.original.id, "teammate_assigned_ids", userIds);
+                await handleFieldUpdate(row.original.id, "teammate_assigned", userIds[0] || null);
+                fetchLeads();
+              }}
+              maxVisible={2}
+              avatarSize="xs"
+            />
+          </div>
+        );
+      },
     },
     {
       accessorKey: "status",
