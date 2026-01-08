@@ -24,6 +24,9 @@ export interface EmailFieldSuggestion {
   email_log?: {
     subject: string;
     from_email: string;
+    body?: string;
+    html_body?: string;
+    timestamp?: string;
   };
 }
 
@@ -41,7 +44,7 @@ export function useEmailSuggestions() {
         .select(`
           *,
           lead:leads(first_name, last_name),
-          email_log:email_logs(subject, from_email)
+          email_log:email_logs(subject, from_email, body, html_body, timestamp)
         `)
         .order('created_at', { ascending: false });
 
@@ -209,7 +212,7 @@ export function useEmailSuggestions() {
         .select(`
           *,
           lead:leads(first_name, last_name),
-          email_log:email_logs(subject, from_email)
+          email_log:email_logs(subject, from_email, body, html_body, timestamp)
         `)
         .in('status', ['approved', 'denied'])
         .order('reviewed_at', { ascending: false });

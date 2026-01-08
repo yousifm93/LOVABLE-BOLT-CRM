@@ -14,7 +14,7 @@ const getStatusColor = (status: string): string => {
   const statusLower = status.toLowerCase();
   
   // LEADS BOARD STATUSES
-  if (statusLower === 'working on it') return 'bg-green-300 text-green-900'; // Light Green
+  if (statusLower === 'working on it') return 'bg-gray-400 text-white'; // Gray (task status)
   if (statusLower === 'converted') return 'bg-blue-500 text-white'; // Blue
   if (statusLower === 'nurture') return 'bg-orange-400 text-white'; // Orange
   if (statusLower === 'dead') return 'bg-red-400 text-white'; // Red
@@ -99,10 +99,11 @@ const getStatusColor = (status: string): string => {
   if (statusLower === 'need support') return 'bg-orange-400 text-white'; // Orange
   if (statusLower === 'new lead') return 'bg-blue-500 text-white'; // Blue
   
-  // Lead strength colors (High=green, Medium=yellow, Low=red)
+  // Priority colors
+  if (statusLower === 'asap' || statusLower === 'critical') return 'bg-red-500 text-white'; // Red for ASAP/Critical
   if (statusLower === 'high') return 'bg-success text-success-foreground';
   if (statusLower === 'medium') return 'bg-warning text-warning-foreground';
-  if (statusLower === 'low') return 'bg-destructive text-destructive-foreground';
+  if (statusLower === 'low') return 'bg-gray-400 text-white'; // Gray for Low
   
   // Task status colors
   if (statusLower === 'done') return 'bg-success text-success-foreground';
