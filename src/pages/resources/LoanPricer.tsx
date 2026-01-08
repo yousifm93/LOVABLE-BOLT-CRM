@@ -366,6 +366,7 @@ export function LoanPricer() {
                   <TableHead>Time</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Loan Type</TableHead>
                   <TableHead>Program</TableHead>
                   <TableHead>Term</TableHead>
                   <TableHead>FICO</TableHead>
@@ -435,6 +436,11 @@ export function LoanPricer() {
                           getStatusBadge(run.status)
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {run.scenario_json?.loan_type || 'Conv'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm font-medium">
