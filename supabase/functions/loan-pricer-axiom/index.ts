@@ -60,11 +60,11 @@ serve(async (req) => {
     
     let scenarioName = '';
     if (loanType === 'FHA') {
-      scenarioName = `FHA ${loanTerm}`;  // "FHA 30" or "FHA 15"
+      scenarioName = `FHA${loanTerm}`;  // "FHA30" or "FHA15"
     } else if (loanType === 'VA') {
-      scenarioName = `VA ${loanTerm}`;   // "VA 30" or "VA 15"
+      scenarioName = `VA${loanTerm}`;   // "VA30" or "VA15"
     } else {
-      scenarioName = `C${loanTerm}`;     // "C30" or "C15"
+      scenarioName = `C${loanTerm}`;    // "C30" or "C15"
     }
     
     console.log(`Generated scenario name: ${scenarioName} (from ${loanType} + ${loanTerm})`);
