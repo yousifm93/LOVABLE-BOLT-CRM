@@ -71,7 +71,7 @@ serve(async (req) => {
     
     console.log(`Normalized loan type: "${rawLoanType}" -> "${normalizedLoanType}"`);
     
-    console.log(`Generated scenario name: ${scenarioName} (from ${loanType} + ${loanTerm})`);
+    console.log(`Generated scenario name: ${scenarioName} (from ${rawLoanType} + ${loanTerm})`);
 
     // Build the data array matching Axiom's expected field order:
     // Index 0: run_id (for webhook callback)
