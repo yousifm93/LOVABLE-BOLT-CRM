@@ -31,7 +31,7 @@ const LOAN_TERMS = [
 ];
 
 const LOAN_TYPES = [
-  { label: "Conventional", value: "Conventional" },
+  { label: "Conventional", value: "Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)" },
   { label: "FHA", value: "FHA" },
   { label: "VA", value: "VA" }
 ];
@@ -115,7 +115,7 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
         <div className="space-y-2">
           <Label>Loan Type</Label>
           <Select
-            value={data.loan_type || "Conventional"}
+            value={data.loan_type || "Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)"}
             onValueChange={(value) => updateData('loan_type', value)}
           >
             <SelectTrigger>

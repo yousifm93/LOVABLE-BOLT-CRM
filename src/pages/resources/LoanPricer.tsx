@@ -439,7 +439,7 @@ export function LoanPricer() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
-                        {run.scenario_json?.loan_type || 'Conv'}
+                        {run.scenario_json?.loan_type?.includes('Conventional') ? 'Conv' : run.scenario_json?.loan_type || 'Conv'}
                       </Badge>
                     </TableCell>
                     <TableCell>
