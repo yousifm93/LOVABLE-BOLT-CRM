@@ -30,6 +30,12 @@ const LOAN_TERMS = [
   { label: "15 Years", value: 15 }
 ];
 
+const LOAN_TYPES = [
+  { label: "Conventional", value: "Conventional" },
+  { label: "FHA", value: "FHA" },
+  { label: "VA", value: "VA" }
+];
+
 interface ScenarioFormProps {
   data: ScenarioData;
   onChange: (data: ScenarioData) => void;
@@ -68,8 +74,8 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
 
   return (
     <div className="space-y-6">
-      {/* Row 1: Income Type & Property Type */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Row 1: Income Type, Property Type & Loan Type */}
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Income Type</Label>
           <Select
@@ -101,6 +107,24 @@ export function ScenarioForm({ data, onChange }: ScenarioFormProps) {
               {PROPERTY_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Loan Type</Label>
+          <Select
+            value={data.loan_type || "Conventional"}
+            onValueChange={(value) => updateData('loan_type', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LOAN_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
                 </SelectItem>
               ))}
             </SelectContent>

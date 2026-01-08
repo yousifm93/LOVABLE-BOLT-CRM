@@ -65,7 +65,8 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // Index 10: loan_term (always send as 11th field)
+    // Index 10: loan_term
+    // Index 11: loan_type
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -78,9 +79,10 @@ serve(async (req) => {
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
       (scenario.loan_term?.toString() || '30') + 'yr',
+      scenario.loan_type || 'Conventional',
     ]];
 
-    console.log('Sending 11 fields to Axiom (loan_term always included)');
+    console.log('Sending 12 fields to Axiom (loan_type added at index 11)');
     console.log('Axiom payload:', JSON.stringify(axiomData));
 
     // Check for direct webhook URL (preferred method for "Receive data from another app" step)
