@@ -14,6 +14,9 @@ export interface EmailFieldSuggestion {
   confidence: number;
   status: 'pending' | 'approved' | 'denied';
   created_at: string;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  notes?: string | null;
   lead?: {
     first_name: string;
     last_name: string;
@@ -26,8 +29,10 @@ export interface EmailFieldSuggestion {
 
 export function useEmailSuggestions() {
   const [suggestions, setSuggestions] = useState<EmailFieldSuggestion[]>([]);
+  const [completedSuggestions, setCompletedSuggestions] = useState<EmailFieldSuggestion[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCompleted, setIsLoadingCompleted] = useState(false);
 
   const fetchSuggestions = useCallback(async (status?: 'pending' | 'approved' | 'denied') => {
     try {
@@ -196,16 +201,46 @@ export function useEmailSuggestions() {
     }
   }, []);
 
+  const fetchCompletedSuggestions = useCallback(async () => {
+    setIsLoadingCompleted(true);
+    try {
+      const { data, error } = await supabase
+        .from('email_field_suggestions')
+        .select(`
+          *,
+          lead:leads(first_name, last_name),
+          email_log:email_logs(subject, from_email)
+        `)
+        .in('status', ['approved', 'denied'])
+        .order('reviewed_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching completed suggestions:', error);
+        setCompletedSuggestions([]);
+      } else {
+        setCompletedSuggestions((data || []) as EmailFieldSuggestion[]);
+      }
+    } catch (error) {
+      console.error('Error fetching completed suggestions:', error);
+      setCompletedSuggestions([]);
+    } finally {
+      setIsLoadingCompleted(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   return {
     suggestions,
+    completedSuggestions,
     pendingCount,
     isLoading,
+    isLoadingCompleted,
     fetchSuggestions,
     fetchPendingCount,
+    fetchCompletedSuggestions,
     approveSuggestion,
     denySuggestion,
     getSuggestionsForEmail,
