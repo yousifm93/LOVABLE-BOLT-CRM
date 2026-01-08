@@ -54,6 +54,21 @@ serve(async (req) => {
     // Format scenario data for Axiom
     const scenario = pricingRun.scenario_json || {};
     
+    // Generate scenario name from loan_type + loan_term
+    const loanType = scenario.loan_type || 'Conventional';
+    const loanTerm = scenario.loan_term?.toString() || '30';
+    
+    let scenarioName = '';
+    if (loanType === 'FHA') {
+      scenarioName = `FHA ${loanTerm}`;  // "FHA 30" or "FHA 15"
+    } else if (loanType === 'VA') {
+      scenarioName = `VA ${loanTerm}`;   // "VA 30" or "VA 15"
+    } else {
+      scenarioName = `C${loanTerm}`;     // "C30" or "C15"
+    }
+    
+    console.log(`Generated scenario name: ${scenarioName} (from ${loanType} + ${loanTerm})`);
+
     // Build the data array matching Axiom's expected field order:
     // Index 0: run_id (for webhook callback)
     // Index 1: fico_score
@@ -65,8 +80,7 @@ serve(async (req) => {
     // Index 7: property_type
     // Index 8: income_type
     // Index 9: dscr_ratio
-    // Index 10: loan_term
-    // Index 11: loan_type
+    // Index 10: scenario_name (combines loan_type + loan_term)
     const axiomData = [[
       run_id,
       scenario.fico_score?.toString() || '',
@@ -78,11 +92,10 @@ serve(async (req) => {
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
-      scenario.loan_term?.toString() || '30',
-      scenario.loan_type || 'Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)',
+      scenarioName,  // "FHA 30", "FHA 15", "C30", "C15", "VA 30", "VA 15"
     ]];
 
-    console.log('Sending 12 fields to Axiom (loan_type added at index 11)');
+    console.log('Sending 11 fields to Axiom (scenario_name at index 10)');
     console.log('Axiom payload:', JSON.stringify(axiomData));
 
     // Check for direct webhook URL (preferred method for "Receive data from another app" step)
