@@ -38,7 +38,7 @@ const INITIAL_SCENARIO: ScenarioData = {
   income_type: "Full Doc - 24M",
   dscr_ratio: "",
   loan_term: 30,
-  loan_type: "Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)"
+  loan_type: "Conventional"
 };
 
 export function NewRunModal({ open, onOpenChange, onRunCreated, leadId, prefilledScenario }: NewRunModalProps) {
