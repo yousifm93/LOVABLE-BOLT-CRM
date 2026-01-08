@@ -195,11 +195,11 @@ const columns = (
       }
       
       // Always show the pipeline stage name (e.g., "Active"), not the loan substatus
-      return (
-        <div className="flex justify-center">
-          <StatusBadge status={stage} forceGray />
-        </div>
-      );
+        return (
+          <div className="flex justify-center">
+            <StatusBadge status={stage} />
+          </div>
+        );
     },
     sortable: true,
   },
