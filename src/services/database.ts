@@ -1297,6 +1297,11 @@ export const databaseService = {
       return { completedCount: 0, taskTitles: [] };
     }
 
+    // Check if lead needs a placeholder task after auto-completion
+    if (recentTasks.length > 0) {
+      this.checkAndCreateNoOpenTaskFound(leadId);
+    }
+
     return {
       completedCount: recentTasks.length,
       taskTitles: recentTasks.map(t => t.title)
@@ -1341,6 +1346,11 @@ export const databaseService = {
     if (updateError) {
       console.error('Error auto-completing tasks:', updateError);
       return { completedCount: 0, taskTitles: [] };
+    }
+
+    // Check if lead needs a placeholder task after auto-completion
+    if (recentTasks.length > 0) {
+      this.checkAndCreateNoOpenTaskFound(leadId);
     }
 
     return {
@@ -1454,10 +1464,35 @@ export const databaseService = {
       return { completedCount: 0, taskTitles: [] };
     }
 
+    // Check if lead needs a placeholder task after auto-completion
+    if (tasksToComplete.length > 0) {
+      this.checkAndCreateNoOpenTaskFound(leadId);
+    }
+
     return {
       completedCount: tasksToComplete.length,
       taskTitles: tasksToComplete.map(t => t.title)
     };
+  },
+
+  // Check and create "No open task found" placeholder task for a lead
+  async checkAndCreateNoOpenTaskFound(leadId: string): Promise<void> {
+    if (!leadId) return;
+
+    try {
+      console.log('[checkAndCreateNoOpenTaskFound] Checking lead:', leadId);
+      const { data, error } = await supabase.functions.invoke('check-open-tasks', {
+        body: { leadId }
+      });
+
+      if (error) {
+        console.error('[checkAndCreateNoOpenTaskFound] Error:', error);
+      } else {
+        console.log('[checkAndCreateNoOpenTaskFound] Result:', data);
+      }
+    } catch (err) {
+      console.error('[checkAndCreateNoOpenTaskFound] Failed:', err);
+    }
   },
 
   // Contact operations

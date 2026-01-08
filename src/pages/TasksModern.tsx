@@ -638,6 +638,15 @@ export default function TasksModern() {
         setTasks(tasks.map(task => 
           task.id === taskId ? { ...task, [field]: value } : task
         ));
+        
+        // If marked as Done, check if lead needs a placeholder task
+        if (field === 'status' && value === 'Done') {
+          const task = tasks.find(t => t.id === taskId);
+          if (task?.borrower_id) {
+            // Fire and forget - don't block UI
+            databaseService.checkAndCreateNoOpenTaskFound(task.borrower_id);
+          }
+        }
       }
       
       // No toast for inline edits - they're too frequent and distracting

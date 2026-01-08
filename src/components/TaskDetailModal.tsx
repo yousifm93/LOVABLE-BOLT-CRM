@@ -90,6 +90,11 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
         description: "Task updated successfully",
       });
 
+      // If marked as Done, check if lead needs a placeholder task
+      if (editData.status === 'Done' && task?.borrower_id) {
+        databaseService.checkAndCreateNoOpenTaskFound(task.borrower_id);
+      }
+
       setIsEditing(false);
       if (onTaskUpdated) onTaskUpdated();
     } catch (error) {

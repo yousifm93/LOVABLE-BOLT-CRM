@@ -1807,6 +1807,12 @@ export function ClientDetailDrawer({
       await databaseService.updateTask(taskId, {
         status: newStatus
       });
+      
+      // If marked as Done, check if lead needs a placeholder task
+      if (newStatus === "Done" && leadId) {
+        databaseService.checkAndCreateNoOpenTaskFound(leadId);
+      }
+      
       await loadLeadTasks();
       toast({
         title: "Success",

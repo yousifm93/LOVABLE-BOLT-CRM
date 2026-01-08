@@ -31,8 +31,133 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Parse request body for optional leadId (single-lead mode)
+    const { leadId } = await req.json().catch(() => ({}));
+
+    // SINGLE-LEAD MODE: Check a specific lead after task completion
+    if (leadId) {
+      console.log(`Single-lead mode: Checking lead ${leadId}`);
+
+      // 1. Verify lead exists and is in target pipeline stages
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .select("id, first_name, last_name, pipeline_stage_id")
+        .eq("id", leadId)
+        .is("deleted_at", null)
+        .single();
+
+      if (leadError || !lead) {
+        console.log("Lead not found or deleted:", leadId);
+        return new Response(
+          JSON.stringify({ message: "Lead not found", tasksCreated: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!TARGET_STAGE_IDS.includes(lead.pipeline_stage_id)) {
+        console.log(`Lead ${leadId} not in target stages (current: ${lead.pipeline_stage_id})`);
+        return new Response(
+          JSON.stringify({ message: "Lead not in target pipeline stages", tasksCreated: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 2. Check if lead has any open tasks
+      const { data: openTasks, error: openTasksError } = await supabase
+        .from("tasks")
+        .select("id, title")
+        .eq("borrower_id", leadId)
+        .in("status", ["To Do", "Working on it"])
+        .is("deleted_at", null);
+
+      if (openTasksError) {
+        console.error("Error fetching open tasks:", openTasksError);
+        throw openTasksError;
+      }
+
+      if (openTasks && openTasks.length > 0) {
+        console.log(`Lead ${leadId} has ${openTasks.length} open tasks, no placeholder needed`);
+        return new Response(
+          JSON.stringify({ message: "Lead has open tasks", tasksCreated: 0, openTaskCount: openTasks.length }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 3. Check for existing "No open task found" task to prevent duplicates
+      const { data: existingPlaceholder, error: placeholderError } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("borrower_id", leadId)
+        .eq("title", "No open task found")
+        .in("status", ["To Do", "Working on it"])
+        .is("deleted_at", null)
+        .limit(1);
+
+      if (placeholderError) {
+        console.error("Error checking for existing placeholder:", placeholderError);
+        throw placeholderError;
+      }
+
+      if (existingPlaceholder && existingPlaceholder.length > 0) {
+        console.log(`Lead ${leadId} already has an open "No open task found" task`);
+        return new Response(
+          JSON.stringify({ message: "Placeholder task already exists", tasksCreated: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // 4. Find the last assignee from most recent task
+      const { data: recentTask, error: recentTaskError } = await supabase
+        .from("tasks")
+        .select("assignee_id")
+        .eq("borrower_id", leadId)
+        .is("deleted_at", null)
+        .not("assignee_id", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      const assigneeId = recentTask?.assignee_id || DEFAULT_ASSIGNEE_ID;
+      console.log(`Using assignee: ${assigneeId} (from recent task: ${!!recentTask?.assignee_id})`);
+
+      // 5. Create the placeholder task
+      const today = new Date().toISOString().split("T")[0];
+      const { data: createdTask, error: createError } = await supabase
+        .from("tasks")
+        .insert({
+          title: "No open task found",
+          borrower_id: leadId,
+          assignee_id: assigneeId,
+          due_date: today,
+          status: "To Do",
+          priority: "High",
+          creation_log: `Auto-created: No open tasks found for ${lead.first_name} ${lead.last_name}.`,
+        })
+        .select("id, title")
+        .single();
+
+      if (createError) {
+        console.error("Error creating placeholder task:", createError);
+        throw createError;
+      }
+
+      console.log(`Created "No open task found" task for ${lead.first_name} ${lead.last_name}`);
+
+      return new Response(
+        JSON.stringify({
+          message: "Placeholder task created",
+          tasksCreated: 1,
+          lead: { id: lead.id, name: `${lead.first_name} ${lead.last_name}` },
+          task: createdTask,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // BATCH MODE: Check all leads in target stages (existing behavior)
+    console.log("Batch mode: Checking all leads in target pipeline stages...");
+
     // Get all leads in target pipeline stages that are not deleted
-    console.log("Fetching leads in target pipeline stages...");
     const { data: leads, error: leadsError } = await supabase
       .from("leads")
       .select("id, first_name, last_name")
@@ -60,7 +185,7 @@ Deno.serve(async (req) => {
     console.log("Fetching open tasks for these leads...");
     const { data: openTasks, error: tasksError } = await supabase
       .from("tasks")
-      .select("borrower_id")
+      .select("borrower_id, title")
       .in("borrower_id", leadIds)
       .in("status", ["To Do", "Working on it"])
       .is("deleted_at", null);
@@ -74,14 +199,22 @@ Deno.serve(async (req) => {
     const leadsWithOpenTasks = new Set(openTasks?.map((t) => t.borrower_id) || []);
     console.log(`Found ${leadsWithOpenTasks.size} leads with open tasks`);
 
-    // Find leads without open tasks
-    const leadsWithoutTasks = leads.filter((l) => !leadsWithOpenTasks.has(l.id));
-    console.log(`Found ${leadsWithoutTasks.length} leads WITHOUT open tasks`);
+    // Find leads that already have an open "No open task found" task
+    const leadsWithPlaceholder = new Set(
+      openTasks?.filter((t) => t.title === "No open task found").map((t) => t.borrower_id) || []
+    );
+    console.log(`Found ${leadsWithPlaceholder.size} leads with existing placeholder tasks`);
+
+    // Find leads without open tasks AND without existing placeholder
+    const leadsWithoutTasks = leads.filter(
+      (l) => !leadsWithOpenTasks.has(l.id) && !leadsWithPlaceholder.has(l.id)
+    );
+    console.log(`Found ${leadsWithoutTasks.length} leads WITHOUT open tasks (excluding those with placeholder)`);
 
     if (leadsWithoutTasks.length === 0) {
-      console.log("All leads have open tasks, no tasks to create");
+      console.log("All leads have open tasks or placeholder tasks, nothing to create");
       return new Response(
-        JSON.stringify({ message: "All leads have open tasks", tasksCreated: 0 }),
+        JSON.stringify({ message: "All leads accounted for", tasksCreated: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
