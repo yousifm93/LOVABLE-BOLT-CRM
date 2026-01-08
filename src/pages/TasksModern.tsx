@@ -5,7 +5,8 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
@@ -196,7 +197,7 @@ const columns = (
       // Always show the pipeline stage name (e.g., "Active"), not the loan substatus
       return (
         <div className="flex justify-center">
-          <StatusBadge status={stage} />
+          <StatusBadge status={stage} forceGray />
         </div>
       );
     },

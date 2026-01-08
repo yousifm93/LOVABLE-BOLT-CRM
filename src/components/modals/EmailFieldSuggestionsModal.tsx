@@ -6,9 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, ArrowRight, Loader2, Mail, MessageSquare } from "lucide-react";
+import { Check, X, ArrowRight, Loader2, Mail, MessageSquare, ExternalLink } from "lucide-react";
 import { useEmailSuggestions, type EmailFieldSuggestion } from "@/hooks/useEmailSuggestions";
 import { Input } from "@/components/ui/input";
+import DOMPurify from 'dompurify';
 
 interface EmailFieldSuggestionsModalProps {
   open: boolean;
@@ -35,6 +36,13 @@ export function EmailFieldSuggestionsModal({
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [notesFilter, setNotesFilter] = useState<'all' | 'with_notes' | 'without_notes'>('all');
+  const [previewEmail, setPreviewEmail] = useState<{
+    subject: string;
+    from: string;
+    body: string;
+    htmlBody?: string;
+    timestamp?: string;
+  } | null>(null);
 
   // Fetch completed suggestions when switching to completed tab
   useEffect(() => {
@@ -131,8 +139,21 @@ export function EmailFieldSuggestionsModal({
             {suggestion.reason}
           </p>
           {suggestion.email_log && (
-            <p className="text-xs text-muted-foreground/70 truncate">
-              From: {suggestion.email_log.subject}
+            <p 
+              className="text-xs text-blue-600 hover:underline cursor-pointer truncate flex items-center gap-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewEmail({
+                  subject: suggestion.email_log!.subject,
+                  from: suggestion.email_log!.from_email,
+                  body: suggestion.email_log!.body || '',
+                  htmlBody: suggestion.email_log!.html_body,
+                  timestamp: suggestion.email_log!.timestamp
+                });
+              }}
+            >
+              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+              {suggestion.email_log.subject}
             </p>
           )}
           {isCompleted && suggestion.notes && (
@@ -297,6 +318,30 @@ export function EmailFieldSuggestionsModal({
           </TabsContent>
         </Tabs>
       </DialogContent>
+      {/* Email Preview Modal */}
+      <Dialog open={!!previewEmail} onOpenChange={() => setPreviewEmail(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="pr-8">{previewEmail?.subject}</DialogTitle>
+            <p className="text-sm text-muted-foreground">From: {previewEmail?.from}</p>
+            {previewEmail?.timestamp && (
+              <p className="text-xs text-muted-foreground">
+                {new Date(previewEmail.timestamp).toLocaleString()}
+              </p>
+            )}
+          </DialogHeader>
+          <ScrollArea className="h-[60vh]">
+            {previewEmail?.htmlBody ? (
+              <div 
+                className="prose prose-sm max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEmail.htmlBody) }} 
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm font-sans">{previewEmail?.body}</pre>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
