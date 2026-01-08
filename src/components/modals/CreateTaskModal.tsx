@@ -28,11 +28,14 @@ interface CreateTaskModalProps {
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
   const { crmUser } = useAuth();
   const [mode, setMode] = useState<'single' | 'multiple'>('single');
+  // Default assignee is Herman Rayza Daza
+  const DEFAULT_ASSIGNEE_ID = "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
+  
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     due_date: new Date().toISOString().split('T')[0],
-    assignee_id: "",
+    assignee_id: DEFAULT_ASSIGNEE_ID,
     borrower_id: preselectedBorrowerId || "",
   });
   const [bulkTasks, setBulkTasks] = useState<Array<{
@@ -43,7 +46,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   }>>([{
     title: "",
     due_date: new Date().toISOString().split('T')[0],
-    assignee_id: "",
+    assignee_id: DEFAULT_ASSIGNEE_ID,
     borrower_id: "",
   }]);
   const [users, setUsers] = useState<any[]>([]);
@@ -309,7 +312,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           title: "",
           description: "",
           due_date: new Date().toISOString().split('T')[0],
-          assignee_id: "",
+          assignee_id: DEFAULT_ASSIGNEE_ID,
           borrower_id: "",
         });
 

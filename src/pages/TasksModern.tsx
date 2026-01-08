@@ -972,7 +972,7 @@ export default function TasksModern() {
     return dueDate.getTime() < today.getTime(); // Due strictly before today (yesterday or earlier)
   };
 
-  // Filter out recently reviewed tasks from non-All views
+  // Filter out recently reviewed tasks - ONLY for Review section
   const filterRecentlyReviewed = (taskList: ModernTask[]): ModernTask[] => {
     return taskList.filter(task => !isRecentlyReviewed(task) || task.status === "Done");
   };
@@ -992,7 +992,8 @@ export default function TasksModern() {
   const unReviewedDoneTasks = allOpenTasks.filter(t => t.status === "Done" && !t.reviewed);
   const nonDoneTasks = allOpenTasks.filter(t => t.status !== "Done");
 
-  // When not viewing 'all', filter out recently reviewed tasks
+  // When not viewing 'all', filter out recently reviewed tasks ONLY for Review section
+  // All other views (Active, Due Today, Overdue) show tasks regardless of reviewed status
   const openTasksUnfiltered = statsFilter === 'all' 
     ? allOpenTasks 
     : statsFilter === 'active' 
@@ -1005,8 +1006,8 @@ export default function TasksModern() {
             ? [...nonDoneTasks.filter(t => isTaskOverdue(t)), ...unReviewedDoneTasks]
             : []; // completed filter shows nothing in open tasks
 
-  // Apply the recently reviewed filter for non-All views
-  const openTasks = statsFilter === 'all' ? openTasksUnfiltered : filterRecentlyReviewed(openTasksUnfiltered);
+  // Apply the recently reviewed filter ONLY for Review section - other views show all matching tasks
+  const openTasks = statsFilter === 'review' ? filterRecentlyReviewed(openTasksUnfiltered) : openTasksUnfiltered;
 
   const doneTasks = statsFilter === 'completed' ? allDoneTasks : (statsFilter === 'all' ? allDoneTasks : []);
 
