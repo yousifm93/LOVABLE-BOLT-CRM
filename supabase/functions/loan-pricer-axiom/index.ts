@@ -79,7 +79,7 @@ serve(async (req) => {
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
       (scenario.loan_term?.toString() || '30') + 'yr',
-      scenario.loan_type || 'Conventional',
+      scenario.loan_type || 'Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)',
     ]];
 
     console.log('Sending 12 fields to Axiom (loan_type added at index 11)');
