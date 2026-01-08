@@ -78,7 +78,7 @@ serve(async (req) => {
       scenario.property_type || '',
       scenario.income_type || 'Full Doc - 24M',
       scenario.dscr_ratio || '',
-      (scenario.loan_term?.toString() || '30') + 'yr',
+      scenario.loan_term?.toString() || '30',
       scenario.loan_type || 'Conventional (Use for FNMA/FHLMC/Jumbo/Non-QM)',
     ]];
 
