@@ -55,17 +55,21 @@ serve(async (req) => {
     const scenario = pricingRun.scenario_json || {};
     
     // Generate scenario name from loan_type + loan_term
-    const loanType = scenario.loan_type || 'Conventional';
+    // Normalize loanType to handle variations like "FHA/VA", "FHA Loan", mixed case, etc.
+    const rawLoanType = scenario.loan_type || 'Conventional';
+    const normalizedLoanType = String(rawLoanType).toUpperCase();
     const loanTerm = scenario.loan_term?.toString() || '30';
     
     let scenarioName = '';
-    if (loanType === 'FHA') {
+    if (normalizedLoanType.includes('FHA')) {
       scenarioName = `FHA${loanTerm}`;  // "FHA30" or "FHA15"
-    } else if (loanType === 'VA') {
+    } else if (normalizedLoanType.includes('VA')) {
       scenarioName = `VA${loanTerm}`;   // "VA30" or "VA15"
     } else {
       scenarioName = `C${loanTerm}`;    // "C30" or "C15"
     }
+    
+    console.log(`Normalized loan type: "${rawLoanType}" -> "${normalizedLoanType}"`);
     
     console.log(`Generated scenario name: ${scenarioName} (from ${loanType} + ${loanTerm})`);
 
