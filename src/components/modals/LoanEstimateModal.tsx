@@ -52,10 +52,10 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       const discountPoints = Number((client as any).discount_points_percentage) || 0;
       const credits = Number((client as any).adjustments_credits) || 0;
       const principalInterest = Number((client as any).principal_interest) || calculatePI(loanAmount, interestRate, 360);
-      const propertyTaxes = Number((client as any).property_taxes) || Math.round((salesPrice * 0.015) / 12);
-      const homeownersInsurance = Number((client as any).homeowners_insurance) || 150;
-      const mortgageInsurance = Number((client as any).mortgage_insurance) || 0;
-      const hoaDues = Number((client as any).hoa_dues) || 0;
+      const propertyTaxes = Number((client as any).propertyTaxes || (client as any).property_taxes) || 0;
+      const homeownersInsurance = Number((client as any).homeownersInsurance || (client as any).homeowners_insurance) || 0;
+      const mortgageInsurance = Number((client as any).mortgageInsurance || (client as any).mortgage_insurance) || 0;
+      const hoaDues = Number((client as any).hoaDues || (client as any).hoa_dues) || 0;
 
       setFormData({
         salesPrice,
