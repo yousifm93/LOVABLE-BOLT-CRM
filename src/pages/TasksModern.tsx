@@ -748,8 +748,10 @@ export default function TasksModern() {
       case 'due_date': return task.due_date;
       case 'created_at': return task.created_at;
       case 'assignee_id':
+        // Return null for empty filter if no assignable user found
+        // This ensures tasks with non-assignable IDs appear as "unassigned"
         const assignee = assignableUsers.find(u => u.id === task.assignee_id);
-        return assignee?.first_name || '';
+        return assignee ? task.assignee_id : null;
       default: return (task as any)[column];
     }
   };

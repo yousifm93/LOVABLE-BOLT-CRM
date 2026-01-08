@@ -1758,6 +1758,7 @@ export type Database = {
           field_name: string
           id: string
           lead_id: string
+          notes: string | null
           reason: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -1773,6 +1774,7 @@ export type Database = {
           field_name: string
           id?: string
           lead_id: string
+          notes?: string | null
           reason: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -1788,6 +1790,7 @@ export type Database = {
           field_name?: string
           id?: string
           lead_id?: string
+          notes?: string | null
           reason?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -2736,6 +2739,7 @@ export type Database = {
           submitted_at: string | null
           task_eta: string | null
           teammate_assigned: string | null
+          teammate_assigned_ids: string[] | null
           term: number | null
           time_at_current_address_months: number | null
           time_at_current_address_years: number | null
@@ -2929,6 +2933,7 @@ export type Database = {
           submitted_at?: string | null
           task_eta?: string | null
           teammate_assigned?: string | null
+          teammate_assigned_ids?: string[] | null
           term?: number | null
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null
@@ -3122,6 +3127,7 @@ export type Database = {
           submitted_at?: string | null
           task_eta?: string | null
           teammate_assigned?: string | null
+          teammate_assigned_ids?: string[] | null
           term?: number | null
           time_at_current_address_months?: number | null
           time_at_current_address_years?: number | null

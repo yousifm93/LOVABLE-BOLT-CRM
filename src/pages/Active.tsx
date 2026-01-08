@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assignee";
 import { InlineEditApprovedLender } from "@/components/ui/inline-edit-approved-lender";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
@@ -93,6 +94,7 @@ interface ActiveLoan {
   ba_status: string | null;
   epo_status: string | null;
   teammate_assigned: string | null;
+  teammate_assigned_ids: string[] | null;
   lender_id: string | null;
   approved_lender_id: string | null;
   buyer_agent_id: string | null;
@@ -283,21 +285,29 @@ const createColumns = (
     header: "USER",
     className: "text-center",
     headerClassName: "text-center",
-    cell: ({ row }) => (
-      <div onClick={(e) => e.stopPropagation()}>
-        <div className="w-8">
-          <InlineEditAssignee
-            assigneeId={row.original.teammate_assigned}
+    cell: ({ row }) => {
+      // Use teammate_assigned_ids if available, otherwise fallback to teammate_assigned
+      const assigneeIds = row.original.teammate_assigned_ids?.length 
+        ? row.original.teammate_assigned_ids 
+        : (row.original.teammate_assigned ? [row.original.teammate_assigned] : []);
+      
+      return (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InlineEditMultiAssignee
+            assigneeIds={assigneeIds}
             users={users}
-            onValueChange={(userId) => 
-              handleUpdate(row.original.id, "teammate_assigned", userId)
-            }
-            showNameText={false}
+            onValueChange={async (userIds) => {
+              // Update both fields for backwards compatibility
+              await handleUpdate(row.original.id, "teammate_assigned_ids", userIds);
+              // Also update legacy field with first user or null
+              await handleUpdate(row.original.id, "teammate_assigned", userIds[0] || null);
+            }}
+            maxVisible={2}
             avatarSize="xs"
           />
         </div>
-      </div>
-    ),
+      );
+    },
     sortable: true,
   },
   {

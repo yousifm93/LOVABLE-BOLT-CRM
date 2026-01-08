@@ -88,7 +88,7 @@ export function useEmailSuggestions() {
     setIsLoading(false);
   }, [fetchSuggestions, fetchPendingCount]);
 
-  const approveSuggestion = useCallback(async (suggestion: EmailFieldSuggestion) => {
+  const approveSuggestion = useCallback(async (suggestion: EmailFieldSuggestion, notes?: string) => {
     try {
       // Map field names from suggestion to actual database column names
       const fieldNameMap: Record<string, string> = {
@@ -124,12 +124,13 @@ export function useEmailSuggestions() {
         return false;
       }
 
-      // Mark suggestion as approved
+      // Mark suggestion as approved with notes
       const { error: suggestionError } = await supabase
         .from('email_field_suggestions')
         .update({
           status: 'approved',
           reviewed_at: new Date().toISOString(),
+          notes: notes || null,
         })
         .eq('id', suggestion.id);
 
@@ -148,13 +149,14 @@ export function useEmailSuggestions() {
     }
   }, [loadData]);
 
-  const denySuggestion = useCallback(async (suggestionId: string) => {
+  const denySuggestion = useCallback(async (suggestionId: string, notes?: string) => {
     try {
       const { error } = await supabase
         .from('email_field_suggestions')
         .update({
           status: 'denied',
           reviewed_at: new Date().toISOString(),
+          notes: notes || null,
         })
         .eq('id', suggestionId);
 
