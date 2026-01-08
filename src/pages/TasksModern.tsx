@@ -334,7 +334,7 @@ const columns = (
         if (!date) return <span className="text-muted-foreground">-</span>;
         return (
           <div className="text-sm">
-            <div>{format(date, 'MMM dd, yyyy')}</div>
+            <div>{format(date, 'MMM dd')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'h:mm a')}</div>
           </div>
         );

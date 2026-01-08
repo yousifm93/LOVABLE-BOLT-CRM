@@ -31,7 +31,8 @@ const DEFAULT_COLUMNS: Record<string, string[]> = {
     "ba_status",
     "epo_status",
     "buyer_agent",
-    "listing_agent"
+    "listing_agent",
+    "earliest_task_due_date"
   ],
   leads: [
     "name",
