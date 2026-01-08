@@ -748,10 +748,25 @@ export default function TasksModern() {
       case 'due_date': return task.due_date;
       case 'created_at': return task.created_at;
       case 'assignee_id':
-        // Return null for empty filter if no assignable user found
-        // This ensures tasks with non-assignable IDs appear as "unassigned"
-        const assignee = assignableUsers.find(u => u.id === task.assignee_id);
-        return assignee ? task.assignee_id : null;
+        // Check both assignee_ids (multi-assignee) and assignee_id (legacy)
+        // Return the first valid assignable user ID, or null if truly unassigned
+        const multiAssigneeIds = task.assignee_ids || [];
+        const legacyAssigneeId = task.assignee_id;
+        
+        // First check multi-assignee field
+        for (const id of multiAssigneeIds) {
+          const foundUser = assignableUsers.find(u => u.id === id);
+          if (foundUser) return id;
+        }
+        
+        // Fallback to legacy single assignee
+        if (legacyAssigneeId) {
+          const assignee = assignableUsers.find(u => u.id === legacyAssigneeId);
+          if (assignee) return legacyAssigneeId;
+        }
+        
+        // No valid assignable user found - return null for "is empty" filter
+        return null;
       default: return (task as any)[column];
     }
   };

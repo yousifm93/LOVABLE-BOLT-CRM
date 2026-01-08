@@ -105,20 +105,20 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
     const lenderLoanNumber = (client as any)?.lender_loan_number || (client as any)?.mb_loan_number || '';
     const loanProgram = (client as any)?.loanProgram || client?.loan?.loanProgram || 'Conventional';
     const propertyType = (client as any)?.property?.propertyType || (client as any)?.propertyType || 'Single Family';
-    const subjectZip = (client as any)?.subjectZip || '';
-    const subjectState = (client as any)?.subjectState || '';
+    // Use database field names (subject_zip, subject_state)
+    const subjectZip = (client as any)?.subject_zip || (client as any)?.subjectZip || '';
+    const subjectState = (client as any)?.subject_state || (client as any)?.subjectState || '';
 
     // Calculate LTV
     const ltv = formData.salesPrice > 0 ? (formData.loanAmount / formData.salesPrice) * 100 : 0;
     
     // Calculate APR (simplified - just add 0.25% to rate for estimate)
     const apr = formData.interestRate + 0.25;
-
-    // Calculate discount points amount
-    const discountPointsAmount = (formData.discountPoints / 100) * formData.loanAmount;
     
     const downPayment = formData.salesPrice - formData.loanAmount;
 
+    // Pass discount points as a PERCENTAGE (the PDF generator will convert to dollars)
+    // This matches the Loan Estimate tool behavior
     return {
       firstName,
       lastName,
@@ -133,17 +133,19 @@ export function LoanEstimateModal({ isOpen, onClose, client }: LoanEstimateModal
       loanTerm: 360,
       loanProgram,
       propertyType,
-      discountPoints: discountPointsAmount,
-      underwritingFee: Number((client as any).underwriting_fee) || 1195,
-      credits: formData.credits,
-      appraisalFee: Number((client as any).appraisal_fee) || 650,
-      creditReportFee: Number((client as any).credit_report_fee) || 75,
-      processingFee: Number((client as any).processing_fee) || 450,
+      // Pass as percentage - PDF generator converts to dollars
+      discountPoints: formData.discountPoints,
+      // Align defaults with Loan Estimate tool page
+      underwritingFee: Number((client as any).underwriting_fee) || 995,
+      credits: 0, // Use adjustmentsCredits for credits, not both
+      appraisalFee: Number((client as any).appraisal_fee) || 550,
+      creditReportFee: Number((client as any).credit_report_fee) || 95,
+      processingFee: Number((client as any).processing_fee) || 995,
       lendersTitleInsurance: Number((client as any).lenders_title_insurance) || 500,
-      titleClosingFee: Number((client as any).title_closing_fee) || 350,
+      titleClosingFee: Number((client as any).title_closing_fee) || 600,
       intangibleTax: Number((client as any).intangible_tax) || Math.round(formData.loanAmount * 0.002),
       transferTax: Number((client as any).transfer_tax) || 0,
-      recordingFees: Number((client as any).recording_fees) || 250,
+      recordingFees: Number((client as any).recording_fees) || 350,
       prepaidHoi: Number((client as any).prepaid_hoi) || formData.homeownersInsurance * 12,
       prepaidInterest: Number((client as any).prepaid_interest) || Math.round((formData.loanAmount * (formData.interestRate / 100) / 365) * 15),
       escrowHoi: formData.homeownersInsurance * 2,

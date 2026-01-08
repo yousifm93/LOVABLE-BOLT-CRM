@@ -71,7 +71,7 @@ export function EmailFieldSuggestionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh]">
+      <DialogContent className="w-[95vw] max-w-6xl max-h-[70vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -82,7 +82,7 @@ export function EmailFieldSuggestionsModal({
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="h-[70vh] pr-4">
+        <ScrollArea className="h-[55vh] pr-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

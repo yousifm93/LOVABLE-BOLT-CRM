@@ -28,6 +28,7 @@ import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { InlineEditCurrency } from "@/components/ui/inline-edit-currency";
 import { InlineEditPercentage } from "@/components/ui/inline-edit-percentage";
 import { InlineEditAssignee } from "@/components/ui/inline-edit-assignee";
+import { InlineEditMultiAssignee } from "@/components/ui/inline-edit-multi-assignee";
 import { InlineEditAgent } from "@/components/ui/inline-edit-agent";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formatters";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -423,7 +424,7 @@ export default function Leads() {
   ];
 
   // Field update handler
-  const handleFieldUpdate = async (leadId: string, field: string, value: string | Date | undefined | null) => {
+  const handleFieldUpdate = async (leadId: string, field: string, value: string | string[] | Date | undefined | null) => {
     try {
       setIsUpdating(leadId);
       let updateData: Partial<DatabaseLead> = {};
@@ -438,6 +439,9 @@ export default function Leads() {
           break;
         case 'teammate_assigned':
           updateData.teammate_assigned = value as string;
+          break;
+        case 'teammate_assigned_ids':
+          updateData.teammate_assigned_ids = value as any;
           break;
         case 'buyer_agent_id':
           updateData.buyer_agent_id = value as string;
@@ -463,9 +467,11 @@ export default function Leads() {
         case 'due_date':
           if (value === undefined || value === null) {
             updateData.task_eta = null;
-          } else {
+          } else if (value instanceof Date) {
             // Convert Date to YYYY-MM-DD format using local timezone
-            updateData.task_eta = value instanceof Date ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}` : value;
+            updateData.task_eta = `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+          } else if (typeof value === 'string') {
+            updateData.task_eta = value;
           }
           break;
         case 'notes':
@@ -828,9 +834,25 @@ export default function Leads() {
       accessorKey: "user",
       header: "User",
       className: "text-center",
-      cell: ({
-        row
-      }) => <InlineEditAssignee assigneeId={row.original.user} users={users} onValueChange={userId => handleFieldUpdate(row.original.id, "teammate_assigned", userId)} showNameText={false} />,
+      cell: ({ row }) => {
+        const assigneeIds = (row.original as any).teammate_assigned_ids?.length 
+          ? (row.original as any).teammate_assigned_ids 
+          : (row.original.user ? [row.original.user] : []);
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <InlineEditMultiAssignee
+              assigneeIds={assigneeIds}
+              users={users}
+              onValueChange={async (userIds) => {
+                await handleFieldUpdate(row.original.id, "teammate_assigned_ids", userIds);
+                await handleFieldUpdate(row.original.id, "teammate_assigned", userIds[0] || null);
+              }}
+              maxVisible={2}
+              avatarSize="xs"
+            />
+          </div>
+        );
+      },
       sortable: true
     },
     // Additional columns (hidden by default)
