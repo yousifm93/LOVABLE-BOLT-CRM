@@ -61,9 +61,9 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "lock_expiration_date",
   "ba_status",
   "epo_status",
-  "earliest_task_due_date",
   "buyer_agent",
-  "listing_agent"
+  "listing_agent",
+  "earliest_task_due_date"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
