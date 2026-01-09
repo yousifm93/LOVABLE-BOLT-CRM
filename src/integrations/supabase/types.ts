@@ -4882,27 +4882,33 @@ export type Database = {
       }
       team_feedback: {
         Row: {
+          admin_response_read_by_user: boolean | null
           created_at: string
           feedback_items: Json
           id: string
+          is_read_by_admin: boolean | null
           section_key: string
           section_label: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          admin_response_read_by_user?: boolean | null
           created_at?: string
           feedback_items?: Json
           id?: string
+          is_read_by_admin?: boolean | null
           section_key: string
           section_label: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          admin_response_read_by_user?: boolean | null
           created_at?: string
           feedback_items?: Json
           id?: string
+          is_read_by_admin?: boolean | null
           section_key?: string
           section_label?: string
           updated_at?: string

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 interface TeamMember {
   id: string;
@@ -29,6 +30,8 @@ interface FeedbackItem {
   feedback_items: Array<FeedbackItemContent | string>;
   created_at: string;
   updated_at: string;
+  is_read_by_admin: boolean;
+  admin_response_read_by_user: boolean;
 }
 
 interface FeedbackComment {
@@ -106,6 +109,15 @@ export default function FeedbackReview() {
         const { data: statusData } = await supabase
           .from('team_feedback_item_status')
           .select('*');
+
+        // Mark all unread feedback as read by admin
+        const unreadIds = feedbackData?.filter(f => !f.is_read_by_admin).map(f => f.id) || [];
+        if (unreadIds.length > 0) {
+          await supabase
+            .from('team_feedback')
+            .update({ is_read_by_admin: true })
+            .in('id', unreadIds);
+        }
 
         setTeamMembers(usersData || []);
         setFeedback((feedbackData || []).map(f => ({
@@ -213,6 +225,12 @@ export default function FeedbackReview() {
 
       if (error) throw error;
 
+      // Mark the feedback as having an unread admin response for the user
+      await supabase
+        .from('team_feedback')
+        .update({ admin_response_read_by_user: false })
+        .eq('id', feedbackId);
+
       setComments(prev => [...prev, { ...data, admin_name: `${crmUser.first_name} ${crmUser.last_name}` }]);
       setNewComments(prev => ({ ...prev, [commentKey]: '' }));
       toast({ title: "Comment Added", description: "Your response has been saved." });
@@ -222,6 +240,11 @@ export default function FeedbackReview() {
     } finally {
       setSubmittingComment(null);
     }
+  };
+
+  const getUnreadCount = (userId: string) => {
+    const userFeedback = getUserFeedback(userId);
+    return userFeedback.filter(f => !f.is_read_by_admin).length;
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -290,7 +313,20 @@ export default function FeedbackReview() {
       <h1 className="text-3xl font-bold mb-6">Team Feedback Review</h1>
       <Tabs value={selectedUser || ''} onValueChange={setSelectedUser}>
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
-          {teamMembers.map((member) => (<TabsTrigger key={member.id} value={member.id} className="flex items-center gap-2"><User className="h-4 w-4" />{member.first_name} {member.last_name}</TabsTrigger>))}
+          {teamMembers.map((member) => {
+            const unreadCount = getUnreadCount(member.id);
+            return (
+              <TabsTrigger key={member.id} value={member.id} className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                {member.first_name} {member.last_name}
+                {unreadCount > 0 && (
+                  <Badge className="ml-1 bg-red-500 text-white h-5 min-w-[20px] text-xs">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
         {teamMembers.map((member) => (
           <TabsContent key={member.id} value={member.id} className="space-y-6">
