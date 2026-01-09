@@ -43,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { PdfPreview } from "./PdfPreview";
 
@@ -107,7 +108,8 @@ const PRIORITIES = [
 
 export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTabProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, crmUser } = useAuth();
+  const { isAdmin } = usePermissions();
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -475,7 +477,8 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
     }
     
     // Optimistically update local state first to prevent refresh flicker
-    const currentUserId = user?.id || null;
+    // Use crmUser.id (CRM user table) not user.id (auth user) for foreign key
+    const currentUserId = crmUser?.id || null;
     setConditions(prev => prev.map(c => 
       c.id === conditionId ? { ...c, [field]: value, updated_at: new Date().toISOString(), updated_by: currentUserId } : c
     ));
@@ -794,8 +797,14 @@ export function ConditionsTab({ leadId, onConditionsChange, lead }: ConditionsTa
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteCondition(condition.id)}
+                    className={cn(
+                      "h-5 w-5 p-0",
+                      isAdmin 
+                        ? "text-muted-foreground hover:text-destructive" 
+                        : "text-muted-foreground/40 cursor-not-allowed"
+                    )}
+                    disabled={!isAdmin}
+                    onClick={() => isAdmin && handleDeleteCondition(condition.id)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
