@@ -919,13 +919,13 @@ export default function DashboardTabs() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-5 gap-4">
-              {/* New Agent Calls */}
-              <Card className="border-cyan-500/30 bg-cyan-500/5">
+            <div className="grid grid-cols-6 gap-4">
+              {/* New Agents */}
+              <Card className="border-blue-500/30 bg-blue-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-cyan-600" />
-                    New Agent Calls
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    New Agents
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -941,7 +941,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.newAgentCalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.newAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-cyan-500"
+                    progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -962,12 +962,12 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* Current Agent Calls */}
-              <Card className="border-emerald-500/30 bg-emerald-500/5">
+              {/* Current Agents */}
+              <Card className="border-blue-500/30 bg-blue-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-emerald-600" />
-                    Current Agent Calls
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    Current Agents
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -983,7 +983,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.currentAgentCalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-emerald-500"
+                    progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1004,96 +1004,12 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* Past Client Calls */}
-              <Card className="border-violet-500/30 bg-violet-500/5">
+              {/* Top Agents */}
+              <Card className="border-blue-500/30 bg-blue-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-violet-600" />
-                    Past Client Calls
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ModernStatsCard
-                    title="This Month"
-                    value={thisMonthPastClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls", MONTHLY_GOALS.pastClientCalls)}
-                    showProgress={true}
-                    progressValue={thisMonthPastClientCalls.length}
-                    progressMax={MONTHLY_GOALS.pastClientCalls}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastClientCalls)}
-                    progressColor="[&_.bg-primary]:bg-violet-500"
-                  />
-                  <ModernStatsCard
-                    title="Yesterday"
-                    value={yesterdayPastClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Yesterday's Past Client Calls", yesterdayPastClientCalls, "calls")}
-                  />
-                  <ModernStatsCard
-                    title="Today"
-                    value={todayPastClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Today's Past Client Calls", todayPastClientCalls, "calls")}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Current Client Calls - NEW */}
-              <Card className="border-teal-500/30 bg-teal-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-teal-600" />
-                    Current Client Calls
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ModernStatsCard
-                    title="This Month"
-                    value={thisMonthCurrentClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("This Month's Current Client Calls", thisMonthCurrentClientCalls, "calls", MONTHLY_GOALS.currentClientCalls)}
-                    showProgress={true}
-                    progressValue={thisMonthCurrentClientCalls.length}
-                    progressMax={MONTHLY_GOALS.currentClientCalls}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentClientCalls)}
-                    progressColor="[&_.bg-primary]:bg-teal-500"
-                  />
-                  <ModernStatsCard
-                    title="Yesterday"
-                    value={yesterdayCurrentClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Yesterday's Current Client Calls", yesterdayCurrentClientCalls, "calls")}
-                  />
-                  <ModernStatsCard
-                    title="Today"
-                    value={todayCurrentClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Today's Current Client Calls", todayCurrentClientCalls, "calls")}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Top Agent Calls */}
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-amber-600" />
-                    Top Agent Calls
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    Top Agents
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1109,7 +1025,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.topAgentCalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.topAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-amber-500"
+                    progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1130,12 +1046,12 @@ export default function DashboardTabs() {
                 </CardContent>
               </Card>
 
-              {/* Past LA Calls */}
-              <Card className="border-rose-500/30 bg-rose-500/5">
+              {/* Past Listing Agents */}
+              <Card className="border-blue-500/30 bg-blue-500/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-rose-600" />
-                    Past LA Calls
+                    <Phone className="h-4 w-4 text-blue-600" />
+                    Past Listing Agents
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1151,7 +1067,7 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.pastLACalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastLACalls)}
-                    progressColor="[&_.bg-primary]:bg-rose-500"
+                    progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1168,6 +1084,90 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("Today's Past LA Calls", todayPastLACalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Current Clients */}
+              <Card className="border-purple-500/30 bg-purple-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-purple-600" />
+                    Current Clients
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Current Client Calls", thisMonthCurrentClientCalls, "calls", MONTHLY_GOALS.currentClientCalls)}
+                    showProgress={true}
+                    progressValue={thisMonthCurrentClientCalls.length}
+                    progressMax={MONTHLY_GOALS.currentClientCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-purple-500"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Current Client Calls", yesterdayCurrentClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Current Client Calls", todayCurrentClientCalls, "calls")}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Past Clients */}
+              <Card className="border-purple-500/30 bg-purple-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-purple-600" />
+                    Past Clients
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ModernStatsCard
+                    title="This Month"
+                    value={thisMonthPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Month's Past Client Calls", thisMonthPastClientCalls, "calls", MONTHLY_GOALS.pastClientCalls)}
+                    showProgress={true}
+                    progressValue={thisMonthPastClientCalls.length}
+                    progressMax={MONTHLY_GOALS.pastClientCalls}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-purple-500"
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Past Client Calls", yesterdayPastClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Past Client Calls", todayPastClientCalls, "calls")}
                   />
                 </CardContent>
               </Card>
