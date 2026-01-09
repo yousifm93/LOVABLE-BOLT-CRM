@@ -80,7 +80,7 @@ const TASK_COLUMN_WIDTHS: Record<string, number> = {
   priority: 70,
   assignee: 80,
   due_date: 95,
-  notes: 160,
+  notes: 200,
   status: 90,
   updated_at: 80,
   reviewed: 65,
@@ -157,7 +157,7 @@ const columns = (
       
       {/* Show contact info if completion requirement exists (REPLACES description) */}
       {(row.original as any).completion_requirement_type === 'log_call_buyer_agent' && (row.original as any).buyer_agent && (
-        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 overflow-hidden">
+        <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2 overflow-hidden">
           <Phone className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">{(row.original as any).buyer_agent.first_name} {(row.original as any).buyer_agent.last_name}</span>
           {(row.original as any).buyer_agent.phone && (
@@ -166,7 +166,7 @@ const columns = (
         </div>
       )}
       {(row.original as any).completion_requirement_type === 'log_call_listing_agent' && (row.original as any).listing_agent && (
-        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 overflow-hidden">
+        <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2 overflow-hidden">
           <Phone className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">{(row.original as any).listing_agent.first_name} {(row.original as any).listing_agent.last_name}</span>
           {(row.original as any).listing_agent.phone && (
@@ -175,7 +175,7 @@ const columns = (
         </div>
       )}
       {(row.original as any).completion_requirement_type === 'log_call_borrower' && (row.original as any).borrower && (
-        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 overflow-hidden">
+        <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-2 overflow-hidden">
           <Phone className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">{(row.original as any).borrower.first_name} {(row.original as any).borrower.last_name}</span>
           {(row.original as any).lead?.phone && (
