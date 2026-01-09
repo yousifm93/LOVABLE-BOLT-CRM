@@ -1,7 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format, formatDistance } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +73,7 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 350,
+  title: 200,
   created_at: 70,
   borrower: 130,
   'borrower.pipeline_stage.name': 95,
@@ -117,6 +119,15 @@ const sortTasksByPriority = (tasks: ModernTask[]): ModernTask[] => {
 
 // Permission: Only admins can reassign tasks
 
+interface TaskChangeLog {
+  id: string;
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+  changed_by_user?: { first_name: string; last_name: string } | null;
+}
+
 const columns = (
   handleUpdate: (taskId: string, field: string, value: any) => void, 
   handleAssigneesUpdate: (taskId: string, userIds: string[]) => void,
@@ -125,7 +136,9 @@ const columns = (
   handleBorrowerClick: (borrowerId: string) => void,
   canDeleteOrChangeDueDate: boolean,
   canReassign: boolean,
-  isAdmin: boolean
+  isAdmin: boolean,
+  taskChangeLogs: Record<string, TaskChangeLog[]>,
+  fetchTaskChangeLogs: (taskId: string) => void
 ): ColumnDef<ModernTask>[] => {
   const baseColumns: ColumnDef<ModernTask>[] = [
   {
@@ -364,9 +377,10 @@ const columns = (
       cell: ({ row }) => {
         const updatedAt = row.original.updated_at;
         const updater = row.original.updater;
+        const logs = taskChangeLogs[row.original.id] || [];
         if (!updatedAt) return <span className="text-muted-foreground">-</span>;
         return (
-          <Popover>
+          <Popover onOpenChange={(open) => open && fetchTaskChangeLogs(row.original.id)}>
             <PopoverTrigger asChild>
               <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
                 <UserAvatar 
@@ -380,9 +394,28 @@ const columns = (
                 </span>
               </div>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2 text-xs" align="center">
+            <PopoverContent className="w-72 p-3 text-xs" align="center">
               <div className="font-medium">{updater?.first_name || 'Unknown'} {updater?.last_name || ''}</div>
-              <div className="text-muted-foreground">{format(new Date(updatedAt), 'MMM d, yyyy h:mm a')}</div>
+              <div className="text-muted-foreground mb-2">{format(new Date(updatedAt), 'MMM d, yyyy h:mm a')}</div>
+              
+              <Separator className="my-2" />
+              
+              <div className="text-xs font-medium mb-1">Recent Changes:</div>
+              {logs.length > 0 ? (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {logs.map((log, i) => (
+                    <div key={i} className="text-muted-foreground">
+                      <span className="font-medium text-foreground">{log.field_name}</span>
+                      {' changed from '}
+                      <span className="line-through">{log.old_value || '(empty)'}</span>
+                      {' to '}
+                      <span className="font-medium">{log.new_value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-muted-foreground italic">No recent changes tracked</div>
+              )}
             </PopoverContent>
           </Popover>
         );
@@ -455,6 +488,7 @@ export default function TasksModern() {
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'review' | 'overdue' | 'completed'>('all');
+  const [taskChangeLogs, setTaskChangeLogs] = useState<Record<string, TaskChangeLog[]>>({});
   const modalJustClosed = useRef(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
@@ -462,6 +496,22 @@ export default function TasksModern() {
   // Permission checks - only admins can delete/change due date/reassign
   const canDeleteOrChangeDueDate = crmUser?.role === 'Admin';
   const canReassign = crmUser?.role === 'Admin';
+
+  // Fetch task change logs for a specific task
+  const fetchTaskChangeLogs = useCallback(async (taskId: string) => {
+    if (taskChangeLogs[taskId]) return; // Already fetched
+    
+    const { data, error } = await supabase
+      .from('task_change_logs')
+      .select('*, changed_by_user:users!task_change_logs_changed_by_fkey(first_name, last_name)')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (!error && data) {
+      setTaskChangeLogs(prev => ({ ...prev, [taskId]: data as TaskChangeLog[] }));
+    }
+  }, [taskChangeLogs]);
 
   // Column visibility hook for views system
   const {
@@ -1524,7 +1574,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
                     data={sortedOpenTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
@@ -1555,7 +1605,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
-                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin)}
+                    columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
                     data={sortedDoneTasks}
                     searchTerm={searchTerm}
                     onViewDetails={handleViewDetails}
