@@ -73,14 +73,14 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 175,
+  title: 200,
   created_at: 70,
   borrower: 130,
   'borrower.pipeline_stage.name': 95,
   priority: 80,
   assignee: 90,
   due_date: 100,
-  notes: 200,
+  notes: 400,
   status: 100,
   updated_at: 90,
   reviewed: 70,
@@ -145,7 +145,7 @@ const columns = (
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-    <div className="flex-shrink-0">
+    <div className="overflow-hidden" style={{ maxWidth: '190px' }}>
       <div className="font-medium text-sm truncate" title={row.original.title}>{row.original.title}</div>
       
       {/* Show description ONLY if no completion requirement */}
