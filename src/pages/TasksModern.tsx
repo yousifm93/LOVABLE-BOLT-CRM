@@ -71,17 +71,17 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 384,
-  created_at: 80,
-  borrower: 128,
-  'borrower.pipeline_stage.name': 100,
-  priority: 90,
-  assignee: 100,
+  title: 350,
+  created_at: 70,
+  borrower: 130,
+  'borrower.pipeline_stage.name': 95,
+  priority: 80,
+  assignee: 90,
   due_date: 100,
-  notes: 192,
-  status: 120,
-  updated_at: 110,
-  reviewed: 80,
+  notes: 200,
+  status: 100,
+  updated_at: 90,
+  reviewed: 70,
 };
 
 // Priority ranking helper for sorting
@@ -132,8 +132,8 @@ const columns = (
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-    <div className="w-96 min-w-96 flex-shrink-0">
-      <div className="font-medium text-sm max-w-[380px] truncate" title={row.original.title}>{row.original.title}</div>
+    <div className="flex-shrink-0">
+      <div className="font-medium text-sm truncate" title={row.original.title}>{row.original.title}</div>
       
       {/* Show description ONLY if no completion requirement */}
       {!(row.original as any).completion_requirement_type && row.original.description && (
@@ -186,8 +186,7 @@ const columns = (
           onValueChange={(leadId, leadName) => {
             handleUpdate(row.original.id, 'borrower_id', leadId);
           }}
-          onBorrowerClick={handleBorrowerClick}
-          className="w-32"
+        onBorrowerClick={handleBorrowerClick}
         />
       ) : (
         <Badge variant="outline" className="text-xs">NBT</Badge>
@@ -310,14 +309,12 @@ const columns = (
     accessorKey: "notes",
     header: "Notes",
     cell: ({ row }) => (
-      <div className="w-48 min-w-48">
-        <InlineEditNotes
-          value={row.original.notes || null}
-          onValueChange={(value) => handleUpdate(row.original.id, "notes", value)}
-          placeholder="Add notes..."
-          maxLength={500}
-        />
-      </div>
+      <InlineEditNotes
+        value={row.original.notes || null}
+        onValueChange={(value) => handleUpdate(row.original.id, "notes", value)}
+        placeholder="Add notes..."
+        maxLength={500}
+      />
     ),
     sortable: false,
   },
@@ -684,11 +681,17 @@ export default function TasksModern() {
           task.id === taskId ? { ...task, ...updateData } : task
         ));
       } else {
-        await databaseService.updateTask(taskId, { [field]: value });
+        const updatedTask = await databaseService.updateTask(taskId, { [field]: value });
         
-        // Update local state
+        // Update local state with full returned task (includes updated_at, updated_by, updater)
         setTasks(tasks.map(task => 
-          task.id === taskId ? { ...task, [field]: value } : task
+          task.id === taskId ? { 
+            ...task, 
+            [field]: value,
+            updated_at: updatedTask.updated_at,
+            updated_by: updatedTask.updated_by,
+            updater: updatedTask.updater
+          } : task
         ));
         
         // If marked as Done, check if lead needs a placeholder task

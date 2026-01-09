@@ -1249,7 +1249,8 @@ export const databaseService = {
         *,
         assignee:users!tasks_assignee_id_fkey(id, first_name, last_name, email),
         created_by_user:users!tasks_created_by_fkey(*),
-        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name)
+        borrower:leads!tasks_borrower_id_fkey(id, first_name, last_name, pipeline_stage:pipeline_stages(id, name, order_index)),
+        updater:users!tasks_updated_by_fkey(id, first_name, last_name, email)
       `)
       .single();
     
