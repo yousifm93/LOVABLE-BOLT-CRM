@@ -70,7 +70,7 @@ export function InlineEditBorrower({
   }
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-1 min-w-0 max-w-full", className)}>
       {/* Clickable name to open lead details */}
       <span
         onClick={(e) => {
@@ -83,9 +83,10 @@ export function InlineEditBorrower({
           }
         }}
         className={cn(
-          "text-sm px-1 py-1 rounded cursor-pointer transition-colors",
+          "text-sm px-1 py-1 rounded cursor-pointer transition-colors truncate min-w-0 max-w-full",
           borrowerId ? "hover:text-primary hover:bg-muted/50" : "text-muted-foreground hover:bg-muted/50"
         )}
+        title={value || placeholder}
       >
         {value || placeholder}
       </span>
