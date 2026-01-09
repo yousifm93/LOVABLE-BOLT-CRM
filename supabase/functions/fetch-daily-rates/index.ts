@@ -38,6 +38,7 @@ serve(async (req) => {
     const scenarios = [
       {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         scenario_type: '30yr_fixed',
@@ -45,6 +46,7 @@ serve(async (req) => {
       },
       {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         scenario_type: '15yr_fixed',
@@ -52,6 +54,7 @@ serve(async (req) => {
       },
       {
         ...baseScenario,
+        loan_type: 'FHA',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         scenario_type: 'fha_30yr',
@@ -59,6 +62,7 @@ serve(async (req) => {
       },
       {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
         scenario_type: 'bank_statement',
@@ -66,6 +70,7 @@ serve(async (req) => {
       },
       {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'DSCR',
         dscr_ratio: '1.5',
         occupancy: 'Investment',
