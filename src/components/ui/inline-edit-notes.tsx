@@ -45,7 +45,7 @@ export function InlineEditNotes({
   if (disabled) {
     return (
       <div 
-        className={cn("text-sm h-9 leading-relaxed p-1 rounded-md bg-muted/30 truncate", className)}
+        className={cn("text-sm min-h-[36px] leading-relaxed p-1 rounded-md bg-muted/30 line-clamp-3 whitespace-normal", className)}
         title={value || undefined}
       >
         {value || <span className="text-muted-foreground">{placeholder}</span>}
@@ -82,7 +82,7 @@ export function InlineEditNotes({
         setEditValue(value || "");
       }}
       className={cn(
-        "text-sm text-left h-9 leading-relaxed w-full p-1 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border truncate",
+        "text-sm text-left min-h-[36px] leading-relaxed w-full p-1 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border line-clamp-3 whitespace-normal",
         className
       )}
       title={value || undefined}
