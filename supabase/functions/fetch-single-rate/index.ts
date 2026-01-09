@@ -24,10 +24,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const axiomApiKey = Deno.env.get('AXIOM_API_KEY');
-    if (!axiomApiKey) {
-      throw new Error('AXIOM_API_KEY not configured');
-    }
 
     // Base scenario parameters
     const baseScenario = {
@@ -108,56 +104,25 @@ serve(async (req) => {
 
     console.log(`Created pricing run for ${scenario_type}:`, pricingRun.id);
 
-    // For DSCR, always ensure dscr_ratio is explicitly set
-    const dscrRatioValue = scenario_type === 'dscr' ? '1.5' : (scenarioConfig.dscr_ratio || '');
 
-    // Always send 11 fields including loan_term
-    const axiomData = [[
-      pricingRun.id,
-      scenarioConfig.fico_score?.toString() || '',
-      scenarioConfig.zip_code || '',
-      scenarioConfig.num_units?.toString() || '1',
-      scenarioConfig.purchase_price?.toString() || '',
-      scenarioConfig.loan_amount?.toString() || '',
-      scenarioConfig.occupancy || '',
-      scenarioConfig.property_type || '',
-      scenarioConfig.income_type || 'Full Doc - 24M',
-      dscrRatioValue,
-      (scenarioConfig.loan_term?.toString() || '30') + 'yr',
-    ]];
-
-    console.log(`Triggering Axiom for ${scenario_type}:`, {
+    console.log(`Triggering loan-pricer-axiom for ${scenario_type}:`, {
       run_id: pricingRun.id,
       income_type: scenarioConfig.income_type,
-      dscr_ratio: dscrRatioValue,
-      occupancy: scenarioConfig.occupancy,
-      axiom_data_row: axiomData[0]
+      dscr_ratio: scenarioConfig.dscr_ratio,
+      occupancy: scenarioConfig.occupancy
     });
 
-    const axiomResponse = await fetch('https://lar.axiom.ai/api/v3/trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: axiomApiKey,
-        name: 'Axiom Loan Pricer Tool',
-        data: axiomData
-      }),
+    // Use loan-pricer-axiom edge function for consistency with regular Loan Pricer
+    const { data: axiomResult, error: axiomError } = await supabase.functions.invoke('loan-pricer-axiom', {
+      body: { run_id: pricingRun.id }
     });
 
-    if (!axiomResponse.ok) {
-      const errorText = await axiomResponse.text();
-      console.error(`Axiom API error for ${scenario_type}:`, errorText);
-      throw new Error(`Axiom API error: ${errorText}`);
+    if (axiomError) {
+      console.error(`loan-pricer-axiom error for ${scenario_type}:`, axiomError);
+      throw new Error(`loan-pricer-axiom error: ${axiomError.message}`);
     }
 
-    const axiomResult = await axiomResponse.json();
-    console.log(`Axiom response for ${scenario_type}:`, axiomResult);
-
-    // Update pricing run status to running
-    await supabase
-      .from('pricing_runs')
-      .update({ status: 'running', updated_at: new Date().toISOString() })
-      .eq('id', pricingRun.id);
+    console.log(`loan-pricer-axiom response for ${scenario_type}:`, axiomResult);
 
     return new Response(
       JSON.stringify({

@@ -1537,6 +1537,63 @@ export default function Active() {
         </Button>
 
         <Button
+          variant={activeView === "Processor Review" ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            const reviewColumns = [...mainViewColumns];
+            if (!reviewColumns.includes('earliest_task_due_date')) {
+              reviewColumns.push('earliest_task_due_date');
+            }
+            
+            const orderedReviewColumns = reviewColumns
+              .map(id => columnVisibility.find(col => col.id === id))
+              .filter((col): col is { id: string; label: string; visible: boolean } => col !== undefined)
+              .map(col => ({ ...col, visible: true }));
+            
+            const existingIds = new Set(reviewColumns);
+            const remainingColumns = columnVisibility
+              .filter(col => !existingIds.has(col.id))
+              .map(col => ({ ...col, visible: false }));
+            
+            const newColumnOrder = [...orderedReviewColumns, ...remainingColumns];
+            setColumns(newColumnOrder);
+            setActiveView("Processor Review");
+            setIsReviewMode(true);
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            setFilters([
+              {
+                id: 'processor-due-date',
+                column: 'earliest_task_due_date',
+                operator: 'is_on_or_before',
+                value: todayStr
+              },
+              {
+                id: 'processor-not-reviewed-today',
+                column: 'last_morning_review_at',
+                operator: 'is_empty_or_before_today',
+                value: todayStr
+              },
+              {
+                id: 'processor-user',
+                column: 'team',
+                operator: 'is',
+                value: 'Ashley Merizio'
+              }
+            ]);
+            
+            toast({
+              title: "Processor Review Loaded",
+              description: "Showing loans assigned to Ashley with overdue tasks not yet reviewed"
+            });
+          }}
+          className="h-8 text-xs"
+        >
+          Processor Review
+        </Button>
+
+        <Button
           variant="outline"
           size="sm"
           onClick={() => setIsActivityLogOpen(true)}
