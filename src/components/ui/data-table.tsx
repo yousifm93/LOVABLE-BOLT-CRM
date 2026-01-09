@@ -336,12 +336,18 @@ export function DataTable<T extends Record<string, any>>({
     return initialWidthsFromCols;
   });
 
+  // Stringify initialColumnWidths for proper dependency comparison during HMR
+  const initialColumnWidthsString = React.useMemo(
+    () => JSON.stringify(initialColumnWidths),
+    [initialColumnWidths]
+  );
+
   // Update column widths when initialColumnWidths changes (from admin settings)
   React.useEffect(() => {
     if (lockResize && initialColumnWidths && Object.keys(initialColumnWidths).length > 0) {
       setColumnWidths(initialColumnWidths);
     }
-  }, [lockResize, initialColumnWidths]);
+  }, [lockResize, initialColumnWidthsString, initialColumnWidths]);
 
   // Save column widths to localStorage whenever they change (only when not locked)
   React.useEffect(() => {
