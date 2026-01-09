@@ -316,6 +316,7 @@ const columns = (
   {
     accessorKey: "notes",
     header: "Notes",
+    maxWidth: 160,
     cell: ({ row }) => (
       <InlineEditNotes
         value={row.original.notes || null}
