@@ -53,14 +53,15 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
       
       if (!crmUser) throw new Error("CRM user not found");
 
-      // Create activity log entry
+      // Create activity log entry with the user-selected date
       const logType = meetingType === 'broker_open' ? 'broker_open' : 'meeting';
       await databaseService.createAgentCallLog(
         agent.id,
         summary.trim(),
         crmUser.id,
         logType,
-        location.trim() || undefined
+        location.trim() || undefined,
+        new Date(meetingDate).toISOString()
       );
 
       // Update appropriate agent field based on meeting type

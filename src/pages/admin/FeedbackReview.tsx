@@ -71,10 +71,20 @@ export default function FeedbackReview() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: feedbackData, error: feedbackError } = await supabase
+        // Determine if current user is admin
+        const isAdmin = crmUser?.role === 'admin';
+        
+        // Build feedback query - non-admins only see their own feedback
+        let feedbackQuery = supabase
           .from('team_feedback')
           .select('*')
           .order('updated_at', { ascending: false });
+        
+        if (!isAdmin && crmUser?.id) {
+          feedbackQuery = feedbackQuery.eq('user_id', crmUser.id);
+        }
+
+        const { data: feedbackData, error: feedbackError } = await feedbackQuery;
 
         if (feedbackError) throw feedbackError;
 
@@ -83,9 +93,14 @@ export default function FeedbackReview() {
         const { data: usersData, error: usersError } = await supabase
           .from('users')
           .select('id, first_name, last_name')
-          .in('id', userIds);
+          .in('id', userIds.length > 0 ? userIds : ['none']);
 
         if (usersError) throw usersError;
+        
+        // Non-admins only see their own tab
+        const teamMembersToShow = isAdmin 
+          ? usersData || []
+          : usersData?.filter(u => u.id === crmUser?.id) || [];
 
         const { data: commentsData, error: commentsError } = await supabase
           .from('team_feedback_comments')
@@ -119,7 +134,7 @@ export default function FeedbackReview() {
             .in('id', unreadIds);
         }
 
-        setTeamMembers(usersData || []);
+        setTeamMembers(teamMembersToShow);
         setFeedback((feedbackData || []).map(f => ({
           ...f,
           feedback_items: Array.isArray(f.feedback_items) ? f.feedback_items as Array<FeedbackItemContent | string> : []

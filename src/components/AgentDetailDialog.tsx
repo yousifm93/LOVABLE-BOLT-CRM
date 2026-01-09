@@ -339,7 +339,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                           {/* Left side - Log Type (prominent) */}
                           <div className="flex-1">
                             <div className="text-base font-semibold text-foreground mb-1">
-                              {log.log_type === 'meeting' ? '🤝 Meeting' : '📞 Call'}
+                              {log.log_type === 'meeting' ? '🤝 Meeting' : log.log_type === 'broker_open' ? '📅 Broker\'s Open' : '📞 Call'}
                             </div>
                             {log.meeting_location && (
                               <div className="text-xs text-muted-foreground mb-1">
