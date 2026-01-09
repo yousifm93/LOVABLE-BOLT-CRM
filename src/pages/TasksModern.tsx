@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck } from "lucide-react";
+import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format, formatDistance } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -487,6 +487,7 @@ export default function TasksModern() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReviewActive, setIsReviewActive] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [tableInstanceKey, setTableInstanceKey] = useState(0);
   const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'review' | 'overdue' | 'completed'>('all');
   const [taskChangeLogs, setTaskChangeLogs] = useState<Record<string, TaskChangeLog[]>>({});
   const modalJustClosed = useRef(false);
@@ -496,6 +497,16 @@ export default function TasksModern() {
   // Permission checks - only admins can delete/change due date/reassign
   const canDeleteOrChangeDueDate = crmUser?.role === 'Admin';
   const canReassign = crmUser?.role === 'Admin';
+  
+  // Reset column widths to defaults
+  const handleResetColumnWidths = useCallback(() => {
+    localStorage.removeItem("tasks-modern_widths");
+    setTableInstanceKey(prev => prev + 1);
+    toast({
+      title: "Column widths reset",
+      description: "Drag column edges to resize. Double-click to auto-fit.",
+    });
+  }, [toast]);
 
   // Fetch task change logs for a specific task
   const fetchTaskChangeLogs = useCallback(async (taskId: string) => {
@@ -1492,6 +1503,16 @@ export default function TasksModern() {
               }}
             />
             
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetColumnWidths}
+              title="Reset column widths to defaults"
+              className="h-8"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            
             {/* User Filter Icons - Only visible to admins */}
             {isAdmin && (
               <div className="flex items-center gap-2">
@@ -1574,6 +1595,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
+                    key={`open-${tableInstanceKey}`}
                     columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
                     data={sortedOpenTasks}
                     searchTerm={searchTerm}
@@ -1588,7 +1610,8 @@ export default function TasksModern() {
                     compact={true}
                     limitedActions={!isAdmin}
                     initialColumnWidths={TASK_COLUMN_WIDTHS}
-                    lockResize={true}
+                    lockResize={false}
+                    storageKey="tasks-modern"
                   />
                 </CollapsibleContent>
               </Collapsible>
@@ -1605,6 +1628,7 @@ export default function TasksModern() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <DataTable
+                    key={`done-${tableInstanceKey}`}
                     columns={columns(handleUpdate, handleAssigneesUpdate, leads, assignableUsers, handleBorrowerClick, canDeleteOrChangeDueDate, canReassign, isAdmin, taskChangeLogs, fetchTaskChangeLogs)}
                     data={sortedDoneTasks}
                     searchTerm={searchTerm}
@@ -1619,7 +1643,8 @@ export default function TasksModern() {
                     compact={true}
                     limitedActions={!isAdmin}
                     initialColumnWidths={TASK_COLUMN_WIDTHS}
-                    lockResize={true}
+                    lockResize={false}
+                    storageKey="tasks-modern"
                   />
                 </CollapsibleContent>
               </Collapsible>
