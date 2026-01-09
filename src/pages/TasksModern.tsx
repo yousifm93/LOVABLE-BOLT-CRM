@@ -73,14 +73,14 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 145,
+  title: 120,
   created_at: 65,
   borrower: 90,
   'borrower.pipeline_stage.name': 85,
   priority: 70,
   assignee: 80,
   due_date: 95,
-  notes: 130,
+  notes: 160,
   status: 90,
   updated_at: 80,
   reviewed: 65,
