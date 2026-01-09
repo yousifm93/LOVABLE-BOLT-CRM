@@ -132,6 +132,10 @@ export function AppSidebar() {
   const [pendingEmailQueueCount, setPendingEmailQueueCount] = useState(0);
   const [emailQueueModalOpen, setEmailQueueModalOpen] = useState(false);
   
+  // Feedback notification counts
+  const [newFeedbackCount, setNewFeedbackCount] = useState(0); // For admin - unread feedback
+  const [unreadResponseCount, setUnreadResponseCount] = useState(0); // For users - unread admin responses
+  
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -312,6 +316,50 @@ export function AppSidebar() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Fetch feedback notification counts
+  useEffect(() => {
+    const fetchFeedbackCounts = async () => {
+      // For admin: count unread new feedback (is_read_by_admin = false)
+      const { count: newCount } = await supabase
+        .from('team_feedback')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_read_by_admin', false);
+      setNewFeedbackCount(newCount || 0);
+    };
+
+    fetchFeedbackCounts();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('team_feedback_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'team_feedback' },
+        () => fetchFeedbackCounts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Fetch unread response count for current user
+  useEffect(() => {
+    const fetchUnreadResponses = async () => {
+      if (!user?.id) return;
+      try {
+        const userData = await supabase.from('users').select('id').eq('auth_uid', user.id).maybeSingle();
+        if (!userData.data?.id) return;
+        const result = await supabase.from('team_feedback').select('id').eq('user_id', userData.data.id).eq('admin_response_read_by_user', false);
+        setUnreadResponseCount(result.data?.length || 0);
+      } catch { setUnreadResponseCount(0); }
+    };
+
+    fetchUnreadResponses();
+    const channel = supabase.channel('feedback_user_sub').on('postgres_changes', { event: '*', schema: 'public', table: 'team_feedback' }, () => fetchUnreadResponses()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -708,6 +756,11 @@ export function AppSidebar() {
                   <NavLink to="/feedback" className={getNavClassName}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     {!collapsed && <span>Submit Feedback</span>}
+                    {!collapsed && unreadResponseCount > 0 && (
+                      <Badge className="ml-auto bg-red-500 text-white h-5 min-w-[20px] text-xs flex items-center justify-center">
+                        {unreadResponseCount}
+                      </Badge>
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -717,6 +770,9 @@ export function AppSidebar() {
                     <NavLink to="/admin/feedback-review" className={getNavClassName}>
                       <MessageSquare className="mr-2 h-4 w-4" />
                       {!collapsed && <span>Review Feedback</span>}
+                      {!collapsed && newFeedbackCount > 0 && (
+                        <span className="ml-auto h-2 w-2 bg-red-500 rounded-full" />
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

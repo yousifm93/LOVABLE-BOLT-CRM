@@ -2,142 +2,179 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, Loader2, Trash2, ChevronDown, ChevronRight, ImagePlus, X } from "lucide-react";
+import { Plus, Check, Loader2, ChevronDown, ChevronRight, ImagePlus, X, MessageSquare, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
-interface FeedbackSection {
-  key: string;
-  label: string;
-}
+// Master list of feedback categories
+const feedbackCategories = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'tasks', label: 'Tasks' },
+  { key: 'email', label: 'Email' },
+  { key: 'pipeline', label: 'Pipeline' },
+  { key: 'past_clients', label: 'Past Clients' },
+  { key: 'real_estate_agents', label: 'Real Estate Agents' },
+  { key: 'approved_lenders', label: 'Approved Lenders' },
+  { key: 'bolt_bot', label: 'Bolt Bot' },
+  { key: 'preapproval_letter', label: 'Pre-Approval Letter' },
+  { key: 'loan_pricer', label: 'Loan Pricer' },
+  { key: 'property_value', label: 'Property Value' },
+  { key: 'income_calculator', label: 'Income Calculator' },
+  { key: 'loan_estimate', label: 'Loan Estimate' },
+  { key: 'condolist', label: 'Condolist' },
+  { key: 'other', label: 'Other' },
+];
 
-const userSections: Record<string, FeedbackSection[]> = {
-  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee': [
-    { key: 'tasks', label: 'Tasks' },
-    { key: 'pipeline', label: 'Pipeline' },
-    { key: 'bolt_bot', label: 'Bolt Bot' },
-    { key: 'preapproval_letter', label: 'Pre-Approval Letter' },
-    { key: 'loan_pricer', label: 'Loan Pricer' },
-    { key: 'property_value', label: 'Property Value' },
-    { key: 'income_calculator', label: 'Income Calculator' },
-    { key: 'loan_estimate', label: 'Loan Estimate' },
-  ],
-  '159376ae-30e9-4997-b61f-76ab8d7f224b': [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'tasks', label: 'Tasks' },
-    { key: 'pipeline', label: 'Pipeline' },
-    { key: 'real_estate_agents', label: 'Real Estate Agents' },
-  ],
-};
-
-interface FeedbackItemData {
+interface FeedbackItemContent {
   text: string;
   image_url?: string;
 }
 
-interface ItemStatusData {
+interface FeedbackItem {
+  id: string;
+  user_id: string;
+  section_key: string;
+  section_label: string;
+  feedback_items: FeedbackItemContent[];
+  created_at: string;
+  updated_at: string;
+  is_read_by_admin: boolean;
+  admin_response_read_by_user: boolean;
+}
+
+interface ItemStatus {
   feedback_id: string;
   item_index: number;
   status: 'pending' | 'complete' | 'needs_help' | 'idea';
 }
 
-interface SectionFeedback {
-  id?: string;
-  items: FeedbackItemData[];
-  saved: boolean;
-  loading: boolean;
+interface FeedbackComment {
+  id: string;
+  feedback_id: string;
+  item_index: number;
+  comment: string;
+  admin_name?: string;
+  created_at: string;
 }
 
 export default function Feedback() {
   const { crmUser } = useAuth();
   const { toast } = useToast();
-  const [feedbackData, setFeedbackData] = useState<Record<string, SectionFeedback>>({});
-  const [itemStatuses, setItemStatuses] = useState<ItemStatusData[]>([]);
+  const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
+  const [itemStatuses, setItemStatuses] = useState<ItemStatus[]>([]);
+  const [comments, setComments] = useState<FeedbackComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [completedSectionsOpen, setCompletedSectionsOpen] = useState<Record<string, boolean>>({});
-
-  const sections = crmUser?.id ? userSections[crmUser.id] || [] : [];
+  
+  // New feedback dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [newFeedbackText, setNewFeedbackText] = useState("");
+  const [newFeedbackImage, setNewFeedbackImage] = useState<string | undefined>();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const loadExistingFeedback = async () => {
-      if (!crmUser?.id || sections.length === 0) {
-        setLoading(false);
-        return;
-      }
+    loadFeedback();
+  }, [crmUser?.id]);
 
-      try {
-        const { data, error } = await supabase
-          .from('team_feedback')
+  const loadFeedback = async () => {
+    if (!crmUser?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch all feedback for this user
+      const { data: feedbackData, error: feedbackError } = await supabase
+        .from('team_feedback')
+        .select('*')
+        .eq('user_id', crmUser.id)
+        .order('updated_at', { ascending: false });
+
+      if (feedbackError) throw feedbackError;
+
+      // Fetch item statuses
+      const feedbackIds = feedbackData?.map(f => f.id) || [];
+      let statusData: ItemStatus[] = [];
+      if (feedbackIds.length > 0) {
+        const { data: statuses } = await supabase
+          .from('team_feedback_item_status')
           .select('*')
-          .eq('user_id', crmUser.id);
-
-        if (error) throw error;
-
-        // Fetch item statuses for this user's feedback
-        const feedbackIds = data?.map(f => f.id) || [];
-        let statusData: ItemStatusData[] = [];
-        if (feedbackIds.length > 0) {
-          const { data: statuses } = await supabase
-            .from('team_feedback_item_status')
-            .select('*')
-            .in('feedback_id', feedbackIds);
-          statusData = (statuses || []) as ItemStatusData[];
-        }
-        setItemStatuses(statusData);
-
-        const initialData: Record<string, SectionFeedback> = {};
-        const initialExpanded: Record<string, boolean> = {};
-        
-        sections.forEach(section => {
-          const existingFeedback = data?.find(f => f.section_key === section.key);
-          const feedbackItems = existingFeedback?.feedback_items;
-          let items: FeedbackItemData[] = [{ text: '' }, { text: '' }, { text: '' }];
-          if (Array.isArray(feedbackItems)) {
-            items = feedbackItems.map((item: any) => 
-              typeof item === 'string' ? { text: item } : { text: item.text || '', image_url: item.image_url }
-            );
-          }
-          initialData[section.key] = {
-            id: existingFeedback?.id,
-            items,
-            saved: !!existingFeedback,
-            loading: false,
-          };
-          initialExpanded[section.key] = true;
-        });
-
-        setFeedbackData(initialData);
-        setExpandedSections(initialExpanded);
-      } catch (error) {
-        console.error('Error loading feedback:', error);
-        toast({ title: "Error", description: "Failed to load existing feedback.", variant: "destructive" });
-      } finally {
-        setLoading(false);
+          .in('feedback_id', feedbackIds);
+        statusData = (statuses || []) as ItemStatus[];
       }
-    };
 
-    loadExistingFeedback();
-  }, [crmUser?.id, sections.length, toast]);
+      // Fetch comments
+      let commentsData: FeedbackComment[] = [];
+      if (feedbackIds.length > 0) {
+        const { data: commentsResult } = await supabase
+          .from('team_feedback_comments')
+          .select('*')
+          .in('feedback_id', feedbackIds)
+          .order('created_at', { ascending: true });
+        
+        if (commentsResult && commentsResult.length > 0) {
+          // Get admin names
+          const adminIds = [...new Set(commentsResult.map(c => c.admin_id))];
+          const { data: adminData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name')
+            .in('id', adminIds);
+          
+          const adminMap = new Map(adminData?.map(a => [a.id, `${a.first_name} ${a.last_name}`]) || []);
+          commentsData = commentsResult.map(c => ({
+            ...c,
+            admin_name: adminMap.get(c.admin_id) || 'Admin'
+          }));
+        }
+      }
 
-  const toggleSection = (sectionKey: string) => {
-    setExpandedSections(prev => ({ ...prev, [sectionKey]: !prev[sectionKey] }));
+      // Mark feedback with unread responses as read
+      const unreadFeedbackIds = feedbackData?.filter(f => !f.admin_response_read_by_user).map(f => f.id) || [];
+      if (unreadFeedbackIds.length > 0) {
+        await supabase
+          .from('team_feedback')
+          .update({ admin_response_read_by_user: true })
+          .in('id', unreadFeedbackIds);
+      }
+
+      const processedFeedback = (feedbackData || []).map(f => ({
+        ...f,
+        feedback_items: Array.isArray(f.feedback_items) 
+          ? f.feedback_items.map((item: any) => 
+              typeof item === 'string' ? { text: item } : { text: item.text || '', image_url: item.image_url }
+            )
+          : []
+      })) as FeedbackItem[];
+
+      setFeedbackList(processedFeedback);
+      setItemStatuses(statusData);
+      setComments(commentsData);
+
+      // Expand all sections by default
+      const initialExpanded: Record<string, boolean> = {};
+      processedFeedback.forEach(f => { initialExpanded[f.id] = true; });
+      setExpandedSections(initialExpanded);
+    } catch (error) {
+      console.error('Error loading feedback:', error);
+      toast({ title: "Error", description: "Failed to load feedback.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateFeedbackItem = (sectionKey: string, index: number, text: string) => {
-    setFeedbackData(prev => ({
-      ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, text } : item), saved: false }
-    }));
-  };
-
-  const handleImageUpload = async (sectionKey: string, index: number, file: File) => {
-    if (!crmUser?.id) return;
+  const handleImageUpload = async (file: File): Promise<string | undefined> => {
+    if (!crmUser?.id) return undefined;
     
     const fileExt = file.name.split('.').pop();
-    const fileName = `${crmUser.id}/${sectionKey}/${Date.now()}.${fileExt}`;
+    const fileName = `${crmUser.id}/${Date.now()}.${fileExt}`;
     
     const { error } = await supabase.storage
       .from('feedback-attachments')
@@ -145,187 +182,267 @@ export default function Feedback() {
     
     if (error) {
       toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
-      return;
+      return undefined;
     }
     
     const { data: { publicUrl } } = supabase.storage.from('feedback-attachments').getPublicUrl(fileName);
-    
-    setFeedbackData(prev => ({
-      ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, image_url: publicUrl } : item), saved: false }
-    }));
+    return publicUrl;
   };
 
-  const removeImage = (sectionKey: string, index: number) => {
-    setFeedbackData(prev => ({
-      ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: prev[sectionKey].items.map((item, i) => i === index ? { ...item, image_url: undefined } : item), saved: false }
-    }));
-  };
+  const submitNewFeedback = async () => {
+    if (!crmUser?.id || !newCategory || !newFeedbackText.trim()) {
+      toast({ title: "Error", description: "Please select a category and enter feedback.", variant: "destructive" });
+      return;
+    }
 
-  const addMoreFeedback = (sectionKey: string) => {
-    setFeedbackData(prev => ({
-      ...prev,
-      [sectionKey]: { ...prev[sectionKey], items: [...prev[sectionKey].items, { text: '' }], saved: false }
-    }));
-  };
-
-  const removeFeedbackItem = (sectionKey: string, index: number) => {
-    setFeedbackData(prev => {
-      const items = prev[sectionKey].items.filter((_, i) => i !== index);
-      while (items.length < 3) items.push({ text: '' });
-      return { ...prev, [sectionKey]: { ...prev[sectionKey], items, saved: false } };
-    });
-  };
-
-  const getItemStatus = (feedbackId: string | undefined, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' => {
-    if (!feedbackId) return 'pending';
-    return itemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === itemIndex)?.status || 'pending';
-  };
-
-  const submitFeedback = async (sectionKey: string, sectionLabel: string) => {
-    if (!crmUser?.id) return;
-
-    setFeedbackData(prev => ({ ...prev, [sectionKey]: { ...prev[sectionKey], loading: true } }));
-
+    setSubmitting(true);
     try {
-      const feedbackItems = feedbackData[sectionKey].items.filter(item => item.text.trim() !== '' || item.image_url);
+      const categoryLabel = feedbackCategories.find(c => c.key === newCategory)?.label || newCategory;
+      
+      const feedbackItem: FeedbackItemContent = {
+        text: newFeedbackText.trim(),
+        image_url: newFeedbackImage
+      };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('team_feedback')
-        .upsert({
+        .insert({
           user_id: crmUser.id,
-          section_key: sectionKey,
-          section_label: sectionLabel,
-          feedback_items: feedbackItems.length > 0 ? feedbackItems : [{ text: '' }],
-          updated_at: new Date().toISOString()
-        } as any, { onConflict: 'user_id,section_key' })
-        .select()
-        .single();
+          section_key: newCategory,
+          section_label: categoryLabel,
+          feedback_items: [feedbackItem] as any,
+          is_read_by_admin: false,
+          admin_response_read_by_user: true
+        } as any);
 
       if (error) throw error;
 
-      setFeedbackData(prev => ({ ...prev, [sectionKey]: { ...prev[sectionKey], id: data.id, saved: true, loading: false } }));
-      toast({ title: "Feedback Saved", description: `Your ${sectionLabel} feedback has been saved.` });
+      toast({ title: "Feedback Submitted", description: "Your feedback has been submitted successfully." });
+      setDialogOpen(false);
+      setNewCategory("");
+      setNewFeedbackText("");
+      setNewFeedbackImage(undefined);
+      loadFeedback();
     } catch (error) {
-      console.error('Error saving feedback:', error);
-      setFeedbackData(prev => ({ ...prev, [sectionKey]: { ...prev[sectionKey], loading: false } }));
-      toast({ title: "Error", description: "Failed to save feedback. Please try again.", variant: "destructive" });
+      console.error('Error submitting feedback:', error);
+      toast({ title: "Error", description: "Failed to submit feedback.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' => {
+    return itemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === itemIndex)?.status || 'pending';
+  };
 
-  if (sections.length === 0) return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Submit Feedback</h1>
-      <Card><CardContent className="py-8 text-center text-muted-foreground">No feedback sections are assigned to your account.</CardContent></Card>
-    </div>
-  );
+  const getItemComments = (feedbackId: string, itemIndex: number) => {
+    return comments.filter(c => c.feedback_id === feedbackId && c.item_index === itemIndex);
+  };
+
+  const getStatusBadge = (status: 'pending' | 'complete' | 'needs_help' | 'idea') => {
+    switch (status) {
+      case 'complete':
+        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Complete</Badge>;
+      case 'needs_help':
+        return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">Needs Help</Badge>;
+      case 'idea':
+        return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Idea</Badge>;
+      default:
+        return <Badge variant="outline">Pending</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-2">Submit Feedback</h1>
-      <p className="text-muted-foreground mb-6">Share your thoughts on what could be improved in each section of the CRM.</p>
-
-      <div className="space-y-4">
-        {sections.map((section) => {
-          const sectionData = feedbackData[section.key] || { items: [{ text: '' }, { text: '' }, { text: '' }], saved: false, loading: false };
-          const isExpanded = expandedSections[section.key] ?? true;
-          
-          // Separate pending and completed items
-          const pendingItems = sectionData.items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(sectionData.id, index) !== 'complete');
-          const completedItems = sectionData.items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(sectionData.id, index) === 'complete');
-
-          return (
-            <Collapsible key={section.key} open={isExpanded} onOpenChange={() => toggleSection(section.key)}>
-              <Card>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                        <CardTitle className="text-xl">{section.label}</CardTitle>
-                      </div>
-                      {sectionData.saved && <div className="flex items-center gap-1 text-sm text-green-600"><Check className="h-4 w-4" />Saved</div>}
-                    </div>
-                    <CardDescription className="ml-7">What would you like to change or improve?</CardDescription>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-4">
-                    {pendingItems.map(({ item, index }) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-start gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1"><span className="text-sm font-medium text-muted-foreground">Feedback {index + 1}</span></div>
-                            <Textarea placeholder={`Enter your feedback for ${section.label}...`} value={item.text} onChange={(e) => updateFeedbackItem(section.key, index, e.target.value)} className="min-h-[80px]" />
-                          </div>
-                          {sectionData.items.length > 3 && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className={sectionData.saved ? "text-muted-foreground cursor-not-allowed mt-6" : "text-destructive hover:text-destructive mt-6"} 
-                              onClick={() => !sectionData.saved && removeFeedbackItem(section.key, index)}
-                              disabled={sectionData.saved}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 ml-0">
-                          {item.image_url ? (
-                            <div className="relative">
-                              <img src={item.image_url} alt="Attached" className="h-16 w-16 object-cover rounded border" />
-                              <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-5 w-5" onClick={() => removeImage(section.key, index)}><X className="h-3 w-3" /></Button>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer">
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(section.key, index, e.target.files[0]); }} />
-                              <Button variant="outline" size="sm" asChild><span><ImagePlus className="h-4 w-4 mr-1" />Attach Screenshot</span></Button>
-                            </label>
-                          )}
-                        </div>
-                      </div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Submit Feedback</h1>
+          <p className="text-muted-foreground">Share your thoughts on what could be improved in the CRM.</p>
+        </div>
+        
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              New Feedback
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Submit New Feedback</DialogTitle>
+              <DialogDescription>
+                Select a category and describe what you'd like to see improved.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select value={newCategory} onValueChange={setNewCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {feedbackCategories.map(cat => (
+                      <SelectItem key={cat.key} value={cat.key}>{cat.label}</SelectItem>
                     ))}
-                    
-                    {/* Completed Section */}
-                    {completedItems.length > 0 && (
-                      <Collapsible open={completedSectionsOpen[section.key]} onOpenChange={(open) => setCompletedSectionsOpen(prev => ({ ...prev, [section.key]: open }))}>
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50">
-                            {completedSectionsOpen[section.key] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            <Check className="h-4 w-4" />
-                            Completed ({completedItems.length})
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-3 mt-2">
-                          {completedItems.map(({ item, index }) => (
-                            <div key={index} className="p-3 rounded-lg border bg-muted/30 opacity-75">
-                              <div className="flex items-start gap-2">
-                                <Check className="h-4 w-4 text-green-600 mt-0.5" />
-                                <p className="text-sm line-through text-muted-foreground">{item.text || '(No text)'}</p>
-                              </div>
-                              {item.image_url && (
-                                <img src={item.image_url} alt="Attached" className="h-16 w-16 object-cover rounded border mt-2 ml-6" />
-                              )}
-                            </div>
-                          ))}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                    
-                    <div className="flex items-center justify-between pt-2">
-                      <Button variant="outline" size="sm" onClick={() => addMoreFeedback(section.key)} className="flex items-center gap-1"><Plus className="h-4 w-4" />Add More Feedback</Button>
-                      <Button onClick={() => submitFeedback(section.key, section.label)} disabled={sectionData.loading}>{sectionData.loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : 'Submit Feedback'}</Button>
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          );
-        })}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="feedback">Your Feedback</Label>
+                <Textarea
+                  id="feedback"
+                  placeholder="Describe what you'd like to see changed or improved..."
+                  value={newFeedbackText}
+                  onChange={(e) => setNewFeedbackText(e.target.value)}
+                  className="min-h-[120px]"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Screenshot (optional)</Label>
+                {newFeedbackImage ? (
+                  <div className="relative inline-block">
+                    <img src={newFeedbackImage} alt="Attached" className="h-20 w-auto object-cover rounded border" />
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute -top-2 -right-2 h-5 w-5" 
+                      onClick={() => setNewFeedbackImage(undefined)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={async (e) => {
+                        if (e.target.files?.[0]) {
+                          const url = await handleImageUpload(e.target.files[0]);
+                          if (url) setNewFeedbackImage(url);
+                        }
+                      }} 
+                    />
+                    <Button variant="outline" size="sm" asChild>
+                      <span><ImagePlus className="h-4 w-4 mr-1" />Attach Screenshot</span>
+                    </Button>
+                  </label>
+                )}
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={submitNewFeedback} disabled={submitting || !newCategory || !newFeedbackText.trim()}>
+                {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting...</> : <><Send className="h-4 w-4 mr-2" />Submit</>}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {feedbackList.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Feedback Yet</h3>
+            <p className="text-muted-foreground mb-4">Click "New Feedback" to submit your first feedback.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {feedbackList.map((feedback) => {
+            const isExpanded = expandedSections[feedback.id] ?? true;
+            
+            return (
+              <Collapsible 
+                key={feedback.id} 
+                open={isExpanded} 
+                onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [feedback.id]: open }))}
+              >
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                          <CardTitle className="text-lg">{feedback.section_label}</CardTitle>
+                          <Badge variant="outline" className="ml-2">{feedback.feedback_items.length} item{feedback.feedback_items.length !== 1 ? 's' : ''}</Badge>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(feedback.updated_at), 'MMM d, yyyy')}
+                        </span>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-4">
+                      {feedback.feedback_items.map((item, index) => {
+                        const status = getItemStatus(feedback.id, index);
+                        const itemComments = getItemComments(feedback.id, index);
+                        const isCompleted = status === 'complete';
+                        
+                        return (
+                          <div 
+                            key={index} 
+                            className={`p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : 'bg-muted/50'}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3 flex-1">
+                                <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
+                                <div className="flex-1">
+                                  <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                                    {item.text || '(No text)'}
+                                  </p>
+                                  {item.image_url && (
+                                    <a href={item.image_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                      <img src={item.image_url} alt="Attached screenshot" className="h-20 w-auto object-cover rounded border hover:opacity-80 transition-opacity" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                              {getStatusBadge(status)}
+                            </div>
+                            
+                            {/* Admin Responses */}
+                            {itemComments.length > 0 && (
+                              <div className="ml-7 mt-3 space-y-2 border-l-2 border-primary/20 pl-3">
+                                <p className="text-xs font-medium text-muted-foreground">Responses:</p>
+                                {itemComments.map((comment) => (
+                                  <div key={comment.id} className="text-sm">
+                                    <span className="font-medium text-primary">{comment.admin_name}:</span>
+                                    <span className="ml-1 text-muted-foreground">{comment.comment}</span>
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      {format(new Date(comment.created_at), 'MMM d, h:mm a')}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
