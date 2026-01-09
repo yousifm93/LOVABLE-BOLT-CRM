@@ -73,14 +73,14 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 250,
+  title: 175,
   created_at: 65,
   borrower: 90,
   'borrower.pipeline_stage.name': 85,
   priority: 70,
   assignee: 80,
   due_date: 95,
-  notes: 360,
+  notes: 80,
   status: 90,
   updated_at: 80,
   reviewed: 65,
@@ -373,6 +373,7 @@ const columns = (
     baseColumns.push({
       accessorKey: "updated_at",
       header: "Last Updated",
+      className: "text-left",
       cell: ({ row }) => {
         const updatedAt = row.original.updated_at;
         const updater = row.original.updater;
