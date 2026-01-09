@@ -349,15 +349,25 @@ export function AppSidebar() {
     const fetchUnreadResponses = async () => {
       if (!user?.id) return;
       try {
-        const userData = await supabase.from('users').select('id').eq('auth_uid', user.id).maybeSingle();
-        if (!userData.data?.id) return;
-        const result = await supabase.from('team_feedback').select('id').eq('user_id', userData.data.id).eq('admin_response_read_by_user', false);
-        setUnreadResponseCount(result.data?.length || 0);
+        // First get user's internal ID from users table
+        const { data: usersData } = await supabase.from('users').select('*');
+        const currentUser = usersData?.find(u => u.auth_user_id === user.id);
+        if (!currentUser?.id) return;
+        
+        // Then count unread responses for this user
+        const { data } = await supabase
+          .from('team_feedback')
+          .select('id')
+          .match({ user_id: currentUser.id, admin_response_read_by_user: false });
+        setUnreadResponseCount(data?.length || 0);
       } catch { setUnreadResponseCount(0); }
     };
 
     fetchUnreadResponses();
-    const channel = supabase.channel('feedback_user_sub').on('postgres_changes', { event: '*', schema: 'public', table: 'team_feedback' }, () => fetchUnreadResponses()).subscribe();
+    const channel = supabase
+      .channel('feedback_user_sub')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_feedback' }, () => fetchUnreadResponses())
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
