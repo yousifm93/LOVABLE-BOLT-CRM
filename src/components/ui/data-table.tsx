@@ -95,9 +95,12 @@ function ResizeHandle({ columnKey, currentWidth, onResize, onAutoFit, minWidth =
   const startWidthRef = React.useRef(0);
   const resizeLineRef = React.useRef<HTMLDivElement | null>(null);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Capture pointer for reliable tracking
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     
     // Store initial values in refs for stable access
     startXRef.current = e.clientX;
@@ -133,19 +136,19 @@ function ResizeHandle({ columnKey, currentWidth, onResize, onAutoFit, minWidth =
   React.useEffect(() => {
     if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       // Update resize line position
       if (resizeLineRef.current) {
         resizeLineRef.current.style.left = `${e.clientX}px`;
       }
 
-      // Calculate new width based on mouse movement
+      // Calculate new width based on pointer movement
       const diff = e.clientX - startXRef.current;
       const newWidth = Math.min(Math.max(startWidthRef.current + diff, minWidth), maxWidth);
       onResize(columnKey, newWidth);
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       setIsResizing(false);
       
       // Remove resize line
@@ -159,12 +162,12 @@ function ResizeHandle({ columnKey, currentWidth, onResize, onAutoFit, minWidth =
       document.body.style.cursor = '';
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
       
       // Cleanup on unmount
       if (resizeLineRef.current) {
@@ -179,12 +182,12 @@ function ResizeHandle({ columnKey, currentWidth, onResize, onAutoFit, minWidth =
   return (
     <div
       className={cn(
-        "absolute right-0 top-0 h-full w-2 cursor-col-resize transition-colors",
+        "absolute right-0 top-0 h-full w-2 cursor-col-resize transition-colors touch-none",
         "hover:bg-primary/60 active:bg-primary",
         "before:absolute before:right-0 before:top-0 before:h-full before:w-1 before:bg-border",
         isResizing && "bg-primary"
       )}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
       onDoubleClick={handleDoubleClick}
       style={{ zIndex: 10 }}
       title="Drag to resize, double-click to auto-fit"
@@ -217,9 +220,8 @@ function DraggableTableHead<T>({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    width: width ? `${width}px` : 'auto',
-    minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
-    maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
+    // Width controlled by colgroup - only keep overflow handling
+    overflow: 'hidden' as const,
   };
 
   return (
@@ -593,10 +595,28 @@ export function DataTable<T extends Record<string, any>>({
   
   const isSomeSelected = selectedIds.length > 0 && !isAllSelected;
 
+  // Calculate the number of fixed columns
+  const hasActions = !hideActions || limitedActions;
 
   return (
     <div className="rounded-md border bg-card shadow-soft overflow-x-auto">
       <Table style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
+        {/* Colgroup for authoritative column width control */}
+        <colgroup>
+          {selectable && <col style={{ width: '50px', minWidth: '50px', maxWidth: '50px' }} />}
+          {showRowNumbers && <col style={{ width: '50px', minWidth: '50px', maxWidth: '50px' }} />}
+          {columns.map((column) => (
+            <col 
+              key={column.accessorKey}
+              style={{ 
+                width: `${columnWidths[column.accessorKey] || column.width || 150}px`,
+                minWidth: `${column.minWidth || 50}px`,
+                maxWidth: `${column.maxWidth || 600}px`,
+              }} 
+            />
+          ))}
+          {hasActions && <col style={{ width: '50px', minWidth: '50px', maxWidth: '50px' }} />}
+        </colgroup>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -681,13 +701,7 @@ export function DataTable<T extends Record<string, any>>({
                     {columns.map((column) => (
                       <TableCell 
                         key={column.accessorKey} 
-                        className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center")}
-                        style={{
-                          width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
-                          minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
-                          maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
-                          overflow: 'hidden',
-                        }}
+                        className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center", "overflow-hidden")}
                       >
                         {column.cell ? (
                           <div className={cn(
@@ -697,7 +711,7 @@ export function DataTable<T extends Record<string, any>>({
                             {column.cell({ row: { original: row } })}
                           </div>
                         ) : (
-                          <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
+                          <span className="hover:text-primary transition-colors truncate block">{row[column.accessorKey]}</span>
                         )}
                       </TableCell>
                     ))}
@@ -732,13 +746,7 @@ export function DataTable<T extends Record<string, any>>({
                       {columns.map((column) => (
                         <TableCell 
                           key={column.accessorKey} 
-                          className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center")}
-                          style={{
-                            width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
-                            minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
-                            maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
-                            overflow: 'hidden',
-                          }}
+                          className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center", "overflow-hidden")}
                         >
                           {column.cell ? (
                             <div className={cn(
@@ -748,7 +756,7 @@ export function DataTable<T extends Record<string, any>>({
                               {column.cell({ row: { original: row } })}
                             </div>
                           ) : (
-                            <span className="hover:text-primary transition-colors">{row[column.accessorKey]}</span>
+                            <span className="hover:text-primary transition-colors truncate block">{row[column.accessorKey]}</span>
                           )}
                         </TableCell>
                       ))}
