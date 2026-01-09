@@ -73,17 +73,17 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 200,
-  created_at: 70,
-  borrower: 130,
-  'borrower.pipeline_stage.name': 95,
-  priority: 80,
-  assignee: 90,
-  due_date: 100,
-  notes: 400,
-  status: 100,
-  updated_at: 90,
-  reviewed: 70,
+  title: 230,
+  created_at: 65,
+  borrower: 120,
+  'borrower.pipeline_stage.name': 90,
+  priority: 70,
+  assignee: 80,
+  due_date: 95,
+  notes: 370,
+  status: 90,
+  updated_at: 80,
+  reviewed: 65,
 };
 
 // Priority ranking helper for sorting
@@ -207,7 +207,7 @@ const columns = (
     ),
     sortable: true,
   },
-  {
+{
     accessorKey: "borrower.pipeline_stage.name",
     header: "Borrower Stage",
     cell: ({ row }) => {
@@ -219,17 +219,16 @@ const columns = (
       if (!stage) {
         return (
           <div className="flex justify-center">
-            <StatusBadge status="New" variant="default" />
+            <Badge variant="outline" className="text-xs">New</Badge>
           </div>
         );
       }
       
-      // Always show the pipeline stage name (e.g., "Active"), not the loan substatus
-        return (
-          <div className="flex justify-center">
-            <StatusBadge status={stage} variant="default" />
-          </div>
-        );
+      return (
+        <div className="flex justify-center">
+          <Badge variant="outline" className="text-xs">{stage}</Badge>
+        </div>
+      );
     },
     sortable: true,
   },
