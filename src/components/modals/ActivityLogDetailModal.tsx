@@ -14,7 +14,7 @@ export function ActivityLogDetailModal({ log, isOpen, onClose }: ActivityLogDeta
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {log.log_type === 'meeting' ? '🤝 Meeting Details' : '📞 Call Details'}
+            {log.log_type === 'meeting' ? '🤝 Meeting Details' : log.log_type === 'broker_open' ? '📅 Broker\'s Open Details' : '📞 Call Details'}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
