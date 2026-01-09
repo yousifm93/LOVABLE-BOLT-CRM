@@ -344,9 +344,13 @@ export function DataTable<T extends Record<string, any>>({
   // Update column widths when initialColumnWidths changes (from admin settings)
   React.useEffect(() => {
     if (lockResize && initialColumnWidths && Object.keys(initialColumnWidths).length > 0) {
+      // Clear any cached widths when lockResize is true - admin widths take priority
+      if (storageKey) {
+        localStorage.removeItem(`${storageKey}_widths`);
+      }
       setColumnWidths(initialColumnWidths);
     }
-  }, [lockResize, initialColumnWidthsString, initialColumnWidths]);
+  }, [lockResize, initialColumnWidthsString, initialColumnWidths, storageKey]);
 
   // Save column widths to localStorage whenever they change (only when not locked)
   React.useEffect(() => {
