@@ -707,7 +707,8 @@ export function DataTable<T extends Record<string, any>>({
                         {column.cell ? (
                           <div className={cn(
                             "flex overflow-hidden w-full min-w-0",
-                            column.className?.includes("text-left") ? "justify-start" : "justify-center"
+                            column.className?.includes("text-left") ? "justify-start" : "justify-center",
+                            column.className?.includes("!whitespace-normal") && "!whitespace-normal"
                           )}>
                             {column.cell({ row: { original: row } })}
                           </div>
@@ -752,7 +753,8 @@ export function DataTable<T extends Record<string, any>>({
                           {column.cell ? (
                             <div className={cn(
                               "flex overflow-hidden w-full min-w-0",
-                              column.className?.includes("text-left") ? "justify-start" : "justify-center"
+                              column.className?.includes("text-left") ? "justify-start" : "justify-center",
+                              column.className?.includes("!whitespace-normal") && "!whitespace-normal"
                             )}>
                               {column.cell({ row: { original: row } })}
                             </div>
