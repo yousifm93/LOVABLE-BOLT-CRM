@@ -4813,6 +4813,7 @@ export type Database = {
           task_order: number
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           assignee_id?: string | null
@@ -4834,6 +4835,7 @@ export type Database = {
           task_order?: number
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           assignee_id?: string | null
@@ -4855,6 +4857,7 @@ export type Database = {
           task_order?: number
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -4874,6 +4877,13 @@ export type Database = {
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

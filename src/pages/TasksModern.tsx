@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Plus, Filter, Clock, CheckCircle, AlertCircle, Phone, Edit, Trash2, X as XIcon, ChevronDown, ChevronRight, Lock, Mail, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { format, formatDistance } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,9 +53,11 @@ interface ModernTask {
   task_order: number;
   created_at: string;
   updated_at: string;
+  updated_by?: string;
   reviewed?: boolean;
   reviewed_at?: string;
   assignee?: { first_name: string; last_name: string; email: string };
+  updater?: { first_name: string; last_name: string; email: string };
   borrower?: { 
     first_name: string; 
     last_name: string;
@@ -65,6 +68,21 @@ interface ModernTask {
     } | null;
   };
 }
+
+// Hardcoded column widths for task table
+const TASK_COLUMN_WIDTHS: Record<string, number> = {
+  title: 384,
+  created_at: 80,
+  borrower: 128,
+  'borrower.pipeline_stage.name': 100,
+  priority: 90,
+  assignee: 100,
+  due_date: 100,
+  notes: 192,
+  status: 120,
+  updated_at: 110,
+  reviewed: 80,
+};
 
 // Priority ranking helper for sorting
 const getPriorityRank = (priority: string): number => {
@@ -189,7 +207,7 @@ const columns = (
       if (!stage) {
         return (
           <div className="flex justify-center">
-            <StatusBadge status="New" />
+            <StatusBadge status="New" variant="default" />
           </div>
         );
       }
@@ -197,7 +215,7 @@ const columns = (
       // Always show the pipeline stage name (e.g., "Active"), not the loan substatus
         return (
           <div className="flex justify-center">
-            <StatusBadge status={stage} />
+            <StatusBadge status={stage} variant="default" />
           </div>
         );
     },
@@ -323,7 +341,7 @@ const columns = (
   },
   ];
   
-  // Only include Creation Log and Reviewed columns for admins
+  // Only include Creation Log, Last Updated, and Reviewed columns for admins
   if (isAdmin) {
     // Insert Creation Log column after title (at index 1)
     baseColumns.splice(1, 0, {
@@ -337,6 +355,39 @@ const columns = (
             <div>{format(date, 'MMM dd')}</div>
             <div className="text-xs text-muted-foreground">{format(date, 'h:mm a')}</div>
           </div>
+        );
+      },
+      sortable: true,
+    });
+    
+    // Add Last Updated column (between Status and Reviewed)
+    baseColumns.push({
+      accessorKey: "updated_at",
+      header: "Last Updated",
+      cell: ({ row }) => {
+        const updatedAt = row.original.updated_at;
+        const updater = row.original.updater;
+        if (!updatedAt) return <span className="text-muted-foreground">-</span>;
+        return (
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
+                <UserAvatar 
+                  firstName={updater?.first_name || "?"} 
+                  lastName={updater?.last_name || ""} 
+                  email={updater?.email || ""}
+                  size="xs"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {formatDistance(new Date(updatedAt), new Date(), { addSuffix: true })}
+                </span>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2 text-xs" align="center">
+              <div className="font-medium">{updater?.first_name || 'Unknown'} {updater?.last_name || ''}</div>
+              <div className="text-muted-foreground">{format(new Date(updatedAt), 'MMM d, yyyy h:mm a')}</div>
+            </PopoverContent>
+          </Popover>
         );
       },
       sortable: true,
@@ -372,6 +423,7 @@ const TASK_COLUMNS = [
   { id: "notes", label: "Notes", visible: true },
   { id: "status", label: "Status", visible: true },
   { id: "created_at", label: "Creation Log", visible: true },
+  { id: "updated_at", label: "Last Updated", visible: true },
   { id: "reviewed", label: "Reviewed", visible: true },
   { id: "description", label: "Description", visible: false },
 ];
@@ -1482,6 +1534,8 @@ export default function TasksModern() {
                     showRowNumbers={true}
                     compact={true}
                     limitedActions={!isAdmin}
+                    initialColumnWidths={TASK_COLUMN_WIDTHS}
+                    lockResize={true}
                   />
                 </CollapsibleContent>
               </Collapsible>
@@ -1511,6 +1565,8 @@ export default function TasksModern() {
                     showRowNumbers={true}
                     compact={true}
                     limitedActions={!isAdmin}
+                    initialColumnWidths={TASK_COLUMN_WIDTHS}
+                    lockResize={true}
                   />
                 </CollapsibleContent>
               </Collapsible>
