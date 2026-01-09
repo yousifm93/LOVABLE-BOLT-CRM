@@ -234,23 +234,20 @@ function DraggableTableHead<T>({
         column.sortable && !lockSort && "cursor-pointer hover:bg-muted/50"
       )}
     >
-      <div className={cn(
-        "flex items-center gap-1",
-        column.headerClassName?.includes("text-left") ? "justify-start" : "justify-center"
-      )}>
+      <div className="flex items-center w-full">
         {/* Drag Handle - only show when not locked */}
         {!lockReorder && (
           <div
             {...attributes}
             {...listeners}
-            className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+            className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <GripVertical className="h-3 w-3 text-muted-foreground" />
           </div>
         )}
         
-        {/* Column Header Text */}
+        {/* Column Header Text - centered across remaining space */}
         <div 
           className={cn(
             "flex items-center gap-1 flex-1",
@@ -274,7 +271,7 @@ function DraggableTableHead<T>({
           currentWidth={width}
           onResize={onResize}
           onAutoFit={onAutoFit}
-          minWidth={column.minWidth || 50}
+          minWidth={column.minWidth || 30}
           maxWidth={column.maxWidth || 600}
         />
       )}
@@ -610,7 +607,7 @@ export function DataTable<T extends Record<string, any>>({
               key={column.accessorKey}
               style={{ 
                 width: `${columnWidths[column.accessorKey] || column.width || 150}px`,
-                minWidth: `${column.minWidth || 50}px`,
+                minWidth: `${column.minWidth || 30}px`,
                 maxWidth: `${column.maxWidth || 600}px`,
               }} 
             />
@@ -711,7 +708,7 @@ export function DataTable<T extends Record<string, any>>({
                             {column.cell({ row: { original: row } })}
                           </div>
                         ) : (
-                          <span className="hover:text-primary transition-colors truncate block">{row[column.accessorKey]}</span>
+                          <span className="hover:text-primary transition-colors truncate block whitespace-nowrap overflow-hidden text-ellipsis">{row[column.accessorKey]}</span>
                         )}
                       </TableCell>
                     ))}
@@ -756,7 +753,7 @@ export function DataTable<T extends Record<string, any>>({
                               {column.cell({ row: { original: row } })}
                             </div>
                           ) : (
-                            <span className="hover:text-primary transition-colors truncate block">{row[column.accessorKey]}</span>
+                            <span className="hover:text-primary transition-colors truncate block whitespace-nowrap overflow-hidden text-ellipsis">{row[column.accessorKey]}</span>
                           )}
                         </TableCell>
                       ))}
