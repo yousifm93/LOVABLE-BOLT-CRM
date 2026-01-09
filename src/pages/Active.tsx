@@ -984,10 +984,14 @@ export default function Active() {
     });
   };
 
+  // Create user options for filtering
+  const userFilterOptions = users.map(u => `${u.first_name} ${u.last_name}`);
+
   // Filter configuration with proper types and options
   const filterColumns = [
     { value: 'first_name', label: 'First Name', type: 'text' as const },
     { value: 'last_name', label: 'Last Name', type: 'text' as const },
+    { value: 'team', label: 'User', type: 'select' as const, options: userFilterOptions },
     { value: 'mb_loan_number', label: 'Loan Number', type: 'text' as const },
     { value: 'pr_type', label: 'P/R', type: 'select' as const, options: prTypeOptions.map(o => o.value) },
     { value: 'disclosure_status', label: 'Disclosure Status', type: 'select' as const, options: disclosureStatusOptions.map(o => o.value) },
@@ -1343,7 +1347,18 @@ export default function Active() {
       case 'lender':
         return loan.approved_lender?.lender_name || '';
       case 'team':
-        return loan.teammate_assigned;
+        // Return team member name(s) for filtering
+        const assigneeIds = loan.teammate_assigned_ids?.length 
+          ? loan.teammate_assigned_ids 
+          : (loan.teammate_assigned ? [loan.teammate_assigned] : []);
+        
+        return assigneeIds
+          .map(id => {
+            const user = users.find(u => u.id === id);
+            return user ? `${user.first_name} ${user.last_name}` : '';
+          })
+          .filter(Boolean)
+          .join(', ');
       default:
         return loan[column as keyof ActiveLoan];
     }
