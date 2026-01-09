@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 
 // Master list of feedback categories
@@ -262,189 +263,220 @@ export default function Feedback() {
     );
   }
 
+  // Calculate pending review count for badge
+  const pendingReviewCount = itemStatuses.filter(s => s.status === 'pending_user_review').length;
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Submit Feedback</h1>
+          <h1 className="text-3xl font-bold">Feedback</h1>
           <p className="text-muted-foreground">Share your thoughts on what could be improved in the CRM.</p>
         </div>
-        
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="gap-2">
-              <Plus className="h-5 w-5" />
-              New Feedback
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Submit New Feedback</DialogTitle>
-              <DialogDescription>
-                Select a category and describe what you'd like to see improved.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={newCategory} onValueChange={setNewCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {feedbackCategories.map(cat => (
-                      <SelectItem key={cat.key} value={cat.key}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="feedback">Your Feedback</Label>
-                <Textarea
-                  id="feedback"
-                  placeholder="Describe what you'd like to see changed or improved..."
-                  value={newFeedbackText}
-                  onChange={(e) => setNewFeedbackText(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Screenshot (optional)</Label>
-                {newFeedbackImage ? (
-                  <div className="relative inline-block">
-                    <img src={newFeedbackImage} alt="Attached" className="h-20 w-auto object-cover rounded border" />
-                    <Button 
-                      variant="destructive" 
-                      size="icon" 
-                      className="absolute -top-2 -right-2 h-5 w-5" 
-                      onClick={() => setNewFeedbackImage(undefined)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={async (e) => {
-                        if (e.target.files?.[0]) {
-                          const url = await handleImageUpload(e.target.files[0]);
-                          if (url) setNewFeedbackImage(url);
-                        }
-                      }} 
-                    />
-                    <Button variant="outline" size="sm" asChild>
-                      <span><ImagePlus className="h-4 w-4 mr-1" />Attach Screenshot</span>
-                    </Button>
-                  </label>
-                )}
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={submitNewFeedback} disabled={submitting || !newCategory || !newFeedbackText.trim()}>
-                {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting...</> : <><Send className="h-4 w-4 mr-2" />Submit</>}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {feedbackList.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Feedback Yet</h3>
-            <p className="text-muted-foreground mb-4">Click "New Feedback" to submit your first feedback.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {feedbackList.map((feedback) => {
-            const isExpanded = expandedSections[feedback.id] ?? true;
-            
-            return (
-              <Collapsible 
-                key={feedback.id} 
-                open={isExpanded} 
-                onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [feedback.id]: open }))}
-              >
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                          <CardTitle className="text-lg">{feedback.section_label}</CardTitle>
-                          <Badge variant="outline" className="ml-2">{feedback.feedback_items.length} item{feedback.feedback_items.length !== 1 ? 's' : ''}</Badge>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(feedback.updated_at), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-4">
-                      {feedback.feedback_items.map((item, index) => {
-                        const status = getItemStatus(feedback.id, index);
-                        const itemComments = getItemComments(feedback.id, index);
-                        const isCompleted = status === 'complete';
-                        
-                        return (
-                          <div 
-                            key={index} 
-                            className={`p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : 'bg-muted/50'}`}
+      <Tabs defaultValue="submit" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="submit">Submit Feedback</TabsTrigger>
+          <TabsTrigger value="review" className="relative">
+            Review Feedback
+            {pendingReviewCount > 0 && (
+              <Badge className="ml-2 bg-red-500 text-white hover:bg-red-500 text-xs px-1.5 py-0.5 min-w-[20px] h-5">
+                {pendingReviewCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Submit Feedback Tab */}
+        <TabsContent value="submit">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Submit New Feedback</h3>
+              <p className="text-muted-foreground mb-6">Have an idea or suggestion? Let us know what could be improved.</p>
+              
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2">
+                    <Plus className="h-5 w-5" />
+                    New Feedback
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Submit New Feedback</DialogTitle>
+                    <DialogDescription>
+                      Select a category and describe what you'd like to see improved.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={newCategory} onValueChange={setNewCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {feedbackCategories.map(cat => (
+                            <SelectItem key={cat.key} value={cat.key}>{cat.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="feedback">Your Feedback</Label>
+                      <Textarea
+                        id="feedback"
+                        placeholder="Describe what you'd like to see changed or improved..."
+                        value={newFeedbackText}
+                        onChange={(e) => setNewFeedbackText(e.target.value)}
+                        className="min-h-[120px]"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Screenshot (optional)</Label>
+                      {newFeedbackImage ? (
+                        <div className="relative inline-block">
+                          <img src={newFeedbackImage} alt="Attached" className="h-20 w-auto object-cover rounded border" />
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            className="absolute -top-2 -right-2 h-5 w-5" 
+                            onClick={() => setNewFeedbackImage(undefined)}
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-3 flex-1">
-                                <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
-                                <div className="flex-1">
-                                  <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                                    {item.text || '(No text)'}
-                                  </p>
-                                  {item.image_url && (
-                                    <a href={item.image_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
-                                      <img src={item.image_url} alt="Attached screenshot" className="h-20 w-auto object-cover rounded border hover:opacity-80 transition-opacity" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                              {getStatusBadge(status)}
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={async (e) => {
+                              if (e.target.files?.[0]) {
+                                const url = await handleImageUpload(e.target.files[0]);
+                                if (url) setNewFeedbackImage(url);
+                              }
+                            }} 
+                          />
+                          <Button variant="outline" size="sm" asChild>
+                            <span><ImagePlus className="h-4 w-4 mr-1" />Attach Screenshot</span>
+                          </Button>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={submitNewFeedback} disabled={submitting || !newCategory || !newFeedbackText.trim()}>
+                      {submitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Submitting...</> : <><Send className="h-4 w-4 mr-2" />Submit</>}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Review Feedback Tab */}
+        <TabsContent value="review">
+          {feedbackList.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Feedback Submitted Yet</h3>
+                <p className="text-muted-foreground">Once you submit feedback, it will appear here for review.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {feedbackList.map((feedback) => {
+                const isExpanded = expandedSections[feedback.id] ?? true;
+                
+                return (
+                  <Collapsible 
+                    key={feedback.id} 
+                    open={isExpanded} 
+                    onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, [feedback.id]: open }))}
+                  >
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                              <CardTitle className="text-lg">{feedback.section_label}</CardTitle>
+                              <Badge variant="outline" className="ml-2">{feedback.feedback_items.length} item{feedback.feedback_items.length !== 1 ? 's' : ''}</Badge>
                             </div>
-                            
-                            {/* Admin Responses */}
-                            {itemComments.length > 0 && (
-                              <div className="ml-7 mt-3 space-y-2 border-l-2 border-primary/20 pl-3">
-                                <p className="text-xs font-medium text-muted-foreground">Responses:</p>
-                                {itemComments.map((comment) => (
-                                  <div key={comment.id} className="text-sm">
-                                    <span className="font-medium text-primary">{comment.admin_name}:</span>
-                                    <span className="ml-1 text-muted-foreground">{comment.comment}</span>
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      {format(new Date(comment.created_at), 'MMM d, h:mm a')}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(feedback.updated_at), 'MMM d, yyyy')}
+                            </span>
                           </div>
-                        );
-                      })}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            );
-          })}
-        </div>
-      )}
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="space-y-4">
+                          {feedback.feedback_items.map((item, index) => {
+                            const status = getItemStatus(feedback.id, index);
+                            const itemComments = getItemComments(feedback.id, index);
+                            const isCompleted = status === 'complete';
+                            
+                            return (
+                              <div 
+                                key={index} 
+                                className={`p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : 'bg-muted/50'}`}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
+                                    <div className="flex-1">
+                                      <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                                        {item.text || '(No text)'}
+                                      </p>
+                                      {item.image_url && (
+                                        <a href={item.image_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                          <img src={item.image_url} alt="Attached screenshot" className="h-20 w-auto object-cover rounded border hover:opacity-80 transition-opacity" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {getStatusBadge(status)}
+                                </div>
+                                
+                                {/* Admin Responses */}
+                                {itemComments.length > 0 && (
+                                  <div className="ml-7 mt-3 space-y-2 border-l-2 border-primary/20 pl-3">
+                                    <p className="text-xs font-medium text-muted-foreground">Responses:</p>
+                                    {itemComments.map((comment) => (
+                                      <div key={comment.id} className="text-sm">
+                                        <span className="font-medium text-primary">{comment.admin_name}:</span>
+                                        <span className="ml-1 text-muted-foreground">{comment.comment}</span>
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          {format(new Date(comment.created_at), 'MMM d, h:mm a')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

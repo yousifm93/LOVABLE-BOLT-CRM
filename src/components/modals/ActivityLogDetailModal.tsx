@@ -19,9 +19,13 @@ export function ActivityLogDetailModal({ log, isOpen, onClose }: ActivityLogDeta
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Date & Time</label>
+            <label className="text-sm font-medium">
+              {log.log_type === 'broker_open' ? 'Date' : 'Date & Time'}
+            </label>
             <p className="text-sm text-muted-foreground">
-              {new Date(log.logged_at).toLocaleString()}
+              {log.log_type === 'broker_open' 
+                ? new Date(log.logged_at).toLocaleDateString() 
+                : new Date(log.logged_at).toLocaleString()}
             </p>
           </div>
           <div>
