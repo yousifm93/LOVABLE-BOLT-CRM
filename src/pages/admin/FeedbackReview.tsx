@@ -92,12 +92,17 @@ export default function FeedbackReview() {
 
         const userIds = [...new Set(feedbackData?.map(f => f.user_id) || [])];
 
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('id, first_name, last_name')
-          .in('id', userIds.length > 0 ? userIds : ['none']);
+        // Handle empty userIds - don't call .in() with empty array
+        let usersData: { id: string; first_name: string; last_name: string }[] = [];
+        if (userIds.length > 0) {
+          const { data, error: usersError } = await supabase
+            .from('users')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
 
-        if (usersError) throw usersError;
+          if (usersError) throw usersError;
+          usersData = data || [];
+        }
         
         // Non-admins only see their own tab
         const teamMembersToShow = isAdmin 
@@ -112,12 +117,17 @@ export default function FeedbackReview() {
         if (commentsError) throw commentsError;
 
         const adminIds = [...new Set(commentsData?.map(c => c.admin_id) || [])];
-        const { data: adminData } = await supabase
-          .from('users')
-          .select('id, first_name, last_name')
-          .in('id', adminIds);
+        
+        // Handle empty adminIds - don't call .in() with empty array
+        let adminMap = new Map<string, string>();
+        if (adminIds.length > 0) {
+          const { data: adminData } = await supabase
+            .from('users')
+            .select('id, first_name, last_name')
+            .in('id', adminIds);
 
-        const adminMap = new Map(adminData?.map(a => [a.id, `${a.first_name} ${a.last_name}`]) || []);
+          adminMap = new Map(adminData?.map(a => [a.id, `${a.first_name} ${a.last_name}`]) || []);
+        }
         const enrichedComments = commentsData?.map(c => ({
           ...c,
           admin_name: adminMap.get(c.admin_id) || 'Admin'
