@@ -69,6 +69,8 @@ export default function FeedbackReview() {
   const { crmUser } = useAuth();
 
   useEffect(() => {
+    if (!crmUser?.id) return; // Wait for user to load
+    
     const fetchData = async () => {
       try {
         // Determine if current user is admin
@@ -161,7 +163,7 @@ export default function FeedbackReview() {
     };
 
     fetchData();
-  }, [toast]);
+  }, [toast, crmUser?.id, crmUser?.role]);
 
   const getUserFeedback = (userId: string) => feedback.filter(f => f.user_id === userId);
 
