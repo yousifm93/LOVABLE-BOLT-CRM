@@ -700,9 +700,9 @@ export function DataTable<T extends Record<string, any>>({
                       </TableCell>
                     )}
                     {columns.map((column) => (
-                      <TableCell 
+<TableCell 
                         key={column.accessorKey} 
-                        className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center", "overflow-hidden")}
+                        className={cn(compact ? "py-1 px-2" : "py-2 px-2", "overflow-hidden", column.className || "text-center")}
                       >
                         {column.cell ? (
                           <div className={cn(
@@ -746,10 +746,10 @@ export function DataTable<T extends Record<string, any>>({
                         </TableCell>
                       )}
                       {columns.map((column) => (
-                        <TableCell 
-                          key={column.accessorKey} 
-                          className={cn(compact ? "py-1 px-2" : "py-2 px-2", column.className || "text-center", "overflow-hidden")}
-                        >
+<TableCell 
+                            key={column.accessorKey} 
+                            className={cn(compact ? "py-1 px-2" : "py-2 px-2", "overflow-hidden", column.className || "text-center")}
+                          >
                           {column.cell ? (
                             <div className={cn(
                               "flex overflow-hidden w-full min-w-0",
