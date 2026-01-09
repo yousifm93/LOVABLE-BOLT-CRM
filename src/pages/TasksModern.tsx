@@ -80,7 +80,7 @@ const TASK_COLUMN_WIDTHS: Record<string, number> = {
   priority: 70,
   assignee: 80,
   due_date: 95,
-  notes: 220,
+  notes: 260,
   status: 90,
   updated_at: 80,
   reviewed: 65,
