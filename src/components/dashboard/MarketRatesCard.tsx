@@ -99,13 +99,28 @@ export function MarketRatesCard() {
   const fetchMarketData = async () => {
     const today = new Date().toISOString().split('T')[0];
     
-    const { data, error } = await supabase
+    // First try to get today's data
+    let { data, error } = await supabase
       .from('daily_market_updates')
       .select('*')
       .eq('date', today)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
+    // If no data for today, get the most recent entry as fallback
+    if (error?.code === 'PGRST116' || !data) {
+      const { data: latestData, error: latestError } = await supabase
+        .from('daily_market_updates')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!latestError && latestData) {
+        data = latestData;
+      } else if (latestError && latestError.code !== 'PGRST116') {
+        console.error('Error fetching latest market data:', latestError);
+      }
+    } else if (error) {
       console.error('Error fetching market data:', error);
     }
 
