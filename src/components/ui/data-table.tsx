@@ -677,7 +677,7 @@ export function DataTable<T extends Record<string, any>>({
                 {hideActions && !limitedActions ? (
                   <TableRow
                     className={cn(
-                      "transition-colors h-14",
+                      "transition-colors h-14 max-h-14 overflow-hidden",
                       onRowClick && "cursor-pointer",
                       isSelected && "bg-primary/10"
                     )}
@@ -722,7 +722,7 @@ export function DataTable<T extends Record<string, any>>({
                     <ContextMenuTrigger asChild>
                     <TableRow
                       className={cn(
-                        "transition-colors h-14",
+                        "transition-colors h-14 max-h-14 overflow-hidden",
                         onRowClick && "cursor-pointer",
                         isSelected && "bg-primary/10"
                       )}
