@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
+import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb, Clock } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
@@ -48,7 +48,7 @@ interface ItemStatus {
   id: string;
   feedback_id: string;
   item_index: number;
-  status: 'pending' | 'complete' | 'needs_help' | 'idea';
+  status: 'pending' | 'complete' | 'needs_help' | 'idea' | 'pending_user_review';
   updated_by: string;
   updated_at: string;
 }
@@ -153,7 +153,7 @@ export default function FeedbackReview() {
   const getItemComments = (feedbackId: string, itemIndex: number) => 
     comments.filter(c => c.feedback_id === feedbackId && c.item_index === itemIndex);
 
-  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' => 
+  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' | 'pending_user_review' => 
     itemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === itemIndex)?.status || 'pending';
 
   const getItemText = (item: FeedbackItemContent | string): string => {
@@ -166,7 +166,7 @@ export default function FeedbackReview() {
     return item.image_url;
   };
 
-  const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help' | 'idea') => {
+  const updateItemStatus = async (feedbackId: string, itemIndex: number, status: 'complete' | 'needs_help' | 'idea' | 'pending_user_review') => {
     if (!crmUser?.id) return;
     
     // Check if clicking the same status - if so, clear it (toggle off)
@@ -200,7 +200,8 @@ export default function FeedbackReview() {
         const statusMessages = {
           complete: "Marked Complete",
           needs_help: "Still Needs Help",
-          idea: "Marked as Idea"
+          idea: "Marked as Idea",
+          pending_user_review: "Sent for User Review"
         };
         toast({ title: statusMessages[status], description: "Status updated." });
       }
@@ -287,6 +288,9 @@ export default function FeedbackReview() {
             </Button>
             <Button size="sm" variant={currentStatus === 'idea' ? 'default' : 'outline'} className={currentStatus === 'idea' ? 'bg-purple-600 hover:bg-purple-700 h-7' : 'h-7 text-purple-600 border-purple-600 hover:bg-purple-50'} onClick={() => updateItemStatus(fb.id, index, 'idea')}>
               <Lightbulb className="h-3.5 w-3.5 mr-1" /> Idea
+            </Button>
+            <Button size="sm" variant={currentStatus === 'pending_user_review' ? 'default' : 'outline'} className={currentStatus === 'pending_user_review' ? 'bg-blue-600 hover:bg-blue-700 h-7' : 'h-7 text-blue-600 border-blue-600 hover:bg-blue-50'} onClick={() => updateItemStatus(fb.id, index, 'pending_user_review')}>
+              <Clock className="h-3.5 w-3.5 mr-1" /> Pending Review
             </Button>
           </div>
         </div>

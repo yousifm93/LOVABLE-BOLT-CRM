@@ -52,7 +52,7 @@ interface FeedbackItem {
 interface ItemStatus {
   feedback_id: string;
   item_index: number;
-  status: 'pending' | 'complete' | 'needs_help' | 'idea';
+  status: 'pending' | 'complete' | 'needs_help' | 'idea' | 'pending_user_review';
 }
 
 interface FeedbackComment {
@@ -231,7 +231,7 @@ export default function Feedback() {
     }
   };
 
-  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' => {
+  const getItemStatus = (feedbackId: string, itemIndex: number): 'pending' | 'complete' | 'needs_help' | 'idea' | 'pending_user_review' => {
     return itemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === itemIndex)?.status || 'pending';
   };
 
@@ -239,7 +239,7 @@ export default function Feedback() {
     return comments.filter(c => c.feedback_id === feedbackId && c.item_index === itemIndex);
   };
 
-  const getStatusBadge = (status: 'pending' | 'complete' | 'needs_help' | 'idea') => {
+  const getStatusBadge = (status: 'pending' | 'complete' | 'needs_help' | 'idea' | 'pending_user_review') => {
     switch (status) {
       case 'complete':
         return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Complete</Badge>;
@@ -247,6 +247,8 @@ export default function Feedback() {
         return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">Needs Help</Badge>;
       case 'idea':
         return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Idea</Badge>;
+      case 'pending_user_review':
+        return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Pending Your Review</Badge>;
       default:
         return <Badge variant="outline">Pending</Badge>;
     }
