@@ -73,14 +73,14 @@ interface ModernTask {
 
 // Hardcoded column widths for task table
 const TASK_COLUMN_WIDTHS: Record<string, number> = {
-  title: 230,
+  title: 250,
   created_at: 65,
-  borrower: 120,
-  'borrower.pipeline_stage.name': 90,
+  borrower: 90,
+  'borrower.pipeline_stage.name': 85,
   priority: 70,
   assignee: 80,
   due_date: 95,
-  notes: 370,
+  notes: 360,
   status: 90,
   updated_at: 80,
   reviewed: 65,
@@ -381,7 +381,7 @@ const columns = (
         return (
           <Popover onOpenChange={(open) => open && fetchTaskChangeLogs(row.original.id)}>
             <PopoverTrigger asChild>
-              <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80">
+              <div className="flex items-center justify-start gap-1.5 cursor-pointer hover:opacity-80">
                 <UserAvatar 
                   firstName={updater?.first_name || "?"} 
                   lastName={updater?.last_name || ""} 
