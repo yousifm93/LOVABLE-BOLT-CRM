@@ -145,7 +145,7 @@ const columns = (
     accessorKey: "title",
     header: "Task",
     cell: ({ row }) => (
-    <div className="overflow-hidden" style={{ maxWidth: '190px' }}>
+    <div className="overflow-hidden w-full">
       <div className="font-medium text-sm truncate" title={row.original.title}>{row.original.title}</div>
       
       {/* Show description ONLY if no completion requirement */}
