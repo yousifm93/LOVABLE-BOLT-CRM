@@ -686,11 +686,12 @@ export function DataTable<T extends Record<string, any>>({
                           width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
                           minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
                           maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
+                          overflow: 'hidden',
                         }}
                       >
                         {column.cell ? (
                           <div className={cn(
-                            "flex",
+                            "flex overflow-hidden w-full min-w-0",
                             column.className?.includes("text-left") ? "justify-start" : "justify-center"
                           )}>
                             {column.cell({ row: { original: row } })}
@@ -736,11 +737,12 @@ export function DataTable<T extends Record<string, any>>({
                             width: columnWidths[column.accessorKey] ? `${columnWidths[column.accessorKey]}px` : 'auto',
                             minWidth: column.minWidth ? `${column.minWidth}px` : '50px',
                             maxWidth: column.maxWidth ? `${column.maxWidth}px` : 'none',
+                            overflow: 'hidden',
                           }}
                         >
                           {column.cell ? (
                             <div className={cn(
-                              "flex",
+                              "flex overflow-hidden w-full min-w-0",
                               column.className?.includes("text-left") ? "justify-start" : "justify-center"
                             )}>
                               {column.cell({ row: { original: row } })}
