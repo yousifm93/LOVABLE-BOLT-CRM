@@ -44,30 +44,35 @@ serve(async (req) => {
     const scenarioConfigs: Record<string, any> = {
       '30yr_fixed': {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         loan_term: 30,
       },
       '15yr_fixed': {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         loan_term: 15,
       },
       'fha_30yr': {
         ...baseScenario,
+        loan_type: 'FHA',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         loan_term: 30,
       },
       'bank_statement': {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
         loan_term: 30,
       },
       'dscr': {
         ...baseScenario,
+        loan_type: 'Conventional',
         income_type: 'DSCR',
         dscr_ratio: '1.5',  // CRITICAL: Must always be 1.5 for DSCR scenarios
         occupancy: 'Investment',
