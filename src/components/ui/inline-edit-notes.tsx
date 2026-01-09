@@ -45,7 +45,7 @@ export function InlineEditNotes({
   if (disabled) {
     return (
       <div 
-        className={cn("text-sm leading-tight p-1 rounded-md bg-muted/30 line-clamp-2 overflow-hidden max-w-full break-words", className)}
+        className={cn("text-sm leading-tight p-1 rounded-md bg-muted/30 line-clamp-2 overflow-hidden w-full break-words", className)}
         title={value || undefined}
       >
         {value || <span className="text-muted-foreground">{placeholder}</span>}
@@ -82,7 +82,7 @@ export function InlineEditNotes({
         setEditValue(value || "");
       }}
       className={cn(
-        "text-sm text-left leading-tight max-w-full p-1 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border line-clamp-2 overflow-hidden break-words",
+        "text-sm text-left leading-tight w-full p-1 rounded-md hover:bg-muted/50 transition-colors border border-transparent hover:border-border line-clamp-2 overflow-hidden break-words",
         className
       )}
       title={value || undefined}
