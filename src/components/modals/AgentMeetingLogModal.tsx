@@ -61,7 +61,7 @@ export function AgentMeetingLogModal({ agent, isOpen, onClose, onMeetingSaved }:
         crmUser.id,
         logType,
         location.trim() || undefined,
-        new Date(meetingDate).toISOString()
+        new Date(meetingDate + 'T12:00:00').toISOString()
       );
 
       // Update appropriate agent field based on meeting type
