@@ -1122,16 +1122,26 @@ export type Database = {
           date: string
           id: string
           points_15yr_fixed: number | null
+          points_15yr_fixed_70ltv: number | null
           points_30yr_fha: number | null
+          points_30yr_fha_70ltv: number | null
           points_30yr_fixed: number | null
+          points_30yr_fixed_70ltv: number | null
           points_bank_statement: number | null
+          points_bank_statement_70ltv: number | null
           points_dscr: number | null
+          points_dscr_70ltv: number | null
           pricing_run_id: string | null
           rate_15yr_fixed: number | null
+          rate_15yr_fixed_70ltv: number | null
           rate_30yr_fha: number | null
+          rate_30yr_fha_70ltv: number | null
           rate_30yr_fixed: number | null
+          rate_30yr_fixed_70ltv: number | null
           rate_bank_statement: number | null
+          rate_bank_statement_70ltv: number | null
           rate_dscr: number | null
+          rate_dscr_70ltv: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1143,16 +1153,26 @@ export type Database = {
           date?: string
           id?: string
           points_15yr_fixed?: number | null
+          points_15yr_fixed_70ltv?: number | null
           points_30yr_fha?: number | null
+          points_30yr_fha_70ltv?: number | null
           points_30yr_fixed?: number | null
+          points_30yr_fixed_70ltv?: number | null
           points_bank_statement?: number | null
+          points_bank_statement_70ltv?: number | null
           points_dscr?: number | null
+          points_dscr_70ltv?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
+          rate_15yr_fixed_70ltv?: number | null
           rate_30yr_fha?: number | null
+          rate_30yr_fha_70ltv?: number | null
           rate_30yr_fixed?: number | null
+          rate_30yr_fixed_70ltv?: number | null
           rate_bank_statement?: number | null
+          rate_bank_statement_70ltv?: number | null
           rate_dscr?: number | null
+          rate_dscr_70ltv?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1164,16 +1184,26 @@ export type Database = {
           date?: string
           id?: string
           points_15yr_fixed?: number | null
+          points_15yr_fixed_70ltv?: number | null
           points_30yr_fha?: number | null
+          points_30yr_fha_70ltv?: number | null
           points_30yr_fixed?: number | null
+          points_30yr_fixed_70ltv?: number | null
           points_bank_statement?: number | null
+          points_bank_statement_70ltv?: number | null
           points_dscr?: number | null
+          points_dscr_70ltv?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
+          rate_15yr_fixed_70ltv?: number | null
           rate_30yr_fha?: number | null
+          rate_30yr_fha_70ltv?: number | null
           rate_30yr_fixed?: number | null
+          rate_30yr_fixed_70ltv?: number | null
           rate_bank_statement?: number | null
+          rate_bank_statement_70ltv?: number | null
           rate_dscr?: number | null
+          rate_dscr_70ltv?: number | null
           updated_at?: string | null
         }
         Relationships: [

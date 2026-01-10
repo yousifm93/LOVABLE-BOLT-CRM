@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('fetch-daily-rates: Starting daily rate fetch with 5 scenarios');
+    console.log('fetch-daily-rates: Starting daily rate fetch with 10 scenarios (5 @ 80% LTV + 5 @ 70% LTV)');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -23,21 +23,33 @@ serve(async (req) => {
       throw new Error('AXIOM_API_KEY not configured');
     }
 
-    // Base scenario parameters
-    const baseScenario = {
+    // Base scenario parameters for 80% LTV
+    const baseScenario80LTV = {
       fico_score: 780,
       zip_code: '33131',
       num_units: 1,
       purchase_price: 400000,
-      loan_amount: 320000,
+      loan_amount: 320000,  // 80% LTV
       occupancy: 'Primary Residence',
       property_type: 'Single Family',
     };
 
-    // All 5 scenarios: 30Y Fixed, 15Y Fixed, FHA 30Y, Bank Statement, DSCR
+    // Base scenario parameters for 70% LTV
+    const baseScenario70LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 280000,  // 70% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // All 10 scenarios: 5 at 80% LTV + 5 at 70% LTV
     const scenarios = [
+      // 80% LTV scenarios
       {
-        ...baseScenario,
+        ...baseScenario80LTV,
         loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
@@ -45,7 +57,7 @@ serve(async (req) => {
         loan_term: 30
       },
       {
-        ...baseScenario,
+        ...baseScenario80LTV,
         loan_type: 'Conventional',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
@@ -53,7 +65,7 @@ serve(async (req) => {
         loan_term: 15
       },
       {
-        ...baseScenario,
+        ...baseScenario80LTV,
         loan_type: 'FHA',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
@@ -61,7 +73,7 @@ serve(async (req) => {
         loan_term: 30
       },
       {
-        ...baseScenario,
+        ...baseScenario80LTV,
         loan_type: 'Conventional',
         income_type: '24Mo Business Bank Statements',
         dscr_ratio: '',
@@ -69,12 +81,54 @@ serve(async (req) => {
         loan_term: 30
       },
       {
-        ...baseScenario,
+        ...baseScenario80LTV,
         loan_type: 'Conventional',
         income_type: 'DSCR',
         dscr_ratio: '1.5',
         occupancy: 'Investment',
         scenario_type: 'dscr',
+        loan_term: 30
+      },
+      // 70% LTV scenarios
+      {
+        ...baseScenario70LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '30yr_fixed_70ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario70LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '15yr_fixed_70ltv',
+        loan_term: 15
+      },
+      {
+        ...baseScenario70LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: 'fha_30yr_70ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario70LTV,
+        loan_type: 'Conventional',
+        income_type: '24Mo Business Bank Statements',
+        dscr_ratio: '',
+        scenario_type: 'bank_statement_70ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario70LTV,
+        loan_type: 'Conventional',
+        income_type: 'DSCR',
+        dscr_ratio: '1.5',
+        occupancy: 'Investment',
+        scenario_type: 'dscr_70ltv',
         loan_term: 30
       }
     ];
@@ -83,7 +137,8 @@ serve(async (req) => {
       type: s.scenario_type,
       income_type: s.income_type,
       dscr_ratio: s.dscr_ratio,
-      occupancy: s.occupancy
+      occupancy: s.occupancy,
+      loan_amount: s.loan_amount
     })));
 
     const pricingRunIds: string[] = [];
@@ -111,7 +166,8 @@ serve(async (req) => {
       pricingRunIds.push(pricingRun.id);
 
       // Trigger Axiom - For DSCR, always ensure dscr_ratio is '1.5'
-      const dscrRatioValue = scenario_type === 'dscr' ? '1.5' : (scenarioData.dscr_ratio || '');
+      const isDSCR = scenario_type === 'dscr' || scenario_type === 'dscr_70ltv';
+      const dscrRatioValue = isDSCR ? '1.5' : (scenarioData.dscr_ratio || '');
       
       // Always send 11 fields including loan_term
       const axiomData = [[
@@ -133,6 +189,7 @@ serve(async (req) => {
         income_type: scenarioData.income_type,
         dscr_ratio: dscrRatioValue,
         occupancy: scenarioData.occupancy,
+        loan_amount: scenarioData.loan_amount,
         axiom_data_row: axiomData[0]
       });
 
@@ -165,7 +222,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily rate fetch triggered for 5 scenarios',
+        message: 'Daily rate fetch triggered for 10 scenarios (5 @ 80% LTV + 5 @ 70% LTV)',
         pricing_run_ids: pricingRunIds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
