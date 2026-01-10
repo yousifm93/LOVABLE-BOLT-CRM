@@ -1129,15 +1129,19 @@ export type Database = {
           points_30yr_fha_70ltv: number | null
           points_30yr_fha_90ltv: number | null
           points_30yr_fha_95ltv: number | null
+          points_30yr_fha_965ltv: number | null
           points_30yr_fixed: number | null
           points_30yr_fixed_70ltv: number | null
           points_30yr_fixed_90ltv: number | null
           points_30yr_fixed_95ltv: number | null
           points_bank_statement: number | null
           points_bank_statement_70ltv: number | null
+          points_bank_statement_85ltv: number | null
           points_bank_statement_90ltv: number | null
           points_dscr: number | null
           points_dscr_70ltv: number | null
+          points_dscr_75ltv: number | null
+          points_dscr_85ltv: number | null
           pricing_run_id: string | null
           rate_15yr_fixed: number | null
           rate_15yr_fixed_70ltv: number | null
@@ -1147,15 +1151,19 @@ export type Database = {
           rate_30yr_fha_70ltv: number | null
           rate_30yr_fha_90ltv: number | null
           rate_30yr_fha_95ltv: number | null
+          rate_30yr_fha_965ltv: number | null
           rate_30yr_fixed: number | null
           rate_30yr_fixed_70ltv: number | null
           rate_30yr_fixed_90ltv: number | null
           rate_30yr_fixed_95ltv: number | null
           rate_bank_statement: number | null
           rate_bank_statement_70ltv: number | null
+          rate_bank_statement_85ltv: number | null
           rate_bank_statement_90ltv: number | null
           rate_dscr: number | null
           rate_dscr_70ltv: number | null
+          rate_dscr_75ltv: number | null
+          rate_dscr_85ltv: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1174,15 +1182,19 @@ export type Database = {
           points_30yr_fha_70ltv?: number | null
           points_30yr_fha_90ltv?: number | null
           points_30yr_fha_95ltv?: number | null
+          points_30yr_fha_965ltv?: number | null
           points_30yr_fixed?: number | null
           points_30yr_fixed_70ltv?: number | null
           points_30yr_fixed_90ltv?: number | null
           points_30yr_fixed_95ltv?: number | null
           points_bank_statement?: number | null
           points_bank_statement_70ltv?: number | null
+          points_bank_statement_85ltv?: number | null
           points_bank_statement_90ltv?: number | null
           points_dscr?: number | null
           points_dscr_70ltv?: number | null
+          points_dscr_75ltv?: number | null
+          points_dscr_85ltv?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
           rate_15yr_fixed_70ltv?: number | null
@@ -1192,15 +1204,19 @@ export type Database = {
           rate_30yr_fha_70ltv?: number | null
           rate_30yr_fha_90ltv?: number | null
           rate_30yr_fha_95ltv?: number | null
+          rate_30yr_fha_965ltv?: number | null
           rate_30yr_fixed?: number | null
           rate_30yr_fixed_70ltv?: number | null
           rate_30yr_fixed_90ltv?: number | null
           rate_30yr_fixed_95ltv?: number | null
           rate_bank_statement?: number | null
           rate_bank_statement_70ltv?: number | null
+          rate_bank_statement_85ltv?: number | null
           rate_bank_statement_90ltv?: number | null
           rate_dscr?: number | null
           rate_dscr_70ltv?: number | null
+          rate_dscr_75ltv?: number | null
+          rate_dscr_85ltv?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1219,15 +1235,19 @@ export type Database = {
           points_30yr_fha_70ltv?: number | null
           points_30yr_fha_90ltv?: number | null
           points_30yr_fha_95ltv?: number | null
+          points_30yr_fha_965ltv?: number | null
           points_30yr_fixed?: number | null
           points_30yr_fixed_70ltv?: number | null
           points_30yr_fixed_90ltv?: number | null
           points_30yr_fixed_95ltv?: number | null
           points_bank_statement?: number | null
           points_bank_statement_70ltv?: number | null
+          points_bank_statement_85ltv?: number | null
           points_bank_statement_90ltv?: number | null
           points_dscr?: number | null
           points_dscr_70ltv?: number | null
+          points_dscr_75ltv?: number | null
+          points_dscr_85ltv?: number | null
           pricing_run_id?: string | null
           rate_15yr_fixed?: number | null
           rate_15yr_fixed_70ltv?: number | null
@@ -1237,15 +1257,19 @@ export type Database = {
           rate_30yr_fha_70ltv?: number | null
           rate_30yr_fha_90ltv?: number | null
           rate_30yr_fha_95ltv?: number | null
+          rate_30yr_fha_965ltv?: number | null
           rate_30yr_fixed?: number | null
           rate_30yr_fixed_70ltv?: number | null
           rate_30yr_fixed_90ltv?: number | null
           rate_30yr_fixed_95ltv?: number | null
           rate_bank_statement?: number | null
           rate_bank_statement_70ltv?: number | null
+          rate_bank_statement_85ltv?: number | null
           rate_bank_statement_90ltv?: number | null
           rate_dscr?: number | null
           rate_dscr_70ltv?: number | null
+          rate_dscr_75ltv?: number | null
+          rate_dscr_85ltv?: number | null
           updated_at?: string | null
         }
         Relationships: [
