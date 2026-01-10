@@ -49,6 +49,13 @@ interface MarketData {
   points_15yr_fixed_90ltv: number | null;
   points_30yr_fha_90ltv: number | null;
   points_bank_statement_90ltv: number | null;
+  // 95% LTV fields (no Bank Statement or DSCR)
+  rate_30yr_fixed_95ltv: number | null;
+  rate_15yr_fixed_95ltv: number | null;
+  rate_30yr_fha_95ltv: number | null;
+  points_30yr_fixed_95ltv: number | null;
+  points_15yr_fixed_95ltv: number | null;
+  points_30yr_fha_95ltv: number | null;
   updated_at: string | null;
 }
 
@@ -106,11 +113,12 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
   );
 }
 
-// All rate types including 70% LTV and 90% LTV
+// All rate types including 70% LTV, 90% LTV, and 95% LTV
 type RateType = 
   | '30yr_fixed' | '15yr_fixed' | 'fha_30yr' | 'bank_statement' | 'dscr'
   | '30yr_fixed_70ltv' | '15yr_fixed_70ltv' | 'fha_30yr_70ltv' | 'bank_statement_70ltv' | 'dscr_70ltv'
-  | '30yr_fixed_90ltv' | '15yr_fixed_90ltv' | 'fha_30yr_90ltv' | 'bank_statement_90ltv';
+  | '30yr_fixed_90ltv' | '15yr_fixed_90ltv' | 'fha_30yr_90ltv' | 'bank_statement_90ltv'
+  | '30yr_fixed_95ltv' | '15yr_fixed_95ltv' | 'fha_30yr_95ltv';
 
 export function MarketRatesCard() {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
@@ -170,6 +178,9 @@ export function MarketRatesCard() {
         'rate_15yr_fixed_90ltv', 'points_15yr_fixed_90ltv',
         'rate_30yr_fha_90ltv', 'points_30yr_fha_90ltv',
         'rate_bank_statement_90ltv', 'points_bank_statement_90ltv',
+        'rate_30yr_fixed_95ltv', 'points_30yr_fixed_95ltv',
+        'rate_15yr_fixed_95ltv', 'points_15yr_fixed_95ltv',
+        'rate_30yr_fha_95ltv', 'points_30yr_fha_95ltv',
       ];
 
       for (const field of rateFields) {
@@ -263,6 +274,10 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       case '15yr_fixed_90ltv': return '15-Year Fixed (90% LTV)';
       case 'fha_30yr_90ltv': return 'FHA 30-Year (90% LTV)';
       case 'bank_statement_90ltv': return 'Bank Statement (90% LTV)';
+      // 95% LTV labels
+      case '30yr_fixed_95ltv': return '30-Year Fixed (95% LTV)';
+      case '15yr_fixed_95ltv': return '15-Year Fixed (95% LTV)';
+      case 'fha_30yr_95ltv': return 'FHA 30-Year (95% LTV)';
       default: return '';
     }
   };
@@ -502,6 +517,37 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             isRefreshing={refreshingType === 'bank_statement_90ltv'}
           />
           {/* Empty placeholder for DSCR slot */}
+          <div className="min-w-[140px]" />
+        </div>
+
+        {/* 95% LTV Rate Cards (no Bank Statement or DSCR) */}
+        <div className="flex items-start gap-3 flex-wrap justify-center">
+          <RateCard 
+            label="30-Year Fixed (95% LTV)" 
+            rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
+            points={marketData?.points_30yr_fixed_95ltv ?? null}
+            onClick={() => handleRateCardClick('30yr_fixed_95ltv')}
+            onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
+            isRefreshing={refreshingType === '30yr_fixed_95ltv'}
+          />
+          <RateCard 
+            label="15-Year Fixed (95% LTV)" 
+            rate={marketData?.rate_15yr_fixed_95ltv ?? null} 
+            points={marketData?.points_15yr_fixed_95ltv ?? null}
+            onClick={() => handleRateCardClick('15yr_fixed_95ltv')}
+            onRefresh={() => handleRefreshSingle('15yr_fixed_95ltv')}
+            isRefreshing={refreshingType === '15yr_fixed_95ltv'}
+          />
+          <RateCard 
+            label="FHA 30-Year (95% LTV)" 
+            rate={marketData?.rate_30yr_fha_95ltv ?? null} 
+            points={marketData?.points_30yr_fha_95ltv ?? null}
+            onClick={() => handleRateCardClick('fha_30yr_95ltv')}
+            onRefresh={() => handleRefreshSingle('fha_30yr_95ltv')}
+            isRefreshing={refreshingType === 'fha_30yr_95ltv'}
+          />
+          {/* Empty placeholders for Bank Statement and DSCR slots */}
+          <div className="min-w-[140px]" />
           <div className="min-w-[140px]" />
         </div>
 
