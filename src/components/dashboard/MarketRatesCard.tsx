@@ -79,16 +79,16 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
   return (
     <div className="flex flex-col items-center">
       <div 
-        className={`flex flex-col items-center justify-center px-4 py-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg min-w-[140px] ${onClick ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
+        className={`flex flex-col items-center justify-center px-2 py-1.5 bg-amber-100 dark:bg-amber-900/30 rounded min-w-[70px] ${onClick ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
         onClick={onClick}
       >
-        <span className="text-xs font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-1 text-center">
+        <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-0.5 text-center">
           {label}
         </span>
-        <span className="text-xl font-bold text-amber-900 dark:text-amber-100">
+        <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
           {showTBD ? 'TBD' : (rate ? `${rate.toFixed(3)}%` : '—')}
         </span>
-        <span className="text-xs text-amber-700 dark:text-amber-300">
+        <span className="text-[10px] text-amber-700 dark:text-amber-300">
           {showTBD ? '— pts' : (points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts')}
         </span>
       </div>
@@ -99,12 +99,12 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
             onRefresh();
           }}
           disabled={isRefreshing}
-          className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          className="mt-1 flex items-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
           {isRefreshing ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="h-2.5 w-2.5 animate-spin" />
           ) : (
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className="h-2.5 w-2.5" />
           )}
           <span>{isRefreshing ? 'Fetching...' : 'Refresh'}</span>
         </button>
@@ -393,167 +393,186 @@ const fetchHistoricalRates = async (rateType: RateType) => {
 
   return (
     <>
-      <div className="flex flex-col gap-4 py-4 px-2 border-b border-border/50">
-        {/* 70% LTV Rate Cards (displayed above) */}
-        <div className="flex items-start gap-3 flex-wrap justify-center">
-          <RateCard 
-            label="30-Year Fixed (70% LTV)" 
-            rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
-            points={marketData?.points_30yr_fixed_70ltv ?? null}
-            onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
-            onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
-            isRefreshing={refreshingType === '30yr_fixed_70ltv'}
-          />
-          <RateCard 
-            label="15-Year Fixed (70% LTV)" 
-            rate={marketData?.rate_15yr_fixed_70ltv ?? null} 
-            points={marketData?.points_15yr_fixed_70ltv ?? null}
-            onClick={() => handleRateCardClick('15yr_fixed_70ltv')}
-            onRefresh={() => handleRefreshSingle('15yr_fixed_70ltv')}
-            isRefreshing={refreshingType === '15yr_fixed_70ltv'}
-          />
-          <RateCard 
-            label="FHA 30-Year (70% LTV)" 
-            rate={marketData?.rate_30yr_fha_70ltv ?? null} 
-            points={marketData?.points_30yr_fha_70ltv ?? null}
-            onClick={() => handleRateCardClick('fha_30yr_70ltv')}
-            onRefresh={() => handleRefreshSingle('fha_30yr_70ltv')}
-            isRefreshing={refreshingType === 'fha_30yr_70ltv'}
-          />
-          <RateCard 
-            label="Bank Statement (70% LTV)" 
-            rate={marketData?.rate_bank_statement_70ltv ?? null} 
-            points={marketData?.points_bank_statement_70ltv ?? null}
-            onClick={() => handleRateCardClick('bank_statement_70ltv')}
-            onRefresh={() => handleRefreshSingle('bank_statement_70ltv')}
-            isRefreshing={refreshingType === 'bank_statement_70ltv'}
-          />
-          <RateCard 
-            label="DSCR (70% LTV)" 
-            rate={marketData?.rate_dscr_70ltv ?? null} 
-            points={marketData?.points_dscr_70ltv ?? null}
-            onClick={() => handleRateCardClick('dscr_70ltv')}
-            onRefresh={() => handleRefreshSingle('dscr_70ltv')}
-            isRefreshing={refreshingType === 'dscr_70ltv'}
-          />
-        </div>
+      <div className="flex flex-col gap-3 py-3 px-2 border-b border-border/50">
+        {/* Product Columns Container */}
+        <div className="flex gap-2 justify-center flex-wrap">
+          
+          {/* 30-Year Fixed Column */}
+          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+              30-Year Fixed
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
+              points={marketData?.points_30yr_fixed_70ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
+              isRefreshing={refreshingType === '30yr_fixed_70ltv'}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_30yr_fixed ?? null} 
+              points={marketData?.points_30yr_fixed ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed')}
+              isRefreshing={refreshingType === '30yr_fixed'}
+            />
+            <RateCard 
+              label="90% LTV" 
+              rate={marketData?.rate_30yr_fixed_90ltv ?? null} 
+              points={marketData?.points_30yr_fixed_90ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_90ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_90ltv')}
+              isRefreshing={refreshingType === '30yr_fixed_90ltv'}
+            />
+            <RateCard 
+              label="95% LTV" 
+              rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
+              points={marketData?.points_30yr_fixed_95ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_95ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
+              isRefreshing={refreshingType === '30yr_fixed_95ltv'}
+            />
+          </div>
 
-        {/* 80% LTV Rate Cards */}
-        <div className="flex items-start gap-3 flex-wrap justify-center">
-          <RateCard 
-            label="30-Year Fixed (80% LTV)" 
-            rate={marketData?.rate_30yr_fixed ?? null} 
-            points={marketData?.points_30yr_fixed ?? null}
-            onClick={() => handleRateCardClick('30yr_fixed')}
-            onRefresh={() => handleRefreshSingle('30yr_fixed')}
-            isRefreshing={refreshingType === '30yr_fixed'}
-          />
-          <RateCard 
-            label="15-Year Fixed (80% LTV)" 
-            rate={marketData?.rate_15yr_fixed ?? null} 
-            points={marketData?.points_15yr_fixed ?? null}
-            onClick={() => handleRateCardClick('15yr_fixed')}
-            onRefresh={() => handleRefreshSingle('15yr_fixed')}
-            isRefreshing={refreshingType === '15yr_fixed'}
-          />
-          <RateCard 
-            label="FHA 30-Year (80% LTV)" 
-            rate={marketData?.rate_30yr_fha ?? null} 
-            points={marketData?.points_30yr_fha ?? null}
-            onClick={() => handleRateCardClick('fha_30yr')}
-            onRefresh={() => handleRefreshSingle('fha_30yr')}
-            isRefreshing={refreshingType === 'fha_30yr'}
-          />
-          <RateCard 
-            label="Bank Statement (80% LTV)" 
-            rate={marketData?.rate_bank_statement ?? null} 
-            points={marketData?.points_bank_statement ?? null}
-            onClick={() => handleRateCardClick('bank_statement')}
-            onRefresh={() => handleRefreshSingle('bank_statement')}
-            isRefreshing={refreshingType === 'bank_statement'}
-          />
-          <RateCard 
-            label="DSCR (80% LTV)" 
-            rate={marketData?.rate_dscr ?? null} 
-            points={marketData?.points_dscr ?? null}
-            onClick={() => handleRateCardClick('dscr')}
-            onRefresh={() => handleRefreshSingle('dscr')}
-            isRefreshing={refreshingType === 'dscr'}
-          />
-        </div>
+          {/* 15-Year Fixed Column */}
+          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+              15-Year Fixed
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_15yr_fixed_70ltv ?? null} 
+              points={marketData?.points_15yr_fixed_70ltv ?? null}
+              onClick={() => handleRateCardClick('15yr_fixed_70ltv')}
+              onRefresh={() => handleRefreshSingle('15yr_fixed_70ltv')}
+              isRefreshing={refreshingType === '15yr_fixed_70ltv'}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_15yr_fixed ?? null} 
+              points={marketData?.points_15yr_fixed ?? null}
+              onClick={() => handleRateCardClick('15yr_fixed')}
+              onRefresh={() => handleRefreshSingle('15yr_fixed')}
+              isRefreshing={refreshingType === '15yr_fixed'}
+            />
+            <RateCard 
+              label="90% LTV" 
+              rate={marketData?.rate_15yr_fixed_90ltv ?? null} 
+              points={marketData?.points_15yr_fixed_90ltv ?? null}
+              onClick={() => handleRateCardClick('15yr_fixed_90ltv')}
+              onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
+              isRefreshing={refreshingType === '15yr_fixed_90ltv'}
+            />
+            <RateCard 
+              label="95% LTV" 
+              rate={marketData?.rate_15yr_fixed_95ltv ?? null} 
+              points={marketData?.points_15yr_fixed_95ltv ?? null}
+              onClick={() => handleRateCardClick('15yr_fixed_95ltv')}
+              onRefresh={() => handleRefreshSingle('15yr_fixed_95ltv')}
+              isRefreshing={refreshingType === '15yr_fixed_95ltv'}
+            />
+          </div>
 
-        {/* 90% LTV Rate Cards (no DSCR) */}
-        <div className="flex items-start gap-3 flex-wrap justify-center">
-          <RateCard 
-            label="30-Year Fixed (90% LTV)" 
-            rate={marketData?.rate_30yr_fixed_90ltv ?? null} 
-            points={marketData?.points_30yr_fixed_90ltv ?? null}
-            onClick={() => handleRateCardClick('30yr_fixed_90ltv')}
-            onRefresh={() => handleRefreshSingle('30yr_fixed_90ltv')}
-            isRefreshing={refreshingType === '30yr_fixed_90ltv'}
-          />
-          <RateCard 
-            label="15-Year Fixed (90% LTV)" 
-            rate={marketData?.rate_15yr_fixed_90ltv ?? null} 
-            points={marketData?.points_15yr_fixed_90ltv ?? null}
-            onClick={() => handleRateCardClick('15yr_fixed_90ltv')}
-            onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
-            isRefreshing={refreshingType === '15yr_fixed_90ltv'}
-          />
-          <RateCard 
-            label="FHA 30-Year (90% LTV)" 
-            rate={marketData?.rate_30yr_fha_90ltv ?? null} 
-            points={marketData?.points_30yr_fha_90ltv ?? null}
-            onClick={() => handleRateCardClick('fha_30yr_90ltv')}
-            onRefresh={() => handleRefreshSingle('fha_30yr_90ltv')}
-            isRefreshing={refreshingType === 'fha_30yr_90ltv'}
-          />
-          <RateCard 
-            label="Bank Statement (90% LTV)" 
-            rate={marketData?.rate_bank_statement_90ltv ?? null} 
-            points={marketData?.points_bank_statement_90ltv ?? null}
-            onClick={() => handleRateCardClick('bank_statement_90ltv')}
-            onRefresh={() => handleRefreshSingle('bank_statement_90ltv')}
-            isRefreshing={refreshingType === 'bank_statement_90ltv'}
-          />
-          {/* Empty placeholder for DSCR slot */}
-          <div className="min-w-[140px]" />
-        </div>
+          {/* FHA 30-Year Column */}
+          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+              FHA 30-Year
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_30yr_fha_70ltv ?? null} 
+              points={marketData?.points_30yr_fha_70ltv ?? null}
+              onClick={() => handleRateCardClick('fha_30yr_70ltv')}
+              onRefresh={() => handleRefreshSingle('fha_30yr_70ltv')}
+              isRefreshing={refreshingType === 'fha_30yr_70ltv'}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_30yr_fha ?? null} 
+              points={marketData?.points_30yr_fha ?? null}
+              onClick={() => handleRateCardClick('fha_30yr')}
+              onRefresh={() => handleRefreshSingle('fha_30yr')}
+              isRefreshing={refreshingType === 'fha_30yr'}
+            />
+            <RateCard 
+              label="90% LTV" 
+              rate={marketData?.rate_30yr_fha_90ltv ?? null} 
+              points={marketData?.points_30yr_fha_90ltv ?? null}
+              onClick={() => handleRateCardClick('fha_30yr_90ltv')}
+              onRefresh={() => handleRefreshSingle('fha_30yr_90ltv')}
+              isRefreshing={refreshingType === 'fha_30yr_90ltv'}
+            />
+            <RateCard 
+              label="95% LTV" 
+              rate={marketData?.rate_30yr_fha_95ltv ?? null} 
+              points={marketData?.points_30yr_fha_95ltv ?? null}
+              onClick={() => handleRateCardClick('fha_30yr_95ltv')}
+              onRefresh={() => handleRefreshSingle('fha_30yr_95ltv')}
+              isRefreshing={refreshingType === 'fha_30yr_95ltv'}
+            />
+          </div>
 
-        {/* 95% LTV Rate Cards (no Bank Statement or DSCR) */}
-        <div className="flex items-start gap-3 flex-wrap justify-center">
-          <RateCard 
-            label="30-Year Fixed (95% LTV)" 
-            rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
-            points={marketData?.points_30yr_fixed_95ltv ?? null}
-            onClick={() => handleRateCardClick('30yr_fixed_95ltv')}
-            onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
-            isRefreshing={refreshingType === '30yr_fixed_95ltv'}
-          />
-          <RateCard 
-            label="15-Year Fixed (95% LTV)" 
-            rate={marketData?.rate_15yr_fixed_95ltv ?? null} 
-            points={marketData?.points_15yr_fixed_95ltv ?? null}
-            onClick={() => handleRateCardClick('15yr_fixed_95ltv')}
-            onRefresh={() => handleRefreshSingle('15yr_fixed_95ltv')}
-            isRefreshing={refreshingType === '15yr_fixed_95ltv'}
-          />
-          <RateCard 
-            label="FHA 30-Year (95% LTV)" 
-            rate={marketData?.rate_30yr_fha_95ltv ?? null} 
-            points={marketData?.points_30yr_fha_95ltv ?? null}
-            onClick={() => handleRateCardClick('fha_30yr_95ltv')}
-            onRefresh={() => handleRefreshSingle('fha_30yr_95ltv')}
-            isRefreshing={refreshingType === 'fha_30yr_95ltv'}
-          />
-          {/* Empty placeholders for Bank Statement and DSCR slots */}
-          <div className="min-w-[140px]" />
-          <div className="min-w-[140px]" />
+          {/* Bank Statement Column */}
+          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+              Bank Statement
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_bank_statement_70ltv ?? null} 
+              points={marketData?.points_bank_statement_70ltv ?? null}
+              onClick={() => handleRateCardClick('bank_statement_70ltv')}
+              onRefresh={() => handleRefreshSingle('bank_statement_70ltv')}
+              isRefreshing={refreshingType === 'bank_statement_70ltv'}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_bank_statement ?? null} 
+              points={marketData?.points_bank_statement ?? null}
+              onClick={() => handleRateCardClick('bank_statement')}
+              onRefresh={() => handleRefreshSingle('bank_statement')}
+              isRefreshing={refreshingType === 'bank_statement'}
+            />
+            <RateCard 
+              label="90% LTV" 
+              rate={marketData?.rate_bank_statement_90ltv ?? null} 
+              points={marketData?.points_bank_statement_90ltv ?? null}
+              onClick={() => handleRateCardClick('bank_statement_90ltv')}
+              onRefresh={() => handleRefreshSingle('bank_statement_90ltv')}
+              isRefreshing={refreshingType === 'bank_statement_90ltv'}
+            />
+          </div>
+
+          {/* DSCR Column */}
+          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+              DSCR
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_dscr_70ltv ?? null} 
+              points={marketData?.points_dscr_70ltv ?? null}
+              onClick={() => handleRateCardClick('dscr_70ltv')}
+              onRefresh={() => handleRefreshSingle('dscr_70ltv')}
+              isRefreshing={refreshingType === 'dscr_70ltv'}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_dscr ?? null} 
+              points={marketData?.points_dscr ?? null}
+              onClick={() => handleRateCardClick('dscr')}
+              onRefresh={() => handleRefreshSingle('dscr')}
+              isRefreshing={refreshingType === 'dscr'}
+            />
+          </div>
+          
         </div>
 
         {/* Refresh + timestamp */}
         <div className="flex items-center justify-center gap-3">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[10px] text-muted-foreground">
             Last updated: {formatUpdateTime(marketData?.updated_at ?? null)}
           </span>
           <Button
@@ -561,17 +580,17 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="h-7 px-3"
+            className="h-6 px-2 text-[10px]"
           >
             {isRefreshing ? (
               <>
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                Fetching rates...
+                <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" />
+                Fetching...
               </>
             ) : (
               <>
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Refresh Rates
+                <RefreshCw className="h-2.5 w-2.5 mr-1" />
+                Refresh All
               </>
             )}
           </Button>
