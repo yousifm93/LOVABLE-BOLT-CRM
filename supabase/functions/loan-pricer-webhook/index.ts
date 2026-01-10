@@ -188,10 +188,19 @@ async function updateDailyMarketRates(supabase: any, scenarioType: string, rate:
       updateFields.rate_dscr_70ltv = rateNum;
       updateFields.points_dscr_70ltv = pointsNum;
       break;
-    // 75% LTV scenarios (DSCR only)
+    // 60% LTV scenarios (DSCR only)
+    case 'dscr_60ltv':
+      updateFields.rate_dscr_60ltv = rateNum;
+      updateFields.points_dscr_60ltv = pointsNum;
+      break;
+    // 75% LTV scenarios
     case 'dscr_75ltv':
       updateFields.rate_dscr_75ltv = rateNum;
       updateFields.points_dscr_75ltv = pointsNum;
+      break;
+    case 'bank_statement_75ltv':
+      updateFields.rate_bank_statement_75ltv = rateNum;
+      updateFields.points_bank_statement_75ltv = pointsNum;
       break;
     // 85% LTV scenarios
     case 'dscr_85ltv':
@@ -236,6 +245,15 @@ async function updateDailyMarketRates(supabase: any, scenarioType: string, rate:
     case 'fha_30yr_965ltv':
       updateFields.rate_30yr_fha_965ltv = rateNum;
       updateFields.points_30yr_fha_965ltv = pointsNum;
+      break;
+    // 97% LTV scenarios (30yr and 15yr fixed)
+    case '30yr_fixed_97ltv':
+      updateFields.rate_30yr_fixed_97ltv = rateNum;
+      updateFields.points_30yr_fixed_97ltv = pointsNum;
+      break;
+    case '15yr_fixed_97ltv':
+      updateFields.rate_15yr_fixed_97ltv = rateNum;
+      updateFields.points_15yr_fixed_97ltv = pointsNum;
       break;
   }
 

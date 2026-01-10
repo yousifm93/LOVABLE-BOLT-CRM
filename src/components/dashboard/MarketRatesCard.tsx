@@ -29,6 +29,9 @@ interface MarketData {
   points_30yr_fha: number | null;
   points_bank_statement: number | null;
   points_dscr: number | null;
+  // 60% LTV fields (DSCR only)
+  rate_dscr_60ltv: number | null;
+  points_dscr_60ltv: number | null;
   // 70% LTV fields
   rate_30yr_fixed_70ltv: number | null;
   rate_15yr_fixed_70ltv: number | null;
@@ -40,9 +43,11 @@ interface MarketData {
   points_30yr_fha_70ltv: number | null;
   points_bank_statement_70ltv: number | null;
   points_dscr_70ltv: number | null;
-  // 75% LTV fields (DSCR only)
+  // 75% LTV fields (DSCR and Bank Statement)
   rate_dscr_75ltv: number | null;
   points_dscr_75ltv: number | null;
+  rate_bank_statement_75ltv: number | null;
+  points_bank_statement_75ltv: number | null;
   // 85% LTV fields (DSCR and Bank Statement)
   rate_dscr_85ltv: number | null;
   points_dscr_85ltv: number | null;
@@ -67,6 +72,11 @@ interface MarketData {
   // 96.5% LTV fields (FHA only)
   rate_30yr_fha_965ltv: number | null;
   points_30yr_fha_965ltv: number | null;
+  // 97% LTV fields (30yr and 15yr fixed)
+  rate_30yr_fixed_97ltv: number | null;
+  points_30yr_fixed_97ltv: number | null;
+  rate_15yr_fixed_97ltv: number | null;
+  points_15yr_fixed_97ltv: number | null;
   updated_at: string | null;
 }
 
@@ -127,11 +137,14 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
 // All rate types including all LTV variations
 type RateType = 
   | '30yr_fixed' | '15yr_fixed' | 'fha_30yr' | 'bank_statement' | 'dscr'
+  | 'dscr_60ltv'
   | '30yr_fixed_70ltv' | '15yr_fixed_70ltv' | 'fha_30yr_70ltv' | 'bank_statement_70ltv' | 'dscr_70ltv'
-  | 'dscr_75ltv' | 'dscr_85ltv' | 'bank_statement_85ltv'
+  | 'dscr_75ltv' | 'bank_statement_75ltv'
+  | 'dscr_85ltv' | 'bank_statement_85ltv'
   | '30yr_fixed_90ltv' | '15yr_fixed_90ltv' | 'fha_30yr_90ltv' | 'bank_statement_90ltv'
   | '30yr_fixed_95ltv' | '15yr_fixed_95ltv' | 'fha_30yr_95ltv'
-  | 'fha_30yr_965ltv';
+  | 'fha_30yr_965ltv'
+  | '30yr_fixed_97ltv' | '15yr_fixed_97ltv';
 
 export function MarketRatesCard() {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
@@ -182,12 +195,14 @@ export function MarketRatesCard() {
         'rate_30yr_fha', 'points_30yr_fha',
         'rate_bank_statement', 'points_bank_statement',
         'rate_dscr', 'points_dscr',
+        'rate_dscr_60ltv', 'points_dscr_60ltv',
         'rate_30yr_fixed_70ltv', 'points_30yr_fixed_70ltv',
         'rate_15yr_fixed_70ltv', 'points_15yr_fixed_70ltv',
         'rate_30yr_fha_70ltv', 'points_30yr_fha_70ltv',
         'rate_bank_statement_70ltv', 'points_bank_statement_70ltv',
         'rate_dscr_70ltv', 'points_dscr_70ltv',
         'rate_dscr_75ltv', 'points_dscr_75ltv',
+        'rate_bank_statement_75ltv', 'points_bank_statement_75ltv',
         'rate_dscr_85ltv', 'points_dscr_85ltv',
         'rate_bank_statement_85ltv', 'points_bank_statement_85ltv',
         'rate_30yr_fixed_90ltv', 'points_30yr_fixed_90ltv',
@@ -198,6 +213,8 @@ export function MarketRatesCard() {
         'rate_15yr_fixed_95ltv', 'points_15yr_fixed_95ltv',
         'rate_30yr_fha_95ltv', 'points_30yr_fha_95ltv',
         'rate_30yr_fha_965ltv', 'points_30yr_fha_965ltv',
+        'rate_30yr_fixed_97ltv', 'points_30yr_fixed_97ltv',
+        'rate_15yr_fixed_97ltv', 'points_15yr_fixed_97ltv',
       ];
 
       for (const field of rateFields) {
@@ -280,14 +297,17 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       case 'fha_30yr': return 'FHA 30-Year (80% LTV)';
       case 'bank_statement': return 'Bank Statement (80% LTV)';
       case 'dscr': return 'DSCR (80% LTV)';
+      // 60% LTV labels (DSCR only)
+      case 'dscr_60ltv': return 'DSCR (60% LTV)';
       // 70% LTV labels
       case '30yr_fixed_70ltv': return '30-Year Fixed (70% LTV)';
       case '15yr_fixed_70ltv': return '15-Year Fixed (70% LTV)';
       case 'fha_30yr_70ltv': return 'FHA 30-Year (70% LTV)';
       case 'bank_statement_70ltv': return 'Bank Statement (70% LTV)';
       case 'dscr_70ltv': return 'DSCR (70% LTV)';
-      // 75% LTV labels (DSCR only)
+      // 75% LTV labels
       case 'dscr_75ltv': return 'DSCR (75% LTV)';
+      case 'bank_statement_75ltv': return 'Bank Statement (75% LTV)';
       // 85% LTV labels
       case 'dscr_85ltv': return 'DSCR (85% LTV)';
       case 'bank_statement_85ltv': return 'Bank Statement (85% LTV)';
@@ -302,6 +322,9 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       case 'fha_30yr_95ltv': return 'FHA 30-Year (95% LTV)';
       // 96.5% LTV labels (FHA only)
       case 'fha_30yr_965ltv': return 'FHA 30-Year (96.5% LTV)';
+      // 97% LTV labels
+      case '30yr_fixed_97ltv': return '30-Year Fixed (97% LTV)';
+      case '15yr_fixed_97ltv': return '15-Year Fixed (97% LTV)';
       default: return '';
     }
   };
@@ -458,6 +481,14 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
               isRefreshing={refreshingType === '30yr_fixed_95ltv'}
             />
+            <RateCard 
+              label="97% LTV" 
+              rate={marketData?.rate_30yr_fixed_97ltv ?? null} 
+              points={marketData?.points_30yr_fixed_97ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_97ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_97ltv')}
+              isRefreshing={refreshingType === '30yr_fixed_97ltv'}
+            />
           </div>
 
           {/* 15-Year Fixed Column */}
@@ -496,6 +527,14 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onClick={() => handleRateCardClick('15yr_fixed_95ltv')}
               onRefresh={() => handleRefreshSingle('15yr_fixed_95ltv')}
               isRefreshing={refreshingType === '15yr_fixed_95ltv'}
+            />
+            <RateCard 
+              label="97% LTV" 
+              rate={marketData?.rate_15yr_fixed_97ltv ?? null} 
+              points={marketData?.points_15yr_fixed_97ltv ?? null}
+              onClick={() => handleRateCardClick('15yr_fixed_97ltv')}
+              onRefresh={() => handleRefreshSingle('15yr_fixed_97ltv')}
+              isRefreshing={refreshingType === '15yr_fixed_97ltv'}
             />
           </div>
 
@@ -544,6 +583,14 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               isRefreshing={refreshingType === 'bank_statement_70ltv'}
             />
             <RateCard 
+              label="75% LTV" 
+              rate={marketData?.rate_bank_statement_75ltv ?? null} 
+              points={marketData?.points_bank_statement_75ltv ?? null}
+              onClick={() => handleRateCardClick('bank_statement_75ltv')}
+              onRefresh={() => handleRefreshSingle('bank_statement_75ltv')}
+              isRefreshing={refreshingType === 'bank_statement_75ltv'}
+            />
+            <RateCard 
               label="80% LTV" 
               rate={marketData?.rate_bank_statement ?? null} 
               points={marketData?.points_bank_statement ?? null}
@@ -574,6 +621,14 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
               DSCR
             </h4>
+            <RateCard 
+              label="60% LTV" 
+              rate={marketData?.rate_dscr_60ltv ?? null} 
+              points={marketData?.points_dscr_60ltv ?? null}
+              onClick={() => handleRateCardClick('dscr_60ltv')}
+              onRefresh={() => handleRefreshSingle('dscr_60ltv')}
+              isRefreshing={refreshingType === 'dscr_60ltv'}
+            />
             <RateCard 
               label="70% LTV" 
               rate={marketData?.rate_dscr_70ltv ?? null} 
