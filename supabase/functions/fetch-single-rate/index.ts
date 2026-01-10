@@ -47,6 +47,28 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
+    // Base scenario parameters - 75% LTV
+    const baseScenario75LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 300000, // 75% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // Base scenario parameters - 85% LTV
+    const baseScenario85LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 340000, // 85% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
     // Base scenario parameters - 90% LTV
     const baseScenario90LTV = {
       fico_score: 780,
@@ -65,6 +87,17 @@ serve(async (req) => {
       num_units: 1,
       purchase_price: 400000,
       loan_amount: 380000, // 95% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // Base scenario parameters - 96.5% LTV
+    const baseScenario965LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 386000, // 96.5% LTV
       occupancy: 'Primary Residence',
       property_type: 'Single Family',
     };
@@ -145,6 +178,31 @@ serve(async (req) => {
         occupancy: 'Investment',
         loan_term: 30,
       },
+      // 75% LTV scenarios (DSCR only)
+      'dscr_75ltv': {
+        ...baseScenario75LTV,
+        loan_type: 'Conventional',
+        income_type: 'DSCR',
+        dscr_ratio: '1.5',
+        occupancy: 'Investment',
+        loan_term: 30,
+      },
+      // 85% LTV scenarios (DSCR and Bank Statement)
+      'dscr_85ltv': {
+        ...baseScenario85LTV,
+        loan_type: 'Conventional',
+        income_type: 'DSCR',
+        dscr_ratio: '1.5',
+        occupancy: 'Investment',
+        loan_term: 30,
+      },
+      'bank_statement_85ltv': {
+        ...baseScenario85LTV,
+        loan_type: 'Conventional',
+        income_type: '24Mo Business Bank Statements',
+        dscr_ratio: '',
+        loan_term: 30,
+      },
       // 90% LTV scenarios (no DSCR)
       '30yr_fixed_90ltv': {
         ...baseScenario90LTV,
@@ -191,6 +249,14 @@ serve(async (req) => {
       },
       'fha_30yr_95ltv': {
         ...baseScenario95LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        loan_term: 30,
+      },
+      // 96.5% LTV scenarios (FHA only)
+      'fha_30yr_965ltv': {
+        ...baseScenario965LTV,
         loan_type: 'FHA',
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',

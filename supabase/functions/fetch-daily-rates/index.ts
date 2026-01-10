@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('fetch-daily-rates: Starting daily rate fetch with 17 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV)');
+    console.log('fetch-daily-rates: Starting daily rate fetch with 21 scenarios');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -45,6 +45,28 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
+    // Base scenario parameters for 75% LTV
+    const baseScenario75LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 300000,  // 75% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // Base scenario parameters for 85% LTV
+    const baseScenario85LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 340000,  // 85% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
     // Base scenario parameters for 90% LTV
     const baseScenario90LTV = {
       fico_score: 780,
@@ -67,9 +89,20 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
-    // All 17 scenarios: 5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV
+    // Base scenario parameters for 96.5% LTV
+    const baseScenario965LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 386000,  // 96.5% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // All 21 scenarios
     const scenarios = [
-      // 80% LTV scenarios
+      // 80% LTV scenarios (5)
       {
         ...baseScenario80LTV,
         loan_type: 'Conventional',
@@ -111,7 +144,7 @@ serve(async (req) => {
         scenario_type: 'dscr',
         loan_term: 30
       },
-      // 70% LTV scenarios
+      // 70% LTV scenarios (5)
       {
         ...baseScenario70LTV,
         loan_type: 'Conventional',
@@ -153,7 +186,35 @@ serve(async (req) => {
         scenario_type: 'dscr_70ltv',
         loan_term: 30
       },
-      // 90% LTV scenarios (no DSCR)
+      // 75% LTV scenarios (DSCR only - 1)
+      {
+        ...baseScenario75LTV,
+        loan_type: 'Conventional',
+        income_type: 'DSCR',
+        dscr_ratio: '1.5',
+        occupancy: 'Investment',
+        scenario_type: 'dscr_75ltv',
+        loan_term: 30
+      },
+      // 85% LTV scenarios (DSCR and Bank Statement - 2)
+      {
+        ...baseScenario85LTV,
+        loan_type: 'Conventional',
+        income_type: 'DSCR',
+        dscr_ratio: '1.5',
+        occupancy: 'Investment',
+        scenario_type: 'dscr_85ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario85LTV,
+        loan_type: 'Conventional',
+        income_type: '24Mo Business Bank Statements',
+        dscr_ratio: '',
+        scenario_type: 'bank_statement_85ltv',
+        loan_term: 30
+      },
+      // 90% LTV scenarios (no DSCR - 4)
       {
         ...baseScenario90LTV,
         loan_type: 'Conventional',
@@ -186,7 +247,7 @@ serve(async (req) => {
         scenario_type: 'bank_statement_90ltv',
         loan_term: 30
       },
-      // 95% LTV scenarios (no Bank Statement or DSCR)
+      // 95% LTV scenarios (no Bank Statement or DSCR - 3)
       {
         ...baseScenario95LTV,
         loan_type: 'Conventional',
@@ -209,6 +270,15 @@ serve(async (req) => {
         income_type: 'Full Doc - 24M',
         dscr_ratio: '',
         scenario_type: 'fha_30yr_95ltv',
+        loan_term: 30
+      },
+      // 96.5% LTV scenarios (FHA only - 1)
+      {
+        ...baseScenario965LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: 'fha_30yr_965ltv',
         loan_term: 30
       }
     ];
@@ -246,7 +316,7 @@ serve(async (req) => {
       pricingRunIds.push(pricingRun.id);
 
       // Trigger Axiom - For DSCR, always ensure dscr_ratio is '1.5'
-      const isDSCR = scenario_type === 'dscr' || scenario_type === 'dscr_70ltv';
+      const isDSCR = scenario_type.includes('dscr');
       const dscrRatioValue = isDSCR ? '1.5' : (scenarioData.dscr_ratio || '');
       
       // Always send 11 fields including loan_term
@@ -302,7 +372,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily rate fetch triggered for 17 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV)',
+        message: 'Daily rate fetch triggered for 21 scenarios',
         pricing_run_ids: pricingRunIds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
