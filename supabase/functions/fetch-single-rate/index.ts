@@ -47,6 +47,17 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
+    // Base scenario parameters - 90% LTV
+    const baseScenario90LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 360000, // 90% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
     // Define scenario configurations
     const scenarioConfigs: Record<string, any> = {
       // 80% LTV scenarios
@@ -121,6 +132,35 @@ serve(async (req) => {
         income_type: 'DSCR',
         dscr_ratio: '1.5',  // CRITICAL: Must always be 1.5 for DSCR scenarios
         occupancy: 'Investment',
+        loan_term: 30,
+      },
+      // 90% LTV scenarios (no DSCR)
+      '30yr_fixed_90ltv': {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        loan_term: 30,
+      },
+      '15yr_fixed_90ltv': {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        loan_term: 15,
+      },
+      'fha_30yr_90ltv': {
+        ...baseScenario90LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        loan_term: 30,
+      },
+      'bank_statement_90ltv': {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: '24Mo Business Bank Statements',
+        dscr_ratio: '',
         loan_term: 30,
       }
     };
