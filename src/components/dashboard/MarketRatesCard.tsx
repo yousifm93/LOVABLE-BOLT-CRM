@@ -114,32 +114,57 @@ export function MarketRatesCard() {
   const fetchMarketData = async () => {
     const today = new Date().toISOString().split('T')[0];
     
-    // First try to get today's data
-    let { data, error } = await supabase
+    // Fetch today's data
+    let { data: todayData, error: todayError } = await supabase
       .from('daily_market_updates')
       .select('*')
       .eq('date', today)
       .single();
 
-    // If no data for today, get the most recent entry as fallback
-    if (error?.code === 'PGRST116' || !data) {
-      const { data: latestData, error: latestError } = await supabase
-        .from('daily_market_updates')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(1)
-        .single();
-      
+    // Also fetch the most recent entry (may be a different date)
+    const { data: latestData, error: latestError } = await supabase
+      .from('daily_market_updates')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+
+    // If no today data, use latest data entirely
+    if (todayError?.code === 'PGRST116' || !todayData) {
       if (!latestError && latestData) {
-        data = latestData;
-      } else if (latestError && latestError.code !== 'PGRST116') {
-        console.error('Error fetching latest market data:', latestError);
+        setMarketData(latestData);
       }
-    } else if (error) {
-      console.error('Error fetching market data:', error);
+      setIsLoading(false);
+      return;
     }
 
-    setMarketData(data || null);
+    // If today's data exists but has NULL values, merge with latest data
+    // to fill in missing rates from previous days
+    const mergedData = { ...todayData };
+    
+    if (latestData && latestData.date !== todayData.date) {
+      // List of all rate fields to check and potentially merge
+      const rateFields = [
+        'rate_30yr_fixed', 'points_30yr_fixed',
+        'rate_15yr_fixed', 'points_15yr_fixed',
+        'rate_30yr_fha', 'points_30yr_fha',
+        'rate_bank_statement', 'points_bank_statement',
+        'rate_dscr', 'points_dscr',
+        'rate_30yr_fixed_70ltv', 'points_30yr_fixed_70ltv',
+        'rate_15yr_fixed_70ltv', 'points_15yr_fixed_70ltv',
+        'rate_30yr_fha_70ltv', 'points_30yr_fha_70ltv',
+        'rate_bank_statement_70ltv', 'points_bank_statement_70ltv',
+        'rate_dscr_70ltv', 'points_dscr_70ltv',
+      ];
+
+      for (const field of rateFields) {
+        if (mergedData[field] === null && latestData[field] !== null) {
+          mergedData[field] = latestData[field];
+        }
+      }
+    }
+
+    setMarketData(mergedData);
     setIsLoading(false);
   };
 
