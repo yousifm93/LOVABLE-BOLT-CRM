@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('fetch-daily-rates: Starting daily rate fetch with 14 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV)');
+    console.log('fetch-daily-rates: Starting daily rate fetch with 17 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV)');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -56,7 +56,18 @@ serve(async (req) => {
       property_type: 'Single Family',
     };
 
-    // All 10 scenarios: 5 at 80% LTV + 5 at 70% LTV
+    // Base scenario parameters for 95% LTV
+    const baseScenario95LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 380000,  // 95% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // All 17 scenarios: 5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV
     const scenarios = [
       // 80% LTV scenarios
       {
@@ -174,6 +185,31 @@ serve(async (req) => {
         dscr_ratio: '',
         scenario_type: 'bank_statement_90ltv',
         loan_term: 30
+      },
+      // 95% LTV scenarios (no Bank Statement or DSCR)
+      {
+        ...baseScenario95LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '30yr_fixed_95ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario95LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '15yr_fixed_95ltv',
+        loan_term: 15
+      },
+      {
+        ...baseScenario95LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: 'fha_30yr_95ltv',
+        loan_term: 30
       }
     ];
 
@@ -266,7 +302,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily rate fetch triggered for 14 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV)',
+        message: 'Daily rate fetch triggered for 17 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV + 3 @ 95% LTV)',
         pricing_run_ids: pricingRunIds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

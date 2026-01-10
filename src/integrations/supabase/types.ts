@@ -1124,12 +1124,15 @@ export type Database = {
           points_15yr_fixed: number | null
           points_15yr_fixed_70ltv: number | null
           points_15yr_fixed_90ltv: number | null
+          points_15yr_fixed_95ltv: number | null
           points_30yr_fha: number | null
           points_30yr_fha_70ltv: number | null
           points_30yr_fha_90ltv: number | null
+          points_30yr_fha_95ltv: number | null
           points_30yr_fixed: number | null
           points_30yr_fixed_70ltv: number | null
           points_30yr_fixed_90ltv: number | null
+          points_30yr_fixed_95ltv: number | null
           points_bank_statement: number | null
           points_bank_statement_70ltv: number | null
           points_bank_statement_90ltv: number | null
@@ -1139,12 +1142,15 @@ export type Database = {
           rate_15yr_fixed: number | null
           rate_15yr_fixed_70ltv: number | null
           rate_15yr_fixed_90ltv: number | null
+          rate_15yr_fixed_95ltv: number | null
           rate_30yr_fha: number | null
           rate_30yr_fha_70ltv: number | null
           rate_30yr_fha_90ltv: number | null
+          rate_30yr_fha_95ltv: number | null
           rate_30yr_fixed: number | null
           rate_30yr_fixed_70ltv: number | null
           rate_30yr_fixed_90ltv: number | null
+          rate_30yr_fixed_95ltv: number | null
           rate_bank_statement: number | null
           rate_bank_statement_70ltv: number | null
           rate_bank_statement_90ltv: number | null
@@ -1163,12 +1169,15 @@ export type Database = {
           points_15yr_fixed?: number | null
           points_15yr_fixed_70ltv?: number | null
           points_15yr_fixed_90ltv?: number | null
+          points_15yr_fixed_95ltv?: number | null
           points_30yr_fha?: number | null
           points_30yr_fha_70ltv?: number | null
           points_30yr_fha_90ltv?: number | null
+          points_30yr_fha_95ltv?: number | null
           points_30yr_fixed?: number | null
           points_30yr_fixed_70ltv?: number | null
           points_30yr_fixed_90ltv?: number | null
+          points_30yr_fixed_95ltv?: number | null
           points_bank_statement?: number | null
           points_bank_statement_70ltv?: number | null
           points_bank_statement_90ltv?: number | null
@@ -1178,12 +1187,15 @@ export type Database = {
           rate_15yr_fixed?: number | null
           rate_15yr_fixed_70ltv?: number | null
           rate_15yr_fixed_90ltv?: number | null
+          rate_15yr_fixed_95ltv?: number | null
           rate_30yr_fha?: number | null
           rate_30yr_fha_70ltv?: number | null
           rate_30yr_fha_90ltv?: number | null
+          rate_30yr_fha_95ltv?: number | null
           rate_30yr_fixed?: number | null
           rate_30yr_fixed_70ltv?: number | null
           rate_30yr_fixed_90ltv?: number | null
+          rate_30yr_fixed_95ltv?: number | null
           rate_bank_statement?: number | null
           rate_bank_statement_70ltv?: number | null
           rate_bank_statement_90ltv?: number | null
@@ -1202,12 +1214,15 @@ export type Database = {
           points_15yr_fixed?: number | null
           points_15yr_fixed_70ltv?: number | null
           points_15yr_fixed_90ltv?: number | null
+          points_15yr_fixed_95ltv?: number | null
           points_30yr_fha?: number | null
           points_30yr_fha_70ltv?: number | null
           points_30yr_fha_90ltv?: number | null
+          points_30yr_fha_95ltv?: number | null
           points_30yr_fixed?: number | null
           points_30yr_fixed_70ltv?: number | null
           points_30yr_fixed_90ltv?: number | null
+          points_30yr_fixed_95ltv?: number | null
           points_bank_statement?: number | null
           points_bank_statement_70ltv?: number | null
           points_bank_statement_90ltv?: number | null
@@ -1217,12 +1232,15 @@ export type Database = {
           rate_15yr_fixed?: number | null
           rate_15yr_fixed_70ltv?: number | null
           rate_15yr_fixed_90ltv?: number | null
+          rate_15yr_fixed_95ltv?: number | null
           rate_30yr_fha?: number | null
           rate_30yr_fha_70ltv?: number | null
           rate_30yr_fha_90ltv?: number | null
+          rate_30yr_fha_95ltv?: number | null
           rate_30yr_fixed?: number | null
           rate_30yr_fixed_70ltv?: number | null
           rate_30yr_fixed_90ltv?: number | null
+          rate_30yr_fixed_95ltv?: number | null
           rate_bank_statement?: number | null
           rate_bank_statement_70ltv?: number | null
           rate_bank_statement_90ltv?: number | null
