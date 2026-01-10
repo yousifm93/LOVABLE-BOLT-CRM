@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('fetch-daily-rates: Starting daily rate fetch with 10 scenarios (5 @ 80% LTV + 5 @ 70% LTV)');
+    console.log('fetch-daily-rates: Starting daily rate fetch with 14 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV)');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -41,6 +41,17 @@ serve(async (req) => {
       num_units: 1,
       purchase_price: 400000,
       loan_amount: 280000,  // 70% LTV
+      occupancy: 'Primary Residence',
+      property_type: 'Single Family',
+    };
+
+    // Base scenario parameters for 90% LTV
+    const baseScenario90LTV = {
+      fico_score: 780,
+      zip_code: '33131',
+      num_units: 1,
+      purchase_price: 400000,
+      loan_amount: 360000,  // 90% LTV
       occupancy: 'Primary Residence',
       property_type: 'Single Family',
     };
@@ -129,6 +140,39 @@ serve(async (req) => {
         dscr_ratio: '1.5',
         occupancy: 'Investment',
         scenario_type: 'dscr_70ltv',
+        loan_term: 30
+      },
+      // 90% LTV scenarios (no DSCR)
+      {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '30yr_fixed_90ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: '15yr_fixed_90ltv',
+        loan_term: 15
+      },
+      {
+        ...baseScenario90LTV,
+        loan_type: 'FHA',
+        income_type: 'Full Doc - 24M',
+        dscr_ratio: '',
+        scenario_type: 'fha_30yr_90ltv',
+        loan_term: 30
+      },
+      {
+        ...baseScenario90LTV,
+        loan_type: 'Conventional',
+        income_type: '24Mo Business Bank Statements',
+        dscr_ratio: '',
+        scenario_type: 'bank_statement_90ltv',
         loan_term: 30
       }
     ];
@@ -222,7 +266,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily rate fetch triggered for 10 scenarios (5 @ 80% LTV + 5 @ 70% LTV)',
+        message: 'Daily rate fetch triggered for 14 scenarios (5 @ 80% LTV + 5 @ 70% LTV + 4 @ 90% LTV)',
         pricing_run_ids: pricingRunIds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
