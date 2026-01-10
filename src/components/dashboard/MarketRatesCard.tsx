@@ -121,28 +121,29 @@ export function MarketRatesCard() {
       .eq('date', today)
       .single();
 
-    // Also fetch the most recent entry (may be a different date)
-    const { data: latestData, error: latestError } = await supabase
+    // Fetch the most recent entry BEFORE today (to fill in missing rates)
+    const { data: previousData } = await supabase
       .from('daily_market_updates')
       .select('*')
+      .lt('date', today)
       .order('date', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    // If no today data, use latest data entirely
+    // If no today data, use previous data entirely
     if (todayError?.code === 'PGRST116' || !todayData) {
-      if (!latestError && latestData) {
-        setMarketData(latestData);
+      if (previousData) {
+        setMarketData(previousData);
       }
       setIsLoading(false);
       return;
     }
 
-    // If today's data exists but has NULL values, merge with latest data
+    // If today's data exists but has NULL values, merge with previous data
     // to fill in missing rates from previous days
     const mergedData = { ...todayData };
     
-    if (latestData && latestData.date !== todayData.date) {
+    if (previousData) {
       // List of all rate fields to check and potentially merge
       const rateFields = [
         'rate_30yr_fixed', 'points_30yr_fixed',
@@ -158,8 +159,8 @@ export function MarketRatesCard() {
       ];
 
       for (const field of rateFields) {
-        if (mergedData[field] === null && latestData[field] !== null) {
-          mergedData[field] = latestData[field];
+        if (mergedData[field] === null && previousData[field] !== null) {
+          mergedData[field] = previousData[field];
         }
       }
     }
