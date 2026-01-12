@@ -527,6 +527,12 @@ export function LoanPricer() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
+                        {/* Show last updated time for completed/failed runs */}
+                        {run.completed_at && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap mr-2">
+                            {format(new Date(run.completed_at), "MMM d, h:mm a")}
+                          </span>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
