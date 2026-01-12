@@ -521,12 +521,34 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
         <form onSubmit={handleSubmit} className="space-y-4">{mode === 'single' ? (
           // Single Task Mode
           <>
+          {/* Quick Task Templates */}
+          <div>
+            <Label className="mb-2 block text-xs text-muted-foreground">Quick Tasks</Label>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_TASK_TEMPLATES.map((template) => (
+                <Button
+                  key={template.id}
+                  type="button"
+                  variant={selectedTemplate === template.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => applyTemplate(template.id)}
+                  className="text-xs h-7"
+                >
+                  {template.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
           <div>
             <Label htmlFor="title">Task Title *</Label>
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, title: e.target.value });
+                setSelectedTemplate(null);
+              }}
               placeholder="Enter task title"
               required
             />
