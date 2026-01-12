@@ -40,6 +40,9 @@ export function TaskCompletionRequirementModal({
   // Determine if this is a call-based requirement
   const isCallRequirement = requirement.missingRequirement?.startsWith('log_call_') || 
                             requirement.missingRequirement?.startsWith('log_note_');
+  
+  // Determine if this is an any-activity requirement
+  const isAnyActivityRequirement = requirement.missingRequirement === 'log_any_activity';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,6 +82,24 @@ export function TaskCompletionRequirementModal({
               </div>
             </div>
           )}
+
+          {isAnyActivityRequirement && requirement.contactInfo && (
+            <div className="bg-muted p-4 rounded-md space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="font-medium">{requirement.contactInfo.name}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Log any activity (call, email, SMS, or note) to complete this task.
+              </p>
+              {requirement.contactInfo.phone && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span className="font-mono">{requirement.contactInfo.phone}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-2">
@@ -89,6 +110,12 @@ export function TaskCompletionRequirementModal({
             <Button onClick={onLogCall}>
               <Phone className="h-4 w-4 mr-2" />
               Log Call Now
+            </Button>
+          )}
+          {isAnyActivityRequirement && borrowerId && onOpenLead && (
+            <Button onClick={onOpenLead}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open Lead to Log Activity
             </Button>
           )}
           {isFieldRequirement && borrowerId && onOpenLead && (

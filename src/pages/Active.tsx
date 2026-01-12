@@ -64,7 +64,8 @@ const DEFAULT_MAIN_VIEW_COLUMNS = [
   "epo_status",
   "buyer_agent",
   "listing_agent",
-  "earliest_task_due_date"
+  "earliest_task_due_date",
+  "tasks"
 ];
 
 const MAIN_VIEW_STORAGE_KEY = 'active_main_view_custom';
@@ -842,6 +843,7 @@ export default function Active() {
         "pr_type": "P/R",
         "occupancy": "OCCUPANCY",
         "earliest_task_due_date": "TASK DUE",
+        "tasks": "TASKS",
         "is_closed": "CLOSED",
       };
       
