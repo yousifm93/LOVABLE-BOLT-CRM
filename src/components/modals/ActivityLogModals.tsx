@@ -9,10 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { databaseService, type CallLogInsert, type SmsLogInsert, type EmailLogInsert, type NoteInsert } from '@/services/database';
-import { Mic, Loader2 } from 'lucide-react';
+import { Mic, Loader2, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Voice recording hook
+// Voice recording hook (for verbatim transcription)
 function useVoiceRecording(onTranscriptionComplete: (text: string) => void) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -107,7 +107,129 @@ function useVoiceRecording(onTranscriptionComplete: (text: string) => void) {
   return { isRecording, isTranscribing, handleClick };
 }
 
-// Voice button component
+// Call recording hook (records, transcribes, and summarizes)
+function useCallRecording(onSummaryComplete: (summary: string) => void) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        await transcribeAndSummarize(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      toast({
+        title: 'Recording Started',
+        description: 'Recording your call. Click again to stop and summarize.',
+      });
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access to record calls.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAndSummarize = async (audioBlob: Blob) => {
+    setIsSummarizing(true);
+    try {
+      // Step 1: Transcribe the audio
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+      });
+
+      const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('voice-transcribe', {
+        body: { audio: base64Audio }
+      });
+
+      if (transcribeError) throw transcribeError;
+
+      if (!transcribeData?.text) {
+        throw new Error('No transcription returned');
+      }
+
+      const transcript = transcribeData.text;
+
+      // Step 2: Summarize the transcript
+      const { data: summaryData, error: summaryError } = await supabase.functions.invoke('summarize-transcript', {
+        body: { transcript }
+      });
+
+      if (summaryError) throw summaryError;
+
+      if (summaryData?.summary) {
+        onSummaryComplete(summaryData.summary);
+        toast({
+          title: 'Call Summarized',
+          description: 'Call recording has been transcribed and summarized.',
+        });
+      } else {
+        // Fallback to transcript if summarization fails
+        onSummaryComplete(transcript);
+        toast({
+          title: 'Call Transcribed',
+          description: 'Could not summarize, but transcript was added.',
+        });
+      }
+    } catch (error) {
+      console.error('Error processing call recording:', error);
+      toast({
+        title: 'Processing Failed',
+        description: 'Could not process the call recording. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  return { isRecording, isSummarizing, handleClick };
+}
+
+// Voice button component (for verbatim transcription)
 function VoiceButton({ isRecording, isTranscribing, onClick }: { isRecording: boolean; isTranscribing: boolean; onClick: () => void }) {
   return (
     <Button
@@ -120,12 +242,36 @@ function VoiceButton({ isRecording, isTranscribing, onClick }: { isRecording: bo
         "w-9 h-9 rounded-full transition-all",
         isRecording && "animate-pulse bg-red-500/10 border-red-500 hover:bg-red-500/20"
       )}
-      title={isRecording ? "Stop recording" : "Record voice note"}
+      title={isRecording ? "Stop recording" : "Record voice note (verbatim)"}
     >
       {isTranscribing ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <Mic className={cn("h-4 w-4", isRecording && "text-red-500")} />
+      )}
+    </Button>
+  );
+}
+
+// Call record button component (for recording and summarizing calls)
+function CallRecordButton({ isRecording, isSummarizing, onClick }: { isRecording: boolean; isSummarizing: boolean; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      onClick={onClick}
+      disabled={isSummarizing}
+      className={cn(
+        "w-9 h-9 rounded-full transition-all",
+        isRecording && "animate-pulse bg-green-500/10 border-green-500 hover:bg-green-500/20"
+      )}
+      title={isRecording ? "Stop and summarize call" : "Record call (will summarize)"}
+    >
+      {isSummarizing ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Phone className={cn("h-4 w-4", isRecording && "text-green-500")} />
       )}
     </Button>
   );
@@ -165,8 +311,14 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
     notes: '',
   });
   
+  // Verbatim voice transcription
   const { isRecording, isTranscribing, handleClick: handleVoiceClick } = useVoiceRecording((text) => {
     setFormData(prev => ({ ...prev, notes: prev.notes ? prev.notes + ' ' + text : text }));
+  });
+
+  // Call recording with summarization
+  const { isRecording: isRecordingCall, isSummarizing, handleClick: handleCallRecordClick } = useCallRecording((summary) => {
+    setFormData(prev => ({ ...prev, notes: prev.notes ? prev.notes + '\n\n' + summary : summary }));
   });
 
   // UUID validation helper
@@ -274,8 +426,14 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="notes">Notes</Label>
-              <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+              <div className="flex items-center gap-2">
+                <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
+                <CallRecordButton isRecording={isRecordingCall} isSummarizing={isSummarizing} onClick={handleCallRecordClick} />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              <Mic className="h-3 w-3 inline mr-1" /> Verbatim transcription | <Phone className="h-3 w-3 inline mx-1" /> Record & summarize call
+            </p>
             <MentionableRichTextEditor
               value={formData.notes}
               onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
@@ -287,7 +445,7 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || isRecordingCall || isSummarizing}>
               {loading ? 'Saving...' : 'Save'}
             </Button>
           </div>
