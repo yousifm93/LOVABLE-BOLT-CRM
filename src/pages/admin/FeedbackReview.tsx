@@ -73,16 +73,18 @@ export default function FeedbackReview() {
     
     const fetchData = async () => {
       try {
-        // Determine if current user is admin
-        const isAdmin = crmUser?.role === 'admin';
+        // Use server-side function to determine admin access (not client-side role)
+        const { data: isAdminResult } = await supabase.rpc('has_admin_access');
+        const isAdmin = isAdminResult === true;
         
-        // Build feedback query - non-admins only see their own feedback
+        // Build feedback query - admins see all feedback, non-admins only see their own
         let feedbackQuery = supabase
           .from('team_feedback')
           .select('*')
           .order('updated_at', { ascending: false });
         
-        if (!isAdmin && crmUser?.id) {
+        // Only filter by user_id if NOT an admin
+        if (!isAdmin) {
           feedbackQuery = feedbackQuery.eq('user_id', crmUser.id);
         }
 
@@ -104,7 +106,7 @@ export default function FeedbackReview() {
           usersData = data || [];
         }
         
-        // Non-admins only see their own tab
+        // Admins see all team members with feedback, non-admins only see their own tab
         const teamMembersToShow = isAdmin 
           ? usersData || []
           : usersData?.filter(u => u.id === crmUser?.id) || [];
@@ -137,13 +139,15 @@ export default function FeedbackReview() {
           .from('team_feedback_item_status')
           .select('*');
 
-        // Mark all unread feedback as read by admin
-        const unreadIds = feedbackData?.filter(f => !f.is_read_by_admin).map(f => f.id) || [];
-        if (unreadIds.length > 0) {
-          await supabase
-            .from('team_feedback')
-            .update({ is_read_by_admin: true })
-            .in('id', unreadIds);
+        // Mark all unread feedback as read by admin (only if admin)
+        if (isAdmin) {
+          const unreadIds = feedbackData?.filter(f => !f.is_read_by_admin).map(f => f.id) || [];
+          if (unreadIds.length > 0) {
+            await supabase
+              .from('team_feedback')
+              .update({ is_read_by_admin: true })
+              .in('id', unreadIds);
+          }
         }
 
         setTeamMembers(teamMembersToShow);
@@ -173,7 +177,7 @@ export default function FeedbackReview() {
     };
 
     fetchData();
-  }, [toast, crmUser?.id, crmUser?.role]);
+  }, [toast, crmUser?.id]);
 
   const getUserFeedback = (userId: string) => feedback.filter(f => f.user_id === userId);
 
