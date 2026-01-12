@@ -794,26 +794,35 @@ const createColumns = (
         return <span className="text-muted-foreground text-sm">-</span>;
       }
       
-      // Count open tasks and check for overdue
+      // Find the earliest due date among open tasks
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const overdueTasks = leadTasks.filter((t) => {
-        if (!t.due_date) return false;
-        const dueDate = new Date(t.due_date.includes("T") ? t.due_date : `${t.due_date}T00:00:00`);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate < today;
-      });
+      
+      // Sort tasks by due_date and get the earliest one
+      const sortedTasks = [...leadTasks]
+        .filter(t => t.due_date)
+        .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+      
+      if (sortedTasks.length === 0) {
+        return <span className="text-muted-foreground text-sm">-</span>;
+      }
+      
+      const earliestDueDate = sortedTasks[0].due_date;
+      const date = new Date(earliestDueDate.includes("T") ? earliestDueDate : `${earliestDueDate}T00:00:00`);
+      const dueDateObj = new Date(date);
+      dueDateObj.setHours(0, 0, 0, 0);
+      const isOverdue = dueDateObj.getTime() < today.getTime();
+      const isToday = dueDateObj.getTime() === today.getTime();
+      
+      const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       
       return (
-        <Badge 
-          variant={overdueTasks.length > 0 ? "destructive" : "secondary"} 
-          className="text-xs"
-        >
-          {leadTasks.length} task{leadTasks.length !== 1 ? 's' : ''}
-        </Badge>
+        <span className={`text-sm font-medium ${isOverdue ? 'text-destructive' : isToday ? 'text-warning' : 'text-muted-foreground'}`}>
+          {formattedDate}
+        </span>
       );
     },
-    sortable: false,
+    sortable: true,
   },
   {
     accessorKey: "is_closed",
@@ -929,7 +938,16 @@ export default function Active() {
     const saved = localStorage.getItem(MAIN_VIEW_STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure required columns are always included (migration for old cached data)
+        const requiredColumns = ['tasks'];
+        const missingColumns = requiredColumns.filter(col => !parsed.includes(col));
+        if (missingColumns.length > 0) {
+          const updated = [...parsed, ...missingColumns];
+          localStorage.setItem(MAIN_VIEW_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        }
+        return parsed;
       } catch {
         return DEFAULT_MAIN_VIEW_COLUMNS;
       }
