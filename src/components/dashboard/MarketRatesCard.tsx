@@ -156,70 +156,59 @@ export function MarketRatesCard() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const fetchMarketData = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Fetch today's data
-    let { data: todayData, error: todayError } = await supabase
+    // Fetch the last 10 days of data to find the most recent values for each field
+    const { data: allData, error } = await supabase
       .from('daily_market_updates')
       .select('*')
-      .eq('date', today)
-      .single();
-
-    // Fetch the most recent entry BEFORE today (to fill in missing rates)
-    const { data: previousData } = await supabase
-      .from('daily_market_updates')
-      .select('*')
-      .lt('date', today)
       .order('date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
-    // If no today data, use previous data entirely
-    if (todayError?.code === 'PGRST116' || !todayData) {
-      if (previousData) {
-        setMarketData(previousData);
-      }
+    if (error || !allData || allData.length === 0) {
       setIsLoading(false);
       return;
     }
 
-    // If today's data exists but has NULL values, merge with previous data
-    // to fill in missing rates from previous days
-    const mergedData = { ...todayData };
-    
-    if (previousData) {
-      // List of all rate fields to check and potentially merge
-      const rateFields = [
-        'rate_30yr_fixed', 'points_30yr_fixed',
-        'rate_15yr_fixed', 'points_15yr_fixed',
-        'rate_30yr_fha', 'points_30yr_fha',
-        'rate_bank_statement', 'points_bank_statement',
-        'rate_dscr', 'points_dscr',
-        'rate_dscr_60ltv', 'points_dscr_60ltv',
-        'rate_30yr_fixed_70ltv', 'points_30yr_fixed_70ltv',
-        'rate_15yr_fixed_70ltv', 'points_15yr_fixed_70ltv',
-        'rate_30yr_fha_70ltv', 'points_30yr_fha_70ltv',
-        'rate_bank_statement_70ltv', 'points_bank_statement_70ltv',
-        'rate_dscr_70ltv', 'points_dscr_70ltv',
-        'rate_dscr_75ltv', 'points_dscr_75ltv',
-        'rate_bank_statement_75ltv', 'points_bank_statement_75ltv',
-        'rate_dscr_85ltv', 'points_dscr_85ltv',
-        'rate_bank_statement_85ltv', 'points_bank_statement_85ltv',
-        'rate_30yr_fixed_90ltv', 'points_30yr_fixed_90ltv',
-        'rate_15yr_fixed_90ltv', 'points_15yr_fixed_90ltv',
-        'rate_30yr_fha_90ltv', 'points_30yr_fha_90ltv',
-        'rate_bank_statement_90ltv', 'points_bank_statement_90ltv',
-        'rate_30yr_fixed_95ltv', 'points_30yr_fixed_95ltv',
-        'rate_15yr_fixed_95ltv', 'points_15yr_fixed_95ltv',
-        'rate_30yr_fha_95ltv', 'points_30yr_fha_95ltv',
-        'rate_30yr_fha_965ltv', 'points_30yr_fha_965ltv',
-        'rate_30yr_fixed_97ltv', 'points_30yr_fixed_97ltv',
-        'rate_15yr_fixed_97ltv', 'points_15yr_fixed_97ltv',
-      ];
+    // Start with the most recent day as base
+    const mergedData: any = { ...allData[0] };
 
-      for (const field of rateFields) {
-        if (mergedData[field] === null && previousData[field] !== null) {
-          mergedData[field] = previousData[field];
+    // List of all rate fields to check and potentially merge
+    const rateFields = [
+      'rate_30yr_fixed', 'points_30yr_fixed',
+      'rate_15yr_fixed', 'points_15yr_fixed',
+      'rate_30yr_fha', 'points_30yr_fha',
+      'rate_bank_statement', 'points_bank_statement',
+      'rate_dscr', 'points_dscr',
+      'rate_dscr_60ltv', 'points_dscr_60ltv',
+      'rate_30yr_fixed_70ltv', 'points_30yr_fixed_70ltv',
+      'rate_15yr_fixed_70ltv', 'points_15yr_fixed_70ltv',
+      'rate_30yr_fha_70ltv', 'points_30yr_fha_70ltv',
+      'rate_bank_statement_70ltv', 'points_bank_statement_70ltv',
+      'rate_dscr_70ltv', 'points_dscr_70ltv',
+      'rate_dscr_75ltv', 'points_dscr_75ltv',
+      'rate_bank_statement_75ltv', 'points_bank_statement_75ltv',
+      'rate_dscr_85ltv', 'points_dscr_85ltv',
+      'rate_bank_statement_85ltv', 'points_bank_statement_85ltv',
+      'rate_30yr_fixed_90ltv', 'points_30yr_fixed_90ltv',
+      'rate_15yr_fixed_90ltv', 'points_15yr_fixed_90ltv',
+      'rate_30yr_fha_90ltv', 'points_30yr_fha_90ltv',
+      'rate_bank_statement_90ltv', 'points_bank_statement_90ltv',
+      'rate_30yr_fixed_95ltv', 'points_30yr_fixed_95ltv',
+      'rate_15yr_fixed_95ltv', 'points_15yr_fixed_95ltv',
+      'rate_30yr_fha_95ltv', 'points_30yr_fha_95ltv',
+      'rate_30yr_fha_965ltv', 'points_30yr_fha_965ltv',
+      'rate_30yr_fixed_97ltv', 'points_30yr_fixed_97ltv',
+      'rate_15yr_fixed_97ltv', 'points_15yr_fixed_97ltv',
+    ];
+
+    // For each field that's null in the most recent data, look for the most recent non-null value
+    for (const field of rateFields) {
+      if (mergedData[field] === null || mergedData[field] === undefined) {
+        // Search through all historical data for a non-null value
+        for (const row of allData) {
+          if (row[field] !== null && row[field] !== undefined) {
+            mergedData[field] = row[field];
+            break;
+          }
         }
       }
     }

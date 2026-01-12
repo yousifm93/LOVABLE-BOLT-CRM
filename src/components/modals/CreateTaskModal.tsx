@@ -24,6 +24,44 @@ interface CreateTaskModalProps {
   preselectedBorrowerId?: string;
 }
 
+// Quick task templates - pre-configured common task types
+const QUICK_TASK_TEMPLATES = [
+  {
+    id: 'lead_followup',
+    label: 'Lead Follow-up',
+    title: 'Lead Follow-up',
+    description: 'Follow up with the lead regarding their loan application',
+    completion_requirement_type: 'log_call_borrower',
+  },
+  {
+    id: 'pending_followup',
+    label: 'Pending Out Follow-up',
+    title: 'Pending Out Follow-up Conditions',
+    description: 'Follow up on pending out conditions that need to be addressed',
+    completion_requirement_type: null,
+  },
+  {
+    id: 'work_call',
+    label: 'Work Call',
+    title: 'Work Call',
+    description: 'Make a work call to discuss the loan file',
+    completion_requirement_type: 'log_call_borrower',
+  },
+  {
+    id: 'buyer_agent_call',
+    label: "Buyer's Agent Call",
+    title: "Call Buyer's Agent",
+    description: "Call the buyer's agent to discuss the loan status",
+    completion_requirement_type: 'log_call_buyer_agent',
+  },
+  {
+    id: 'listing_agent_call',
+    label: 'Listing Agent Call',
+    title: 'Call Listing Agent',
+    description: 'Call the listing agent regarding the property',
+    completion_requirement_type: 'log_call_listing_agent',
+  },
+];
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
   const { crmUser } = useAuth();
@@ -37,6 +75,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
     due_date: new Date().toISOString().split('T')[0],
     assignee_id: DEFAULT_ASSIGNEE_ID,
     borrower_id: preselectedBorrowerId || "",
+    completion_requirement_type: null as string | null,
   });
   const [bulkTasks, setBulkTasks] = useState<Array<{
     title: string;
@@ -56,9 +95,26 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   const [borrowerSearch, setBorrowerSearch] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [isParsingVoice, setIsParsingVoice] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
+
+  // Apply quick task template
+  const applyTemplate = (templateId: string) => {
+    const template = QUICK_TASK_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    
+    setSelectedTemplate(templateId);
+    setFormData(prev => ({
+      ...prev,
+      title: template.title,
+      description: template.description,
+      due_date: new Date().toISOString().split('T')[0], // Today
+      assignee_id: DEFAULT_ASSIGNEE_ID, // Herman
+      completion_requirement_type: template.completion_requirement_type,
+    }));
+  };
 
   useEffect(() => {
     if (open) {
@@ -283,6 +339,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           task_order: 0,
           created_by: crmUser.id,
           creation_log: [],
+          completion_requirement_type: formData.completion_requirement_type || null,
         });
 
         if (formData.borrower_id && createdTask) {
@@ -314,7 +371,9 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           due_date: new Date().toISOString().split('T')[0],
           assignee_id: DEFAULT_ASSIGNEE_ID,
           borrower_id: "",
+          completion_requirement_type: null,
         });
+        setSelectedTemplate(null);
 
         onTaskCreated();
         onOpenChange(false);
