@@ -142,6 +142,57 @@ export async function validateTaskCompletion(
     }
   }
 
+  // Check for any activity log (call, SMS, email, or note)
+  if (requirementType === 'log_any_activity') {
+    const borrowerId = task.borrower_id;
+    if (!borrowerId) return { canComplete: true };
+
+    // Check call_logs
+    const { data: callLogs } = await supabase
+      .from('call_logs')
+      .select('id')
+      .eq('lead_id', borrowerId)
+      .limit(1);
+
+    // Check email_logs (sent emails)
+    const { data: emailLogs } = await supabase
+      .from('email_logs')
+      .select('id')
+      .eq('lead_id', borrowerId)
+      .eq('direction', 'Out')
+      .limit(1);
+
+    // Check notes
+    const { data: notes } = await supabase
+      .from('notes')
+      .select('id')
+      .eq('lead_id', borrowerId)
+      .limit(1);
+
+    // Check SMS logs (if you have an sms_logs table, otherwise skip)
+    // For now, we consider call, email, or note as valid activity
+    const hasActivity = 
+      (callLogs && callLogs.length > 0) ||
+      (emailLogs && emailLogs.length > 0) ||
+      (notes && notes.length > 0);
+
+    if (!hasActivity) {
+      return {
+        canComplete: false,
+        message: 'You must log an activity (call, email, or note) for the borrower before completing this task',
+        missingRequirement: 'log_any_activity',
+        contactInfo: {
+          name: task.borrower
+            ? `${task.borrower.first_name} ${task.borrower.last_name}`
+            : 'Borrower',
+          phone: task.lead?.phone || task.borrower?.phone,
+          type: 'borrower',
+          id: borrowerId,
+        },
+      };
+    }
+  }
+
   // Check for field populated requirements (field_populated:field_name)
   if (requirementType.startsWith('field_populated:')) {
     const fieldName = requirementType.split(':')[1];
