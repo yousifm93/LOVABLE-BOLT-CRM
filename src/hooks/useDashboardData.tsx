@@ -187,7 +187,7 @@ export const useDashboardData = () => {
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', startOfMonthTimestamp)
         .lt('app_complete_at', startOfNextMonthTimestamp)
-        .order('app_complete_at', { ascending: false });
+        .order('app_complete_at', { ascending: true });
       
       if (error) throw error;
       return data as DashboardLead[];
@@ -206,7 +206,7 @@ export const useDashboardData = () => {
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', yesterdayBoundaries.start)
         .lte('app_complete_at', yesterdayBoundaries.end)
-        .order('app_complete_at', { ascending: false });
+        .order('app_complete_at', { ascending: true });
       
       if (error) throw error;
       return data as DashboardLead[];
@@ -225,7 +225,7 @@ export const useDashboardData = () => {
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', todayBoundaries.start)
         .lte('app_complete_at', todayBoundaries.end)
-        .order('app_complete_at', { ascending: false });
+        .order('app_complete_at', { ascending: true });
       
       if (error) throw error;
       return data as DashboardLead[];
@@ -242,7 +242,7 @@ export const useDashboardData = () => {
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
         .not('app_complete_at', 'is', null)
-        .order('app_complete_at', { ascending: false });
+        .order('app_complete_at', { ascending: true });
       
       if (error) throw error;
       return data as DashboardLead[];
