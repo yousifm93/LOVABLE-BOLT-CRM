@@ -105,6 +105,7 @@ interface ActiveLoan {
   closed_at: string | null;
   notes: string | null;
   earliest_task_due_date?: string | null;
+  tasks?: { id: string; due_date: string | null; title: string; status: string }[];
   lender?: {
     id: string;
     first_name: string;
@@ -781,6 +782,38 @@ const createColumns = (
       );
     },
     sortable: true,
+  },
+  {
+    accessorKey: "tasks",
+    header: "TASKS",
+    className: "text-center",
+    headerClassName: "text-center",
+    cell: ({ row }) => {
+      const leadTasks = row.original.tasks || [];
+      if (!leadTasks || leadTasks.length === 0) {
+        return <span className="text-muted-foreground text-sm">-</span>;
+      }
+      
+      // Count open tasks and check for overdue
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const overdueTasks = leadTasks.filter((t) => {
+        if (!t.due_date) return false;
+        const dueDate = new Date(t.due_date.includes("T") ? t.due_date : `${t.due_date}T00:00:00`);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      });
+      
+      return (
+        <Badge 
+          variant={overdueTasks.length > 0 ? "destructive" : "secondary"} 
+          className="text-xs"
+        >
+          {leadTasks.length} task{leadTasks.length !== 1 ? 's' : ''}
+        </Badge>
+      );
+    },
+    sortable: false,
   },
   {
     accessorKey: "is_closed",

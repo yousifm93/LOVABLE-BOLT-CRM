@@ -2106,27 +2106,35 @@ export const databaseService = {
         })) || [];
       }
       
-      // Fetch earliest task due dates for all active loans
+      // Fetch tasks for all active loans (open tasks only)
       const leadIds = data?.map(loan => loan.id) || [];
       let taskDueDates: Record<string, string | null> = {};
+      let tasksByLead: Record<string, any[]> = {};
       
       if (leadIds.length > 0) {
         const { data: tasksData } = await supabase
           .from('tasks')
-          .select('borrower_id, due_date')
+          .select('id, borrower_id, due_date, title, status')
           .in('borrower_id', leadIds)
           .is('deleted_at', null)
           .neq('status', 'Done')
-          .not('due_date', 'is', null)
           .order('due_date', { ascending: true });
         
-        // Group by borrower_id and get earliest date
+        // Group by borrower_id and get earliest date + full task list
         if (tasksData) {
           for (const task of tasksData) {
-            if (task.borrower_id && task.due_date) {
-              if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
-                taskDueDates[task.borrower_id] = task.due_date;
+            if (task.borrower_id) {
+              // Track earliest due date
+              if (task.due_date) {
+                if (!taskDueDates[task.borrower_id] || task.due_date < taskDueDates[task.borrower_id]!) {
+                  taskDueDates[task.borrower_id] = task.due_date;
+                }
               }
+              // Track all tasks for this lead
+              if (!tasksByLead[task.borrower_id]) {
+                tasksByLead[task.borrower_id] = [];
+              }
+              tasksByLead[task.borrower_id].push(task);
             }
           }
         }
@@ -2140,6 +2148,7 @@ export const databaseService = {
         listing_agent: Array.isArray((loan as any).listing_agent) ? (loan as any).listing_agent[0] || null : (loan as any).listing_agent || null,
         teammate: Array.isArray((loan as any).teammate) ? (loan as any).teammate[0] || null : (loan as any).teammate || null,
         earliest_task_due_date: taskDueDates[loan.id] || null,
+        tasks: tasksByLead[loan.id] || [],
       })) || [];
     } catch (error: any) {
       console.error('Failed to load active loans:', error);
