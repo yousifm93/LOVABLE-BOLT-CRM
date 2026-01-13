@@ -586,17 +586,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               15yr Fixed
             </h4>
             <RateCard 
-              label="70% LTV" 
-              rate={marketData?.rate_15yr_fixed_70ltv ?? null} 
-              points={marketData?.points_15yr_fixed_70ltv ?? null}
-              onClick={() => handleRateCardClick('15yr_fixed_70ltv')}
-              onRefresh={() => handleRefreshSingle('15yr_fixed_70ltv')}
-              isRefreshing={refreshingType === '15yr_fixed_70ltv'}
-              lastUpdated={lastUpdatedByScenario['15yr_fixed_70ltv']}
-              disabled={isDisabled && refreshingType !== '15yr_fixed_70ltv'}
-            />
-            <RateCard 
-              label="80% LTV" 
+              label="80% LTV"
               rate={marketData?.rate_15yr_fixed ?? null} 
               points={marketData?.points_15yr_fixed ?? null}
               onClick={() => handleRateCardClick('15yr_fixed')}
@@ -643,17 +633,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               FHA 30yr
             </h4>
             <RateCard 
-              label="90% LTV" 
-              rate={marketData?.rate_30yr_fha_90ltv ?? null} 
-              points={marketData?.points_30yr_fha_90ltv ?? null}
-              onClick={() => handleRateCardClick('fha_30yr_90ltv')}
-              onRefresh={() => handleRefreshSingle('fha_30yr_90ltv')}
-              isRefreshing={refreshingType === 'fha_30yr_90ltv'}
-              lastUpdated={lastUpdatedByScenario['fha_30yr_90ltv']}
-              disabled={isDisabled && refreshingType !== 'fha_30yr_90ltv'}
-            />
-            <RateCard 
-              label="95% LTV" 
+              label="95% LTV"
               rate={marketData?.rate_30yr_fha_95ltv ?? null} 
               points={marketData?.points_30yr_fha_95ltv ?? null}
               onClick={() => handleRateCardClick('fha_30yr_95ltv')}
@@ -737,17 +717,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               DSCR
             </h4>
             <RateCard 
-              label="60% LTV" 
-              rate={marketData?.rate_dscr_60ltv ?? null} 
-              points={marketData?.points_dscr_60ltv ?? null}
-              onClick={() => handleRateCardClick('dscr_60ltv')}
-              onRefresh={() => handleRefreshSingle('dscr_60ltv')}
-              isRefreshing={refreshingType === 'dscr_60ltv'}
-              lastUpdated={lastUpdatedByScenario['dscr_60ltv']}
-              disabled={isDisabled && refreshingType !== 'dscr_60ltv'}
-            />
-            <RateCard 
-              label="70% LTV" 
+              label="70% LTV"
               rate={marketData?.rate_dscr_70ltv ?? null} 
               points={marketData?.points_dscr_70ltv ?? null}
               onClick={() => handleRateCardClick('dscr_70ltv')}
