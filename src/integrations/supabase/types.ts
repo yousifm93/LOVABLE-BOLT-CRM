@@ -71,6 +71,7 @@ export type Database = {
           call_type: string | null
           created_at: string
           id: string
+          lead_id: string | null
           log_type: string | null
           logged_at: string
           logged_by: string
@@ -82,6 +83,7 @@ export type Database = {
           call_type?: string | null
           created_at?: string
           id?: string
+          lead_id?: string | null
           log_type?: string | null
           logged_at?: string
           logged_by: string
@@ -93,6 +95,7 @@ export type Database = {
           call_type?: string | null
           created_at?: string
           id?: string
+          lead_id?: string | null
           log_type?: string | null
           logged_at?: string
           logged_by?: string
@@ -105,6 +108,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "buyer_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_call_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
