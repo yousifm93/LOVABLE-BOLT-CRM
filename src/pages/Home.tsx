@@ -28,6 +28,7 @@ import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
 import { MarketRatesCard } from "@/components/dashboard/MarketRatesCard";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { SalesReportCards } from "@/components/home/SalesReportCards";
+import { DailyReportCards } from "@/components/home/DailyReportCards";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -455,7 +456,13 @@ export default function Home() {
             })}
         </div>
 
-        {/* Sales Report Cards */}
+        {/* Daily Reports */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Daily Reports</h3>
+          <DailyReportCards />
+        </div>
+
+        {/* Monthly Reports */}
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-muted-foreground">Monthly Reports</h3>
           <SalesReportCards />
