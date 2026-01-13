@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Phone, Download, Loader2 } from "lucide-react";
+import { FileText, Phone, Download, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -11,10 +11,30 @@ import { useToast } from "@/hooks/use-toast";
 
 interface RateData {
   rate_15yr_fixed: number | null;
+  rate_15yr_fixed_70ltv: number | null;
+  rate_15yr_fixed_90ltv: number | null;
+  rate_15yr_fixed_95ltv: number | null;
+  rate_15yr_fixed_97ltv: number | null;
   rate_30yr_fixed: number | null;
+  rate_30yr_fixed_70ltv: number | null;
+  rate_30yr_fixed_90ltv: number | null;
+  rate_30yr_fixed_95ltv: number | null;
+  rate_30yr_fixed_97ltv: number | null;
   rate_30yr_fha: number | null;
+  rate_30yr_fha_70ltv: number | null;
+  rate_30yr_fha_90ltv: number | null;
+  rate_30yr_fha_95ltv: number | null;
+  rate_30yr_fha_965ltv: number | null;
   rate_bank_statement: number | null;
+  rate_bank_statement_70ltv: number | null;
+  rate_bank_statement_75ltv: number | null;
+  rate_bank_statement_85ltv: number | null;
+  rate_bank_statement_90ltv: number | null;
   rate_dscr: number | null;
+  rate_dscr_60ltv: number | null;
+  rate_dscr_70ltv: number | null;
+  rate_dscr_75ltv: number | null;
+  rate_dscr_85ltv: number | null;
 }
 
 interface LeadItem {
@@ -46,14 +66,70 @@ interface CallLogItem {
 
 type DailyReportType = 'sales' | 'calls';
 
-const CALL_TYPE_LABELS: Record<string, string> = {
-  new_agent: 'New Agent Calls',
-  current_agent: 'Current Agent Calls',
-  past_la: 'Past LA Calls',
-  new_la: 'New LA Calls',
-  client: 'Client Calls',
-  lender: 'Lender Calls',
-  other: 'Other Calls',
+// All call types to display (even if count is 0)
+const ALL_CALL_TYPES = [
+  { value: 'new_agent', label: 'New Agent Calls' },
+  { value: 'current_agent', label: 'Current Agent Calls' },
+  { value: 'top_agent', label: 'Top Agent Calls' },
+  { value: 'past_la', label: 'Past LA Calls' },
+  { value: 'client', label: 'Current Client Calls' },
+  { value: 'past_client', label: 'Past Client Calls' },
+];
+
+// Helper function to get the lowest rate from all LTV variants
+const getLowestRate = (rates: (number | null | undefined)[]): number | null => {
+  const validRates = rates.filter((r): r is number => r !== null && r !== undefined);
+  return validRates.length > 0 ? Math.min(...validRates) : null;
+};
+
+const get15yrFixedRate = (data: RateData): number | null => {
+  return getLowestRate([
+    data.rate_15yr_fixed,
+    data.rate_15yr_fixed_70ltv,
+    data.rate_15yr_fixed_90ltv,
+    data.rate_15yr_fixed_95ltv,
+    data.rate_15yr_fixed_97ltv,
+  ]);
+};
+
+const get30yrFixedRate = (data: RateData): number | null => {
+  return getLowestRate([
+    data.rate_30yr_fixed,
+    data.rate_30yr_fixed_70ltv,
+    data.rate_30yr_fixed_90ltv,
+    data.rate_30yr_fixed_95ltv,
+    data.rate_30yr_fixed_97ltv,
+  ]);
+};
+
+const getFHARate = (data: RateData): number | null => {
+  return getLowestRate([
+    data.rate_30yr_fha,
+    data.rate_30yr_fha_70ltv,
+    data.rate_30yr_fha_90ltv,
+    data.rate_30yr_fha_95ltv,
+    data.rate_30yr_fha_965ltv,
+  ]);
+};
+
+const getBankStatementRate = (data: RateData): number | null => {
+  return getLowestRate([
+    data.rate_bank_statement,
+    data.rate_bank_statement_70ltv,
+    data.rate_bank_statement_75ltv,
+    data.rate_bank_statement_85ltv,
+    data.rate_bank_statement_90ltv,
+  ]);
+};
+
+const getDSCRRate = (data: RateData): number | null => {
+  return getLowestRate([
+    data.rate_dscr,
+    data.rate_dscr_60ltv,
+    data.rate_dscr_70ltv,
+    data.rate_dscr_75ltv,
+    data.rate_dscr_85ltv,
+  ]);
 };
 
 export function DailyReportCards() {
@@ -78,7 +154,13 @@ export function DailyReportCards() {
   const fetchRates = async () => {
     const { data } = await supabase
       .from('daily_market_updates')
-      .select('rate_15yr_fixed, rate_30yr_fixed, rate_30yr_fha, rate_bank_statement, rate_dscr')
+      .select(`
+        rate_15yr_fixed, rate_15yr_fixed_70ltv, rate_15yr_fixed_90ltv, rate_15yr_fixed_95ltv, rate_15yr_fixed_97ltv,
+        rate_30yr_fixed, rate_30yr_fixed_70ltv, rate_30yr_fixed_90ltv, rate_30yr_fixed_95ltv, rate_30yr_fixed_97ltv,
+        rate_30yr_fha, rate_30yr_fha_70ltv, rate_30yr_fha_90ltv, rate_30yr_fha_95ltv, rate_30yr_fha_965ltv,
+        rate_bank_statement, rate_bank_statement_70ltv, rate_bank_statement_75ltv, rate_bank_statement_85ltv, rate_bank_statement_90ltv,
+        rate_dscr, rate_dscr_60ltv, rate_dscr_70ltv, rate_dscr_75ltv, rate_dscr_85ltv
+      `)
       .order('date', { ascending: false })
       .limit(1)
       .single();
@@ -194,25 +276,34 @@ export function DailyReportCards() {
     return `${rate.toFixed(3)}%`;
   };
 
+  // Get computed rates from the raw data
+  const computedRates = rates ? {
+    rate15yrFixed: get15yrFixedRate(rates),
+    rate30yrFixed: get30yrFixedRate(rates),
+    rateFHA: getFHARate(rates),
+    rateBankStatement: getBankStatementRate(rates),
+    rateDSCR: getDSCRRate(rates),
+  } : null;
+
   const RatesTable = () => (
-    <div className="mb-6">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left py-2 font-medium">15yr Fixed</th>
-            <th className="text-left py-2 font-medium">30yr Fixed</th>
-            <th className="text-left py-2 font-medium">FHA</th>
-            <th className="text-left py-2 font-medium">Bank Stmt</th>
-            <th className="text-left py-2 font-medium">DSCR</th>
+    <div className="mb-4">
+      <table className="w-full text-xs border-collapse border rounded-md overflow-hidden">
+        <thead className="bg-muted">
+          <tr>
+            <th className="text-left py-1.5 px-2 font-medium">15yr Fixed</th>
+            <th className="text-left py-1.5 px-2 font-medium">30yr Fixed</th>
+            <th className="text-left py-1.5 px-2 font-medium">FHA</th>
+            <th className="text-left py-1.5 px-2 font-medium">Bank Stmt</th>
+            <th className="text-left py-1.5 px-2 font-medium">DSCR</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td className="py-2">{formatRate(rates?.rate_15yr_fixed ?? null)}</td>
-            <td className="py-2">{formatRate(rates?.rate_30yr_fixed ?? null)}</td>
-            <td className="py-2">{formatRate(rates?.rate_30yr_fha ?? null)}</td>
-            <td className="py-2">{formatRate(rates?.rate_bank_statement ?? null)}</td>
-            <td className="py-2">{formatRate(rates?.rate_dscr ?? null)}</td>
+            <td className="py-1.5 px-2">{formatRate(computedRates?.rate15yrFixed ?? null)}</td>
+            <td className="py-1.5 px-2">{formatRate(computedRates?.rate30yrFixed ?? null)}</td>
+            <td className="py-1.5 px-2">{formatRate(computedRates?.rateFHA ?? null)}</td>
+            <td className="py-1.5 px-2">{formatRate(computedRates?.rateBankStatement ?? null)}</td>
+            <td className="py-1.5 px-2">{formatRate(computedRates?.rateDSCR ?? null)}</td>
           </tr>
         </tbody>
       </table>
@@ -229,23 +320,21 @@ export function DailyReportCards() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <RatesTable />
 
         {/* Leads Section */}
         <div>
-          <h3 className="font-semibold text-base mb-2">Leads</h3>
+          <h3 className="font-semibold text-sm mb-1.5 border-b pb-1">Leads ({leads.length})</h3>
           {leads.length === 0 ? (
-            <p className="text-muted-foreground text-sm">None</p>
+            <p className="text-muted-foreground text-xs italic">None</p>
           ) : (
-            <ol className="list-decimal list-inside space-y-2">
+            <ol className="space-y-1">
               {leads.map((lead, index) => (
-                <li key={lead.id} className="text-sm">
-                  <span className="font-medium">{lead.first_name} {lead.last_name}</span>
+                <li key={lead.id}>
+                  <span className="font-medium text-xs">{index + 1}. {lead.first_name} {lead.last_name}</span>
                   {lead.notes && (
-                    <ul className="ml-6 mt-1">
-                      <li className="text-muted-foreground list-disc">{lead.notes}</li>
-                    </ul>
+                    <p className="text-muted-foreground text-xs ml-4">• {lead.notes}</p>
                   )}
                 </li>
               ))}
@@ -255,14 +344,14 @@ export function DailyReportCards() {
 
         {/* Apps Section */}
         <div>
-          <h3 className="font-semibold text-base mb-2">Apps</h3>
+          <h3 className="font-semibold text-sm mb-1.5 border-b pb-1">Apps ({apps.length})</h3>
           {apps.length === 0 ? (
-            <p className="text-muted-foreground text-sm">None</p>
+            <p className="text-muted-foreground text-xs italic">None</p>
           ) : (
-            <ol className="list-decimal list-inside space-y-1">
-              {apps.map((app) => (
-                <li key={app.id} className="text-sm">
-                  <span className="font-medium">{app.first_name} {app.last_name}</span>
+            <ol className="space-y-0.5">
+              {apps.map((app, index) => (
+                <li key={app.id} className="text-xs">
+                  {index + 1}. <span className="font-medium">{app.first_name} {app.last_name}</span>
                   {app.loan_amount && (
                     <span className="text-muted-foreground"> - ${app.loan_amount.toLocaleString()}</span>
                   )}
@@ -274,23 +363,21 @@ export function DailyReportCards() {
 
         {/* F2F Meetings Section */}
         <div>
-          <h3 className="font-semibold text-base mb-2">F2F Meetings</h3>
+          <h3 className="font-semibold text-sm mb-1.5 border-b pb-1">F2F Meetings ({meetings.length})</h3>
           {meetings.length === 0 ? (
-            <p className="text-muted-foreground text-sm">None</p>
+            <p className="text-muted-foreground text-xs italic">None</p>
           ) : (
-            <ol className="list-decimal list-inside space-y-2">
-              {meetings.map((meeting) => (
-                <li key={meeting.id} className="text-sm">
-                  <span className="font-medium">
-                    {meeting.buyer_agents ? `${meeting.buyer_agents.first_name} ${meeting.buyer_agents.last_name}` : 'Unknown Agent'}
+            <ol className="space-y-1">
+              {meetings.map((meeting, index) => (
+                <li key={meeting.id}>
+                  <span className="font-medium text-xs">
+                    {index + 1}. {meeting.buyer_agents ? `${meeting.buyer_agents.first_name} ${meeting.buyer_agents.last_name}` : 'Unknown Agent'}
                   </span>
                   {meeting.meeting_location && (
-                    <span className="text-muted-foreground"> @ {meeting.meeting_location}</span>
+                    <span className="text-muted-foreground text-xs"> @ {meeting.meeting_location}</span>
                   )}
                   {meeting.summary && (
-                    <ul className="ml-6 mt-1">
-                      <li className="text-muted-foreground list-disc">{meeting.summary}</li>
-                    </ul>
+                    <p className="text-muted-foreground text-xs ml-4">• {meeting.summary}</p>
                   )}
                 </li>
               ))}
@@ -300,23 +387,21 @@ export function DailyReportCards() {
 
         {/* Broker Opens Section */}
         <div>
-          <h3 className="font-semibold text-base mb-2">Broker Opens</h3>
+          <h3 className="font-semibold text-sm mb-1.5 border-b pb-1">Broker Opens ({brokerOpens.length})</h3>
           {brokerOpens.length === 0 ? (
-            <p className="text-muted-foreground text-sm">None</p>
+            <p className="text-muted-foreground text-xs italic">None</p>
           ) : (
-            <ol className="list-decimal list-inside space-y-2">
-              {brokerOpens.map((bo) => (
-                <li key={bo.id} className="text-sm">
-                  <span className="font-medium">
-                    {bo.buyer_agents ? `${bo.buyer_agents.first_name} ${bo.buyer_agents.last_name}` : 'Unknown Agent'}
+            <ol className="space-y-1">
+              {brokerOpens.map((bo, index) => (
+                <li key={bo.id}>
+                  <span className="font-medium text-xs">
+                    {index + 1}. {bo.buyer_agents ? `${bo.buyer_agents.first_name} ${bo.buyer_agents.last_name}` : 'Unknown Agent'}
                   </span>
                   {bo.meeting_location && (
-                    <span className="text-muted-foreground"> @ {bo.meeting_location}</span>
+                    <span className="text-muted-foreground text-xs"> @ {bo.meeting_location}</span>
                   )}
                   {bo.summary && (
-                    <ul className="ml-6 mt-1">
-                      <li className="text-muted-foreground list-disc">{bo.summary}</li>
-                    </ul>
+                    <p className="text-muted-foreground text-xs ml-4">• {bo.summary}</p>
                   )}
                 </li>
               ))}
@@ -336,41 +421,43 @@ export function DailyReportCards() {
       );
     }
 
-    const callTypes = ['new_agent', 'current_agent', 'past_la', 'new_la', 'client', 'lender', 'other'];
     const totalCalls = Object.values(callsByType).reduce((sum, arr) => sum + arr.length, 0);
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <RatesTable />
 
-        {totalCalls === 0 ? (
-          <p className="text-muted-foreground text-sm">No calls logged yesterday</p>
-        ) : (
-          callTypes.map((type) => {
-            const calls = callsByType[type] || [];
-            if (calls.length === 0) return null;
+        <div className="text-sm font-semibold mb-2">
+          Total Calls: {totalCalls}
+        </div>
 
-            return (
-              <div key={type}>
-                <h3 className="font-semibold text-base mb-2">{CALL_TYPE_LABELS[type] || type}</h3>
-                <ol className="list-decimal list-inside space-y-2">
-                  {calls.map((call) => (
-                    <li key={call.id} className="text-sm">
-                      <span className="font-medium">
-                        {call.buyer_agents ? `${call.buyer_agents.first_name} ${call.buyer_agents.last_name}` : 'Unknown'}
+        {/* All Call Types - always show all, even with 0 */}
+        {ALL_CALL_TYPES.map(({ value, label }) => {
+          const calls = callsByType[value] || [];
+          return (
+            <div key={value}>
+              <h3 className="font-semibold text-sm mb-1 border-b pb-1">
+                {label} ({calls.length})
+              </h3>
+              {calls.length === 0 ? (
+                <p className="text-muted-foreground text-xs italic">None</p>
+              ) : (
+                <ol className="space-y-1">
+                  {calls.map((call, index) => (
+                    <li key={call.id}>
+                      <span className="font-medium text-xs">
+                        {index + 1}. {call.buyer_agents ? `${call.buyer_agents.first_name} ${call.buyer_agents.last_name}` : 'Unknown'}
                       </span>
                       {call.summary && (
-                        <ul className="ml-6 mt-1">
-                          <li className="text-muted-foreground list-disc">{call.summary}</li>
-                        </ul>
+                        <p className="text-muted-foreground text-xs ml-4">• {call.summary}</p>
                       )}
                     </li>
                   ))}
                 </ol>
-              </div>
-            );
-          })
-        )}
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -392,33 +479,42 @@ export function DailyReportCards() {
         ? `Bolt Summary – ${format(yesterday, 'MMMM d, yyyy')}`
         : `Daily Calls Report – ${format(yesterday, 'MMMM d, yyyy')}`;
 
-      // Title
+      // Title - centered with underline
+      const titleWidth = boldFont.widthOfTextAtSize(title, 16);
+      const titleX = (width - titleWidth) / 2;
       page.drawText(title, {
-        x: 50,
+        x: titleX,
         y: yPosition,
         size: 16,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      yPosition -= 30;
+      // Underline
+      page.drawLine({
+        start: { x: titleX, y: yPosition - 3 },
+        end: { x: titleX + titleWidth, y: yPosition - 3 },
+        thickness: 1,
+        color: rgb(0, 0, 0),
+      });
+      yPosition -= 35;
 
       // Rates table
       page.drawText('Rates:', {
         x: 50,
         y: yPosition,
-        size: 12,
+        size: 11,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-      yPosition -= 18;
+      yPosition -= 15;
 
       const rateLabels = ['15yr Fixed', '30yr Fixed', 'FHA', 'Bank Stmt', 'DSCR'];
       const rateValues = [
-        rates?.rate_15yr_fixed,
-        rates?.rate_30yr_fixed,
-        rates?.rate_30yr_fha,
-        rates?.rate_bank_statement,
-        rates?.rate_dscr,
+        computedRates?.rate15yrFixed,
+        computedRates?.rate30yrFixed,
+        computedRates?.rateFHA,
+        computedRates?.rateBankStatement,
+        computedRates?.rateDSCR,
       ];
 
       let xPos = 50;
@@ -443,21 +539,21 @@ export function DailyReportCards() {
         page.drawText(sectionTitle, {
           x: 50,
           y: yPosition,
-          size: 12,
+          size: 11,
           font: boldFont,
           color: rgb(0, 0, 0),
         });
-        yPosition -= 18;
+        yPosition -= 15;
 
         if (items.length === 0) {
           page.drawText('None', {
             x: 60,
             y: yPosition,
-            size: 10,
+            size: 9,
             font,
             color: rgb(0.5, 0.5, 0.5),
           });
-          yPosition -= 20;
+          yPosition -= 15;
         } else {
           items.forEach((item, i) => {
             if (yPosition < 60) {
@@ -468,49 +564,57 @@ export function DailyReportCards() {
             page.drawText(`${i + 1}. ${item.name}`, {
               x: 60,
               y: yPosition,
-              size: 10,
-              font,
+              size: 9,
+              font: boldFont,
               color: rgb(0, 0, 0),
             });
-            yPosition -= 14;
+            yPosition -= 12;
 
             if (item.note) {
               const truncatedNote = item.note.length > 80 ? item.note.substring(0, 80) + '...' : item.note;
               page.drawText(`   • ${truncatedNote}`, {
                 x: 70,
                 y: yPosition,
-                size: 9,
+                size: 8,
                 font,
                 color: rgb(0.4, 0.4, 0.4),
               });
-              yPosition -= 14;
+              yPosition -= 12;
             }
           });
-          yPosition -= 10;
+          yPosition -= 8;
         }
       };
 
       if (activeReport === 'sales') {
-        addSection('Leads', leads.map(l => ({ name: `${l.first_name} ${l.last_name}`, note: l.notes || undefined })));
-        addSection('Apps', apps.map(a => ({ name: `${a.first_name} ${a.last_name}${a.loan_amount ? ` - $${a.loan_amount.toLocaleString()}` : ''}` })));
-        addSection('F2F Meetings', meetings.map(m => ({
+        addSection(`Leads (${leads.length})`, leads.map(l => ({ name: `${l.first_name} ${l.last_name}`, note: l.notes || undefined })));
+        addSection(`Apps (${apps.length})`, apps.map(a => ({ name: `${a.first_name} ${a.last_name}${a.loan_amount ? ` - $${a.loan_amount.toLocaleString()}` : ''}` })));
+        addSection(`F2F Meetings (${meetings.length})`, meetings.map(m => ({
           name: m.buyer_agents ? `${m.buyer_agents.first_name} ${m.buyer_agents.last_name}${m.meeting_location ? ` @ ${m.meeting_location}` : ''}` : 'Unknown Agent',
           note: m.summary || undefined
         })));
-        addSection('Broker Opens', brokerOpens.map(b => ({
+        addSection(`Broker Opens (${brokerOpens.length})`, brokerOpens.map(b => ({
           name: b.buyer_agents ? `${b.buyer_agents.first_name} ${b.buyer_agents.last_name}${b.meeting_location ? ` @ ${b.meeting_location}` : ''}` : 'Unknown Agent',
           note: b.summary || undefined
         })));
       } else {
-        const callTypes = ['new_agent', 'current_agent', 'past_la', 'new_la', 'client', 'lender', 'other'];
-        callTypes.forEach((type) => {
-          const calls = callsByType[type] || [];
-          if (calls.length > 0) {
-            addSection(CALL_TYPE_LABELS[type] || type, calls.map(c => ({
-              name: c.buyer_agents ? `${c.buyer_agents.first_name} ${c.buyer_agents.last_name}` : 'Unknown',
-              note: c.summary || undefined
-            })));
-          }
+        // Add total calls
+        page.drawText(`Total Calls: ${Object.values(callsByType).reduce((sum, arr) => sum + arr.length, 0)}`, {
+          x: 50,
+          y: yPosition,
+          size: 11,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+        yPosition -= 20;
+
+        // All call types - show all even with 0
+        ALL_CALL_TYPES.forEach(({ value, label }) => {
+          const calls = callsByType[value] || [];
+          addSection(`${label} (${calls.length})`, calls.map(c => ({
+            name: c.buyer_agents ? `${c.buyer_agents.first_name} ${c.buyer_agents.last_name}` : 'Unknown',
+            note: c.summary || undefined
+          })));
         });
       }
 
@@ -584,28 +688,35 @@ export function DailyReportCards() {
       {/* Report Modal */}
       <Dialog open={!!activeReport} onOpenChange={() => setActiveReport(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>
-                {activeReport === 'sales' 
-                  ? `Bolt Summary – ${format(yesterday, 'MMMM d, yyyy')}`
-                  : `Daily Calls Report – ${format(yesterday, 'MMMM d, yyyy')}`
-                }
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToPDF}
-                disabled={exporting || loading}
-              >
-                {exporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                Export PDF
-              </Button>
-            </DialogTitle>
+          <DialogHeader className="border-b pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1" />
+              <div className="flex flex-col items-center">
+                <Zap className="h-6 w-6 text-primary mb-1" />
+                <DialogTitle className="text-lg font-bold underline text-center">
+                  {activeReport === 'sales' 
+                    ? `Bolt Summary – ${format(yesterday, 'MMMM d, yyyy')}`
+                    : `Daily Calls Report – ${format(yesterday, 'MMMM d, yyyy')}`
+                  }
+                </DialogTitle>
+              </div>
+              <div className="flex-1 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportToPDF}
+                  disabled={exporting || loading}
+                  className="text-xs"
+                >
+                  {exporting ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3 mr-1" />
+                  )}
+                  PDF
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
 
           <ScrollArea className="h-[60vh] pr-4">
