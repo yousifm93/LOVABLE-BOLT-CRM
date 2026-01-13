@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { CreateNextTaskModal } from "@/components/modals/CreateNextTaskModal";
 import { BulkUpdateDialog } from "@/components/ui/bulk-update-dialog";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
@@ -487,6 +488,9 @@ export default function TasksModern() {
   const [tableInstanceKey, setTableInstanceKey] = useState(0);
   const [statsFilter, setStatsFilter] = useState<'all' | 'active' | 'dueToday' | 'review' | 'overdue' | 'completed'>('all');
   const [taskChangeLogs, setTaskChangeLogs] = useState<Record<string, TaskChangeLog[]>>({});
+  const [showCreateNextTaskModal, setShowCreateNextTaskModal] = useState(false);
+  const [createNextTaskLeadId, setCreateNextTaskLeadId] = useState<string | null>(null);
+  const [createNextTaskLeadName, setCreateNextTaskLeadName] = useState<string | undefined>(undefined);
   const modalJustClosed = useRef(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
@@ -743,12 +747,22 @@ export default function TasksModern() {
           } : task
         ));
         
-        // If marked as Done, check if lead needs a placeholder task
+        // If marked as Done, check if lead has other open tasks
         if (field === 'status' && value === 'Done') {
           const task = tasks.find(t => t.id === taskId);
           if (task?.borrower_id) {
-            // Fire and forget - don't block UI
-            databaseService.checkAndCreateNoOpenTaskFound(task.borrower_id);
+            // Check remaining open tasks for this lead
+            const remainingTasks = tasks.filter(t => 
+              t.borrower_id === task.borrower_id && 
+              t.id !== taskId && 
+              t.status !== 'Done'
+            );
+            
+            if (remainingTasks.length === 0) {
+              setCreateNextTaskLeadId(task.borrower_id);
+              setCreateNextTaskLeadName(task.borrower ? `${task.borrower.first_name} ${task.borrower.last_name}` : undefined);
+              setShowCreateNextTaskModal(true);
+            }
           }
         }
       }
@@ -1754,6 +1768,23 @@ export default function TasksModern() {
         onOpenChange={setIsEmailModalOpen}
         tasks={sortedOpenTasks}
       />
+
+      {/* Create Next Task Modal */}
+      {createNextTaskLeadId && (
+        <CreateNextTaskModal
+          open={showCreateNextTaskModal}
+          onOpenChange={(open) => {
+            setShowCreateNextTaskModal(open);
+            if (!open) {
+              setCreateNextTaskLeadId(null);
+              setCreateNextTaskLeadName(undefined);
+            }
+          }}
+          leadId={createNextTaskLeadId}
+          leadName={createNextTaskLeadName}
+          onTaskCreated={loadTasks}
+        />
+      )}
     </div>
   );
 }

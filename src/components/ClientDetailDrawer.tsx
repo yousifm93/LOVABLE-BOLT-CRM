@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { CRMClient, PipelineStage, PIPELINE_STAGES, PIPELINE_CONFIGS, Activity, Task, Document } from "@/types/crm";
 import { cn } from "@/lib/utils";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { CreateNextTaskModal } from "@/components/modals/CreateNextTaskModal";
 import { TaskDetailModal } from "@/components/TaskDetailModal";
 import { CallLogModal, SmsLogModal, EmailLogModal, AddNoteModal } from "@/components/modals/ActivityLogModals";
 import { NoteDetailModal } from "@/components/modals/NoteDetailModal";
@@ -132,6 +133,9 @@ export function ClientDetailDrawer({
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [agentCallLogModalOpen, setAgentCallLogModalOpen] = useState(false);
   const [selectedAgentForCall, setSelectedAgentForCall] = useState<any>(null);
+  
+  // Create next task modal state
+  const [showCreateNextTaskModal, setShowCreateNextTaskModal] = useState(false);
 
   // Local state for gray section fields to reflect updates immediately
   const [localStatus, setLocalStatus] = useState(client.ops.status || 'Pending App');
@@ -1808,9 +1812,15 @@ export function ClientDetailDrawer({
         status: newStatus
       });
       
-      // If marked as Done, check if lead needs a placeholder task
+      // If marked as Done, check if there are any other open tasks
       if (newStatus === "Done" && leadId) {
-        databaseService.checkAndCreateNoOpenTaskFound(leadId);
+        // Check remaining open tasks (exclude the one we just completed)
+        const remainingOpenTasks = leadTasks.filter(t => t.id !== taskId && t.status !== 'Done');
+        
+        if (remainingOpenTasks.length === 0) {
+          // Show the create next task modal instead of auto-creating placeholder
+          setShowCreateNextTaskModal(true);
+        }
       }
       
       await loadLeadTasks();
@@ -2557,9 +2567,6 @@ export function ClientDetailDrawer({
                       <Checkbox 
                         checked={task.status === "Done"} 
                         onCheckedChange={() => handleTaskToggle(task.id, task.status)} 
-                        disabled={!isAdmin}
-                        className={!isAdmin ? "opacity-50 cursor-not-allowed" : ""}
-                        title={!isAdmin ? "Only admins can complete tasks" : undefined}
                       />
                       <div className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1" onClick={() => {
                   setSelectedTask(task);
@@ -3420,6 +3427,17 @@ export function ClientDetailDrawer({
 
           <PreApprovalLetterModal isOpen={showPreApprovalModal} onClose={() => setShowPreApprovalModal(false)} client={client} />
           <LoanEstimateModal isOpen={showLoanEstimateModal} onClose={() => setShowLoanEstimateModal(false)} client={client} />
+          
+          {/* Create Next Task Modal */}
+          {leadId && (
+            <CreateNextTaskModal
+              open={showCreateNextTaskModal}
+              onOpenChange={setShowCreateNextTaskModal}
+              leadId={leadId}
+              leadName={`${client.person.firstName} ${client.person.lastName}`}
+              onTaskCreated={loadLeadTasks}
+            />
+          )}
 
           <VoiceUpdateConfirmationModal 
             isOpen={showFieldUpdateModal} 
