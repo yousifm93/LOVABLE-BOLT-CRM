@@ -202,13 +202,6 @@ serve(async (req) => {
         occupancy: 'Investment',
         loan_term: 30,
       },
-      'bank_statement_75ltv': {
-        ...baseScenario75LTV,
-        loan_type: 'Conventional',
-        income_type: '24Mo Business Bank Statements',
-        dscr_ratio: '',
-        loan_term: 30,
-      },
       // 85% LTV scenarios (Bank Statement only - DSCR 85% removed)
       'bank_statement_85ltv': {
         ...baseScenario85LTV,
@@ -218,13 +211,6 @@ serve(async (req) => {
         loan_term: 30,
       },
       // 90% LTV scenarios (no DSCR)
-      '30yr_fixed_90ltv': {
-        ...baseScenario90LTV,
-        loan_type: 'Conventional',
-        income_type: 'Full Doc - 24M',
-        dscr_ratio: '',
-        loan_term: 30,
-      },
       '15yr_fixed_90ltv': {
         ...baseScenario90LTV,
         loan_type: 'Conventional',
