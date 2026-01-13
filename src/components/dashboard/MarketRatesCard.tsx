@@ -121,9 +121,6 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
         <span className="text-xs font-bold text-amber-900 dark:text-amber-100">
           {showTBD ? 'TBD' : (rate ? `${rate.toFixed(3)}%` : '—')}
         </span>
-        <span className="text-[9px] text-amber-700 dark:text-amber-300">
-          {showTBD ? '— pts' : (points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts')}
-        </span>
       </div>
       {onRefresh && (
         <div className="mt-0.5 flex flex-col items-center">
@@ -653,17 +650,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
             <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
               FHA 30yr
             </h4>
-            <RateCard 
-              label="95% LTV"
-              rate={marketData?.rate_30yr_fha_95ltv ?? null} 
-              points={marketData?.points_30yr_fha_95ltv ?? null}
-              onClick={() => handleRateCardClick('fha_30yr_95ltv')}
-              onRefresh={() => handleRefreshSingle('fha_30yr_95ltv')}
-              isRefreshing={refreshingTypes.has('fha_30yr_95ltv')}
-              lastUpdated={lastUpdatedByScenario['fha_30yr_95ltv']}
-              disabled={isDisabled && !refreshingTypes.has('fha_30yr_95ltv')}
-            />
-            <RateCard 
+            <RateCard
               label="96.5% LTV" 
               rate={marketData?.rate_30yr_fha_965ltv ?? null} 
               points={marketData?.points_30yr_fha_965ltv ?? null}

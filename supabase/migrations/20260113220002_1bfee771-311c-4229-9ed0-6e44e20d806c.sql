@@ -1,0 +1,1 @@
+DELETE FROM audit_log WHERE changed_at < '2026-01-13T16:00:00Z';
