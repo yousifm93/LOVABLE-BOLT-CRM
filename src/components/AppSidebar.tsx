@@ -108,6 +108,7 @@ const resourceItems = [
   { title: "Bolt Bot", url: "/resources/chatbot", icon: Bot, permKey: 'resources_bolt_bot' as keyof UserPermissions },
   { title: "Email Marketing", url: "/resources/email-marketing", icon: Mail, permKey: 'resources_email_marketing' as keyof UserPermissions },
   { title: "Condo List", url: "/resources/condolist", icon: Search, permKey: 'resources_condolist' as keyof UserPermissions },
+  { title: "Condo Search", url: "/resources/condo-search", icon: Building, permKey: 'resources_condolist' as keyof UserPermissions },
   { title: "Preapproval Letter", url: "/resources/preapproval", icon: FileText, permKey: 'resources_preapproval' as keyof UserPermissions },
 ];
 
