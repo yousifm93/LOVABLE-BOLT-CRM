@@ -428,11 +428,13 @@ export default function Home() {
 
         {/* Market Rates and Calendar Section */}
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_200px] gap-3">
-          <Card className="overflow-hidden h-fit border">
+          <Card className="overflow-hidden h-[400px] border">
             <ActivityPanel />
           </Card>
-          <MarketRatesCard />
-          <Card className="overflow-hidden h-fit border">
+          <div className="h-[400px] overflow-hidden">
+            <MarketRatesCard />
+          </div>
+          <Card className="overflow-hidden h-[400px] border">
             <CalendarPanel />
           </Card>
         </div>

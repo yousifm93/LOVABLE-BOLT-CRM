@@ -188,13 +188,13 @@ export function ActivityPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b">
+    <div className="flex flex-col h-[400px]">
+      <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
         <Bell className="h-4 w-4 text-muted-foreground" />
         <h3 className="font-semibold text-sm">Activity</h3>
       </div>
       
-      <ScrollArea className="flex-1 max-h-[520px]">
+      <ScrollArea className="flex-1">
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <div className="text-xs text-muted-foreground">Loading...</div>

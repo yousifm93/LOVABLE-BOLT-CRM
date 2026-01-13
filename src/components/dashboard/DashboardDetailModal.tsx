@@ -344,10 +344,23 @@ export function DashboardDetailModal({
   const handleApproveSuggestion = async (suggestion: EmailSuggestion, leadId: string) => {
     setProcessingIds(prev => new Set(prev).add(suggestion.id));
     try {
-      await supabase
-        .from('leads')
-        .update({ [suggestion.field_name]: suggestion.suggested_value })
-        .eq('id', leadId);
+      // Use RPC function to handle enum types properly
+      const { error: updateError } = await supabase.rpc('update_lead_field_safe', {
+        p_lead_id: leadId,
+        p_field_name: suggestion.field_name,
+        p_field_value: suggestion.suggested_value
+      });
+
+      if (updateError) {
+        console.error('Error updating lead:', updateError);
+        toast.error('Failed to update lead field');
+        setProcessingIds(prev => {
+          const next = new Set(prev);
+          next.delete(suggestion.id);
+          return next;
+        });
+        return;
+      }
 
       await supabase
         .from('email_field_suggestions')
