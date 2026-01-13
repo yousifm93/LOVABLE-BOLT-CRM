@@ -207,27 +207,42 @@ export function TaskAutomationModal({ open, onOpenChange, automation }: TaskAuto
 
           {/* Metadata row when editing - Created On, Last Run, Run History */}
           {automation && (
-            <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Created On</Label>
-                <div className="text-sm">{formatDateTime(automation.created_at)}</div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Last Run On</Label>
-                <div className="text-sm">
-                  {automation.last_run_at ? formatDateTimeNoYear(automation.last_run_at) : '—'}
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Created On</Label>
+                  <div className="text-sm">{formatDateTime(automation.created_at)}</div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Last Run On</Label>
+                  <div className="text-sm">
+                    {automation.last_run_at ? formatDateTimeNoYear(automation.last_run_at) : '—'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Run History</Label>
+                  <Badge 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-background"
+                    onClick={() => setExecutionHistoryOpen(true)}
+                  >
+                    {automation.execution_count || 0} runs
+                  </Badge>
                 </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Run History</Label>
-                <Badge 
-                  variant="outline" 
-                  className="cursor-pointer hover:bg-background"
-                  onClick={() => setExecutionHistoryOpen(true)}
-                >
-                  {automation.execution_count || 0} runs
-                </Badge>
-              </div>
+              
+              {/* Refinance contingency note */}
+              {(automation.completion_requirement_type === 'log_call_buyer_agent' ||
+                automation.completion_requirement_type === 'log_call_listing_agent' ||
+                automation.task_name?.toLowerCase().includes("buyer's agent") ||
+                automation.task_name?.toLowerCase().includes("buyer agent") ||
+                automation.task_name?.toLowerCase().includes("listing agent")) && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <span className="text-amber-600 text-sm">
+                    ⚠️ <strong>Refinance Exception:</strong> This automation is skipped for Refinance loans since there is no buyer's agent or listing agent involved.
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
