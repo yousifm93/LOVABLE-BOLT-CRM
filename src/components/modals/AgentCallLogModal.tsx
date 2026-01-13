@@ -55,7 +55,7 @@ export function AgentCallLogModal({
   const [summary, setSummary] = useState("");
   const [callDate, setCallDate] = useState(new Date().toISOString().slice(0, 10));
   const [callType, setCallType] = useState<string>("");
-  const [selectedLeadId, setSelectedLeadId] = useState<string>("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string>("none");
   const [associatedLeads, setAssociatedLeads] = useState<LeadOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
@@ -91,7 +91,7 @@ export function AgentCallLogModal({
     if (!isOpen) {
       setSummary("");
       setCallType("");
-      setSelectedLeadId("");
+      setSelectedLeadId("none");
       setCallDate(new Date().toISOString().slice(0, 10));
     }
   }, [isOpen]);
@@ -134,7 +134,7 @@ export function AgentCallLogModal({
         undefined, 
         selectedDateTime.toISOString(), 
         callType || undefined,
-        selectedLeadId || undefined
+        (selectedLeadId && selectedLeadId !== 'none') ? selectedLeadId : undefined
       );
 
       // Update last_agent_call date on the agent using the selected date
@@ -181,7 +181,7 @@ export function AgentCallLogModal({
 
       setSummary("");
       setCallType("");
-      setSelectedLeadId("");
+      setSelectedLeadId("none");
       onCallLogged();
       onClose();
     } catch (error: any) {
@@ -242,7 +242,7 @@ export function AgentCallLogModal({
                 <SelectValue placeholder={isLoadingLeads ? "Loading leads..." : "Select a lead..."} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {associatedLeads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.first_name} {lead.last_name}
