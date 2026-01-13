@@ -800,6 +800,7 @@ export type Database = {
           city: string | null
           completed_at: string | null
           created_at: string
+          days_back: number | null
           direction: string | null
           error_message: string | null
           id: string
@@ -816,6 +817,7 @@ export type Database = {
           city?: string | null
           completed_at?: string | null
           created_at?: string
+          days_back?: number | null
           direction?: string | null
           error_message?: string | null
           id?: string
@@ -832,6 +834,7 @@ export type Database = {
           city?: string | null
           completed_at?: string | null
           created_at?: string
+          days_back?: number | null
           direction?: string | null
           error_message?: string | null
           id?: string
