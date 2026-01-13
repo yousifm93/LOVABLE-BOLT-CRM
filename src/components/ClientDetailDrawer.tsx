@@ -497,6 +497,9 @@ export function ClientDetailDrawer({
           description = activity.html_body || activity.body || activity.snippet || '';
         } else if (activity.type === 'call') {
           description = activity.notes || '';
+        } else if (activity.type === 'agent_call') {
+          // Agent calls show agent name and summary
+          description = `Call with agent: ${activity.agent_name}\n${activity.notes || ''}`;
         } else if (activity.type === 'sms') {
           description = activity.body || '';
         } else if (activity.type === 'note') {
@@ -525,7 +528,7 @@ export function ClientDetailDrawer({
         return {
           id: activity.id,
           type: activityType,
-          title: isTaskLog ? 'Task created' : activity.type === 'note' ? 'Note added' : activity.type === 'call' ? 'Call logged' : activity.type === 'sms' ? 'SMS logged' : activity.direction === 'In' ? 'Email received' : 'Email logged',
+          title: isTaskLog ? 'Task created' : activity.type === 'note' ? 'Note added' : activity.type === 'call' ? 'Call logged' : activity.type === 'agent_call' ? 'Agent call logged' : activity.type === 'sms' ? 'SMS logged' : activity.direction === 'In' ? 'Email received' : 'Email logged',
           description,
           timestamp: activity.timestamp || activity.created_at,
           user: displayUser,

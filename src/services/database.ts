@@ -1601,7 +1601,7 @@ export const databaseService = {
   },
 
   async getLeadActivities(leadId: string) {
-    const [notes, callLogs, smsLogs, emailLogs, tasks, statusChanges] = await Promise.all([
+    const [notes, callLogs, smsLogs, emailLogs, tasks, statusChanges, agentCallLogs] = await Promise.all([
       supabase
         .from('notes')
         .select(`
@@ -1656,6 +1656,17 @@ export const databaseService = {
         `)
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false }),
+      
+      // Agent call logs associated with this lead
+      supabase
+        .from('agent_call_logs')
+        .select(`
+          *,
+          user:users!agent_call_logs_logged_by_fkey(*),
+          agent:buyer_agents!agent_call_logs_agent_id_fkey(id, first_name, last_name)
+        `)
+        .eq('lead_id', leadId)
+        .order('logged_at', { ascending: false }),
     ]);
 
     // Fetch completion info from audit_log for completed tasks
@@ -1714,6 +1725,14 @@ export const databaseService = {
         ...change,
         type: 'status_change' as const,
         body: `Status changed from "${change.old_value || 'None'}" to "${change.new_value}"`,
+      })),
+      // Agent call logs associated with this lead
+      ...(agentCallLogs.data || []).map(log => ({
+        ...log,
+        type: 'agent_call' as const,
+        notes: log.summary,
+        created_at: log.logged_at, // Use logged_at as the timestamp for sorting
+        agent_name: log.agent ? `${log.agent.first_name} ${log.agent.last_name}` : 'Unknown Agent',
       })),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
