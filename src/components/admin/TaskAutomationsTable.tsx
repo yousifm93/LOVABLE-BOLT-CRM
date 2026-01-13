@@ -340,9 +340,20 @@ export function TaskAutomationsTable() {
               {formatTrigger(automation)}
             </TableCell>
             <TableCell className="text-sm py-2">
-              <span className="text-muted-foreground">
-                {getCompletionRequirementLabel(automation.completion_requirement_type || null)}
-              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground">
+                  {getCompletionRequirementLabel(automation.completion_requirement_type || null)}
+                </span>
+                {(automation.completion_requirement_type === 'log_call_buyer_agent' ||
+                  automation.completion_requirement_type === 'log_call_listing_agent' ||
+                  automation.task_name.toLowerCase().includes("buyer's agent") ||
+                  automation.task_name.toLowerCase().includes("buyer agent") ||
+                  automation.task_name.toLowerCase().includes("listing agent")) && (
+                  <Badge variant="outline" className="text-xs w-fit text-amber-600 border-amber-300 bg-amber-50">
+                    Skipped on Refinance
+                  </Badge>
+                )}
+              </div>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground py-2">
               {automation.last_run_at ? (
