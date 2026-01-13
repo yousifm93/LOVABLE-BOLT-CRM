@@ -397,6 +397,8 @@ const fetchHistoricalRates = async (rateType: RateType) => {
   };
 
   const handleRefreshSingle = async (scenarioType: RateType) => {
+    // Set anyRefreshRunning IMMEDIATELY to prevent clicking other refresh buttons
+    setAnyRefreshRunning(true);
     setRefreshingTypes(prev => new Set(prev).add(scenarioType));
     try {
       console.log(`Triggering single rate refresh for: ${scenarioType}`);
@@ -552,53 +554,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
         {/* Product Columns Container */}
         <div className={`flex gap-1 justify-center ${anyRefreshRunning ? 'mt-6' : ''}`}>
           
-          {/* 30-Year Fixed Column */}
-          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
-              30yr Fixed
-            </h4>
-            <RateCard 
-              label="70% LTV" 
-              rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
-              points={marketData?.points_30yr_fixed_70ltv ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
-              isRefreshing={refreshingTypes.has('30yr_fixed_70ltv')}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
-              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_70ltv')}
-            />
-            <RateCard 
-              label="80% LTV" 
-              rate={marketData?.rate_30yr_fixed ?? null} 
-              points={marketData?.points_30yr_fixed ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed')}
-              isRefreshing={refreshingTypes.has('30yr_fixed')}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed']}
-              disabled={isDisabled && !refreshingTypes.has('30yr_fixed')}
-            />
-            <RateCard 
-              label="95% LTV" 
-              rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
-              points={marketData?.points_30yr_fixed_95ltv ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed_95ltv')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
-              isRefreshing={refreshingTypes.has('30yr_fixed_95ltv')}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed_95ltv']}
-              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_95ltv')}
-            />
-            <RateCard 
-              label="97% LTV" 
-              rate={marketData?.rate_30yr_fixed_97ltv ?? null} 
-              points={marketData?.points_30yr_fixed_97ltv ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed_97ltv')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed_97ltv')}
-              isRefreshing={refreshingTypes.has('30yr_fixed_97ltv')}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed_97ltv']}
-              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_97ltv')}
-            />
-          </div>
-
           {/* 15-Year Fixed Column */}
           <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
             <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
@@ -643,6 +598,53 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               isRefreshing={refreshingTypes.has('15yr_fixed_97ltv')}
               lastUpdated={lastUpdatedByScenario['15yr_fixed_97ltv']}
               disabled={isDisabled && !refreshingTypes.has('15yr_fixed_97ltv')}
+            />
+          </div>
+
+          {/* 30-Year Fixed Column */}
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
+              30yr Fixed
+            </h4>
+            <RateCard 
+              label="70% LTV" 
+              rate={marketData?.rate_30yr_fixed_70ltv ?? null} 
+              points={marketData?.points_30yr_fixed_70ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_70ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
+              isRefreshing={refreshingTypes.has('30yr_fixed_70ltv')}
+              lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
+              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_70ltv')}
+            />
+            <RateCard 
+              label="80% LTV" 
+              rate={marketData?.rate_30yr_fixed ?? null} 
+              points={marketData?.points_30yr_fixed ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed')}
+              isRefreshing={refreshingTypes.has('30yr_fixed')}
+              lastUpdated={lastUpdatedByScenario['30yr_fixed']}
+              disabled={isDisabled && !refreshingTypes.has('30yr_fixed')}
+            />
+            <RateCard 
+              label="95% LTV" 
+              rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
+              points={marketData?.points_30yr_fixed_95ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_95ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
+              isRefreshing={refreshingTypes.has('30yr_fixed_95ltv')}
+              lastUpdated={lastUpdatedByScenario['30yr_fixed_95ltv']}
+              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_95ltv')}
+            />
+            <RateCard 
+              label="97% LTV" 
+              rate={marketData?.rate_30yr_fixed_97ltv ?? null} 
+              points={marketData?.points_30yr_fixed_97ltv ?? null}
+              onClick={() => handleRateCardClick('30yr_fixed_97ltv')}
+              onRefresh={() => handleRefreshSingle('30yr_fixed_97ltv')}
+              isRefreshing={refreshingTypes.has('30yr_fixed_97ltv')}
+              lastUpdated={lastUpdatedByScenario['30yr_fixed_97ltv']}
+              disabled={isDisabled && !refreshingTypes.has('30yr_fixed_97ltv')}
             />
           </div>
 
