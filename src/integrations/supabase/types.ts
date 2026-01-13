@@ -5796,6 +5796,10 @@ export type Database = {
           similarity: number
         }[]
       }
+      update_lead_field_safe: {
+        Args: { p_field_name: string; p_field_value: string; p_lead_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       agency_type: "fannie" | "freddie" | "fha" | "va" | "usda" | "nonqm"

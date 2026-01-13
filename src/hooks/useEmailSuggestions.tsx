@@ -120,11 +120,12 @@ export function useEmailSuggestions() {
       
       console.log(`[useEmailSuggestions] Approving suggestion: ${suggestion.field_name} -> ${actualFieldName} = ${actualValue}`);
       
-      // Update the lead field
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({ [actualFieldName]: actualValue })
-        .eq('id', suggestion.lead_id);
+      // Update the lead field using RPC function to handle enum types properly
+      const { error: updateError } = await supabase.rpc('update_lead_field_safe', {
+        p_lead_id: suggestion.lead_id,
+        p_field_name: actualFieldName,
+        p_field_value: actualValue
+      });
 
       if (updateError) {
         toast.error('Failed to update lead field');
