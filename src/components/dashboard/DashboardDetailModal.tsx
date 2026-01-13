@@ -56,6 +56,7 @@ interface Call {
   call_type?: string | null;
   notes: string | null;
   lead_id?: string | null;
+  logged_by_name?: string | null;
 }
 
 interface Email {
@@ -1001,12 +1002,13 @@ export function DashboardDetailModal({
   };
 
   const renderCallsContent = () => (
-    <div className="min-w-[900px]">
+    <div className="min-w-[1000px]">
       <Table className="text-xs">
         <TableHeader>
           <TableRow className="text-[11px]">
             <TableHead className="w-[120px] py-2">Name</TableHead>
             <TableHead className="w-[70px] py-2">Type</TableHead>
+            <TableHead className="w-[100px] py-2">Logged By</TableHead>
             <TableHead className="w-[130px] py-2">Call Date</TableHead>
             <TableHead className="w-[100px] py-2">Call Type</TableHead>
             <TableHead className="py-2">Notes</TableHead>
@@ -1032,6 +1034,9 @@ export function DashboardDetailModal({
                 >
                   {item.person_type}
                 </Badge>
+              </TableCell>
+              <TableCell className="py-1.5 text-[11px] text-muted-foreground">
+                {item.logged_by_name || "—"}
               </TableCell>
               <TableCell className="py-1.5 text-[11px] text-muted-foreground">
                 {item.call_date ? new Date(item.call_date).toLocaleString('en-US', {

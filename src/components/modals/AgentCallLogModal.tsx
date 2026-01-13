@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Phone } from "lucide-react";
 import {
   Dialog,
@@ -30,6 +30,12 @@ const CALL_TYPE_OPTIONS = [
   { value: "past_la", label: "Past LA Call" },
 ];
 
+interface LeadOption {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 interface AgentCallLogModalProps {
   agentId: string;
   agentName: string;
@@ -49,7 +55,46 @@ export function AgentCallLogModal({
   const [summary, setSummary] = useState("");
   const [callDate, setCallDate] = useState(new Date().toISOString().slice(0, 10));
   const [callType, setCallType] = useState<string>("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string>("");
+  const [associatedLeads, setAssociatedLeads] = useState<LeadOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+
+  // Fetch leads associated with this agent (buyer_agent_id or listing_agent_id)
+  useEffect(() => {
+    if (isOpen && agentId) {
+      const fetchAssociatedLeads = async () => {
+        setIsLoadingLeads(true);
+        try {
+          const { data, error } = await supabase
+            .from('leads')
+            .select('id, first_name, last_name')
+            .or(`buyer_agent_id.eq.${agentId},listing_agent_id.eq.${agentId}`)
+            .eq('is_closed', false)
+            .order('last_name', { ascending: true });
+          
+          if (error) throw error;
+          setAssociatedLeads(data || []);
+        } catch (error) {
+          console.error('Error fetching associated leads:', error);
+          setAssociatedLeads([]);
+        } finally {
+          setIsLoadingLeads(false);
+        }
+      };
+      fetchAssociatedLeads();
+    }
+  }, [isOpen, agentId]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSummary("");
+      setCallType("");
+      setSelectedLeadId("");
+      setCallDate(new Date().toISOString().slice(0, 10));
+    }
+  }, [isOpen]);
 
   const handleSave = async () => {
     if (!summary.trim()) {
@@ -80,8 +125,17 @@ export function AgentCallLogModal({
       const now = new Date();
       const selectedDateTime = new Date(`${callDate}T${now.toTimeString().slice(0, 8)}`);
       
-      // Create call log with proper local timestamp
-      await databaseService.createAgentCallLog(agentId, summary, crmUser.id, 'call', undefined, selectedDateTime.toISOString(), callType || undefined);
+      // Create call log with proper local timestamp and optional lead_id
+      await databaseService.createAgentCallLog(
+        agentId, 
+        summary, 
+        crmUser.id, 
+        'call', 
+        undefined, 
+        selectedDateTime.toISOString(), 
+        callType || undefined,
+        selectedLeadId || undefined
+      );
 
       // Update last_agent_call date on the agent using the selected date
       await databaseService.updateBuyerAgent(agentId, {
@@ -127,6 +181,7 @@ export function AgentCallLogModal({
 
       setSummary("");
       setCallType("");
+      setSelectedLeadId("");
       onCallLogged();
       onClose();
     } catch (error: any) {
@@ -179,6 +234,25 @@ export function AgentCallLogModal({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="associated-lead">Associated Lead (Optional)</Label>
+            <Select value={selectedLeadId} onValueChange={setSelectedLeadId}>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder={isLoadingLeads ? "Loading leads..." : "Select a lead..."} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">None</SelectItem>
+                {associatedLeads.map((lead) => (
+                  <SelectItem key={lead.id} value={lead.id}>
+                    {lead.first_name} {lead.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              If selected, this call will appear in the lead's activity history
+            </p>
           </div>
           <div>
             <div className="flex items-center gap-2 mb-2">

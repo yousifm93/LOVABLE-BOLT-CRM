@@ -33,6 +33,7 @@ export interface DashboardCall {
   call_type?: string | null;
   notes: string | null;
   lead_id?: string | null;
+  logged_by_name?: string | null;
 }
 
 export interface DashboardEmail {
@@ -445,7 +446,7 @@ export const useDashboardData = () => {
   const fetchAgentCallsByType = async (callType: string, startTime?: string, endTime?: string) => {
     let query = supabase
       .from('agent_call_logs')
-      .select('id, logged_at, summary, call_type, agent_id, buyer_agents!inner(first_name, last_name)')
+      .select('id, logged_at, summary, call_type, agent_id, lead_id, buyer_agents!inner(first_name, last_name), logged_by_user:users!agent_call_logs_logged_by_fkey(first_name, last_name)')
       .eq('log_type', 'call')
       .eq('call_type', callType);
     
@@ -455,15 +456,19 @@ export const useDashboardData = () => {
     const { data, error } = await query.order('logged_at', { ascending: false });
     if (error) throw error;
     
-    return (data || []).map(c => ({
-      id: c.id,
-      name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
-      person_type: 'Agent' as const,
-      call_date: c.logged_at,
-      call_type: c.call_type,
-      notes: c.summary,
-      lead_id: null,
-    }));
+    return (data || []).map(c => {
+      const loggedByUser = c.logged_by_user as any;
+      return {
+        id: c.id,
+        name: `${(c.buyer_agents as any)?.first_name || ''} ${(c.buyer_agents as any)?.last_name || ''}`.trim(),
+        person_type: 'Agent' as const,
+        call_date: c.logged_at,
+        call_type: c.call_type,
+        notes: c.summary,
+        lead_id: c.lead_id || null,
+        logged_by_name: loggedByUser ? `${loggedByUser.first_name || ''} ${loggedByUser.last_name || ''}`.trim() : null,
+      };
+    });
   };
 
   // New Agent Calls
@@ -548,7 +553,7 @@ export const useDashboardData = () => {
   const fetchCurrentClientCalls = async (startTime?: string, endTime?: string) => {
     let query = supabase
       .from('call_logs')
-      .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+      .select('id, timestamp, notes, lead_id, user_id, leads!inner(first_name, last_name, pipeline_stage_id), logged_by_user:users!call_logs_user_id_fkey(first_name, last_name)')
       .in('leads.pipeline_stage_id', CURRENT_CLIENT_STAGE_IDS);
     
     if (startTime) query = query.gte('timestamp', startTime);
@@ -557,15 +562,19 @@ export const useDashboardData = () => {
     const { data, error } = await query.order('timestamp', { ascending: false });
     if (error) throw error;
     
-    return (data || []).map(c => ({
-      id: c.id,
-      name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
-      person_type: 'Lead' as const,
-      call_date: c.timestamp,
-      call_type: 'current_client',
-      notes: c.notes,
-      lead_id: c.lead_id,
-    }));
+    return (data || []).map(c => {
+      const loggedByUser = c.logged_by_user as any;
+      return {
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: 'current_client',
+        notes: c.notes,
+        lead_id: c.lead_id,
+        logged_by_name: loggedByUser ? `${loggedByUser.first_name || ''} ${loggedByUser.last_name || ''}`.trim() : null,
+      };
+    });
   };
 
   const { data: thisMonthCurrentClientCalls, isLoading: isLoadingThisMonthCurrentClientCalls } = useQuery({
@@ -588,7 +597,7 @@ export const useDashboardData = () => {
   const fetchPastClientCalls = async (startTime?: string, endTime?: string) => {
     let query = supabase
       .from('call_logs')
-      .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+      .select('id, timestamp, notes, lead_id, user_id, leads!inner(first_name, last_name, pipeline_stage_id), logged_by_user:users!call_logs_user_id_fkey(first_name, last_name)')
       .eq('leads.pipeline_stage_id', PAST_CLIENTS_STAGE_ID);
     
     if (startTime) query = query.gte('timestamp', startTime);
@@ -597,15 +606,19 @@ export const useDashboardData = () => {
     const { data, error } = await query.order('timestamp', { ascending: false });
     if (error) throw error;
     
-    return (data || []).map(c => ({
-      id: c.id,
-      name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
-      person_type: 'Lead' as const,
-      call_date: c.timestamp,
-      call_type: 'past_client',
-      notes: c.notes,
-      lead_id: c.lead_id,
-    }));
+    return (data || []).map(c => {
+      const loggedByUser = c.logged_by_user as any;
+      return {
+        id: c.id,
+        name: `${(c.leads as any)?.first_name || ''} ${(c.leads as any)?.last_name || ''}`.trim(),
+        person_type: 'Lead' as const,
+        call_date: c.timestamp,
+        call_type: 'past_client',
+        notes: c.notes,
+        lead_id: c.lead_id,
+        logged_by_name: loggedByUser ? `${loggedByUser.first_name || ''} ${loggedByUser.last_name || ''}`.trim() : null,
+      };
+    });
   };
 
   const { data: thisMonthPastClientCalls, isLoading: isLoadingThisMonthPastClientCalls } = useQuery({
