@@ -804,6 +804,7 @@ export type Database = {
           direction: string | null
           error_message: string | null
           id: string
+          max_results: number | null
           results_json: Json | null
           screenshot_url: string | null
           state: string | null
@@ -822,6 +823,7 @@ export type Database = {
           direction?: string | null
           error_message?: string | null
           id?: string
+          max_results?: number | null
           results_json?: Json | null
           screenshot_url?: string | null
           state?: string | null
@@ -840,6 +842,7 @@ export type Database = {
           direction?: string | null
           error_message?: string | null
           id?: string
+          max_results?: number | null
           results_json?: Json | null
           screenshot_url?: string | null
           state?: string | null

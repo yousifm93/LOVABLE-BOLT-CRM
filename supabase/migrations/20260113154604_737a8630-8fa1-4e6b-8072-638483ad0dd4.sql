@@ -1,0 +1,1 @@
+ALTER TABLE condo_searches ADD COLUMN max_results integer DEFAULT 10;

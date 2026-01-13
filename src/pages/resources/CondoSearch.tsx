@@ -35,6 +35,7 @@ interface CondoSearch {
   state: string | null;
   zip: string | null;
   days_back: number | null;
+  max_results: number | null;
   screenshot_url: string | null;
   results_json: { sales?: CondoSearchResult[] } | null;
   error_message: string | null;
@@ -67,6 +68,7 @@ export default function CondoSearch() {
   const [state, setState] = useState("FL");
   const [zip, setZip] = useState("");
   const [daysBack, setDaysBack] = useState("180");
+  const [maxResults, setMaxResults] = useState("10");
   const [selectedSearch, setSelectedSearch] = useState<CondoSearch | null>(null);
 
   // Fetch searches
@@ -130,6 +132,7 @@ export default function CondoSearch() {
           state: state || "FL",
           zip: zip || null,
           days_back: parseInt(daysBack) || 180,
+          max_results: parseInt(maxResults) || 10,
           status: "pending",
         })
         .select()
@@ -164,6 +167,7 @@ export default function CondoSearch() {
       setCity("");
       setZip("");
       setDaysBack("180");
+      setMaxResults("10");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to start search");
@@ -347,6 +351,20 @@ export default function CondoSearch() {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="max-results">Max Results</Label>
+              <Input
+                id="max-results"
+                type="number"
+                placeholder="10"
+                value={maxResults}
+                onChange={(e) => setMaxResults(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Top X results to return
+              </p>
+            </div>
+
             <div className="flex items-end">
               <Button
                 onClick={() => createSearchMutation.mutate()}
@@ -414,7 +432,6 @@ export default function CondoSearch() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
-                    <TableHead className="w-20">Screenshot</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Unit</TableHead>
@@ -423,6 +440,7 @@ export default function CondoSearch() {
                     <TableHead>Mortgage Amount</TableHead>
                     <TableHead>Mortgage Lender</TableHead>
                     <TableHead>Sales Price</TableHead>
+                    <TableHead className="w-20">Screenshot</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -465,35 +483,6 @@ export default function CondoSearch() {
                           {row.rowNumber}
                         </TableCell>
                         <TableCell>
-                          {row.isFirstRow && row.search.screenshot_url ? (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <button className="w-16 h-12 rounded border overflow-hidden hover:opacity-80 transition-opacity">
-                                  <img 
-                                    src={row.search.screenshot_url} 
-                                    alt="MLS Screenshot" 
-                                    className="w-full h-full object-cover"
-                                  />
-                                </button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl">
-                                <DialogHeader>
-                                  <DialogTitle>MLS Search Results Screenshot</DialogTitle>
-                                </DialogHeader>
-                                <img 
-                                  src={row.search.screenshot_url} 
-                                  alt="MLS Screenshot" 
-                                  className="w-full rounded"
-                                />
-                              </DialogContent>
-                            </Dialog>
-                          ) : row.isFirstRow ? (
-                            <div className="w-16 h-12 rounded border bg-muted flex items-center justify-center">
-                              <Image className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell>
                           {row.isFirstRow ? getStatusBadge(row.search.status) : null}
                         </TableCell>
                         <TableCell className="font-medium">
@@ -531,6 +520,35 @@ export default function CondoSearch() {
                           {row.search.status === "completed" && row.result
                             ? formatCurrency(row.result.sold_price)
                             : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {row.isFirstRow && row.search.screenshot_url ? (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button className="w-16 h-12 rounded border overflow-hidden hover:opacity-80 transition-opacity">
+                                  <img 
+                                    src={row.search.screenshot_url} 
+                                    alt="MLS Screenshot" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl">
+                                <DialogHeader>
+                                  <DialogTitle>MLS Search Results Screenshot</DialogTitle>
+                                </DialogHeader>
+                                <img 
+                                  src={row.search.screenshot_url} 
+                                  alt="MLS Screenshot" 
+                                  className="w-full rounded"
+                                />
+                              </DialogContent>
+                            </Dialog>
+                          ) : row.isFirstRow ? (
+                            <div className="w-16 h-12 rounded border bg-muted flex items-center justify-center">
+                              <Image className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          ) : null}
                         </TableCell>
                         <TableCell>
                           {row.isFirstRow && row.search.status === "completed" && row.totalResults > 1 && (
