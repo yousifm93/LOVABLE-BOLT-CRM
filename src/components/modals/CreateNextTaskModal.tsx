@@ -103,8 +103,22 @@ export function CreateNextTaskModal({
     }
   };
 
-  const handleSkip = () => {
-    onOpenChange(false);
+  const [skipping, setSkipping] = useState(false);
+
+  const handleSkip = async () => {
+    setSkipping(true);
+    try {
+      await databaseService.checkAndCreateNoOpenTaskFound(leadId);
+      toast({
+        title: "Placeholder Task Created",
+        description: `"No open task found" task added for ${leadName || 'this lead'}`
+      });
+    } catch (error) {
+      console.error("Error creating placeholder task:", error);
+    } finally {
+      setSkipping(false);
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -204,8 +218,8 @@ export function CreateNextTaskModal({
         </div>
 
         <DialogFooter className="flex gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleSkip} disabled={loading}>
-            Skip
+          <Button variant="outline" onClick={handleSkip} disabled={loading || skipping}>
+            {skipping ? "Creating placeholder..." : "Skip"}
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Creating..." : "Add Task"}
