@@ -78,32 +78,38 @@ export function EmailFieldSuggestionsModal({
 
   const handleApprove = async (suggestion: EmailFieldSuggestion) => {
     setProcessingIds(prev => new Set(prev).add(suggestion.id));
-    await approveSuggestion(suggestion, notes[suggestion.id]);
+    const success = await approveSuggestion(suggestion, notes[suggestion.id]);
     setProcessingIds(prev => {
       const next = new Set(prev);
       next.delete(suggestion.id);
       return next;
     });
-    setNotes(prev => {
-      const next = { ...prev };
-      delete next[suggestion.id];
-      return next;
-    });
+    // Only clear notes if the approval succeeded
+    if (success) {
+      setNotes(prev => {
+        const next = { ...prev };
+        delete next[suggestion.id];
+        return next;
+      });
+    }
   };
 
   const handleDeny = async (suggestionId: string) => {
     setProcessingIds(prev => new Set(prev).add(suggestionId));
-    await denySuggestion(suggestionId, notes[suggestionId]);
+    const success = await denySuggestion(suggestionId, notes[suggestionId]);
     setProcessingIds(prev => {
       const next = new Set(prev);
       next.delete(suggestionId);
       return next;
     });
-    setNotes(prev => {
-      const next = { ...prev };
-      delete next[suggestionId];
-      return next;
-    });
+    // Only clear notes if the denial succeeded
+    if (success) {
+      setNotes(prev => {
+        const next = { ...prev };
+        delete next[suggestionId];
+        return next;
+      });
+    }
   };
 
   const renderSuggestionCard = (suggestion: EmailFieldSuggestion, isCompleted: boolean) => (

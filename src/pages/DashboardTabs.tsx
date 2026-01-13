@@ -516,7 +516,7 @@ export default function DashboardTabs() {
             </div>
           ) : (
             <>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {/* COLUMN 1 - LEADS */}
               <Card className="border-green-500/30 bg-green-500/5">
                 <CardHeader className="pb-3">
@@ -786,75 +786,6 @@ export default function DashboardTabs() {
                           <p className="text-xs text-muted-foreground italic shrink-0 max-w-[150px] truncate">
                             {agent.brokerage || "No brokerage"}
                           </p>
-                        </div>
-                      );
-                    }}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* COLUMN 5 - REVIEWS */}
-              <Card className="border-gray-500/30 bg-gray-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Star className="h-4 w-4 text-gray-600" />
-                    Reviews
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ModernStatsCard
-                    title="This Month"
-                    value={thisMonthReviews.length}
-                    icon={<Star />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("This Month's Reviews", thisMonthReviews, "reviews", MONTHLY_GOALS.reviews)}
-                    showProgress={true}
-                    progressValue={thisMonthReviews.length}
-                    progressMax={MONTHLY_GOALS.reviews}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.reviews)}
-                    progressColor="[&_.bg-primary]:bg-gray-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekReviews.length}
-                    icon={<Star />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Reviews", lastWeekReviews, "reviews")}
-                  />
-                  <ModernStatsCard
-                    title="This Week"
-                    value={thisWeekReviews.length}
-                    icon={<Star />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("This Week's Reviews", thisWeekReviews, "reviews")}
-                  />
-                  
-                  <CollapsibleSection
-                    title="All Reviews" 
-                    count={allReviews.length}
-                    data={allReviews}
-                    renderItem={(review: any, index) => {
-                      const highlightClass = getHighlightClasses(review.review_left_on);
-                      return (
-                        <div 
-                          key={index} 
-                          className={`flex items-center justify-between gap-2 p-2 rounded border border-border transition-colors ${highlightClass || 'hover:bg-muted/50'}`}
-                        >
-                          <div className="flex flex-col gap-1 flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {review.first_name} {review.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatLocalDate(review.review_left_on)}
-                            </p>
-                          </div>
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            {STAGE_ID_TO_NAME[review.pipeline_stage_id] || "Unknown"}
-                          </Badge>
                         </div>
                       );
                     }}

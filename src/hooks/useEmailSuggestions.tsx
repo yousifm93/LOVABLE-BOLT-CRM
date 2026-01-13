@@ -145,6 +145,7 @@ export function useEmailSuggestions() {
 
       if (suggestionError) {
         console.error('Error updating suggestion:', suggestionError);
+        toast.error('Failed to mark suggestion as approved');
         return false;
       }
 
