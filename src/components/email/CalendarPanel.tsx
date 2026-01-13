@@ -244,7 +244,7 @@ export function CalendarPanel() {
                 key={event.id}
                 className="p-2.5 rounded-md border bg-card hover:bg-accent/50 transition-colors"
               >
-                <p className="text-sm font-medium line-clamp-2">{event.title}</p>
+                <p className="text-xs font-medium line-clamp-2">{event.title}</p>
                 <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
                   <span>{formatEventTime(event)}</span>
