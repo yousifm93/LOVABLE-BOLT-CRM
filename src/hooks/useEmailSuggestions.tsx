@@ -150,7 +150,9 @@ export function useEmailSuggestions() {
       }
 
       toast.success(`Updated ${suggestion.field_display_name} to ${suggestion.suggested_value}`);
-      await loadData();
+      // Optimistic update - remove from local state instead of re-fetching
+      setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+      setPendingCount(prev => Math.max(0, prev - 1));
       return true;
     } catch (error) {
       console.error('Error approving suggestion:', error);
@@ -177,7 +179,9 @@ export function useEmailSuggestions() {
       }
 
       toast.success('Suggestion denied');
-      await loadData();
+      // Optimistic update - remove from local state instead of re-fetching
+      setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
+      setPendingCount(prev => Math.max(0, prev - 1));
       return true;
     } catch (error) {
       console.error('Error denying suggestion:', error);
