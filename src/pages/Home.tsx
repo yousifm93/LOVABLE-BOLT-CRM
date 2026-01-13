@@ -54,6 +54,7 @@ interface SearchResult {
   type: 'lead' | 'contact' | 'agent' | 'lender';
   name: string;
   subtitle: string;
+  pipelineStageId?: string;
 }
 
 export default function Home() {
@@ -193,7 +194,8 @@ export default function Home() {
             id: lead.id,
             type: 'lead',
             name: `${lead.first_name} ${lead.last_name}`,
-            subtitle: lead.email || 'Lead'
+            subtitle: lead.email || 'Lead',
+            pipelineStageId: lead.pipeline_stage_id
           });
         });
       }
@@ -323,18 +325,27 @@ export default function Home() {
     }
   };
 
-  const getResultLabel = (type: string) => {
-    switch (type) {
-      case 'lead':
-        return 'Lead';
-      case 'agent':
-        return 'Agent';
-      case 'lender':
-        return 'Lender';
-      case 'contact':
-        return 'Contact';
-      default:
-        return '';
+  const getResultLabel = (result: SearchResult) => {
+    if (result.type === 'lead' && result.pipelineStageId) {
+      const stageMap: Record<string, string> = {
+        'c54f417b-3f67-43de-80f5-954cf260d571': 'Lead',
+        '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945': 'Pending App',
+        'a4e162e0-5421-4d17-8ad5-4b1195bbc995': 'Screening',
+        '09162eec-d2b2-48e5-86d0-9e66ee8b2af7': 'Pre-Qualified',
+        '3cbf38ff-752e-4163-a9a3-1757499b4945': 'Pre-Approved',
+        '76eb2e82-e1d9-4f2d-a57d-2120a25696db': 'Active',
+        'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd': 'Past Client',
+        '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a': 'Idle',
+        'e9fc7eb8-6519-4768-b49e-3ebdd3738ac0': 'Past Client'
+      };
+      return stageMap[result.pipelineStageId] || 'Lead';
+    }
+    
+    switch (result.type) {
+      case 'agent': return 'Agent';
+      case 'lender': return 'Lender';
+      case 'contact': return 'Contact';
+      default: return 'Lead';
     }
   };
 
@@ -374,7 +385,7 @@ export default function Home() {
         </div>
 
         {/* Search Bar with Dropdown - Centered */}
-        <div ref={searchRef} className="relative max-w-2xl mx-auto">
+        <div ref={searchRef} className="relative w-full lg:w-1/2 mx-auto">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
           <Input
             placeholder="Search leads, contacts, agents, or lenders..."
@@ -414,7 +425,7 @@ export default function Home() {
                             <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
                           </div>
                           <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                            {getResultLabel(result.type)}
+                            {getResultLabel(result)}
                           </span>
                         </button>
                       ))}
