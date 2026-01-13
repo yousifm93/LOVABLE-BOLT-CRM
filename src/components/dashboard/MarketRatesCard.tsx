@@ -48,9 +48,7 @@ interface MarketData {
   points_dscr_75ltv: number | null;
   rate_bank_statement_75ltv: number | null;
   points_bank_statement_75ltv: number | null;
-  // 85% LTV fields (DSCR and Bank Statement)
-  rate_dscr_85ltv: number | null;
-  points_dscr_85ltv: number | null;
+  // 85% LTV fields (Bank Statement only - DSCR 85% removed)
   rate_bank_statement_85ltv: number | null;
   points_bank_statement_85ltv: number | null;
   // 90% LTV fields (no DSCR)
@@ -161,7 +159,7 @@ type RateType =
   | 'dscr_60ltv'
   | '30yr_fixed_70ltv' | '15yr_fixed_70ltv' | 'fha_30yr_70ltv' | 'bank_statement_70ltv' | 'dscr_70ltv'
   | 'dscr_75ltv' | 'bank_statement_75ltv'
-  | 'dscr_85ltv' | 'bank_statement_85ltv'
+  | 'bank_statement_85ltv'
   | '30yr_fixed_90ltv' | '15yr_fixed_90ltv' | 'fha_30yr_90ltv' | 'bank_statement_90ltv'
   | '30yr_fixed_95ltv' | '15yr_fixed_95ltv' | 'fha_30yr_95ltv'
   | 'fha_30yr_965ltv'
@@ -240,7 +238,6 @@ export function MarketRatesCard() {
       'rate_dscr_70ltv', 'points_dscr_70ltv',
       'rate_dscr_75ltv', 'points_dscr_75ltv',
       'rate_bank_statement_75ltv', 'points_bank_statement_75ltv',
-      'rate_dscr_85ltv', 'points_dscr_85ltv',
       'rate_bank_statement_85ltv', 'points_bank_statement_85ltv',
       'rate_30yr_fixed_90ltv', 'points_30yr_fixed_90ltv',
       'rate_15yr_fixed_90ltv', 'points_15yr_fixed_90ltv',
@@ -380,7 +377,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
       case 'dscr_75ltv': return 'DSCR (75% LTV)';
       case 'bank_statement_75ltv': return 'Bank Statement (75% LTV)';
       // 85% LTV labels
-      case 'dscr_85ltv': return 'DSCR (85% LTV)';
       case 'bank_statement_85ltv': return 'Bank Statement (85% LTV)';
       // 90% LTV labels
       case '30yr_fixed_90ltv': return '30-Year Fixed (90% LTV)';
@@ -779,16 +775,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               isRefreshing={refreshingType === 'dscr'}
               lastUpdated={lastUpdatedByScenario['dscr']}
               disabled={isDisabled && refreshingType !== 'dscr'}
-            />
-            <RateCard 
-              label="85% LTV" 
-              rate={marketData?.rate_dscr_85ltv ?? null} 
-              points={marketData?.points_dscr_85ltv ?? null}
-              onClick={() => handleRateCardClick('dscr_85ltv')}
-              onRefresh={() => handleRefreshSingle('dscr_85ltv')}
-              isRefreshing={refreshingType === 'dscr_85ltv'}
-              lastUpdated={lastUpdatedByScenario['dscr_85ltv']}
-              disabled={isDisabled && refreshingType !== 'dscr_85ltv'}
             />
           </div>
           

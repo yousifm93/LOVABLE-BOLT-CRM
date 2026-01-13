@@ -34,7 +34,6 @@ interface RateData {
   rate_dscr_60ltv: number | null;
   rate_dscr_70ltv: number | null;
   rate_dscr_75ltv: number | null;
-  rate_dscr_85ltv: number | null;
 }
 
 interface LeadItem {
@@ -129,7 +128,6 @@ const getDSCRRate = (data: RateData): number | null => {
     data.rate_dscr_60ltv,
     data.rate_dscr_70ltv,
     data.rate_dscr_75ltv,
-    data.rate_dscr_85ltv,
   ]);
 };
 
@@ -160,7 +158,7 @@ export function DailyReportCards() {
         rate_30yr_fixed, rate_30yr_fixed_70ltv, rate_30yr_fixed_90ltv, rate_30yr_fixed_95ltv, rate_30yr_fixed_97ltv,
         rate_30yr_fha, rate_30yr_fha_70ltv, rate_30yr_fha_90ltv, rate_30yr_fha_95ltv, rate_30yr_fha_965ltv,
         rate_bank_statement, rate_bank_statement_70ltv, rate_bank_statement_75ltv, rate_bank_statement_85ltv, rate_bank_statement_90ltv,
-        rate_dscr, rate_dscr_60ltv, rate_dscr_70ltv, rate_dscr_75ltv, rate_dscr_85ltv
+        rate_dscr, rate_dscr_60ltv, rate_dscr_70ltv, rate_dscr_75ltv
       `)
       .order('date', { ascending: false })
       .limit(1)

@@ -156,11 +156,12 @@ serve(async (req) => {
       }
     }
 
-    // Update pricing run status to running
+    // Update pricing run status to running - only if not already cancelled
     const { error: updateError } = await supabase
       .from('pricing_runs')
       .update({ status: 'running' })
-      .eq('id', run_id);
+      .eq('id', run_id)
+      .neq('status', 'cancelled');
 
     if (updateError) {
       console.error('Error updating pricing run status:', updateError);
