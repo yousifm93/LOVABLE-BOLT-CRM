@@ -95,9 +95,10 @@ interface RateCardProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   lastUpdated?: string | null;
+  disabled?: boolean;
 }
 
-function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshing, lastUpdated }: RateCardProps) {
+function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshing, lastUpdated, disabled }: RateCardProps) {
   const formatLastUpdated = (timestamp: string | null) => {
     if (!timestamp) return null;
     const date = new Date(timestamp);
@@ -111,10 +112,10 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className={`flex flex-col items-center ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <div 
-        className={`flex flex-col items-center justify-center px-2 py-1.5 bg-amber-100 dark:bg-amber-900/30 rounded min-w-[85px] ${onClick ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
-        onClick={onClick}
+        className={`flex flex-col items-center justify-center px-2 py-1.5 bg-amber-100 dark:bg-amber-900/30 rounded min-w-[85px] ${onClick && !disabled ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
+        onClick={disabled ? undefined : onClick}
       >
         <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-0.5 text-center">
           {label}
@@ -138,8 +139,8 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
               e.stopPropagation();
               onRefresh();
             }}
-            disabled={isRefreshing}
-            className="flex items-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            disabled={isRefreshing || disabled}
+            className="flex items-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isRefreshing ? (
               <Loader2 className="h-2.5 w-2.5 animate-spin" />
@@ -175,6 +176,20 @@ export function MarketRatesCard() {
   const [historicalRates, setHistoricalRates] = useState<HistoricalRate[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [lastUpdatedByScenario, setLastUpdatedByScenario] = useState<Record<RateType, string | null>>({} as Record<RateType, string | null>);
+  const [anyRefreshRunning, setAnyRefreshRunning] = useState(false);
+
+  // Check for any running pricing runs
+  const checkRunningPricingRuns = async () => {
+    const { data, error } = await supabase
+      .from('pricing_runs')
+      .select('id')
+      .eq('status', 'running')
+      .limit(1);
+    
+    if (!error) {
+      setAnyRefreshRunning((data?.length || 0) > 0);
+    }
+  };
 
   const fetchLastUpdatedTimes = async () => {
     const { data: latestRuns, error } = await supabase
@@ -311,6 +326,33 @@ const fetchHistoricalRates = async (rateType: RateType) => {
   useEffect(() => {
     fetchMarketData();
     fetchLastUpdatedTimes();
+    checkRunningPricingRuns();
+
+    // Set up real-time subscription to monitor pricing_runs status
+    const channel = supabase
+      .channel('pricing-runs-status')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pricing_runs',
+        },
+        (payload) => {
+          // Check if any run is still running
+          checkRunningPricingRuns();
+          // Refresh data when a run completes
+          if (payload.new && (payload.new as any).status === 'completed') {
+            fetchMarketData();
+            fetchLastUpdatedTimes();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleRateCardClick = (rateType: RateType) => {
@@ -468,11 +510,22 @@ const fetchHistoricalRates = async (rateType: RateType) => {
     );
   }
 
+  // Compute disabled state for each card - disable if another refresh is running
+  const isDisabled = anyRefreshRunning;
+
   return (
     <>
-      <div className="flex flex-col gap-3 py-3 px-2 border-b border-border/50">
+      <div className="flex flex-col gap-3 py-3 px-2 border-b border-border/50 relative">
+        {/* Running indicator banner */}
+        {anyRefreshRunning && (
+          <div className="absolute inset-x-0 top-0 bg-amber-500/90 text-white text-center py-1 text-xs font-medium z-10 flex items-center justify-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Rate refresh in progress... Please wait.
+          </div>
+        )}
+        
         {/* Product Columns Container */}
-        <div className="flex gap-2 justify-center flex-wrap">
+        <div className={`flex gap-2 justify-center flex-wrap ${anyRefreshRunning ? 'mt-6' : ''}`}>
           
           {/* 30-Year Fixed Column */}
           <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
@@ -487,6 +540,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed_70ltv')}
               isRefreshing={refreshingType === '30yr_fixed_70ltv'}
               lastUpdated={lastUpdatedByScenario['30yr_fixed_70ltv']}
+              disabled={isDisabled && refreshingType !== '30yr_fixed_70ltv'}
             />
             <RateCard 
               label="80% LTV" 
@@ -496,6 +550,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed')}
               isRefreshing={refreshingType === '30yr_fixed'}
               lastUpdated={lastUpdatedByScenario['30yr_fixed']}
+              disabled={isDisabled && refreshingType !== '30yr_fixed'}
             />
             <RateCard 
               label="90% LTV" 
@@ -505,6 +560,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed_90ltv')}
               isRefreshing={refreshingType === '30yr_fixed_90ltv'}
               lastUpdated={lastUpdatedByScenario['30yr_fixed_90ltv']}
+              disabled={isDisabled && refreshingType !== '30yr_fixed_90ltv'}
             />
             <RateCard 
               label="95% LTV" 
@@ -514,6 +570,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed_95ltv')}
               isRefreshing={refreshingType === '30yr_fixed_95ltv'}
               lastUpdated={lastUpdatedByScenario['30yr_fixed_95ltv']}
+              disabled={isDisabled && refreshingType !== '30yr_fixed_95ltv'}
             />
             <RateCard 
               label="97% LTV" 
@@ -523,6 +580,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('30yr_fixed_97ltv')}
               isRefreshing={refreshingType === '30yr_fixed_97ltv'}
               lastUpdated={lastUpdatedByScenario['30yr_fixed_97ltv']}
+              disabled={isDisabled && refreshingType !== '30yr_fixed_97ltv'}
             />
           </div>
 
@@ -539,6 +597,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('15yr_fixed_70ltv')}
               isRefreshing={refreshingType === '15yr_fixed_70ltv'}
               lastUpdated={lastUpdatedByScenario['15yr_fixed_70ltv']}
+              disabled={isDisabled && refreshingType !== '15yr_fixed_70ltv'}
             />
             <RateCard 
               label="80% LTV" 
@@ -548,6 +607,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('15yr_fixed')}
               isRefreshing={refreshingType === '15yr_fixed'}
               lastUpdated={lastUpdatedByScenario['15yr_fixed']}
+              disabled={isDisabled && refreshingType !== '15yr_fixed'}
             />
             <RateCard 
               label="90% LTV" 
@@ -557,6 +617,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('15yr_fixed_90ltv')}
               isRefreshing={refreshingType === '15yr_fixed_90ltv'}
               lastUpdated={lastUpdatedByScenario['15yr_fixed_90ltv']}
+              disabled={isDisabled && refreshingType !== '15yr_fixed_90ltv'}
             />
             <RateCard 
               label="95% LTV" 
@@ -566,6 +627,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('15yr_fixed_95ltv')}
               isRefreshing={refreshingType === '15yr_fixed_95ltv'}
               lastUpdated={lastUpdatedByScenario['15yr_fixed_95ltv']}
+              disabled={isDisabled && refreshingType !== '15yr_fixed_95ltv'}
             />
             <RateCard 
               label="97% LTV" 
@@ -575,6 +637,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('15yr_fixed_97ltv')}
               isRefreshing={refreshingType === '15yr_fixed_97ltv'}
               lastUpdated={lastUpdatedByScenario['15yr_fixed_97ltv']}
+              disabled={isDisabled && refreshingType !== '15yr_fixed_97ltv'}
             />
           </div>
 
@@ -591,6 +654,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('fha_30yr_90ltv')}
               isRefreshing={refreshingType === 'fha_30yr_90ltv'}
               lastUpdated={lastUpdatedByScenario['fha_30yr_90ltv']}
+              disabled={isDisabled && refreshingType !== 'fha_30yr_90ltv'}
             />
             <RateCard 
               label="95% LTV" 
@@ -600,6 +664,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('fha_30yr_95ltv')}
               isRefreshing={refreshingType === 'fha_30yr_95ltv'}
               lastUpdated={lastUpdatedByScenario['fha_30yr_95ltv']}
+              disabled={isDisabled && refreshingType !== 'fha_30yr_95ltv'}
             />
             <RateCard 
               label="96.5% LTV" 
@@ -609,6 +674,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('fha_30yr_965ltv')}
               isRefreshing={refreshingType === 'fha_30yr_965ltv'}
               lastUpdated={lastUpdatedByScenario['fha_30yr_965ltv']}
+              disabled={isDisabled && refreshingType !== 'fha_30yr_965ltv'}
             />
           </div>
 
@@ -625,6 +691,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('bank_statement_70ltv')}
               isRefreshing={refreshingType === 'bank_statement_70ltv'}
               lastUpdated={lastUpdatedByScenario['bank_statement_70ltv']}
+              disabled={isDisabled && refreshingType !== 'bank_statement_70ltv'}
             />
             <RateCard 
               label="75% LTV" 
@@ -634,6 +701,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('bank_statement_75ltv')}
               isRefreshing={refreshingType === 'bank_statement_75ltv'}
               lastUpdated={lastUpdatedByScenario['bank_statement_75ltv']}
+              disabled={isDisabled && refreshingType !== 'bank_statement_75ltv'}
             />
             <RateCard 
               label="80% LTV" 
@@ -643,6 +711,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('bank_statement')}
               isRefreshing={refreshingType === 'bank_statement'}
               lastUpdated={lastUpdatedByScenario['bank_statement']}
+              disabled={isDisabled && refreshingType !== 'bank_statement'}
             />
             <RateCard 
               label="85% LTV" 
@@ -652,6 +721,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('bank_statement_85ltv')}
               isRefreshing={refreshingType === 'bank_statement_85ltv'}
               lastUpdated={lastUpdatedByScenario['bank_statement_85ltv']}
+              disabled={isDisabled && refreshingType !== 'bank_statement_85ltv'}
             />
             <RateCard 
               label="90% LTV" 
@@ -661,6 +731,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('bank_statement_90ltv')}
               isRefreshing={refreshingType === 'bank_statement_90ltv'}
               lastUpdated={lastUpdatedByScenario['bank_statement_90ltv']}
+              disabled={isDisabled && refreshingType !== 'bank_statement_90ltv'}
             />
           </div>
 
@@ -677,6 +748,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('dscr_60ltv')}
               isRefreshing={refreshingType === 'dscr_60ltv'}
               lastUpdated={lastUpdatedByScenario['dscr_60ltv']}
+              disabled={isDisabled && refreshingType !== 'dscr_60ltv'}
             />
             <RateCard 
               label="70% LTV" 
@@ -686,6 +758,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('dscr_70ltv')}
               isRefreshing={refreshingType === 'dscr_70ltv'}
               lastUpdated={lastUpdatedByScenario['dscr_70ltv']}
+              disabled={isDisabled && refreshingType !== 'dscr_70ltv'}
             />
             <RateCard 
               label="75% LTV" 
@@ -695,6 +768,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('dscr_75ltv')}
               isRefreshing={refreshingType === 'dscr_75ltv'}
               lastUpdated={lastUpdatedByScenario['dscr_75ltv']}
+              disabled={isDisabled && refreshingType !== 'dscr_75ltv'}
             />
             <RateCard 
               label="80% LTV" 
@@ -704,6 +778,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('dscr')}
               isRefreshing={refreshingType === 'dscr'}
               lastUpdated={lastUpdatedByScenario['dscr']}
+              disabled={isDisabled && refreshingType !== 'dscr'}
             />
             <RateCard 
               label="85% LTV" 
@@ -713,6 +788,7 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               onRefresh={() => handleRefreshSingle('dscr_85ltv')}
               isRefreshing={refreshingType === 'dscr_85ltv'}
               lastUpdated={lastUpdatedByScenario['dscr_85ltv']}
+              disabled={isDisabled && refreshingType !== 'dscr_85ltv'}
             />
           </div>
           
