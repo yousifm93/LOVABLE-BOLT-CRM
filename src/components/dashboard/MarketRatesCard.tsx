@@ -114,23 +114,23 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
   return (
     <div className={`flex flex-col items-center ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <div 
-        className={`flex flex-col items-center justify-center px-2 py-1.5 bg-amber-100 dark:bg-amber-900/30 rounded min-w-[85px] ${onClick && !disabled ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
+        className={`flex flex-col items-center justify-center px-1.5 py-1 bg-amber-100 dark:bg-amber-900/30 rounded min-w-[68px] ${onClick && !disabled ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : ''}`}
         onClick={disabled ? undefined : onClick}
       >
-        <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-0.5 text-center">
+        <span className="text-[9px] font-medium text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-0.5 text-center">
           {label}
         </span>
-        <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
+        <span className="text-xs font-bold text-amber-900 dark:text-amber-100">
           {showTBD ? 'TBD' : (rate ? `${rate.toFixed(3)}%` : '—')}
         </span>
-        <span className="text-[10px] text-amber-700 dark:text-amber-300">
+        <span className="text-[9px] text-amber-700 dark:text-amber-300">
           {showTBD ? '— pts' : (points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts')}
         </span>
       </div>
       {onRefresh && (
-        <div className="mt-1 flex flex-col items-center">
+        <div className="mt-0.5 flex flex-col items-center">
           {lastUpdated && (
-            <span className="text-[8px] text-muted-foreground mb-0.5">
+            <span className="text-[7px] text-muted-foreground mb-0.5">
               {formatLastUpdated(lastUpdated)}
             </span>
           )}
@@ -140,12 +140,12 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
               onRefresh();
             }}
             disabled={isRefreshing || disabled}
-            className="flex items-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-0.5 text-[8px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isRefreshing ? (
-              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              <Loader2 className="h-2 w-2 animate-spin" />
             ) : (
-              <RefreshCw className="h-2.5 w-2.5" />
+              <RefreshCw className="h-2 w-2" />
             )}
             <span>{isRefreshing ? 'Fetching...' : 'Refresh'}</span>
           </button>
@@ -525,12 +525,12 @@ const fetchHistoricalRates = async (rateType: RateType) => {
         )}
         
         {/* Product Columns Container */}
-        <div className={`flex gap-2 justify-center flex-wrap ${anyRefreshRunning ? 'mt-6' : ''}`}>
+        <div className={`flex gap-1 justify-center ${anyRefreshRunning ? 'mt-6' : ''}`}>
           
           {/* 30-Year Fixed Column */}
-          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-              30-Year Fixed
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
+              30yr Fixed
             </h4>
             <RateCard 
               label="70% LTV" 
@@ -585,9 +585,9 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           </div>
 
           {/* 15-Year Fixed Column */}
-          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-              15-Year Fixed
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
+              15yr Fixed
             </h4>
             <RateCard 
               label="70% LTV" 
@@ -642,9 +642,9 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           </div>
 
           {/* FHA 30-Year Column - Only 90%, 95%, and 96.5% LTV */}
-          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-              FHA 30-Year
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
+              FHA 30yr
             </h4>
             <RateCard 
               label="90% LTV" 
@@ -679,9 +679,9 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           </div>
 
           {/* Bank Statement Column - 70%, 80%, 85%, 90% LTV */}
-          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-              Bank Statement
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
+              Bank Stmt
             </h4>
             <RateCard 
               label="70% LTV" 
@@ -736,8 +736,8 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           </div>
 
           {/* DSCR Column - 70%, 75%, 80%, 85% LTV */}
-          <div className="flex flex-col gap-1 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
-            <h4 className="text-[10px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
+          <div className="flex flex-col gap-0.5 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+            <h4 className="text-[9px] font-semibold text-center text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
               DSCR
             </h4>
             <RateCard 
