@@ -230,7 +230,7 @@ export function DailyReportCards() {
       const ratesData = await fetchRates();
       setRates(ratesData);
 
-      // Fetch all calls from yesterday
+      // Fetch all agent calls from yesterday
       const { data: callsData } = await supabase
         .from('agent_call_logs')
         .select('id, agent_id, summary, call_type, log_type, meeting_location, buyer_agents:agent_id(first_name, last_name)')
@@ -248,6 +248,59 @@ export function DailyReportCards() {
         }
         grouped[type].push(call as CallLogItem);
       });
+
+      // Fetch current client calls from call_logs table
+      // Current clients are in pipeline stages: Pending App, Screening, Pre-Qualified, Pre-Approved, Active, Idle
+      const CURRENT_CLIENT_STAGE_IDS = [
+        '44d74bfb-c4f3-4f7d-a69e-e47ac67a5945', // Pending App
+        'a4e162e0-5421-4d17-8ad5-4b1195bbc995', // Screening
+        '09162eec-d2b2-48e5-86d0-9e66ee8b2af7', // Pre-Qualified
+        '3cbf38ff-752e-4163-a9a3-1757499b4945', // Pre-Approved
+        '76eb2e82-e1d9-4f2d-a57d-2120a25696db', // Active
+        '5c3bd0b1-414b-4eb8-bad8-99c3b5ab8b0a', // Idle
+      ];
+      
+      const { data: currentClientCalls } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+        .in('leads.pipeline_stage_id', CURRENT_CLIENT_STAGE_IDS)
+        .gte('timestamp', yesterdayStart)
+        .lt('timestamp', yesterdayEnd)
+        .order('timestamp', { ascending: true });
+
+      // Map current client calls to CallLogItem format
+      grouped['client'] = (currentClientCalls || []).map((c: any) => ({
+        id: c.id,
+        agent_id: '',
+        summary: c.notes || '',
+        call_type: 'client',
+        log_type: 'call',
+        meeting_location: null,
+        buyer_agents: c.leads ? { first_name: c.leads.first_name, last_name: c.leads.last_name } : null
+      }));
+
+      // Fetch past client calls from call_logs table
+      const PAST_CLIENTS_STAGE_ID = '15a1cb0d-ae58-46b5-a6fe-03bec1325c45';
+      
+      const { data: pastClientCalls } = await supabase
+        .from('call_logs')
+        .select('id, timestamp, notes, lead_id, leads!inner(first_name, last_name, pipeline_stage_id)')
+        .eq('leads.pipeline_stage_id', PAST_CLIENTS_STAGE_ID)
+        .gte('timestamp', yesterdayStart)
+        .lt('timestamp', yesterdayEnd)
+        .order('timestamp', { ascending: true });
+
+      // Map past client calls to CallLogItem format
+      grouped['past_client'] = (pastClientCalls || []).map((c: any) => ({
+        id: c.id,
+        agent_id: '',
+        summary: c.notes || '',
+        call_type: 'past_client',
+        log_type: 'call',
+        meeting_location: null,
+        buyer_agents: c.leads ? { first_name: c.leads.first_name, last_name: c.leads.last_name } : null
+      }));
+
       setCallsByType(grouped);
 
     } catch (error) {

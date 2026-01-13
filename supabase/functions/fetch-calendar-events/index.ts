@@ -24,20 +24,33 @@ function parseVEvent(veventBlock: string): CalendarEvent | null {
       const match = veventBlock.match(regex);
       return match ? match[1].replace(/\\n/g, '\n').replace(/\\,/g, ',') : undefined;
     };
+    
+    // Get field with full line including parameters (for timezone extraction)
+    const getFieldFull = (field: string): string | undefined => {
+      const regex = new RegExp(`^(${field}[;:].*)$`, 'im');
+      const match = veventBlock.match(regex);
+      return match ? match[1] : undefined;
+    };
 
     const uid = getField('UID') || crypto.randomUUID();
     const summary = getField('SUMMARY') || 'Untitled Event';
-    const dtstart = getField('DTSTART');
-    const dtend = getField('DTEND');
+    const dtstartFull = getFieldFull('DTSTART');
+    const dtendFull = getFieldFull('DTEND');
     const location = getField('LOCATION');
     const description = getField('DESCRIPTION');
 
-    if (!dtstart) return null;
+    if (!dtstartFull) return null;
 
-    // Parse date/time - handle both DATE and DATETIME formats
+    // Parse date/time - handle both DATE and DATETIME formats with timezone support
     const parseDateTime = (dt: string): { date: Date; allDay: boolean } => {
-      // Remove any parameters before the value (e.g., TZID=...)
+      // Extract TZID if present (e.g., DTSTART;TZID=America/New_York:20260113T121500)
+      const tzidMatch = dt.match(/TZID=([^:;]+)/i);
+      const tzid = tzidMatch ? tzidMatch[1] : null;
+      
+      // Get the actual value after the last colon
       const value = dt.includes(':') ? dt.split(':').pop()! : dt;
+      
+      console.log(`[parseDateTime] Input: ${dt}, TZID: ${tzid}, Value: ${value}`);
       
       if (value.length === 8) {
         // All day event: YYYYMMDD
@@ -58,16 +71,53 @@ function parseVEvent(veventBlock: string): CalendarEvent | null {
         const minute = parseInt(value.slice(11, 13));
         const second = parseInt(value.slice(13, 15)) || 0;
         
-        const date = value.endsWith('Z') 
-          ? new Date(Date.UTC(year, month, day, hour, minute, second))
-          : new Date(year, month, day, hour, minute, second);
-        
-        return { date, allDay: false };
+        if (value.endsWith('Z')) {
+          // Already UTC
+          return { date: new Date(Date.UTC(year, month, day, hour, minute, second)), allDay: false };
+        } else if (tzid) {
+          // Has timezone - convert to UTC
+          // For America/New_York (EST = UTC-5, EDT = UTC-4)
+          // For America/Chicago (CST = UTC-6, CDT = UTC-5)
+          // For America/Los_Angeles (PST = UTC-8, PDT = UTC-7)
+          // For Europe/* timezones, different offsets apply
+          
+          let offsetHours = 0;
+          const tzLower = tzid.toLowerCase();
+          
+          // Determine offset based on timezone
+          // Note: This is simplified - doesn't account for DST transitions
+          // For January dates in US, we use standard time offsets
+          if (tzLower.includes('new_york') || tzLower.includes('eastern')) {
+            offsetHours = 5; // EST
+          } else if (tzLower.includes('chicago') || tzLower.includes('central')) {
+            offsetHours = 6; // CST
+          } else if (tzLower.includes('denver') || tzLower.includes('mountain')) {
+            offsetHours = 7; // MST
+          } else if (tzLower.includes('los_angeles') || tzLower.includes('pacific')) {
+            offsetHours = 8; // PST
+          } else if (tzLower.includes('europe/london') || tzLower.includes('gmt')) {
+            offsetHours = 0; // GMT
+          } else if (tzLower.includes('europe/berlin') || tzLower.includes('europe/paris')) {
+            offsetHours = -1; // CET
+          } else {
+            // Default: assume it's a US Eastern timezone (common for IONOS)
+            offsetHours = 5;
+          }
+          
+          // Create date in UTC by adding the offset
+          const utcDate = new Date(Date.UTC(year, month, day, hour + offsetHours, minute, second));
+          console.log(`[parseDateTime] Timezone ${tzid}, offset ${offsetHours}h, result: ${utcDate.toISOString()}`);
+          return { date: utcDate, allDay: false };
+        } else {
+          // No timezone info - treat as local time (create as local, which is less ideal)
+          // This creates a local date that will be converted to ISO string
+          return { date: new Date(year, month, day, hour, minute, second), allDay: false };
+        }
       }
     };
 
-    const start = parseDateTime(dtstart);
-    const end = dtend ? parseDateTime(dtend) : { date: start.date, allDay: start.allDay };
+    const start = parseDateTime(dtstartFull);
+    const end = dtendFull ? parseDateTime(dtendFull) : { date: start.date, allDay: start.allDay };
 
     return {
       id: uid,

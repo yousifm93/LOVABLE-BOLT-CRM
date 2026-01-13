@@ -247,28 +247,30 @@ export default function CondoSearch() {
 
       {/* Search Form */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <CardTitle className="text-lg">Search Property Address</CardTitle>
           <CardDescription>
             Enter the property address components to match MLS search fields
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="street-num">Street Number *</Label>
+        <CardContent className="space-y-4">
+          {/* Street Address Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="street-num" className="text-xs font-medium">Street Number *</Label>
               <Input
                 id="street-num"
                 placeholder="90"
                 value={streetNum}
                 onChange={(e) => setStreetNum(e.target.value)}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="direction">Direction</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="direction" className="text-xs font-medium">Direction</Label>
               <Select value={direction} onValueChange={setDirection}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
@@ -281,20 +283,21 @@ export default function CondoSearch() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="street-name">Street Name *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="street-name" className="text-xs font-medium">Street Name *</Label>
               <Input
                 id="street-name"
                 placeholder="Biscayne"
                 value={streetName}
                 onChange={(e) => setStreetName(e.target.value)}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="street-type">Street Type</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="street-type" className="text-xs font-medium">Street Type</Label>
               <Select value={streetType} onValueChange={setStreetType}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,79 +309,87 @@ export default function CondoSearch() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+          {/* Location Row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="city" className="text-xs font-medium">City</Label>
               <Input
                 id="city"
                 placeholder="Miami"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="state" className="text-xs font-medium">State</Label>
               <Input
                 id="state"
                 placeholder="FL"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="zip">ZIP Code</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="zip" className="text-xs font-medium">ZIP Code</Label>
               <Input
                 id="zip"
                 placeholder="33132"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
+                className="h-9"
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="days-back">Days Back</Label>
-              <Input
-                id="days-back"
-                type="number"
-                placeholder="180"
-                value={daysBack}
-                onChange={(e) => setDaysBack(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Search closed sales from 0 to X days ago
-              </p>
+          {/* Search Options & Button Row */}
+          <div className="flex flex-col sm:flex-row gap-4 items-end pt-2 border-t">
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="days-back" className="text-xs font-medium">Days Back</Label>
+                <Input
+                  id="days-back"
+                  type="number"
+                  placeholder="180"
+                  value={daysBack}
+                  onChange={(e) => setDaysBack(e.target.value)}
+                  className="h-9"
+                />
+                <p className="text-[10px] text-muted-foreground">0 to X days ago</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="max-results" className="text-xs font-medium">Max Results</Label>
+                <Input
+                  id="max-results"
+                  type="number"
+                  placeholder="10"
+                  value={maxResults}
+                  onChange={(e) => setMaxResults(e.target.value)}
+                  className="h-9"
+                />
+                <p className="text-[10px] text-muted-foreground">Top X results</p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="max-results">Max Results</Label>
-              <Input
-                id="max-results"
-                type="number"
-                placeholder="10"
-                value={maxResults}
-                onChange={(e) => setMaxResults(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Top X results to return
-              </p>
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                onClick={() => createSearchMutation.mutate()}
-                disabled={createSearchMutation.isPending || !streetNum || !streetName}
-                className="w-full"
-              >
-                {createSearchMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4 mr-2" />
-                )}
-                Run MLS Search
-              </Button>
-            </div>
+            <Button
+              onClick={() => createSearchMutation.mutate()}
+              disabled={createSearchMutation.isPending || !streetNum || !streetName}
+              size="lg"
+              className="w-full sm:w-auto min-w-[180px] h-11 text-sm font-semibold shadow-md"
+            >
+              {createSearchMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4 mr-2" />
+              )}
+              Run MLS Search
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -431,17 +442,17 @@ export default function CondoSearch() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="w-10">#</TableHead>
+                    <TableHead className="w-24">Status</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Search Date & Time</TableHead>
-                    <TableHead>Mortgage Date</TableHead>
-                    <TableHead>Mortgage Amount</TableHead>
-                    <TableHead>Mortgage Lender</TableHead>
-                    <TableHead>Sales Price</TableHead>
-                    <TableHead className="w-20">Screenshot</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-16">Unit</TableHead>
+                    <TableHead className="w-32">Search Date</TableHead>
+                    <TableHead className="w-28">Mortgage Date</TableHead>
+                    <TableHead className="w-28">Mortgage Amt</TableHead>
+                    <TableHead>Lender</TableHead>
+                    <TableHead className="w-24">Sales Price</TableHead>
+                    <TableHead className="w-16">Screenshot</TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
