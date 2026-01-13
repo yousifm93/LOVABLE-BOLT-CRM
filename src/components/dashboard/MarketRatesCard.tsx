@@ -549,16 +549,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               disabled={isDisabled && refreshingType !== '30yr_fixed'}
             />
             <RateCard 
-              label="90% LTV" 
-              rate={marketData?.rate_30yr_fixed_90ltv ?? null} 
-              points={marketData?.points_30yr_fixed_90ltv ?? null}
-              onClick={() => handleRateCardClick('30yr_fixed_90ltv')}
-              onRefresh={() => handleRefreshSingle('30yr_fixed_90ltv')}
-              isRefreshing={refreshingType === '30yr_fixed_90ltv'}
-              lastUpdated={lastUpdatedByScenario['30yr_fixed_90ltv']}
-              disabled={isDisabled && refreshingType !== '30yr_fixed_90ltv'}
-            />
-            <RateCard 
               label="95% LTV" 
               rate={marketData?.rate_30yr_fixed_95ltv ?? null} 
               points={marketData?.points_30yr_fixed_95ltv ?? null}
@@ -668,16 +658,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
               isRefreshing={refreshingType === 'bank_statement_70ltv'}
               lastUpdated={lastUpdatedByScenario['bank_statement_70ltv']}
               disabled={isDisabled && refreshingType !== 'bank_statement_70ltv'}
-            />
-            <RateCard 
-              label="75% LTV" 
-              rate={marketData?.rate_bank_statement_75ltv ?? null} 
-              points={marketData?.points_bank_statement_75ltv ?? null}
-              onClick={() => handleRateCardClick('bank_statement_75ltv')}
-              onRefresh={() => handleRefreshSingle('bank_statement_75ltv')}
-              isRefreshing={refreshingType === 'bank_statement_75ltv'}
-              lastUpdated={lastUpdatedByScenario['bank_statement_75ltv']}
-              disabled={isDisabled && refreshingType !== 'bank_statement_75ltv'}
             />
             <RateCard 
               label="80% LTV" 
