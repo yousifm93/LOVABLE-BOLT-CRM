@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { ActivityDetailModal } from "@/components/dashboard/ActivityDetailModal";
 
 interface AuditLogEntry {
   id: number;
@@ -106,6 +107,13 @@ const getActionVerb = (action: string) => {
 export function ActivityPanel() {
   const [activities, setActivities] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedActivity, setSelectedActivity] = useState<AuditLogEntry | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleActivityClick = (activity: AuditLogEntry) => {
+    setSelectedActivity(activity);
+    setIsModalOpen(true);
+  };
 
   const fetchActivities = async () => {
     try {
@@ -214,7 +222,8 @@ export function ActivityPanel() {
               return (
                 <div
                   key={activity.id}
-                  className="px-3 py-2 hover:bg-muted/50 transition-colors"
+                  className="px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handleActivityClick(activity)}
                 >
                   <div className="flex gap-2">
                     <Avatar className="h-6 w-6 shrink-0">
@@ -254,6 +263,31 @@ export function ActivityPanel() {
           </div>
         )}
       </ScrollArea>
+
+      <ActivityDetailModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedActivity(null);
+        }}
+        activity={selectedActivity ? {
+          item_id: selectedActivity.item_id || '',
+          action: selectedActivity.action as 'insert' | 'update' | 'delete',
+          table_name: selectedActivity.table_name,
+          changed_at: selectedActivity.changed_at,
+          changed_by: selectedActivity.changed_by,
+          before_data: selectedActivity.before_data,
+          after_data: selectedActivity.after_data,
+          display_name: getItemName(selectedActivity) || formatTableName(selectedActivity.table_name),
+          fields_changed: selectedActivity.before_data && selectedActivity.after_data 
+            ? Object.keys(selectedActivity.after_data).filter(key => 
+                JSON.stringify(selectedActivity.before_data?.[key]) !== JSON.stringify(selectedActivity.after_data?.[key])
+              )
+            : [],
+          user_first_name: selectedActivity.user_name?.split(' ')[0] || null,
+          user_last_name: selectedActivity.user_name?.split(' ').slice(1).join(' ') || null,
+        } : null}
+      />
     </div>
   );
 }
