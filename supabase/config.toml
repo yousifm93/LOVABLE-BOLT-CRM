@@ -209,3 +209,9 @@ verify_jwt = false
 
 [functions.check-open-tasks]
 verify_jwt = false
+
+[functions.condo-search-axiom]
+verify_jwt = true
+
+[functions.condo-search-webhook]
+verify_jwt = false

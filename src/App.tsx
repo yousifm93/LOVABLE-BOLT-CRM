@@ -32,6 +32,7 @@ import ChatbaseBoltBot from "@/pages/resources/ChatbaseBoltBot";
 import IncomeCalculator from "@/pages/resources/IncomeCalculator";
 import { LoanPricer } from "@/pages/resources/LoanPricer";
 import Condolist from "@/pages/resources/Condolist";
+import CondoSearch from "@/pages/resources/CondoSearch";
 import Letter from "@/pages/Letter";
 import LoanEstimate from "@/pages/resources/LoanEstimate";
 import Email from "@/pages/Email";
@@ -115,6 +116,7 @@ function AppRoutes() {
               <Route path="/resources/income-calculator" element={<IncomeCalculator />} />
               <Route path="/resources/email-marketing/*" element={<EmailMarketing />} />
               <Route path="/resources/condolist" element={<Condolist />} />
+              <Route path="/resources/condo-search" element={<CondoSearch />} />
               <Route path="/resources/preapproval" element={<Letter />} />
               <Route path="/resources/estimate" element={<LoanEstimate />} />
               <Route path="/feedback" element={<Feedback />} />

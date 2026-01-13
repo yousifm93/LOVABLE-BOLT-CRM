@@ -1,0 +1,132 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { search_id } = await req.json();
+
+    if (!search_id) {
+      throw new Error("search_id is required");
+    }
+
+    console.log(`Processing condo search: ${search_id}`);
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch the search record
+    const { data: search, error: fetchError } = await supabase
+      .from("condo_searches")
+      .select("*")
+      .eq("id", search_id)
+      .single();
+
+    if (fetchError || !search) {
+      throw new Error(`Failed to fetch search record: ${fetchError?.message}`);
+    }
+
+    console.log(`Search record found: ${JSON.stringify(search)}`);
+
+    // Update status to running
+    const { error: updateError } = await supabase
+      .from("condo_searches")
+      .update({ status: "running" })
+      .eq("id", search_id);
+
+    if (updateError) {
+      console.error(`Failed to update status: ${updateError.message}`);
+    }
+
+    // Get Axiom API key
+    const axiomApiKey = Deno.env.get("AXIOM_API_KEY");
+    if (!axiomApiKey) {
+      throw new Error("AXIOM_API_KEY is not configured");
+    }
+
+    // Prepare data for Axiom
+    // Format: [[search_id, street_num, direction, street_name, street_type, city, state, zip]]
+    const axiomData = [[
+      search_id,
+      search.street_num,
+      search.direction || "",
+      search.street_name,
+      search.street_type || "",
+      search.city || "",
+      search.state || "FL",
+      search.zip || "",
+    ]];
+
+    console.log(`Sending to Axiom: ${JSON.stringify(axiomData)}`);
+
+    // Get webhook URL for Axiom to call back
+    const webhookUrl = `${supabaseUrl}/functions/v1/condo-search-webhook`;
+
+    // Trigger Axiom automation
+    // Note: This assumes Axiom has a webhook endpoint configured
+    // The actual Axiom API endpoint may vary based on your setup
+    const axiomEndpoint = Deno.env.get("AXIOM_CONDO_ENDPOINT") || "https://api.axiom.ai/v1/trigger";
+    
+    const axiomResponse = await fetch(axiomEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${axiomApiKey}`,
+      },
+      body: JSON.stringify({
+        data: axiomData,
+        webhook_url: webhookUrl,
+        search_type: "condo_sales",
+      }),
+    });
+
+    if (!axiomResponse.ok) {
+      const errorText = await axiomResponse.text();
+      console.error(`Axiom API error: ${errorText}`);
+      
+      // Update status to failed
+      await supabase
+        .from("condo_searches")
+        .update({ 
+          status: "failed", 
+          error_message: `Axiom API error: ${axiomResponse.status}` 
+        })
+        .eq("id", search_id);
+
+      throw new Error(`Axiom API error: ${axiomResponse.status}`);
+    }
+
+    const axiomResult = await axiomResponse.json();
+    console.log(`Axiom response: ${JSON.stringify(axiomResult)}`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: "Search started",
+        search_id 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error in condo-search-axiom:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
+  }
+});

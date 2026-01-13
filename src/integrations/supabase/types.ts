@@ -795,6 +795,57 @@ export type Database = {
           },
         ]
       }
+      condo_searches: {
+        Row: {
+          city: string | null
+          completed_at: string | null
+          created_at: string
+          direction: string | null
+          error_message: string | null
+          id: string
+          results_json: Json | null
+          state: string | null
+          status: string
+          street_name: string
+          street_num: string
+          street_type: string | null
+          user_id: string
+          zip: string | null
+        }
+        Insert: {
+          city?: string | null
+          completed_at?: string | null
+          created_at?: string
+          direction?: string | null
+          error_message?: string | null
+          id?: string
+          results_json?: Json | null
+          state?: string | null
+          status?: string
+          street_name: string
+          street_num: string
+          street_type?: string | null
+          user_id: string
+          zip?: string | null
+        }
+        Update: {
+          city?: string | null
+          completed_at?: string | null
+          created_at?: string
+          direction?: string | null
+          error_message?: string | null
+          id?: string
+          results_json?: Json | null
+          state?: string | null
+          status?: string
+          street_name?: string
+          street_num?: string
+          street_type?: string | null
+          user_id?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       condos: {
         Row: {
           approval_expiration_date: string | null
