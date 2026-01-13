@@ -225,15 +225,7 @@ serve(async (req) => {
         dscr_ratio: '',
         loan_term: 30,
       },
-      // 85% LTV scenarios (DSCR and Bank Statement)
-      'dscr_85ltv': {
-        ...baseScenario85LTV,
-        loan_type: 'Conventional',
-        income_type: 'DSCR',
-        dscr_ratio: '1.5',
-        occupancy: 'Investment',
-        loan_term: 30,
-      },
+      // 85% LTV scenarios (Bank Statement only - DSCR 85% removed)
       'bank_statement_85ltv': {
         ...baseScenario85LTV,
         loan_type: 'Conventional',

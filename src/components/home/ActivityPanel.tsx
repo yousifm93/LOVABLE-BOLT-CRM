@@ -116,8 +116,12 @@ export function ActivityPanel() {
         .from("audit_log")
         .select("*")
         .gte("changed_at", sevenDaysAgo.toISOString())
+        .neq("table_name", "email_logs")
+        .neq("table_name", "email_field_suggestions")
+        .neq("table_name", "email_automation_executions")
+        .neq("table_name", "email_campaigns")
         .order("changed_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
 
@@ -190,7 +194,7 @@ export function ActivityPanel() {
         <h3 className="font-semibold text-sm">Activity</h3>
       </div>
       
-      <ScrollArea className="flex-1 max-h-[400px]">
+      <ScrollArea className="flex-1 max-h-[520px]">
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <div className="text-xs text-muted-foreground">Loading...</div>
@@ -202,7 +206,7 @@ export function ActivityPanel() {
           </div>
         ) : (
           <div className="divide-y">
-            {activities.slice(0, 15).map((activity) => {
+            {activities.map((activity) => {
               const itemName = getItemName(activity);
               const tableName = formatTableName(activity.table_name);
               const actionVerb = getActionVerb(activity.action);
