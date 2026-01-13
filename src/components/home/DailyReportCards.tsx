@@ -58,6 +58,7 @@ interface CallLogItem {
   call_type: string | null;
   log_type: string | null;
   meeting_location: string | null;
+  logged_by_name?: string;
   buyer_agents: {
     first_name: string;
     last_name: string;
@@ -230,10 +231,10 @@ export function DailyReportCards() {
       const ratesData = await fetchRates();
       setRates(ratesData);
 
-      // Fetch all agent calls from yesterday
+      // Fetch all agent calls from yesterday with logged_by user info
       const { data: callsData } = await supabase
         .from('agent_call_logs')
-        .select('id, agent_id, summary, call_type, log_type, meeting_location, buyer_agents:agent_id(first_name, last_name)')
+        .select('id, agent_id, summary, call_type, log_type, meeting_location, logged_by, buyer_agents:agent_id(first_name, last_name), logged_by_user:logged_by(first_name, last_name)')
         .eq('log_type', 'call')
         .gte('logged_at', yesterdayStart)
         .lt('logged_at', yesterdayEnd)
@@ -246,7 +247,9 @@ export function DailyReportCards() {
         if (!grouped[type]) {
           grouped[type] = [];
         }
-        grouped[type].push(call as CallLogItem);
+        const loggedByUser = call.logged_by_user;
+        const loggedByName = loggedByUser ? `${loggedByUser.first_name || ''} ${loggedByUser.last_name || ''}`.trim() : undefined;
+        grouped[type].push({ ...call, logged_by_name: loggedByName } as CallLogItem);
       });
 
       // Fetch current client calls from call_logs table
@@ -501,6 +504,11 @@ export function DailyReportCards() {
                       <span className="font-medium text-xs">
                         {index + 1}. {call.buyer_agents ? `${call.buyer_agents.first_name} ${call.buyer_agents.last_name}` : 'Unknown'}
                       </span>
+                      {call.logged_by_name && (
+                        <span className="text-muted-foreground text-xs ml-1">
+                          (Logged by {call.logged_by_name})
+                        </span>
+                      )}
                       {call.summary && (
                         <p className="text-muted-foreground text-xs ml-4">• {call.summary}</p>
                       )}
@@ -665,7 +673,9 @@ export function DailyReportCards() {
         ALL_CALL_TYPES.forEach(({ value, label }) => {
           const calls = callsByType[value] || [];
           addSection(`${label} (${calls.length})`, calls.map(c => ({
-            name: c.buyer_agents ? `${c.buyer_agents.first_name} ${c.buyer_agents.last_name}` : 'Unknown',
+            name: c.buyer_agents 
+              ? `${c.buyer_agents.first_name} ${c.buyer_agents.last_name}${c.logged_by_name ? ` (Logged by ${c.logged_by_name})` : ''}`
+              : 'Unknown',
             note: c.summary || undefined
           })));
         });
