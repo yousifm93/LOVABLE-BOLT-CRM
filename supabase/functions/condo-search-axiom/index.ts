@@ -57,7 +57,7 @@ serve(async (req) => {
     }
 
     // Prepare data for Axiom
-    // Format: [[search_id, street_num, direction, street_name, street_type, city, state, zip, days_back]]
+    // Format: [[search_id, street_num, direction, street_name, street_type, city, state, zip, days_back, max_results]]
     const axiomData = [[
       search_id,
       search.street_num,
@@ -68,6 +68,7 @@ serve(async (req) => {
       search.state || "FL",
       search.zip || "",
       search.days_back || 180,
+      search.max_results || 10,
     ]];
 
     console.log(`Sending to Axiom: ${JSON.stringify(axiomData)}`);
