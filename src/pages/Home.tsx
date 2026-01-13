@@ -30,6 +30,7 @@ import { CalendarPanel } from "@/components/email/CalendarPanel";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { SalesReportCards } from "@/components/home/SalesReportCards";
 import { DailyReportCards } from "@/components/home/DailyReportCards";
+import { ActivityPanel } from "@/components/home/ActivityPanel";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -65,6 +66,8 @@ export default function Home() {
   const [activeCount, setActiveCount] = useState(0);
   const [agentCount, setAgentCount] = useState(0);
   const [unreadEmailCount, setUnreadEmailCount] = useState(0);
+  const [agentsAddedThisMonth, setAgentsAddedThisMonth] = useState(0);
+  const [agentsRemovedThisMonth, setAgentsRemovedThisMonth] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -131,6 +134,21 @@ export default function Home() {
         .eq('direction', 'In')
         .is('opened_at', null);
       setUnreadEmailCount(unread || 0);
+
+      // Fetch agents added this month
+      const { count: added } = await supabase
+        .from('buyer_agents')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonthISO);
+      setAgentsAddedThisMonth(added || 0);
+
+      // Fetch agents removed this month
+      const { count: removed } = await supabase
+        .from('buyer_agents')
+        .select('*', { count: 'exact', head: true })
+        .not('deleted_at', 'is', null)
+        .gte('deleted_at', startOfMonthISO);
+      setAgentsRemovedThisMonth(removed || 0);
     };
 
     fetchCounts();
@@ -409,7 +427,10 @@ export default function Home() {
         </div>
 
         {/* Market Rates and Calendar Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
+          <Card className="overflow-hidden h-fit border">
+            <ActivityPanel />
+          </Card>
           <MarketRatesCard />
           <Card className="overflow-hidden h-fit border">
             <CalendarPanel />
@@ -451,6 +472,17 @@ export default function Home() {
                       <h3 className="text-sm font-medium text-foreground">{card.title}</h3>
                       {card.count !== undefined && (
                         <p className="text-xl font-semibold text-foreground">{card.count}</p>
+                      )}
+                      {card.title === "Real Estate Agents" && (agentsAddedThisMonth > 0 || agentsRemovedThisMonth > 0) && (
+                        <div className="flex items-center gap-1">
+                          {agentsAddedThisMonth > 0 && (
+                            <span className="text-xs text-green-600 font-medium">+{agentsAddedThisMonth}</span>
+                          )}
+                          {agentsRemovedThisMonth > 0 && (
+                            <span className="text-xs text-red-600 font-medium">-{agentsRemovedThisMonth}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground">this month</span>
+                        </div>
                       )}
                       {card.description && (
                         <p className="text-xs text-muted-foreground">{card.description}</p>
