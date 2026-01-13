@@ -222,11 +222,11 @@ export function ActivityPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-1">
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] leading-tight">
+                          <p className="text-[11px] leading-tight" title={`${activity.user_name || "System"} ${actionVerb} ${tableName}${itemName ? `: ${itemName}` : ''}`}>
                             <span className="font-medium">{activity.user_name || "System"}</span>
                             {" "}{actionVerb} {tableName}
                             {itemName && (
-                              <span className="text-muted-foreground block truncate">
+                              <span className="text-muted-foreground block truncate" title={itemName}>
                                 {itemName}
                               </span>
                             )}
