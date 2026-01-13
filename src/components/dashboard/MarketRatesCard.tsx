@@ -121,6 +121,9 @@ function RateCard({ label, rate, points, showTBD, onClick, onRefresh, isRefreshi
         <span className="text-xs font-bold text-amber-900 dark:text-amber-100">
           {showTBD ? 'TBD' : (rate ? `${rate.toFixed(3)}%` : '—')}
         </span>
+        <span className="text-[9px] text-amber-700 dark:text-amber-300">
+          {showTBD ? '— pts' : (points !== null && points !== undefined ? `${(100 - points).toFixed(2)} pts` : '— pts')}
+        </span>
       </div>
       {onRefresh && (
         <div className="mt-0.5 flex flex-col items-center">
