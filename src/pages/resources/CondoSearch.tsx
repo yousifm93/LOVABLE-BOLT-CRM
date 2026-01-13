@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Loader2, Building2, Eye, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Search, Loader2, Building2, Eye, AlertCircle, CheckCircle2, Clock, Image } from "lucide-react";
 import { format } from "date-fns";
 
 interface CondoSearchResult {
@@ -35,10 +35,21 @@ interface CondoSearch {
   state: string | null;
   zip: string | null;
   days_back: number | null;
+  screenshot_url: string | null;
   results_json: { sales?: CondoSearchResult[] } | null;
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+}
+
+// Flattened row type for display - each result becomes its own row
+interface FlattenedSearchRow {
+  searchId: string;
+  rowNumber: number;
+  isFirstRow: boolean;
+  totalResults: number;
+  search: CondoSearch;
+  result: CondoSearchResult | null;
 }
 
 const DIRECTION_OPTIONS = ["", "N", "S", "E", "W", "NE", "NW", "SE", "SW"];
@@ -402,9 +413,12 @@ export default function CondoSearch() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead className="w-20">Screenshot</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Search Date</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Search Date & Time</TableHead>
                     <TableHead>Mortgage Date</TableHead>
                     <TableHead>Mortgage Amount</TableHead>
                     <TableHead>Mortgage Lender</TableHead>
@@ -413,61 +427,135 @@ export default function CondoSearch() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {searches.map((search) => {
-                    const results = search.results_json?.sales || [];
-                    const firstResult = results[0];
-                    return (
-                      <TableRow key={search.id}>
-                        <TableCell>{getStatusBadge(search.status)}</TableCell>
-                        <TableCell className="font-medium">{formatAddress(search)}</TableCell>
+                  {(() => {
+                    // Flatten all searches into individual rows
+                    const flattenedRows: FlattenedSearchRow[] = [];
+                    
+                    searches.forEach((search) => {
+                      const results = search.results_json?.sales || [];
+                      
+                      if (results.length === 0) {
+                        // No results yet - show single row for the search
+                        flattenedRows.push({
+                          searchId: search.id,
+                          rowNumber: 1,
+                          isFirstRow: true,
+                          totalResults: 0,
+                          search,
+                          result: null,
+                        });
+                      } else {
+                        // Multiple results - each becomes its own row
+                        results.forEach((result, idx) => {
+                          flattenedRows.push({
+                            searchId: search.id,
+                            rowNumber: idx + 1,
+                            isFirstRow: idx === 0,
+                            totalResults: results.length,
+                            search,
+                            result,
+                          });
+                        });
+                      }
+                    });
+                    
+                    return flattenedRows.map((row, index) => (
+                      <TableRow key={`${row.searchId}-${row.rowNumber}`}>
+                        <TableCell className="font-medium text-muted-foreground">
+                          {row.rowNumber}
+                        </TableCell>
+                        <TableCell>
+                          {row.isFirstRow && row.search.screenshot_url ? (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button className="w-16 h-12 rounded border overflow-hidden hover:opacity-80 transition-opacity">
+                                  <img 
+                                    src={row.search.screenshot_url} 
+                                    alt="MLS Screenshot" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl">
+                                <DialogHeader>
+                                  <DialogTitle>MLS Search Results Screenshot</DialogTitle>
+                                </DialogHeader>
+                                <img 
+                                  src={row.search.screenshot_url} 
+                                  alt="MLS Screenshot" 
+                                  className="w-full rounded"
+                                />
+                              </DialogContent>
+                            </Dialog>
+                          ) : row.isFirstRow ? (
+                            <div className="w-16 h-12 rounded border bg-muted flex items-center justify-center">
+                              <Image className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          {row.isFirstRow ? getStatusBadge(row.search.status) : null}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {row.isFirstRow ? formatAddress(row.search) : null}
+                        </TableCell>
+                        <TableCell>
+                          {row.result?.unit || "-"}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(search.created_at), "MMM d, yyyy")}
+                          {row.isFirstRow ? (
+                            <div className="flex flex-col">
+                              <span>{format(new Date(row.search.created_at), "MMM d, yyyy")}</span>
+                              <span className="text-xs">{format(new Date(row.search.created_at), "h:mm a")}</span>
+                            </div>
+                          ) : null}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" && firstResult?.close_date
-                            ? format(new Date(firstResult.close_date), "MMM d, yyyy")
-                            : search.status === "failed"
-                            ? <span className="text-destructive text-xs">{search.error_message || "Error"}</span>
+                          {row.search.status === "completed" && row.result?.close_date
+                            ? format(new Date(row.result.close_date), "MMM d, yyyy")
+                            : row.search.status === "failed" && row.isFirstRow
+                            ? <span className="text-destructive text-xs">{row.search.error_message || "Error"}</span>
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" && firstResult
-                            ? formatCurrency(firstResult.mortgage_amount)
+                          {row.search.status === "completed" && row.result
+                            ? formatCurrency(row.result.mortgage_amount)
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" && firstResult
-                            ? (firstResult.lender_name || "-")
+                          {row.search.status === "completed" && row.result
+                            ? (row.result.lender_name || "-")
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" && firstResult
-                            ? formatCurrency(firstResult.sold_price)
+                          {row.search.status === "completed" && row.result
+                            ? formatCurrency(row.result.sold_price)
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" && results.length > 0 && (
+                          {row.isFirstRow && row.search.status === "completed" && row.totalResults > 1 && (
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => setSelectedSearch(search)}
+                                  onClick={() => setSelectedSearch(row.search)}
                                 >
                                   <Eye className="w-4 h-4 mr-1" />
-                                  {results.length > 1 ? `View All (${results.length})` : "View"}
+                                  View All ({row.totalResults})
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>
-                                    Sales Results - {formatAddress(search)}
+                                    Sales Results - {formatAddress(row.search)}
                                   </DialogTitle>
                                 </DialogHeader>
                                 <div className="mt-4">
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
+                                        <TableHead>#</TableHead>
                                         <TableHead>Unit</TableHead>
                                         <TableHead>Close Date</TableHead>
                                         <TableHead>Sold Price</TableHead>
@@ -477,8 +565,9 @@ export default function CondoSearch() {
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {results.map((result, idx) => (
+                                      {(row.search.results_json?.sales || []).map((result, idx) => (
                                         <TableRow key={idx}>
+                                          <TableCell className="font-medium text-muted-foreground">{idx + 1}</TableCell>
                                           <TableCell>{result.unit || "-"}</TableCell>
                                           <TableCell>
                                             {result.close_date
@@ -499,8 +588,8 @@ export default function CondoSearch() {
                           )}
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
+                    ));
+                  })()}
                 </TableBody>
               </Table>
             </div>
