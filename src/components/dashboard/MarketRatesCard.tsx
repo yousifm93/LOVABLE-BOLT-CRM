@@ -730,31 +730,6 @@ const fetchHistoricalRates = async (rateType: RateType) => {
           
         </div>
 
-        {/* Refresh + timestamp */}
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-[10px] text-muted-foreground">
-            Last updated: {formatUpdateTime(marketData?.updated_at ?? null)}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-6 px-2 text-[10px]"
-          >
-            {isRefreshing ? (
-              <>
-                <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" />
-                Fetching...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-2.5 w-2.5 mr-1" />
-                Refresh All
-              </>
-            )}
-          </Button>
-        </div>
       </div>
 
       {/* Historical Rate Dialog */}
