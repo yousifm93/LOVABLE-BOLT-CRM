@@ -13,7 +13,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { validateTaskCompletion } from "@/services/taskCompletionValidation";
 import { TaskCompletionRequirementModal } from "@/components/modals/TaskCompletionRequirementModal";
 import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
+import { CreateNextTaskModal } from "@/components/modals/CreateNextTaskModal";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TaskDetailModalProps {
   open: boolean;
@@ -33,6 +35,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
   const [agentCallLogOpen, setAgentCallLogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [showCreateNextTaskModal, setShowCreateNextTaskModal] = useState(false);
 
   useEffect(() => {
     if (open && task) {
@@ -90,9 +93,19 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
         description: "Task updated successfully",
       });
 
-      // If marked as Done, check if lead needs a placeholder task
+      // If marked as Done, check if lead has other open tasks
       if (editData.status === 'Done' && task?.borrower_id) {
-        databaseService.checkAndCreateNoOpenTaskFound(task.borrower_id);
+        // Check remaining open tasks for this lead
+        const { data: openTasks } = await supabase
+          .from('tasks')
+          .select('id')
+          .eq('borrower_id', task.borrower_id)
+          .neq('id', task.id)
+          .neq('status', 'Done');
+        
+        if (!openTasks || openTasks.length === 0) {
+          setShowCreateNextTaskModal(true);
+        }
       }
 
       setIsEditing(false);
@@ -441,6 +454,17 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdated }: Tas
         isOpen={agentCallLogOpen}
         onClose={() => setAgentCallLogOpen(false)}
         onCallLogged={handleAgentCallLogged}
+      />
+    )}
+    
+    {/* Create Next Task Modal */}
+    {task?.borrower_id && (
+      <CreateNextTaskModal
+        open={showCreateNextTaskModal}
+        onOpenChange={setShowCreateNextTaskModal}
+        leadId={task.borrower_id}
+        leadName={task.borrower ? `${task.borrower.first_name} ${task.borrower.last_name}` : undefined}
+        onTaskCreated={onTaskUpdated}
       />
     )}
     </TooltipProvider>

@@ -26,6 +26,7 @@ import { ClientDetailDrawer } from "@/components/ClientDetailDrawer";
 import { AgentDetailDrawer } from "@/components/AgentDetailDrawer";
 import { LenderDetailDrawer } from "@/components/LenderDetailDrawer";
 import { MarketRatesCard } from "@/components/dashboard/MarketRatesCard";
+import { CalendarPanel } from "@/components/email/CalendarPanel";
 import { transformLeadToClient } from "@/utils/clientTransform";
 import { SalesReportCards } from "@/components/home/SalesReportCards";
 import { DailyReportCards } from "@/components/home/DailyReportCards";
@@ -407,8 +408,11 @@ export default function Home() {
           )}
         </div>
 
-        {/* Market Rates Section */}
-        <MarketRatesCard />
+        {/* Market Rates and Calendar Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+          <MarketRatesCard />
+          <CalendarPanel />
+        </div>
 
         {/* Quick Access Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
