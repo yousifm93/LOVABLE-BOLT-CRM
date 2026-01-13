@@ -19,6 +19,7 @@ interface WebhookPayload {
   search_id: string;
   status: "completed" | "failed";
   results?: SaleResult[];
+  screenshot_url?: string;
   error_message?: string;
 }
 
@@ -33,7 +34,7 @@ serve(async (req) => {
     
     console.log(`Received webhook payload: ${JSON.stringify(payload)}`);
 
-    const { search_id, status, results, error_message } = payload;
+    const { search_id, status, results, screenshot_url, error_message } = payload;
 
     if (!search_id) {
       throw new Error("search_id is required");
@@ -67,6 +68,10 @@ serve(async (req) => {
 
       updateData.results_json = { sales: cleanedResults };
       console.log(`Processed ${cleanedResults.length} sale results`);
+    }
+
+    if (screenshot_url) {
+      updateData.screenshot_url = screenshot_url;
     }
 
     if (error_message) {

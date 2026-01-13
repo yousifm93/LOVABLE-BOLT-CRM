@@ -805,6 +805,7 @@ export type Database = {
           error_message: string | null
           id: string
           results_json: Json | null
+          screenshot_url: string | null
           state: string | null
           status: string
           street_name: string
@@ -822,6 +823,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           results_json?: Json | null
+          screenshot_url?: string | null
           state?: string | null
           status?: string
           street_name: string
@@ -839,6 +841,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           results_json?: Json | null
+          screenshot_url?: string | null
           state?: string | null
           status?: string
           street_name?: string
