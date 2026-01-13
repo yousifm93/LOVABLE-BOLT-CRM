@@ -44,9 +44,31 @@ const formatFieldName = (field: string): string => {
     .join(' ');
 };
 
-const formatValue = (value: any): string => {
+// Known user IDs to names mapping
+const userIdToName: Record<string, string> = {
+  '08e73d69-4707-4773-84a4-69ce2acd6a11': 'Yousif Mohamed',
+  '159376ae-30e9-4997-b61f-76ab8d7f224b': 'Salma Mohamed',
+  'fa92a4c6-890d-4d69-99a8-c3adc6c904ee': 'Herman Daza',
+  'b06a12ea-00b9-4725-b368-e8a416d4028d': 'Yousif M',
+  '3dca68fc-ee7e-46cc-91a1-0c6176d4c32a': 'Ashley Merizio',
+  '230ccf6d-48f5-4f3c-89fd-f2907ebdba1e': 'Yousif Mohamed',
+};
+
+const isUserIdField = (fieldName: string): boolean => {
+  const userIdFields = ['updated_by', 'created_by', 'assigned_to', 'changed_by', 'user_id', 'logged_by'];
+  return userIdFields.some(f => fieldName.toLowerCase().includes(f.toLowerCase()));
+};
+
+const formatValue = (value: any, fieldName?: string): string => {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  
+  // Check if this is a user ID field and convert to name
+  if (typeof value === 'string' && fieldName && isUserIdField(fieldName)) {
+    const userName = userIdToName[value];
+    if (userName) return userName;
+  }
+  
   if (typeof value === 'object') return JSON.stringify(value, null, 2);
   return String(value);
 };
@@ -92,7 +114,7 @@ export function ActivityDetailModal({ isOpen, onClose, activity }: ActivityDetai
                     .map(([key, value]) => (
                       <div key={key} className="grid grid-cols-3 gap-2 p-2 rounded bg-success/10">
                         <div className="text-sm font-medium">{formatFieldName(key)}</div>
-                        <div className="col-span-2 text-sm">{formatValue(value)}</div>
+                        <div className="col-span-2 text-sm">{formatValue(value, key)}</div>
                       </div>
                     ))}
                 </div>
@@ -109,7 +131,7 @@ export function ActivityDetailModal({ isOpen, onClose, activity }: ActivityDetai
                     .map(([key, value]) => (
                       <div key={key} className="grid grid-cols-3 gap-2 p-2 rounded bg-destructive/10">
                         <div className="text-sm font-medium">{formatFieldName(key)}</div>
-                        <div className="col-span-2 text-sm line-through">{formatValue(value)}</div>
+                        <div className="col-span-2 text-sm line-through">{formatValue(value, key)}</div>
                       </div>
                     ))}
                 </div>
@@ -136,14 +158,14 @@ export function ActivityDetailModal({ isOpen, onClose, activity }: ActivityDetai
                             <div>
                               <div className="text-xs text-muted-foreground mb-1">Before</div>
                               <div className="p-2 rounded bg-destructive/10 text-sm">
-                                {formatValue(beforeValue)}
+                                {formatValue(beforeValue, field)}
                               </div>
                             </div>
                             {/* After */}
                             <div>
                               <div className="text-xs text-muted-foreground mb-1">After</div>
                               <div className="p-2 rounded bg-success/10 text-sm font-medium">
-                                {formatValue(afterValue)}
+                                {formatValue(afterValue, field)}
                               </div>
                             </div>
                           </div>
