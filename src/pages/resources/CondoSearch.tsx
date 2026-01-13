@@ -34,6 +34,7 @@ interface CondoSearch {
   city: string | null;
   state: string | null;
   zip: string | null;
+  days_back: number | null;
   results_json: { sales?: CondoSearchResult[] } | null;
   error_message: string | null;
   created_at: string;
@@ -54,6 +55,7 @@ export default function CondoSearch() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("FL");
   const [zip, setZip] = useState("");
+  const [daysBack, setDaysBack] = useState("180");
   const [selectedSearch, setSelectedSearch] = useState<CondoSearch | null>(null);
 
   // Fetch searches
@@ -116,6 +118,7 @@ export default function CondoSearch() {
           city: city || null,
           state: state || "FL",
           zip: zip || null,
+          days_back: parseInt(daysBack) || 180,
           status: "pending",
         })
         .select()
@@ -149,6 +152,7 @@ export default function CondoSearch() {
       setStreetType("Blvd");
       setCity("");
       setZip("");
+      setDaysBack("180");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to start search");
@@ -318,6 +322,20 @@ export default function CondoSearch() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="days-back">Days Back</Label>
+              <Input
+                id="days-back"
+                type="number"
+                placeholder="180"
+                value={daysBack}
+                onChange={(e) => setDaysBack(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Search closed sales from 0 to X days ago
+              </p>
+            </div>
+
             <div className="flex items-end">
               <Button
                 onClick={() => createSearchMutation.mutate()}
@@ -386,31 +404,46 @@ export default function CondoSearch() {
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Address</TableHead>
-                    <TableHead>Searched</TableHead>
-                    <TableHead>Results</TableHead>
+                    <TableHead>Search Date</TableHead>
+                    <TableHead>Mortgage Date</TableHead>
+                    <TableHead>Mortgage Amount</TableHead>
+                    <TableHead>Mortgage Lender</TableHead>
+                    <TableHead>Sales Price</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {searches.map((search) => {
                     const results = search.results_json?.sales || [];
+                    const firstResult = results[0];
                     return (
                       <TableRow key={search.id}>
                         <TableCell>{getStatusBadge(search.status)}</TableCell>
                         <TableCell className="font-medium">{formatAddress(search)}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(search.created_at), "MMM d, yyyy h:mm a")}
+                          {format(new Date(search.created_at), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell>
-                          {search.status === "completed" ? (
-                            <span className="text-sm">
-                              {results.length} {results.length === 1 ? "sale" : "sales"} found
-                            </span>
-                          ) : search.status === "failed" ? (
-                            <span className="text-sm text-red-600">{search.error_message || "Error"}</span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
-                          )}
+                          {search.status === "completed" && firstResult?.close_date
+                            ? format(new Date(firstResult.close_date), "MMM d, yyyy")
+                            : search.status === "failed"
+                            ? <span className="text-destructive text-xs">{search.error_message || "Error"}</span>
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {search.status === "completed" && firstResult
+                            ? formatCurrency(firstResult.mortgage_amount)
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {search.status === "completed" && firstResult
+                            ? (firstResult.lender_name || "-")
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {search.status === "completed" && firstResult
+                            ? formatCurrency(firstResult.sold_price)
+                            : "-"}
                         </TableCell>
                         <TableCell>
                           {search.status === "completed" && results.length > 0 && (
@@ -422,7 +455,7 @@ export default function CondoSearch() {
                                   onClick={() => setSelectedSearch(search)}
                                 >
                                   <Eye className="w-4 h-4 mr-1" />
-                                  View Details
+                                  {results.length > 1 ? `View All (${results.length})` : "View"}
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
