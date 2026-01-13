@@ -427,7 +427,7 @@ export default function Home() {
         </div>
 
         {/* Market Rates and Calendar Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_200px] gap-3">
           <Card className="overflow-hidden h-fit border">
             <ActivityPanel />
           </Card>
