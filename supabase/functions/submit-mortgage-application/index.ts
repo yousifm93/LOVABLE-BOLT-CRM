@@ -959,34 +959,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create "Screen new application" task assigned to Salma Mohamed
+    // Create "Screen" task assigned to Herman Daza
+    // Task can only be completed by moving to Pre-qualified stage
     try {
-      console.log('Creating "Screen new application" task...');
+      console.log('Creating "Screen" task...');
       const taskDueDate = new Date();
       taskDueDate.setDate(taskDueDate.getDate() + 1);
       
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .insert({
-          title: 'Screen new application',
-          description: `Review and screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
+          title: 'Screen',
+          description: `Screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
           borrower_id: result.id,
-          assigned_to: '159376ae-30e9-4997-b61f-76ab8d7f224b', // Salma Mohamed
+          assigned_to: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
           status: 'To Do',
           priority: 'high',
           due_date: taskDueDate.toISOString(),
           created_by: '08e73d69-4707-4773-84a4-69ce2acd6c904ee', // System
+          completion_requirement_type: 'status_change:pipeline_stage_id=09162eec-d2b2-48e5-86d0-9e66ee8b2af7', // Requires Pre-qualified
         })
         .select()
         .single();
       
       if (taskError) {
-        console.error('Error creating screening task:', taskError);
+        console.error('Error creating Screen task:', taskError);
       } else {
-        console.log('Successfully created screening task:', taskData?.id);
+        console.log('Successfully created Screen task:', taskData?.id);
       }
     } catch (taskCreationError) {
-      console.error('Failed to create screening task:', taskCreationError);
+      console.error('Failed to create Screen task:', taskCreationError);
       // Don't fail the entire submission if task creation fails
     }
 
