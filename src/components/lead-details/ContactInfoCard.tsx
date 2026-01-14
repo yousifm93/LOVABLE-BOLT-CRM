@@ -46,6 +46,7 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [showAgentDrawer, setShowAgentDrawer] = useState(false);
   
@@ -84,11 +85,15 @@ export function ContactInfoCard({ client, onClose, leadId, onLeadUpdated }: Cont
   // Fetch agents list
   useEffect(() => {
     const fetchAgents = async () => {
+      setAgentsLoading(true);
       try {
         const buyerAgentsData = await databaseService.getBuyerAgents();
+        console.log('[ContactInfoCard] Loaded agents:', buyerAgentsData?.length || 0);
         setAgents(buyerAgentsData || []);
       } catch (error) {
         console.error('Error fetching agents:', error);
+      } finally {
+        setAgentsLoading(false);
       }
     };
     fetchAgents();

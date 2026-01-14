@@ -41,6 +41,16 @@ const QUICK_TASK_TEMPLATES = [
     completion_requirement_type: 'log_any_activity',
   },
   {
+    id: 'screen',
+    label: 'Screen',
+    title: 'Screen',
+    description: 'Screen the lead and move to Pre-Qualified if they pass screening criteria.',
+    completion_requirement_type: 'field_value',
+    completion_requirement_config: { field: 'loan_status', required_value: 'Pre-Qualified' },
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+  },
+  {
     id: 'borrower_call',
     label: 'Borrower Call',
     title: 'Borrower Call',
@@ -111,7 +121,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
       title: template.title,
       description: template.description,
       due_date: new Date().toISOString().split('T')[0], // Today
-      assignee_id: DEFAULT_ASSIGNEE_ID, // Herman
+      assignee_id: (template as any).default_assignee_id || DEFAULT_ASSIGNEE_ID, // Use template's assignee or Herman
       completion_requirement_type: template.completion_requirement_type,
     }));
   };
