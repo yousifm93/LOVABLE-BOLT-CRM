@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
-import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb, Clock } from "lucide-react";
+import { format, isToday } from "date-fns";
+import { Send, Loader2, MessageSquare, User, Check, HelpCircle, ChevronDown, ChevronRight, Lightbulb, Clock, Mail } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 
@@ -15,6 +15,7 @@ interface TeamMember {
   id: string;
   first_name: string;
   last_name: string;
+  email?: string;
 }
 
 interface FeedbackItemContent {
@@ -65,6 +66,8 @@ export default function FeedbackReview() {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [completedSectionsOpen, setCompletedSectionsOpen] = useState<Record<string, boolean>>({});
   const [ideasSectionsOpen, setIdeasSectionsOpen] = useState<Record<string, boolean>>({});
+  const [pendingReviewSectionsOpen, setPendingReviewSectionsOpen] = useState<Record<string, boolean>>({});
+  const [sendingEmail, setSendingEmail] = useState(false);
   const { toast } = useToast();
   const { crmUser } = useAuth();
 
@@ -95,11 +98,11 @@ export default function FeedbackReview() {
         const userIds = [...new Set(feedbackData?.map(f => f.user_id) || [])];
 
         // Handle empty userIds - don't call .in() with empty array
-        let usersData: { id: string; first_name: string; last_name: string }[] = [];
+        let usersData: { id: string; first_name: string; last_name: string; email?: string }[] = [];
         if (userIds.length > 0) {
           const { data, error: usersError } = await supabase
             .from('users')
-            .select('id, first_name, last_name')
+            .select('id, first_name, last_name, email')
             .in('id', userIds);
 
           if (usersError) throw usersError;
@@ -227,7 +230,24 @@ export default function FeedbackReview() {
 
         if (error) throw error;
 
-        setItemStatuses(prev => [...prev.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)), data as ItemStatus]);
+        // Update local state
+        const newItemStatuses = [...itemStatuses.filter(s => !(s.feedback_id === feedbackId && s.item_index === itemIndex)), data as ItemStatus];
+        setItemStatuses(newItemStatuses);
+        
+        // Auto-collapse section if no pending items remain (excluding complete, idea, and pending_user_review)
+        if (status === 'pending_user_review' || status === 'complete' || status === 'idea') {
+          const fb = feedback.find(f => f.id === feedbackId);
+          if (fb) {
+            const remainingPending = fb.feedback_items.filter((_, idx) => {
+              const itemStatus = idx === itemIndex ? status : (newItemStatuses.find(s => s.feedback_id === feedbackId && s.item_index === idx)?.status || 'pending');
+              return itemStatus !== 'complete' && itemStatus !== 'idea' && itemStatus !== 'pending_user_review';
+            });
+            if (remainingPending.length === 0) {
+              setExpandedSections(prev => ({ ...prev, [feedbackId]: false }));
+            }
+          }
+        }
+        
         const statusMessages = {
           complete: "Marked Complete",
           needs_help: "Still Needs Help",
@@ -279,6 +299,111 @@ export default function FeedbackReview() {
     return userFeedback.filter(f => !f.is_read_by_admin).length;
   };
 
+  const sendFeedbackUpdate = async (member: TeamMember) => {
+    if (!crmUser?.id || !member.email) {
+      toast({ title: "Error", description: "User email not available.", variant: "destructive" });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const userFeedback = getUserFeedback(member.id);
+      
+      // Get comments made by the current admin for this user's feedback
+      const adminComments = comments.filter(c => 
+        c.admin_id === crmUser.id && 
+        userFeedback.some(fb => fb.id === c.feedback_id)
+      );
+
+      // Filter to today's comments, or most recent ones if none today
+      let relevantComments = adminComments.filter(c => isToday(new Date(c.created_at)));
+      
+      if (relevantComments.length === 0 && adminComments.length > 0) {
+        // Get the most recent day's comments
+        const sortedComments = [...adminComments].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        const mostRecentDate = new Date(sortedComments[0].created_at).toDateString();
+        relevantComments = adminComments.filter(c => 
+          new Date(c.created_at).toDateString() === mostRecentDate
+        );
+      }
+
+      if (relevantComments.length === 0) {
+        toast({ title: "No Updates", description: "No recent comments to send.", variant: "destructive" });
+        setSendingEmail(false);
+        return;
+      }
+
+      // Group comments by section
+      const commentsBySection: Record<string, { sectionLabel: string; comments: Array<{ itemIndex: number; itemText: string; comment: string }> }> = {};
+      
+      for (const comment of relevantComments) {
+        const fb = userFeedback.find(f => f.id === comment.feedback_id);
+        if (fb) {
+          if (!commentsBySection[fb.id]) {
+            commentsBySection[fb.id] = { sectionLabel: fb.section_label, comments: [] };
+          }
+          const item = fb.feedback_items[comment.item_index];
+          const itemText = getItemText(item);
+          commentsBySection[fb.id].comments.push({
+            itemIndex: comment.item_index + 1,
+            itemText: itemText.substring(0, 100) + (itemText.length > 100 ? '...' : ''),
+            comment: comment.comment
+          });
+        }
+      }
+
+      // Build email HTML
+      let emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Feedback Update</h2>
+          <p>Hi ${member.first_name},</p>
+          <p>Here's a summary of the feedback updates I made for you:</p>
+      `;
+
+      for (const sectionId of Object.keys(commentsBySection)) {
+        const section = commentsBySection[sectionId];
+        emailBody += `
+          <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+            <h3 style="margin: 0 0 10px 0; color: #444;">${section.sectionLabel}</h3>
+        `;
+        for (const c of section.comments) {
+          emailBody += `
+            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px; border-left: 3px solid #3b82f6;">
+              <p style="margin: 0 0 5px 0; color: #666; font-size: 13px;"><strong>Item ${c.itemIndex}:</strong> ${c.itemText}</p>
+              <p style="margin: 0; color: #333;">${c.comment}</p>
+            </div>
+          `;
+        }
+        emailBody += `</div>`;
+      }
+
+      emailBody += `
+          <p style="margin-top: 20px;">Let me know if you have any questions!</p>
+          <p>- ${crmUser.first_name}</p>
+        </div>
+      `;
+
+      const { error } = await supabase.functions.invoke('send-direct-email', {
+        body: {
+          to: member.email,
+          subject: `Feedback Update from ${crmUser.first_name}`,
+          html: emailBody
+        }
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Email Sent", description: `Update sent to ${member.first_name}.` });
+    } catch (error) {
+      console.error('Error sending feedback update:', error);
+      toast({ title: "Error", description: "Failed to send email.", variant: "destructive" });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   if (teamMembers.length === 0) return (
@@ -288,7 +413,7 @@ export default function FeedbackReview() {
     </div>
   );
 
-  const renderFeedbackItem = (fb: FeedbackItem, item: FeedbackItemContent | string, index: number, isCompleted: boolean, isIdea: boolean) => {
+  const renderFeedbackItem = (fb: FeedbackItem, item: FeedbackItemContent | string, index: number, isCompleted: boolean, isIdea: boolean, isPendingReview: boolean = false) => {
     const itemComments = getItemComments(fb.id, index);
     const commentKey = `${fb.id}-${index}`;
     const currentStatus = getItemStatus(fb.id, index);
@@ -296,7 +421,7 @@ export default function FeedbackReview() {
     const itemImageUrl = getItemImageUrl(item);
 
     return (
-      <div key={index} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : isIdea ? 'bg-purple-50 dark:bg-purple-950/20' : 'bg-muted/50'}`}>
+      <div key={index} className={`space-y-3 p-4 rounded-lg border ${isCompleted ? 'bg-muted/30 opacity-75' : isIdea ? 'bg-purple-50 dark:bg-purple-950/20' : isPendingReview ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-muted/50'}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             <span className="text-sm font-medium text-muted-foreground min-w-[24px]">{index + 1}</span>
@@ -308,6 +433,7 @@ export default function FeedbackReview() {
                 </a>
               )}
               {isIdea && <span className="text-xs text-purple-600 font-medium mt-1 block">Section: {fb.section_label}</span>}
+              {isPendingReview && <span className="text-xs text-blue-600 font-medium mt-1 block">Awaiting user review</span>}
             </div>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
@@ -365,14 +491,28 @@ export default function FeedbackReview() {
         </TabsList>
         {teamMembers.map((member) => (
           <TabsContent key={member.id} value={member.id} className="space-y-6">
+            {/* Send Update Email Button */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => sendFeedbackUpdate(member)} 
+                disabled={sendingEmail}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {sendingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                Send Update Email
+              </Button>
+            </div>
+            
             {getUserFeedback(member.id).length === 0 ? (<Card><CardContent className="py-8 text-center text-muted-foreground">No feedback submitted by {member.first_name} yet.</CardContent></Card>) : (
               getUserFeedback(member.id).map((fb) => {
+                // Pending items exclude complete, idea, AND pending_user_review
                 const pendingItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => {
                   const status = getItemStatus(fb.id, index);
-                  return status !== 'complete' && status !== 'idea';
+                  return status !== 'complete' && status !== 'idea' && status !== 'pending_user_review';
                 });
                 const completedItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'complete');
                 const ideaItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'idea');
+                const pendingReviewItems = fb.feedback_items.map((item, index) => ({ item, index })).filter(({ index }) => getItemStatus(fb.id, index) === 'pending_user_review');
                 const isExpanded = expandedSections[fb.id] ?? true;
 
                 return (
@@ -385,6 +525,11 @@ export default function FeedbackReview() {
                               {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
                               <MessageSquare className="h-5 w-5 text-primary" />
                               <CardTitle className="text-xl">{fb.section_label}</CardTitle>
+                              {pendingItems.length === 0 && (
+                                <Badge variant="outline" className="ml-2 text-green-600 border-green-600">
+                                  <Check className="h-3 w-3 mr-1" /> All reviewed
+                                </Badge>
+                              )}
                             </div>
                             <span className="text-sm text-muted-foreground">Last updated: {format(new Date(fb.updated_at), 'MMM d, yyyy h:mm a')}</span>
                           </div>
@@ -392,17 +537,34 @@ export default function FeedbackReview() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="space-y-4">
-                          {pendingItems.length > 0 && <div className="space-y-3">{pendingItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, false))}</div>}
+                          {pendingItems.length > 0 && <div className="space-y-3">{pendingItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, false, false))}</div>}
+                          
+                          {/* Pending User Review Section */}
+                          {pendingReviewItems.length > 0 && (
+                            <Collapsible open={pendingReviewSectionsOpen[fb.id]} onOpenChange={(open) => setPendingReviewSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                  {pendingReviewSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  <Clock className="h-4 w-4" />
+                                  Pending User Review ({pendingReviewItems.length})
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="space-y-3 mt-2">
+                                {pendingReviewItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, false, true))}
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
+                          
                           {completedItems.length > 0 && (
                             <Collapsible open={completedSectionsOpen[fb.id]} onOpenChange={(open) => setCompletedSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
                               <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50">{completedSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Check className="h-4 w-4" />Completed ({completedItems.length})</Button></CollapsibleTrigger>
-                              <CollapsibleContent className="space-y-3 mt-2">{completedItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, true, false))}</CollapsibleContent>
+                              <CollapsibleContent className="space-y-3 mt-2">{completedItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, true, false, false))}</CollapsibleContent>
                             </Collapsible>
                           )}
                           {ideaItems.length > 0 && (
                             <Collapsible open={ideasSectionsOpen[fb.id]} onOpenChange={(open) => setIdeasSectionsOpen(prev => ({ ...prev, [fb.id]: open }))}>
                               <CollapsibleTrigger asChild><Button variant="ghost" className="w-full justify-start gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50">{ideasSectionsOpen[fb.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}<Lightbulb className="h-4 w-4" />Ideas ({ideaItems.length})</Button></CollapsibleTrigger>
-                              <CollapsibleContent className="space-y-3 mt-2">{ideaItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, true))}</CollapsibleContent>
+                              <CollapsibleContent className="space-y-3 mt-2">{ideaItems.map(({ item, index }) => renderFeedbackItem(fb, item, index, false, true, false))}</CollapsibleContent>
                             </Collapsible>
                           )}
                         </CardContent>
