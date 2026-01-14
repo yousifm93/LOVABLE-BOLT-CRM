@@ -388,6 +388,7 @@ export default function FeedbackReview() {
       const { error } = await supabase.functions.invoke('send-direct-email', {
         body: {
           to: member.email,
+          cc: crmUser.email,
           subject: `Feedback Update from ${crmUser.first_name}`,
           html: emailBody,
           from_email: 'noreply@mortgagebolt.org',
