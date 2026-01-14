@@ -389,7 +389,9 @@ export default function FeedbackReview() {
         body: {
           to: member.email,
           subject: `Feedback Update from ${crmUser.first_name}`,
-          html: emailBody
+          html: emailBody,
+          from_email: 'noreply@mortgagebolt.org',
+          from_name: `${crmUser.first_name} ${crmUser.last_name}`
         }
       });
 
@@ -477,32 +479,35 @@ export default function FeedbackReview() {
           {teamMembers.map((member) => {
             const unreadCount = getUnreadCount(member.id);
             return (
-              <TabsTrigger key={member.id} value={member.id} className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                {member.first_name} {member.last_name}
-                {unreadCount > 0 && (
-                  <Badge className="ml-1 bg-red-500 text-white h-5 min-w-[20px] text-xs">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
+              <div key={member.id} className="flex items-center">
+                <TabsTrigger value={member.id} className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {member.first_name} {member.last_name}
+                  {unreadCount > 0 && (
+                    <Badge className="ml-1 bg-red-500 text-white h-5 min-w-[20px] text-xs">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 ml-1 text-muted-foreground hover:text-blue-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sendFeedbackUpdate(member);
+                  }}
+                  disabled={sendingEmail}
+                  title={`Send update email to ${member.first_name}`}
+                >
+                  {sendingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                </Button>
+              </div>
             );
           })}
         </TabsList>
         {teamMembers.map((member) => (
           <TabsContent key={member.id} value={member.id} className="space-y-6">
-            {/* Send Update Email Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => sendFeedbackUpdate(member)} 
-                disabled={sendingEmail}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {sendingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                Send Update Email
-              </Button>
-            </div>
-            
             {getUserFeedback(member.id).length === 0 ? (<Card><CardContent className="py-8 text-center text-muted-foreground">No feedback submitted by {member.first_name} yet.</CardContent></Card>) : (
               getUserFeedback(member.id).map((fb) => {
                 // Pending items exclude complete, idea, AND pending_user_review
