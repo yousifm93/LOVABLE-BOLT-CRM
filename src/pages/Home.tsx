@@ -373,26 +373,26 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="max-w-6xl mx-auto space-y-5">
         {/* Header Section - Centered */}
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-light text-foreground">
+          <h1 className="text-3xl font-light text-foreground">
             {getGreeting()}, <span className="font-semibold">{firstName}</span>
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Quickly access your recent boards, inbox, and workspaces.
           </p>
         </div>
 
         {/* Search Bar with Dropdown - Centered */}
-        <div ref={searchRef} className="relative w-full lg:w-1/2 mx-auto">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+        <div ref={searchRef} className="relative w-full lg:w-2/3 mx-auto">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-6 w-6" />
           <Input
             placeholder="Search leads, contacts, agents, or lenders..."
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => searchQuery.length >= 2 && setShowDropdown(true)}
-            className="pl-12 h-12 text-base bg-card border-border"
+            className="pl-14 h-14 text-lg bg-card border-border"
           />
 
           {/* Search Dropdown */}
@@ -438,20 +438,20 @@ export default function Home() {
         </div>
 
         {/* Market Rates and Calendar Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-3">
-          <Card className="overflow-hidden h-[400px] border">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-4">
+          <Card className="overflow-hidden h-[480px] border">
             <ActivityPanel />
           </Card>
-          <Card className="overflow-hidden h-[400px] border">
+          <Card className="overflow-hidden h-[480px] border">
             <MarketRatesCard />
           </Card>
-          <Card className="overflow-hidden h-[400px] border">
+          <Card className="overflow-hidden h-[480px] border">
             <CalendarPanel />
           </Card>
         </div>
 
         {/* Quick Access Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickAccessCards
             .filter(card => hasPermission(card.permissionKey) !== 'hidden')
             .map((card) => {
@@ -470,35 +470,35 @@ export default function Home() {
                   onClick={() => !isLocked && navigate(card.url)}
                 >
                   {isLocked && (
-                    <Lock className="absolute top-2 right-2 h-4 w-4 text-orange-500" />
+                    <Lock className="absolute top-2 right-2 h-5 w-5 text-orange-500" />
                   )}
-                  <CardContent className="p-3">
+                  <CardContent className="p-4">
                     <div className="flex items-start justify-between">
-                      <div className={`p-2 rounded-lg ${card.color}`}>
-                        <card.icon className="h-4 w-4" />
+                      <div className={`p-3 rounded-lg ${card.color}`}>
+                        <card.icon className="h-5 w-5" />
                       </div>
                       {!isLocked && (
-                        <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
-                    <div className="mt-2">
-                      <h3 className="text-sm font-medium text-foreground">{card.title}</h3>
+                    <div className="mt-3">
+                      <h3 className="text-base font-medium text-foreground">{card.title}</h3>
                       {card.count !== undefined && (
-                        <p className="text-xl font-semibold text-foreground">{card.count}</p>
+                        <p className="text-2xl font-semibold text-foreground">{card.count}</p>
                       )}
                       {card.title === "Real Estate Agents" && (agentsAddedThisMonth > 0 || agentsRemovedThisMonth > 0) && (
                         <div className="flex items-center gap-1">
                           {agentsAddedThisMonth > 0 && (
-                            <span className="text-xs text-green-600 font-medium">+{agentsAddedThisMonth}</span>
+                            <span className="text-sm text-green-600 font-medium">+{agentsAddedThisMonth}</span>
                           )}
                           {agentsRemovedThisMonth > 0 && (
-                            <span className="text-xs text-red-600 font-medium">-{agentsRemovedThisMonth}</span>
+                            <span className="text-sm text-red-600 font-medium">-{agentsRemovedThisMonth}</span>
                           )}
-                          <span className="text-[10px] text-muted-foreground">this month</span>
+                          <span className="text-xs text-muted-foreground">this month</span>
                         </div>
                       )}
                       {card.description && (
-                        <p className="text-xs text-muted-foreground">{card.description}</p>
+                        <p className="text-sm text-muted-foreground">{card.description}</p>
                       )}
                     </div>
                   </CardContent>
@@ -508,33 +508,33 @@ export default function Home() {
         </div>
 
         {/* Daily Reports */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Daily Reports</h3>
+        <div className="space-y-3">
+          <h3 className="text-base font-medium text-muted-foreground">Daily Reports</h3>
           <DailyReportCards />
         </div>
 
         {/* Monthly Reports */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Monthly Reports</h3>
+        <div className="space-y-3">
+          <h3 className="text-base font-medium text-muted-foreground">Monthly Reports</h3>
           <SalesReportCards />
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           <Card className="bg-muted/30">
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Leads This Month</p>
-              <p className="text-xl font-semibold text-foreground">{leadsThisMonth}</p>
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">Leads This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{leadsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Applications This Month</p>
-              <p className="text-xl font-semibold text-foreground">{applicationsThisMonth}</p>
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">Applications This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{applicationsThisMonth}</p>
             </CardContent>
           </Card>
           <Card className="bg-muted/30">
-            <CardContent className="p-3 text-center">
-              <p className="text-xs text-muted-foreground">Closed This Month</p>
-              <p className="text-xl font-semibold text-foreground">{closedThisMonth}</p>
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">Closed This Month</p>
+              <p className="text-2xl font-semibold text-foreground">{closedThisMonth}</p>
             </CardContent>
           </Card>
         </div>
