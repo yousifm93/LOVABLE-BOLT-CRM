@@ -213,12 +213,12 @@ export function DetailsTab({ client, leadId, onLeadUpdated, onClose }: DetailsTa
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [agentsRes, lendersRes, contactsRes] = await Promise.all([
-          supabase.from('buyer_agents').select('*').order('first_name'),
+        const [agentsData, lendersRes, contactsRes] = await Promise.all([
+          databaseService.getBuyerAgents(), // Use paginated service to get ALL agents
           supabase.from('lenders').select('*').order('lender_name'),
           supabase.from('contacts').select('*').order('first_name')
         ]);
-        if (agentsRes.data) setAgents(agentsRes.data);
+        setAgents(agentsData || []);
         if (lendersRes.data) setLenders(lendersRes.data);
         if (contactsRes.data) setContacts(contactsRes.data);
       } catch (error) {
