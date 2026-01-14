@@ -226,10 +226,10 @@ export function InlineEditAgent({
           />
           <CommandList>
           <CommandEmpty>
-              {searchTerm.trim() 
-                ? `No agents found for "${searchTerm}"` 
-                : agents.length === 0 
-                  ? "Loading agents..." 
+              {agents.length === 0 
+                ? "Loading agents..." 
+                : searchTerm.trim() 
+                  ? `No agents found for "${searchTerm}"` 
                   : "Type to search or scroll below"}
             </CommandEmpty>
             {value && (
