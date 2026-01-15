@@ -123,6 +123,15 @@ export function EmailFieldSuggestionsModal({
             <Badge variant="secondary" className="font-medium">
               {suggestion.field_display_name}
             </Badge>
+            <span className="text-xs text-muted-foreground">
+              {new Date(suggestion.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+              })}
+            </span>
             {isCompleted && (
               <Badge 
                 variant={suggestion.status === 'approved' ? 'default' : 'destructive'}
