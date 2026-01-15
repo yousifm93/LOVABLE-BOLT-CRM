@@ -59,7 +59,7 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl overflow-hidden p-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] backdrop-blur-xl bg-background/95 border-border/50 shadow-2xl rounded-xl overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14">
@@ -90,9 +90,9 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-140px)]">
-          <div className="px-6 py-4 space-y-4">
-            {/* Contact Information */}
-            <div className="grid grid-cols-4 gap-3">
+          <div className="px-6 py-5 space-y-5">
+            {/* Contact Information - 2 column layout */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">First Name</label>
                 <InlineEditText
@@ -109,6 +109,9 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
                   placeholder="Last"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
                 <InlineEditText
@@ -127,7 +130,7 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Company</label>
                 <InlineEditText
@@ -138,7 +141,7 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Created Date</label>
-                <div className="text-sm py-1 px-2 border rounded-md bg-muted/30">
+                <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
                   {contact.lead_created_date 
                     ? new Date(contact.lead_created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : contact.created_at

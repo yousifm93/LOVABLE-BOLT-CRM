@@ -176,7 +176,34 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
     const contacts = parsedContent.contacts || [];
     console.log(`Extracted ${contacts.length} contacts`);
 
-    // Filter out contacts that already exist
+    // Domain to company mapping for fallback
+    const domainToCompany: Record<string, string> = {
+      'admortgage.com': 'AD Mortgage',
+      'advcredit.com': 'Advantage Credit',
+      'harvestcref.com': 'Harvest CREF',
+      'gtlaw.com': 'Greenberg Traurig',
+      'lopezlawfl.com': 'Lopez Law FL',
+      'relatedgroup.com': 'Related Group',
+      'ammprocessingllc.com': 'AMM Processing LLC',
+      'uwm.com': 'United Wholesale Mortgage',
+      'rfrancismortgage.com': 'R Francis Mortgage',
+      'freedommortgage.com': 'Freedom Mortgage',
+      'fairwaymc.com': 'Fairway Independent Mortgage',
+    };
+
+    // Domain to tags mapping for fallback
+    const domainToTags: Record<string, string[]> = {
+      'admortgage.com': ['Mortgage', 'Wholesale Lender'],
+      'advcredit.com': ['Credit Vendor', 'Credit Report'],
+      'harvestcref.com': ['Banker', 'Commercial'],
+      'gtlaw.com': ['Attorney', 'Legal'],
+      'lopezlawfl.com': ['Attorney', 'Legal', 'Title'],
+      'relatedgroup.com': ['Developer', 'Real Estate'],
+      'ammprocessingllc.com': ['Processing', 'Mortgage'],
+      'uwm.com': ['Mortgage', 'Wholesale Lender'],
+    };
+
+    // Filter out contacts that already exist and apply fallbacks
     const validContacts: ExtractedContact[] = [];
     for (const contact of contacts) {
       if (!contact.email || !contact.first_name) continue;
@@ -187,6 +214,32 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
 
       // Skip sender's email
       if (contact.email.toLowerCase() === emailContent.fromEmail.toLowerCase()) continue;
+
+      // Extract domain for fallback logic
+      const emailDomain = contact.email.split('@')[1]?.toLowerCase();
+
+      // Fallback: derive company from email domain if not extracted
+      if (!contact.company && emailDomain) {
+        if (domainToCompany[emailDomain]) {
+          contact.company = domainToCompany[emailDomain];
+        } else {
+          // Generate company name from domain (e.g., "example.com" -> "Example")
+          const domainParts = emailDomain.split('.');
+          if (domainParts.length > 0) {
+            const baseDomain = domainParts[0].replace(/[^a-zA-Z]/g, ' ').trim();
+            contact.company = baseDomain.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          }
+        }
+      }
+
+      // Fallback: add default tags if not extracted
+      if (!contact.suggested_tags || contact.suggested_tags.length === 0) {
+        if (emailDomain && domainToTags[emailDomain]) {
+          contact.suggested_tags = domainToTags[emailDomain];
+        } else {
+          contact.suggested_tags = ['Contact'];
+        }
+      }
 
       // Check if contact already exists in contacts table
       const { data: existingContact } = await supabaseClient
