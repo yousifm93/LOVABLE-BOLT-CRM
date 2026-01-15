@@ -157,6 +157,24 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
     
     setIsDeleting(true);
     try {
+      // If this is a broker_open log, also clear the agent's broker_open field
+      if (logToDelete.log_type === 'broker_open' && agent?.id) {
+        await databaseService.updateBuyerAgent(agent.id, {
+          broker_open: null,
+        });
+      }
+      
+      // If this is a meeting log, also clear the agent's face_to_face_meeting field if dates match
+      if (logToDelete.log_type === 'meeting' && agent?.id) {
+        const logDate = new Date(logToDelete.logged_at);
+        const agentMeetingDate = agent.face_to_face_meeting ? new Date(agent.face_to_face_meeting) : null;
+        if (agentMeetingDate && logDate.toDateString() === agentMeetingDate.toDateString()) {
+          await databaseService.updateBuyerAgent(agent.id, {
+            face_to_face_meeting: null,
+          });
+        }
+      }
+      
       await databaseService.deleteAgentCallLog(logToDelete.id);
       toast({
         title: "Deleted",
@@ -172,7 +190,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         variant: "destructive",
       });
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(true);
       setIsDeleteDialogOpen(false);
       setLogToDelete(null);
     }
