@@ -31,7 +31,7 @@ const formatPhoneNumber = (phone: string | null | undefined): string => {
 // Map source to display name
 const getSourceDisplayName = (source: string, type?: string, sourceType?: string): string => {
   // Prioritize email_import source type
-  if (sourceType === 'email_import') return 'Emails';
+  if (sourceType === 'email_import') return 'From Emails';
   const sourceMap: Record<string, string> = {
     'buyer_agents': 'Real Estate Agent',
     'lenders': 'Approved Lenders',
@@ -188,6 +188,25 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
           ) : "—"}
         </div>
       ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate max-w-[250px]">
+          {row.original.description || "—"}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "associated_lead",
+      header: "Last Associated File",
+      cell: ({ row }) => {
+        const leadName = row.original.associated_lead_name;
+        return (
+          <span className="text-sm">{leadName || "—"}</span>
+        );
+      },
     },
     {
       accessorKey: "lastContact",
@@ -434,7 +453,7 @@ export default function BorrowerList() {
 
   const getFilteredContacts = () => {
     if (activeFilter === 'All') return contacts;
-    if (activeFilter === 'Emails') {
+    if (activeFilter === 'From Emails') {
       return contacts.filter(c => c.source_type === 'email_import');
     }
     return contacts.filter(c => c.type === activeFilter);
@@ -511,7 +530,7 @@ export default function BorrowerList() {
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
           <div className="flex gap-2 mb-4 flex-wrap">
-            {['All', 'Borrower', 'Agent', 'Lender', 'Emails', 'Other'].map(filter => (
+            {['All', 'Borrower', 'Agent', 'Lender', 'From Emails', 'Other'].map(filter => (
               <Button
                 key={filter}
                 variant={activeFilter === filter ? 'default' : 'outline'}
@@ -523,7 +542,7 @@ export default function BorrowerList() {
                 {filter === 'Borrower' && ` (${borrowerCount})`}
                 {filter === 'Agent' && ` (${agentCount})`}
                 {filter === 'Lender' && ` (${lenderCount})`}
-                {filter === 'Emails' && ` (${fromEmailsCount})`}
+                {filter === 'From Emails' && ` (${fromEmailsCount})`}
                 {filter === 'Other' && ` (${otherCount})`}
               </Button>
             ))}

@@ -935,7 +935,9 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string
+          description: string | null
           email: string | null
+          email_log_id: string | null
           first_name: string
           id: string
           last_name: string
@@ -950,7 +952,9 @@ export type Database = {
         Insert: {
           company?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
+          email_log_id?: string | null
           first_name: string
           id?: string
           last_name: string
@@ -965,7 +969,9 @@ export type Database = {
         Update: {
           company?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
+          email_log_id?: string | null
           first_name?: string
           id?: string
           last_name?: string
@@ -977,7 +983,15 @@ export type Database = {
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_email_log_id_fkey"
+            columns: ["email_log_id"]
+            isOneToOne: false
+            referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_history: {
         Row: {

@@ -143,7 +143,7 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Created Date</label>
                 <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
                   {contact.lead_created_date 
-                    ? new Date(contact.lead_created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    ? new Date(contact.lead_created_date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
                     : contact.created_at
                     ? new Date(contact.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : <span className="text-muted-foreground">—</span>
@@ -151,6 +151,19 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
                 </div>
               </div>
             </div>
+
+            {/* Description Section - for email imports */}
+            {contact.description && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Description
+                </h3>
+                <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+                  {contact.description}
+                </p>
+              </div>
+            )}
 
             {/* Tags Section */}
             {contact.tags && contact.tags.length > 0 && (

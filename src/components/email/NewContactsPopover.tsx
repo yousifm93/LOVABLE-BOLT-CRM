@@ -86,7 +86,9 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
           type: 'Other',
           source_type: 'email_import',
           notes: noteText,
-          lead_created_date: today
+          lead_created_date: today,
+          description: suggestion.reason,
+          email_log_id: suggestion.email_log_id
         });
 
       if (insertError) throw insertError;
