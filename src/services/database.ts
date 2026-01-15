@@ -2397,7 +2397,7 @@ export const databaseService = {
       
       // Transform all to unified format
       const unifiedContacts = [
-        // Contacts (include source_type, description, email_log_id, associated_lead_name)
+        // Contacts (include source_type, description, email_log_id, associated_lead_name, job_title)
         ...(contactsData || []).map(c => ({
           id: c.id,
           first_name: c.first_name,
@@ -2414,7 +2414,8 @@ export const databaseService = {
           source_type: c.source_type,
           description: c.description,
           email_log_id: c.email_log_id,
-          associated_lead_name: c.email_log_id ? emailLogToLeadName[c.email_log_id] || null : null
+          associated_lead_name: c.email_log_id ? emailLogToLeadName[c.email_log_id] || null : null,
+          job_title: c.job_title
         })),
         
         // Buyer Agents

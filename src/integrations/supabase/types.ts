@@ -940,6 +940,7 @@ export type Database = {
           email_log_id: string | null
           first_name: string
           id: string
+          job_title: string | null
           last_name: string
           lead_created_date: string | null
           notes: string | null
@@ -957,6 +958,7 @@ export type Database = {
           email_log_id?: string | null
           first_name: string
           id?: string
+          job_title?: string | null
           last_name: string
           lead_created_date?: string | null
           notes?: string | null
@@ -974,6 +976,7 @@ export type Database = {
           email_log_id?: string | null
           first_name?: string
           id?: string
+          job_title?: string | null
           last_name?: string
           lead_created_date?: string | null
           notes?: string | null
@@ -1874,6 +1877,7 @@ export type Database = {
           email_log_id: string | null
           first_name: string
           id: string
+          job_title: string | null
           last_name: string | null
           notes: string | null
           phone: string | null
@@ -1895,6 +1899,7 @@ export type Database = {
           email_log_id?: string | null
           first_name: string
           id?: string
+          job_title?: string | null
           last_name?: string | null
           notes?: string | null
           phone?: string | null
@@ -1916,6 +1921,7 @@ export type Database = {
           email_log_id?: string | null
           first_name?: string
           id?: string
+          job_title?: string | null
           last_name?: string | null
           notes?: string | null
           phone?: string | null

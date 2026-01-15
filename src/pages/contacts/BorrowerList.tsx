@@ -136,8 +136,16 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
       sortable: true,
     },
     {
+      accessorKey: "job_title",
+      header: "Job Title",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.job_title || "—"}</span>
+      ),
+      sortable: true,
+    },
+    {
       accessorKey: "lead_created_date",
-      header: "Contact Created Date",
+      header: "Created On",
       cell: ({ row }) => {
         const date = row.original.lead_created_date || row.original.created_at;
         if (!date) return <span className="text-sm">—</span>;
@@ -228,8 +236,8 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
     },
   ];
 
-  // Add "Duplicate?" column only for "Other" tab - insert between Notes and Description
-  if (activeFilter === 'Other') {
+  // Add "Duplicate?" column for "Other" and "From Emails" tabs - insert between Notes and Description
+  if (activeFilter === 'Other' || activeFilter === 'From Emails') {
     const duplicateColumn: ColumnDef<any> = {
       accessorKey: "is_duplicate",
       header: "Duplicate?",

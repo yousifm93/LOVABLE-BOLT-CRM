@@ -74,6 +74,9 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
       // Use today's date for lead_created_date to avoid timezone issues
       const today = new Date().toISOString().split('T')[0];
       
+      // Get job_title from suggestion if available (may need to parse from reason if not directly stored)
+      const jobTitle = (suggestion as any).job_title || null;
+      
       const { error: insertError } = await supabase
         .from('contacts')
         .insert({
@@ -82,6 +85,7 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
           email: suggestion.email,
           phone: suggestion.phone,
           company: suggestion.company,
+          job_title: jobTitle,
           tags: suggestion.suggested_tags,
           type: 'Other',
           source_type: 'email_import',
