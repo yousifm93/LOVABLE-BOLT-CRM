@@ -137,6 +137,9 @@ export function AppSidebar() {
   const [newFeedbackCount, setNewFeedbackCount] = useState(0); // For admin - unread feedback
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // For users - unread admin responses
   
+  // Pending contact approval count
+  const [pendingContactCount, setPendingContactCount] = useState(0);
+  
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -391,6 +394,32 @@ export function AppSidebar() {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
+  // Fetch pending contact approval count
+  useEffect(() => {
+    const fetchPendingContactCount = async () => {
+      const { count } = await supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('approval_status', 'pending');
+      setPendingContactCount(count || 0);
+    };
+
+    fetchPendingContactCount();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('contacts_pending_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'contacts' },
+        () => fetchPendingContactCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const isActive = (path: string) => {
     if (path === "/") {
       return currentPath === "/";
@@ -631,6 +660,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {filterItemsByPermission(contactItems).map((item) => {
                   const isLocked = isItemLocked(item.permKey);
+                  const showPendingBadge = item.title === "Master Contact List" && pendingContactCount > 0;
                   
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -648,7 +678,19 @@ export function AppSidebar() {
                         ) : (
                           <NavLink to={item.url} className={getNavClassName}>
                             <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && <span>{item.title}</span>}
+                            {!collapsed && (
+                              <span className="flex items-center gap-2">
+                                {item.title}
+                                {showPendingBadge && (
+                                  <Badge 
+                                    variant="destructive" 
+                                    className="h-5 min-w-5 px-1.5 text-xs"
+                                  >
+                                    {pendingContactCount}
+                                  </Badge>
+                                )}
+                              </span>
+                            )}
                           </NavLink>
                         )}
                       </SidebarMenuButton>
