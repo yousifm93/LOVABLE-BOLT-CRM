@@ -2282,24 +2282,34 @@ export const databaseService = {
   async getAllUnifiedContacts() {
     try {
       // 1. Fetch from contacts table
-      const { data: contactsData } = await supabase
+      const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
         .select('*');
       
-      // 2. Fetch from buyer_agents table
-      const { data: agentsData } = await supabase
+      // 2. Fetch from buyer_agents table (exclude soft-deleted)
+      const { data: agentsData, error: agentsError } = await supabase
         .from('buyer_agents')
-        .select('*');
+        .select('*')
+        .is('deleted_at', null);
       
       // 3. Fetch from lenders table
-      const { data: lendersData } = await supabase
+      const { data: lendersData, error: lendersError } = await supabase
         .from('lenders')
         .select('*');
       
       // 4. Fetch from leads table
-      const { data: leadsData } = await supabase
+      const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, pipeline_stage_id');
+      
+      // Log counts for debugging
+      console.log('Master Contact List - Data sources loaded:', {
+        contacts: contactsData?.length || 0,
+        agents: agentsData?.length || 0,
+        lenders: lendersData?.length || 0,
+        leads: leadsData?.length || 0,
+        errors: { contactsError, agentsError, lendersError, leadsError }
+      });
       
       // Transform all to unified format
       const unifiedContacts = [

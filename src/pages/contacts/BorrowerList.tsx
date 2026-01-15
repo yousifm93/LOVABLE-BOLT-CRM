@@ -10,6 +10,17 @@ import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
+// Map source to display name
+const getSourceDisplayName = (source: string, type?: string): string => {
+  const sourceMap: Record<string, string> = {
+    'buyer_agents': 'Real Estate Agent',
+    'lenders': 'Approved Lenders',
+    'leads': 'Pipeline',
+    'contacts': type || 'Other'
+  };
+  return sourceMap[source] || 'Other';
+};
+
 const columns: ColumnDef<any>[] = [
   {
     accessorKey: "name",
@@ -21,7 +32,7 @@ const columns: ColumnDef<any>[] = [
         `${contact.first_name} ${contact.last_name}`;
       const initials = contact.person ? 
         `${contact.person.firstName[0]}${contact.person.lastName[0]}` :
-        `${contact.first_name[0]}${contact.last_name[0]}`;
+        `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`;
       
       return (
         <div className="flex items-center gap-3">
@@ -41,26 +52,69 @@ const columns: ColumnDef<any>[] = [
     sortable: true,
   },
   {
-    accessorKey: "contact",
-    header: "Contact",
+    accessorKey: "email",
+    header: "Email",
     cell: ({ row }) => {
-      const contact = row.original;
-      const email = contact.person?.email || contact.email;
-      const phone = contact.person?.phoneMobile || contact.phone;
-      
+      const email = row.original.person?.email || row.original.email;
       return (
-        <div className="space-y-1">
-          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-            <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
-            <span className="truncate">{email || "—"}</span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-            <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-            <span className="truncate">{phone || "—"}</span>
-          </div>
+        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+          <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{email || "—"}</span>
         </div>
       );
     },
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+    cell: ({ row }) => {
+      const phone = row.original.person?.phoneMobile || row.original.phone;
+      return (
+        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+          <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
+          <span className="truncate">{phone || "—"}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "lead_created_date",
+    header: "Contact Created Date",
+    cell: ({ row }) => {
+      const date = row.original.lead_created_date;
+      return (
+        <span className="text-sm">
+          {date ? new Date(date).toLocaleDateString() : "—"}
+        </span>
+      );
+    },
+    sortable: true,
+  },
+  {
+    accessorKey: "source",
+    header: "Source",
+    cell: ({ row }) => (
+      <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type)}</span>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "deals",
+    header: "Deals",
+    cell: ({ row }) => (
+      <div className="text-center">
+        <span className="font-medium">{row.original.deals}</span>
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={row.original.status} />
+    ),
+    sortable: true,
   },
   {
     accessorKey: "tags",
@@ -82,45 +136,6 @@ const columns: ColumnDef<any>[] = [
         )}
       </div>
     ),
-  },
-  {
-    accessorKey: "lead_created_date",
-    header: "Lead Created Date",
-    cell: ({ row }) => {
-      const date = row.original.lead_created_date;
-      return (
-        <span className="text-sm">
-          {date ? new Date(date).toLocaleDateString() : "—"}
-        </span>
-      );
-    },
-    sortable: true,
-  },
-  {
-    accessorKey: "source",
-    header: "Source",
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.source}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "deals",
-    header: "Deals",
-    cell: ({ row }) => (
-      <div className="text-center">
-        <span className="font-medium">{row.original.deals}</span>
-      </div>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge status={row.original.status} />
-    ),
-    sortable: true,
   },
   {
     accessorKey: "lastContact",
