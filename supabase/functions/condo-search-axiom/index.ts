@@ -50,68 +50,61 @@ serve(async (req) => {
       console.error(`Failed to update status: ${updateError.message}`);
     }
 
-    // Get Axiom API key
-    const axiomApiKey = Deno.env.get("AXIOM_API_KEY");
+    // Get Axiom API key for condo search (v3 API)
+    const axiomApiKey = Deno.env.get("AXIOM_CONDO_KEY") || Deno.env.get("AXIOM_API_KEY");
     if (!axiomApiKey) {
-      throw new Error("AXIOM_API_KEY is not configured");
+      throw new Error("AXIOM_CONDO_KEY is not configured");
     }
 
-    // Prepare data for Axiom
+    // Prepare data for Axiom as nested array (same format as Loan Pricer)
     // Format: [[search_id, street_num, direction, street_name, street_type, city, state, zip, days_back, max_results]]
     const axiomData = [[
       search_id,
-      search.street_num,
+      search.street_num || "",
       search.direction || "",
-      search.street_name,
+      search.street_name || "",
       search.street_type || "",
       search.city || "",
       search.state || "FL",
       search.zip || "",
-      search.days_back || 180,
-      search.max_results || 10,
+      (search.days_back || 180).toString(),
+      (search.max_results || 10).toString(),
     ]];
 
-    console.log(`Sending to Axiom: ${JSON.stringify(axiomData)}`);
+    console.log(`Sending to Axiom v3 API: ${JSON.stringify(axiomData)}`);
 
-    // Get webhook URL for Axiom to call back
+    // Webhook URL for Axiom to call back with results
     const webhookUrl = `${supabaseUrl}/functions/v1/condo-search-webhook`;
 
-    // Trigger Axiom automation
-    // Note: This assumes Axiom has a webhook endpoint configured
-    // The actual Axiom API endpoint may vary based on your setup
-    const axiomEndpoint = Deno.env.get("AXIOM_CONDO_ENDPOINT") || "https://api.axiom.ai/v1/trigger";
-    
-    const axiomResponse = await fetch(axiomEndpoint, {
+    // Trigger Axiom using the v3 API (key in body, not header)
+    const axiomResponse = await fetch("https://lar.axiom.ai/api/v3/trigger", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${axiomApiKey}`,
       },
       body: JSON.stringify({
+        key: axiomApiKey,
+        name: "Condo Sales Search",
         data: axiomData,
         webhook_url: webhookUrl,
-        search_type: "condo_sales",
       }),
     });
 
+    const axiomResponseText = await axiomResponse.text();
+    console.log(`Axiom API response: ${axiomResponse.status} - ${axiomResponseText}`);
+
     if (!axiomResponse.ok) {
-      const errorText = await axiomResponse.text();
-      console.error(`Axiom API error: ${errorText}`);
-      
       // Update status to failed
       await supabase
         .from("condo_searches")
         .update({ 
           status: "failed", 
-          error_message: `Axiom API error: ${axiomResponse.status}` 
+          error_message: `Axiom API error: ${axiomResponse.status} - ${axiomResponseText}` 
         })
         .eq("id", search_id);
 
-      throw new Error(`Axiom API error: ${axiomResponse.status}`);
+      throw new Error(`Axiom API error: ${axiomResponse.status} - ${axiomResponseText}`);
     }
-
-    const axiomResult = await axiomResponse.json();
-    console.log(`Axiom response: ${JSON.stringify(axiomResult)}`);
 
     return new Response(
       JSON.stringify({ 
