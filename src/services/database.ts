@@ -2300,10 +2300,10 @@ export const databaseService = {
   // Get all unified contacts from contacts, buyer_agents, lenders, and leads tables
   async getAllUnifiedContacts() {
     try {
-      // 1. Fetch from contacts table
+      // 1. Fetch from contacts table (include new fields)
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
-        .select('*');
+        .select('*, email_log_id');
       
       // 2. Fetch ALL from buyer_agents table (exclude soft-deleted) using pagination
       // Supabase has a default limit of 1000, so we need to paginate
@@ -2355,9 +2355,49 @@ export const databaseService = {
         errors: { contactsError, agentsError, lendersError, leadsError }
       });
       
+      // 5. For email-imported contacts, fetch associated lead names via email_logs
+      const emailImportContacts = (contactsData || []).filter(c => c.source_type === 'email_import' && c.email_log_id);
+      const emailLogIds = emailImportContacts.map(c => c.email_log_id).filter(Boolean);
+      
+      let emailLogToLeadName: Record<string, string> = {};
+      
+      if (emailLogIds.length > 0) {
+        // Fetch email_logs to get lead_id
+        const { data: emailLogs } = await supabase
+          .from('email_logs')
+          .select('id, lead_id')
+          .in('id', emailLogIds);
+        
+        if (emailLogs && emailLogs.length > 0) {
+          const leadIds = emailLogs.map(el => el.lead_id).filter(Boolean);
+          
+          if (leadIds.length > 0) {
+            // Fetch lead names
+            const { data: leads } = await supabase
+              .from('leads')
+              .select('id, first_name, last_name')
+              .in('id', leadIds);
+            
+            if (leads) {
+              const leadIdToName: Record<string, string> = {};
+              leads.forEach(l => {
+                leadIdToName[l.id] = `${l.first_name} ${l.last_name}`.trim();
+              });
+              
+              // Map email_log_id -> lead name
+              emailLogs.forEach(el => {
+                if (el.lead_id && leadIdToName[el.lead_id]) {
+                  emailLogToLeadName[el.id] = leadIdToName[el.lead_id];
+                }
+              });
+            }
+          }
+        }
+      }
+      
       // Transform all to unified format
       const unifiedContacts = [
-        // Contacts (already in correct format)
+        // Contacts (include source_type, description, email_log_id, associated_lead_name)
         ...(contactsData || []).map(c => ({
           id: c.id,
           first_name: c.first_name,
@@ -2370,7 +2410,11 @@ export const databaseService = {
           notes: c.notes,
           lead_created_date: c.lead_created_date,
           source: 'contacts' as const,
-          source_id: c.id
+          source_id: c.id,
+          source_type: c.source_type,
+          description: c.description,
+          email_log_id: c.email_log_id,
+          associated_lead_name: c.email_log_id ? emailLogToLeadName[c.email_log_id] || null : null
         })),
         
         // Buyer Agents

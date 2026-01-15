@@ -39,6 +39,11 @@ interface LenderMarketingData {
   product_fix_flip?: string | null;
   product_construction?: string | null;
   product_commercial?: string | null;
+  // Account Executive fields
+  account_executive_first_name?: string | null;
+  account_executive_last_name?: string | null;
+  account_executive_email?: string | null;
+  account_executive_phone?: string | null;
 }
 
 interface LenderFieldSuggestion {
@@ -177,6 +182,16 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           } else if (data.notes) {
             lenderData.notes = data.notes;
           }
+          
+          // Account Executive fields
+          if (data.account_executive_first_name || data.account_executive_last_name) {
+            const aeName = [data.account_executive_first_name, data.account_executive_last_name]
+              .filter(Boolean)
+              .join(' ');
+            if (aeName) lenderData.account_executive = aeName;
+          }
+          if (data.account_executive_email) lenderData.account_executive_email = data.account_executive_email;
+          if (data.account_executive_phone) lenderData.account_executive_phone = data.account_executive_phone;
         }
 
         await databaseService.createLender(lenderData);

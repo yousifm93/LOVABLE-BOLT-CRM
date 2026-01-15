@@ -30,8 +30,8 @@ const formatPhoneNumber = (phone: string | null | undefined): string => {
 
 // Map source to display name
 const getSourceDisplayName = (source: string, type?: string, sourceType?: string): string => {
-  // Prioritize email_import source type
-  if (sourceType === 'email_import') return 'From Emails';
+  // Prioritize email_import source type - show as "Email"
+  if (sourceType === 'email_import') return 'Email';
   const sourceMap: Record<string, string> = {
     'buyer_agents': 'Real Estate Agent',
     'lenders': 'Approved Lenders',
@@ -89,11 +89,13 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
         const fullName = contact.person ? 
           `${contact.person.firstName} ${contact.person.lastName}` : 
           `${contact.first_name} ${contact.last_name}`;
+        // Show "Email" for email-imported contacts instead of "Other"
+        const displayType = contact.source_type === 'email_import' ? 'Email' : contact.type;
         
         return (
           <div className="pl-2">
             <div className="font-medium">{fullName}</div>
-            <div className="text-sm text-muted-foreground">{contact.type}</div>
+            <div className="text-sm text-muted-foreground">{displayType}</div>
           </div>
         );
       },
@@ -226,7 +228,7 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
     },
   ];
 
-  // Add "Duplicate?" column only for "Other" tab
+  // Add "Duplicate?" column only for "Other" tab - insert between Notes and Description
   if (activeFilter === 'Other') {
     const duplicateColumn: ColumnDef<any> = {
       accessorKey: "is_duplicate",
@@ -240,7 +242,12 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
         );
       },
     };
-    // Insert after company column (index 3)
+    // Find index of notes column and insert after it (between Notes and Description)
+    const notesIndex = baseColumns.findIndex(col => col.accessorKey === 'notes');
+    if (notesIndex !== -1) {
+      return [...baseColumns.slice(0, notesIndex + 1), duplicateColumn, ...baseColumns.slice(notesIndex + 1)];
+    }
+    // Fallback: insert after company column
     return [...baseColumns.slice(0, 4), duplicateColumn, ...baseColumns.slice(4)];
   }
 
