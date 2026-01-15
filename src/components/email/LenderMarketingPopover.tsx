@@ -155,18 +155,19 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           if (data.min_fico) lenderData.min_fico = parseNumber(data.min_fico);
           
           // Product flags - check products array and individual fields
+          // Use correct database column names from lenders table
           const products = data.products || [];
-          if (products.includes('DSCR') || data.product_dscr === 'Y') lenderData.product_dscr = 'Y';
-          if (products.includes('Bank Statement') || data.product_bank_statement === 'Y') lenderData.product_bank_statement = 'Y';
-          if (products.includes('P&L') || data.product_p_l === 'Y') lenderData.product_p_l = 'Y';
-          if (products.includes('1099') || data.product_1099 === 'Y') lenderData.product_1099 = 'Y';
-          if (products.includes('Asset Depletion') || data.product_asset_depletion === 'Y') lenderData.product_asset_depletion = 'Y';
-          if (products.includes('Foreign National') || data.product_foreign_national === 'Y') lenderData.product_foreign_national = 'Y';
+          if (products.includes('DSCR') || data.product_dscr === 'Y') lenderData.product_fthb_dscr = 'Y';
+          if (products.includes('Bank Statement') || data.product_bank_statement === 'Y') lenderData.product_bs_loan = 'Y';
+          if (products.includes('P&L') || data.product_p_l === 'Y') lenderData.product_pl_program = 'Y';
+          if (products.includes('1099') || data.product_1099 === 'Y') lenderData.product_1099_program = 'Y';
+          // product_asset_depletion - no equivalent column in lenders table, skip
+          if (products.includes('Foreign National') || data.product_foreign_national === 'Y') lenderData.product_fn = 'Y';
           if (products.includes('ITIN') || data.product_itin === 'Y') lenderData.product_itin = 'Y';
-          if (products.includes('Non-Warrantable Condo') || data.product_non_warrantable_condo === 'Y') lenderData.product_non_warrantable_condo = 'Y';
+          if (products.includes('Non-Warrantable Condo') || data.product_non_warrantable_condo === 'Y') lenderData.product_nwc = 'Y';
           if (products.includes('Jumbo') || data.product_jumbo === 'Y') lenderData.product_jumbo = 'Y';
-          if (products.includes('Bridge') || data.product_bridge === 'Y') lenderData.product_bridge = 'Y';
-          if (products.includes('Fix & Flip') || data.product_fix_flip === 'Y') lenderData.product_fix_flip = 'Y';
+          // product_bridge - no equivalent column in lenders table, skip
+          // product_fix_flip - no equivalent column in lenders table, skip
           if (products.includes('Construction') || data.product_construction === 'Y') lenderData.product_construction = 'Y';
           if (products.includes('Commercial') || data.product_commercial === 'Y') lenderData.product_commercial = 'Y';
           
@@ -209,11 +210,16 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
       setSuggestions(prev => prev.map(s => 
         s.id === suggestion.id ? { ...s, status: 'approved' } : s
       ));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving suggestion:', error);
+      console.error('Suggestion details:', { 
+        is_new_lender: suggestion.is_new_lender, 
+        lender_name: suggestion.suggested_lender_name,
+        field_name: suggestion.field_name 
+      });
       toast({
         title: "Error",
-        description: "Failed to apply suggestion",
+        description: `Failed to apply suggestion: ${error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
