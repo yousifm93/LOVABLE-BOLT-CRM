@@ -708,7 +708,8 @@ export default function Email() {
   }, []);
 
   // Fixed: Pass email object directly to avoid timing bug
-  const fetchEmailContent = async (email: EmailMessage) => {
+  // Returns the content so callers can use it immediately without waiting for state
+  const fetchEmailContent = async (email: EmailMessage): Promise<{ body?: string; htmlBody?: string; attachments?: EmailAttachment[] } | null> => {
     setIsLoadingContent(true);
     setEmailContent(null);
     try {
@@ -728,14 +729,18 @@ export default function Email() {
       if (data?.success && data.email) {
         // Pass the email directly - no timing issue!
         const attachments = await fetchAttachments(email);
-        setEmailContent({
+        const content = {
           body: data.email.body,
           htmlBody: data.email.htmlBody,
           attachments
-        });
+        };
+        setEmailContent(content);
+        return content;
       }
+      return null;
     } catch (error: any) {
       console.error("Error fetching email content:", error);
+      return null;
     } finally {
       setIsLoadingContent(false);
     }
@@ -827,21 +832,23 @@ export default function Email() {
       setIsAddingComment(false);
     }
   };
-  const handleSelectEmail = (email: EmailMessage) => {
+  const handleSelectEmail = async (email: EmailMessage) => {
     setSelectedEmail(email);
     setEmailComments([]); // Clear previous comments
     setCommentText("");
-    fetchEmailContent(email);
+    
+    // Await email content load so we have the full body for contact parsing
+    const content = await fetchEmailContent(email);
     fetchComments(email);
     
-    // Trigger contact parsing if in "new-contacts" view
-    if (emailView === 'new-contacts') {
-      triggerContactParsing(email);
+    // Trigger contact parsing if in "new-contacts" view - pass the loaded body content
+    if (emailView === 'new-contacts' && content) {
+      triggerContactParsing(email, content.body || content.htmlBody);
     }
   };
   
-  // Trigger contact parsing for an email
-  const triggerContactParsing = async (email: EmailMessage) => {
+  // Trigger contact parsing for an email - accepts loaded body content directly
+  const triggerContactParsing = async (email: EmailMessage, loadedBody?: string) => {
     try {
       // First, try to find an existing email_log record to get emailLogId
       const cleanedSubject = cleanSubjectForMatching(email.subject);
@@ -867,6 +874,9 @@ export default function Email() {
         return;
       }
       
+      // Use the passed body content, or fall back to state/snippet
+      const bodyContent = loadedBody || emailContent?.body || emailContent?.htmlBody || email.snippet || '';
+      
       // Call the parse-email-contacts edge function
       const { data, error } = await supabase.functions.invoke('parse-email-contacts', {
         body: {
@@ -875,7 +885,7 @@ export default function Email() {
             from: email.from,
             fromEmail: email.fromEmail,
             subject: email.subject,
-            body: emailContent?.body || email.snippet || '',
+            body: bodyContent,
             date: email.date
           }
         }
