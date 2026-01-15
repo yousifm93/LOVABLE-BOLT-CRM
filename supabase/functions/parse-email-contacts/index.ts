@@ -18,6 +18,8 @@ interface ExtractedContact {
   last_name: string | null;
   email: string;
   phone: string | null;
+  company: string | null;
+  suggested_tags: string[] | null;
   reason: string;
   confidence: number;
 }
@@ -86,6 +88,8 @@ For each contact found, extract:
 - last_name (optional but preferred)
 - email (required - must be a valid email address)
 - phone (optional - format as found)
+- company (optional - extract from email signature, email domain, or context, e.g., "Advantage Credit", "First American Title")
+- suggested_tags (optional array - suggest 1-3 relevant tags based on their role/company, e.g., ["Credit Report"], ["Title"], ["Insurance"], ["Appraiser"], ["Real Estate Agent"])
 - reason (brief explanation of why this contact is relevant)
 - confidence (0-100, how confident you are this is a valid business contact)
 
@@ -95,7 +99,7 @@ DO NOT extract:
 - Automated system emails
 - Contacts without a clear email address
 
-Return a JSON array of contacts. If no contacts are found, return an empty array [].`;
+Return a JSON object with a "contacts" array. If no contacts are found, return {"contacts": []}.`;
 
     const userPrompt = `Extract contacts from this email:
 
@@ -222,6 +226,8 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         last_name: contact.last_name,
         email: contact.email.toLowerCase(),
         phone: contact.phone,
+        company: contact.company,
+        suggested_tags: contact.suggested_tags,
         source_email_subject: emailContent.subject,
         source_email_from: emailContent.fromEmail,
         source_email_date: parsedEmailDate,

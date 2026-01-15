@@ -1853,6 +1853,7 @@ export type Database = {
       }
       email_contact_suggestions: {
         Row: {
+          company: string | null
           confidence: number | null
           created_at: string | null
           email: string
@@ -1869,9 +1870,11 @@ export type Database = {
           source_email_from: string | null
           source_email_subject: string | null
           status: string | null
+          suggested_tags: string[] | null
           updated_at: string | null
         }
         Insert: {
+          company?: string | null
           confidence?: number | null
           created_at?: string | null
           email: string
@@ -1888,9 +1891,11 @@ export type Database = {
           source_email_from?: string | null
           source_email_subject?: string | null
           status?: string | null
+          suggested_tags?: string[] | null
           updated_at?: string | null
         }
         Update: {
+          company?: string | null
           confidence?: number | null
           created_at?: string | null
           email?: string
@@ -1907,6 +1912,7 @@ export type Database = {
           source_email_from?: string | null
           source_email_subject?: string | null
           status?: string | null
+          suggested_tags?: string[] | null
           updated_at?: string | null
         }
         Relationships: [
