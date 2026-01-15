@@ -75,16 +75,24 @@ const columns: ColumnDef<any>[] = [
     },
   },
   {
+    accessorKey: "company",
+    header: "Company",
+    cell: ({ row }) => (
+      <span className="text-sm">{row.original.company || "—"}</span>
+    ),
+    sortable: true,
+  },
+  {
     accessorKey: "lead_created_date",
     header: "Contact Created Date",
     cell: ({ row }) => {
       const date = row.original.lead_created_date || row.original.created_at;
       if (!date) return <span className="text-sm">—</span>;
-      // Format as "JAN14" style - month abbreviation + day, no year
+      // Format as "Jan 15" style - title case month, space, day number
       const d = new Date(date);
-      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase();
+      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
       const day = d.getUTCDate();
-      return <span className="text-sm">{month}{day}</span>;
+      return <span className="text-sm">{month} {day}</span>;
     },
     sortable: true,
   },
@@ -93,14 +101,6 @@ const columns: ColumnDef<any>[] = [
     header: "Source",
     cell: ({ row }) => (
       <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => (
-      <StatusBadge status={row.original.status} />
     ),
     sortable: true,
   },
@@ -146,11 +146,11 @@ const columns: ColumnDef<any>[] = [
       // Use created_at as initial "last contact" date
       const date = row.original.lastContact || row.original.created_at;
       if (!date) return <span className="text-sm">—</span>;
-      return (
-        <span className="text-sm">
-          {new Date(date).toLocaleDateString()}
-        </span>
-      );
+      // Format as "Jan 15" style
+      const d = new Date(date);
+      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+      const day = d.getUTCDate();
+      return <span className="text-sm">{month} {day}</span>;
     },
     sortable: true,
   },

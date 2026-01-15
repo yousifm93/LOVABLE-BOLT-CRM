@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are an expert at extracting contact information from emails. 
+const systemPrompt = `You are an expert at extracting contact information from emails for a mortgage company CRM.
 Your task is to identify any contacts mentioned in the email that could be potential new business contacts.
 
 Look for:
@@ -88,8 +88,21 @@ For each contact found, extract:
 - last_name (optional but preferred)
 - email (required - must be a valid email address)
 - phone (optional - format as found)
-- company (optional - extract from email signature, email domain, or context, e.g., "Advantage Credit", "First American Title")
-- suggested_tags (optional array - suggest 1-3 relevant tags based on their role/company, e.g., ["Credit Report"], ["Title"], ["Insurance"], ["Appraiser"], ["Real Estate Agent"])
+- company (IMPORTANT - always try to extract this from:
+  - Email signature (most reliable)
+  - Email domain (e.g., "kristina@advcredit.com" → "Advantage Credit", "amy@harvestcref.com" → "Harvest CREF")
+  - Context in the email body
+  - Common mortgage industry companies: title companies, credit bureaus, insurance, appraisers, etc.)
+- suggested_tags (REQUIRED - always suggest 2-3 relevant tags based on their role/company. Examples:
+  - Credit companies: ["Credit Vendor", "Credit Report"]
+  - Banks/Lenders: ["Banker", "Wholesale Lender"]
+  - Title companies: ["Title", "Escrow", "Closing"]
+  - Insurance: ["Insurance", "Homeowners Insurance"]
+  - Appraisers: ["Appraiser", "Property Value"]
+  - Transaction coordinators: ["TC", "Transaction Coordinator"]
+  - Real estate attorneys: ["Attorney", "Legal"]
+  - Mortgage professionals: ["Mortgage", "Loan Officer"]
+  - Real estate agents: ["Real Estate Agent", "Realtor"])
 - reason (brief explanation of why this contact is relevant)
 - confidence (0-100, how confident you are this is a valid business contact)
 
