@@ -512,6 +512,7 @@ export default function Email() {
       // Fetch pending suggestion counts for File View badges
       const emailLogIds = (emailLogs || []).filter(l => l.lead_id).map(l => l.id);
       const lenderEmailLogIds = (emailLogs || []).filter(l => l.is_lender_marketing).map(l => l.id);
+      const allEmailLogIds = (emailLogs || []).map(l => l.id);
       
       // Fetch email field suggestions counts
       if (emailLogIds.length > 0) {
@@ -541,6 +542,23 @@ export default function Email() {
           lenderCountsMap.set(s.email_log_id, (lenderCountsMap.get(s.email_log_id) || 0) + 1);
         }
         setLenderFieldSuggestionsCount(lenderCountsMap);
+      }
+      
+      // Fetch contact suggestion counts for New Contacts view
+      if (allEmailLogIds.length > 0) {
+        const { data: contactSuggestions } = await supabase
+          .from('email_contact_suggestions')
+          .select('email_log_id')
+          .in('email_log_id', allEmailLogIds)
+          .eq('status', 'pending');
+        
+        const contactCountsMap = new Map<string, number>();
+        for (const s of contactSuggestions || []) {
+          if (s.email_log_id) {
+            contactCountsMap.set(s.email_log_id, (contactCountsMap.get(s.email_log_id) || 0) + 1);
+          }
+        }
+        setContactSuggestionsCount(contactCountsMap);
       }
     } catch (error) {
       console.error('Error fetching email tags:', error);
@@ -815,6 +833,76 @@ export default function Email() {
     setCommentText("");
     fetchEmailContent(email);
     fetchComments(email);
+    
+    // Trigger contact parsing if in "new-contacts" view
+    if (emailView === 'new-contacts') {
+      triggerContactParsing(email);
+    }
+  };
+  
+  // Trigger contact parsing for an email
+  const triggerContactParsing = async (email: EmailMessage) => {
+    try {
+      // First, try to find an existing email_log record to get emailLogId
+      const cleanedSubject = cleanSubjectForMatching(email.subject);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: emailLog, error: logError } = await supabase
+        .from('email_logs')
+        .select('id')
+        .ilike('subject', `%${cleanedSubject}%`)
+        .gte('timestamp', thirtyDaysAgo.toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (logError) {
+        console.error('Error finding email log:', logError);
+        return;
+      }
+      
+      if (!emailLog) {
+        console.log('No email log found for contact parsing');
+        return;
+      }
+      
+      // Call the parse-email-contacts edge function
+      const { data, error } = await supabase.functions.invoke('parse-email-contacts', {
+        body: {
+          emailLogId: emailLog.id,
+          emailContent: {
+            from: email.from,
+            fromEmail: email.fromEmail,
+            subject: email.subject,
+            body: emailContent?.body || email.snippet || '',
+            date: email.date
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Error parsing email for contacts:', error);
+        return;
+      }
+      
+      // Refresh contact suggestion counts if new suggestions were found
+      if (data?.newSuggestionsCount > 0) {
+        // Update the contact suggestions count for this email
+        setContactSuggestionsCount(prev => {
+          const updated = new Map(prev);
+          updated.set(emailLog.id, (updated.get(emailLog.id) || 0) + data.newSuggestionsCount);
+          return updated;
+        });
+        
+        toast({
+          title: "Contacts Found",
+          description: `Found ${data.newSuggestionsCount} potential new contact(s)`,
+        });
+      }
+    } catch (error) {
+      console.error('Error triggering contact parsing:', error);
+    }
   };
   const handleCompose = () => {
     setComposeData({
@@ -1325,6 +1413,10 @@ export default function Email() {
                   const pendingFieldCount = tagData ? (emailFieldSuggestionsCount.get(tagData.emailLogId) || 0) : 0;
                   const pendingLenderCount = marketingData ? (lenderFieldSuggestionsCount.get(marketingData.emailLogId) || 0) : 0;
                   
+                  // Get email log ID for NewContacts popover (use any matching tag or marketing data)
+                  const emailLogId = tagData?.emailLogId || marketingData?.emailLogId;
+                  const pendingContactCount = emailLogId ? (contactSuggestionsCount.get(emailLogId) || 0) : 0;
+                  
                   return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
                             <span className={cn("text-sm truncate flex-shrink-0", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
@@ -1337,6 +1429,15 @@ export default function Email() {
                                 </span>}
                               {tagData && <EmailTagPopover tagData={tagData} pendingSuggestionCount={pendingFieldCount} />}
                               {marketingData && <LenderMarketingPopover emailLogId={marketingData.emailLogId} category={marketingData.category} subject={email.subject} pendingSuggestionCount={pendingLenderCount} />}
+                              {/* Show NewContactsPopover in new-contacts view when email has an emailLogId */}
+                              {emailView === 'new-contacts' && emailLogId && (
+                                <NewContactsPopover 
+                                  emailLogId={emailLogId} 
+                                  subject={email.subject} 
+                                  fromEmail={email.fromEmail}
+                                  pendingSuggestionCount={pendingContactCount}
+                                />
+                              )}
                               {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                               {email.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
                             </div>

@@ -1269,10 +1269,29 @@ export const databaseService = {
   },
 
   async updateTask(id: string, updates: TaskUpdate) {
+    // Validate priority and status enum values before sending to Postgres
+    const processedUpdates = { ...updates };
+    
+    // Validate priority if present - must match task_priority enum
+    if ('priority' in processedUpdates && processedUpdates.priority !== undefined && processedUpdates.priority !== null) {
+      const validPriorities = ['Low', 'Medium', 'High', 'Critical'];
+      if (!validPriorities.includes(processedUpdates.priority as string)) {
+        throw new Error(`Invalid priority value: ${processedUpdates.priority}. Must be one of: ${validPriorities.join(', ')}`);
+      }
+    }
+    
+    // Validate status if present - must match task_status enum
+    if ('status' in processedUpdates && processedUpdates.status !== undefined && processedUpdates.status !== null) {
+      const validStatuses = ['To Do', 'In Progress', 'Done', 'Working on it', 'Need help'];
+      if (!validStatuses.includes(processedUpdates.status as string)) {
+        throw new Error(`Invalid status value: ${processedUpdates.status}. Must be one of: ${validStatuses.join(', ')}`);
+      }
+    }
+    
     const { data, error } = await supabase
       .from('tasks')
       .update({
-        ...updates,
+        ...processedUpdates,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
