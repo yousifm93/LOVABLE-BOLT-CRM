@@ -1554,13 +1554,11 @@ export function ClientDetailDrawer({
         updateData.converted = 'New';
       }
 
-      // If moving to Active, also update the pipeline_section to Incoming and set default loan_status
+      // If moving to Active, also update the pipeline_section to Incoming and always set loan_status to NEW
       if (normalizedLabel === 'Active') {
         updateData.pipeline_section = 'Incoming';
-        // Auto-assign NEW loan_status when moving to Active stage
-        if (!(client as any).loan_status) {
-          updateData.loan_status = 'NEW';
-        }
+        // Always set NEW loan_status when moving to Active stage (triggers task automations)
+        updateData.loan_status = 'NEW';
       }
       await databaseService.updateLead(leadId, updateData);
       toast({
