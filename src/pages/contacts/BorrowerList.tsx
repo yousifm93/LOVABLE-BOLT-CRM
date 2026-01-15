@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Contact } from "@/types/crm";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
@@ -39,22 +38,11 @@ const columns: ColumnDef<any>[] = [
       const fullName = contact.person ? 
         `${contact.person.firstName} ${contact.person.lastName}` : 
         `${contact.first_name} ${contact.last_name}`;
-      const initials = contact.person ? 
-        `${contact.person.firstName[0]}${contact.person.lastName[0]}` :
-        `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`;
       
       return (
-        <div className="flex items-center gap-3 pl-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={contact.person?.avatar} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">{fullName}</div>
-            <div className="text-sm text-muted-foreground">{contact.type}</div>
-          </div>
+        <div className="pl-2">
+          <div className="font-medium">{fullName}</div>
+          <div className="text-sm text-muted-foreground">{contact.type}</div>
         </div>
       );
     },
@@ -92,13 +80,11 @@ const columns: ColumnDef<any>[] = [
     cell: ({ row }) => {
       const date = row.original.lead_created_date || row.original.created_at;
       if (!date) return <span className="text-sm">—</span>;
-      // Use UTC parsing to avoid timezone shift for date-only fields
+      // Format as "JAN14" style - month abbreviation + day, no year
       const d = new Date(date);
-      return (
-        <span className="text-sm">
-          {d.toLocaleDateString('en-US', { timeZone: 'UTC' })}
-        </span>
-      );
+      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase();
+      const day = d.getUTCDate();
+      return <span className="text-sm">{month}{day}</span>;
     },
     sortable: true,
   },
@@ -107,16 +93,6 @@ const columns: ColumnDef<any>[] = [
     header: "Source",
     cell: ({ row }) => (
       <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "deals",
-    header: "Deals",
-    cell: ({ row }) => (
-      <div className="text-center">
-        <span className="font-medium">{row.original.deals || 0}</span>
-      </div>
     ),
     sortable: true,
   },

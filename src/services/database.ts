@@ -2305,11 +2305,36 @@ export const databaseService = {
         .from('contacts')
         .select('*');
       
-      // 2. Fetch from buyer_agents table (exclude soft-deleted)
-      const { data: agentsData, error: agentsError } = await supabase
-        .from('buyer_agents')
-        .select('*')
-        .is('deleted_at', null);
+      // 2. Fetch ALL from buyer_agents table (exclude soft-deleted) using pagination
+      // Supabase has a default limit of 1000, so we need to paginate
+      let allAgentsData: any[] = [];
+      let agentsError = null;
+      const pageSize = 1000;
+      let offset = 0;
+      
+      while (true) {
+        const { data: agentsBatch, error } = await supabase
+          .from('buyer_agents')
+          .select('*')
+          .is('deleted_at', null)
+          .range(offset, offset + pageSize - 1);
+        
+        if (error) {
+          agentsError = error;
+          break;
+        }
+        
+        if (!agentsBatch || agentsBatch.length === 0) break;
+        
+        allAgentsData = [...allAgentsData, ...agentsBatch];
+        
+        // If we got fewer than pageSize, we've reached the end
+        if (agentsBatch.length < pageSize) break;
+        
+        offset += pageSize;
+      }
+      
+      const agentsData = allAgentsData;
       
       // 3. Fetch from lenders table
       const { data: lendersData, error: lendersError } = await supabase
