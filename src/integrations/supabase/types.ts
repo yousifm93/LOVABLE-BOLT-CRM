@@ -933,6 +933,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          approval_status: string | null
           company: string | null
           created_at: string
           description: string | null
@@ -951,6 +952,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_status?: string | null
           company?: string | null
           created_at?: string
           description?: string | null
@@ -969,6 +971,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_status?: string | null
           company?: string | null
           created_at?: string
           description?: string | null

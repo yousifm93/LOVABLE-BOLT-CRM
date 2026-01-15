@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2 } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +78,12 @@ const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
 };
 
 // Build columns dynamically based on activeFilter
-const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] => {
+const getColumns = (
+  activeFilter: string, 
+  allContacts: any[], 
+  onApprove?: (contact: any) => void, 
+  onDeny?: (contact: any) => void
+): ColumnDef<any>[] => {
   const baseColumns: ColumnDef<any>[] = [
     {
       accessorKey: "name",
@@ -252,11 +257,46 @@ const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] 
     };
     // Find index of notes column and insert after it (between Notes and Description)
     const notesIndex = baseColumns.findIndex(col => col.accessorKey === 'notes');
-    if (notesIndex !== -1) {
-      return [...baseColumns.slice(0, notesIndex + 1), duplicateColumn, ...baseColumns.slice(notesIndex + 1)];
+    let columnsWithDuplicate = notesIndex !== -1 
+      ? [...baseColumns.slice(0, notesIndex + 1), duplicateColumn, ...baseColumns.slice(notesIndex + 1)]
+      : [...baseColumns.slice(0, 4), duplicateColumn, ...baseColumns.slice(4)];
+    
+    // Add Action column for "From Emails" tab with approve/deny buttons
+    if (activeFilter === 'From Emails' && onApprove && onDeny) {
+      const actionColumn: ColumnDef<any> = {
+        accessorKey: "actions",
+        header: "Action",
+        cell: ({ row }) => {
+          const contact = row.original;
+          // Only show buttons for pending email-imported contacts
+          if (contact.source_type !== 'email_import' || contact.approval_status !== 'pending') {
+            return <span className="text-xs text-green-600 font-medium">✓ Approved</span>;
+          }
+          return (
+            <div className="flex gap-1">
+              <button 
+                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-green-600 hover:bg-green-50 transition-colors"
+                onClick={(e) => { e.stopPropagation(); onApprove(contact); }}
+                title="Approve contact"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button 
+                className="h-6 w-6 p-0 inline-flex items-center justify-center rounded text-red-600 hover:bg-red-50 transition-colors"
+                onClick={(e) => { e.stopPropagation(); onDeny(contact); }}
+                title="Remove contact"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          );
+        },
+      };
+      // Insert action column at the beginning
+      columnsWithDuplicate = [actionColumn, ...columnsWithDuplicate];
     }
-    // Fallback: insert after company column
-    return [...baseColumns.slice(0, 4), duplicateColumn, ...baseColumns.slice(4)];
+    
+    return columnsWithDuplicate;
   }
 
   return baseColumns;
@@ -466,6 +506,56 @@ export default function BorrowerList() {
     }
   };
 
+  // Approve email-imported contact
+  const handleApproveContact = async (contact: any) => {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({ approval_status: 'approved' })
+        .eq('id', contact.source_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Contact Approved",
+        description: `${contact.first_name} ${contact.last_name} has been approved.`,
+      });
+      loadContacts();
+    } catch (error) {
+      console.error('Error approving contact:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve contact.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Deny/remove email-imported contact
+  const handleDenyContact = async (contact: any) => {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', contact.source_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Contact Removed",
+        description: `${contact.first_name} ${contact.last_name} has been removed.`,
+      });
+      loadContacts();
+    } catch (error) {
+      console.error('Error removing contact:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove contact.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getFilteredContacts = () => {
     if (activeFilter === 'All') return contacts;
     if (activeFilter === 'From Emails') {
@@ -601,7 +691,7 @@ export default function BorrowerList() {
             </div>
           )}
           <DataTable
-            columns={getColumns(activeFilter, contacts)}
+            columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
             data={displayData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
