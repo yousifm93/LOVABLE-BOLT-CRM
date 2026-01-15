@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
+import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { Contact } from "@/types/crm";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
@@ -14,6 +14,19 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+
+// Format phone number as (XXX) XXX-XXXX
+const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return "—";
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+  return phone; // Return original if format doesn't match
+};
 
 // Map source to display name
 const getSourceDisplayName = (source: string, type?: string, sourceType?: string): string => {
@@ -67,9 +80,9 @@ const columns: ColumnDef<any>[] = [
     cell: ({ row }) => {
       const phone = row.original.person?.phoneMobile || row.original.phone;
       return (
-        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-          <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-          <span className="truncate">{phone || "—"}</span>
+        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+          <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+          <span className="truncate">{formatPhoneNumber(phone)}</span>
         </div>
       );
     },
@@ -177,6 +190,10 @@ export default function BorrowerList() {
   const [contactToDelete, setContactToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Selection state for bulk operations
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -315,6 +332,47 @@ export default function BorrowerList() {
     }
   };
 
+  const handleBulkDelete = () => {
+    setIsBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    setIsDeleting(true);
+    try {
+      for (const contactId of selectedContactIds) {
+        const contact = contacts.find(c => (c.source_id || c.id) === contactId);
+        if (!contact) continue;
+        
+        if (contact.source === 'buyer_agents') {
+          await supabase.from('buyer_agents')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', contact.source_id);
+        } else if (contact.source === 'lenders') {
+          await supabase.from('lenders').delete().eq('id', contact.source_id);
+        } else if (contact.source === 'contacts') {
+          await supabase.from('contacts').delete().eq('id', contact.source_id);
+        }
+        // Skip leads - they can't be bulk deleted from here
+      }
+      toast({ 
+        title: "Deleted", 
+        description: `${selectedContactIds.length} contact(s) deleted successfully.` 
+      });
+      setSelectedContactIds([]);
+      loadContacts();
+    } catch (error) {
+      console.error('Error deleting contacts:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to delete some contacts.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsBulkDeleteDialogOpen(false);
+    }
+  };
+
   const getFilteredContacts = () => {
     if (activeFilter === 'All') return contacts;
     if (activeFilter === 'Emails') {
@@ -436,6 +494,19 @@ export default function BorrowerList() {
           </div>
         </CardHeader>
         <CardContent>
+          {selectedContactIds.length > 0 && (
+            <div className="flex items-center gap-3 mb-4 p-3 bg-muted rounded-lg">
+              <span className="text-sm font-medium">
+                {selectedContactIds.length} contact(s) selected
+              </span>
+              <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Selected
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedContactIds([])}>
+                Clear Selection
+              </Button>
+            </div>
+          )}
           <DataTable
             columns={columns}
             data={displayData}
@@ -444,6 +515,11 @@ export default function BorrowerList() {
             onViewDetails={handleViewDetails}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectable={true}
+            selectedIds={selectedContactIds}
+            onSelectionChange={setSelectedContactIds}
+            getRowId={(row) => row.source_id || row.id}
+            showRowNumbers={true}
           />
         </CardContent>
       </Card>
@@ -491,6 +567,15 @@ export default function BorrowerList() {
         isLoading={isDeleting}
         title="Delete Contact"
         description={`Are you sure you want to delete ${contactToDelete?.first_name} ${contactToDelete?.last_name}? This action cannot be undone.`}
+      />
+
+      <DeleteConfirmationDialog
+        open={isBulkDeleteDialogOpen}
+        onOpenChange={setIsBulkDeleteDialogOpen}
+        onConfirm={confirmBulkDelete}
+        isLoading={isDeleting}
+        title="Delete Selected Contacts"
+        description={`Are you sure you want to delete ${selectedContactIds.length} selected contact(s)? This action cannot be undone.`}
       />
     </div>
   );
