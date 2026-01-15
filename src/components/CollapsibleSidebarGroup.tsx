@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface CollapsibleSidebarGroupProps {
@@ -10,6 +11,7 @@ interface CollapsibleSidebarGroupProps {
   defaultOpen?: boolean;
   className?: string;
   locked?: boolean;
+  badgeCount?: number;
 }
 
 export function CollapsibleSidebarGroup({ 
@@ -18,6 +20,7 @@ export function CollapsibleSidebarGroup({
   defaultOpen = true,
   className,
   locked = false,
+  badgeCount,
 }: CollapsibleSidebarGroupProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -30,6 +33,11 @@ export function CollapsibleSidebarGroup({
         )}>
           {title}
           {locked && <Lock className="h-3 w-3" />}
+          {!locked && badgeCount && badgeCount > 0 && (
+            <Badge variant="destructive" className="h-4 min-w-4 px-1 text-xs">
+              {badgeCount}
+            </Badge>
+          )}
         </span>
         {!locked && (
           <Button

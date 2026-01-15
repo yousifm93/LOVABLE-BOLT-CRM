@@ -156,9 +156,19 @@ const getColumns = (
         const date = row.original.lead_created_date || row.original.created_at;
         if (!date) return <span className="text-sm">—</span>;
         const d = new Date(date);
-        const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-        const day = d.getUTCDate();
-        return <span className="text-sm">{month} {day}</span>;
+        const month = d.toLocaleDateString('en-US', { month: 'short' });
+        const day = d.getDate();
+        const time = d.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        return (
+          <div className="text-sm">
+            <div>{month} {day}</div>
+            <div className="text-muted-foreground text-xs">{time}</div>
+          </div>
+        );
       },
       sortable: true,
     },
