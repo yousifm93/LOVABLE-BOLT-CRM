@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Filter, Phone, Mail, User, MapPin, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +8,17 @@ import { DataTable, StatusBadge, ColumnDef } from "@/components/ui/data-table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Contact } from "@/types/crm";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
+import { AgentDetailDialog } from "@/components/AgentDetailDialog";
+import { LenderDetailDialog } from "@/components/LenderDetailDialog";
+import { ContactDetailDialog } from "@/components/ContactDetailDialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 // Map source to display name
-const getSourceDisplayName = (source: string, type?: string): string => {
+const getSourceDisplayName = (source: string, type?: string, sourceType?: string): string => {
+  if (sourceType === 'email_import') return 'From Emails';
   const sourceMap: Record<string, string> = {
     'buyer_agents': 'Real Estate Agent',
     'lenders': 'Approved Lenders',
@@ -25,6 +32,7 @@ const columns: ColumnDef<any>[] = [
   {
     accessorKey: "name",
     header: "Contact Name",
+    headerClassName: "text-left",
     cell: ({ row }) => {
       const contact = row.original;
       const fullName = contact.person ? 
@@ -35,7 +43,7 @@ const columns: ColumnDef<any>[] = [
         `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`;
       
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pl-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={contact.person?.avatar} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
@@ -94,7 +102,7 @@ const columns: ColumnDef<any>[] = [
     accessorKey: "source",
     header: "Source",
     cell: ({ row }) => (
-      <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type)}</span>
+      <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
     ),
     sortable: true,
   },
@@ -103,7 +111,7 @@ const columns: ColumnDef<any>[] = [
     header: "Deals",
     cell: ({ row }) => (
       <div className="text-center">
-        <span className="font-medium">{row.original.deals}</span>
+        <span className="font-medium">{row.original.deals || 0}</span>
       </div>
     ),
     sortable: true,
@@ -138,6 +146,20 @@ const columns: ColumnDef<any>[] = [
     ),
   },
   {
+    accessorKey: "notes",
+    header: "Notes",
+    cell: ({ row }) => (
+      <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+        {row.original.notes ? (
+          <span className="flex items-center gap-1">
+            <FileText className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{row.original.notes}</span>
+          </span>
+        ) : "—"}
+      </div>
+    ),
+  },
+  {
     accessorKey: "lastContact",
     header: "Last Contact",
     sortable: true,
@@ -145,12 +167,26 @@ const columns: ColumnDef<any>[] = [
 ];
 
 export default function BorrowerList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const { toast } = useToast();
+
+  // Detail dialogs state
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [isAgentDialogOpen, setIsAgentDialogOpen] = useState(false);
+  const [selectedLender, setSelectedLender] = useState<any>(null);
+  const [isLenderDialogOpen, setIsLenderDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+
+  // Delete dialog state
+  const [contactToDelete, setContactToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -179,18 +215,131 @@ export default function BorrowerList() {
   };
 
   const handleRowClick = (contact: any) => {
-    console.log("View contact details:", contact);
+    handleViewDetails(contact);
   };
 
-  const filteredContacts = activeFilter === 'All' 
-    ? contacts 
-    : contacts.filter(c => c.type === activeFilter);
+  const handleViewDetails = async (contact: any) => {
+    if (contact.source === 'buyer_agents') {
+      // Fetch full agent data
+      const { data: agentData, error } = await supabase
+        .from('buyer_agents')
+        .select('*')
+        .eq('id', contact.source_id)
+        .single();
+      
+      if (!error && agentData) {
+        setSelectedAgent(agentData);
+        setIsAgentDialogOpen(true);
+      }
+    } else if (contact.source === 'lenders') {
+      // Fetch full lender data
+      const { data: lenderData, error } = await supabase
+        .from('lenders')
+        .select('*')
+        .eq('id', contact.source_id)
+        .single();
+      
+      if (!error && lenderData) {
+        setSelectedLender(lenderData);
+        setIsLenderDialogOpen(true);
+      }
+    } else if (contact.source === 'leads') {
+      // Navigate to lead details page
+      navigate(`/active?leadId=${contact.source_id}`);
+    } else {
+      // For contacts table entries, open contact dialog
+      const { data: contactData, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('id', contact.source_id)
+        .single();
+      
+      if (!error && contactData) {
+        setSelectedContact(contactData);
+        setIsContactDialogOpen(true);
+      }
+    }
+  };
 
+  const handleEdit = (contact: any) => {
+    // Same as view details for now - opens the appropriate dialog
+    handleViewDetails(contact);
+  };
+
+  const handleDelete = (contact: any) => {
+    setContactToDelete(contact);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!contactToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      if (contactToDelete.source === 'buyer_agents') {
+        // Soft delete agent
+        await supabase
+          .from('buyer_agents')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', contactToDelete.source_id);
+      } else if (contactToDelete.source === 'lenders') {
+        // Delete lender
+        await supabase
+          .from('lenders')
+          .delete()
+          .eq('id', contactToDelete.source_id);
+      } else if (contactToDelete.source === 'contacts') {
+        // Delete contact
+        await supabase
+          .from('contacts')
+          .delete()
+          .eq('id', contactToDelete.source_id);
+      } else if (contactToDelete.source === 'leads') {
+        // Don't allow deleting leads from here
+        toast({
+          title: "Cannot delete",
+          description: "Borrowers cannot be deleted from the Master Contact List. Please use the pipeline view.",
+          variant: "destructive"
+        });
+        setIsDeleting(false);
+        setIsDeleteDialogOpen(false);
+        return;
+      }
+
+      toast({
+        title: "Deleted",
+        description: "Contact deleted successfully.",
+      });
+      loadContacts();
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete contact.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setContactToDelete(null);
+    }
+  };
+
+  const getFilteredContacts = () => {
+    if (activeFilter === 'All') return contacts;
+    if (activeFilter === 'From Emails') {
+      return contacts.filter(c => c.source_type === 'email_import');
+    }
+    return contacts.filter(c => c.type === activeFilter);
+  };
+
+  const filteredContacts = getFilteredContacts();
   const displayData = filteredContacts;
   const borrowerCount = contacts.filter((c: any) => c.type === 'Borrower').length;
   const agentCount = contacts.filter((c: any) => c.type === 'Agent').length;
   const lenderCount = contacts.filter((c: any) => c.type === 'Lender').length;
-  const otherCount = contacts.filter((c: any) => !['Borrower', 'Agent', 'Lender'].includes(c.type)).length;
+  const fromEmailsCount = contacts.filter((c: any) => c.source_type === 'email_import').length;
+  const otherCount = contacts.filter((c: any) => !['Borrower', 'Agent', 'Lender'].includes(c.type) && c.source_type !== 'email_import').length;
 
   return (
     <div className="pl-4 pr-0 pt-2 pb-0 space-y-2">
@@ -254,8 +403,8 @@ export default function BorrowerList() {
       <Card className="bg-gradient-card shadow-soft">
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
-          <div className="flex gap-2 mb-4">
-            {['All', 'Borrower', 'Agent', 'Lender', 'Other'].map(filter => (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {['All', 'Borrower', 'Agent', 'Lender', 'From Emails', 'Other'].map(filter => (
               <Button
                 key={filter}
                 variant={activeFilter === filter ? 'default' : 'outline'}
@@ -267,6 +416,7 @@ export default function BorrowerList() {
                 {filter === 'Borrower' && ` (${borrowerCount})`}
                 {filter === 'Agent' && ` (${agentCount})`}
                 {filter === 'Lender' && ` (${lenderCount})`}
+                {filter === 'From Emails' && ` (${fromEmailsCount})`}
                 {filter === 'Other' && ` (${otherCount})`}
               </Button>
             ))}
@@ -301,14 +451,56 @@ export default function BorrowerList() {
             data={displayData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         </CardContent>
       </Card>
       
-        <CreateContactModal
+      <CreateContactModal
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onContactCreated={handleContactCreated}
+      />
+
+      <AgentDetailDialog
+        agent={selectedAgent}
+        isOpen={isAgentDialogOpen}
+        onClose={() => {
+          setIsAgentDialogOpen(false);
+          setSelectedAgent(null);
+        }}
+        onAgentUpdated={loadContacts}
+      />
+
+      <LenderDetailDialog
+        lender={selectedLender}
+        isOpen={isLenderDialogOpen}
+        onClose={() => {
+          setIsLenderDialogOpen(false);
+          setSelectedLender(null);
+        }}
+        onLenderUpdated={loadContacts}
+      />
+
+      <ContactDetailDialog
+        contact={selectedContact}
+        isOpen={isContactDialogOpen}
+        onClose={() => {
+          setIsContactDialogOpen(false);
+          setSelectedContact(null);
+        }}
+        onContactUpdated={loadContacts}
+      />
+
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        title="Delete Contact"
+        description={`Are you sure you want to delete ${contactToDelete?.first_name} ${contactToDelete?.last_name}? This action cannot be undone.`}
       />
     </div>
   );

@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { EmailTagPopover } from "@/components/email/EmailTagPopover";
 import { LenderMarketingPopover } from "@/components/email/LenderMarketingPopover";
+import { NewContactsPopover } from "@/components/email/NewContactsPopover";
 import { CalendarPanel } from "@/components/email/CalendarPanel";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable, DragStartEvent } from '@dnd-kit/core';
 import { format } from "date-fns";
@@ -411,7 +412,8 @@ export default function Email() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEmail, selectedFolder, isArchiving, toast, emailTagsMap, lenderMarketingMap]);
-  const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing'>('main');
+  const [emailView, setEmailView] = useState<'main' | 'file' | 'lender-marketing' | 'new-contacts'>('main');
+  const [contactSuggestionsCount, setContactSuggestionsCount] = useState<Map<string, number>>(new Map());
 
   // Fetch email categories from database
   const fetchEmailCategories = useCallback(async () => {
@@ -1251,6 +1253,9 @@ export default function Email() {
                   </Button>
                   <Button variant={emailView === 'lender-marketing' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('lender-marketing')} className="h-7 text-xs px-3">
                     Lender Marketing
+                  </Button>
+                  <Button variant={emailView === 'new-contacts' ? 'default' : 'outline'} size="sm" onClick={() => setEmailView('new-contacts')} className="h-7 text-xs px-3">
+                    New Contacts
                   </Button>
                 </div>}
             </div>
