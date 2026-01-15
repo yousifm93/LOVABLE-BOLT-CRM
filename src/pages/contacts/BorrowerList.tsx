@@ -18,7 +18,8 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 
 // Map source to display name
 const getSourceDisplayName = (source: string, type?: string, sourceType?: string): string => {
-  if (sourceType === 'email_import') return 'From Emails';
+  // Prioritize email_import source type
+  if (sourceType === 'email_import') return 'Emails';
   const sourceMap: Record<string, string> = {
     'buyer_agents': 'Real Estate Agent',
     'lenders': 'Approved Lenders',
@@ -89,10 +90,13 @@ const columns: ColumnDef<any>[] = [
     accessorKey: "lead_created_date",
     header: "Contact Created Date",
     cell: ({ row }) => {
-      const date = row.original.lead_created_date;
+      const date = row.original.lead_created_date || row.original.created_at;
+      if (!date) return <span className="text-sm">—</span>;
+      // Use UTC parsing to avoid timezone shift for date-only fields
+      const d = new Date(date);
       return (
         <span className="text-sm">
-          {date ? new Date(date).toLocaleDateString() : "—"}
+          {d.toLocaleDateString('en-US', { timeZone: 'UTC' })}
         </span>
       );
     },
@@ -162,6 +166,16 @@ const columns: ColumnDef<any>[] = [
   {
     accessorKey: "lastContact",
     header: "Last Contact",
+    cell: ({ row }) => {
+      // Use created_at as initial "last contact" date
+      const date = row.original.lastContact || row.original.created_at;
+      if (!date) return <span className="text-sm">—</span>;
+      return (
+        <span className="text-sm">
+          {new Date(date).toLocaleDateString()}
+        </span>
+      );
+    },
     sortable: true,
   },
 ];
@@ -327,7 +341,7 @@ export default function BorrowerList() {
 
   const getFilteredContacts = () => {
     if (activeFilter === 'All') return contacts;
-    if (activeFilter === 'From Emails') {
+    if (activeFilter === 'Emails') {
       return contacts.filter(c => c.source_type === 'email_import');
     }
     return contacts.filter(c => c.type === activeFilter);
@@ -404,7 +418,7 @@ export default function BorrowerList() {
         <CardHeader>
           <CardTitle>All Contacts</CardTitle>
           <div className="flex gap-2 mb-4 flex-wrap">
-            {['All', 'Borrower', 'Agent', 'Lender', 'From Emails', 'Other'].map(filter => (
+            {['All', 'Borrower', 'Agent', 'Lender', 'Emails', 'Other'].map(filter => (
               <Button
                 key={filter}
                 variant={activeFilter === filter ? 'default' : 'outline'}
@@ -416,7 +430,7 @@ export default function BorrowerList() {
                 {filter === 'Borrower' && ` (${borrowerCount})`}
                 {filter === 'Agent' && ` (${agentCount})`}
                 {filter === 'Lender' && ` (${lenderCount})`}
-                {filter === 'From Emails' && ` (${fromEmailsCount})`}
+                {filter === 'Emails' && ` (${fromEmailsCount})`}
                 {filter === 'Other' && ` (${otherCount})`}
               </Button>
             ))}

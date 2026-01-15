@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, User, Check, X, Plus, Mail, Phone } from "lucide-react";
+import { Loader2, User, Check, X, Plus, Mail, Phone, Building2, Tag } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ interface ContactSuggestion {
   last_name: string | null;
   email: string;
   phone: string | null;
+  company: string | null;
+  suggested_tags: string[] | null;
   source_email_subject: string | null;
   source_email_from: string | null;
   source_email_date: string | null;
@@ -66,8 +68,11 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
   const handleApproveSuggestion = async (suggestion: ContactSuggestion) => {
     setProcessingIds(prev => new Set(prev).add(suggestion.id));
     try {
-      // Create the contact
+      // Create the contact with all available data
       const noteText = `Added from email: "${suggestion.source_email_subject || subject}" from ${suggestion.source_email_from || fromEmail}${suggestion.source_email_date ? ` on ${new Date(suggestion.source_email_date).toLocaleDateString()}` : ''}.`;
+      
+      // Use today's date for lead_created_date to avoid timezone issues
+      const today = new Date().toISOString().split('T')[0];
       
       const { error: insertError } = await supabase
         .from('contacts')
@@ -76,10 +81,12 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
           last_name: suggestion.last_name || '',
           email: suggestion.email,
           phone: suggestion.phone,
+          company: suggestion.company,
+          tags: suggestion.suggested_tags,
           type: 'Other',
           source_type: 'email_import',
           notes: noteText,
-          lead_created_date: new Date().toISOString()
+          lead_created_date: today
         });
 
       if (insertError) throw insertError;
@@ -229,7 +236,23 @@ export function NewContactsPopover({ emailLogId, subject, fromEmail, className, 
                                   <span>{suggestion.phone}</span>
                                 </div>
                               )}
+                              {suggestion.company && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  <span>{suggestion.company}</span>
+                                </div>
+                              )}
                             </div>
+                            {suggestion.suggested_tags && suggestion.suggested_tags.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                <Tag className="h-3 w-3 text-muted-foreground" />
+                                {suggestion.suggested_tags.map((tag, idx) => (
+                                  <span key={idx} className="text-[10px] px-1.5 py-0.5 bg-accent/30 text-accent-foreground rounded">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             {suggestion.reason && (
                               <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
                                 {suggestion.reason}
