@@ -52,7 +52,7 @@ import { usePermissions, UserPermissions } from "@/hooks/usePermissions";
 
 interface SearchResult {
   id: string;
-  type: 'lead' | 'agent' | 'lender';
+  type: 'lead' | 'agent' | 'lender' | 'contact';
   name: string;
   subtext?: string;
   pipelineStageId?: string;
@@ -209,6 +209,22 @@ export function AppSidebar() {
         })));
       }
       
+      // Search contacts (master contact list)
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id, first_name, last_name, email, type')
+        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+        .limit(5);
+      
+      if (contacts) {
+        results.push(...contacts.map(c => ({
+          id: c.id,
+          type: 'contact' as const,
+          name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
+          subtext: c.type || c.email || undefined,
+        })));
+      }
+      
       setSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
@@ -262,6 +278,9 @@ export function AppSidebar() {
         break;
       case 'lender':
         navigate(`/contacts/lenders?openLender=${result.id}`);
+        break;
+      case 'contact':
+        navigate(`/contacts/borrowers?openContact=${result.id}`);
         break;
     }
   };
