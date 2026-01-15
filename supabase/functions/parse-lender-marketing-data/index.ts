@@ -46,6 +46,11 @@ interface LenderMarketingData {
   product_doctor_loan: string | null;
   product_interest_only: string | null;
   property_types: string[];
+  // Account Executive fields
+  account_executive_first_name: string | null;
+  account_executive_last_name: string | null;
+  account_executive_email: string | null;
+  account_executive_phone: string | null;
 }
 
 interface LenderFieldSuggestion {
@@ -109,6 +114,12 @@ Data points to extract:
 - property_types: Array of property types allowed (e.g., ["Warehouse", "Office Space", "Retail", "Mixed Use", "Industrial"])
 - notes: Any other important details not captured above
 
+Account Executive fields (extract from email signature, sender info, or explicit mentions):
+- account_executive_first_name: First name of the account executive/sender
+- account_executive_last_name: Last name of the account executive/sender
+- account_executive_email: Email address of the account executive (from signature or "From" header)
+- account_executive_phone: Phone number of the account executive (from signature)
+
 Product fields (Y for Yes, N for No, TBD if unclear, null if not mentioned):
 - product_conventional, product_fha, product_va, product_usda, product_dscr, product_bank_statement
 - product_p_l, product_1099, product_asset_depletion, product_foreign_national, product_itin
@@ -119,7 +130,8 @@ Product fields (Y for Yes, N for No, TBD if unclear, null if not mentioned):
 IMPORTANT: 
 - Only extract data that is explicitly stated in the email. Do not infer or make up values.
 - The lender_name should be the company sending the email, not a generic description.
-- For product fields, set to "Y" if the email explicitly mentions offering that product.`
+- For product fields, set to "Y" if the email explicitly mentions offering that product.
+- Look for account executive info in email signatures, sender name, "From:" headers, and explicit "Account Executive:" lines.`
           },
           {
             role: 'user',
@@ -172,6 +184,10 @@ IMPORTANT:
                   product_commercial: { type: 'string', nullable: true },
                   product_doctor_loan: { type: 'string', nullable: true },
                   product_interest_only: { type: 'string', nullable: true },
+                  account_executive_first_name: { type: 'string', nullable: true, description: 'First name of account executive from signature/sender' },
+                  account_executive_last_name: { type: 'string', nullable: true, description: 'Last name of account executive from signature/sender' },
+                  account_executive_email: { type: 'string', nullable: true, description: 'Email of account executive from signature' },
+                  account_executive_phone: { type: 'string', nullable: true, description: 'Phone of account executive from signature' },
                   ai_summary: { type: 'string', description: 'Brief 1-2 sentence summary of what this email is about' }
                 },
                 required: ['products', 'special_features', 'restrictions'],
