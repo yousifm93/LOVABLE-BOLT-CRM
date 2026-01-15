@@ -41,133 +41,192 @@ const getSourceDisplayName = (source: string, type?: string, sourceType?: string
   return sourceMap[source] || 'Other';
 };
 
-const columns: ColumnDef<any>[] = [
-  {
-    accessorKey: "name",
-    header: "Contact Name",
-    headerClassName: "text-left",
-    cell: ({ row }) => {
-      const contact = row.original;
-      const fullName = contact.person ? 
-        `${contact.person.firstName} ${contact.person.lastName}` : 
-        `${contact.first_name} ${contact.last_name}`;
-      
-      return (
-        <div className="pl-2">
-          <div className="font-medium">{fullName}</div>
-          <div className="text-sm text-muted-foreground">{contact.type}</div>
+// Duplicate detection function
+const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
+  return allContacts.some(other => {
+    // Don't compare to self
+    if ((other.source_id || other.id) === (contact.source_id || contact.id)) return false;
+    
+    // Only check against non-"Other" contacts (agents, lenders, borrowers)
+    if (other.source === 'contacts' && other.source_type === 'email_import') return false;
+    
+    // Check exact first+last name match (both must match together)
+    const contactFirstName = contact.first_name?.toLowerCase().trim();
+    const contactLastName = contact.last_name?.toLowerCase().trim();
+    const otherFirstName = other.first_name?.toLowerCase().trim();
+    const otherLastName = other.last_name?.toLowerCase().trim();
+    
+    const nameMatch = 
+      contactFirstName && contactLastName &&
+      otherFirstName && otherLastName &&
+      contactFirstName === otherFirstName &&
+      contactLastName === otherLastName;
+    
+    // Check email match
+    const contactEmail = contact.email?.toLowerCase().trim();
+    const otherEmail = other.email?.toLowerCase().trim();
+    const emailMatch = contactEmail && otherEmail && contactEmail === otherEmail;
+    
+    // Check phone match (normalize by removing non-digits)
+    const normalizePhone = (p: string | null | undefined) => p?.replace(/\D/g, '') || '';
+    const contactPhone = normalizePhone(contact.phone);
+    const otherPhone = normalizePhone(other.phone);
+    const phoneMatch = contactPhone.length >= 10 && otherPhone.length >= 10 && contactPhone === otherPhone;
+    
+    return nameMatch || emailMatch || phoneMatch;
+  });
+};
+
+// Build columns dynamically based on activeFilter
+const getColumns = (activeFilter: string, allContacts: any[]): ColumnDef<any>[] => {
+  const baseColumns: ColumnDef<any>[] = [
+    {
+      accessorKey: "name",
+      header: "Contact Name",
+      headerClassName: "text-left",
+      cell: ({ row }) => {
+        const contact = row.original;
+        const fullName = contact.person ? 
+          `${contact.person.firstName} ${contact.person.lastName}` : 
+          `${contact.first_name} ${contact.last_name}`;
+        
+        return (
+          <div className="pl-2">
+            <div className="font-medium">{fullName}</div>
+            <div className="text-sm text-muted-foreground">{contact.type}</div>
+          </div>
+        );
+      },
+      sortable: true,
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => {
+        const email = row.original.person?.email || row.original.email;
+        return (
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{email || "—"}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => {
+        const phone = row.original.person?.phoneMobile || row.original.phone;
+        return (
+          <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+            <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{formatPhoneNumber(phone)}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "company",
+      header: "Company",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.company || "—"}</span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "lead_created_date",
+      header: "Contact Created Date",
+      cell: ({ row }) => {
+        const date = row.original.lead_created_date || row.original.created_at;
+        if (!date) return <span className="text-sm">—</span>;
+        const d = new Date(date);
+        const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+        const day = d.getUTCDate();
+        return <span className="text-sm">{month} {day}</span>;
+      },
+      sortable: true,
+    },
+    {
+      accessorKey: "source",
+      header: "Source",
+      cell: ({ row }) => (
+        <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
+      ),
+      sortable: true,
+    },
+    {
+      accessorKey: "tags",
+      header: "Tags",
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1">
+          {row.original.tags?.slice(0, 2).map((tag: string, index: number) => (
+            <span
+              key={index}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-accent/20 text-accent-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+          {(row.original.tags?.length || 0) > 2 && (
+            <span className="text-xs text-muted-foreground">
+              +{(row.original.tags?.length || 0) - 2} more
+            </span>
+          )}
         </div>
-      );
+      ),
     },
-    sortable: true,
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => {
-      const email = row.original.person?.email || row.original.email;
-      return (
-        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-          <Mail className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{email || "—"}</span>
+    {
+      accessorKey: "notes",
+      header: "Notes",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+          {row.original.notes ? (
+            <span className="flex items-center gap-1">
+              <FileText className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{row.original.notes}</span>
+            </span>
+          ) : "—"}
         </div>
-      );
+      ),
     },
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-    cell: ({ row }) => {
-      const phone = row.original.person?.phoneMobile || row.original.phone;
-      return (
-        <div className="flex items-center text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-          <Phone className="h-3 w-3 mr-2 text-muted-foreground flex-shrink-0" />
-          <span className="truncate">{formatPhoneNumber(phone)}</span>
-        </div>
-      );
+    {
+      accessorKey: "lastContact",
+      header: "Last Contact",
+      cell: ({ row }) => {
+        // For email imports, use lead_created_date as the "last contact"
+        const date = row.original.source_type === 'email_import' 
+          ? row.original.lead_created_date 
+          : (row.original.lastContact || row.original.lead_created_date || row.original.created_at);
+        if (!date) return <span className="text-sm">—</span>;
+        const d = new Date(date);
+        const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+        const day = d.getUTCDate();
+        return <span className="text-sm">{month} {day}</span>;
+      },
+      sortable: true,
     },
-  },
-  {
-    accessorKey: "company",
-    header: "Company",
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.company || "—"}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "lead_created_date",
-    header: "Contact Created Date",
-    cell: ({ row }) => {
-      const date = row.original.lead_created_date || row.original.created_at;
-      if (!date) return <span className="text-sm">—</span>;
-      // Format as "Jan 15" style - title case month, space, day number
-      const d = new Date(date);
-      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-      const day = d.getUTCDate();
-      return <span className="text-sm">{month} {day}</span>;
-    },
-    sortable: true,
-  },
-  {
-    accessorKey: "source",
-    header: "Source",
-    cell: ({ row }) => (
-      <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
-    ),
-    sortable: true,
-  },
-  {
-    accessorKey: "tags",
-    header: "Tags",
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.tags?.slice(0, 2).map((tag: string, index: number) => (
-          <span
-            key={index}
-            className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-accent/20 text-accent-foreground"
-          >
-            {tag}
+  ];
+
+  // Add "Duplicate?" column only for "Other" tab
+  if (activeFilter === 'Other') {
+    const duplicateColumn: ColumnDef<any> = {
+      accessorKey: "is_duplicate",
+      header: "Duplicate?",
+      cell: ({ row }) => {
+        const isDuplicate = checkIsDuplicate(row.original, allContacts);
+        return (
+          <span className={`text-sm font-medium ${isDuplicate ? "text-destructive" : "text-muted-foreground"}`}>
+            {isDuplicate ? "Yes" : "No"}
           </span>
-        ))}
-        {(row.original.tags?.length || 0) > 2 && (
-          <span className="text-xs text-muted-foreground">
-            +{(row.original.tags?.length || 0) - 2} more
-          </span>
-        )}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "notes",
-    header: "Notes",
-    cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-        {row.original.notes ? (
-          <span className="flex items-center gap-1">
-            <FileText className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate">{row.original.notes}</span>
-          </span>
-        ) : "—"}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "lastContact",
-    header: "Last Contact",
-    cell: ({ row }) => {
-      // Use created_at as initial "last contact" date
-      const date = row.original.lastContact || row.original.created_at;
-      if (!date) return <span className="text-sm">—</span>;
-      // Format as "Jan 15" style
-      const d = new Date(date);
-      const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-      const day = d.getUTCDate();
-      return <span className="text-sm">{month} {day}</span>;
-    },
-    sortable: true,
-  },
-];
+        );
+      },
+    };
+    // Insert after company column (index 3)
+    return [...baseColumns.slice(0, 4), duplicateColumn, ...baseColumns.slice(4)];
+  }
+
+  return baseColumns;
+};
 
 export default function BorrowerList() {
   const navigate = useNavigate();
@@ -508,7 +567,7 @@ export default function BorrowerList() {
             </div>
           )}
           <DataTable
-            columns={columns}
+            columns={getColumns(activeFilter, contacts)}
             data={displayData}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
