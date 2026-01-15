@@ -94,13 +94,14 @@ const getColumns = (
         const fullName = contact.person ? 
           `${contact.person.firstName} ${contact.person.lastName}` : 
           `${contact.first_name} ${contact.last_name}`;
-        // Show "Email" for email-imported contacts instead of "Other"
-        const displayType = contact.source_type === 'email_import' ? 'Email' : contact.type;
+        // Show job_title underneath the name (fall back to source type if no job title)
+        const subtitle = contact.job_title || 
+          (contact.source_type === 'email_import' ? 'Email' : contact.type);
         
         return (
           <div className="pl-2">
             <div className="font-medium">{fullName}</div>
-            <div className="text-sm text-muted-foreground">{displayType}</div>
+            <div className="text-sm text-muted-foreground">{subtitle}</div>
           </div>
         );
       },
