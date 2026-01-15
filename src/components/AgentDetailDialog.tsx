@@ -190,7 +190,7 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         variant: "destructive",
       });
     } finally {
-      setIsDeleting(true);
+      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
       setLogToDelete(null);
     }
