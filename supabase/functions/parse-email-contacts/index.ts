@@ -19,6 +19,7 @@ interface ExtractedContact {
   email: string;
   phone: string | null;
   company: string | null;
+  job_title: string | null;
   suggested_tags: string[] | null;
   reason: string;
   confidence: number;
@@ -93,6 +94,7 @@ For each contact found, extract:
   - Email domain (e.g., "kristina@advcredit.com" → "Advantage Credit", "amy@harvestcref.com" → "Harvest CREF")
   - Context in the email body
   - Common mortgage industry companies: title companies, credit bureaus, insurance, appraisers, etc.)
+- job_title (IMPORTANT - extract from email signature. Examples: "Account Executive", "Senior Vice President", "Credit Verification Manager", "Loan Officer", "Underwriter", "Processor", "Closer", "Business Development Officer", "Sales Manager")
 - suggested_tags (REQUIRED - always suggest 2-3 relevant tags based on their role/company. Examples:
   - Credit companies: ["Credit Vendor", "Credit Report"]
   - Banks/Lenders: ["Banker", "Wholesale Lender"]
@@ -310,6 +312,7 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         email: contact.email.toLowerCase(),
         phone: contact.phone,
         company: contact.company,
+        job_title: contact.job_title,
         suggested_tags: contact.suggested_tags,
         source_email_subject: emailContent.subject,
         source_email_from: emailContent.fromEmail,
