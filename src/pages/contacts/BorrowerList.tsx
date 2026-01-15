@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X } from "lucide-react";
+import { Search, Plus, Filter, Phone, Mail, User, MapPin, FileText, Trash2, Check, X, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 // Format phone number as (XXX) XXX-XXXX
 const formatPhoneNumber = (phone: string | null | undefined): string => {
@@ -41,13 +43,13 @@ const getSourceDisplayName = (source: string, type?: string, sourceType?: string
   return sourceMap[source] || 'Other';
 };
 
-// Duplicate detection function
+// Duplicate detection function - only flags as duplicate if existing contact has complete info
 const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
   return allContacts.some(other => {
     // Don't compare to self
     if ((other.source_id || other.id) === (contact.source_id || contact.id)) return false;
     
-    // Only check against non-"Other" contacts (agents, lenders, borrowers)
+    // Only check against non-email-import contacts
     if (other.source === 'contacts' && other.source_type === 'email_import') return false;
     
     // Check exact first+last name match (both must match together)
@@ -62,18 +64,31 @@ const checkIsDuplicate = (contact: any, allContacts: any[]): boolean => {
       contactFirstName === otherFirstName &&
       contactLastName === otherLastName;
     
-    // Check email match
+    // If names don't match, not a duplicate
+    if (!nameMatch) return false;
+    
+    // Check if existing contact has BOTH email and phone
+    // If missing either, allow adding new contact to fill in missing data
+    const otherHasEmail = !!other.email?.trim();
+    const otherHasPhone = !!(other.phone?.replace(/\D/g, '') || '').length;
+    
+    if (!otherHasEmail || !otherHasPhone) {
+      // Existing contact is incomplete - NOT a duplicate (allow adding)
+      return false;
+    }
+    
+    // Existing contact is complete - check if new contact matches both email AND phone
     const contactEmail = contact.email?.toLowerCase().trim();
     const otherEmail = other.email?.toLowerCase().trim();
     const emailMatch = contactEmail && otherEmail && contactEmail === otherEmail;
     
-    // Check phone match (normalize by removing non-digits)
     const normalizePhone = (p: string | null | undefined) => p?.replace(/\D/g, '') || '';
     const contactPhone = normalizePhone(contact.phone);
     const otherPhone = normalizePhone(other.phone);
     const phoneMatch = contactPhone.length >= 10 && otherPhone.length >= 10 && contactPhone === otherPhone;
     
-    return nameMatch || emailMatch || phoneMatch;
+    // Only duplicate if name + email + phone all match
+    return nameMatch && emailMatch && phoneMatch;
   });
 };
 
@@ -153,7 +168,8 @@ const getColumns = (
       accessorKey: "lead_created_date",
       header: "Created On",
       cell: ({ row }) => {
-        const date = row.original.lead_created_date || row.original.created_at;
+        // Prioritize created_at for accurate time, fall back to lead_created_date
+        const date = row.original.created_at || row.original.lead_created_date;
         if (!date) return <span className="text-sm">—</span>;
         const d = new Date(date);
         const month = d.toLocaleDateString('en-US', { month: 'short' });
@@ -338,6 +354,11 @@ export default function BorrowerList() {
   // Selection state for bulk operations
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+
+  // Collapsible section states
+  const [pendingExpanded, setPendingExpanded] = useState(true);
+  const [recentExpanded, setRecentExpanded] = useState(true);
+  const [allExpanded, setAllExpanded] = useState(true);
 
   useEffect(() => {
     loadContacts();
@@ -576,7 +597,28 @@ export default function BorrowerList() {
   };
 
   const filteredContacts = getFilteredContacts();
-  const displayData = filteredContacts;
+  
+  // Split contacts into categories for collapsible sections
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  // Pending approval contacts (from email imports)
+  const pendingContacts = filteredContacts.filter(c => c.approval_status === 'pending');
+  
+  // Recently added (approved contacts from last 30 days)
+  const recentContacts = filteredContacts.filter(c => {
+    if (c.approval_status === 'pending') return false;
+    const date = new Date(c.created_at || c.lead_created_date);
+    return date >= thirtyDaysAgo;
+  });
+  
+  // All others (approved contacts older than 30 days)
+  const olderContacts = filteredContacts.filter(c => {
+    if (c.approval_status === 'pending') return false;
+    const date = new Date(c.created_at || c.lead_created_date);
+    return date < thirtyDaysAgo;
+  });
+  
   const borrowerCount = contacts.filter((c: any) => c.type === 'Borrower').length;
   const agentCount = contacts.filter((c: any) => c.type === 'Agent').length;
   const lenderCount = contacts.filter((c: any) => c.type === 'Lender').length;
@@ -687,7 +729,7 @@ export default function BorrowerList() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {selectedContactIds.length > 0 && (
             <div className="flex items-center gap-3 mb-4 p-3 bg-muted rounded-lg">
               <span className="text-sm font-medium">
@@ -701,20 +743,107 @@ export default function BorrowerList() {
               </Button>
             </div>
           )}
-          <DataTable
-            columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
-            data={displayData}
-            searchTerm={searchTerm}
-            onRowClick={handleRowClick}
-            onViewDetails={handleViewDetails}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            selectable={true}
-            selectedIds={selectedContactIds}
-            onSelectionChange={setSelectedContactIds}
-            getRowId={(row) => row.source_id || row.id}
-            showRowNumbers={true}
-          />
+
+          {/* Pending Approval Section */}
+          {pendingContacts.length > 0 && (
+            <Collapsible open={pendingExpanded} onOpenChange={setPendingExpanded}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors">
+                  {pendingExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span className="font-semibold">Pending Approval</span>
+                  <Badge variant="destructive" className="ml-1">
+                    {pendingContacts.length}
+                  </Badge>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <DataTable
+                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
+                  data={pendingContacts}
+                  searchTerm={searchTerm}
+                  onRowClick={handleRowClick}
+                  onViewDetails={handleViewDetails}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  selectable={true}
+                  selectedIds={selectedContactIds}
+                  onSelectionChange={setSelectedContactIds}
+                  getRowId={(row) => row.source_id || row.id}
+                  showRowNumbers={true}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Recently Added Section */}
+          {recentContacts.length > 0 && (
+            <Collapsible open={recentExpanded} onOpenChange={setRecentExpanded}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors">
+                  {recentExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span className="font-semibold">Recently Added</span>
+                  <Badge variant="secondary" className="ml-1">
+                    {recentContacts.length}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">(Last 30 days)</span>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <DataTable
+                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
+                  data={recentContacts}
+                  searchTerm={searchTerm}
+                  onRowClick={handleRowClick}
+                  onViewDetails={handleViewDetails}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  selectable={true}
+                  selectedIds={selectedContactIds}
+                  onSelectionChange={setSelectedContactIds}
+                  getRowId={(row) => row.source_id || row.id}
+                  showRowNumbers={true}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* All Section */}
+          {olderContacts.length > 0 && (
+            <Collapsible open={allExpanded} onOpenChange={setAllExpanded}>
+              <CollapsibleTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors">
+                  {allExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <span className="font-semibold">All</span>
+                  <Badge variant="outline" className="ml-1">
+                    {olderContacts.length}
+                  </Badge>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <DataTable
+                  columns={getColumns(activeFilter, contacts, handleApproveContact, handleDenyContact)}
+                  data={olderContacts}
+                  searchTerm={searchTerm}
+                  onRowClick={handleRowClick}
+                  onViewDetails={handleViewDetails}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  selectable={true}
+                  selectedIds={selectedContactIds}
+                  onSelectionChange={setSelectedContactIds}
+                  getRowId={(row) => row.source_id || row.id}
+                  showRowNumbers={true}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Empty state */}
+          {pendingContacts.length === 0 && recentContacts.length === 0 && olderContacts.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No contacts found
+            </div>
+          )}
         </CardContent>
       </Card>
       
