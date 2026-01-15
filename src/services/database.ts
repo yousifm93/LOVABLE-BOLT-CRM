@@ -2397,7 +2397,7 @@ export const databaseService = {
       
       // Transform all to unified format
       const unifiedContacts = [
-        // Contacts (include source_type, description, email_log_id, associated_lead_name, job_title, approval_status)
+        // Contacts (include source_type, description, email_log_id, associated_lead_name, job_title, approval_status, created_at)
         ...(contactsData || []).map(c => ({
           id: c.id,
           first_name: c.first_name,
@@ -2409,6 +2409,7 @@ export const databaseService = {
           tags: c.tags || [],
           notes: c.notes,
           lead_created_date: c.lead_created_date,
+          created_at: c.created_at,
           source: 'contacts' as const,
           source_id: c.id,
           source_type: c.source_type,
@@ -2431,6 +2432,7 @@ export const databaseService = {
           tags: [] as string[],
           notes: '',
           lead_created_date: a.created_at,
+          created_at: a.created_at,
           source: 'buyer_agents' as const,
           source_id: a.id
         })),
@@ -2451,6 +2453,7 @@ export const databaseService = {
             tags: [l.lender_type].filter(Boolean),
             notes: l.notes || '',
             lead_created_date: l.created_at,
+            created_at: l.created_at,
             source: 'lenders' as const,
             source_id: l.id
           };
@@ -2468,6 +2471,7 @@ export const databaseService = {
           tags: [] as string[],
           notes: '',
           lead_created_date: lead.lead_on_date,
+          created_at: lead.lead_on_date,
           source: 'leads' as const,
           source_id: lead.id,
           pipeline_stage_id: lead.pipeline_stage_id
