@@ -123,6 +123,35 @@ const getColumns = (
       sortable: true,
     },
     {
+      accessorKey: "created_at",
+      header: "Created On",
+      cell: ({ row }) => {
+        // Use created_at for accurate timestamp
+        const date = row.original.created_at;
+        if (!date) return <span className="text-sm">—</span>;
+        
+        // Parse the UTC timestamp - Date() automatically converts to local timezone
+        const d = new Date(date);
+        
+        // Format for local timezone
+        const month = d.toLocaleDateString('en-US', { month: 'short' });
+        const day = d.getDate();
+        const time = d.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        
+        return (
+          <div className="text-sm">
+            <div>{month} {day}</div>
+            <div className="text-muted-foreground text-xs">{time}</div>
+          </div>
+        );
+      },
+      sortable: true,
+    },
+    {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => {
@@ -165,36 +194,31 @@ const getColumns = (
       sortable: true,
     },
     {
-      accessorKey: "lead_created_date",
-      header: "Created On",
-      cell: ({ row }) => {
-        // Prioritize created_at for accurate time, fall back to lead_created_date
-        const date = row.original.created_at || row.original.lead_created_date;
-        if (!date) return <span className="text-sm">—</span>;
-        const d = new Date(date);
-        const month = d.toLocaleDateString('en-US', { month: 'short' });
-        const day = d.getDate();
-        const time = d.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        });
-        return (
-          <div className="text-sm">
-            <div>{month} {day}</div>
-            <div className="text-muted-foreground text-xs">{time}</div>
-          </div>
-        );
-      },
-      sortable: true,
-    },
-    {
       accessorKey: "source",
       header: "Source",
       cell: ({ row }) => (
         <span className="text-sm">{getSourceDisplayName(row.original.source, row.original.type, row.original.source_type)}</span>
       ),
       sortable: true,
+    },
+    {
+      accessorKey: "associated_lead",
+      header: "Last Associated File",
+      cell: ({ row }) => {
+        const leadName = row.original.associated_lead_name;
+        return (
+          <span className="text-sm">{leadName || "—"}</span>
+        );
+      },
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground truncate max-w-[250px]">
+          {row.original.description || "—"}
+        </div>
+      ),
     },
     {
       accessorKey: "tags",
@@ -230,41 +254,6 @@ const getColumns = (
           ) : "—"}
         </div>
       ),
-    },
-    {
-      accessorKey: "description",
-      header: "Description",
-      cell: ({ row }) => (
-        <div className="text-sm text-muted-foreground truncate max-w-[250px]">
-          {row.original.description || "—"}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "associated_lead",
-      header: "Last Associated File",
-      cell: ({ row }) => {
-        const leadName = row.original.associated_lead_name;
-        return (
-          <span className="text-sm">{leadName || "—"}</span>
-        );
-      },
-    },
-    {
-      accessorKey: "lastContact",
-      header: "Last Contact",
-      cell: ({ row }) => {
-        // For email imports, use lead_created_date as the "last contact"
-        const date = row.original.source_type === 'email_import' 
-          ? row.original.lead_created_date 
-          : (row.original.lastContact || row.original.lead_created_date || row.original.created_at);
-        if (!date) return <span className="text-sm">—</span>;
-        const d = new Date(date);
-        const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-        const day = d.getUTCDate();
-        return <span className="text-sm">{month} {day}</span>;
-      },
-      sortable: true,
     },
   ];
 
@@ -356,9 +345,9 @@ export default function BorrowerList() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   // Collapsible section states
-  const [pendingExpanded, setPendingExpanded] = useState(true);
-  const [recentExpanded, setRecentExpanded] = useState(true);
-  const [allExpanded, setAllExpanded] = useState(true);
+  const [pendingExpanded, setPendingExpanded] = useState(false);
+  const [recentExpanded, setRecentExpanded] = useState(false);
+  const [allExpanded, setAllExpanded] = useState(false);
 
   useEffect(() => {
     loadContacts();
