@@ -51,6 +51,33 @@ const QUICK_TASK_TEMPLATES = [
     priority: 'High',
   },
   {
+    id: 'conditions',
+    label: 'Conditions',
+    title: 'Conditions',
+    description: 'Clear borrower conditions',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
+    id: 'pre_qualify',
+    label: 'Pre-Qualify',
+    title: 'Pre-Qualify',
+    description: 'Pre-qualify the borrower',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
+    id: 'pre_approve',
+    label: 'Pre-Approve',
+    title: 'Pre-Approve',
+    description: 'Pre-approve the borrower',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'High',
+    completion_requirement_type: 'none',
+  },
+  {
     id: 'borrower_call',
     label: 'Borrower Call',
     title: 'Borrower Call',
