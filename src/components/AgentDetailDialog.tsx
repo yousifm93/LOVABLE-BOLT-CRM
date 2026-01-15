@@ -57,6 +57,11 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [logToDelete, setLogToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Early return if no agent to prevent null access errors
+  if (!agent) {
+    return null;
+  }
+
   useEffect(() => {
     if (agent?.id && isOpen) {
       loadAssociatedLeads();
