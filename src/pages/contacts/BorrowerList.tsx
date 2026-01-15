@@ -599,24 +599,24 @@ export default function BorrowerList() {
   const filteredContacts = getFilteredContacts();
   
   // Split contacts into categories for collapsible sections
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
   // Pending approval contacts (from email imports)
   const pendingContacts = filteredContacts.filter(c => c.approval_status === 'pending');
   
-  // Recently added (approved contacts from last 30 days)
+  // Recently added (approved contacts from last 7 days)
   const recentContacts = filteredContacts.filter(c => {
     if (c.approval_status === 'pending') return false;
     const date = new Date(c.created_at || c.lead_created_date);
-    return date >= thirtyDaysAgo;
+    return date >= sevenDaysAgo;
   });
   
-  // All others (approved contacts older than 30 days)
+  // All others (approved contacts older than 7 days)
   const olderContacts = filteredContacts.filter(c => {
     if (c.approval_status === 'pending') return false;
     const date = new Date(c.created_at || c.lead_created_date);
-    return date < thirtyDaysAgo;
+    return date < sevenDaysAgo;
   });
   
   const borrowerCount = contacts.filter((c: any) => c.type === 'Borrower').length;
@@ -785,7 +785,7 @@ export default function BorrowerList() {
                   <Badge variant="secondary" className="ml-1">
                     {recentContacts.length}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">(Last 30 days)</span>
+                  <span className="text-xs text-muted-foreground">(Last 7 days)</span>
                 </div>
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
