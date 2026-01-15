@@ -140,7 +140,32 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
                 />
               </div>
               <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Job Title</label>
+                <InlineEditText
+                  value={contact.job_title}
+                  onValueChange={(value) => handleFieldUpdate('job_title', value)}
+                  placeholder="Job title"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Created Date</label>
+                <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
+                  {contact.created_at
+                    ? (() => {
+                        const d = new Date(contact.created_at);
+                        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        return `${dateStr} at ${timeStr}`;
+                      })()
+                    : <span className="text-muted-foreground">—</span>
+                  }
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Last Contact Date</label>
                 <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
                   {contact.lead_created_date 
                     ? new Date(contact.lead_created_date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -148,6 +173,21 @@ export function ContactDetailDialog({ contact, isOpen, onClose, onContactUpdated
                     ? new Date(contact.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : <span className="text-muted-foreground">—</span>
                   }
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Duplicate?</label>
+                <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
+                  <span className="text-muted-foreground">No</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Last Associated File</label>
+                <div className="text-sm py-2 px-3 border rounded-md bg-muted/30">
+                  {contact.associated_lead_name || <span className="text-muted-foreground">—</span>}
                 </div>
               </div>
             </div>

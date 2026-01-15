@@ -656,7 +656,6 @@ export function AppSidebar() {
               className="mb-4" 
               defaultOpen={false}
               locked={hasPermission('contacts') === 'locked'}
-              badgeCount={pendingContactCount}
             >
               <SidebarMenu>
                 {filterItemsByPermission(contactItems).map((item) => {
