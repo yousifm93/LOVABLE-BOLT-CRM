@@ -942,6 +942,7 @@ export type Database = {
           lead_created_date: string | null
           notes: string | null
           phone: string | null
+          source_type: string | null
           tags: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at: string
@@ -956,6 +957,7 @@ export type Database = {
           lead_created_date?: string | null
           notes?: string | null
           phone?: string | null
+          source_type?: string | null
           tags?: string[] | null
           type: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
@@ -970,6 +972,7 @@ export type Database = {
           lead_created_date?: string | null
           notes?: string | null
           phone?: string | null
+          source_type?: string | null
           tags?: string[] | null
           type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string
@@ -1847,6 +1850,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      email_contact_suggestions: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          email: string
+          email_log_id: string | null
+          first_name: string
+          id: string
+          last_name: string | null
+          notes: string | null
+          phone: string | null
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          source_email_date: string | null
+          source_email_from: string | null
+          source_email_subject: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          email: string
+          email_log_id?: string | null
+          first_name: string
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          source_email_date?: string | null
+          source_email_from?: string | null
+          source_email_subject?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          email?: string
+          email_log_id?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          source_email_date?: string | null
+          source_email_from?: string | null
+          source_email_subject?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_contact_suggestions_email_log_id_fkey"
+            columns: ["email_log_id"]
+            isOneToOne: false
+            referencedRelation: "email_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_contacts: {
         Row: {
