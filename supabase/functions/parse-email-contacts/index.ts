@@ -268,29 +268,53 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         .limit(1);
 
       if (existingContact && existingContact.length > 0) {
-        console.log(`Contact ${contact.email} already exists, skipping`);
+        console.log(`Contact ${contact.email} already exists in contacts, skipping`);
         continue;
       }
 
-      // Check if there's already a pending suggestion for this email
-      const { data: existingSuggestion } = await supabaseClient
-        .from('email_contact_suggestions')
+      // Check if contact exists in buyer_agents table
+      const { data: existingAgent } = await supabaseClient
+        .from('buyer_agents')
         .select('id')
         .eq('email', contact.email.toLowerCase())
-        .eq('status', 'pending')
+        .is('deleted_at', null)
         .limit(1);
 
-      if (existingSuggestion && existingSuggestion.length > 0) {
-        console.log(`Pending suggestion for ${contact.email} already exists, skipping`);
+      if (existingAgent && existingAgent.length > 0) {
+        console.log(`Contact ${contact.email} exists as buyer agent, skipping`);
+        continue;
+      }
+
+      // Check if contact exists in lenders table (account_executive_email)
+      const { data: existingLender } = await supabaseClient
+        .from('lenders')
+        .select('id')
+        .eq('account_executive_email', contact.email.toLowerCase())
+        .limit(1);
+
+      if (existingLender && existingLender.length > 0) {
+        console.log(`Contact ${contact.email} exists as lender AE, skipping`);
+        continue;
+      }
+
+      // Check if contact exists in leads table
+      const { data: existingLead } = await supabaseClient
+        .from('leads')
+        .select('id')
+        .eq('email', contact.email.toLowerCase())
+        .limit(1);
+
+      if (existingLead && existingLead.length > 0) {
+        console.log(`Contact ${contact.email} exists as lead, skipping`);
         continue;
       }
 
       validContacts.push(contact);
     }
 
-    console.log(`${validContacts.length} valid new contacts to suggest`);
+    console.log(`${validContacts.length} valid new contacts to add directly`);
 
-    // Insert suggestions
+    // Insert contacts directly into contacts table (not suggestions)
     if (validContacts.length > 0) {
       // Parse the email date - handle display strings like "3:07 PM" gracefully
       let parsedEmailDate: string | null = null;
@@ -305,6 +329,37 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         }
       }
 
+      // Insert directly into contacts table with approval_status = 'pending'
+      const contactsToInsert = validContacts.map(contact => ({
+        first_name: contact.first_name,
+        last_name: contact.last_name || '',
+        email: contact.email.toLowerCase(),
+        phone: contact.phone,
+        company: contact.company,
+        job_title: contact.job_title,
+        tags: contact.suggested_tags,
+        type: 'Other' as const,
+        source_type: 'email_import',
+        email_log_id: emailLogId,
+        lead_created_date: parsedEmailDate,
+        description: contact.reason,
+        notes: `Extracted from email: ${emailContent.subject}`,
+        approval_status: 'pending'
+      }));
+
+      const { error: insertError } = await supabaseClient
+        .from('contacts')
+        .insert(contactsToInsert);
+
+      if (insertError) {
+        console.error('Error inserting contacts:', insertError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save contacts' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Also save to suggestions for audit trail
       const suggestionsToInsert = validContacts.map(contact => ({
         email_log_id: emailLogId,
         first_name: contact.first_name,
@@ -317,29 +372,22 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         source_email_subject: emailContent.subject,
         source_email_from: emailContent.fromEmail,
         source_email_date: parsedEmailDate,
-        status: 'pending',
+        status: 'auto_added', // Mark as auto-added, not pending
         reason: contact.reason,
         confidence: contact.confidence
       }));
 
-      const { error: insertError } = await supabaseClient
+      await supabaseClient
         .from('email_contact_suggestions')
         .insert(suggestionsToInsert);
-
-      if (insertError) {
-        console.error('Error inserting suggestions:', insertError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to save suggestions' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         count: validContacts.length,
-        contacts: validContacts 
+        contacts: validContacts,
+        message: `${validContacts.length} contacts added to Master Contact List (pending approval)`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
