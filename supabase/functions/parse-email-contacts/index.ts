@@ -203,6 +203,19 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
 
     // Insert suggestions
     if (validContacts.length > 0) {
+      // Parse the email date - handle display strings like "3:07 PM" gracefully
+      let parsedEmailDate: string | null = null;
+      if (emailContent.date) {
+        const parsed = new Date(emailContent.date);
+        if (!isNaN(parsed.getTime())) {
+          parsedEmailDate = parsed.toISOString();
+        } else {
+          // If we can't parse the date, use current time as fallback
+          parsedEmailDate = new Date().toISOString();
+          console.log(`Could not parse email date "${emailContent.date}", using current time`);
+        }
+      }
+
       const suggestionsToInsert = validContacts.map(contact => ({
         email_log_id: emailLogId,
         first_name: contact.first_name,
@@ -211,7 +224,7 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
         phone: contact.phone,
         source_email_subject: emailContent.subject,
         source_email_from: emailContent.fromEmail,
-        source_email_date: emailContent.date,
+        source_email_date: parsedEmailDate,
         status: 'pending',
         reason: contact.reason,
         confidence: contact.confidence
