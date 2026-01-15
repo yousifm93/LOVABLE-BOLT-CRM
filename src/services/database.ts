@@ -515,6 +515,35 @@ export const databaseService = {
     return data || [];
   },
 
+  async updateAgentCallLog(
+    logId: string, 
+    updates: { 
+      summary?: string; 
+      meeting_location?: string; 
+      call_type?: string;
+      log_type?: 'call' | 'meeting' | 'broker_open';
+    }
+  ) {
+    const { data, error } = await supabase
+      .from('agent_call_logs')
+      .update(updates)
+      .eq('id', logId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteAgentCallLog(logId: string) {
+    const { error } = await supabase
+      .from('agent_call_logs')
+      .delete()
+      .eq('id', logId);
+
+    if (error) throw error;
+  },
+
   // Lead Conditions operations
   async getLeadConditions(leadId: string) {
     const { data, error } = await supabase

@@ -17,11 +17,13 @@ import { AgentCallLogModal } from "@/components/modals/AgentCallLogModal";
 import { AgentMeetingLogModal } from "@/components/modals/AgentMeetingLogModal";
 import { ActivityLogDetailModal } from "@/components/modals/ActivityLogDetailModal";
 import { SendAgentEmailModal } from "@/components/modals/SendAgentEmailModal";
+import { EditAgentLogModal } from "@/components/modals/EditAgentLogModal";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Mail, Phone, Calendar, Star, FileText } from "lucide-react";
+import { Building2, Mail, Phone, Calendar, Star, FileText, Pencil, Trash2 } from "lucide-react";
 
 interface AgentDetailDialogProps {
   agent: any | null;
@@ -49,6 +51,11 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [isLogDetailModalOpen, setIsLogDetailModalOpen] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isEditLogModalOpen, setIsEditLogModalOpen] = useState(false);
+  const [logToEdit, setLogToEdit] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (agent?.id && isOpen) {
@@ -127,7 +134,48 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
     setIsLogDetailModalOpen(true);
   };
 
-  if (!agent) return null;
+  const handleEditLog = (log: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLogToEdit(log);
+    setIsEditLogModalOpen(true);
+  };
+
+  const handleDeleteLogClick = (log: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLogToDelete(log);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteLog = async () => {
+    if (!logToDelete?.id) return;
+    
+    setIsDeleting(true);
+    try {
+      await databaseService.deleteAgentCallLog(logToDelete.id);
+      toast({
+        title: "Deleted",
+        description: "Log deleted successfully.",
+      });
+      loadCallLogs();
+      onAgentUpdated();
+    } catch (error) {
+      console.error('Error deleting log:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete log.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setLogToDelete(null);
+    }
+  };
+
+  const handleLogUpdated = () => {
+    loadCallLogs();
+    onAgentUpdated();
+  };
 
   const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ') || 'Unknown Agent';
   const initials = [agent.first_name?.[0], agent.last_name?.[0]].filter(Boolean).join('') || '??';
@@ -349,15 +397,35 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
                             <p className="text-sm whitespace-pre-wrap mt-1">{log.summary}</p>
                           </div>
                           
-                          {/* Right side - User and Date */}
-                          <div className="text-right text-xs text-muted-foreground space-y-1 flex-shrink-0">
-                            <div>By: {log.users?.first_name} {log.users?.last_name}</div>
-                            <div className="font-medium">
-                              {new Date(log.logged_at).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric' 
-                              })}
+                          {/* Right side - User, Date, and Actions */}
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <div className="text-right text-xs text-muted-foreground space-y-1">
+                              <div>By: {log.users?.first_name} {log.users?.last_name}</div>
+                              <div className="font-medium">
+                                {new Date(log.logged_at).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                })}
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-6 w-6"
+                                onClick={(e) => handleEditLog(log, e)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={(e) => handleDeleteLogClick(log, e)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -437,6 +505,28 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
         agentName={fullName}
         agentId={agent?.id}
         onEmailSent={loadCallLogs}
+      />
+
+      <EditAgentLogModal
+        log={logToEdit}
+        isOpen={isEditLogModalOpen}
+        onClose={() => {
+          setIsEditLogModalOpen(false);
+          setLogToEdit(null);
+        }}
+        onLogUpdated={handleLogUpdated}
+      />
+
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open) setLogToDelete(null);
+        }}
+        title="Delete this log?"
+        description={`Are you sure you want to delete this ${logToDelete?.log_type || 'call'} log? This action cannot be undone.`}
+        onConfirm={handleDeleteLog}
+        isLoading={isDeleting}
       />
     </Dialog>
   );
