@@ -1234,11 +1234,11 @@ export default function Active() {
         title: "Updated",
         description: "Field updated successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating field:', error);
       toast({
         title: "Error", 
-        description: "Failed to update field",
+        description: error?.message || "Failed to update field",
         variant: "destructive"
       });
       // Reload data to revert optimistic update
