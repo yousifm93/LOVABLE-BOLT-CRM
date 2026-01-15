@@ -189,6 +189,15 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
       'rfrancismortgage.com': 'R Francis Mortgage',
       'freedommortgage.com': 'Freedom Mortgage',
       'fairwaymc.com': 'Fairway Independent Mortgage',
+      'acralending.com': 'Acra Lending',
+      'pennymac.com': 'PennyMac',
+      'newrez.com': 'NewRez',
+      'rfrancis.com': 'R Francis',
+      'oldrepublictitle.com': 'Old Republic Title',
+      'firstam.com': 'First American Title',
+      'fidelity.com': 'Fidelity National Title',
+      'chicagotitle.com': 'Chicago Title',
+      'stewart.com': 'Stewart Title',
     };
 
     // Domain to tags mapping for fallback
@@ -201,6 +210,14 @@ Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`
       'relatedgroup.com': ['Developer', 'Real Estate'],
       'ammprocessingllc.com': ['Processing', 'Mortgage'],
       'uwm.com': ['Mortgage', 'Wholesale Lender'],
+      'acralending.com': ['DSCR', 'Investor Lending', 'Non-QM'],
+      'pennymac.com': ['Mortgage', 'Wholesale Lender'],
+      'newrez.com': ['Mortgage', 'Wholesale Lender'],
+      'oldrepublictitle.com': ['Title', 'Escrow', 'Closing'],
+      'firstam.com': ['Title', 'Escrow', 'Closing'],
+      'fidelity.com': ['Title', 'Escrow', 'Closing'],
+      'chicagotitle.com': ['Title', 'Escrow', 'Closing'],
+      'stewart.com': ['Title', 'Escrow', 'Closing'],
     };
 
     // Filter out contacts that already exist and apply fallbacks
