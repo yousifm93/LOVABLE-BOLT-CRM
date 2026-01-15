@@ -57,17 +57,18 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
   const [logToDelete, setLogToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Early return if no agent to prevent null access errors
-  if (!agent) {
-    return null;
-  }
-
+  // useEffect MUST be called before any conditional returns (React Rules of Hooks)
   useEffect(() => {
     if (agent?.id && isOpen) {
       loadAssociatedLeads();
       loadCallLogs();
     }
   }, [agent?.id, isOpen]);
+
+  // Early return AFTER all hooks to prevent null access errors
+  if (!agent) {
+    return null;
+  }
 
   const loadAssociatedLeads = async () => {
     if (!agent?.id) return;
