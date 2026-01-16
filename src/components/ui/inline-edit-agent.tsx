@@ -87,6 +87,27 @@ export function InlineEditAgent({
   const refiAgent = React.useMemo(() => agents.find(isRefiAgent), [agents]);
   const otherAgents = React.useMemo(() => agents.filter(agent => !isSpecialAgent(agent)), [agents]);
 
+  // Check if search term matches special agents
+  const searchMatchesNa = React.useMemo(() => {
+    if (!searchTerm.trim()) return false;
+    const search = searchTerm.toLowerCase().trim();
+    return search === 'n' || search === 'na' || search === 'n/a' || 
+           search === 'n/' || search.startsWith('n/a') || 
+           search.startsWith('not') || search === 'not applicable';
+  }, [searchTerm]);
+
+  const searchMatchesDeveloper = React.useMemo(() => {
+    if (!searchTerm.trim()) return false;
+    const search = searchTerm.toLowerCase().trim();
+    return 'developer'.startsWith(search) || search.startsWith('dev');
+  }, [searchTerm]);
+
+  const searchMatchesRefi = React.useMemo(() => {
+    if (!searchTerm.trim()) return false;
+    const search = searchTerm.toLowerCase().trim();
+    return 'refi'.startsWith(search) || search === 're' || search === 'ref';
+  }, [searchTerm]);
+
   // Manual filtering for large agent lists - prioritize first name matches
   const filteredAgents = React.useMemo(() => {
     if (!searchTerm.trim()) {
@@ -243,9 +264,9 @@ export function InlineEditAgent({
                 </CommandItem>
               </CommandGroup>
             )}
-            {(naAgent || developerAgent || refiAgent) && !searchTerm.trim() && (
+            {(naAgent || developerAgent || refiAgent) && (!searchTerm.trim() || searchMatchesNa || searchMatchesDeveloper || searchMatchesRefi) && (
               <CommandGroup heading="Quick Select">
-                {naAgent && (
+                {naAgent && (!searchTerm.trim() || searchMatchesNa) && (
                   <CommandItem
                     onSelect={() => handleSelect(naAgent)}
                     className="flex flex-col items-start p-3"
@@ -253,7 +274,7 @@ export function InlineEditAgent({
                     <div className="font-medium">N/A</div>
                   </CommandItem>
                 )}
-                {developerAgent && (
+                {developerAgent && (!searchTerm.trim() || searchMatchesDeveloper) && (
                   <CommandItem
                     onSelect={() => handleSelect(developerAgent)}
                     className="flex flex-col items-start p-3"
@@ -261,7 +282,7 @@ export function InlineEditAgent({
                     <div className="font-medium">Developer</div>
                   </CommandItem>
                 )}
-                {refiAgent && (
+                {refiAgent && (!searchTerm.trim() || searchMatchesRefi) && (
                   <CommandItem
                     onSelect={() => handleSelect(refiAgent)}
                     className="flex flex-col items-start p-3"
