@@ -812,13 +812,13 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditNumber
-            value={row.original.loanNumber === '—' ? 0 : parseInt(row.original.loanNumber) || 0}
+          <InlineEditText
+            value={row.original.loanNumber === '—' ? '' : row.original.loanNumber}
             onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "arrive_loan_number", value);
+              handleFieldUpdate(row.original.id, "mb_loan_number", value);
               fetchLeads();
             }}
-            placeholder="Enter loan #"
+            placeholder="MB-"
           />
         </div>
       ),
