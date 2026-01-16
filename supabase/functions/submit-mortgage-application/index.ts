@@ -706,6 +706,10 @@ Deno.serve(async (req) => {
       property_taxes: propertyTaxes > 0 ? propertyTaxes : null,
       hoa_dues: hoaDues > 0 ? hoaDues : null,
       piti: piti > 0 ? piti : null,
+      // Calculate DTI = (PITI + Monthly Liabilities) / Total Monthly Income × 100
+      dti: finalMonthlyIncome > 0 
+        ? Math.round(((piti + monthlyLiabilities) / finalMonthlyIncome) * 10000) / 100 
+        : null,
       interest_rate: interestRate,
       term: termMonths,
       

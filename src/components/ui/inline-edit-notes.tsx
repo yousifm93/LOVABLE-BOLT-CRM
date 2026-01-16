@@ -55,18 +55,18 @@ export function InlineEditNotes({
 
   if (isEditing) {
     return (
-      <div className="space-y-1">
+      <div className="flex flex-col gap-2">
         <Textarea
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className={cn("min-h-[60px] max-h-[120px] resize-none", className)}
+          className={cn("min-h-[100px] max-h-[250px] resize-y overflow-y-auto", className)}
           placeholder={placeholder}
           maxLength={maxLength}
           autoFocus
         />
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground bg-background py-1">
           <span>Press Ctrl+Enter to save, Esc to cancel</span>
           <span>{editValue.length}/{maxLength}</span>
         </div>
