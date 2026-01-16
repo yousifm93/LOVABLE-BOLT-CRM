@@ -518,34 +518,40 @@ const allAvailableColumns = useMemo(() => {
     }
   };
 
-  const displayData: DisplayLead[] = leads.map(lead => ({ 
-    id: lead.id, 
-    name: `${lead.first_name} ${lead.last_name}`,
-    preApprovedOn: lead.pre_approved_at || lead.created_at,
-    loanNumber: lead.mb_loan_number?.toString() || '—',
-    email: lead.email || '',
-    phone: lead.phone || '', 
-    loanType: lead.loan_type || 'Purchase', 
-    status: lead.converted || 'Working on it', 
-    approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', 
-    creditScore: lead.fico_score || 0, 
-    loanAmount: lead.loan_amount || 0,
-    realEstateAgent: lead.buyer_agent_id || '',
-    realEstateAgentData: (lead as any).buyer_agent || null,
-    user: lead.teammate_assigned || '',
-    userData: (lead as any).teammate || null,
-    baStatus: lead.ba_status || '',
-    dueDate: (lead as any).earliest_task_due_date || '',
-    dti: lead.dti || 0,
-    salesPrice: lead.sales_price || 0,
-    ltv: (lead as any).ltv || null,
-    // Add all database fields dynamically
-    ...Object.fromEntries(
-      allFields
-        .filter(f => f.is_in_use)
-        .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name]])
-    )
-  }));
+  const displayData: DisplayLead[] = leads.map(lead => {
+    // Debug: Log pre_approved_at values
+    if (lead.first_name === 'Yigor' || lead.first_name === 'Sang' || lead.first_name === 'Juan') {
+      console.log('DEBUG pre_approved_at for', lead.first_name, lead.last_name, ':', lead.pre_approved_at, '| created_at:', lead.created_at);
+    }
+    return { 
+      id: lead.id, 
+      name: `${lead.first_name} ${lead.last_name}`,
+      preApprovedOn: lead.pre_approved_at || lead.created_at,
+      loanNumber: lead.mb_loan_number?.toString() || '—',
+      email: lead.email || '',
+      phone: lead.phone || '', 
+      loanType: lead.loan_type || 'Purchase', 
+      status: lead.converted || 'Working on it', 
+      approvedAmount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '$0', 
+      creditScore: lead.fico_score || 0, 
+      loanAmount: lead.loan_amount || 0,
+      realEstateAgent: lead.buyer_agent_id || '',
+      realEstateAgentData: (lead as any).buyer_agent || null,
+      user: lead.teammate_assigned || '',
+      userData: (lead as any).teammate || null,
+      baStatus: lead.ba_status || '',
+      dueDate: (lead as any).earliest_task_due_date || '',
+      dti: lead.dti || 0,
+      salesPrice: lead.sales_price || 0,
+      ltv: (lead as any).ltv || null,
+      // Add all database fields dynamically
+      ...Object.fromEntries(
+        allFields
+          .filter(f => f.is_in_use)
+          .map(field => [(FIELD_NAME_MAP[field.field_name] || field.field_name), (lead as any)[field.field_name]])
+      )
+    };
+  });
 
   // Generate column definition for dynamic fields
   const generateColumnDef = (field: any): ColumnDef<DisplayLead> => {

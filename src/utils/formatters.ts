@@ -179,6 +179,7 @@ export const formatNumber = (value: number | null | undefined): string => {
 
 // Short date formatter (MON DD)
 export const formatDateShort = (dateString: string | null | undefined): string => {
+  console.log('formatDateShort input:', dateString);
   if (!dateString) return "—";
   try {
     let date: Date;
@@ -190,7 +191,9 @@ export const formatDateShort = (dateString: string | null | undefined): string =
     } else {
       // Normalize timestamp format before parsing (handles Postgres format)
       const normalized = normalizeTimestamp(dateString);
+      console.log('formatDateShort normalized:', normalized);
       date = new Date(normalized);
+      console.log('formatDateShort parsed date:', date, 'isValid:', !isNaN(date.getTime()));
     }
     
     if (isNaN(date.getTime())) return "—";
