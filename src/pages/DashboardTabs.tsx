@@ -36,7 +36,7 @@ const MONTHLY_GOALS = {
   newAgentCalls: 55,
   currentAgentCalls: 90,
   pastClientCalls: 20,
-  currentClientCalls: 40,  // New goal for current client calls
+  currentClientCalls: 60,  // Updated goal for current client calls
   topAgentCalls: 10,
   pastLACalls: 10
 };
@@ -591,7 +591,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Leads", thisWeekLeadsData, "leads")}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.leads)}
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.leads)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -669,7 +669,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Applications", thisWeekApps, "applications")}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.applications)}
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.applications)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -747,7 +747,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Face-to-Face Meetings", thisWeekMeetings, "meetings")}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.meetings)}
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.meetings)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -825,7 +825,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Broker Opens", thisWeekBrokerOpens, "meetings")}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.brokerOpens)}
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.brokerOpens)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -961,13 +961,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's New Agent Calls", thisWeekNewAgentCalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekNewAgentCalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.newAgentCalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.newAgentCalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.newAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-blue-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.newAgentCalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1018,13 +1012,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Current Agent Calls", thisWeekCurrentAgentCalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekCurrentAgentCalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.currentAgentCalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.currentAgentCalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.currentAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-blue-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.currentAgentCalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1075,13 +1063,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Top Agent Calls", thisWeekTopAgentCalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekTopAgentCalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.topAgentCalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.topAgentCalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.topAgentCalls)}
-                    progressColor="[&_.bg-primary]:bg-blue-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.topAgentCalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1132,13 +1114,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Past LA Calls", thisWeekPastLACalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekPastLACalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.pastLACalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.pastLACalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.pastLACalls)}
-                    progressColor="[&_.bg-primary]:bg-blue-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.pastLACalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1189,13 +1165,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Current Client Calls", thisWeekCurrentClientCalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekCurrentClientCalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.currentClientCalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.currentClientCalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.currentClientCalls)}
-                    progressColor="[&_.bg-primary]:bg-purple-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.currentClientCalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -1246,13 +1216,7 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Past Client Calls", thisWeekPastClientCalls, "calls")}
-                    showProgress={true}
-                    progressValue={thisWeekPastClientCalls.length}
-                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.pastClientCalls)}
-                    showExpectedProgress={true}
-                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.pastClientCalls)}
-                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.pastClientCalls)}
-                    progressColor="[&_.bg-primary]:bg-purple-500"
+                    goalDisplay={calculateWeeklyGoal(MONTHLY_GOALS.pastClientCalls)}
                   />
                   <ModernStatsCard
                     title="Yesterday"

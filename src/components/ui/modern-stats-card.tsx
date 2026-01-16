@@ -21,6 +21,7 @@ interface ModernStatsCardProps {
   expectedProgressValue?: number; // Expected progress value
   progressColor?: string; // Custom color class for progress bar
   weeklyGoal?: number; // Weekly goal to display
+  goalDisplay?: number; // If set, shows "value out of goalDisplay" in bottom right (no progress bar)
 }
 
 export function ModernStatsCard({ 
@@ -41,6 +42,7 @@ export function ModernStatsCard({
   expectedProgressValue = 0,
   progressColor,
   weeklyGoal,
+  goalDisplay,
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -158,6 +160,15 @@ export function ModernStatsCard({
                 />
               )}
             </div>
+          </div>
+        )}
+
+        {/* Simple goal display without progress bar */}
+        {goalDisplay !== undefined && !showProgress && (
+          <div className="flex justify-end mt-1">
+            <span className="text-xs text-muted-foreground">
+              {value} out of {goalDisplay}
+            </span>
           </div>
         )}
       </CardContent>
