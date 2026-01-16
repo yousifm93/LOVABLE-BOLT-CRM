@@ -23,17 +23,63 @@ interface ParsedCondo {
   investment_down: string | null;
 }
 
-// Parse date strings like "June 16, 2027" to "2027-06-16"
-function parseExpirationDate(dateStr: string | null): string | null {
-  if (!dateStr || dateStr === '' || dateStr === '-') return null;
-  
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return null;
-    return date.toISOString().split('T')[0];
-  } catch {
+// Excel stores dates as serial numbers (days since Dec 30, 1899)
+function excelSerialToDate(serial: number | string | null | undefined): string | null {
+  if (serial === null || serial === undefined || serial === '' || serial === '-') {
     return null;
   }
+  
+  // If it's already a string date like "June 16, 2027"
+  if (typeof serial === 'string' && isNaN(Number(serial))) {
+    try {
+      const date = new Date(serial);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+  
+  // Excel serial number
+  const numSerial = Number(serial);
+  if (isNaN(numSerial) || numSerial < 1) return null;
+  
+  // Excel epoch: December 30, 1899
+  const excelEpoch = new Date(1899, 11, 30);
+  const date = new Date(excelEpoch.getTime() + numSerial * 24 * 60 * 60 * 1000);
+  
+  return date.toISOString().split('T')[0];
+}
+
+// Convert decimal (0.25) or number (25) to percentage string ("25%")
+function formatPercentage(value: number | string | null | undefined): string | null {
+  if (value === null || value === undefined || value === '' || value === '-') return null;
+  
+  const str = String(value).trim();
+  
+  // Already has % sign
+  if (str.includes('%')) {
+    return str;
+  }
+  
+  const num = Number(str);
+  if (isNaN(num)) {
+    return str; // Return as-is if not a number
+  }
+  
+  // Convert decimal to percentage (0.25 → "25%")
+  if (num > 0 && num < 1) {
+    return `${Math.round(num * 100)}%`;
+  }
+  
+  // Already a percentage number (25 → "25%")
+  if (num >= 1 && num <= 100) {
+    return `${Math.round(num)}%`;
+  }
+  
+  return `${num}%`;
 }
 
 export default function ImportCondos() {
@@ -54,7 +100,7 @@ export default function ImportCondos() {
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data);
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
       
       // Skip header row
       const condos: ParsedCondo[] = [];
@@ -64,17 +110,19 @@ export default function ImportCondos() {
         
         const condo: ParsedCondo = {
           condo_name: String(row[0] || '').trim(),
-          street_address: row[1] ? String(row[1]).trim() : null,
+          street_address: row[1] !== undefined && row[1] !== null && String(row[1]).trim() !== '' 
+            ? String(row[1]).trim() 
+            : null,
           city: row[2] ? String(row[2]).trim() : null,
           state: row[3] ? String(row[3]).trim().replace(/[^A-Z]/gi, '') : null,
           zip: row[4] ? String(row[4]).trim() : null,
           source_uwm: String(row[5] || '').toUpperCase() === 'YES',
           source_ad: String(row[6] || '').toUpperCase() === 'YES',
           review_type: row[7] ? String(row[7]).trim() : null,
-          approval_expiration_date: parseExpirationDate(row[8] ? String(row[8]) : null),
-          primary_down: row[9] ? String(row[9]).trim() : null,
-          second_down: row[10] ? String(row[10]).trim() : null,
-          investment_down: row[11] ? String(row[11]).trim() : null,
+          approval_expiration_date: excelSerialToDate(row[8]),
+          primary_down: formatPercentage(row[9]),
+          second_down: formatPercentage(row[10]),
+          investment_down: formatPercentage(row[11]),
         };
         
         // Only add if condo_name is not empty
