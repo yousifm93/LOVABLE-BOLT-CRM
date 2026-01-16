@@ -118,18 +118,14 @@ export function ModernStatsCard({
         {/* Progress Bar at Bottom */}
         {showProgress && (
           <div className="mt-1 space-y-0.5">
-            {/* "X out of Y" and shortfall on same line above progress bar */}
-            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground mb-0.5">
-              <span>{progressValue} out of {progressMax}</span>
-              {showExpectedProgress && expectedProgressValue !== undefined && progressValue < expectedProgressValue && (
-                <>
-                  <span>·</span>
-                  <span className="text-[10px]">
-                    {Math.round(expectedProgressValue - progressValue)} short of goal
-                  </span>
-                </>
-              )}
-            </div>
+            {/* "X short of goal" above progress bar - only shown when behind */}
+            {showExpectedProgress && expectedProgressValue !== undefined && progressValue < expectedProgressValue && (
+              <div className="flex items-center justify-end text-xs text-muted-foreground mb-0.5">
+                <span className="text-[10px]">
+                  {Math.round(expectedProgressValue - progressValue)} short of goal
+                </span>
+              </div>
+            )}
             
             {/* Progress bar */}
             <div className="relative">
