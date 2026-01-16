@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search } from "lucide-react";
+import { Building, Plus, Search, Check, X } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
-import { FileUpload } from "@/components/ui/file-upload";
-import { InlineEditApprovalSource } from "@/components/ui/inline-edit-approval-source";
-import { InlineEditApprovalType } from "@/components/ui/inline-edit-approval-type";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
+import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface Condo {
   id: string;
@@ -18,27 +17,22 @@ interface Condo {
   city: string | null;
   state: string | null;
   zip: string | null;
-  area: string | null;
-  budget_file_url: string | null;
-  cq_file_url: string | null;
-  mip_file_url: string | null;
+  source_uwm: boolean | null;
+  source_ad: boolean | null;
+  review_type: string | null;
   approval_expiration_date: string | null;
-  approval_source: string | null;
-  approval_type: string | null;
+  primary_down: string | null;
+  second_down: string | null;
+  investment_down: string | null;
   updated_at: string;
 }
 
-const approvalSourceOptions = [
-  { value: "PennyMac", label: "PennyMac" },
-  { value: "A&D", label: "A&D" },
-  { value: "UWM", label: "UWM" }
-];
-
-const approvalTypeOptions = [
-  { value: "Full", label: "Full" },
-  { value: "Limited", label: "Limited" },
-  { value: "Non-QM", label: "Non-QM" },
-  { value: "Hard Money", label: "Hard Money" }
+const reviewTypeOptions = [
+  { value: "Non-QM Limited", label: "Non-QM Limited" },
+  { value: "Non-QM Full", label: "Non-QM Full" },
+  { value: "Conventional Limited", label: "Conventional Limited" },
+  { value: "Conventional Full", label: "Conventional Full" },
+  { value: "Restricted", label: "Restricted" }
 ];
 
 const createColumns = (
@@ -55,42 +49,6 @@ const createColumns = (
       />
     ),
     sortable: true,
-  },
-  {
-    accessorKey: "budget_file_url",
-    header: "Budget",
-    cell: ({ row }) => (
-      <FileUpload
-        value={row.original.budget_file_url}
-        onValueChange={(url) => handleUpdate(row.original.id, "budget_file_url", url)}
-        bucket="condo-documents"
-        compact={true}
-      />
-    ),
-  },
-  {
-    accessorKey: "cq_file_url",
-    header: "CQ",
-    cell: ({ row }) => (
-      <FileUpload
-        value={row.original.cq_file_url}
-        onValueChange={(url) => handleUpdate(row.original.id, "cq_file_url", url)}
-        bucket="condo-documents"
-        compact={true}
-      />
-    ),
-  },
-  {
-    accessorKey: "mip_file_url",
-    header: "MIP",
-    cell: ({ row }) => (
-      <FileUpload
-        value={row.original.mip_file_url}
-        onValueChange={(url) => handleUpdate(row.original.id, "mip_file_url", url)}
-        bucket="condo-documents"
-        compact={true}
-      />
-    ),
   },
   {
     accessorKey: "street_address",
@@ -141,20 +99,54 @@ const createColumns = (
     sortable: true,
   },
   {
-    accessorKey: "area",
-    header: "Area",
+    accessorKey: "source_uwm",
+    header: "UWM",
     cell: ({ row }) => (
-      <Input
-        value={row.original.area || ""}
-        onChange={(e) => handleUpdate(row.original.id, "area", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-24"
+      <div className="flex justify-center">
+        {row.original.source_uwm ? (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Check className="h-3 w-3" />
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "source_ad",
+    header: "A&D",
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        {row.original.source_ad ? (
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Check className="h-3 w-3" />
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )}
+      </div>
+    ),
+    sortable: true,
+  },
+  {
+    accessorKey: "review_type",
+    header: "Review Type",
+    cell: ({ row }) => (
+      <InlineEditSelect
+        value={row.original.review_type}
+        onValueChange={(value) => handleUpdate(row.original.id, "review_type", value)}
+        options={reviewTypeOptions}
+        placeholder="-"
+        className="text-xs"
       />
     ),
     sortable: true,
   },
   {
     accessorKey: "approval_expiration_date",
-    header: "Approval Expiration",
+    header: "Expiration",
     cell: ({ row }) => (
       <InlineEditDate
         value={row.original.approval_expiration_date}
@@ -166,34 +158,41 @@ const createColumns = (
     sortable: true,
   },
   {
-    accessorKey: "approval_source",
-    header: "Approval Source",
+    accessorKey: "primary_down",
+    header: "Primary",
     cell: ({ row }) => (
-      <InlineEditApprovalSource
-        value={row.original.approval_source}
-        onValueChange={(value) => handleUpdate(row.original.id, "approval_source", value)}
+      <Input
+        value={row.original.primary_down || ""}
+        onChange={(e) => handleUpdate(row.original.id, "primary_down", e.target.value)}
+        className="border-none bg-transparent p-1 h-8 w-16 text-center"
+        placeholder="-"
       />
     ),
     sortable: true,
   },
   {
-    accessorKey: "approval_type",
-    header: "Approval Type",
+    accessorKey: "second_down",
+    header: "Second",
     cell: ({ row }) => (
-      <InlineEditApprovalType
-        value={row.original.approval_type}
-        onValueChange={(value) => handleUpdate(row.original.id, "approval_type", value)}
+      <Input
+        value={row.original.second_down || ""}
+        onChange={(e) => handleUpdate(row.original.id, "second_down", e.target.value)}
+        className="border-none bg-transparent p-1 h-8 w-16 text-center"
+        placeholder="-"
       />
     ),
     sortable: true,
   },
   {
-    accessorKey: "updated_at",
-    header: "Updated",
+    accessorKey: "investment_down",
+    header: "Investment",
     cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground">
-        {new Date(row.original.updated_at).toLocaleDateString()}
-      </div>
+      <Input
+        value={row.original.investment_down || ""}
+        onChange={(e) => handleUpdate(row.original.id, "investment_down", e.target.value)}
+        className="border-none bg-transparent p-1 h-8 w-16 text-center"
+        placeholder="-"
+      />
     ),
     sortable: true,
   },
@@ -258,9 +257,12 @@ export default function Condolist() {
         city: "",
         state: "",
         zip: "",
-        area: "",
-        approval_source: null,
-        approval_type: null
+        source_uwm: false,
+        source_ad: false,
+        review_type: null,
+        primary_down: null,
+        second_down: null,
+        investment_down: null
       };
       
       const created = await databaseService.createCondo(newCondo);
@@ -307,7 +309,7 @@ export default function Condolist() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Building className="h-5 w-5 mr-2 text-primary" />
-            Approved Condominiums
+            Approved Condominiums ({condos.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
