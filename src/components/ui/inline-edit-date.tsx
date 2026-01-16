@@ -48,7 +48,7 @@ export function InlineEditDate({
   }, [value]);
 
   const displayValue = dateValue && !isNaN(dateValue.getTime()) 
-    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+    ? dateValue.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
     : placeholder;
 
   const handleSelect = (date: Date | undefined) => {
