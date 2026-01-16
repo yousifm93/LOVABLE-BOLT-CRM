@@ -41,6 +41,18 @@ export const formatYesNo = (value: boolean | string | null | undefined): string 
   return "—";
 };
 
+/**
+ * Normalize Postgres/Supabase timestamp strings to ISO 8601 format
+ * Handles formats like "2025-10-07 04:00:00+00" (space instead of T)
+ */
+const normalizeTimestamp = (dateString: string): string => {
+  // Replace space with T for ISO 8601 compliance
+  let normalized = dateString.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/, '$1T$2');
+  // Normalize timezone: +00 -> +00:00, or just +00 at end
+  normalized = normalized.replace(/\+00$/, '+00:00');
+  return normalized;
+};
+
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "—";
   try {
@@ -51,8 +63,9 @@ export const formatDate = (dateString: string | null | undefined): string => {
       const [year, month, day] = dateString.split('-').map(Number);
       date = new Date(year, month - 1, day); // month is 0-indexed
     } else {
-      // For timestamps with time component, parse normally
-      date = new Date(dateString);
+      // Normalize timestamp format before parsing
+      const normalized = normalizeTimestamp(dateString);
+      date = new Date(normalized);
     }
     
     if (isNaN(date.getTime())) return "—";
@@ -94,7 +107,9 @@ export const formatAmortizationTerm = (months: number | null | undefined): strin
 export const formatDateTime = (value: string | null | undefined): string => {
   if (!value) return "—";
   try {
-    const date = new Date(value);
+    const normalized = normalizeTimestamp(value);
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return "—";
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -112,7 +127,9 @@ export const formatDateTime = (value: string | null | undefined): string => {
 export const formatDateTimeNoYear = (value: string | null | undefined): string => {
   if (!value) return "—";
   try {
-    const date = new Date(value);
+    const normalized = normalizeTimestamp(value);
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return "—";
     const month = date.toLocaleDateString('en-US', { month: 'short' });
     const day = date.getDate();
     const time = date.toLocaleTimeString('en-US', {
@@ -171,8 +188,9 @@ export const formatDateShort = (dateString: string | null | undefined): string =
       const [year, month, day] = dateString.split('-').map(Number);
       date = new Date(year, month - 1, day); // month is 0-indexed
     } else {
-      // For timestamps with time component, parse normally
-      date = new Date(dateString);
+      // Normalize timestamp format before parsing (handles Postgres format)
+      const normalized = normalizeTimestamp(dateString);
+      date = new Date(normalized);
     }
     
     if (isNaN(date.getTime())) return "—";

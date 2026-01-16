@@ -23,6 +23,7 @@ import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Mail, Phone, Calendar, Star, FileText, Pencil, Trash2 } from "lucide-react";
 
 interface AgentDetailDialogProps {
@@ -42,6 +43,7 @@ const rankOptions = [
 
 export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: AgentDetailDialogProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [associatedLeads, setAssociatedLeads] = useState<any[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
   const [callLogs, setCallLogs] = useState<any[]>([]);
@@ -176,6 +178,20 @@ export function AgentDetailDialog({ agent, isOpen, onClose, onAgentUpdated }: Ag
       }
       
       await databaseService.deleteAgentCallLog(logToDelete.id);
+      
+      // Invalidate dashboard queries to reflect changes immediately
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return [
+            'faceToFaceMeetings',
+            'brokerOpens', 
+            'agentCalls',
+            'buyer-agents',
+          ].includes(key as string);
+        }
+      });
+      
       toast({
         title: "Deleted",
         description: "Log deleted successfully.",

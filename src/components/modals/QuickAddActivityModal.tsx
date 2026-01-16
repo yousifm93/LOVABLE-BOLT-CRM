@@ -255,9 +255,23 @@ export function QuickAddActivityModal({
         });
       }
 
-      // Invalidate queries to refresh dashboard
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-agents'] });
+      // Invalidate all dashboard-related queries to refresh data immediately
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return [
+            'faceToFaceMeetings',
+            'brokerOpens', 
+            'agentCalls',
+            'currentClientCalls',
+            'pastClientCalls',
+            'leads',
+            'applications',
+            'buyer-agents',
+            'dashboardData'
+          ].includes(key as string);
+        }
+      });
 
       onActivityAdded();
       onClose();
