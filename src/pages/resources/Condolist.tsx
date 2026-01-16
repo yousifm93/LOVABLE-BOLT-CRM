@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search } from "lucide-react";
+import { Building, Plus, Search, Filter } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
 import { InlineEditNumber } from "@/components/ui/inline-edit-number";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CondoDetailDrawer } from "@/components/CondoDetailDrawer";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
@@ -216,6 +218,10 @@ export default function Condolist() {
   const [condos, setCondos] = useState<Condo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [targetMarketFilter, setTargetMarketFilter] = useState<string>("all");
+  const [reviewTypeFilter, setReviewTypeFilter] = useState<string>("all");
+  const [selectedCondo, setSelectedCondo] = useState<Condo | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -296,7 +302,38 @@ export default function Condolist() {
     }
   };
 
+  const handleViewDetails = (condo: Condo) => {
+    setSelectedCondo(condo);
+    setIsDrawerOpen(true);
+  };
+
+  // Filter condos based on selected filters
+  const filteredCondos = useMemo(() => {
+    let result = condos;
+    
+    // Target Market filter (zip codes 33125-33181)
+    if (targetMarketFilter === "target") {
+      result = result.filter(condo => {
+        if (!condo.zip) return false;
+        const zipNum = parseInt(condo.zip, 10);
+        return zipNum >= 33125 && zipNum <= 33181;
+      });
+    }
+    
+    // Review Type filter
+    if (reviewTypeFilter !== "all") {
+      result = result.filter(condo => condo.review_type === reviewTypeFilter);
+    }
+    
+    return result;
+  }, [condos, targetMarketFilter, reviewTypeFilter]);
+
   const columns = createColumns(handleUpdate);
+
+  const activeFiltersCount = [
+    targetMarketFilter !== "all",
+    reviewTypeFilter !== "all"
+  ].filter(Boolean).length;
 
   if (loading) {
     return (
@@ -323,10 +360,61 @@ export default function Condolist() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Building className="h-5 w-5 mr-2 text-primary" />
-            Approved Condominiums ({condos.length})
+            Approved Condominiums ({filteredCondos.length})
+            {activeFiltersCount > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                (filtered from {condos.length})
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Filters Row */}
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Filters:</span>
+            </div>
+            
+            <Select value={targetMarketFilter} onValueChange={setTargetMarketFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Target Market" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Zip Codes</SelectItem>
+                <SelectItem value="target">Target Market (33125-33181)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={reviewTypeFilter} onValueChange={setReviewTypeFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Review Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Review Types</SelectItem>
+                <SelectItem value="Non-QM Limited">Non-QM Limited</SelectItem>
+                <SelectItem value="Non-QM Full">Non-QM Full</SelectItem>
+                <SelectItem value="Conventional Limited">Conventional Limited</SelectItem>
+                <SelectItem value="Conventional Full">Conventional Full</SelectItem>
+                <SelectItem value="Restricted">Restricted</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {activeFiltersCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setTargetMarketFilter("all");
+                  setReviewTypeFilter("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+
+          {/* Search and Add Row */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -345,7 +433,7 @@ export default function Condolist() {
 
           <DataTable
             columns={columns}
-            data={condos}
+            data={filteredCondos}
             searchTerm={searchTerm}
             pageSize={15}
             showRowNumbers={true}
@@ -353,9 +441,18 @@ export default function Condolist() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             getRowId={(row) => row.id}
+            onViewDetails={handleViewDetails}
+            limitedActions={true}
           />
         </CardContent>
       </Card>
+
+      <CondoDetailDrawer
+        condo={selectedCondo}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onCondoUpdated={loadCondos}
+      />
     </div>
   );
 }
