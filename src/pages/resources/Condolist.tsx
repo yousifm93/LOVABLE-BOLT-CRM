@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Plus, Search, Check, X } from "lucide-react";
+import { Building, Plus, Search } from "lucide-react";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
+import { InlineEditBoolean } from "@/components/ui/inline-edit-boolean";
+import { InlineEditNumber } from "@/components/ui/inline-edit-number";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 
 interface Condo {
   id: string;
@@ -103,13 +104,10 @@ const createColumns = (
     header: "UWM",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        {row.original.source_uwm ? (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <Check className="h-3 w-3" />
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground">-</span>
-        )}
+        <InlineEditBoolean
+          value={row.original.source_uwm}
+          onValueChange={(value) => handleUpdate(row.original.id, "source_uwm", value)}
+        />
       </div>
     ),
     sortable: true,
@@ -119,13 +117,10 @@ const createColumns = (
     header: "A&D",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        {row.original.source_ad ? (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <Check className="h-3 w-3" />
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground">-</span>
-        )}
+        <InlineEditBoolean
+          value={row.original.source_ad}
+          onValueChange={(value) => handleUpdate(row.original.id, "source_ad", value)}
+        />
       </div>
     ),
     sortable: true,
@@ -160,40 +155,58 @@ const createColumns = (
   {
     accessorKey: "primary_down",
     header: "Primary",
-    cell: ({ row }) => (
-      <Input
-        value={row.original.primary_down || ""}
-        onChange={(e) => handleUpdate(row.original.id, "primary_down", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-16 text-center"
-        placeholder="-"
-      />
-    ),
+    cell: ({ row }) => {
+      const numValue = row.original.primary_down 
+        ? parseInt(row.original.primary_down.replace('%', '')) 
+        : null;
+      return (
+        <InlineEditNumber
+          value={numValue}
+          onValueChange={(value) => handleUpdate(row.original.id, "primary_down", `${value}%`)}
+          suffix="%"
+          min={0}
+          max={100}
+        />
+      );
+    },
     sortable: true,
   },
   {
     accessorKey: "second_down",
     header: "Second",
-    cell: ({ row }) => (
-      <Input
-        value={row.original.second_down || ""}
-        onChange={(e) => handleUpdate(row.original.id, "second_down", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-16 text-center"
-        placeholder="-"
-      />
-    ),
+    cell: ({ row }) => {
+      const numValue = row.original.second_down 
+        ? parseInt(row.original.second_down.replace('%', '')) 
+        : null;
+      return (
+        <InlineEditNumber
+          value={numValue}
+          onValueChange={(value) => handleUpdate(row.original.id, "second_down", `${value}%`)}
+          suffix="%"
+          min={0}
+          max={100}
+        />
+      );
+    },
     sortable: true,
   },
   {
     accessorKey: "investment_down",
     header: "Investment",
-    cell: ({ row }) => (
-      <Input
-        value={row.original.investment_down || ""}
-        onChange={(e) => handleUpdate(row.original.id, "investment_down", e.target.value)}
-        className="border-none bg-transparent p-1 h-8 w-16 text-center"
-        placeholder="-"
-      />
-    ),
+    cell: ({ row }) => {
+      const numValue = row.original.investment_down 
+        ? parseInt(row.original.investment_down.replace('%', '')) 
+        : null;
+      return (
+        <InlineEditNumber
+          value={numValue}
+          onValueChange={(value) => handleUpdate(row.original.id, "investment_down", `${value}%`)}
+          suffix="%"
+          min={0}
+          max={100}
+        />
+      );
+    },
     sortable: true,
   },
 ];
@@ -333,6 +346,7 @@ export default function Condolist() {
             columns={columns}
             data={condos}
             searchTerm={searchTerm}
+            pageSize={15}
           />
         </CardContent>
       </Card>
