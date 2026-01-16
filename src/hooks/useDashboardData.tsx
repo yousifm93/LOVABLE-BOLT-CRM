@@ -267,7 +267,7 @@ export const useDashboardData = () => {
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', startOfMonthTimestamp)
         .lt('face_to_face_meeting', startOfNextMonthTimestamp)
-        .order('face_to_face_meeting', { ascending: false });
+        .order('face_to_face_meeting', { ascending: true });
       
       if (error) throw error;
       
@@ -295,7 +295,7 @@ export const useDashboardData = () => {
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', lastWeekRange.start)
         .lte('face_to_face_meeting', lastWeekRange.end)
-        .order('face_to_face_meeting', { ascending: false });
+        .order('face_to_face_meeting', { ascending: true });
       
       if (error) throw error;
       
@@ -323,7 +323,7 @@ export const useDashboardData = () => {
         .not('face_to_face_meeting', 'is', null)
         .gte('face_to_face_meeting', thisWeekRange.start)
         .lte('face_to_face_meeting', thisWeekRange.end)
-        .order('face_to_face_meeting', { ascending: false });
+        .order('face_to_face_meeting', { ascending: true });
       
       if (error) throw error;
       
@@ -349,7 +349,7 @@ export const useDashboardData = () => {
           agent_call_logs!agent_call_logs_agent_id_fkey(*)
         `)
         .not('face_to_face_meeting', 'is', null)
-        .order('face_to_face_meeting', { ascending: false });
+        .order('face_to_face_meeting', { ascending: true });
       
       if (error) throw error;
       
@@ -379,7 +379,7 @@ export const useDashboardData = () => {
         .not('broker_open', 'is', null)
         .gte('broker_open', startOfMonthTimestamp)
         .lt('broker_open', startOfNextMonthTimestamp)
-        .order('broker_open', { ascending: false });
+        .order('broker_open', { ascending: true });
       
       if (error) throw error;
       return data || [];
@@ -397,7 +397,7 @@ export const useDashboardData = () => {
         .not('broker_open', 'is', null)
         .gte('broker_open', lastWeekRange.start)
         .lte('broker_open', lastWeekRange.end)
-        .order('broker_open', { ascending: false });
+        .order('broker_open', { ascending: true });
       
       if (error) throw error;
       return data || [];
@@ -415,7 +415,7 @@ export const useDashboardData = () => {
         .not('broker_open', 'is', null)
         .gte('broker_open', thisWeekRange.start)
         .lte('broker_open', thisWeekRange.end)
-        .order('broker_open', { ascending: false });
+        .order('broker_open', { ascending: true });
       
       if (error) throw error;
       return data || [];
@@ -442,7 +442,7 @@ export const useDashboardData = () => {
   // ============== CALL TYPE BREAKDOWN ==============
   const PAST_CLIENTS_STAGE_ID = 'acdfc6ba-7cbc-47af-a8c6-380d77aef6dd';
 
-  // Helper function to fetch agent calls by call_type
+  // Helper function to fetch agent calls by call_type (oldest first for dashboard slot grids)
   const fetchAgentCallsByType = async (callType: string, startTime?: string, endTime?: string) => {
     let query = supabase
       .from('agent_call_logs')
@@ -453,7 +453,8 @@ export const useDashboardData = () => {
     if (startTime) query = query.gte('logged_at', startTime);
     if (endTime) query = query.lte('logged_at', endTime);
     
-    const { data, error } = await query.order('logged_at', { ascending: false });
+    // Order ascending (oldest first) so slot #1 = earliest date
+    const { data, error } = await query.order('logged_at', { ascending: true });
     if (error) throw error;
     
     return (data || []).map(c => {
@@ -559,7 +560,8 @@ export const useDashboardData = () => {
     if (startTime) query = query.gte('timestamp', startTime);
     if (endTime) query = query.lte('timestamp', endTime);
     
-    const { data, error } = await query.order('timestamp', { ascending: false });
+    // Order ascending (oldest first) so slot #1 = earliest date
+    const { data, error } = await query.order('timestamp', { ascending: true });
     if (error) throw error;
     
     return (data || []).map(c => {
@@ -603,7 +605,8 @@ export const useDashboardData = () => {
     if (startTime) query = query.gte('timestamp', startTime);
     if (endTime) query = query.lte('timestamp', endTime);
     
-    const { data, error } = await query.order('timestamp', { ascending: false });
+    // Order ascending (oldest first) so slot #1 = earliest date
+    const { data, error } = await query.order('timestamp', { ascending: true });
     if (error) throw error;
     
     return (data || []).map(c => {

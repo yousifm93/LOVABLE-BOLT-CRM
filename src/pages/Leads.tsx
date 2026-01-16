@@ -982,19 +982,29 @@ export default function Leads() {
       });
       if (leadsError) throw leadsError;
 
-      // Fetch all users
-      const {
-        data: usersData
-      } = await supabase.from('users').select('id, first_name, last_name, email');
+      // Collect unique IDs from leads for targeted fetching
+      const userIds = [...new Set((dbLeads || []).map(l => l.teammate_assigned).filter(Boolean))] as string[];
+      const agentIds = [...new Set((dbLeads || []).map(l => l.buyer_agent_id).filter(Boolean))] as string[];
 
-      // Fetch all buyer agents
-      const {
-        data: agentsData
-      } = await supabase.from('buyer_agents').select('id, first_name, last_name, brokerage, email, phone');
+      // Fetch only users referenced by current leads (avoids pagination truncation)
+      let usersMap = new Map();
+      if (userIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+        usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
+      }
 
-      // Create lookup maps for efficient matching
-      const usersMap = new Map(usersData?.map(u => [u.id, u]) || []);
-      const agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
+      // Fetch only buyer agents referenced by current leads (avoids pagination truncation)
+      let agentsMap = new Map();
+      if (agentIds.length > 0) {
+        const { data: agentsData } = await supabase
+          .from('buyer_agents')
+          .select('id, first_name, last_name, brokerage, email, phone')
+          .in('id', agentIds);
+        agentsMap = new Map(agentsData?.map(a => [a.id, a]) || []);
+      }
 
       // Get earliest task due dates for all leads
       const leadIds = dbLeads?.map(lead => lead.id) || [];
