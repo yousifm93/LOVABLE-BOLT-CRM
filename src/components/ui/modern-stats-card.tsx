@@ -118,25 +118,13 @@ export function ModernStatsCard({
         {/* Progress Bar at Bottom */}
         {showProgress && (
           <div className="mt-1 space-y-0.5">
-            {/* Percentage, weekly goal, and "behind" text on same line */}
-            <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground mb-0.5">
-              {weeklyGoal !== undefined && (
-                <span className="text-[10px] text-muted-foreground/70">Goal: {weeklyGoal}</span>
-              )}
-              <span>{Math.round((progressValue / progressMax) * 100)}%</span>
-              {showExpectedProgress && expectedProgressValue !== undefined && (() => {
-                const difference = Math.round(progressValue - expectedProgressValue);
-                if (difference === 0) return null;
-                return (
-                  <span>
-                    ({difference > 0 ? '+' : ''}{difference})
-                  </span>
-                );
-              })()}
+            {/* "X out of Y" display above progress bar */}
+            <div className="flex items-center justify-end text-xs text-muted-foreground mb-0.5">
+              <span>{progressValue} out of {progressMax}</span>
             </div>
             
-            {/* Progress bar moved up with tighter spacing */}
-            <div className="relative mt-0.5">
+            {/* Progress bar */}
+            <div className="relative">
               <Progress 
                 value={(progressValue / progressMax) * 100} 
                 className={cn("h-1.5", progressColor)}
@@ -160,6 +148,15 @@ export function ModernStatsCard({
                 />
               )}
             </div>
+
+            {/* "X short of goal" below progress bar - only shown when behind */}
+            {showExpectedProgress && expectedProgressValue !== undefined && progressValue < expectedProgressValue && (
+              <div className="flex justify-end mt-0.5">
+                <span className="text-[10px] text-muted-foreground">
+                  {Math.round(expectedProgressValue - progressValue)} short of goal
+                </span>
+              </div>
+            )}
           </div>
         )}
 
