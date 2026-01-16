@@ -2703,7 +2703,8 @@ export const databaseService = {
     const { data, error } = await supabase
       .from('condos')
       .select('*')
-      .order('condo_name');
+      .order('condo_name')
+      .limit(5000);
     
     if (error) throw error;
     return data;

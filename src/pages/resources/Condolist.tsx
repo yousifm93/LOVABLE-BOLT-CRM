@@ -215,6 +215,7 @@ export default function Condolist() {
   const [searchTerm, setSearchTerm] = useState("");
   const [condos, setCondos] = useState<Condo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -347,6 +348,11 @@ export default function Condolist() {
             data={condos}
             searchTerm={searchTerm}
             pageSize={15}
+            showRowNumbers={true}
+            selectable={true}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            getRowId={(row) => row.id}
           />
         </CardContent>
       </Card>
