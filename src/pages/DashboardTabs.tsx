@@ -161,6 +161,15 @@ export default function DashboardTabs() {
     return Math.ceil(monthlyGoal / Math.max(weeksInMonth, 1));
   };
   
+  // Helper to calculate expected weekly progress based on day of week
+  const calculateExpectedWeeklyProgress = (monthlyGoal: number): number => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, etc
+    const daysIntoWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Sunday counts as day 7
+    const weeklyGoal = calculateWeeklyGoal(monthlyGoal);
+    return Math.round((daysIntoWeek / 7) * weeklyGoal);
+  };
+  
   const {
     thisMonthLeads,
     yesterdayLeads,
@@ -978,6 +987,29 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekNewAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's New Agent Calls", lastWeekNewAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekNewAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's New Agent Calls", thisWeekNewAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekNewAgentCalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.newAgentCalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.newAgentCalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.newAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-blue-500"
+                  />
+                  <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayNewAgentCalls.length}
                     icon={<Phone />}
@@ -1017,6 +1049,29 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.currentAgentCalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-blue-500"
+                  />
+                  <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekCurrentAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Current Agent Calls", lastWeekCurrentAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekCurrentAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Current Agent Calls", thisWeekCurrentAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekCurrentAgentCalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.currentAgentCalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.currentAgentCalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.currentAgentCalls)}
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
@@ -1062,6 +1117,29 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekTopAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Top Agent Calls", lastWeekTopAgentCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekTopAgentCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Top Agent Calls", thisWeekTopAgentCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekTopAgentCalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.topAgentCalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.topAgentCalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.topAgentCalls)}
+                    progressColor="[&_.bg-primary]:bg-blue-500"
+                  />
+                  <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayTopAgentCalls.length}
                     icon={<Phone />}
@@ -1101,6 +1179,29 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.pastLACalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastLACalls)}
+                    progressColor="[&_.bg-primary]:bg-blue-500"
+                  />
+                  <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekPastLACalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Past LA Calls", lastWeekPastLACalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekPastLACalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Past LA Calls", thisWeekPastLACalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekPastLACalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.pastLACalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.pastLACalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.pastLACalls)}
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
@@ -1146,6 +1247,29 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Current Client Calls", lastWeekCurrentClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekCurrentClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Current Client Calls", thisWeekCurrentClientCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekCurrentClientCalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.currentClientCalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.currentClientCalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.currentClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-purple-500"
+                  />
+                  <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayCurrentClientCalls.length}
                     icon={<Phone />}
@@ -1185,6 +1309,29 @@ export default function DashboardTabs() {
                     progressMax={MONTHLY_GOALS.pastClientCalls}
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastClientCalls)}
+                    progressColor="[&_.bg-primary]:bg-purple-500"
+                  />
+                  <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Past Client Calls", lastWeekPastClientCalls, "calls")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekPastClientCalls.length}
+                    icon={<Phone />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Past Client Calls", thisWeekPastClientCalls, "calls")}
+                    showProgress={true}
+                    progressValue={thisWeekPastClientCalls.length}
+                    progressMax={calculateWeeklyGoal(MONTHLY_GOALS.pastClientCalls)}
+                    showExpectedProgress={true}
+                    expectedProgressValue={calculateExpectedWeeklyProgress(MONTHLY_GOALS.pastClientCalls)}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.pastClientCalls)}
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
