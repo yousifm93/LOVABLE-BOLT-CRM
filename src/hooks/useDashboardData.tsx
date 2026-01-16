@@ -652,6 +652,16 @@ export const useDashboardData = () => {
     queryFn: () => fetchAgentCallsByType('new_agent', todayBoundaries.start, todayBoundaries.end),
     staleTime: 30000,
   });
+  const { data: lastWeekNewAgentCalls, isLoading: isLoadingLastWeekNewAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'new_agent', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('new_agent', lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekNewAgentCalls, isLoading: isLoadingThisWeekNewAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'new_agent', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('new_agent', thisWeekRange.start, thisWeekRange.end),
+    staleTime: 30000,
+  });
 
   // Current Agent Calls
   const { data: thisMonthCurrentAgentCalls, isLoading: isLoadingThisMonthCurrentAgentCalls } = useQuery({
@@ -667,6 +677,16 @@ export const useDashboardData = () => {
   const { data: todayCurrentAgentCalls, isLoading: isLoadingTodayCurrentAgentCalls } = useQuery({
     queryKey: ['agentCalls', 'current_agent', 'today', formatDate(today)],
     queryFn: () => fetchAgentCallsByType('current_agent', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: lastWeekCurrentAgentCalls, isLoading: isLoadingLastWeekCurrentAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'current_agent', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('current_agent', lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekCurrentAgentCalls, isLoading: isLoadingThisWeekCurrentAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'current_agent', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('current_agent', thisWeekRange.start, thisWeekRange.end),
     staleTime: 30000,
   });
 
@@ -686,6 +706,16 @@ export const useDashboardData = () => {
     queryFn: () => fetchAgentCallsByType('top_agent', todayBoundaries.start, todayBoundaries.end),
     staleTime: 30000,
   });
+  const { data: lastWeekTopAgentCalls, isLoading: isLoadingLastWeekTopAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'top_agent', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('top_agent', lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekTopAgentCalls, isLoading: isLoadingThisWeekTopAgentCalls } = useQuery({
+    queryKey: ['agentCalls', 'top_agent', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('top_agent', thisWeekRange.start, thisWeekRange.end),
+    staleTime: 30000,
+  });
 
   // Past LA Calls
   const { data: thisMonthPastLACalls, isLoading: isLoadingThisMonthPastLACalls } = useQuery({
@@ -701,6 +731,16 @@ export const useDashboardData = () => {
   const { data: todayPastLACalls, isLoading: isLoadingTodayPastLACalls } = useQuery({
     queryKey: ['agentCalls', 'past_la', 'today', formatDate(today)],
     queryFn: () => fetchAgentCallsByType('past_la', todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: lastWeekPastLACalls, isLoading: isLoadingLastWeekPastLACalls } = useQuery({
+    queryKey: ['agentCalls', 'past_la', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('past_la', lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekPastLACalls, isLoading: isLoadingThisWeekPastLACalls } = useQuery({
+    queryKey: ['agentCalls', 'past_la', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchAgentCallsByType('past_la', thisWeekRange.start, thisWeekRange.end),
     staleTime: 30000,
   });
 
@@ -758,6 +798,16 @@ export const useDashboardData = () => {
     queryFn: () => fetchCurrentClientCalls(todayBoundaries.start, todayBoundaries.end),
     staleTime: 30000,
   });
+  const { data: lastWeekCurrentClientCalls, isLoading: isLoadingLastWeekCurrentClientCalls } = useQuery({
+    queryKey: ['currentClientCalls', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchCurrentClientCalls(lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekCurrentClientCalls, isLoading: isLoadingThisWeekCurrentClientCalls } = useQuery({
+    queryKey: ['currentClientCalls', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchCurrentClientCalls(thisWeekRange.start, thisWeekRange.end),
+    staleTime: 30000,
+  });
 
   // Past Client Calls (from call_logs where lead is in Past Clients stage)
   const fetchPastClientCalls = async (startTime?: string, endTime?: string) => {
@@ -801,6 +851,16 @@ export const useDashboardData = () => {
   const { data: todayPastClientCalls, isLoading: isLoadingTodayPastClientCalls } = useQuery({
     queryKey: ['pastClientCalls', 'today', formatDate(today)],
     queryFn: () => fetchPastClientCalls(todayBoundaries.start, todayBoundaries.end),
+    staleTime: 30000,
+  });
+  const { data: lastWeekPastClientCalls, isLoading: isLoadingLastWeekPastClientCalls } = useQuery({
+    queryKey: ['pastClientCalls', 'lastWeek', lastWeekRange.start],
+    queryFn: () => fetchPastClientCalls(lastWeekRange.start, lastWeekRange.end),
+    staleTime: 30000,
+  });
+  const { data: thisWeekPastClientCalls, isLoading: isLoadingThisWeekPastClientCalls } = useQuery({
+    queryKey: ['pastClientCalls', 'thisWeek', thisWeekRange.start],
+    queryFn: () => fetchPastClientCalls(thisWeekRange.start, thisWeekRange.end),
     staleTime: 30000,
   });
 
@@ -1654,21 +1714,33 @@ export const useDashboardData = () => {
     isLoadingThisMonthNewAgentCalls ||
     isLoadingYesterdayNewAgentCalls ||
     isLoadingTodayNewAgentCalls ||
+    isLoadingLastWeekNewAgentCalls ||
+    isLoadingThisWeekNewAgentCalls ||
     isLoadingThisMonthCurrentAgentCalls ||
     isLoadingYesterdayCurrentAgentCalls ||
     isLoadingTodayCurrentAgentCalls ||
+    isLoadingLastWeekCurrentAgentCalls ||
+    isLoadingThisWeekCurrentAgentCalls ||
     isLoadingThisMonthTopAgentCalls ||
     isLoadingYesterdayTopAgentCalls ||
     isLoadingTodayTopAgentCalls ||
+    isLoadingLastWeekTopAgentCalls ||
+    isLoadingThisWeekTopAgentCalls ||
     isLoadingThisMonthPastLACalls ||
     isLoadingYesterdayPastLACalls ||
     isLoadingTodayPastLACalls ||
+    isLoadingLastWeekPastLACalls ||
+    isLoadingThisWeekPastLACalls ||
     isLoadingThisMonthPastClientCalls ||
     isLoadingYesterdayPastClientCalls ||
     isLoadingTodayPastClientCalls ||
+    isLoadingLastWeekPastClientCalls ||
+    isLoadingThisWeekPastClientCalls ||
     isLoadingThisMonthCurrentClientCalls ||
     isLoadingYesterdayCurrentClientCalls ||
-    isLoadingTodayCurrentClientCalls;
+    isLoadingTodayCurrentClientCalls ||
+    isLoadingLastWeekCurrentClientCalls ||
+    isLoadingThisWeekCurrentClientCalls;
 
   return {
     thisMonthLeads: thisMonthLeads || [],
@@ -1705,22 +1777,34 @@ export const useDashboardData = () => {
     thisMonthNewAgentCalls: thisMonthNewAgentCalls || [],
     yesterdayNewAgentCalls: yesterdayNewAgentCalls || [],
     todayNewAgentCalls: todayNewAgentCalls || [],
+    lastWeekNewAgentCalls: lastWeekNewAgentCalls || [],
+    thisWeekNewAgentCalls: thisWeekNewAgentCalls || [],
     thisMonthCurrentAgentCalls: thisMonthCurrentAgentCalls || [],
     yesterdayCurrentAgentCalls: yesterdayCurrentAgentCalls || [],
     todayCurrentAgentCalls: todayCurrentAgentCalls || [],
+    lastWeekCurrentAgentCalls: lastWeekCurrentAgentCalls || [],
+    thisWeekCurrentAgentCalls: thisWeekCurrentAgentCalls || [],
     thisMonthTopAgentCalls: thisMonthTopAgentCalls || [],
     yesterdayTopAgentCalls: yesterdayTopAgentCalls || [],
     todayTopAgentCalls: todayTopAgentCalls || [],
+    lastWeekTopAgentCalls: lastWeekTopAgentCalls || [],
+    thisWeekTopAgentCalls: thisWeekTopAgentCalls || [],
     thisMonthPastLACalls: thisMonthPastLACalls || [],
     yesterdayPastLACalls: yesterdayPastLACalls || [],
     todayPastLACalls: todayPastLACalls || [],
+    lastWeekPastLACalls: lastWeekPastLACalls || [],
+    thisWeekPastLACalls: thisWeekPastLACalls || [],
     thisMonthPastClientCalls: thisMonthPastClientCalls || [],
     yesterdayPastClientCalls: yesterdayPastClientCalls || [],
     todayPastClientCalls: todayPastClientCalls || [],
+    lastWeekPastClientCalls: lastWeekPastClientCalls || [],
+    thisWeekPastClientCalls: thisWeekPastClientCalls || [],
     // Current Client Calls (leads in active pipeline stages)
     thisMonthCurrentClientCalls: thisMonthCurrentClientCalls || [],
     yesterdayCurrentClientCalls: yesterdayCurrentClientCalls || [],
     todayCurrentClientCalls: todayCurrentClientCalls || [],
+    lastWeekCurrentClientCalls: lastWeekCurrentClientCalls || [],
+    thisWeekCurrentClientCalls: thisWeekCurrentClientCalls || [],
     // Emails
     thisMonthEmails: thisMonthEmails || [],
     yesterdayEmails: yesterdayEmails || [],

@@ -146,23 +146,46 @@ export default function DashboardTabs() {
     return Math.round((currentDay / daysInMonth) * monthlyGoal);
   };
   
+  // Helper to calculate weekly goal from monthly goal
+  const calculateWeeklyGoal = (monthlyGoal: number): number => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    // Count Mondays in month = number of weeks
+    let weeksInMonth = 0;
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 1) weeksInMonth++;
+    }
+    return Math.ceil(monthlyGoal / Math.max(weeksInMonth, 1));
+  };
+  
   const {
     thisMonthLeads,
     yesterdayLeads,
     todayLeads,
+    lastWeekLeads,
+    thisWeekLeadsData,
     allLeads,
     thisMonthApps,
     yesterdayApps,
     todayApps,
+    lastWeekApps,
+    thisWeekApps,
     allApplications,
     thisMonthMeetings,
     lastWeekMeetings,
     thisWeekMeetings,
+    yesterdayMeetings,
+    todayMeetings,
     allMeetings,
     // Broker Opens
     thisMonthBrokerOpens,
     lastWeekBrokerOpens,
     thisWeekBrokerOpens,
+    yesterdayBrokerOpens,
+    todayBrokerOpens,
     allBrokerOpens,
     // Combined Calls
     thisMonthCalls,
@@ -173,21 +196,33 @@ export default function DashboardTabs() {
     thisMonthNewAgentCalls,
     yesterdayNewAgentCalls,
     todayNewAgentCalls,
+    lastWeekNewAgentCalls,
+    thisWeekNewAgentCalls,
     thisMonthCurrentAgentCalls,
     yesterdayCurrentAgentCalls,
     todayCurrentAgentCalls,
+    lastWeekCurrentAgentCalls,
+    thisWeekCurrentAgentCalls,
     thisMonthTopAgentCalls,
     yesterdayTopAgentCalls,
     todayTopAgentCalls,
+    lastWeekTopAgentCalls,
+    thisWeekTopAgentCalls,
     thisMonthPastLACalls,
     yesterdayPastLACalls,
     todayPastLACalls,
+    lastWeekPastLACalls,
+    thisWeekPastLACalls,
     thisMonthPastClientCalls,
     yesterdayPastClientCalls,
     todayPastClientCalls,
+    lastWeekPastClientCalls,
+    thisWeekPastClientCalls,
     thisMonthCurrentClientCalls,
     yesterdayCurrentClientCalls,
     todayCurrentClientCalls,
+    lastWeekCurrentClientCalls,
+    thisWeekCurrentClientCalls,
     // Emails
     thisMonthEmails,
     yesterdayEmails,
@@ -541,6 +576,23 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-green-500"
                   />
                   <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekLeads.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Leads", lastWeekLeads, "leads")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekLeadsData.length}
+                    icon={<TrendingUp />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Leads", thisWeekLeadsData, "leads")}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.leads)}
+                  />
+                  <ModernStatsCard
                     title="Yesterday"
                     value={yesterdayLeads.length}
                     icon={<TrendingUp />}
@@ -608,6 +660,23 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.applications)}
                     progressColor="[&_.bg-primary]:bg-green-500"
+                  />
+                  <ModernStatsCard
+                    title="Last Week"
+                    value={lastWeekApps.length}
+                    icon={<Activity />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Last Week's Applications", lastWeekApps, "applications")}
+                  />
+                  <ModernStatsCard
+                    title="This Week"
+                    value={thisWeekApps.length}
+                    icon={<Activity />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("This Week's Applications", thisWeekApps, "applications")}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.applications)}
                   />
                   <ModernStatsCard
                     title="Yesterday"
@@ -693,6 +762,23 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Face-to-Face Meetings", thisWeekMeetings, "meetings")}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.meetings)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Face-to-Face Meetings", yesterdayMeetings, "meetings")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayMeetings.length}
+                    icon={<Users />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Face-to-Face Meetings", todayMeetings, "meetings")}
                   />
                   
                   <CollapsibleSection
@@ -762,6 +848,23 @@ export default function DashboardTabs() {
                     size="large"
                     clickable={true}
                     onClick={() => handleOpenModal("This Week's Broker Opens", thisWeekBrokerOpens, "meetings")}
+                    weeklyGoal={calculateWeeklyGoal(MONTHLY_GOALS.brokerOpens)}
+                  />
+                  <ModernStatsCard
+                    title="Yesterday"
+                    value={yesterdayBrokerOpens.length}
+                    icon={<Calendar />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Yesterday's Broker Opens", yesterdayBrokerOpens, "meetings")}
+                  />
+                  <ModernStatsCard
+                    title="Today"
+                    value={todayBrokerOpens.length}
+                    icon={<Calendar />}
+                    size="large"
+                    clickable={true}
+                    onClick={() => handleOpenModal("Today's Broker Opens", todayBrokerOpens, "meetings")}
                   />
                   
                   <CollapsibleSection
