@@ -65,6 +65,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check if this is a lender marketing email (sender should be extracted as a contact)
+    const { data: emailLog } = await supabaseClient
+      .from('email_logs')
+      .select('is_lender_marketing')
+      .eq('id', emailLogId)
+      .single();
+
+    const isLenderMarketing = emailLog?.is_lender_marketing || false;
+    console.log('Is lender marketing email:', isLenderMarketing);
+
     // Use OpenAI to extract contacts
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -75,14 +85,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Different instructions for lender marketing emails vs regular emails
+    const senderInstruction = isLenderMarketing 
+      ? `For this lender marketing email, DO extract the sender as a contact if they include their name, email, and phone in the signature. They are likely an Account Executive or Sales Rep we want to track. Focus on extracting the sender's contact details from the signature.`
+      : `DO NOT extract the sender themselves (they're already known).`;
+
 const systemPrompt = `You are an expert at extracting contact information from emails for a mortgage company CRM.
 Your task is to identify any contacts mentioned in the email that could be potential new business contacts.
 
 Look for:
 1. People mentioned by name with email addresses or phone numbers
-2. Email signatures with contact details
+2. Email signatures with contact details (ESPECIALLY important for lender marketing emails)
 3. References to colleagues, partners, or clients
 4. CC'd recipients who might be relevant contacts
+5. Account Executives, Sales Reps, and other lender contacts in signatures
 
 For each contact found, extract:
 - first_name (required)
@@ -93,8 +109,8 @@ For each contact found, extract:
   - Email signature (most reliable)
   - Email domain (e.g., "kristina@advcredit.com" → "Advantage Credit", "amy@harvestcref.com" → "Harvest CREF")
   - Context in the email body
-  - Common mortgage industry companies: title companies, credit bureaus, insurance, appraisers, etc.)
-- job_title (IMPORTANT - extract from email signature. Examples: "Account Executive", "Senior Vice President", "Credit Verification Manager", "Loan Officer", "Underwriter", "Processor", "Closer", "Business Development Officer", "Sales Manager")
+  - Common mortgage industry companies: title companies, credit bureaus, insurance, appraisers, wholesale lenders, etc.)
+- job_title (IMPORTANT - extract from email signature. Examples: "Account Executive", "Senior Vice President", "Credit Verification Manager", "Loan Officer", "Underwriter", "Processor", "Closer", "Business Development Officer", "Sales Manager", "Principal", "Regional Manager")
 - suggested_tags (REQUIRED - always suggest 2-3 relevant tags based on their role/company. Examples:
   - Credit companies: ["Credit Vendor", "Credit Report"]
   - Banks/Lenders: ["Banker", "Wholesale Lender"]
@@ -104,17 +120,24 @@ For each contact found, extract:
   - Transaction coordinators: ["TC", "Transaction Coordinator"]
   - Real estate attorneys: ["Attorney", "Legal"]
   - Mortgage professionals: ["Mortgage", "Loan Officer"]
-  - Real estate agents: ["Real Estate Agent", "Realtor"])
+  - Real estate agents: ["Real Estate Agent", "Realtor"]
+  - Account Executives: ["Account Executive", "Wholesale Lender"])
 - reason (brief explanation of why this contact is relevant)
 - confidence (0-100, how confident you are this is a valid business contact)
 
 DO NOT extract:
-- The sender themselves (they're already known)
 - Generic company emails (info@, support@, noreply@)
 - Automated system emails
 - Contacts without a clear email address
 
+${senderInstruction}
+
 Return a JSON object with a "contacts" array. If no contacts are found, return {"contacts": []}.`;
+
+    // Only exclude sender for non-lender-marketing emails
+    const senderReminder = isLenderMarketing 
+      ? `Note: This is a lender marketing email. EXTRACT the sender's contact info if available in the signature (name, email, phone, title).`
+      : `Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`;
 
     const userPrompt = `Extract contacts from this email:
 
@@ -125,7 +148,7 @@ Date: ${emailContent.date}
 Body:
 ${emailContent.body?.substring(0, 4000) || '(no body)'}
 
-Remember: Do NOT include the sender (${emailContent.fromEmail}) in the results.`;
+${senderReminder}`;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

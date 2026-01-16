@@ -1439,8 +1439,8 @@ export default function Email() {
                                 </span>}
                               {tagData && <EmailTagPopover tagData={tagData} pendingSuggestionCount={pendingFieldCount} />}
                               {marketingData && <LenderMarketingPopover emailLogId={marketingData.emailLogId} category={marketingData.category} subject={email.subject} pendingSuggestionCount={pendingLenderCount} />}
-                              {/* Show NewContactsPopover in new-contacts view when email has an emailLogId */}
-                              {emailView === 'new-contacts' && emailLogId && (
+                              {/* Show NewContactsPopover when email has pending contacts (in any view) */}
+                              {emailLogId && pendingContactCount > 0 && (
                                 <NewContactsPopover 
                                   emailLogId={emailLogId} 
                                   subject={email.subject} 

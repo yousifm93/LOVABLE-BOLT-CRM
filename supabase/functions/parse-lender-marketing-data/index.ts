@@ -246,12 +246,72 @@ IMPORTANT:
     const suggestions: LenderFieldSuggestion[] = [];
 
     if (extractedData.lender_name) {
-      // Search for matching lender by name (fuzzy match)
-      const { data: lenders } = await supabase
+      // Normalize lender name for matching - remove common suffixes
+      const normalizedName = extractedData.lender_name
+        .toUpperCase()
+        .replace(/\s*(WHOLESALE|LENDING|MORTGAGE|LLC|INC|CORP|CORPORATION)\s*/gi, '')
+        .trim();
+      
+      console.log('[parse-lender-marketing-data] Searching for lender. Original:', extractedData.lender_name, 'Normalized:', normalizedName);
+
+      // Try 1: Search for matching lender by original name (fuzzy match)
+      let { data: lenders } = await supabase
         .from('lenders')
         .select('*')
         .ilike('lender_name', `%${extractedData.lender_name}%`)
         .limit(1);
+
+      // Try 2: Search by normalized name if no match
+      if (!lenders?.length && normalizedName !== extractedData.lender_name.toUpperCase()) {
+        console.log('[parse-lender-marketing-data] Trying normalized name search');
+        const { data: normalizedMatches } = await supabase
+          .from('lenders')
+          .select('*')
+          .ilike('lender_name', `%${normalizedName}%`)
+          .limit(1);
+        
+        if (normalizedMatches?.length) {
+          lenders = normalizedMatches;
+          console.log('[parse-lender-marketing-data] Matched by normalized name');
+        }
+      }
+
+      // Try 3: Match by email domain if still no match
+      if (!lenders?.length && fromEmail) {
+        const senderDomain = fromEmail.split('@')[1]?.toLowerCase();
+        if (senderDomain) {
+          console.log('[parse-lender-marketing-data] Trying email domain match:', senderDomain);
+          const { data: domainMatches } = await supabase
+            .from('lenders')
+            .select('*')
+            .ilike('account_executive_email', `%@${senderDomain}%`)
+            .limit(1);
+          
+          if (domainMatches?.length) {
+            lenders = domainMatches;
+            console.log('[parse-lender-marketing-data] Matched lender by email domain:', senderDomain);
+          }
+        }
+      }
+
+      // Try 4: Word-by-word matching as last resort
+      if (!lenders?.length) {
+        const words = normalizedName.split(/\s+/).filter((w: string) => w.length > 3);
+        console.log('[parse-lender-marketing-data] Trying word-by-word match with words:', words);
+        for (const word of words) {
+          const { data: wordMatches } = await supabase
+            .from('lenders')
+            .select('*')
+            .ilike('lender_name', `%${word}%`)
+            .limit(1);
+          
+          if (wordMatches?.length) {
+            lenders = wordMatches;
+            console.log('[parse-lender-marketing-data] Matched lender by word:', word);
+            break;
+          }
+        }
+      }
 
       if (lenders && lenders.length > 0) {
         matchedLender = lenders[0];
