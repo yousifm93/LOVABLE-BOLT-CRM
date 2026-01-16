@@ -157,6 +157,42 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Last Week's Leads
+  const { data: lastWeekLeads, isLoading: isLoadingLastWeekLeads } = useQuery({
+    queryKey: ['leads', 'lastWeek', lastWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
+        .gte('lead_on_date', lastWeekRange.start.split('T')[0])
+        .lte('lead_on_date', lastWeekRange.end.split('T')[0])
+        .order('lead_on_date', { ascending: true });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
+  // This Week's Leads
+  const { data: thisWeekLeadsData, isLoading: isLoadingThisWeekLeadsData } = useQuery({
+    queryKey: ['leads', 'thisWeek', thisWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
+        .eq('is_closed', false)
+        .gte('lead_on_date', thisWeekRange.start.split('T')[0])
+        .lte('lead_on_date', thisWeekRange.end.split('T')[0])
+        .order('lead_on_date', { ascending: true });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
   // All Leads
   const { data: allLeads, isLoading: isLoadingAllLeads } = useQuery({
     queryKey: ['leads', 'all'],
@@ -226,6 +262,44 @@ export const useDashboardData = () => {
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', todayBoundaries.start)
         .lte('app_complete_at', todayBoundaries.end)
+        .order('app_complete_at', { ascending: true });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
+  // Last Week's Apps
+  const { data: lastWeekApps, isLoading: isLoadingLastWeekApps } = useQuery({
+    queryKey: ['applications', 'lastWeek', lastWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
+        .not('app_complete_at', 'is', null)
+        .gte('app_complete_at', lastWeekRange.start)
+        .lte('app_complete_at', lastWeekRange.end)
+        .order('app_complete_at', { ascending: true });
+      
+      if (error) throw error;
+      return data as DashboardLead[];
+    },
+    staleTime: 30000,
+  });
+
+  // This Week's Apps
+  const { data: thisWeekApps, isLoading: isLoadingThisWeekApps } = useQuery({
+    queryKey: ['applications', 'thisWeek', thisWeekRange.start],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
+        .eq('is_closed', false)
+        .not('app_complete_at', 'is', null)
+        .gte('app_complete_at', thisWeekRange.start)
+        .lte('app_complete_at', thisWeekRange.end)
         .order('app_complete_at', { ascending: true });
       
       if (error) throw error;
@@ -338,6 +412,60 @@ export const useDashboardData = () => {
     staleTime: 30000,
   });
 
+  // Yesterday's Face-to-Face Meetings
+  const { data: yesterdayMeetings, isLoading: isLoadingYesterdayMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'yesterday', formatDate(yesterday)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
+        .not('face_to_face_meeting', 'is', null)
+        .gte('face_to_face_meeting', yesterdayBoundaries.start)
+        .lte('face_to_face_meeting', yesterdayBoundaries.end)
+        .order('face_to_face_meeting', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Face-to-Face Meetings
+  const { data: todayMeetings, isLoading: isLoadingTodayMeetings } = useQuery({
+    queryKey: ['faceToFaceMeetings', 'today', formatDate(today)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select(`
+          id, first_name, last_name, brokerage, email, phone, face_to_face_meeting, notes,
+          agent_call_logs!agent_call_logs_agent_id_fkey(*)
+        `)
+        .not('face_to_face_meeting', 'is', null)
+        .gte('face_to_face_meeting', todayBoundaries.start)
+        .lte('face_to_face_meeting', todayBoundaries.end)
+        .order('face_to_face_meeting', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data.map(agent => ({
+        ...agent,
+        meeting_summary: Array.isArray(agent.agent_call_logs) 
+          ? agent.agent_call_logs.find((log: any) => log.log_type === 'meeting')?.summary || null
+          : null
+      })) as DashboardFaceToFaceMeeting[];
+    },
+    staleTime: 30000,
+  });
+
   // All Face-to-Face Meetings
   const { data: allMeetings, isLoading: isLoadingAllMeetings } = useQuery({
     queryKey: ['faceToFaceMeetings', 'all'],
@@ -415,6 +543,42 @@ export const useDashboardData = () => {
         .not('broker_open', 'is', null)
         .gte('broker_open', thisWeekRange.start)
         .lte('broker_open', thisWeekRange.end)
+        .order('broker_open', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Yesterday's Broker Opens
+  const { data: yesterdayBrokerOpens, isLoading: isLoadingYesterdayBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'yesterday', formatDate(yesterday)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .gte('broker_open', yesterdayBoundaries.start)
+        .lte('broker_open', yesterdayBoundaries.end)
+        .order('broker_open', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
+
+  // Today's Broker Opens
+  const { data: todayBrokerOpens, isLoading: isLoadingTodayBrokerOpens } = useQuery({
+    queryKey: ['brokerOpens', 'today', formatDate(today)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buyer_agents')
+        .select('id, first_name, last_name, brokerage, email, phone, broker_open, notes')
+        .not('broker_open', 'is', null)
+        .gte('broker_open', todayBoundaries.start)
+        .lte('broker_open', todayBoundaries.end)
         .order('broker_open', { ascending: true });
       
       if (error) throw error;
@@ -1439,18 +1603,26 @@ export const useDashboardData = () => {
     isLoadingThisMonthLeads ||
     isLoadingYesterdayLeads ||
     isLoadingTodayLeads ||
+    isLoadingLastWeekLeads ||
+    isLoadingThisWeekLeadsData ||
     isLoadingAllLeads ||
     isLoadingThisMonthApps ||
     isLoadingYesterdayApps ||
     isLoadingTodayApps ||
+    isLoadingLastWeekApps ||
+    isLoadingThisWeekApps ||
     isLoadingAllApps ||
     isLoadingThisMonthMeetings ||
     isLoadingLastWeekMeetings ||
     isLoadingThisWeekMeetings ||
+    isLoadingYesterdayMeetings ||
+    isLoadingTodayMeetings ||
     isLoadingAllMeetings ||
     isLoadingThisMonthBrokerOpens ||
     isLoadingLastWeekBrokerOpens ||
     isLoadingThisWeekBrokerOpens ||
+    isLoadingYesterdayBrokerOpens ||
+    isLoadingTodayBrokerOpens ||
     isLoadingAllBrokerOpens ||
     isLoadingThisMonthCalls ||
     isLoadingYesterdayCalls ||
@@ -1502,19 +1674,27 @@ export const useDashboardData = () => {
     thisMonthLeads: thisMonthLeads || [],
     yesterdayLeads: yesterdayLeads || [],
     todayLeads: todayLeads || [],
+    lastWeekLeads: lastWeekLeads || [],
+    thisWeekLeadsData: thisWeekLeadsData || [],
     allLeads: allLeads || [],
     thisMonthApps: thisMonthApps || [],
     yesterdayApps: yesterdayApps || [],
     todayApps: todayApps || [],
+    lastWeekApps: lastWeekApps || [],
+    thisWeekApps: thisWeekApps || [],
     allApplications: allApplications || [],
     thisMonthMeetings: thisMonthMeetings || [],
     lastWeekMeetings: lastWeekMeetings || [],
     thisWeekMeetings: thisWeekMeetings || [],
+    yesterdayMeetings: yesterdayMeetings || [],
+    todayMeetings: todayMeetings || [],
     allMeetings: allMeetings || [],
     // Broker Opens
     thisMonthBrokerOpens: thisMonthBrokerOpens || [],
     lastWeekBrokerOpens: lastWeekBrokerOpens || [],
     thisWeekBrokerOpens: thisWeekBrokerOpens || [],
+    yesterdayBrokerOpens: yesterdayBrokerOpens || [],
+    todayBrokerOpens: todayBrokerOpens || [],
     allBrokerOpens: allBrokerOpens || [],
     // Combined Calls (existing)
     thisMonthCalls: thisMonthCalls || [],
