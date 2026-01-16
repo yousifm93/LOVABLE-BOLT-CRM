@@ -585,14 +585,6 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-green-500"
                   />
                   <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekLeads.length}
-                    icon={<TrendingUp />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Leads", lastWeekLeads, "leads")}
-                  />
-                  <ModernStatsCard
                     title="This Week"
                     value={thisWeekLeadsData.length}
                     icon={<TrendingUp />}
@@ -669,14 +661,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.applications)}
                     progressColor="[&_.bg-primary]:bg-green-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekApps.length}
-                    icon={<Activity />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Applications", lastWeekApps, "applications")}
                   />
                   <ModernStatsCard
                     title="This Week"
@@ -757,14 +741,6 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekMeetings.length}
-                    icon={<Users />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Face-to-Face Meetings", lastWeekMeetings, "meetings")}
-                  />
-                  <ModernStatsCard
                     title="This Week"
                     value={thisWeekMeetings.length}
                     icon={<Users />}
@@ -841,14 +817,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.brokerOpens)}
                     progressColor="[&_.bg-primary]:bg-purple-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekBrokerOpens.length}
-                    icon={<Calendar />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Broker Opens", lastWeekBrokerOpens, "meetings")}
                   />
                   <ModernStatsCard
                     title="This Week"
@@ -987,14 +955,6 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekNewAgentCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's New Agent Calls", lastWeekNewAgentCalls, "calls")}
-                  />
-                  <ModernStatsCard
                     title="This Week"
                     value={thisWeekNewAgentCalls.length}
                     icon={<Phone />}
@@ -1050,14 +1010,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.currentAgentCalls)}
                     progressColor="[&_.bg-primary]:bg-blue-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekCurrentAgentCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Current Agent Calls", lastWeekCurrentAgentCalls, "calls")}
                   />
                   <ModernStatsCard
                     title="This Week"
@@ -1117,14 +1069,6 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-blue-500"
                   />
                   <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekTopAgentCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Top Agent Calls", lastWeekTopAgentCalls, "calls")}
-                  />
-                  <ModernStatsCard
                     title="This Week"
                     value={thisWeekTopAgentCalls.length}
                     icon={<Phone />}
@@ -1180,14 +1124,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastLACalls)}
                     progressColor="[&_.bg-primary]:bg-blue-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekPastLACalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Past LA Calls", lastWeekPastLACalls, "calls")}
                   />
                   <ModernStatsCard
                     title="This Week"
@@ -1247,14 +1183,6 @@ export default function DashboardTabs() {
                     progressColor="[&_.bg-primary]:bg-purple-500"
                   />
                   <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekCurrentClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Current Client Calls", lastWeekCurrentClientCalls, "calls")}
-                  />
-                  <ModernStatsCard
                     title="This Week"
                     value={thisWeekCurrentClientCalls.length}
                     icon={<Phone />}
@@ -1310,14 +1238,6 @@ export default function DashboardTabs() {
                     showExpectedProgress={true}
                     expectedProgressValue={calculateExpectedProgress(MONTHLY_GOALS.pastClientCalls)}
                     progressColor="[&_.bg-primary]:bg-purple-500"
-                  />
-                  <ModernStatsCard
-                    title="Last Week"
-                    value={lastWeekPastClientCalls.length}
-                    icon={<Phone />}
-                    size="large"
-                    clickable={true}
-                    onClick={() => handleOpenModal("Last Week's Past Client Calls", lastWeekPastClientCalls, "calls")}
                   />
                   <ModernStatsCard
                     title="This Week"
