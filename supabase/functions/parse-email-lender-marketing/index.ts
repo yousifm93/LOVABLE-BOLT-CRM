@@ -12,11 +12,14 @@ const MARKETING_KEYWORDS = [
   // Product terms
   'program overview', 'new program', 'product alert', 'rate sheet', 'pricing update',
   'guideline update', 'guideline change', 'product launch', 'new product',
+  'loan program', 'daily rate', 'rate sheets', 'today\'s pricing',
   // Loan types
   'dscr', 'bank statement', 'non-qm', 'jumbo', 'va loan', 'fha loan', 'usda',
   'conventional', 'asset depletion', 'investor loan', 'rental income',
   'p&l program', 'voe program', 'itin', '12-month bank statement', '24-month bank statement',
   'va high balance', 'high balance', 'conforming', 'super conforming',
+  'construction loan', 'ground-up', 'fix and flip', 'fix/flip', 'fix & flip',
+  'bridge loan', 'bridge financing', 'hard money', 'private lending',
   // Features
   'ltv', 'loan-to-value', 'max ltv', 'fico', 'credit score', 'minimum credit',
   'no income', 'no doc', 'stated income', 'alternative documentation',
@@ -25,6 +28,8 @@ const MARKETING_KEYWORDS = [
   'fund your borrowers', 'available now', 'now available', 'introducing',
   'announcing', 'hot pricing', 'special pricing', 'limited time', 'exclusive',
   'wholesale', 'broker', 'correspondent', 'yes!', 'check it out', 'great rates',
+  'account executive', 'submit a loan', 'call me', 'contact me',
+  'excellent options', 'excellent fha', 'excellent va', 'excellent rates',
 ];
 
 // Subject line patterns that indicate marketing
@@ -43,6 +48,12 @@ const MARKETING_SUBJECT_PATTERNS = [
   /investor\s*(cash\s*flow|loans?)/i,
   /\b(va|fha|usda)\s*(high\s*balance|loan|jumbo)/i,
   /high\s*balance\s*pricing/i,
+  /construction\s*(loan|financing)/i,
+  /ground[\s-]?up\s*(construction|loan)/i,
+  /excellent\s*(fha|va|options|rates)/i,
+  /loan\s*program/i,
+  /daily\s*rate\s*sheet/i,
+  /luxury\s*(loan|construction)/i,
 ];
 
 // Sender domains commonly associated with wholesale lenders
@@ -52,6 +63,9 @@ const LENDER_DOMAINS = [
   'angeloak.com', 'acralending.com', 'deephavenmortgage.com',
   'citadelservicing.com', 'athasbank.com', 'kiavi.com', 'lima.one',
   'rfrpc.com', 'primereliance.com', 'newwave.com',
+  // Additional lender domains
+  'lsmortgage.com', 'unvpl.com', 'prmg.net', 'prmglending.com',
+  'jmaclending.com', 'accmortgage.com', 'carringtonwholesale.com',
   // Common email marketing platforms used by lenders
   'constantcontact.com', 'mailchimp.com', 'hubspot.com', 'pardot.com',
 ];
@@ -115,6 +129,16 @@ function detectLenderMarketing(subject: string, body: string, fromEmail: string)
     }
   }
 
+  // Check for signature with phone + email + title (strong indicator of lender AE contact)
+  const hasPhoneInBody = /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/.test(body);
+  const hasEmailInBody = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(body);
+  const hasTitleInBody = /(account\s*executive|senior\s*vice\s*president|svp|vice\s*president|vp|business\s*development|loan\s*officer|regional\s*manager|sales\s*manager|principal)/i.test(body);
+  
+  if (hasPhoneInBody && hasEmailInBody && hasTitleInBody) {
+    score += 15;
+    reasons.push('Email signature contains phone, email, and title');
+  }
+
   // Determine category based on content
   if (combinedContent.includes('pricing') || combinedContent.includes('rate sheet')) {
     category = 'Pricing Update';
@@ -122,6 +146,8 @@ function detectLenderMarketing(subject: string, body: string, fromEmail: string)
     category = 'Guideline Change';
   } else if (combinedContent.includes('new program') || combinedContent.includes('program overview') || combinedContent.includes('introducing')) {
     category = 'New Product';
+  } else if (combinedContent.includes('construction') || combinedContent.includes('ground-up') || combinedContent.includes('bridge')) {
+    category = 'Construction/Bridge';
   } else if (combinedContent.includes('bank statement') || combinedContent.includes('dscr') || combinedContent.includes('non-qm')) {
     category = 'Specialty Loan';
   } else if (score > 30) {
