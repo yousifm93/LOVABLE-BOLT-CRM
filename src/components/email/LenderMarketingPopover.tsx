@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Loader2, Building2, DollarSign, Percent, CreditCard, Package, Star, AlertCircle, Check, X, Plus } from "lucide-react";
+import { Loader2, Building2, DollarSign, Percent, CreditCard, Package, Star, AlertCircle, Check, X, Plus, Link2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +76,8 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<LenderFieldSuggestion[]>([]);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [linkExistingMode, setLinkExistingMode] = useState<string | null>(null);
+  const [existingLenders, setExistingLenders] = useState<{id: string, lender_name: string}[]>([]);
   const { toast } = useToast();
 
   const handleOpenChange = async (open: boolean) => {
@@ -278,6 +281,83 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
     }
   };
 
+  const handleLinkToExisting = async (suggestionId: string) => {
+    // Fetch existing lenders if not already loaded
+    if (existingLenders.length === 0) {
+      const { data: lenders } = await supabase
+        .from('lenders')
+        .select('id, lender_name')
+        .order('lender_name');
+      setExistingLenders(lenders || []);
+    }
+    setLinkExistingMode(suggestionId);
+  };
+
+  const handleMapToExistingLender = async (suggestion: LenderFieldSuggestion, lenderId: string) => {
+    setProcessingIds(prev => new Set(prev).add(suggestion.id));
+    try {
+      const selectedLender = existingLenders.find(l => l.id === lenderId);
+      
+      // Update the existing lender with AE info from this email if available
+      if (data) {
+        const updateData: Record<string, any> = {};
+        
+        if (data.account_executive_email) {
+          updateData.account_executive_email = data.account_executive_email;
+        }
+        if (data.account_executive_phone) {
+          updateData.account_executive_phone = data.account_executive_phone;
+        }
+        if (data.account_executive_first_name || data.account_executive_last_name) {
+          const aeName = [data.account_executive_first_name, data.account_executive_last_name]
+            .filter(Boolean)
+            .join(' ');
+          if (aeName) updateData.account_executive = aeName;
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          await databaseService.updateLender(lenderId, updateData);
+        }
+      }
+
+      // Mark suggestion as approved and linked
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase
+        .from('lender_field_suggestions')
+        .update({
+          status: 'approved',
+          lender_id: lenderId,
+          processed_at: new Date().toISOString(),
+          processed_by: user?.id,
+        })
+        .eq('id', suggestion.id);
+
+      toast({
+        title: "Lender Linked",
+        description: `Linked to existing lender: ${selectedLender?.lender_name}`,
+      });
+
+      // Update local state
+      setSuggestions(prev => prev.map(s => 
+        s.id === suggestion.id ? { ...s, status: 'approved' } : s
+      ));
+      setLinkExistingMode(null);
+    } catch (error: any) {
+      console.error('Error linking to existing lender:', error);
+      toast({
+        title: "Error",
+        description: `Failed to link lender: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(suggestion.id);
+        return next;
+      });
+    }
+  };
+
   const formatFieldName = (fieldName: string) => {
     return fieldName
       .replace(/_/g, ' ')
@@ -341,7 +421,7 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
           <p className="text-xs text-muted-foreground truncate mt-1">{subject}</p>
         </div>
 
-        <ScrollArea className="max-h-[500px]">
+        <ScrollArea className="max-h-[600px]">
           <div className="p-3 space-y-3">
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
@@ -394,6 +474,24 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
                               <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
                                 {suggestion.reason}
                               </p>
+                              
+                              {/* Link to Existing Lender dropdown for new lender suggestions */}
+                              {suggestion.is_new_lender && linkExistingMode === suggestion.id && (
+                                <div className="mt-2">
+                                  <Select onValueChange={(lenderId) => handleMapToExistingLender(suggestion, lenderId)}>
+                                    <SelectTrigger className="h-7 text-xs">
+                                      <SelectValue placeholder="Select existing lender..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[200px]">
+                                      {existingLenders.map(l => (
+                                        <SelectItem key={l.id} value={l.id} className="text-xs">
+                                          {l.lender_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <Button
@@ -402,6 +500,7 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
                                 className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => handleApproveSuggestion(suggestion)}
                                 disabled={processingIds.has(suggestion.id)}
+                                title="Add as new lender"
                               >
                                 {processingIds.has(suggestion.id) ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -409,12 +508,26 @@ export function LenderMarketingPopover({ emailLogId, category, subject, classNam
                                   <Check className="h-3.5 w-3.5" />
                                 )}
                               </Button>
+                              {/* Link to existing button for new lender suggestions */}
+                              {suggestion.is_new_lender && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleLinkToExisting(suggestion.id)}
+                                  disabled={processingIds.has(suggestion.id)}
+                                  title="Link to existing lender"
+                                >
+                                  <Link2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleDenySuggestion(suggestion)}
                                 disabled={processingIds.has(suggestion.id)}
+                                title="Deny suggestion"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>

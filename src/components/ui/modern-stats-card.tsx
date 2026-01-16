@@ -20,6 +20,7 @@ interface ModernStatsCardProps {
   showExpectedProgress?: boolean; // Show expected progress indicator
   expectedProgressValue?: number; // Expected progress value
   progressColor?: string; // Custom color class for progress bar
+  weeklyGoal?: number; // Weekly goal to display
 }
 
 export function ModernStatsCard({ 
@@ -39,6 +40,7 @@ export function ModernStatsCard({
   showExpectedProgress = false,
   expectedProgressValue = 0,
   progressColor,
+  weeklyGoal,
 }: ModernStatsCardProps) {
   const cardHeight = size === "compact" ? "h-20" : size === "large" ? "h-32" : "h-24";
   const titleSize = size === "compact" ? "text-xs" : size === "large" ? "text-base" : "text-sm";
@@ -114,8 +116,11 @@ export function ModernStatsCard({
         {/* Progress Bar at Bottom */}
         {showProgress && (
           <div className="mt-1 space-y-0.5">
-            {/* Percentage and "behind" text on same line */}
+            {/* Percentage, weekly goal, and "behind" text on same line */}
             <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground mb-0.5">
+              {weeklyGoal !== undefined && (
+                <span className="text-[10px] text-muted-foreground/70">Goal: {weeklyGoal}</span>
+              )}
               <span>{Math.round((progressValue / progressMax) * 100)}%</span>
               {showExpectedProgress && expectedProgressValue !== undefined && (() => {
                 const difference = Math.round(progressValue - expectedProgressValue);
@@ -134,6 +139,17 @@ export function ModernStatsCard({
                 value={(progressValue / progressMax) * 100} 
                 className={cn("h-1.5", progressColor)}
               />
+              {/* Red shortfall fill between current and expected progress */}
+              {showExpectedProgress && expectedProgressValue !== undefined && progressValue < expectedProgressValue && (
+                <div 
+                  className="absolute top-0 h-1.5 bg-red-500 rounded-full"
+                  style={{ 
+                    left: `${(progressValue / progressMax) * 100}%`,
+                    width: `${((expectedProgressValue - progressValue) / progressMax) * 100}%`
+                  }}
+                  title={`Behind by ${Math.round(expectedProgressValue - progressValue)}`}
+                />
+              )}
               {showExpectedProgress && expectedProgressValue !== undefined && (
                 <div 
                   className="absolute top-0 h-1.5 w-0.5 bg-foreground/60"
