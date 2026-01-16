@@ -2700,14 +2700,30 @@ export const databaseService = {
 
   // Condo operations
   async getCondos() {
-    const { data, error } = await supabase
-      .from('condos')
-      .select('*')
-      .order('condo_name')
-      .limit(5000);
+    const PAGE_SIZE = 1000;
+    let allCondos: any[] = [];
+    let hasMore = true;
+    let offset = 0;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('condos')
+        .select('*')
+        .order('condo_name')
+        .range(offset, offset + PAGE_SIZE - 1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allCondos = [...allCondos, ...data];
+        offset += PAGE_SIZE;
+        hasMore = data.length === PAGE_SIZE;
+      } else {
+        hasMore = false;
+      }
+    }
     
-    if (error) throw error;
-    return data;
+    return allCondos;
   },
 
   async createCondo(condo: any) {
