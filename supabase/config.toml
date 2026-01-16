@@ -218,3 +218,6 @@ verify_jwt = true
 
 [functions.condo-search-webhook]
 verify_jwt = false
+
+[functions.import-condos]
+verify_jwt = false

@@ -1,10 +1,11 @@
 import { Label } from "@/components/ui/label";
-import { Building2, FileText, MessageSquare, Download, ExternalLink, Calendar } from "lucide-react";
+import { Building2, MessageSquare, ExternalLink, Calendar, Check } from "lucide-react";
 import { InlineEditSelect } from "@/components/ui/inline-edit-select";
 import { InlineEditNotes } from "@/components/ui/inline-edit-notes";
 import { InlineEditCondo } from "@/components/ui/inline-edit-condo";
 import { InlineEditDate } from "@/components/ui/inline-edit-date";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 
@@ -24,12 +25,13 @@ interface CondoTabProps {
 interface CondoDetails {
   id: string;
   condo_name: string;
-  budget_file_url: string | null;
-  cq_file_url: string | null;
-  mip_file_url: string | null;
-  approval_type: string | null;
-  approval_source: string | null;
+  source_uwm: boolean | null;
+  source_ad: boolean | null;
+  review_type: string | null;
   approval_expiration_date: string | null;
+  primary_down: string | null;
+  second_down: string | null;
+  investment_down: string | null;
 }
 
 const condoStatusOptions = [
@@ -66,23 +68,25 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
     setLoading(true);
     const { data: condo, error } = await supabase
       .from("condos")
-      .select("id, condo_name, budget_file_url, cq_file_url, mip_file_url, approval_type, approval_source, approval_expiration_date")
+      .select("id, condo_name, source_uwm, source_ad, review_type, approval_expiration_date, primary_down, second_down, investment_down")
       .eq("id", data.condo_id)
       .single();
 
     if (!error && condo) {
       setCondoDetails(condo);
       
-      // Auto-populate approval type from condo if lead doesn't have one
-      if (!data.condo_approval_type && condo.approval_type) {
-        onUpdate('condo_approval_type', condo.approval_type);
+      // Auto-populate approval type from condo review_type if lead doesn't have one
+      if (!data.condo_approval_type && condo.review_type) {
+        // Map review_type to approval type if applicable
+        const reviewType = condo.review_type;
+        if (reviewType?.includes('Limited')) {
+          onUpdate('condo_approval_type', 'Limited');
+        } else if (reviewType?.includes('Full')) {
+          onUpdate('condo_approval_type', 'Full');
+        }
       }
     }
     setLoading(false);
-  };
-
-  const handleDownload = (url: string, filename: string) => {
-    window.open(url, '_blank');
   };
 
   return (
@@ -105,12 +109,12 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
           />
         </div>
 
-  {/* Ordered On */}
-  <div className="flex flex-col gap-2">
-    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-      <Calendar className="h-3 w-3" />
-      Ordered
-    </Label>
+        {/* Ordered On */}
+        <div className="flex flex-col gap-2">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            Ordered
+          </Label>
           <InlineEditDate
             value={data.condo_ordered_date}
             onValueChange={(value) => onUpdate('condo_ordered_date', value)}
@@ -160,79 +164,53 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
             </Button>
           </div>
           
-          {(condoDetails.approval_type || condoDetails.approval_source || condoDetails.approval_expiration_date) && (
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {condoDetails.approval_type && (
-                <div>
-                  <span className="text-muted-foreground">Approval Type:</span>
-                  <p className="font-medium">{condoDetails.approval_type}</p>
-                </div>
-              )}
-              {condoDetails.approval_source && (
-                <div>
-                  <span className="text-muted-foreground">Source:</span>
-                  <p className="font-medium">{condoDetails.approval_source}</p>
-                </div>
-              )}
-              {condoDetails.approval_expiration_date && (
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Expiration:</span>
-                  <p className="font-medium">{new Date(condoDetails.approval_expiration_date).toLocaleDateString()}</p>
-                </div>
-              )}
+          {/* Sources and Review Type */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="text-muted-foreground">Sources:</span>
+              <div className="flex gap-1 mt-1">
+                {condoDetails.source_uwm && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px]">
+                    <Check className="h-2 w-2 mr-0.5" /> UWM
+                  </Badge>
+                )}
+                {condoDetails.source_ad && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">
+                    <Check className="h-2 w-2 mr-0.5" /> A&D
+                  </Badge>
+                )}
+                {!condoDetails.source_uwm && !condoDetails.source_ad && (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
             </div>
-          )}
+            {condoDetails.review_type && (
+              <div>
+                <span className="text-muted-foreground">Review Type:</span>
+                <p className="font-medium">{condoDetails.review_type}</p>
+              </div>
+            )}
+          </div>
 
-          {/* Condo Documents */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Condo Documents</Label>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between py-1.5 px-2 bg-background rounded border">
-                <span className="text-xs font-medium">Budget</span>
-                {condoDetails.budget_file_url ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2"
-                    onClick={() => handleDownload(condoDetails.budget_file_url!, 'budget')}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">No file</span>
-                )}
+          {/* Expiration and Down Payments */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {condoDetails.approval_expiration_date && (
+              <div>
+                <span className="text-muted-foreground">Expiration:</span>
+                <p className="font-medium">{new Date(condoDetails.approval_expiration_date).toLocaleDateString()}</p>
               </div>
-              <div className="flex items-center justify-between py-1.5 px-2 bg-background rounded border">
-                <span className="text-xs font-medium">Condo Questionnaire</span>
-                {condoDetails.cq_file_url ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2"
-                    onClick={() => handleDownload(condoDetails.cq_file_url!, 'questionnaire')}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">No file</span>
+            )}
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Down Payments:</span>
+              <div className="flex gap-3 mt-1">
+                {condoDetails.primary_down && (
+                  <span><span className="text-muted-foreground">Primary:</span> {condoDetails.primary_down}</span>
                 )}
-              </div>
-              <div className="flex items-center justify-between py-1.5 px-2 bg-background rounded border">
-                <span className="text-xs font-medium">Master Insurance Policy</span>
-                {condoDetails.mip_file_url ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2"
-                    onClick={() => handleDownload(condoDetails.mip_file_url!, 'insurance')}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">No file</span>
+                {condoDetails.second_down && (
+                  <span><span className="text-muted-foreground">Second:</span> {condoDetails.second_down}</span>
+                )}
+                {condoDetails.investment_down && (
+                  <span><span className="text-muted-foreground">Investment:</span> {condoDetails.investment_down}</span>
                 )}
               </div>
             </div>
@@ -251,7 +229,7 @@ export function CondoTab({ leadId, data, onUpdate }: CondoTabProps) {
             value={data.condo_approval_type}
             onValueChange={(value) => onUpdate('condo_approval_type', value)}
             options={condoApprovalTypeOptions}
-            placeholder={condoDetails?.approval_type || "Select approval type"}
+            placeholder={condoDetails?.review_type || "Select approval type"}
             showAsStatusBadge={false}
             className="text-sm"
           />

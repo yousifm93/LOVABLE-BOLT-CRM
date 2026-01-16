@@ -868,20 +868,16 @@ export type Database = {
       condos: {
         Row: {
           approval_expiration_date: string | null
-          approval_source:
-            | Database["public"]["Enums"]["approval_source_type"]
-            | null
-          approval_type:
-            | Database["public"]["Enums"]["approval_type_type"]
-            | null
-          area: string | null
-          budget_file_url: string | null
           city: string | null
           condo_name: string
-          cq_file_url: string | null
           created_at: string
           id: string
-          mip_file_url: string | null
+          investment_down: string | null
+          primary_down: string | null
+          review_type: string | null
+          second_down: string | null
+          source_ad: boolean | null
+          source_uwm: boolean | null
           state: string | null
           street_address: string | null
           updated_at: string
@@ -889,20 +885,16 @@ export type Database = {
         }
         Insert: {
           approval_expiration_date?: string | null
-          approval_source?:
-            | Database["public"]["Enums"]["approval_source_type"]
-            | null
-          approval_type?:
-            | Database["public"]["Enums"]["approval_type_type"]
-            | null
-          area?: string | null
-          budget_file_url?: string | null
           city?: string | null
           condo_name: string
-          cq_file_url?: string | null
           created_at?: string
           id?: string
-          mip_file_url?: string | null
+          investment_down?: string | null
+          primary_down?: string | null
+          review_type?: string | null
+          second_down?: string | null
+          source_ad?: boolean | null
+          source_uwm?: boolean | null
           state?: string | null
           street_address?: string | null
           updated_at?: string
@@ -910,20 +902,16 @@ export type Database = {
         }
         Update: {
           approval_expiration_date?: string | null
-          approval_source?:
-            | Database["public"]["Enums"]["approval_source_type"]
-            | null
-          approval_type?:
-            | Database["public"]["Enums"]["approval_type_type"]
-            | null
-          area?: string | null
-          budget_file_url?: string | null
           city?: string | null
           condo_name?: string
-          cq_file_url?: string | null
           created_at?: string
           id?: string
-          mip_file_url?: string | null
+          investment_down?: string | null
+          primary_down?: string | null
+          review_type?: string | null
+          second_down?: string | null
+          source_ad?: boolean | null
+          source_uwm?: boolean | null
           state?: string | null
           street_address?: string | null
           updated_at?: string
@@ -5911,8 +5899,6 @@ export type Database = {
         | "Waiver"
         | "Transfer"
         | "On Hold"
-      approval_source_type: "PennyMac" | "A&D" | "UWM"
-      approval_type_type: "Full" | "Limited" | "Non-QM" | "Hard Money"
       audit_step:
         | "upload"
         | "ocr"
@@ -6212,8 +6198,6 @@ export const Constants = {
         "Transfer",
         "On Hold",
       ],
-      approval_source_type: ["PennyMac", "A&D", "UWM"],
-      approval_type_type: ["Full", "Limited", "Non-QM", "Hard Money"],
       audit_step: [
         "upload",
         "ocr",
