@@ -1904,13 +1904,16 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
-        deleted_by_user:users!leads_deleted_by_fkey(id, first_name, last_name, email)
+        deleted_by_user:users!deleted_by(id, first_name, last_name, email)
       `)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });
     
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('[getDeletedLeads] Error:', error);
+      throw error;
+    }
+    return data || [];
   },
 
   async softDeleteLead(leadId: string) {
