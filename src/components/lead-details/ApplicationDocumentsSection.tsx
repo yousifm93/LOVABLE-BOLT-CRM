@@ -22,6 +22,7 @@ import { databaseService } from "@/services/database";
 import { formatDistance } from "date-fns";
 import { AddBorrowerTaskModal } from "@/components/modals/AddBorrowerTaskModal";
 import { supabase } from "@/integrations/supabase/client";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
 
 interface BorrowerTask {
   id: string;
@@ -97,6 +98,14 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [sendingRequests, setSendingRequests] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{
+    name: string;
+    url: string | null;
+    mimeType: string;
+    pdfData?: ArrayBuffer;
+  }>({ name: '', url: null, mimeType: '' });
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -210,16 +219,64 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
     }
   };
 
-  const handleViewDocument = (doc: BorrowerDocument) => {
-    // Documents are stored with full public URLs - open directly
-    if (doc.document_url) {
-      window.open(doc.document_url, '_blank');
-    } else {
+  const handleViewDocument = async (doc: BorrowerDocument) => {
+    if (!doc.document_url) {
       toast({
         title: "Error",
         description: "Document URL not found",
         variant: "destructive"
       });
+      return;
+    }
+
+    try {
+      setPreviewLoading(true);
+      
+      let documentUrl = doc.document_url;
+      
+      // If it's a relative path (not starting with http), generate signed URL
+      if (!documentUrl.startsWith('http')) {
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(documentUrl, 3600);
+        if (error) throw error;
+        documentUrl = data.signedUrl;
+      }
+      
+      // Fetch the document
+      const res = await fetch(documentUrl);
+      if (!res.ok) throw new Error('Failed to fetch document');
+      
+      const isPdf = doc.file_name.toLowerCase().endsWith('.pdf');
+      
+      if (isPdf) {
+        const arrayBuffer = await res.arrayBuffer();
+        setPreviewDoc({
+          name: doc.file_name,
+          url: null,
+          mimeType: 'application/pdf',
+          pdfData: arrayBuffer
+        });
+      } else {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewDoc({
+          name: doc.file_name,
+          url: blobUrl,
+          mimeType: doc.document_type || 'image/jpeg'
+        });
+      }
+      
+      setPreviewOpen(true);
+    } catch (error: any) {
+      console.error('Error viewing document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load document preview",
+        variant: "destructive"
+      });
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -302,7 +359,7 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
             name: t.task_name,
             description: t.task_description
           })),
-          portalUrl: `${window.location.origin}/apply`
+          portalUrl: 'https://mortgagebolt.org/apply'
         }
       });
       
@@ -532,6 +589,15 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onSubmit={handleAddTask}
+      />
+      
+      <DocumentPreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        documentName={previewDoc.name}
+        documentUrl={previewDoc.url}
+        mimeType={previewDoc.mimeType}
+        pdfData={previewDoc.pdfData}
       />
     </>
   );
