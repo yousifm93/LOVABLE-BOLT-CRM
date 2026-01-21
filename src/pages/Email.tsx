@@ -1213,6 +1213,20 @@ export default function Email() {
       // LENDER MARKETING VIEW: Show tagged emails regardless of category status
       return matchesSearch && !!getLenderMarketingData(email); // Remove isNotCategorized check
     }
+    if (emailView === 'new-contacts') {
+      // NEW CONTACTS VIEW: Show only emails with pending contact suggestions
+      const emailDate = new Date(email.date);
+      const compositeKey = getMatchKey(emailDate, email.subject || '');
+      let tagData = emailTagsMap.get(compositeKey);
+      if (!tagData) {
+        const subjectKey = cleanSubjectForMatching(email.subject || '');
+        tagData = emailTagsMap.get(subjectKey);
+      }
+      const marketingData = getLenderMarketingData(email);
+      const emailLogId = tagData?.emailLogId || marketingData?.emailLogId;
+      const hasPendingContacts = emailLogId && (contactSuggestionsCount.get(emailLogId) || 0) > 0;
+      return matchesSearch && hasPendingContacts;
+    }
 
     // MAIN VIEW: Exclude categorized emails
     const isNotCategorized = !categorizedUids.has(email.uid);
@@ -1328,7 +1342,7 @@ export default function Email() {
           </div>
 
           {/* Email List - Fixed width */}
-          <div className="w-[500px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
+          <div className="w-[560px] flex-shrink-0 h-full border rounded-lg bg-card overflow-hidden flex flex-col">
             <div className="p-2 border-b space-y-2">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -1428,11 +1442,10 @@ export default function Email() {
                   const pendingContactCount = emailLogId ? (contactSuggestionsCount.get(emailLogId) || 0) : 0;
                   
                   return <div className={cn("flex items-center gap-2 mb-1 w-full", showMultiSelect ? "pl-6" : "pl-4")}>
-                            <span className={cn("text-sm truncate flex-shrink-0", email.unread ? "font-semibold" : "font-medium")}>
+                            <span className={cn("text-sm truncate min-w-0 flex-1", email.unread ? "font-semibold" : "font-medium")}>
                               {email.from}
                             </span>
-                            <div className="flex-1" />
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="flex items-center gap-1 flex-shrink-0 max-w-[180px]">
                               {/* Reviewed indicator in File View / Lender Marketing View */}
                               {(emailView === 'file' || emailView === 'lender-marketing') && isReviewed && <span title={`Reviewed: ${customCategories.find(c => c.key === emailCategory)?.name || ''}`}>
                                   <CheckCircle className={cn("h-3 w-3", emailCategory === 'reviewed_file' && "text-green-500", emailCategory === 'reviewed_lender_marketing' && "text-blue-500", emailCategory === 'reviewed_na' && "text-gray-500")} />
@@ -1451,7 +1464,7 @@ export default function Email() {
                               {email.starred && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                               {email.hasAttachments && <Paperclip className="h-3 w-3 text-muted-foreground" />}
                             </div>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0 ml-2">{email.date}</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0 ml-1.5 min-w-[58px] text-right">{email.date}</span>
                           </div>;
                 })()}
                       <p className={cn("text-sm truncate min-w-0 mb-1 overflow-hidden", showMultiSelect ? "pl-6" : "pl-4", email.unread ? "font-medium text-foreground" : "text-muted-foreground")}>

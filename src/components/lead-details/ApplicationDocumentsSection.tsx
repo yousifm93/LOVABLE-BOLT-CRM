@@ -210,21 +210,14 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
     }
   };
 
-  const handleViewDocument = async (doc: BorrowerDocument) => {
-    try {
-      // Get signed URL for the document
-      const { data, error } = await supabase.storage
-        .from('borrower-documents')
-        .createSignedUrl(doc.document_url, 3600);
-      
-      if (error) throw error;
-      
-      window.open(data.signedUrl, '_blank');
-    } catch (error: any) {
-      console.error('Error viewing document:', error);
+  const handleViewDocument = (doc: BorrowerDocument) => {
+    // Documents are stored with full public URLs - open directly
+    if (doc.document_url) {
+      window.open(doc.document_url, '_blank');
+    } else {
       toast({
         title: "Error",
-        description: "Failed to open document",
+        description: "Document URL not found",
         variant: "destructive"
       });
     }
