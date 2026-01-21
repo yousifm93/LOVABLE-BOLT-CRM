@@ -144,17 +144,22 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
     if (!file || !uploadingTaskId) return;
     
     try {
-      // Upload file to storage
+      // Upload file to storage - use 'documents' bucket (public)
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${uploadingTaskId}/${Date.now()}.${fileExt}`;
+      const fileName = `borrower-uploads/${userId}/${uploadingTaskId}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('borrower-documents')
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('documents')
         .upload(fileName, file);
       
       if (uploadError) throw uploadError;
       
-      // Create document record
+      // Get the full public URL to store in database
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName);
+      
+      // Create document record with full public URL
       const { error: docError } = await supabase
         .from('borrower_documents')
         .insert({
@@ -162,7 +167,7 @@ export function BorrowerDocumentTasks({ userId, leadId }: BorrowerDocumentTasksP
           lead_id: leadId,
           user_id: userId,
           file_name: file.name,
-          document_url: fileName,
+          document_url: publicUrl,
           file_size: file.size,
           status: 'pending_review',
           source: 'borrower_upload'

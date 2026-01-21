@@ -16,8 +16,11 @@ interface SendDocumentRequestsPayload {
   borrowerEmail: string;
   borrowerName: string;
   pendingTasks: PendingTask[];
-  portalUrl: string;
+  portalUrl?: string; // Optional - will default to production URL
 }
+
+// Production portal URL - always use this for the email button
+const PRODUCTION_PORTAL_URL = 'https://mortgagebolt.org/apply';
 
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
@@ -78,7 +81,7 @@ serve(async (req: Request): Promise<Response> => {
           </ul>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${portalUrl}" style="background-color: #ff8c00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            <a href="${PRODUCTION_PORTAL_URL}" style="background-color: #ff8c00; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
               Upload Documents
             </a>
           </div>
