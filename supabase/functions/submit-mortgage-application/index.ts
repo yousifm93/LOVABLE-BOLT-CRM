@@ -973,14 +973,13 @@ Deno.serve(async (req) => {
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
         .insert({
-          title: 'Screen',
+          title: 'Screen new application',
           description: `Screen the new mortgage application for ${personalInfo.firstName} ${personalInfo.lastName}`,
           borrower_id: result.id,
-          assigned_to: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
+          assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman Daza
           status: 'To Do',
-          priority: 'high',
-          due_date: taskDueDate.toISOString(),
-          created_by: '08e73d69-4707-4773-84a4-69ce2acd6c904ee', // System
+          priority: 'High',
+          due_date: taskDueDate.toISOString().split('T')[0], // Date only, not full timestamp
           completion_requirement_type: 'status_change:pipeline_stage_id=09162eec-d2b2-48e5-86d0-9e66ee8b2af7', // Requires Pre-qualified
         })
         .select()

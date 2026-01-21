@@ -117,7 +117,7 @@ export default function Screening() {
   const coreColumns = [
     { id: "name", label: "Full Name", visible: true },
     { id: "appCompleteOn", label: "App Complete On", visible: true },
-    { id: "loanNumber", label: "Loan Number", visible: true },
+    { id: "loanNumber", label: "MB App Number", visible: true },
     { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
     { id: "status", label: "Status", visible: true },
     { id: "user", label: "User", visible: true },
@@ -705,7 +705,7 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "loanNumber",
-      header: "Loan Number",
+      header: "MB App Number",
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
