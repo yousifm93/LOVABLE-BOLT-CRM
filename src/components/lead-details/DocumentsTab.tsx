@@ -10,6 +10,7 @@ import { databaseService } from "@/services/database";
 import { cn } from "@/lib/utils";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
 import { ActiveFileDocuments } from "./ActiveFileDocuments";
+import { ApplicationDocumentsSection } from "./ApplicationDocumentsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -389,6 +390,36 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
     }
   };
 
+  const handleDeleteAllImages = async () => {
+    if (imageDocs.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete all ${imageDocs.length} images? This cannot be undone.`)) return;
+    
+    try {
+      let deletedCount = 0;
+      for (const doc of imageDocs) {
+        try {
+          await databaseService.deleteLeadDocument(doc.id, doc.file_url);
+          deletedCount++;
+        } catch (err) {
+          console.error(`Failed to delete ${doc.file_name}:`, err);
+        }
+      }
+      
+      toast({
+        title: "Images Deleted",
+        description: `Successfully deleted ${deletedCount} of ${imageDocs.length} images`
+      });
+      onDocumentsChange();
+    } catch (error: any) {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Could not delete all images",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleRename = async (doc: Document, newTitle: string) => {
     try {
       await databaseService.updateLeadDocument(doc.id, { 
@@ -622,6 +653,14 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
         />
       )}
 
+      {/* Application Documents Section */}
+      {leadId && (
+        <ApplicationDocumentsSection 
+          leadId={leadId} 
+          onDocumentsChange={onDocumentsChange}
+        />
+      )}
+
       {/* Document Sections */}
       {documents.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -713,17 +752,31 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
                     {/* Images Subcategory */}
                     {imageDocs.length > 0 && (
                       <Collapsible open={isImagesOpen} onOpenChange={setIsImagesOpen}>
-                        <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                          {isImagesOpen ? (
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                          <Image className="h-3.5 w-3.5 text-blue-500" />
-                          <span className="font-medium text-xs">
-                            Images ({imageDocs.length})
-                          </span>
-                        </CollapsibleTrigger>
+                        <div className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                          <CollapsibleTrigger className="flex items-center gap-2 flex-1">
+                            {isImagesOpen ? (
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
+                            <Image className="h-3.5 w-3.5 text-blue-500" />
+                            <span className="font-medium text-xs">
+                              Images ({imageDocs.length})
+                            </span>
+                          </CollapsibleTrigger>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAllImages();
+                            }}
+                            title="Delete All Images"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                         <CollapsibleContent className="mt-2 space-y-2 pl-2">
                           {imageDocs.map((doc) => renderDocumentRow(doc))}
                         </CollapsibleContent>
