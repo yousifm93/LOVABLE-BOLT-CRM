@@ -239,13 +239,18 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
       
       if (error) throw error;
       
-      // Also update the task status if approving
-      if (status === 'approved') {
-        const doc = documents.find(d => d.id === docId);
-        if (doc?.task_id) {
+      // Also update the task status based on document status
+      const doc = documents.find(d => d.id === docId);
+      if (doc?.task_id) {
+        if (status === 'approved') {
           await supabase
             .from('borrower_tasks')
             .update({ status: 'completed' })
+            .eq('id', doc.task_id);
+        } else if (status === 'rejected') {
+          await supabase
+            .from('borrower_tasks')
+            .update({ status: 'rejected' })
             .eq('id', doc.task_id);
         }
       }

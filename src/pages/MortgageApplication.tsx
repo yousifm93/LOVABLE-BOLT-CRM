@@ -285,6 +285,14 @@ const MortgageApplicationContent = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Document Requests Section (when submitted and lead found) */}
+            {isSubmitted && leadId && user && (
+              <BorrowerDocumentTasks 
+                userId={user.id} 
+                leadId={leadId} 
+              />
+            )}
           </div>
         </div>
       </div>
