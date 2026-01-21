@@ -120,7 +120,7 @@ export default function PreQualified() {
     { id: "email", label: "Lead Email", visible: true },
     { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
     { id: "status", label: "Status", visible: true },
-    { id: "loanNumber", label: "Loan Number", visible: true },
+    { id: "loanNumber", label: "App Number", visible: true },
     { id: "fico", label: "FICO", visible: true },
     { id: "dti", label: "DTI", visible: true },
     { id: "loanAmount", label: "Loan Amount", visible: true },
@@ -547,7 +547,7 @@ const allAvailableColumns = useMemo(() => {
     status: lead.converted || 'Working on it',
     loanNumber: lead.mb_loan_number?.toString() || '—',
     fico: lead.fico_score || 0,
-    dti: lead.dti || 0,
+    dti: lead.dti ?? null,
     loanAmount: lead.loan_amount || 0,
     salesPrice: lead.sales_price || 0,
     user: lead.teammate_assigned || '',
@@ -808,7 +808,7 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "loanNumber",
-      header: "Loan Number",
+      header: "App Number",
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
@@ -818,7 +818,7 @@ const allAvailableColumns = useMemo(() => {
               handleFieldUpdate(row.original.id, "mb_loan_number", value);
               fetchLeads();
             }}
-            placeholder="MB-"
+            placeholder="MB App #"
           />
         </div>
       ),
@@ -848,14 +848,18 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditPercentage
-            value={row.original.dti || 0}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "dti", value);
-              fetchLeads();
-            }}
-            decimals={1}
-          />
+          {row.original.dti !== null && row.original.dti !== undefined ? (
+            <InlineEditPercentage
+              value={row.original.dti}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, "dti", value);
+                fetchLeads();
+              }}
+              decimals={2}
+            />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
         </div>
       )
     },

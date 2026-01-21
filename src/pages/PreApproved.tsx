@@ -541,7 +541,7 @@ const allAvailableColumns = useMemo(() => {
       userData: (lead as any).teammate || null,
       baStatus: lead.ba_status || '',
       dueDate: (lead as any).earliest_task_due_date || '',
-      dti: lead.dti || 0,
+      dti: lead.dti ?? null,
       salesPrice: lead.sales_price || 0,
       ltv: (lead as any).ltv || null,
       // Add all database fields dynamically
@@ -932,14 +932,18 @@ const allAvailableColumns = useMemo(() => {
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <InlineEditPercentage
-            value={row.original.dti || 0}
-            onValueChange={(value) => {
-              handleFieldUpdate(row.original.id, "dti", value);
-              fetchLeads();
-            }}
-            decimals={1}
-          />
+          {row.original.dti !== null && row.original.dti !== undefined ? (
+            <InlineEditPercentage
+              value={row.original.dti}
+              onValueChange={(value) => {
+                handleFieldUpdate(row.original.id, "dti", value);
+                fetchLeads();
+              }}
+              decimals={2}
+            />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
         </div>
       )
     },

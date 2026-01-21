@@ -98,6 +98,15 @@ const QUICK_TASK_TEMPLATES = [
     description: 'Call the listing agent regarding the property',
     completion_requirement_type: 'log_call_listing_agent',
   },
+  {
+    id: 'hsci',
+    label: 'HSCI',
+    title: 'HSCI (Home Search Check-in)',
+    description: 'Do a home search check-in on the borrower to see where they are in their loan process.',
+    default_assignee_id: 'fa92a4c6-890d-4d69-99a8-c3adc6c904ee', // Herman
+    priority: 'Medium',
+    completion_requirement_type: 'log_any_activity',
+  },
 ];
 
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {

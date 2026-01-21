@@ -6,7 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, ArrowRight, Loader2, Mail, MessageSquare, ExternalLink } from "lucide-react";
+import { Check, X, ArrowRight, Loader2, Mail, MessageSquare, ExternalLink, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useEmailSuggestions, type EmailFieldSuggestion } from "@/hooks/useEmailSuggestions";
 import { Input } from "@/components/ui/input";
 import DOMPurify from 'dompurify';
@@ -22,6 +23,7 @@ export function EmailFieldSuggestionsModal({
   onOpenChange,
   onLeadClick,
 }: EmailFieldSuggestionsModalProps) {
+  const { toast } = useToast();
   const { 
     suggestions, 
     completedSuggestions,
@@ -33,6 +35,7 @@ export function EmailFieldSuggestionsModal({
   } = useEmailSuggestions();
   
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [denyingAllForLead, setDenyingAllForLead] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [notesFilter, setNotesFilter] = useState<'all' | 'with_notes' | 'without_notes'>('all');
@@ -110,6 +113,28 @@ export function EmailFieldSuggestionsModal({
         return next;
       });
     }
+  };
+
+  const handleDenyAllForLead = async (leadId: string, leadSuggestions: EmailFieldSuggestion[]) => {
+    setDenyingAllForLead(leadId);
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const suggestion of leadSuggestions) {
+      const success = await denySuggestion(suggestion.id, 'Bulk denied');
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+    
+    setDenyingAllForLead(null);
+    toast({
+      title: failCount === 0 ? "All Denied" : "Partially Denied",
+      description: `${successCount} suggestion${successCount !== 1 ? 's' : ''} denied${failCount > 0 ? `, ${failCount} failed` : ''}`,
+      variant: failCount > 0 ? "destructive" : "default",
+    });
   };
 
   const renderSuggestionCard = (suggestion: EmailFieldSuggestion, isCompleted: boolean) => (
@@ -243,9 +268,30 @@ export function EmailFieldSuggestionsModal({
               >
                 {lead?.first_name} {lead?.last_name}
               </span>
-              <Badge variant="outline" className="text-xs">
-                {leadSuggestions.length} suggestion{leadSuggestions.length > 1 ? 's' : ''}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {leadSuggestions.length} suggestion{leadSuggestions.length > 1 ? 's' : ''}
+                </Badge>
+                {!isCompleted && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDenyAllForLead(leadId, leadSuggestions);
+                    }}
+                    disabled={denyingAllForLead === leadId}
+                    title="Deny all suggestions for this borrower"
+                  >
+                    {denyingAllForLead === leadId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
