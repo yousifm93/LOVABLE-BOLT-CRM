@@ -1904,7 +1904,8 @@ export const databaseService = {
       .from('leads')
       .select(`
         *,
-        deleted_by_user:users!deleted_by(id, first_name, last_name, email)
+        deleted_by_user:users!deleted_by(id, first_name, last_name, email),
+        pipeline_stage:pipeline_stages(id, name)
       `)
       .not('deleted_at', 'is', null)
       .order('deleted_at', { ascending: false });

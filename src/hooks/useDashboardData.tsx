@@ -113,6 +113,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('lead_on_date', formatDate(startOfMonth))
         .lt('lead_on_date', formatDate(startOfNextMonth))
         .order('lead_on_date', { ascending: true });
@@ -131,6 +132,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .eq('lead_on_date', formatDate(yesterday))
         .order('created_at', { ascending: false });
       
@@ -148,6 +150,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .eq('lead_on_date', formatDate(today))
         .order('created_at', { ascending: false });
       
@@ -165,6 +168,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('lead_on_date', lastWeekRange.start.split('T')[0])
         .lte('lead_on_date', lastWeekRange.end.split('T')[0])
         .order('lead_on_date', { ascending: true });
@@ -183,6 +187,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('lead_on_date', thisWeekRange.start.split('T')[0])
         .lte('lead_on_date', thisWeekRange.end.split('T')[0])
         .order('lead_on_date', { ascending: true });
@@ -201,6 +206,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id, notes')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .order('lead_on_date', { ascending: false })
         .order('created_at', { ascending: false });
       
@@ -221,6 +227,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', startOfMonthTimestamp)
         .lt('app_complete_at', startOfNextMonthTimestamp)
@@ -240,6 +247,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', yesterdayBoundaries.start)
         .lte('app_complete_at', yesterdayBoundaries.end)
@@ -259,6 +267,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', todayBoundaries.start)
         .lte('app_complete_at', todayBoundaries.end)
@@ -278,6 +287,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', lastWeekRange.start)
         .lte('app_complete_at', lastWeekRange.end)
@@ -297,6 +307,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .gte('app_complete_at', thisWeekRange.start)
         .lte('app_complete_at', thisWeekRange.end)
@@ -316,6 +327,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, phone, email, lead_on_date, app_complete_at, pipeline_stage_id')
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .not('app_complete_at', 'is', null)
         .order('app_complete_at', { ascending: true });
       
@@ -1161,6 +1173,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .is('deleted_at', null)
         .not('review_left_on', 'is', null)
         .gte('review_left_on', formatDate(startOfMonth))
         .lt('review_left_on', formatDate(startOfNextMonth))
@@ -1179,6 +1192,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .is('deleted_at', null)
         .not('review_left_on', 'is', null)
         .gte('review_left_on', lastWeekRange.start.split('T')[0])
         .lte('review_left_on', lastWeekRange.end.split('T')[0])
@@ -1197,6 +1211,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .is('deleted_at', null)
         .not('review_left_on', 'is', null)
         .gte('review_left_on', thisWeekRange.start.split('T')[0])
         .lte('review_left_on', thisWeekRange.end.split('T')[0])
@@ -1215,6 +1230,7 @@ export const useDashboardData = () => {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, review_left_on, pipeline_stage_id')
+        .is('deleted_at', null)
         .not('review_left_on', 'is', null)
         .order('review_left_on', { ascending: false });
       
@@ -1257,13 +1273,14 @@ export const useDashboardData = () => {
       
       if (stagesError) throw stagesError;
       
-      // Then, get count of leads for each stage
+      // Then, get count of leads for each stage (excluding deleted)
       const stageCounts = await Promise.all(
         (stages || []).map(async (stage) => {
           const { count, error } = await supabase
             .from('leads')
             .select('id', { count: 'exact', head: true })
-            .eq('pipeline_stage_id', stage.id);
+            .eq('pipeline_stage_id', stage.id)
+            .is('deleted_at', null);
           
           if (error) throw error;
           
@@ -1319,7 +1336,8 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
-        .eq('is_closed', false);
+        .eq('is_closed', false)
+        .is('deleted_at', null);
       
       if (error) throw error;
       return data || [];
@@ -1338,6 +1356,7 @@ export const useDashboardData = () => {
         .select('id, first_name, last_name, loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', currentMonthStart.toISOString().split('T')[0])
         .lt('close_date', nextMonthStart.toISOString().split('T')[0]);
       
@@ -1358,6 +1377,7 @@ export const useDashboardData = () => {
         .select('id, first_name, last_name, loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', nextMonthStart.toISOString().split('T')[0])
         .lt('close_date', monthAfterNextStart.toISOString().split('T')[0]);
       
@@ -1378,6 +1398,7 @@ export const useDashboardData = () => {
         .select('id, first_name, last_name, loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', monday.toISOString().split('T')[0])
         .lte('close_date', friday.toISOString().split('T')[0]);
       
@@ -1395,7 +1416,8 @@ export const useDashboardData = () => {
         .from('leads')
         .select('loan_amount, interest_rate, submitted_at, ctc_at')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
-        .eq('is_closed', false);
+        .eq('is_closed', false)
+        .is('deleted_at', null);
       
       if (error) throw error;
       
@@ -1439,6 +1461,7 @@ export const useDashboardData = () => {
         .select('loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', currentMonthStart.toISOString().split('T')[0])
         .lt('close_date', nextMonthStart.toISOString().split('T')[0]);
       
@@ -1463,6 +1486,7 @@ export const useDashboardData = () => {
         .select('loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', nextMonthStart.toISOString().split('T')[0])
         .lt('close_date', monthAfterNextStart.toISOString().split('T')[0]);
       
@@ -1487,6 +1511,7 @@ export const useDashboardData = () => {
         .select('loan_amount, close_date')
         .eq('pipeline_stage_id', ACTIVE_STAGE_ID)
         .eq('is_closed', false)
+        .is('deleted_at', null)
         .gte('close_date', monday.toISOString().split('T')[0])
         .lte('close_date', friday.toISOString().split('T')[0]);
       
@@ -1508,6 +1533,7 @@ export const useDashboardData = () => {
         .from('leads')
         .select('id, first_name, last_name, loan_amount, closed_at')
         .eq('is_closed', true)
+        .is('deleted_at', null)
         .gte('closed_at', '2025-01-01T00:00:00')
         .lt('closed_at', '2026-01-01T00:00:00');
       
@@ -1646,6 +1672,7 @@ export const useDashboardData = () => {
           pipeline_stage_id,
           pipeline_stages!inner(name)
         `)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
