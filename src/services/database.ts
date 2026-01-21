@@ -681,6 +681,7 @@ export const databaseService = {
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', leadsStage?.id || '')
+        .is('deleted_at', null) // Exclude soft-deleted leads
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -922,23 +923,12 @@ export const databaseService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      console.log('[DEBUG] Delete lead:', {
+      console.log('[DEBUG] Soft delete lead:', {
         leadId: id,
         userId: user.id
       });
 
-      // Step 1: Hard-delete any soft-deleted tasks for this lead
-      const { error: softDeletedTasksError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('borrower_id', id)
-        .not('deleted_at', 'is', null);
-
-      if (softDeletedTasksError) {
-        console.warn('[DEBUG] Error deleting soft-deleted tasks:', softDeletedTasksError);
-      }
-
-      // Step 2: Check for open tasks (not soft-deleted AND not Done)
+      // Step 1: Check for open tasks (not soft-deleted AND not Done)
       const { data: openTasks, error: openTasksError } = await supabase
         .from('tasks')
         .select('id, title, status')
@@ -952,104 +942,26 @@ export const databaseService = {
         throw new Error(`This lead has ${openTasks.length} open task(s): ${taskTitles}${moreCount}. Please complete or delete them first.`);
       }
 
-      // Step 2b: Delete any completed (Done) tasks since they don't block deletion
-      const { error: doneTasksError } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('borrower_id', id)
-        .is('deleted_at', null)
-        .eq('status', 'Done');
+      // Step 2: Get CRM user ID for deleted_by tracking
+      // Using raw query to avoid TypeScript deep instantiation issues
+      const { data: crmUserData } = await (supabase as any)
+        .from('users')
+        .select('id')
+        .eq('auth_id', user.id)
+        .limit(1);
+      const crmUserId = crmUserData?.[0]?.id || null;
 
-      if (doneTasksError) {
-        console.warn('[DEBUG] Error deleting completed tasks:', doneTasksError);
-      }
-
-      // Step 3: Delete related records that reference this lead
-      // Delete documents
-      const { error: docsError } = await supabase
-        .from('documents')
-        .delete()
-        .eq('lead_id', id);
-      if (docsError) console.warn('[DEBUG] Error deleting documents:', docsError);
-
-      // Delete notes
-      const { error: notesError } = await supabase
-        .from('notes')
-        .delete()
-        .eq('lead_id', id);
-      if (notesError) console.warn('[DEBUG] Error deleting notes:', notesError);
-
-      // Delete activity comments
-      const { error: commentsError } = await supabase
-        .from('activity_comments')
-        .delete()
-        .eq('lead_id', id);
-      if (commentsError) console.warn('[DEBUG] Error deleting activity comments:', commentsError);
-
-      // Delete email logs
-      const { error: emailLogsError } = await supabase
-        .from('email_logs')
-        .delete()
-        .eq('lead_id', id);
-      if (emailLogsError) console.warn('[DEBUG] Error deleting email logs:', emailLogsError);
-
-      // Delete call logs
-      const { error: callLogsError } = await supabase
-        .from('call_logs')
-        .delete()
-        .eq('lead_id', id);
-      if (callLogsError) console.warn('[DEBUG] Error deleting call logs:', callLogsError);
-
-      // Delete SMS logs
-      const { error: smsLogsError } = await supabase
-        .from('sms_logs')
-        .delete()
-        .eq('lead_id', id);
-      if (smsLogsError) console.warn('[DEBUG] Error deleting SMS logs:', smsLogsError);
-
-      // Delete stage history
-      const { error: stageHistoryError } = await supabase
-        .from('stage_history')
-        .delete()
-        .eq('lead_id', id);
-      if (stageHistoryError) console.warn('[DEBUG] Error deleting stage history:', stageHistoryError);
-
-      // Delete borrowers linked to this lead
-      const { error: borrowersError } = await supabase
-        .from('borrowers')
-        .delete()
-        .eq('lead_id', id);
-      if (borrowersError) console.warn('[DEBUG] Error deleting borrowers:', borrowersError);
-
-      // Delete borrower_documents linked to this lead
-      const { error: borrowerDocsError } = await supabase
-        .from('borrower_documents')
-        .delete()
-        .eq('lead_id', id);
-      if (borrowerDocsError) console.warn('[DEBUG] Error deleting borrower documents:', borrowerDocsError);
-
-      // Delete borrower_tasks linked to this lead
-      const { error: borrowerTasksError } = await supabase
-        .from('borrower_tasks')
-        .delete()
-        .eq('lead_id', id);
-      if (borrowerTasksError) console.warn('[DEBUG] Error deleting borrower tasks:', borrowerTasksError);
-
-      // Delete lead conditions
-      const { error: conditionsError } = await supabase
-        .from('lead_conditions')
-        .delete()
-        .eq('lead_id', id);
-      if (conditionsError) console.warn('[DEBUG] Error deleting lead conditions:', conditionsError);
-
-      // Step 4: Delete the lead (RLS handles access control)
+      // Step 3: Soft delete the lead (set deleted_at and deleted_by)
       const { error } = await supabase
         .from('leads')
-        .delete()
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: crmUserId
+        })
         .eq('id', id);
 
       if (error) {
-        console.error('[DEBUG] Delete lead error:', {
+        console.error('[DEBUG] Soft delete lead error:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -1058,7 +970,7 @@ export const databaseService = {
         throw error;
       }
 
-      console.log('[DEBUG] Lead deleted successfully');
+      console.log('[DEBUG] Lead soft-deleted successfully');
     } catch (error: any) {
       console.error('[DEBUG] DeleteLead function error:', error);
       throw error;
@@ -2004,11 +1916,19 @@ export const databaseService = {
   async softDeleteLead(leadId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     
+    // Get CRM user ID for deleted_by tracking (leads.deleted_by references users.id, not auth.users.id)
+    const { data: crmUserData } = await (supabase as any)
+      .from('users')
+      .select('id')
+      .eq('auth_id', user?.id)
+      .limit(1);
+    const crmUserId = crmUserData?.[0]?.id || null;
+    
     const { error } = await supabase
       .from('leads')
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: user?.id
+        deleted_by: crmUserId
       })
       .eq('id', leadId);
 
@@ -2151,6 +2071,7 @@ export const databaseService = {
           teammate:users!fk_leads_teammate_assigned(id, first_name, last_name, email)
         `)
         .eq('pipeline_stage_id', '76eb2e82-e1d9-4f2d-a57d-2120a25696db') // Active stage only
+        .is('deleted_at', null) // Exclude soft-deleted leads
         .order('close_date', { ascending: true, nullsFirst: false });
 
       if (error) {
@@ -2239,6 +2160,7 @@ export const databaseService = {
         `)
         .eq('pipeline_section', 'Closed')
         .eq('is_closed', true)
+        .is('deleted_at', null) // Exclude soft-deleted leads
         .order('closed_at', { ascending: false });
 
       if (error) {

@@ -278,6 +278,7 @@ const allAvailableColumns = useMemo(() => {
         buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
       `)
       .eq('pipeline_stage_id', '3cbf38ff-752e-4163-a9a3-1757499b4945')
+      .is('deleted_at', null) // Exclude soft-deleted leads
       .order('created_at', { ascending: false });
     if (error) { toast({ title: "Error", description: "Failed to load pre-approved clients", variant: "destructive" }); return; }
     

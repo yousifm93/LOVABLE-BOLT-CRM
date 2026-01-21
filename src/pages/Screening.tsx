@@ -278,6 +278,7 @@ const allAvailableColumns = useMemo(() => {
           buyer_agent:buyer_agents!leads_buyer_agent_id_fkey(id, first_name, last_name, brokerage, email, phone)
         `)
         .eq('pipeline_stage_id', 'a4e162e0-5421-4d17-8ad5-4b1195bbc995') // Screening stage
+        .is('deleted_at', null) // Exclude soft-deleted leads
         .order('created_at', { ascending: false });
       
       if (error) throw error;

@@ -977,7 +977,7 @@ export default function Leads() {
       const {
         data: dbLeads,
         error: leadsError
-      } = await supabase.from('leads').select('*').eq('pipeline_stage_id', leadsStage?.id || '').order('created_at', {
+      } = await supabase.from('leads').select('*').eq('pipeline_stage_id', leadsStage?.id || '').is('deleted_at', null).order('created_at', {
         ascending: false
       });
       if (leadsError) throw leadsError;
