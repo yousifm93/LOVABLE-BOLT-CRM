@@ -1451,50 +1451,15 @@ export default function TasksModern() {
             
             {/* Views System - Admin only */}
             {isAdmin && (
-              <>
-                <Button
-                  variant={activeView === 'Main View' && !isReviewActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    loadView('Main View');
-                    setFilters([]);
-                    setIsReviewActive(false);
-                  }}
-                  className="h-8"
-                >
-                  Main View
-                </Button>
-                
-                <Button
-                  variant={isReviewActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    // Review View: All tasks with due date on or before yesterday (dynamic)
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const yesterdayStr = yesterday.toISOString().split('T')[0];
-                    
-                    // Only filter by due date - show all tasks due on or before yesterday
-                    setFilters([
-                      { id: 'review-due', column: 'due_date', operator: 'is_on_or_before', value: yesterdayStr }
-                    ]);
-                    setIsReviewActive(true);
-                  }}
-                  className="h-8"
-                >
-                  Review
-                </Button>
-                
-                <ViewPills
-                  views={views}
-                  activeView={activeView}
-                  onLoadView={(viewName) => {
-                    loadView(viewName);
-                    setIsReviewActive(false);
-                  }}
-                  onDeleteView={deleteView}
-                />
-              </>
+              <ViewPills
+                views={views}
+                activeView={activeView}
+                onLoadView={(viewName) => {
+                  loadView(viewName);
+                  setIsReviewActive(false);
+                }}
+                onDeleteView={deleteView}
+              />
             )}
             
             <ColumnVisibilityButton
