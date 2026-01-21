@@ -14,7 +14,8 @@ import {
   XCircle, 
   Clock, 
   AlertCircle,
-  Loader2
+  Loader2,
+  Mail
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { databaseService } from "@/services/database";
@@ -95,6 +96,7 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [sendingRequests, setSendingRequests] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -113,15 +115,22 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
       if (tasksError) throw tasksError;
       setTasks(tasksData || []);
       
-      // Fetch borrower documents for this lead
-      const { data: docsData, error: docsError } = await supabase
-        .from('borrower_documents')
-        .select('*')
-        .eq('lead_id', leadId)
-        .order('uploaded_at', { ascending: false });
+      // Get task IDs to fetch documents linked to those tasks
+      const taskIds = (tasksData || []).map(t => t.id);
       
-      if (docsError) throw docsError;
-      setDocuments(docsData || []);
+      // Fetch borrower documents linked to tasks (documents are connected via task_id, not lead_id)
+      if (taskIds.length > 0) {
+        const { data: docsData, error: docsError } = await supabase
+          .from('borrower_documents')
+          .select('*')
+          .in('task_id', taskIds)
+          .order('uploaded_at', { ascending: false });
+        
+        if (docsError) throw docsError;
+        setDocuments(docsData || []);
+      } else {
+        setDocuments([]);
+      }
     } catch (error: any) {
       console.error('Error loading application documents:', error);
       toast({
@@ -258,6 +267,65 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
     }
   };
 
+  // Send document requests email to borrower
+  const handleSendRequests = async () => {
+    const pendingItems = tasks.filter(t => t.status === 'pending');
+    
+    if (pendingItems.length === 0) {
+      toast({
+        title: "No Pending Requests",
+        description: "There are no pending document requests to send",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setSendingRequests(true);
+      
+      // Fetch the lead to get borrower email
+      const { data: leadData, error: leadError } = await supabase
+        .from('leads')
+        .select('first_name, last_name, email')
+        .eq('id', leadId)
+        .single();
+      
+      if (leadError) throw leadError;
+      if (!leadData?.email) {
+        throw new Error("Borrower email not found");
+      }
+      
+      // Call edge function to send the email
+      const { error: emailError } = await supabase.functions.invoke('send-document-requests', {
+        body: {
+          borrowerEmail: leadData.email,
+          borrowerName: `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim(),
+          pendingTasks: pendingItems.map(t => ({
+            name: t.task_name,
+            description: t.task_description
+          })),
+          portalUrl: `${window.location.origin}/apply`
+        }
+      });
+      
+      if (emailError) throw emailError;
+      
+      toast({
+        title: "Email Sent",
+        description: `Document request email sent to ${leadData.email}`
+      });
+    } catch (error: any) {
+      console.error('Error sending document requests:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send document request email",
+        variant: "destructive"
+      });
+    } finally {
+      setSendingRequests(false);
+    }
+  };
+
   // Group tasks by status
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const inReviewTasks = tasks.filter(t => t.status === 'in_review' || t.status === 'in review');
@@ -383,15 +451,33 @@ export function ApplicationDocumentsSection({ leadId, onDocumentsChange }: Appli
               </span>
             </button>
             
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs border-orange-300 hover:bg-orange-100"
-              onClick={() => setShowAddModal(true)}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add Request
-            </Button>
+            <div className="flex items-center gap-2">
+              {pendingTasks.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs border-blue-300 hover:bg-blue-100 text-blue-700"
+                  onClick={handleSendRequests}
+                  disabled={sendingRequests}
+                >
+                  {sendingRequests ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Mail className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Send Requests
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs border-orange-300 hover:bg-orange-100"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add Request
+              </Button>
+            </div>
           </div>
         </CardHeader>
         

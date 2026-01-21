@@ -7,6 +7,7 @@ import { MobileApplicationSidebar } from '@/components/mortgage-app/MobileApplic
 import { MobileHeader } from '@/components/mortgage-app/MobileHeader';
 import { LoanPurposeModal } from '@/components/mortgage-app/LoanPurposeModal';
 import { LoanOfficerPanel } from '@/components/mortgage-app/LoanOfficerPanel';
+import { BorrowerDocumentTasks } from '@/components/mortgage-app/BorrowerDocumentTasks';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, CheckCircle } from 'lucide-react';
@@ -31,6 +32,7 @@ const MortgageApplicationContent = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [submittedData, setSubmittedData] = useState<any>(null);
+  const [leadId, setLeadId] = useState<string | null>(null);
 
   // Redirect unauthenticated users to auth page
   useEffect(() => {
@@ -48,7 +50,7 @@ const MortgageApplicationContent = () => {
     }
   }, [user, emailVerified, verificationChecked, navigate]);
 
-  // Check if application was already submitted
+  // Check if application was already submitted and get lead_id
   useEffect(() => {
     const checkSubmissionStatus = async () => {
       if (!user) return;
@@ -64,6 +66,23 @@ const MortgageApplicationContent = () => {
         setIsSubmitted(true);
         setSubmittedAt(appData.submitted_at);
         setSubmittedData(appData.application_data);
+        
+        // Find lead by email to get leadId for document tasks
+        const appDataObj = appData.application_data as any;
+        const borrowerEmail = appDataObj?.personalInfo?.email;
+        if (borrowerEmail) {
+          const { data: leadData } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('email', borrowerEmail)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (leadData?.id) {
+            setLeadId(leadData.id);
+          }
+        }
       }
     };
     
