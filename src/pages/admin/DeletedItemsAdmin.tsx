@@ -32,6 +32,7 @@ interface DeletedLead {
   deleted_at: string;
   status?: string;
   deleted_by_user?: { first_name: string; last_name: string; email: string };
+  pipeline_stage?: { id: string; name: string };
 }
 
 interface DeletedAgent {
@@ -253,9 +254,11 @@ export default function DeletedItemsAdmin() {
       cell: ({ row }) => row.original.phone || '-',
     },
     {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => row.original.status ? <StatusBadge status={row.original.status} /> : '-',
+      accessorKey: "pipeline_stage",
+      header: "Last Known Stage",
+      cell: ({ row }) => row.original.pipeline_stage?.name ? (
+        <StatusBadge status={row.original.pipeline_stage.name} />
+      ) : '-',
     },
     {
       accessorKey: "deleted_at",
