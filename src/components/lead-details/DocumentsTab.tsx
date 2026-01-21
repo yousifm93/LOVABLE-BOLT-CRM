@@ -395,26 +395,41 @@ export function DocumentsTab({ leadId, documents, onDocumentsChange, onLeadUpdat
     
     if (!confirm(`Are you sure you want to delete all ${imageDocs.length} images? This cannot be undone.`)) return;
     
+    const BATCH_SIZE = 50;
+    let deletedCount = 0;
+    let failedCount = 0;
+    
+    // Show initial toast
+    toast({
+      title: "Deleting images...",
+      description: `Processing ${imageDocs.length} images. This may take a moment.`
+    });
+    
     try {
-      let deletedCount = 0;
-      for (const doc of imageDocs) {
-        try {
-          await databaseService.deleteLeadDocument(doc.id, doc.file_url);
-          deletedCount++;
-        } catch (err) {
-          console.error(`Failed to delete ${doc.file_name}:`, err);
-        }
+      // Process in batches for better performance
+      for (let i = 0; i < imageDocs.length; i += BATCH_SIZE) {
+        const batch = imageDocs.slice(i, i + BATCH_SIZE);
+        
+        // Delete batch in parallel
+        const results = await Promise.allSettled(
+          batch.map(doc => databaseService.deleteLeadDocument(doc.id, doc.file_url))
+        );
+        
+        deletedCount += results.filter(r => r.status === 'fulfilled').length;
+        failedCount += results.filter(r => r.status === 'rejected').length;
       }
       
       toast({
-        title: "Images Deleted",
-        description: `Successfully deleted ${deletedCount} of ${imageDocs.length} images`
+        title: "Deletion complete",
+        description: `Deleted ${deletedCount} images.${failedCount > 0 ? ` ${failedCount} failed.` : ''}`,
+        variant: failedCount > 0 ? "destructive" : "default"
       });
+      
       onDocumentsChange();
     } catch (error: any) {
       toast({
         title: "Delete Failed",
-        description: error.message || "Could not delete all images",
+        description: error.message || "Could not delete images",
         variant: "destructive"
       });
     }
