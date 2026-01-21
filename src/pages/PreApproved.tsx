@@ -118,7 +118,7 @@ export default function PreApproved() {
   const coreColumns = [
     { id: "name", label: "Full Name", visible: true },
     { id: "preApprovedOn", label: "Pre-Approved On", visible: true },
-    { id: "loanNumber", label: "Loan Number", visible: true },
+    { id: "loanNumber", label: "MB App Number", visible: true },
     { id: "email", label: "Email", visible: true },
     { id: "phone", label: "Phone", visible: true },
     { id: "loanType", label: "Loan Type", visible: true },
@@ -541,7 +541,12 @@ const allAvailableColumns = useMemo(() => {
       userData: (lead as any).teammate || null,
       baStatus: lead.ba_status || '',
       dueDate: (lead as any).earliest_task_due_date || '',
-      dti: lead.dti ?? null,
+      // Calculate DTI on-the-fly if not stored
+      dti: lead.dti ?? (
+        lead.total_monthly_income && lead.total_monthly_income > 0
+          ? Math.round(((lead.piti || 0) + (lead.monthly_liabilities || 0)) / lead.total_monthly_income * 10000) / 100
+          : null
+      ),
       salesPrice: lead.sales_price || 0,
       ltv: (lead as any).ltv || null,
       // Add all database fields dynamically
@@ -722,7 +727,7 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "loanNumber",
-      header: "Loan Number",
+      header: "MB App Number",
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>

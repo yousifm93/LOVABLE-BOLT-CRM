@@ -434,11 +434,13 @@ export function CallLogModal({ open, onOpenChange, leadId, onActivityCreated }: 
             <p className="text-xs text-muted-foreground">
               <Mic className="h-3 w-3 inline mr-1" /> Verbatim transcription | <Phone className="h-3 w-3 inline mx-1" /> Record & summarize call
             </p>
-            <MentionableRichTextEditor
-              value={formData.notes}
-              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Enter call notes... Use @ to mention team members"
-            />
+            <div className="max-h-[300px] overflow-y-auto border rounded-md">
+              <MentionableRichTextEditor
+                value={formData.notes}
+                onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
+                placeholder="Enter call notes... Use @ to mention team members"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">
@@ -837,12 +839,14 @@ export function AddNoteModal({ open, onOpenChange, leadId, onActivityCreated }: 
               <Label htmlFor="note">Note <span className="text-xs text-muted-foreground">(Type @ to mention team members)</span></Label>
               <VoiceButton isRecording={isRecording} isTranscribing={isTranscribing} onClick={handleVoiceClick} />
             </div>
-            <MentionableRichTextEditor
-              value={noteBody}
-              onChange={setNoteBody}
-              placeholder="Enter your note here... Use @ to mention team members"
-              onMentionsChange={setMentions}
-            />
+            <div className="max-h-[300px] overflow-y-auto border rounded-md">
+              <MentionableRichTextEditor
+                value={noteBody}
+                onChange={setNoteBody}
+                placeholder="Enter your note here... Use @ to mention team members"
+                onMentionsChange={setMentions}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">

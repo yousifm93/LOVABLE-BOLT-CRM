@@ -120,7 +120,7 @@ export default function PreQualified() {
     { id: "email", label: "Lead Email", visible: true },
     { id: "realEstateAgent", label: "Real Estate Agent", visible: true },
     { id: "status", label: "Status", visible: true },
-    { id: "loanNumber", label: "App Number", visible: true },
+    { id: "loanNumber", label: "MB App Number", visible: true },
     { id: "fico", label: "FICO", visible: true },
     { id: "dti", label: "DTI", visible: true },
     { id: "loanAmount", label: "Loan Amount", visible: true },
@@ -547,7 +547,12 @@ const allAvailableColumns = useMemo(() => {
     status: lead.converted || 'Working on it',
     loanNumber: lead.mb_loan_number?.toString() || '—',
     fico: lead.fico_score || 0,
-    dti: lead.dti ?? null,
+    // Calculate DTI on-the-fly if not stored
+    dti: lead.dti ?? (
+      lead.total_monthly_income && lead.total_monthly_income > 0
+        ? Math.round(((lead.piti || 0) + (lead.monthly_liabilities || 0)) / lead.total_monthly_income * 10000) / 100
+        : null
+    ),
     loanAmount: lead.loan_amount || 0,
     salesPrice: lead.sales_price || 0,
     user: lead.teammate_assigned || '',
@@ -808,7 +813,7 @@ const allAvailableColumns = useMemo(() => {
     },
     {
       accessorKey: "loanNumber",
-      header: "App Number",
+      header: "MB App Number",
       sortable: true,
       cell: ({ row }) => (
         <div onClick={(e) => e.stopPropagation()}>
@@ -818,7 +823,7 @@ const allAvailableColumns = useMemo(() => {
               handleFieldUpdate(row.original.id, "mb_loan_number", value);
               fetchLeads();
             }}
-            placeholder="MB App #"
+            placeholder="MB-"
           />
         </div>
       ),
