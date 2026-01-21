@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable, ColumnDef } from "@/components/ui/data-table";
 import { CreateContactModal } from "@/components/modals/CreateContactModal";
 import { AgentDetailDialog } from "@/components/AgentDetailDialog";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { databaseService } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -132,6 +133,9 @@ export default function AgentList() {
     { field: 'next_agent_call', operator: null, date: null },
     { field: 'face_to_face_meeting', operator: null, date: null },
   ]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleImportAgents = async () => {
@@ -201,6 +205,35 @@ export default function AgentList() {
   const handleRowClick = (agent: any) => {
     setSelectedAgent(agent);
     setShowAgentDrawer(true);
+  };
+
+  const handleDeleteAgent = (agent: any) => {
+    setAgentToDelete(agent);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return;
+    setIsDeleting(true);
+    try {
+      await databaseService.softDeleteBuyerAgent(agentToDelete.id);
+      toast({
+        title: "Agent Deleted",
+        description: `${agentToDelete.first_name} ${agentToDelete.last_name} has been removed.`,
+      });
+      loadAgents();
+    } catch (error: any) {
+      console.error('Error deleting agent:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete agent",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setAgentToDelete(null);
+    }
   };
 
   const updateDateFilter = (index: number, updates: Partial<DateFilter>) => {
@@ -464,6 +497,7 @@ export default function AgentList() {
             data={filteredAgents}
             searchTerm={searchTerm}
             onRowClick={handleRowClick}
+            onDelete={handleDeleteAgent}
             pageSize={15}
             showRowNumbers
             compact
@@ -486,6 +520,15 @@ export default function AgentList() {
           setSelectedAgent(null);
         }}
         onAgentUpdated={loadAgents}
+      />
+
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={confirmDeleteAgent}
+        title="Delete Agent"
+        description={`Are you sure you want to delete ${agentToDelete?.first_name || ''} ${agentToDelete?.last_name || ''}? This action can be undone from the Deleted Items section.`}
+        isLoading={isDeleting}
       />
     </div>
   );

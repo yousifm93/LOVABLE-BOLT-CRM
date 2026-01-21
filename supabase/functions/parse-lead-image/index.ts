@@ -99,7 +99,23 @@ CRITICAL RULES:
     }
     
     const extractedData = JSON.parse(jsonStr.trim());
-    console.log('Extracted data:', extractedData);
+    console.log('Extracted data (before normalization):', extractedData);
+
+    // Normalize referral_method to match database enum values
+    const referralMethodMap: Record<string, string> = {
+      'Text Message': 'Text',
+      'Phone Call': 'Phone',
+      'Social Media': 'Social Media',
+      'Website': 'Website',
+      'Email': 'Email',
+      'Other': 'Other',
+    };
+    
+    if (extractedData.referral_method && referralMethodMap[extractedData.referral_method]) {
+      extractedData.referral_method = referralMethodMap[extractedData.referral_method];
+    }
+    
+    console.log('Extracted data (after normalization):', extractedData);
 
     return new Response(JSON.stringify(extractedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

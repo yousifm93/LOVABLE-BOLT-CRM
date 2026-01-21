@@ -164,11 +164,15 @@ export function NoteDetailModal({ open, onOpenChange, note, onActivityUpdated }:
           </div>
 
           {isEditing ? (
-            <RichTextEditor
-              value={editedContent}
-              onChange={setEditedContent}
-              className="min-h-[400px]"
-            />
+            <ScrollArea className="h-[400px] w-full rounded-md border">
+              <div className="p-4">
+                <RichTextEditor
+                  value={editedContent}
+                  onChange={setEditedContent}
+                  className="min-h-[350px]"
+                />
+              </div>
+            </ScrollArea>
           ) : (
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
               <div 

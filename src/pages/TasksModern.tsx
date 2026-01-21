@@ -573,6 +573,12 @@ export default function TasksModern() {
       value: 'description',
       label: 'Description',
       type: 'text' as const
+    },
+    { 
+      value: 'borrower.pipeline_stage.name', 
+      label: 'Borrower Stage', 
+      type: 'select' as const,
+      options: ['New', 'Pending App', 'Screening', 'Pre-Qualified', 'Pre-Approved', 'Active', 'Past Client']
     }
   ], [assignableUsers]);
 
