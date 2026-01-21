@@ -3464,6 +3464,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_latest_file_updates_updated_by_fkey"
             columns: ["latest_file_updates_updated_by"]
             isOneToOne: false
@@ -5118,6 +5125,7 @@ export type Database = {
       tasks: {
         Row: {
           assignee_id: string | null
+          automation_id: string | null
           borrower_id: string | null
           completion_requirement_type: string | null
           created_at: string
@@ -5140,6 +5148,7 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          automation_id?: string | null
           borrower_id?: string | null
           completion_requirement_type?: string | null
           created_at?: string
@@ -5162,6 +5171,7 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          automation_id?: string | null
           borrower_id?: string | null
           completion_requirement_type?: string | null
           created_at?: string
@@ -5188,6 +5198,13 @@ export type Database = {
             columns: ["assignee_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "task_automations"
             referencedColumns: ["id"]
           },
           {
