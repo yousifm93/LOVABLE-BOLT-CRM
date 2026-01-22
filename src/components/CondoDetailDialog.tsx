@@ -35,6 +35,9 @@ interface Condo {
   budget_doc: string | null;
   mip_doc: string | null;
   cq_doc: string | null;
+  budget_doc_uploaded_at?: string | null;
+  mip_doc_uploaded_at?: string | null;
+  cq_doc_uploaded_at?: string | null;
   updated_at: string;
 }
 
@@ -43,6 +46,7 @@ interface CondoDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCondoUpdated: () => void;
+  onPreview?: (url: string, fileName: string) => void;
 }
 
 const reviewTypeOptions = [
@@ -53,7 +57,7 @@ const reviewTypeOptions = [
   { value: "Restricted", label: "Restricted" }
 ];
 
-export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated }: CondoDetailDialogProps) {
+export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated, onPreview }: CondoDetailDialogProps) {
   const { toast } = useToast();
 
   const handleFieldUpdate = async (field: string, value: any) => {
@@ -71,6 +75,45 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated }: Co
       toast({
         title: "Error",
         description: "Failed to update condo information.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocUpdate = async (
+    field: string, 
+    path: string | null, 
+    uploadedAt?: string, 
+    uploadedBy?: string
+  ) => {
+    if (!condo?.id) return;
+
+    try {
+      const updates: Record<string, any> = { [field]: path };
+      
+      if (uploadedAt) {
+        updates[`${field}_uploaded_at`] = uploadedAt;
+      }
+      if (uploadedBy) {
+        updates[`${field}_uploaded_by`] = uploadedBy;
+      }
+      
+      if (path === null) {
+        updates[`${field}_uploaded_at`] = null;
+        updates[`${field}_uploaded_by`] = null;
+      }
+      
+      await databaseService.updateCondo(condo.id, updates);
+      onCondoUpdated();
+      toast({
+        title: path ? "Uploaded" : "Deleted",
+        description: path ? "Document uploaded successfully." : "Document removed.",
+      });
+    } catch (error) {
+      console.error('Error updating document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update document.",
         variant: "destructive",
       });
     }
@@ -304,7 +347,9 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated }: Co
                       condoId={condo.id}
                       fieldName="budget_doc"
                       currentFile={condo.budget_doc}
-                      onUpload={(path) => handleFieldUpdate('budget_doc', path)}
+                      uploadedAt={condo.budget_doc_uploaded_at}
+                      onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate('budget_doc', path, uploadedAt, uploadedBy)}
+                      onPreview={onPreview}
                     />
                   </div>
                 </div>
@@ -315,7 +360,9 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated }: Co
                       condoId={condo.id}
                       fieldName="mip_doc"
                       currentFile={condo.mip_doc}
-                      onUpload={(path) => handleFieldUpdate('mip_doc', path)}
+                      uploadedAt={condo.mip_doc_uploaded_at}
+                      onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate('mip_doc', path, uploadedAt, uploadedBy)}
+                      onPreview={onPreview}
                     />
                   </div>
                 </div>
@@ -326,7 +373,9 @@ export function CondoDetailDialog({ condo, isOpen, onClose, onCondoUpdated }: Co
                       condoId={condo.id}
                       fieldName="cq_doc"
                       currentFile={condo.cq_doc}
-                      onUpload={(path) => handleFieldUpdate('cq_doc', path)}
+                      uploadedAt={condo.cq_doc_uploaded_at}
+                      onUpload={(path, uploadedAt, uploadedBy) => handleDocUpdate('cq_doc', path, uploadedAt, uploadedBy)}
+                      onPreview={onPreview}
                     />
                   </div>
                 </div>

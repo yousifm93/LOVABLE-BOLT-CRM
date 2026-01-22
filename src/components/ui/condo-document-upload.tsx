@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { Upload, FileText, Eye, Trash2, Loader2 } from "lucide-react";
+import { Upload, Eye, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { format, formatDistanceToNow } from "date-fns";
 
 interface CondoDocumentUploadProps {
   condoId: string;
   fieldName: "budget_doc" | "mip_doc" | "cq_doc";
   currentFile: string | null;
-  onUpload: (path: string | null) => void;
+  uploadedAt?: string | null;
+  uploadedBy?: string | null;
+  onUpload: (path: string | null, uploadedAt?: string, uploadedBy?: string) => void;
+  onPreview?: (url: string, fileName: string) => void;
   compact?: boolean;
 }
 
@@ -19,7 +24,10 @@ export function CondoDocumentUpload({
   condoId,
   fieldName,
   currentFile,
+  uploadedAt,
+  uploadedBy,
   onUpload,
+  onPreview,
   compact = false,
 }: CondoDocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
@@ -41,6 +49,9 @@ export function CondoDocumentUpload({
 
     setUploading(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Create storage path: condoId/fieldName/timestamp_filename
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -58,7 +69,8 @@ export function CondoDocumentUpload({
 
       if (uploadError) throw uploadError;
 
-      onUpload(storagePath);
+      const now = new Date().toISOString();
+      onUpload(storagePath, now, user?.id);
       toast({
         title: "Uploaded",
         description: "Document uploaded successfully",
@@ -112,7 +124,15 @@ export function CondoDocumentUpload({
 
       if (error) throw error;
       if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
+        // Extract filename from path
+        const fileName = currentFile.split('/').pop() || 'document.pdf';
+        
+        if (onPreview) {
+          onPreview(data.signedUrl, fileName);
+        } else {
+          // Fallback to new tab
+          window.open(data.signedUrl, "_blank");
+        }
       }
     } catch (error) {
       console.error("Error viewing document:", error);
@@ -121,6 +141,23 @@ export function CondoDocumentUpload({
         description: "Failed to open document",
         variant: "destructive",
       });
+    }
+  };
+
+  // Format the upload date
+  const formatUploadDate = () => {
+    if (!uploadedAt) return null;
+    try {
+      const date = new Date(uploadedAt);
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 7) {
+        return formatDistanceToNow(date, { addSuffix: true });
+      }
+      return format(date, 'MMM d');
+    } catch {
+      return null;
     }
   };
 
@@ -133,38 +170,55 @@ export function CondoDocumentUpload({
   }
 
   if (currentFile) {
+    const uploadDateStr = formatUploadDate();
+    
     return (
-      <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
-        <Button
-          variant="ghost"
-          size={compact ? "icon" : "sm"}
-          onClick={handleView}
-          className={compact ? "h-7 w-7" : "h-8"}
-        >
-          {compact ? (
-            <Eye className="h-3.5 w-3.5 text-primary" />
-          ) : (
-            <>
-              <Eye className="h-3.5 w-3.5 mr-1" />
-              View
-            </>
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size={compact ? "icon" : "sm"}
-          onClick={handleDelete}
-          className={compact ? "h-7 w-7 text-destructive hover:text-destructive" : "h-8 text-destructive hover:text-destructive"}
-        >
-          {compact ? (
-            <Trash2 className="h-3.5 w-3.5" />
-          ) : (
-            <>
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Delete
-            </>
-          )}
-        </Button>
+      <div className="flex flex-col">
+        <div className={`flex items-center ${compact ? "gap-1" : "gap-2"}`}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size={compact ? "icon" : "sm"}
+                  onClick={handleView}
+                  className={compact ? "h-7 w-7" : "h-8"}
+                >
+                  {compact ? (
+                    <Eye className="h-3.5 w-3.5 text-primary" />
+                  ) : (
+                    <>
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View document</p>
+                {uploadDateStr && <p className="text-xs text-muted-foreground">Uploaded {uploadDateStr}</p>}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button
+            variant="ghost"
+            size={compact ? "icon" : "sm"}
+            onClick={handleDelete}
+            className={compact ? "h-7 w-7 text-destructive hover:text-destructive" : "h-8 text-destructive hover:text-destructive"}
+          >
+            {compact ? (
+              <Trash2 className="h-3.5 w-3.5" />
+            ) : (
+              <>
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Delete
+              </>
+            )}
+          </Button>
+        </div>
+        {uploadDateStr && !compact && (
+          <span className="text-[10px] text-muted-foreground mt-0.5">{uploadDateStr}</span>
+        )}
       </div>
     );
   }
