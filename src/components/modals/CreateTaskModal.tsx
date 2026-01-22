@@ -112,14 +112,15 @@ const QUICK_TASK_TEMPLATES = [
 export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselectedBorrowerId }: CreateTaskModalProps) {
   const { crmUser } = useAuth();
   const [mode, setMode] = useState<'single' | 'multiple'>('single');
-  // Default assignee is Herman Rayza Daza
-  const DEFAULT_ASSIGNEE_ID = "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
+  
+  // Get default assignee - current user or fallback to Herman
+  const getDefaultAssigneeId = () => crmUser?.id || "fa92a4c6-890d-4d69-99a8-c3adc6c904ee";
   
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     due_date: new Date().toISOString().split('T')[0],
-    assignee_id: DEFAULT_ASSIGNEE_ID,
+    assignee_id: "",
     borrower_id: preselectedBorrowerId || "",
     completion_requirement_type: null as string | null,
   });
@@ -131,7 +132,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   }>>([{
     title: "",
     due_date: new Date().toISOString().split('T')[0],
-    assignee_id: DEFAULT_ASSIGNEE_ID,
+    assignee_id: "",
     borrower_id: "",
   }]);
   const [users, setUsers] = useState<any[]>([]);
@@ -157,7 +158,8 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
       title: template.title,
       description: template.description,
       due_date: new Date().toISOString().split('T')[0], // Today
-      assignee_id: (template as any).default_assignee_id || DEFAULT_ASSIGNEE_ID, // Use template's assignee or Herman
+      // Only use template's assignee if explicitly set, otherwise keep current selection (which defaults to logged-in user)
+      assignee_id: (template as any).default_assignee_id || prev.assignee_id || getDefaultAssigneeId(),
       completion_requirement_type: template.completion_requirement_type,
     }));
   };
@@ -165,11 +167,22 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
   useEffect(() => {
     if (open) {
       loadData();
-      if (preselectedBorrowerId) {
-        setFormData(prev => ({ ...prev, borrower_id: preselectedBorrowerId }));
-      }
+      // Set default assignee to current logged-in user
+      const defaultAssignee = getDefaultAssigneeId();
+      setFormData(prev => ({ 
+        ...prev, 
+        borrower_id: preselectedBorrowerId || prev.borrower_id,
+        assignee_id: prev.assignee_id || defaultAssignee,
+        due_date: new Date().toISOString().split('T')[0], // Ensure today's date
+      }));
+      // Also update bulk tasks default assignee
+      setBulkTasks(prev => prev.map(task => ({
+        ...task,
+        assignee_id: task.assignee_id || defaultAssignee,
+        due_date: new Date().toISOString().split('T')[0],
+      })));
     }
-  }, [open, preselectedBorrowerId]);
+  }, [open, preselectedBorrowerId, crmUser?.id]);
 
   // Voice recording handlers
   const startVoiceRecording = async () => {
@@ -415,7 +428,7 @@ export function CreateTaskModal({ open, onOpenChange, onTaskCreated, preselected
           title: "",
           description: "",
           due_date: new Date().toISOString().split('T')[0],
-          assignee_id: DEFAULT_ASSIGNEE_ID,
+          assignee_id: getDefaultAssigneeId(),
           borrower_id: "",
           completion_requirement_type: null,
         });

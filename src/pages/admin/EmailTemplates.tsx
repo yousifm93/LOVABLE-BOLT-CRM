@@ -22,6 +22,7 @@ interface EmailTemplate {
   name: string;
   html: string;
   created_at: string;
+  show_in_lead_details?: boolean;
 }
 
 // Define section display order for email template UI
@@ -333,11 +334,25 @@ export default function EmailTemplates() {
     return preview;
   }, [formData.html, showSampleData, allFields]);
 
+  const handleToggleShowInLeadDetails = async (id: string, checked: boolean) => {
+    const { error } = await supabase
+      .from("email_templates")
+      .update({ show_in_lead_details: checked })
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: `Template ${checked ? 'will' : 'will not'} appear in Send Email` });
+      fetchTemplates();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Email Templates</h2>
+          <h2 className="text-3xl font-bold text-foreground">Email Templates ({templates.length})</h2>
           <p className="text-muted-foreground">Create and manage email templates with merge tags</p>
         </div>
         <div className="flex gap-2">
@@ -634,6 +649,7 @@ export default function EmailTemplates() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Template Name</TableHead>
+                  <TableHead>Show in Send Email</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -642,6 +658,12 @@ export default function EmailTemplates() {
                 {templates.map((template) => (
                   <TableRow key={template.id}>
                     <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={template.show_in_lead_details !== false}
+                        onCheckedChange={(checked) => handleToggleShowInLeadDetails(template.id, checked)}
+                      />
+                    </TableCell>
                     <TableCell>{new Date(template.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
